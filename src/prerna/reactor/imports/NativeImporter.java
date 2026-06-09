@@ -71,10 +71,10 @@ import prerna.util.Utility;
 
 public class NativeImporter extends AbstractImporter {
 
-	private static final Logger logger = LogManager.getLogger(NativeImporter.class);
+	private static final Logger classLogger = LogManager.getLogger(NativeImporter.class);
 
 	private static final String CLASS_NAME = NativeImporter.class.getName();
-	
+
 	private NativeFrame dataframe;
 	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
@@ -83,61 +83,61 @@ public class NativeImporter extends AbstractImporter {
 		this.dataframe = dataframe;
 		this.qs = qs;
 	}
-	
+
 	public NativeImporter(NativeFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		this.it = it;
 	}
-	
+
 	@Override
 	public void insertData() {
 		// see if we can parse the query into a valid qs object
 		SemossDataType[] executedDataTypes = null;
 		String[] columnNames = null;
 		IDatabaseEngine database = this.qs.retrieveQueryStructEngine();
-		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
+		if (this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
 			IRDBMSEngine rdbms = (IRDBMSEngine) database;
 			// if you are RDBMS
 			// we will make a new QS
 			// and we will wrap you
-			String query = ((HardSelectQueryStruct) this.qs).getQuery();//.trim();
+			String query = ((HardSelectQueryStruct) this.qs).getQuery();// .trim();
 //			if(query.endsWith(";")) {
 //				query = query.substring(0, query.length()-1);
 //			}
 //			if(this.it == null) {
-				// use a prepared statement
-				// so we dont have to actually do the execution of the query
-				PreparedStatement ps = null;
-				ResultSetMetaData rsMeta = null;
-				try {
-					ps = rdbms.getPreparedStatement(query);
-					rsMeta = ps.getMetaData();
-					int numCols = rsMeta.getColumnCount();
-					columnNames = new String[numCols];
-					executedDataTypes = new SemossDataType[numCols];
-					for(int i = 0; i < numCols; i++) {
-						columnNames[i] = rsMeta.getColumnName(i+1);
-						executedDataTypes[i] = SemossDataType.convertStringToDataType(rsMeta.getColumnTypeName(i+1));
+			// use a prepared statement
+			// so we dont have to actually do the execution of the query
+			PreparedStatement ps = null;
+			ResultSetMetaData rsMeta = null;
+			try {
+				ps = rdbms.getPreparedStatement(query);
+				rsMeta = ps.getMetaData();
+				int numCols = rsMeta.getColumnCount();
+				columnNames = new String[numCols];
+				executedDataTypes = new SemossDataType[numCols];
+				for (int i = 0; i < numCols; i++) {
+					columnNames[i] = rsMeta.getColumnName(i + 1);
+					executedDataTypes[i] = SemossDataType.convertStringToDataType(rsMeta.getColumnTypeName(i + 1));
+				}
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						classLogger.error(Constants.STACKTRACE, e);
 					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				} finally {
-					if(ps != null) {
+					if (rdbms.isConnectionPooling()) {
 						try {
-							ps.close();
+							ps.getConnection().close();
 						} catch (SQLException e) {
-							logger.error(Constants.STACKTRACE, e);
-						}
-						if(rdbms.isConnectionPooling()) {
-							try {
-								ps.getConnection().close();
-							} catch (SQLException e) {
-								logger.error(Constants.STACKTRACE, e);
-							}
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 				}
+			}
 //				try {
 //					StringBuilder newQueryB = new StringBuilder(" select * from (" + query + ") as customQuery ");
 //					newQueryB = ((IRDBMSEngine) database).getQueryUtil().getFirstRow(newQueryB);
@@ -160,30 +160,30 @@ public class NativeImporter extends AbstractImporter {
 //					}
 //				}
 //			}
-			
+
 			String customFromAlias = "customquery";
 			SelectQueryStruct newQs = new SelectQueryStruct();
 			newQs.setEngineId(this.qs.getEngineId());
 			newQs.setEngine(this.qs.getEngine());
 			newQs.setCustomFrom(query);
 			newQs.setCustomFromAliasName(customFromAlias);
-			for(String p : columnNames) {
+			for (String p : columnNames) {
 				QueryColumnSelector selector = new QueryColumnSelector();
 				selector.setTable(customFromAlias);
 				selector.setTableAlias(customFromAlias);
 				selector.setColumn(p);
 				String alias = p;
-				while(alias.contains("__")) {
+				while (alias.contains("__")) {
 					alias = alias.replace("__", "_");
 				}
 				selector.setAlias(alias);
 				newQs.addSelector(selector);
 			}
-			
+
 			// swap the qs reference
 			newQs.setBigDataEngine(this.qs.getBigDataEngine());
 			newQs.setPragmap(this.qs.getPragmap());
-			
+
 			this.qs = newQs;
 			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 //			// lets see what happens
@@ -205,22 +205,20 @@ public class NativeImporter extends AbstractImporter {
 //				classLogger.error(Constants.STACKTRACE, e);
 //			}
 		} else {
-			if(it != null && (it instanceof IRawSelectWrapper)) {
+			if (it != null && (it instanceof IRawSelectWrapper)) {
 				executedDataTypes = ((IRawSelectWrapper) it).getTypes();
 			}
 		}
 		boolean ignore = true;
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if(qsType == QUERY_STRUCT_TYPE.ENGINE 
-				|| qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| qsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
-				) {
+		if (qsType == QUERY_STRUCT_TYPE.ENGINE || qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
 		} else if (qsType == QUERY_STRUCT_TYPE.FRAME && qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE) {
-			ignore = MetadataUtility.ignoreConceptData(((NativeFrame)qs.getFrame()).getEngineId());
-			this.qs.setEngineId( ((NativeFrame)qs.getFrame()).getEngineId() );
+			ignore = MetadataUtility.ignoreConceptData(((NativeFrame) qs.getFrame()).getEngineId());
+			this.qs.setEngineId(((NativeFrame) qs.getFrame()).getEngineId());
 			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-			this.qs = QSAliasToPhysicalConverter.getPhysicalQs(this.qs, qs.getFrame().getMetaData());			
+			this.qs = QSAliasToPhysicalConverter.getPhysicalQs(this.qs, qs.getFrame().getMetaData());
 		}
 
 		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore, executedDataTypes);
@@ -237,10 +235,10 @@ public class NativeImporter extends AbstractImporter {
 	public ITableDataFrame mergeData(List<Join> joins) throws Exception {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		String engineId = this.dataframe.getEngineId();
-		
-		if(qsType == QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
+
+		if (qsType == QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
 			boolean ignore = MetadataUtility.ignoreConceptData(engineId);
-			if(ignore) {
+			if (ignore) {
 				// this join may not be defined within the QS itself
 				// as we join on all properties
 				appendNecessaryRels(joins);
@@ -255,25 +253,27 @@ public class NativeImporter extends AbstractImporter {
 			return generateNewFrame(joins);
 		}
 	}
-	
+
 	/**
-	 * Need to add additional joins that are part of the merge
-	 * Since we do not really have TABLE, join, TABLE anymore in RDBMS
-	 * Yet I need to know what the join is
+	 * Need to add additional joins that are part of the merge Since we do not
+	 * really have TABLE, join, TABLE anymore in RDBMS Yet I need to know what the
+	 * join is
+	 * 
 	 * @param joins
 	 */
 	public void appendNecessaryRels(List<Join> joins) {
 		Set<IRelation> relations = this.qs.getRelations();
 		List<IQuerySelector> selectors = this.qs.getSelectors();
-		
+
 		int numJoins = joins.size();
 		List<IRelation> relsToAdd = new ArrayList<>();
-		
-		J_LOOP : for(int i = 0; i < numJoins; i++) {
+
+		J_LOOP: for (int i = 0; i < numJoins; i++) {
 			Join j = joins.get(i);
-			BasicRelationship jRel = new BasicRelationship(new String[] {j.getRColumn(), j.getJoinType(), j.getLColumn()});
-			for(IRelation rel : relations) {
-				if(jRel.equals(rel)) {
+			BasicRelationship jRel = new BasicRelationship(
+					new String[] { j.getRColumn(), j.getJoinType(), j.getLColumn() });
+			for (IRelation rel : relations) {
+				if (jRel.equals(rel)) {
 					continue J_LOOP;
 				}
 			}
@@ -283,24 +283,25 @@ public class NativeImporter extends AbstractImporter {
 			// we want to remove it
 			// since it is the join column
 			Iterator<IQuerySelector> it = selectors.iterator();
-			while(it.hasNext()) {
-				if(it.next().getQueryStructName().equals(j.getRColumn())) {
+			while (it.hasNext()) {
+				if (it.next().getQueryStructName().equals(j.getRColumn())) {
 					it.remove();
 					break;
 				}
 			}
 		}
-		
-		for(IRelation rel : relsToAdd) {
+
+		for (IRelation rel : relsToAdd) {
 			this.qs.addRelation(rel);
 		}
 	}
-	
+
 	/**
 	 * Generate a new frame from the existing native query
+	 * 
 	 * @param joins
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	private ITableDataFrame generateNewFrame(List<Join> joins) throws Exception {
 		// first, load the entire native frame into rframe
@@ -309,56 +310,58 @@ public class NativeImporter extends AbstractImporter {
 		nativeQs = QSAliasToPhysicalConverter.getPhysicalQs(nativeQs, this.dataframe.getMetaData());
 		IRawSelectWrapper nativeFrameIt = this.dataframe.query(nativeQs);
 		try {
-			if(!FrameSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
+			if (!FrameSizeRetrictions.sizeWithinLimit(nativeFrameIt.getNumRecords())) {
 				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding",
+								PixelDataType.CONST_STRING, PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
+								PixelOperationType.ERROR));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
-		
-		RDataTable rFrame = new RDataTable(this.in.getRJavaTranslator(LogManager.getLogger(CLASS_NAME)), Utility.getRandomString(8));
+
+		RDataTable rFrame = new RDataTable(this.in.getRJavaTranslator(LogManager.getLogger(CLASS_NAME)),
+				Utility.getRandomString(8));
 		RImporter rImporter = new RImporter(rFrame, nativeQs, nativeFrameIt);
 		rImporter.insertData();
-		
+
 		// now, we want to merge this new data into it
 		IRawSelectWrapper mergeFrameIt = null;
 		try {
 			mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					new NounMetadata("Error occurred executing query before loading into frame", 
-							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(new NounMetadata("Error occurred executing query before loading into frame",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		try {
-			if(!FrameSizeRetrictions.importWithinLimit(rFrame, mergeFrameIt)) {
+			if (!FrameSizeRetrictions.importWithinLimit(rFrame, mergeFrameIt)) {
 				SemossPixelException exception = new SemossPixelException(
-						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+						new NounMetadata("Frame size is too large, please limit the data size before proceeding",
+								PixelDataType.CONST_STRING, PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
+								PixelOperationType.ERROR));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
-		
+
 		rImporter = new RImporter(rFrame, this.qs, mergeFrameIt);
 		rImporter.mergeData(joins);
 		return rFrame;
 	}
-	
+
 	/**
-	 * This method is here to clean up and properly add the columns when there is a * in the query
+	 * This method is here to clean up and properly add the columns when there is a
+	 * * in the query
+	 * 
 	 * @param engineId
 	 * @param selectors
 	 * @param rels
@@ -367,50 +370,50 @@ public class NativeImporter extends AbstractImporter {
 		String origTable = null;
 		boolean queryAll = false;
 		int foundIndex = -1;
-		
-		for(int i = 0; i < selectors.size(); i++) {
+
+		for (int i = 0; i < selectors.size(); i++) {
 			IQuerySelector s = selectors.get(i);
-			if(s instanceof QueryOpaqueSelector) {
-				if(((QueryOpaqueSelector)s).getQuerySelectorSyntax().equals("*")) {
+			if (s instanceof QueryOpaqueSelector) {
+				if (((QueryOpaqueSelector) s).getQuerySelectorSyntax().equals("*")) {
 					foundIndex = i;
-					origTable = ((QueryOpaqueSelector)s).getTable();
+					origTable = ((QueryOpaqueSelector) s).getTable();
 					queryAll = true;
 					break;
 				}
 			}
 		}
-		
-		if(queryAll) {
+
+		if (queryAll) {
 			// query all pulls from every table
 			// including the joisn
 			List<String> tables = new Vector<String>();
 			tables.add(origTable.toLowerCase());
-			
-			for(String[] r : rels) {
+
+			for (String[] r : rels) {
 				String from = r[0];
-				if(from.contains("__")) {
+				if (from.contains("__")) {
 					from = from.split("__")[0];
 				}
-				if(!tables.contains(from)) {
+				if (!tables.contains(from)) {
 					tables.add(from.toLowerCase());
 				}
-				
+
 				String to = r[2];
-				if(to.contains("__")) {
+				if (to.contains("__")) {
 					to = to.split("__")[0];
 				}
-				if(!tables.contains(to)) {
+				if (!tables.contains(to)) {
 					tables.add(to.toLowerCase());
 				}
 			}
 
 			boolean multiTable = tables.size() > 1;
 			Collection<String> possibleSelectors = MasterDatabaseUtility.getSelectorsWithinDatabaseRDBMS(engineId);
-			for(String pSelector : possibleSelectors) {
-				if(pSelector.contains("__")) {
+			for (String pSelector : possibleSelectors) {
+				if (pSelector.contains("__")) {
 					String possibleT = pSelector.split("__")[0];
-					if(tables.contains(possibleT.toLowerCase())) {
-						if(multiTable) {
+					if (tables.contains(possibleT.toLowerCase())) {
+						if (multiTable) {
 							qs.addSelector(new QueryColumnSelector(pSelector, pSelector));
 						} else {
 							qs.addSelector(new QueryColumnSelector(pSelector));
@@ -418,7 +421,7 @@ public class NativeImporter extends AbstractImporter {
 					}
 				}
 			}
-			
+
 			// now we need to remove the index that we had found
 			qs.getSelectors().remove(foundIndex);
 		}

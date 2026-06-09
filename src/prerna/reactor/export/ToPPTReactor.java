@@ -65,13 +65,14 @@ import prerna.util.Utility;
 
 public class ToPPTReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ToPPTReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ToPPTReactor.class);
 
 	private static final String CLASS_NAME = ToPPTReactor.class.getName();
 
 	public ToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.BASE_URL.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
+				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 	}
 
 	@Override
@@ -80,21 +81,22 @@ public class ToPPTReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		String insightFolder = this.insight.getInsightFolder();
 		String baseUrl = this.keyValue.get(this.keysToGet[0]);
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(this.keysToGet[4]);
-		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
+		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
 			try {
 				waitTime = Integer.parseInt(waitTimeStr);
-			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(
+						"Invalid wait time option = '" + waitTimeStr + "'. Error is: " + e.getMessage());
 			}
 		}
-		
+
 		List<String> urls = getUrls();
 
 		String sessionId = ThreadStore.getSessionId();
@@ -115,10 +117,10 @@ public class ToPPTReactor extends AbstractReactor {
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		
+
 		// get a random file name
 		// grab file path to write the file
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 		String fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
@@ -164,7 +166,7 @@ public class ToPPTReactor extends AbstractReactor {
 		}
 		writeToFile(slideshow, fileLocation);
 
-		// store the insight file 
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
@@ -185,7 +187,7 @@ public class ToPPTReactor extends AbstractReactor {
 		// Point DPI = 72 = 1 inch
 		// Maintain 1920 x 1080 aspect ratio - let's fit to the width of the
 		// slide
-		double dpiPerInch = (double) Units.POINT_DPI;
+		double dpiPerInch = Units.POINT_DPI;
 		double slideWidth = 10;
 		double slideHeight = 7.5;
 		double widthOffsetInches = 0.1;
@@ -214,9 +216,9 @@ public class ToPPTReactor extends AbstractReactor {
 			OutputStream out = new FileOutputStream(path);
 			slideshow.write(out);
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 	}
 }

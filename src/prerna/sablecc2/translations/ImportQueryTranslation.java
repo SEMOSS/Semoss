@@ -51,86 +51,89 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ImportQueryTranslation extends LazyTranslation {
-	
-	private static final Logger logger = LogManager.getLogger(ImportQueryTranslation.class);
+
+	private static final Logger classLogger = LogManager.getLogger(ImportQueryTranslation.class);
 
 	private Map<Pixel, SelectQueryStruct> importQsMap = new HashMap<>();
-	
+
 	public ImportQueryTranslation(Insight insight) {
 		super(insight);
 		this.isTimeTracking = false;
 	}
-	
+
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-		for(int i = 0; i < copy.size(); i++) {
+		for (int i = 0; i < copy.size(); i++) {
 			PRoutine e = copy.get(i);
 			String expression = e.toString();
-			if(expression.contains("Import")) {
-        		this.resultKey = "$RESULT_" + e.hashCode();
-				logger.info("Processing " + Utility.cleanLogString(expression));
+			if (expression.contains("Import")) {
+				this.resultKey = "$RESULT_" + e.hashCode();
+				classLogger.info("Processing " + Utility.cleanLogString(expression));
 				e.apply(this);
 			}
 		}
 	}
-	
+
 	/**
 	 * Same method as in lazy with addition of addRoutine method
 	 */
 	@Override
-    protected void deInitReactor() {
-    	if(curReactor != null) {
-    		// merge up and update the plan
-    		try {
-    			curReactor.mergeUp();
-    			curReactor.updatePlan();
-    		} catch(Exception e) {
-    			logger.error(Constants.STACKTRACE, e);
-    			throw new IllegalArgumentException(e.getMessage());
-    		}
-    		
-    		// get the parent
-    		Object parent = curReactor.Out();
-    		// set the parent as the curReactor if it is present
-    		prevReactor = curReactor;
-    		if(parent instanceof IReactor) {
-    			curReactor = (IReactor) parent;
-    		} else {
-    			curReactor = null;
-    		}
+	protected void deInitReactor() {
+		if (curReactor != null) {
+			// merge up and update the plan
+			try {
+				curReactor.mergeUp();
+				curReactor.updatePlan();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
+			}
 
-    		// account for moving qs
-    		if(curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
-    			AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
-	    		this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
-    		}
-    		
-        	// need to find imports
-        	if(prevReactor != null && (prevReactor instanceof ImportReactor)) {
-    			SelectQueryStruct importQs = (SelectQueryStruct) prevReactor.getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
-    			importQsMap.put(this.pixelObj, importQs);
-        	}
-    	}
-    }
-	
-    /////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////
-    
+			// get the parent
+			Object parent = curReactor.Out();
+			// set the parent as the curReactor if it is present
+			prevReactor = curReactor;
+			if (parent instanceof IReactor) {
+				curReactor = (IReactor) parent;
+			} else {
+				curReactor = null;
+			}
+
+			// account for moving qs
+			if (curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+				AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+				this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+			}
+
+			// need to find imports
+			if (prevReactor != null && (prevReactor instanceof ImportReactor)) {
+				SelectQueryStruct importQs = (SelectQueryStruct) prevReactor.getNounStore()
+						.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
+				importQsMap.put(this.pixelObj, importQs);
+			}
+		}
+	}
+
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+
 	public void setPixelObj(Pixel pixelObj) {
 		this.pixelObj = pixelObj;
 	}
-	
+
 	/**
 	 * Get the import qs in the recipe
+	 * 
 	 * @return
 	 */
 	public Map<Pixel, SelectQueryStruct> getImportQsMap() {
 		return importQsMap;
 	}
-	
+
 	/**
 	 * Testing method
+	 * 
 	 * @param args
 	 */
 //	public static void main(String[] args) {

@@ -38,7 +38,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RemoveUserRoomReactor extends AbstractReactor {
 	@SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(RemoveUserRoomReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoveUserRoomReactor.class);
 
     public RemoveUserRoomReactor() {
         this.keysToGet = new String[] {"roomId"};
