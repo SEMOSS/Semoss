@@ -43,7 +43,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractUserTrackingUtils implements IUserTracking {
 
-	private static Logger logger = LogManager.getLogger(AbstractUserTrackingUtils.class);
+	private static Logger classLogger = LogManager.getLogger(AbstractUserTrackingUtils.class);
 
 	/**
 	 * 
@@ -115,13 +115,13 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (engine.isConnectionPooling()) {
@@ -130,7 +130,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -154,13 +154,13 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 			if (engine.isConnectionPooling()) {
@@ -169,7 +169,7 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

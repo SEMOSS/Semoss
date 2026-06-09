@@ -52,13 +52,16 @@ import prerna.util.Utility;
 
 public class FilterTransformation extends AbstractTransformation {
 
-	private static final Logger logger = LogManager.getLogger(FilterTransformation.class);
+	private static final Logger classLogger = LogManager.getLogger(FilterTransformation.class);
 
-	public static final String METHOD_NAME = "filter";						// name of the method in all data makers to perform a filter
-	public static final String UNDO_METHOD_NAME = "unfilter";				// name of the method in all data makers to perform undo filtering
-	public static final String COLUMN_HEADER_KEY = "colHeader";				// key in properties map for the type to apply the filter for
-	public static final String VALUES_KEY = "values";						// key in properties map for the list of values to filter
-	public static final String VISIBLE_VALUES_KEY = "valueSet";				// key in properties map for the list of values to display in drop down
+	public static final String METHOD_NAME = "filter"; // name of the method in all data makers to perform a filter
+	public static final String UNDO_METHOD_NAME = "unfilter"; // name of the method in all data makers to perform undo
+																// filtering
+	public static final String COLUMN_HEADER_KEY = "colHeader"; // key in properties map for the type to apply the
+																// filter for
+	public static final String VALUES_KEY = "values"; // key in properties map for the list of values to filter
+	public static final String VISIBLE_VALUES_KEY = "valueSet"; // key in properties map for the list of values to
+																// display in drop down
 	private static final String STACKTRACE = "StackTrace: ";
 
 	private DataMakerComponent dmc;
@@ -66,17 +69,17 @@ public class FilterTransformation extends AbstractTransformation {
 	private IDataMaker dm;
 
 	@Override
-	public void setDataMakers(IDataMaker... dm){
+	public void setDataMakers(IDataMaker... dm) {
 		this.dm = dm[0];
 	}
-	
+
 	@Override
-	public void setDataMakerComponent(DataMakerComponent dmc){
+	public void setDataMakerComponent(DataMakerComponent dmc) {
 		this.dmc = dmc;
 	}
-	
+
 	@Override
-	public void setTransformationType(Boolean preTransformation){
+	public void setTransformationType(Boolean preTransformation) {
 		this.preTrans = preTransformation;
 	}
 
@@ -86,7 +89,8 @@ public class FilterTransformation extends AbstractTransformation {
 		List<Object> values = ((List<Object>) this.props.get(VALUES_KEY));
 
 		if (values == null) {
-			logger.info("VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
+			classLogger.info(
+					"VALUES FOR THIS FILTER HAS NOT BEEN SET.... THIS IS MOST LIKELY A FILTER PAIRED WITH A JOIN.... GRABBING VALUES FROM DATAMAKER");
 			if (dm instanceof ITableDataFrame) {
 				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> uniqIterator = null;
@@ -95,7 +99,7 @@ public class FilterTransformation extends AbstractTransformation {
 					try {
 						uniqIterator = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						logger.error(STACKTRACE, e);
+						classLogger.error(STACKTRACE, e);
 					}
 				} else {
 					// tinker
@@ -103,7 +107,7 @@ public class FilterTransformation extends AbstractTransformation {
 					try {
 						uniqIterator = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						logger.error(STACKTRACE, e);
+						classLogger.error(STACKTRACE, e);
 					}
 				}
 				values = new Vector<>();
@@ -115,10 +119,11 @@ public class FilterTransformation extends AbstractTransformation {
 				}
 			}
 		}
-        
+
 		// if this is a pre-transformation
 		if (preTrans) {
-			// if there is metamodel data, add this as a filter and let query builder do its thing
+			// if there is metamodel data, add this as a filter and let query builder do its
+			// thing
 			QueryStruct builderData = this.dmc.getQueryStruct();
 			if (builderData != null) {
 				addFilterToComponentData(colHeader, new ArrayList<>(values), builderData);
@@ -141,16 +146,15 @@ public class FilterTransformation extends AbstractTransformation {
 		}
 	}
 
-
-	
 	/**
-	 * Appends the filtering into the metamodel data within the component
-	 * Used when the filtering transformation is a preTransformation
-	 * @param colHeader						The name of type to filter
-	 * @param values						The list of values for the filter
-	 * @param metamodelData					The metamodel data
+	 * Appends the filtering into the metamodel data within the component Used when
+	 * the filtering transformation is a preTransformation
+	 * 
+	 * @param colHeader     The name of type to filter
+	 * @param values        The list of values for the filter
+	 * @param metamodelData The metamodel data
 	 */
-	private void addFilterToComponentData(String colHeader, List<Object> values, QueryStruct builderData){
+	private void addFilterToComponentData(String colHeader, List<Object> values, QueryStruct builderData) {
 //        Map<String, List<Object>> stringMap;
 //        if(builderData.getFilterData() != null && !builderData.getFilterData().isEmpty()) {
 //               stringMap = builderData.getFilterData();
@@ -161,57 +165,59 @@ public class FilterTransformation extends AbstractTransformation {
 //        builderData.setFilterData(stringMap);
 		builderData.addFilter(colHeader, "=", values);
 	}
-		
+
 	/**
 	 * Runs the postTransformation filtering routine
-	 * @param colHeader					The name of the type to filter
-	 * @param values					The list of values to filter
+	 * 
+	 * @param colHeader The name of the type to filter
+	 * @param values    The list of values to filter
 	 */
-	private void runFilterMethod(String colHeader, List<Object> values){
+	private void runFilterMethod(String colHeader, List<Object> values) {
 		try {
 //			method = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
-//			LOGGER.info("Successfully got method : " + METHOD_NAME);
+//			classLogger.info("Successfully got method : " + METHOD_NAME);
 //			
 //			method.invoke(dm, colHeader, values);
-//			LOGGER.info("Successfully invoked method : " + METHOD_NAME);
+//			classLogger.info("Successfully invoked method : " + METHOD_NAME);
 			filterColumn(dm, colHeader, values);
 		} catch (NoSuchMethodException | SecurityException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(STACKTRACE, e);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			classLogger.error(STACKTRACE, iae);
 		} catch (IllegalArgumentException ie) {
-			logger.error(STACKTRACE, ie);
+			classLogger.error(STACKTRACE, ie);
 		} catch (InvocationTargetException ite) {
-			logger.error(STACKTRACE, ite);
+			classLogger.error(STACKTRACE, ite);
 		}
 	}
-	
-	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr) throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		
+
+	public static void filterColumn(IDataMaker dm, String concept, List<Object> filterValuesArr)
+			throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException {
+
 		List<Object> values = new ArrayList<>(filterValuesArr.size());
-		//if column is numeric convert to double
+		// if column is numeric convert to double
 		Method isNumericMethod = dm.getClass().getMethod("isNumeric", String.class);
-		if((boolean) isNumericMethod.invoke(dm, concept)) {
-			for(Object o: filterValuesArr) {
+		if ((boolean) isNumericMethod.invoke(dm, concept)) {
+			for (Object o : filterValuesArr) {
 				try {
 					values.add(Double.parseDouble(o.toString()));
-				} catch(Exception e) {
+				} catch (Exception e) {
 					values.add(o);
 				}
 			}
-		}
-		else { 
+		} else {
 			values.addAll(filterValuesArr);
 //			for(Object o: filterValuesArr) {
 //				values.add(Utility.getInstanceName(o+""));
 //			}
 		}
-		
-		//get filter and unfilter methods from data maker
+
+		// get filter and unfilter methods from data maker
 		Method filterMethod = dm.getClass().getMethod(METHOD_NAME, String.class, List.class);
 		filterMethod.invoke(dm, concept, values);
 
-		logger.info("Filtered column: "+concept);
+		classLogger.info("Filtered column: " + concept);
 	}
 
 	@Override
@@ -222,25 +228,25 @@ public class FilterTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		String colHeader = this.props.get(COLUMN_HEADER_KEY) +"";
+		String colHeader = this.props.get(COLUMN_HEADER_KEY) + "";
 //		Set<Object> values = ((Stack<Set<Object>>) this.props.get(VISIBLE_VALUES_KEY)).firstElement();
-		
+
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
-			logger.info("Successfully got method : " + UNDO_METHOD_NAME);
-			
+			classLogger.info("Successfully got method : " + UNDO_METHOD_NAME);
+
 			method.invoke(dm, colHeader);
-			logger.info("Successfully invoked method : " + UNDO_METHOD_NAME);
+			classLogger.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 
 		} catch (NoSuchMethodException | SecurityException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(STACKTRACE, e);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			classLogger.error(STACKTRACE, iae);
 		} catch (IllegalArgumentException ie) {
-			logger.error(STACKTRACE, ie);
+			classLogger.error(STACKTRACE, ie);
 		} catch (InvocationTargetException ite) {
-			logger.error(STACKTRACE, ite);
+			classLogger.error(STACKTRACE, ite);
 		}
 	}
 
@@ -249,21 +255,23 @@ public class FilterTransformation extends AbstractTransformation {
 	 * make a copy that can be saved in the insight
 	 */
 	public FilterTransformation copy() {
-		
+
 		FilterTransformation copy = new FilterTransformation();
 		copy.setDataMakerComponent(dmc);
 		copy.setDataMakers(dm);
 		copy.setId(id);
-		
-		if(props != null) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+
+		if (props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues()
+					.setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
-			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {
+			}.getType());
 			copy.setProperties(newProps);
 		}
-		
+
 		copy.setTransformationType(preTrans);
-		
+
 		return copy;
-	}	
+	}
 }

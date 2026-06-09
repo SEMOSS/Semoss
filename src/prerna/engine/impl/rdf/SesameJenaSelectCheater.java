@@ -46,75 +46,90 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * This takes a select query and turns it over into a Construct Statement
- * it assumes the first one is subject, second one is predicate and third one is object
+ * This takes a select query and turns it over into a Construct Statement it
+ * assumes the first one is subject, second one is predicate and third one is
+ * object
  */
 @Deprecated
-public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
-	
+public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
+
+	@Deprecated
 	public transient TupleQueryResult tqr = null;
-	
-	transient org.apache.jena.query.ResultSet rs = null;	
-	transient org.apache.jena.query.QuerySolution curSt = null;	
-	
-	transient DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;	
-	//IDatabase engine = null;
+
+	@Deprecated
+	transient org.apache.jena.query.ResultSet rs = null;
+	@Deprecated
+	transient org.apache.jena.query.QuerySolution curSt = null;
+
+	@Deprecated
+	transient DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;
+	// IDatabase engine = null;
+	@Deprecated
 	transient BindingSet bs;
-	transient String query = null;	
-	static final Logger logger = LogManager.getLogger(SesameJenaSelectCheater.class);
-	transient int count=0;
-	String [] var = null;
-	transient int tqrCount=0;
+	@Deprecated
+	transient String query = null;
+	@Deprecated
+	static final Logger classLogger = LogManager.getLogger(SesameJenaSelectCheater.class);
+	@Deprecated
+	transient int count = 0;
+	@Deprecated
+	String[] var = null;
+	@Deprecated
+	transient int tqrCount = 0;
+	@Deprecated
 	transient int triples;
+	@Deprecated
 	String queryVar[];
+	@Deprecated
 	transient SesameJenaSelectCheater proxy = null;
-	
+
 	/**
 	 * Method setEngine. Sets the engine.
+	 * 
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
+	@Deprecated
 	@Override
-	public void setEngine(IDatabaseEngine engine)
-	{
-		logger.debug("Set the engine " );
+	public void setEngine(IDatabaseEngine engine) {
+		classLogger.debug("Set the engine ");
 		this.engine = engine;
 		engineType = engine.getDatabaseType();
 	}
-	
+
 	/**
 	 * Method setQuery. - Sets the SPARQL query statement.
+	 * 
 	 * @param query String - The string version of the SPARQL query.
 	 */
+	@Deprecated
 	@Override
-	public void setQuery(String query)
-	{
-		logger.debug("Setting the query " + query);
+	public void setQuery(String query) {
+		classLogger.debug("Setting the query " + query);
 		this.query = query;
 	}
 
 	/**
-	 * Method execute. - Executes the SPARQL query based on the type of engine selected, and processes the variables.
-	 * @throws Exception 
+	 * Method execute. - Executes the SPARQL query based on the type of engine
+	 * selected, and processes the variables.
+	 * 
+	 * @throws Exception
 	 */
+	@Deprecated
 	@Override
-	public void execute() throws Exception
-	{
-		if(engineType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-		{
+	public void execute() throws Exception {
+		if (engineType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			tqr = (TupleQueryResult) engine.execQuery(query);
 			getVariables();
-			
+
 			processSelectVar();
-			count=0;
-		}
-		else if(engineType == IDatabaseEngine.DATABASE_TYPE.JENA)
-		{
-			rs = (org.apache.jena.query.ResultSet)engine.execQuery(query);
+			count = 0;
+		} else if (engineType == IDatabaseEngine.DATABASE_TYPE.JENA) {
+			rs = (org.apache.jena.query.ResultSet) engine.execQuery(query);
 			getVariables();
-			
+
 			processSelectVar();
-			count=0;
-			
+			count = 0;
+
 		}
 //		else if(engineType == IDatabase.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
 //		{
@@ -126,260 +141,234 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper{
 //			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
 //		}
 	}
-	
+
 	/**
-	 * Method getVariables.  Based on the type of engine, this returns the variables from the query result.
-	
-	 * @return String[] - An array containing the names of the variables from the result.
-	 * */
-	public String[] getVariables()
-	{
+	 * Method getVariables. Based on the type of engine, this returns the variables
+	 * from the query result.
+	 * 
+	 * @return String[] - An array containing the names of the variables from the
+	 *         result.
+	 */
+	@Deprecated
+	public String[] getVariables() {
 		try {
-			if(var == null)
-			{
-				if(engineType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-				{
+			if (var == null) {
+				if (engineType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 					var = new String[tqr.getBindingNames().size()];
-					List <String> names = tqr.getBindingNames();
-					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-				}
-				else if(engineType == IDatabaseEngine.DATABASE_TYPE.JENA)
-				{
+					List<String> names = tqr.getBindingNames();
+					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
+						;
+					}
+				} else if (engineType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 					var = new String[rs.getResultVars().size()];
-					List <String> names = rs.getResultVars();
-					for(int colIndex = 0;
-							colIndex < names.size();
-							var[colIndex] = names.get(colIndex), colIndex++);
-				}
-				else if(engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-				{
+					List<String> names = rs.getResultVars();
+					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
+						;
+					}
+				} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
 					var = proxy.getVariables();
 				}
 
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return var;
 	}
-	
+
 	/**
-	 * Method hasNext.  Checks to see if the tuple query result has additional results.
-	
+	 * Method hasNext. Checks to see if the tuple query result has additional
+	 * results.
+	 * 
 	 * @return boolean - True if the Tuple Query result has additional results.
-	 * */
-	public boolean hasNext() 
-	{
+	 */
+	@Deprecated
+	@Override
+	public boolean hasNext() {
 		boolean retBool = false;
-		try
-		{
-			logger.debug("Checking for next " );
-			if(engineType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+		try {
+			classLogger.debug("Checking for next ");
+			if (engineType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				retBool = tqr.hasNext();
-				if(!retBool)
+				if (!retBool) {
 					tqr.close();
-			}
-			else if(engineType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+				}
+			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				retBool = rs.hasNext();
-			}
-			else if(engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				if(retSt != null) // they have not taken the previous one yet
+			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+				if (retSt != null) { // they have not taken the previous one yet
 					return true;
+				}
 				retSt = new SesameJenaConstructStatement();
-				
+
 				// I need to pull from remote
 				// this is just so stupid to call its own
-				if(ris == null)
-				{
-					Hashtable params = new Hashtable<String,String>();
+				if (ris == null) {
+					Hashtable params = new Hashtable<String, String>();
 					params.put("id", proxy.getRemoteId());
 					ris = new ObjectInputStream(Utility.getStream(proxy.getRemoteAPI() + "/next", params));
-				}	
+				}
 
-				if(count==0)
-				{
+				if (count == 0) {
 					Object myObject = ris.readObject();
-					if(!myObject.toString().equalsIgnoreCase("null"))
-					{
-						bs = (BindingSet)myObject;
+					if (!myObject.toString().equalsIgnoreCase("null")) {
+						bs = (BindingSet) myObject;
 						retBool = true;
 					}
-					//tqrCount++;
-					//logger.info(tqrCount);
+					// tqrCount++;
+					// logger.info(tqrCount);
 				}
-				logger.debug("Adding a sesame statement ");
-				
+				classLogger.debug("Adding a sesame statement ");
+
 				// there should only be three values
 
-				Object sub=null;
+				Object sub = null;
 				Object pred = null;
 				Object obj = null;
-				while (sub==null || pred==null || obj==null)
-				{
-					if (count==triples)
-					{
-						count=0;
+				while (sub == null || pred == null || obj == null) {
+					if (count == triples) {
+						count = 0;
 						Object myObject = ris.readObject();
-						if(!myObject.toString().equalsIgnoreCase("null"))
-						{
-							bs = (BindingSet)myObject;
+						if (!myObject.toString().equalsIgnoreCase("null")) {
+							bs = (BindingSet) myObject;
 							tqrCount++;
-						}
-						else
-						{
-							try{
-								if(ris!=null) {
+						} else {
+							try {
+								if (ris != null) {
 									ris.close();
 								}
-							} catch(IOException e) {
-								logger.error(Constants.STACKTRACE, e);
+							} catch (IOException e) {
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
-					sub = bs.getValue(queryVar[count*3].substring(1));
-					pred = bs.getValue(queryVar[count*3+1].substring(1));
-					obj = bs.getValue(queryVar[count*3+2].substring(1));
+					sub = bs.getValue(queryVar[count * 3].substring(1));
+					pred = bs.getValue(queryVar[count * 3 + 1].substring(1));
+					obj = bs.getValue(queryVar[count * 3 + 2].substring(1));
 					count++;
 				}
-				retSt.setSubject(sub+"");
-				retSt.setPredicate(pred+"");
+				retSt.setSubject(sub + "");
+				retSt.setPredicate(pred + "");
 				retSt.setObject(obj);
-				if (count==triples)
-				{
-					count=0;
+				if (count == triples) {
+					count = 0;
 				}
 				retBool = true;
 			}
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 			retBool = false;
 		} catch (ClassNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			retBool = false;
 		} catch (IOException ioe) {
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error(Constants.STACKTRACE, ioe);
 			retBool = false;
 		} catch (QueryEvaluationException ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 			retBool = false;
 		}
-		logger.debug(" Next " + retBool);
+		classLogger.debug(" Next " + retBool);
 		return retBool;
 	}
-	
+
 	/**
-	 * Method next.  Processes the selelct transition to construct statement for either Sesame or Jena.
-	
+	 * Method next. Processes the selelct transition to construct statement for
+	 * either Sesame or Jena.
+	 * 
 	 * @return SesameJenaConstructStatement - returns the construct statement.
-	 * */
+	 */
+	@Deprecated
 	@Override
-	public SesameJenaConstructStatement next()
-	{
+	public SesameJenaConstructStatement next() {
 		SesameJenaConstructStatement thisSt = null;
-		
-		try
-		{	
-				
-			if(engineType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+
+		try {
+
+			if (engineType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				thisSt = new SesameJenaConstructStatement();
-				if(count==0)
-				{
+				if (count == 0) {
 					bs = tqr.next();
-					//tqrCount++;
-					//logger.info(tqrCount);
+					// tqrCount++;
+					// logger.info(tqrCount);
 				}
-				logger.debug("Adding a sesame statement ");
-				
+				classLogger.debug("Adding a sesame statement ");
+
 				// there should only be three values
 
-				Object sub=null;
+				Object sub = null;
 				Object pred = null;
 				Object obj = null;
-				while (sub==null || pred==null || obj==null)
-				{
-					if (count==triples)
-					{
-						count=0;
+				while (sub == null || pred == null || obj == null) {
+					if (count == triples) {
+						count = 0;
 						bs = tqr.next();
 						tqrCount++;
 					}
-					sub = bs.getValue(queryVar[count*3].substring(1));
-					pred = bs.getValue(queryVar[count*3+1].substring(1));
-					obj = bs.getValue(queryVar[count*3+2].substring(1));
+					sub = bs.getValue(queryVar[count * 3].substring(1));
+					pred = bs.getValue(queryVar[count * 3 + 1].substring(1));
+					obj = bs.getValue(queryVar[count * 3 + 2].substring(1));
 					count++;
 				}
-				thisSt.setSubject(sub+"");
-				thisSt.setPredicate(pred+"");
+				thisSt.setSubject(sub + "");
+				thisSt.setPredicate(pred + "");
 				thisSt.setObject(obj);
-				if (count==triples)
-				{
-					count=0;
+				if (count == triples) {
+					count = 0;
 				}
-			}
-			else if(engineType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				thisSt = new SesameJenaConstructStatement();
-			    logger.debug("Adding a JENA statement ");
-			    org.apache.jena.query.QuerySolution row = rs.nextSolution();
-			    thisSt.setSubject(row.get(var[0])+"");
-			    thisSt.setPredicate(row.get(var[1])+"");
-			    thisSt.setObject(row.get(var[2]));
-			}			
-			else if(engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
+				classLogger.debug("Adding a JENA statement ");
+				org.apache.jena.query.QuerySolution row = rs.nextSolution();
+				thisSt.setSubject(row.get(var[0]) + "");
+				thisSt.setPredicate(row.get(var[1]) + "");
+				thisSt.setObject(row.get(var[2]));
+			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
 				thisSt = retSt;
 				retSt = null;
 			}
 
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			classLogger.error(Constants.STACKTRACE, ex);
 		}
 		return thisSt;
 	}
 
 	/**
-	 * Method processSelectVar - Processes the select query based on its contents and converts to construct.
+	 * Method processSelectVar - Processes the select query based on its contents
+	 * and converts to construct.
 	 */
-	public void processSelectVar()
-	{
-		if(query.contains("DISTINCT"))
-		{
+	@Deprecated
+	public void processSelectVar() {
+		if (query.contains("DISTINCT")) {
 			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) 
-		    {
-		    	varString = matcher.group(1);
-		    }
-		    
-		    if (varString != null) {
-			    varString = varString.trim();
-			    queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
-		}
-		else
-		{
-			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) {
-		        varString = matcher.group(1);
-		    }
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
 
-		    if (varString != null) {
-		    	varString = varString.trim();
-		    	queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
+		} else {
+			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
+
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
 		}
 	}
-	
+
 }
