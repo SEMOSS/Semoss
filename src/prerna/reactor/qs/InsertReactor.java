@@ -47,7 +47,6 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -58,7 +57,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -92,7 +90,7 @@ public class InsertReactor extends AbstractReactor {
 
 		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 				IDatabaseEngine engine = qs.retrieveQueryStructEngine();
 				if (!(engine instanceof IRDBMSEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
@@ -110,7 +108,7 @@ public class InsertReactor extends AbstractReactor {
 					throw new IllegalArgumentException(
 							"User does not have permission to insert query for this database");
 				}
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
 				if (!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Insert query only works for sql frames");
@@ -232,8 +230,8 @@ public class InsertReactor extends AbstractReactor {
 			valuesSb.append(")");
 
 			String query = initial + valuesSb.toString();
-			classLogger.info("SQL QUERY...." + query);
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+			classLogger.info("SQL QUERY....{}", query);
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 				if (database == null) {
 					throw new NullPointerException("No engine passed in to insert the data");
 				}
@@ -243,7 +241,7 @@ public class InsertReactor extends AbstractReactor {
 						database.commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to insert new records into the database with query {}", query, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occurred trying to insert new records in the database",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -259,7 +257,7 @@ public class InsertReactor extends AbstractReactor {
 						((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to insert new records into the frame with query {}", query, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occurred trying to insert new records in the frame",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -345,7 +343,7 @@ public class InsertReactor extends AbstractReactor {
 					AuditDatabase audit = database.generateAudit();
 					audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to insert new records into the database with query {}", query, e);
 					throw new SemossPixelException(
 							new NounMetadata("An error occurred trying to insert new records in the database",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
