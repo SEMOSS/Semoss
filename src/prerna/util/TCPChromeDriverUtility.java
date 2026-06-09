@@ -50,7 +50,7 @@ import prerna.util.insight.InsightUtility;
 public class TCPChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	protected static final Logger logger = LogManager.getLogger(InsightUtility.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
@@ -97,8 +97,8 @@ public class TCPChromeDriverUtility {
 			chromeOptions.addArguments("--disable-gpu");
 			chromeOptions.addArguments("--window-size=" + height + "," + width);
 			chromeOptions.addArguments("--remote-debugging-port=9222");
-			// logger.info("##CHROME DRIVER: allowing insecure local");
-			// logger.info("##CHROME DRIVER: ignore certs");
+			// classLogger.info("##CHROME DRIVER: allowing insecure local");
+			// classLogger.info("##CHROME DRIVER: ignore certs");
 
 			// chromeOptions.addArguments("--allow-insecure-localhost");
 			chromeOptions.addArguments("--ignore-certificate-errors");
@@ -125,10 +125,10 @@ public class TCPChromeDriverUtility {
 		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
 		if (TCPChromeDriverUtility.contextPath != null) {
-			logger.info("##CHROME DRIVER: starting url = " + url);
+			classLogger.info("##CHROME DRIVER: starting url = " + url);
 
-			logger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
-			logger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
+			classLogger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
+			classLogger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -137,14 +137,14 @@ public class TCPChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ TCPChromeDriverUtility.contextPath;
 
-			logger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
-			// logger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
+			classLogger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
+			// classLogger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
 
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
-			logger.info("##CHROME DRIVER: contextPath is null");
-			logger.info("##CHROME DRIVER: url to get = " + url);
+			classLogger.info("##CHROME DRIVER: contextPath is null");
+			classLogger.info("##CHROME DRIVER: url to get = " + url);
 
 		}
 
@@ -164,7 +164,7 @@ public class TCPChromeDriverUtility {
 				}
 
 			} else {
-				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
+				classLogger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
 			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			// driver.manage().addCookie(name);
@@ -182,14 +182,14 @@ public class TCPChromeDriverUtility {
 		 * "//html/body//div[@id='viz-loaded']")));
 		 * 
 		 * String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
-		 * ""; //logger.info(html2);
+		 * ""; //classLogger.info(html2);
 		 */
 
 		// time for FE to render the page before the image is taken
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// take image
 		File srcFile = driver.getScreenshotAs(OutputType.FILE);
@@ -197,7 +197,7 @@ public class TCPChromeDriverUtility {
 			// FileUtils.copyFile(srcFile, new File(imagePath));
 			// FileUtils.moveFile(srcFile, new File(imagePath));
 			File targetFile = new File(imagePath);
-			// logger.debug("source file has been written to.. " +
+			// classLogger.debug("source file has been written to.. " +
 			// srcFile.getAbsolutePath());
 			copyFile(srcFile, targetFile);
 			while (!targetFile.exists()) // wait for the file to be written
@@ -206,7 +206,7 @@ public class TCPChromeDriverUtility {
 			}
 			return srcFile.getAbsolutePath();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -239,16 +239,16 @@ public class TCPChromeDriverUtility {
 	}
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
-		logger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
-		logger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
+		classLogger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
+		classLogger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
 
-		logger.info("##CHROME DRIVER: looking cookie with Name = " + cookieName);
+		classLogger.info("##CHROME DRIVER: looking cookie with Name = " + cookieName);
 
 		Iterator<Cookie> cooki2 = driver.manage().getCookies().iterator();
 		while (cooki2.hasNext()) {
 			Cookie cook3 = cooki2.next();
 			String name2 = cook3.getName();
-			logger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
+			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
 		}
 
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
@@ -259,31 +259,31 @@ public class TCPChromeDriverUtility {
 			cook = cooki.next();
 			String name = cook.getName();
 			if (name.equalsIgnoreCase(cookieName)) {
-				logger.info("##CHROME DRIVER: found cookie with Name = " + cookieName);
+				classLogger.info("##CHROME DRIVER: found cookie with Name = " + cookieName);
 
 				// driver.manage().deleteCookie(cook);
 
-				// logger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
+				// classLogger.info("##CHROME DRIVER: deleted cookie with Name = "+ cookieName);
 				cookieFound = true;
 				break;
 			}
 		}
 
 		if (cookieFound) {
-			logger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
+			classLogger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
 					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: " + cook.isSecure()
 					+ " value: " + cook.getValue());
 			driver.manage().deleteCookie(cook);
-			logger.info("##CHROME DRIVER: deleted cookie with Name = " + cookieName);
+			classLogger.info("##CHROME DRIVER: deleted cookie with Name = " + cookieName);
 			Cookie name = new Cookie(cook.getName(), cookieValue, cook.getDomain(), cook.getPath(), cook.getExpiry(),
 					cook.isSecure(), cook.isHttpOnly());
-			logger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName() + " domain: " + name.getDomain()
-					+ " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly() + " isSecure: " + name.isSecure()
-					+ " value: " + name.getValue());
+			classLogger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName() + " domain: "
+					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
+					+ " isSecure: " + name.isSecure() + " value: " + name.getValue());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		} else {
-			logger.info("##CHROME DRIVER: cookie not found " + cookieName);
+			classLogger.info("##CHROME DRIVER: cookie not found " + cookieName);
 
 			// Date expiresDate = new Date(new Date().getTime() + 36000*1000);
 
@@ -291,7 +291,7 @@ public class TCPChromeDriverUtility {
 			// null);
 			Cookie name = new Cookie(cookieName, cookieValue, "/"); // , null);
 
-			// logger.info("##CHROME DRIVER: MODDED COOKIE");
+			// classLogger.info("##CHROME DRIVER: MODDED COOKIE");
 			//
 			// Cookie name= new Cookie(cookieName,
 			// cookieValue,
@@ -300,7 +300,7 @@ public class TCPChromeDriverUtility {
 			// null,
 			// true,
 			// true);
-			logger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName() + " domain: "
+			classLogger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName() + " domain: "
 					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
 					+ " isSecure: " + name.isSecure() + " value: " + name.getValue() + " age: " + name.getExpiry()
 					+ " json: " + name.toJson());
@@ -316,10 +316,10 @@ public class TCPChromeDriverUtility {
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 
 		if (TCPChromeDriverUtility.contextPath != null) {
-			logger.info("##CHROME DRIVER: starting url = " + url);
+			classLogger.info("##CHROME DRIVER: starting url = " + url);
 
-			logger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
-			logger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
+			classLogger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
+			classLogger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -328,13 +328,13 @@ public class TCPChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ TCPChromeDriverUtility.contextPath;
 
-			logger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
+			classLogger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
 
 			TCPChromeDriverUtility.driver.get(baseUrl);
 		} else {
 			TCPChromeDriverUtility.driver.get(url);
-			logger.info("##CHROME DRIVER: contextPath is null");
-			logger.info("##CHROME DRIVER: url to get = " + url);
+			classLogger.info("##CHROME DRIVER: contextPath is null");
+			classLogger.info("##CHROME DRIVER: url to get = " + url);
 		}
 		TCPChromeDriverUtility.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
@@ -353,20 +353,20 @@ public class TCPChromeDriverUtility {
 					updateCookie(TCPChromeDriverUtility.driver, routeCookieName, route);
 				}
 			} else {
-				logger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
+				classLogger.info("##CHROME DRIVER: routeID in threadstore is null or empty");
 			}
 			// Cookie name = new Cookie(ChromeDriverUtility.sessionCookie, sessionId, "/");
 			// driver.manage().addCookie(name);
 		}
 
-		logger.info("Chrome -- Navingating to URL  " + url);
+		classLogger.info("Chrome -- Navingating to URL  " + url);
 		TCPChromeDriverUtility.driver.navigate().to(url);
 
 		// add a sleep
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// trying the wait
@@ -377,7 +377,7 @@ public class TCPChromeDriverUtility {
 																										// but..
 		WebElement we1 = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//html/body//table")));
 
-		logger.info(" The element output I got is " + we1.getText());
+		classLogger.info(" The element output I got is " + we1.getText());
 
 		// String html2 = getHTML(TCPChromeDriverUtility.driver, "//html/body//table");
 		return we1.getText();
@@ -466,7 +466,7 @@ public class TCPChromeDriverUtility {
 	// try {
 	// Thread.sleep(10_000);
 	// } catch (InterruptedException e) {
-	// logger.error(Constants.STACKTRACE, e);
+	// classLogger.error(Constants.STACKTRACE, e);
 	// }
 	// // take image
 	// File scrFile = (File) ((TakesScreenshot)
@@ -474,7 +474,7 @@ public class TCPChromeDriverUtility {
 	// try {
 	// FileUtils.copyFile(scrFile, new File(imagePath));
 	// } catch (IOException e) {
-	// logger.error(Constants.STACKTRACE, e);
+	// classLogger.error(Constants.STACKTRACE, e);
 	// }
 	// if (close) {
 	// driver.quit();
@@ -516,7 +516,7 @@ public class TCPChromeDriverUtility {
 //		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 //		String eTitle = "Demo Guru99 Page";
 //		String aTitle = "";
-//		logger.info("Starting wait");
+//		classLogger.info("Starting wait");
 //		// launch Chrome and redirect it to the Base URL
 //		driver.get("http://demo.guru99.com/test/guru99home/");
 //		// Maximizes the browser window
@@ -524,7 +524,7 @@ public class TCPChromeDriverUtility {
 //		// get the actual value of the title
 //		aTitle = driver.getTitle();
 //		// compare the actual title with the expected title
-//		logger.info("Title is " + aTitle);
+//		classLogger.info("Title is " + aTitle);
 //	}
 
 }

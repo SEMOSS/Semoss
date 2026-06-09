@@ -70,7 +70,7 @@ import prerna.util.Utility;
  */
 public class BuildAndPublishAppReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(BuildAndPublishAppReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(BuildAndPublishAppReactor.class);
 
 	private static final String PROJECT_ID = ReactorKeysEnum.PROJECT.getKey();
 	private static final String CLIENT_DIR = "client";
@@ -124,7 +124,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			// 1 - Zip the client folder
 			tempZip = Files.createTempFile("semoss-client-", ".zip");
 			zipDirectory(clientDir, tempZip);
-			logger.info("Zipped client ({} bytes) -> {}", Files.size(tempZip), tempZip);
+			classLogger.info("Zipped client ({} bytes) -> {}", Files.size(tempZip), tempZip);
 
 			// 2 - POST to the node builder service
 			String endpoint = endpointBase + "/build" + "?buildCmd=" + URLEncoder.encode(BUILD_CMD, "UTF-8")
@@ -132,14 +132,14 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 
 			portalsZip = Files.createTempFile("semoss-portals-", ".zip");
 			postMultipart(endpoint, tempZip, portalsZip);
-			logger.info("Received portals zip ({} bytes)", Files.size(portalsZip));
+			classLogger.info("Received portals zip ({} bytes)", Files.size(portalsZip));
 
 			// 3 - Extract portals zip into the project's asset directory
 			Path portalsDir = projectAssetsDir.resolve(Constants.PORTALS_FOLDER).normalize();
 			deleteDirectory(portalsDir);
 			Files.createDirectories(portalsDir);
 			unzip(portalsZip, portalsDir, Constants.PORTALS_FOLDER);
-			logger.info("Extracted portals -> {}", portalsDir);
+			classLogger.info("Extracted portals -> {}", portalsDir);
 
 			// 4 - Re-publish the project so SEMOSS picks up the new assets
 			this.insight.runPixel("PublishProject(project=['" + projectId + "']);");
@@ -148,14 +148,14 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			try {
 				ClusterUtil.pushProject(projectId);
 			} catch (Exception e) {
-				logger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
+				classLogger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
 			}
 
 			return new NounMetadata("App [" + projectId + "] built and published successfully.",
 					PixelDataType.CONST_STRING, PixelOperationType.SUCCESS);
 
 		} catch (Exception e) {
-			logger.error("BuildAndPublishApp failed for project {}", projectId, e);
+			classLogger.error("BuildAndPublishApp failed for project {}", projectId, e);
 			return error(e.getMessage());
 		} finally {
 			quietDelete(tempZip);
