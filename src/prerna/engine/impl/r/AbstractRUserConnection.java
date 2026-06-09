@@ -108,13 +108,13 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			} else {
 				logger.info("Running R script: {}", rScript);
 			}
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<REXP> future = executor.submit(new Callable<REXP>() {
 						@Override
 						public REXP call() throws Exception {
-							REXP rexp = rcon.eval(rScript); // fails here .. if you wrapped this.. all is well I feel..
+							REXP rexp = rcon.eval(rScript); // fails here .. if you wrapped this.. all is well I
+															// feel..
 							if (recoveryEnabled) {
 								saveImage(); // Save image after execution
 							}
@@ -131,9 +131,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						throw new IllegalArgumentException("Failed to run R script.");
 					}
 				}
-
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 
@@ -170,8 +167,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			} else {
 				logger.info("Running R script: {}", rScript);
 			}
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
@@ -193,8 +189,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						throw new IllegalArgumentException("Failed to run R script = " + rScript);
 					}
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 
@@ -218,8 +212,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	public RSession detach() {
 		if (isHealthy()) {
 			logger.info("Detaching R.");
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<RSession> future = executor.submit(new Callable<RSession>() {
 						@Override
@@ -240,8 +233,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 						throw new IllegalArgumentException("Failed to detach R.");
 					}
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 			throw recoveryStatus();
@@ -264,10 +255,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	@Override
 	public void loadDefaultPackages() {
 		try {
-
 			// load all the libraries
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
@@ -302,11 +291,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					// sometimes this is slow on startup
 					future.get(DEFAULT_PACAKGES_TIMEOUT, DEFAULT_PACAKGES_UNIT);
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} catch (Exception e) {
-			logger.error("Failed to load one or more default R libraries (splitstackshape, data.table, reshape2, stringr, lubridate, dplyr)", e);
+			logger.error(
+					"Failed to load one or more default R libraries (splitstackshape, data.table, reshape2, stringr, lubridate, dplyr)",
+					e);
 			throw new IllegalArgumentException(
 					"Could not load R libraries.\n Please make sure the following libraries are installed:\n "
 							+ "1)splitstackshape\n" + "2)data.table\n" + "3)reshape2\n" + "4)stringr\n"
@@ -401,8 +390,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	protected boolean isHealthy(long timeout, TimeUnit timeUnit) {
 		boolean beating = false; // Healthy skepticism
 
-		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-		try {
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 			synchronized (rconMonitor) {
 				Future<REXP> future = executor.submit(new Callable<REXP>() {
 					@Override
@@ -421,8 +409,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			logger.warn("R health check eval threw an exception", e);
 		} catch (REXPMismatchException e) {
 			logger.warn("R health check returned an unexpected result type; expected numeric 3.0", e);
-		} finally {
-			executor.shutdownNow();
 		}
 
 		return beating;

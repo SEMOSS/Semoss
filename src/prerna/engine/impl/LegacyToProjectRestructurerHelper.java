@@ -253,15 +253,10 @@ public class LegacyToProjectRestructurerHelper {
 		File newSmssFile = new File(newSmssPath);
 		newSmssFile.createNewFile();
 
-		BufferedReader bReader = null;
-		BufferedWriter bWriter = null;
-		FileReader fReader = null;
-		try {
-			fReader = new FileReader(oldSmssFilePath);
-			bReader = new BufferedReader(fReader);
-
-			bWriter = new BufferedWriter(new FileWriter(newSmssFile));
-
+		try (FileReader fReader = new FileReader(oldSmssFilePath);
+				BufferedReader bReader = new BufferedReader(fReader);
+				FileWriter fWriter = new FileWriter(newSmssFile);
+				BufferedWriter bWriter = new BufferedWriter(fWriter);) {
 			String line = bReader.readLine();
 			while (line != null) {
 				if (line.startsWith("RDBMS_INSIGHTS") || line.startsWith("RDBMS_INSIGHTS_TYPE")) {
@@ -271,14 +266,6 @@ public class LegacyToProjectRestructurerHelper {
 				bWriter.write(line);
 				bWriter.newLine();
 				line = bReader.readLine();
-			}
-		} finally {
-			if (bReader != null) {
-				bReader.close();
-			}
-			if (bWriter != null) {
-				bWriter.flush();
-				bWriter.close();
 			}
 		}
 
