@@ -60,8 +60,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -194,19 +196,9 @@ public class SecurityPrincipalTokenLimitUtils {
 		if (user == null || isBlank(engineId)) {
 			return limits;
 		}
-		for (AuthProvider login : user.getLogins()) {
-			AccessToken token = user.getAccessToken(login);
-			if (token == null || isBlank(token.getUserGroupType())) {
-				continue;
-			}
-			Collection<String> groups = token.getUserGroups();
-			if (groups == null || groups.isEmpty()) {
-				continue;
-			}
-			for (String groupId : groups) {
-				if (!isBlank(groupId)) {
-					limits.addAll(getEngineTeamTokenLimits(engineId, groupId, token.getUserGroupType()));
-				}
+		for (Map.Entry<String, Set<String>> groupEntry : getApplicableTeamGroups(user).entrySet()) {
+			for (String groupId : groupEntry.getValue()) {
+				limits.addAll(getEngineTeamTokenLimits(engineId, groupId, groupEntry.getKey()));
 			}
 		}
 		return limits;
@@ -236,26 +228,41 @@ public class SecurityPrincipalTokenLimitUtils {
 		if (user == null || isBlank(projectId)) {
 			return limits;
 		}
-		for (AuthProvider login : user.getLogins()) {
-			AccessToken token = user.getAccessToken(login);
-			if (token == null || isBlank(token.getUserGroupType())) {
-				continue;
-			}
-			Collection<String> groups = token.getUserGroups();
-			if (groups == null || groups.isEmpty()) {
-				continue;
-			}
-			for (String groupId : groups) {
-				if (!isBlank(groupId)) {
-					limits.addAll(getProjectTeamTokenLimits(projectId, groupId, token.getUserGroupType(), engineId));
-					if (!ALL_ENGINES_SENTINEL.equals(normalizeScopedEngineId(engineId))) {
-						limits.addAll(getProjectTeamTokenLimits(projectId, groupId, token.getUserGroupType(),
-								ALL_ENGINES_SENTINEL));
-					}
+		for (Map.Entry<String, Set<String>> groupEntry : getApplicableTeamGroups(user).entrySet()) {
+			for (String groupId : groupEntry.getValue()) {
+				limits.addAll(getProjectTeamTokenLimits(projectId, groupId, groupEntry.getKey(), engineId));
+				if (!ALL_ENGINES_SENTINEL.equals(normalizeScopedEngineId(engineId))) {
+					limits.addAll(getProjectTeamTokenLimits(projectId, groupId, groupEntry.getKey(),
+							ALL_ENGINES_SENTINEL));
 				}
 			}
 		}
 		return limits;
+	}
+
+	private static Map<String, Set<String>> getApplicableTeamGroups(User user) {
+		Map<String, Set<String>> groupsByType = new HashMap<>();
+		for (AuthProvider login : user.getLogins()) {
+			AccessToken token = user.getAccessToken(login);
+			if (token == null) {
+				continue;
+			}
+			addGroups(groupsByType, "CUSTOM", AdminSecurityGroupUtils.getUserCustomGroups(token));
+			addGroups(groupsByType, token.getUserGroupType(), token.getUserGroups());
+		}
+		return groupsByType;
+	}
+
+	private static void addGroups(Map<String, Set<String>> groupsByType, String groupType, Collection<String> groups) {
+		if (isBlank(groupType) || groups == null || groups.isEmpty()) {
+			return;
+		}
+		Set<String> typedGroups = groupsByType.computeIfAbsent(groupType, ignored -> new HashSet<>());
+		for (String groupId : groups) {
+			if (!isBlank(groupId)) {
+				typedGroups.add(groupId);
+			}
+		}
 	}
 
 	public static List<Map<String, Object>> getProjectTeamTokenLimits(String projectId, String groupId, String groupType,
