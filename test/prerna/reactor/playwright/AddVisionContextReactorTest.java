@@ -27,20 +27,18 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-@RunWith(MockitoJUnitRunner.class)
 public class AddVisionContextReactorTest {
 
 	private AddVisionContextReactor reactor;
@@ -51,8 +49,9 @@ public class AddVisionContextReactorTest {
 	@Mock
 	private NounStore mockNounStore;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
+		MockitoAnnotations.openMocks(this);
 		reactor = new AddVisionContextReactor();
 		reactor.setInsight(mockInsight);
 		reactor.setNounStore(mockNounStore);
@@ -72,9 +71,9 @@ public class AddVisionContextReactorTest {
 		assertEquals(PixelDataType.CONST_STRING, result.getNounType());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_WithNullVisionContext_ThrowsException() {
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 	@Test
@@ -121,9 +120,9 @@ public class AddVisionContextReactorTest {
 		assertArrayEquals(expectedKeys, reactor.keysToGet);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testMissingRequiredKey_ThrowsException() {
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 	@Test

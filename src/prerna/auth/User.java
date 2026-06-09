@@ -59,6 +59,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
+import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -71,7 +72,7 @@ public class User implements Serializable {
 
 	private static Logger classLogger = LogManager.getLogger(User.class);
 
-	protected static final String DIR_SEPARATOR = "/";
+	private static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
 	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
@@ -281,7 +282,7 @@ public class User implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load or create user asset project for token {}", token, e);
 			}
 
 			this.assetProjectMap.put(token, projectId);
@@ -293,6 +294,26 @@ public class User implements Serializable {
 		}
 
 		return this.assetProjectMap.get(token);
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject,
+	 * resolved via the primary login token.
+	 */
+	public IProject getAssetProject() {
+		return getAssetProject(getPrimaryLogin());
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject for
+	 * the given auth provider token.
+	 */
+	public IProject getAssetProject(AuthProvider token) {
+		String projectId = getAssetProjectId(token);
+		if (projectId == null) {
+			return null;
+		}
+		return Utility.getUserAssetProject(projectId);
 	}
 
 	public Map<AuthProvider, String> getAssetEngineMap() {
@@ -627,7 +648,7 @@ public class User implements Serializable {
 			try {
 				this.pythonCPW.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to reconnect to user python process", e);
 				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 			}
 		}
@@ -697,7 +718,7 @@ public class User implements Serializable {
 						debug = true;
 					} catch (NumberFormatException e) {
 						// ignore
-						classLogger.warn("User " + User.getSingleLogginName(this) + " has an invalid FORCE_PORT value");
+						classLogger.warn("User {} has an invalid FORCE_PORT value", User.getSingleLogginName(this));
 					}
 				}
 			}
@@ -727,18 +748,20 @@ public class User implements Serializable {
 					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
 							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to start chrooted python process for user {}",
+							User.getSingleLogginName(this), e);
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
 			} else {
 				try {
 					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
+							serverDirectory, e);
 					throw new IllegalArgumentException("Could not create directory to launch project process");
 				}
 
-				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
+				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
 							: null;
@@ -746,7 +769,8 @@ public class User implements Serializable {
 							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
 							ThreadContext.getImmutableContext());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to start non-chroot python process for user {}",
+							User.getSingleLogginName(this), e);
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
 			}

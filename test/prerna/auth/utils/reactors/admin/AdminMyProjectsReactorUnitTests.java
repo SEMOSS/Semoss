@@ -77,7 +77,7 @@ public class AdminMyProjectsReactorUnitTests {
 		reactor.setNounStore(ns);
 		when(insight.getUser()).thenReturn(user);
 
-		// curRow is accessed by getMetaMap() — use reflection since it's protected in
+		// curRow is accessed by getMetaMap() - use reflection since it's protected in
 		// AbstractReactor
 		GenRowStruct curRow = mock(GenRowStruct.class);
 		Field curRowField = AbstractReactor.class.getDeclaredField("curRow");
@@ -219,7 +219,7 @@ public class AdminMyProjectsReactorUnitTests {
 			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
-			// noMeta=true and includeUserT=false → skip metadata and usertracking blocks
+			// noMeta=true and includeUserT=false -> skip metadata and usertracking blocks
 			reactor.keyValue.put(ReactorKeysEnum.NO_META.getKey(), "true");
 
 			NounMetadata result = reactor.execute();

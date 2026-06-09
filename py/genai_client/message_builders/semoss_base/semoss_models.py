@@ -2,9 +2,8 @@ import base64
 from typing import Dict, List, Optional, Union, Any, Literal
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 import urllib.request
-from ...utils import StringEnum
+from ...utils import StringEnum, deprecated
 import json
-from deprecated import deprecated
 
 
 class SEMOSSMediaInputType(StringEnum):
@@ -267,10 +266,16 @@ class SEMOSSToolCall(BaseModel):
     function: SEMOSSToolFunction
     type: Literal["function"]
     id: Optional[str] = None
+    # Base64-encoded, Gemini thinking models only
     thought_signature: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("thought_signature", "thoughtSignature"),
-    )  # Base64-encoded, Gemini thinking models only
+    )
+    # True when the call targeted a provider-side built-in tool (e.g. web_search).
+    # Mirror of the same flag on SEMOSSToolExecution.
+    server_tool: Optional[bool] = Field(
+        default=None, validation_alias=AliasChoices("server_tool", "serverTool")
+    )
 
 
 class SEMOSSToolResponse(BaseModel):
@@ -297,6 +302,12 @@ class SEMOSSToolExecution(BaseModel):
     )
     tool_status: Optional[str] = Field(
         default=None, validation_alias=AliasChoices("tool_status", "toolStatus")
+    )
+    # True when the result came from a provider-side built-in tool (e.g. web_search).
+    # these results must replay inside the assistant turn as a provider-specific result block,
+    # not as a generic client `tool_result`.
+    server_tool: Optional[bool] = Field(
+        default=None, validation_alias=AliasChoices("server_tool", "serverTool")
     )
 
 

@@ -49,24 +49,42 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RunLOFReactor extends AbstractRFrameReactor {
-	/*
+
+	/**
+	 * <p>
 	 * RunLOF(instance = [Studio], kNeighbors = [10], attributes = ["MovieBudget",
-	 * "Revenue_Domestic"]) RunLOF(instance = [Studio], kNeighbors = [ "10:12, 5" ],
-	 * attributes = ["MovieBudget", "Revenue_Domestic"]) RunLOF(instance = [Studio],
-	 * kNeighbors = ["10,11,12"], attributes = ["MovieBudget", "Revenue_Domestic"])
-	 * RunLOF(instance = [Species], uniqInstPerRow = ["no"], kNeighbors =[2],
-	 * attributes = ["SepalLength", "SepalWidth","PetalLength", "PetalWidth"])
-	 * 
-	 * Input keys: 1. instance (required) 2. kNeighbors (required) - can be one of 3
-	 * types: integer or a list of integers (if list then wrap the whole list in
-	 * quotes) example: kNeighbors = [10]; kNeighbors = ["5:7"]; kNeighbors =
-	 * ["5, 6, 7"] 3. attributes (required) - must be columns of data type = numeric
-	 * 4. uniqInstPerRow (optional; if not passed in, assumes no) - if yes, then
-	 * will treat each row in the frame as a unique instance/record; if no, then
-	 * will aggregate the data in the attributes columns by the instance column
-	 * first
+	 * "Revenue_Domestic"])
+	 * </p>
+	 *
+	 * <p>
+	 * RunLOF(instance = [Studio], kNeighbors = ["10:12, 5"], attributes =
+	 * ["MovieBudget", "Revenue_Domestic"])
+	 * </p>
+	 *
+	 * <p>
+	 * RunLOF(instance = [Studio], kNeighbors = ["10,11,12"], attributes =
+	 * ["MovieBudget", "Revenue_Domestic"])
+	 * </p>
+	 *
+	 * <p>
+	 * RunLOF(instance = [Species], uniqInstPerRow = ["no"], kNeighbors = [2],
+	 * attributes = ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth"])
+	 * </p>
+	 *
+	 * <p>
+	 * Input keys:
+	 * </p>
+	 * <ul>
+	 * <li>instance (required)</li>
+	 * <li>kNeighbors (required) - can be one of three types: integer, integer range
+	 * in quotes, or comma-separated list in quotes; examples: [10], ["5:7"], ["5,
+	 * 6, 7"]</li>
+	 * <li>attributes (required) - must be columns with numeric data type</li>
+	 * <li>uniqInstPerRow (optional; if not passed in, assumes no) - if yes, each
+	 * row is treated as a unique instance/record; if no, data in the attribute
+	 * columns is aggregated by the instance column first</li>
+	 * </ul>
 	 */
-	private static final String CLASS_NAME = RunLOFReactor.class.getName();
 
 	private static final String K_NEIGHBORS = "kNeighbors";
 	private static final String UNIQUE_INSTANCE_PER_ROW = "uniqInstPerRow";
@@ -242,27 +260,13 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 		meta.setDataTypeToProperty(frameName + "__" + tempKeyCol, "INT");
 	}
 
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-	////////////////////// Input Methods///////////////////////////
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-
 	private String getInstanceColumn() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-
-		// else, we assume it is the first column
-		if (this.curRow == null || this.curRow.size() == 0) {
+		String instanceColumn = getStringFromKeyOrCurRow(keysToGet[0], 0);
+		if (instanceColumn == null || instanceColumn.isEmpty()) {
 			String errorString = "Could not find the instance column";
 			throw new IllegalArgumentException(errorString);
 		}
-		return this.curRow.get(0).toString();
+		return instanceColumn;
 	}
 
 	private String getUniqInstPerRow() {
@@ -297,15 +301,10 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getAttrList() {
-		List<String> retList = new ArrayList<String>();
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
-			for (NounMetadata noun : columnGrs.vector) {
-				retList.add(noun.getValue().toString());
-			}
-		} else {
-			throw new IllegalArgumentException("Please specify attributes.");
+			return convertAllValuesToString(columnGrs);
 		}
-		return retList;
+		throw new IllegalArgumentException("Please specify attributes.");
 	}
 }

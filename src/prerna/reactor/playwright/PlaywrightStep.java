@@ -113,7 +113,7 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 	 * one and updating its label, text, storeValue, description, shouldRun, and
 	 * required flags.
 	 * 
-	 * @param s           The existing PlaywrightStep to copy from.§
+	 * @param s           The existing PlaywrightStep to copy from.section
 	 * @param label       The new label for the step.
 	 * @param text        The new text content for the step.
 	 * @param storeValue  The new storeValue flag for the step.

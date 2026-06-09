@@ -50,7 +50,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ApiSemossTestEmailUtils {
 
-	private static String MAILPIT_FOLDER = Paths.get(ApiTestsSemossConstants.TEST_BASE_DIRECTORY, "mailpit").toString();
+	// Mailpit lives at a stable fixture path (not inside the per-run temp workspace)
+	// so the firewall rule the user grants on first run keeps applying across runs.
+	private static String MAILPIT_FOLDER = Paths.get(ApiTestsSemossConstants.TEST_RESOURCES_DIRECTORY, "mailpit").toString();
 	private static String MAILPIT_WINDOWS_EXE = Paths.get(MAILPIT_FOLDER, "mailpit.exe").toString();
 	private static String MAILPIT_MAC_EXE = Paths.get(MAILPIT_FOLDER, "mailpit").toString();
 	private static String MAILPIT_LOG = Paths.get(MAILPIT_FOLDER, "mailpit.log").toString();
@@ -144,12 +146,12 @@ public class ApiSemossTestEmailUtils {
 			if (isWin) {
 				processStr = MAILPIT_WINDOWS_EXE;
 				if (Files.notExists(Paths.get(MAILPIT_WINDOWS_EXE))) {
-					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+					fail("mailpit.exe not located, please read the readme in the test/resources/mailpit directory");
 				}
 			} else {
 				processStr = MAILPIT_MAC_EXE;
 				if (Files.notExists(Paths.get(MAILPIT_MAC_EXE))) {
-					fail("mailpit.exe not located, please read the readme in the testfolder/mailpit directory");
+					fail("mailpit.exe not located, please read the readme in the test/resources/mailpit directory");
 				}
 			}
 

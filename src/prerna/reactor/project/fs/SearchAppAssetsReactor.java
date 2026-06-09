@@ -48,8 +48,6 @@ import prerna.util.Utility;
 
 public class SearchAppAssetsReactor extends AbstractReactor {
 
-	private DateTimeFormatter dateTimeFormatter;
-
 	public SearchAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
@@ -60,7 +58,8 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		this.dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+				.withZone(user.getZoneId());
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {

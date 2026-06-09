@@ -40,7 +40,7 @@ public class ApiTestsSemossConstants {
 	public static final String BASE_DIRECTORY = new File("").getAbsolutePath();
 	public static final String TEST_RESOURCES_DIRECTORY = Paths.get(BASE_DIRECTORY, "test", "resources").toAbsolutePath().toString();
 
-	public static final String TEST_BASE_DIRECTORY = new File("testfolder").getAbsolutePath();
+	public static final String TEST_BASE_DIRECTORY = IntegrationTestWorkspace.basePath().toAbsolutePath().toString();
 
 	public static final String TEST_DB_DIRECTORY = Paths.get(TEST_BASE_DIRECTORY, "db").toAbsolutePath().toString();
 	public static final String TEST_PROJECT_DIRECTORY = Paths.get(TEST_BASE_DIRECTORY, "project").toAbsolutePath().toString();

@@ -227,8 +227,9 @@ public class ApiSemossTestEngineUtils {
 		String smssPath = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + ".smss";
 		String db = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
 
-		assertTrue(smssPath.contains("testfolder"));
-		assertTrue(db.contains("testfolder"));
+		String marker = IntegrationTestWorkspace.MARKER_PREFIX;
+		assertTrue(smssPath.contains(marker), "Expected SMSS path to be inside the integration test workspace: " + smssPath);
+		assertTrue(db.contains(marker), "Expected DB path to be inside the integration test workspace: " + db);
 
 		if (Files.exists(Paths.get(db))) {
 			Files.delete(Paths.get(db));
@@ -263,7 +264,8 @@ public class ApiSemossTestEngineUtils {
 		Statement st = null;
 		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
 				connectionDetails.getRight())) {
-			assertTrue(connectionDetails.getLeft().contains("testfolder"));
+			assertTrue(connectionDetails.getLeft().contains(IntegrationTestWorkspace.MARKER_PREFIX),
+					"Expected connection URL to be inside the integration test workspace: " + connectionDetails.getLeft());
 
 			ps = conn
 					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
@@ -315,7 +317,8 @@ public class ApiSemossTestEngineUtils {
 		Statement st = null;
 		try (Connection conn = DriverManager.getConnection(connectionDetails.getLeft(), connectionDetails.getMiddle(),
 				connectionDetails.getRight())) {
-			assertTrue(connectionDetails.getLeft().contains("testfolder"));
+			assertTrue(connectionDetails.getLeft().contains(IntegrationTestWorkspace.MARKER_PREFIX),
+					"Expected connection URL to be inside the integration test workspace: " + connectionDetails.getLeft());
 
 			ps = conn
 					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
@@ -380,7 +383,8 @@ public class ApiSemossTestEngineUtils {
 		Statement st = null;
 		try (Connection conn = DriverManager.getConnection(connectiondetails.getLeft(), connectiondetails.getMiddle(),
 				connectiondetails.getRight())) {
-			assertTrue(connectiondetails.getLeft().contains("testfolder"));
+			assertTrue(connectiondetails.getLeft().contains(IntegrationTestWorkspace.MARKER_PREFIX),
+					"Expected connection URL to be inside the integration test workspace: " + connectiondetails.getLeft());
 
 			ps = conn
 					.prepareStatement("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'");
@@ -434,7 +438,8 @@ public class ApiSemossTestEngineUtils {
 		connection = connection.replaceAll("@BaseFolder@",
 				ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'));
 		connection = connection.replaceAll("@ENGINE@", db);
-		assertTrue(connection.contains("testfolder"));
+		assertTrue(connection.contains(IntegrationTestWorkspace.MARKER_PREFIX),
+				"Expected connection URL to be inside the integration test workspace: " + connection);
 
 		String username = props.getProperty(Constants.USERNAME);
 		String password = props.getProperty(Constants.PASSWORD);
