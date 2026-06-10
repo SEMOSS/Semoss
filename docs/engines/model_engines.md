@@ -79,7 +79,7 @@ To create a new `MODEL` engine for a different provider or a new type of local m
 
 #### OpenAI models on Bedrock (Mantle)
 
-AWS exposes OpenAI models on Bedrock through the OpenAI-compatible "Mantle" endpoint at `https://bedrock-mantle.<region>.api.aws/openai/v1`. The Java engine class is still `prerna.engine.impl.model.BedrockEngine` — the only difference is the `INIT_MODEL_ENGINE` template, which routes to `genai_client.OpenAiClient` with `provider='bedrock-mantle'` instead of `genai_client.AnthropicClient`.
+AWS exposes OpenAI models on Bedrock through the OpenAI-compatible "Mantle" endpoint at `https://bedrock-mantle.<region>.api.aws/openai/v1`. The Java engine class is still `prerna.engine.impl.model.BedrockEngine` — the only difference is the `INIT_MODEL_ENGINE` template, which routes to `genai_client.OpenAiClient` with `provider='bedrock'` instead of `genai_client.AnthropicClient`.
 
 The Python `OpenAiClient` wraps the standard OpenAI SDK with an httpx auth class that SigV4-signs each request. No separate Bedrock API key is required.
 
@@ -92,7 +92,7 @@ Credentials resolution follows the standard boto3 default chain when `AWS_ACCESS
     ENGINE_TYPE         prerna.engine.impl.model.BedrockEngine
     NAME                GPT 5.4 Bedrock
     MODEL_TYPE          BEDROCK
-    PROVIDER            bedrock-mantle
+    PROVIDER            bedrock
     MODEL               openai.gpt-5.4
     AWS_REGION          us-east-2
     AWS_ACCESS_KEY      <access-key>
