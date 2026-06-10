@@ -39,311 +39,293 @@ import org.openrdf.query.QueryEvaluationException;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
-import prerna.util.Utility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
- * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes CONSTRUCT statements. 
+ * The wrapper helps takes care of selection of the type of engine you are using
+ * (Jena/Sesame). This wrapper processes CONSTRUCT statements.
  */
 @Deprecated
 public class SesameJenaConstructWrapper extends AbstractWrapper {
-	
-	public transient GraphQueryResult gqr = null;	
-	
+
+	@Deprecated
+	public transient GraphQueryResult gqr = null;
+
+	@Deprecated
 	transient org.apache.jena.rdf.model.Model model = null;
-	transient org.apache.jena.rdf.model.StmtIterator si = null;	
+	@Deprecated
+	transient org.apache.jena.rdf.model.StmtIterator si = null;
+	@Deprecated
 	transient org.apache.jena.rdf.model.Statement curSt = null;
 
+	@Deprecated
 	public transient IDatabaseEngine engine = null;
+	@Deprecated
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
+	@Deprecated
 	transient String query = null;
+	@Deprecated
 	transient SesameJenaConstructStatement retSt = null;
+	@Deprecated
 	public transient boolean queryBoolean = true;
-	static final Logger logger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
+	@Deprecated
+	static final Logger classLogger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
+	@Deprecated
 	transient SesameJenaConstructWrapper remoteWrapperProxy = null;
+	@Deprecated
 	transient ObjectInputStream ris = null;// remote input stream
-	
-	
-	protected SesameJenaConstructWrapper()
-	{
-		
+
+	@Deprecated
+	protected SesameJenaConstructWrapper() {
+
 	}
-	
+
 	/**
 	 * Method setGqr. - Sets the Graph query result.
-	 * @param gqr GraphQueryResult - The graph query result that this is being set to.
+	 * 
+	 * @param gqr GraphQueryResult - The graph query result that this is being set
+	 *            to.
 	 */
-	public void setGqr(GraphQueryResult gqr)
-	{
+	@Deprecated
+	public void setGqr(GraphQueryResult gqr) {
 		this.gqr = gqr;
 	}
-	
+
 	/**
 	 * Method setEngine. Sets the engine.
+	 * 
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
-	public void setEngine(IDatabaseEngine engine)
-	{
+	@Deprecated
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 		databaseType = engine.getDatabaseType();
 	}
-	
+
 	/**
 	 * Method setQuery. - Sets the SPARQL query statement.
+	 * 
 	 * @param query String - The string version of the SPARQL query.
 	 */
-	public void setQuery(String query)
-	{
+	@Deprecated
+	@Override
+	public void setQuery(String query) {
 		this.query = query;
 	}
-	
+
 	/**
-	 * Method execute.  Executes the SPARQL query based on the type of engine selected.
-	 * @throws Exception 
+	 * Method execute. Executes the SPARQL query based on the type of engine
+	 * selected.
+	 * 
+	 * @throws Exception
 	 */
-	public void execute() throws Exception
-	{
+	@Deprecated
+	@Override
+	public void execute() throws Exception {
 		try {
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
-				gqr = (GraphQueryResult)engine.execQuery(this.query);
-			}
-			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
-				model = (org.apache.jena.rdf.model.Model)engine.execQuery(query);
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+				gqr = (GraphQueryResult) engine.execQuery(this.query);
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
+				model = (org.apache.jena.rdf.model.Model) engine.execQuery(query);
 				setModel(model);
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
 				// get the actual SesameJenaConstructWrapper from the engine
 				// this is json output
-				//System.out.println("Trying to get the wrapper remotely now");
+				// System.out.println("Trying to get the wrapper remotely now");
 				// get the input stream directly here
-				remoteWrapperProxy = (SesameJenaConstructWrapper)engine.execQuery(query);
+				remoteWrapperProxy = (SesameJenaConstructWrapper) engine.execQuery(query);
 			}
 		} catch (RuntimeException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	/**
 	 * Method setModel. Sets the type of model being used.
+	 * 
 	 * @param model Model - The model type.
 	 */
-	public void setModel(org.apache.jena.rdf.model.Model model)
-	{
+	@Deprecated
+	public void setModel(org.apache.jena.rdf.model.Model model) {
 		this.model = model;
 		si = model.listStatements();
 	}
-	
+
 	/**
-	 * Method hasNext.  Checks to see if the tuple query result has additional results.
-	
+	 * Method hasNext. Checks to see if the tuple query result has additional
+	 * results.
+	 * 
 	 * @return boolean - True if the Tuple Query result has additional results.
-	 * */
-	public boolean hasNext() 
-	{
+	 */
+	@Deprecated
+	public boolean hasNext() {
 		boolean retBool = false;
-		try
-		{
-			logger.debug("Checking for next " );
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+		try {
+			classLogger.debug("Checking for next ");
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				retBool = gqr.hasNext();
-				if(!retBool)
+				if (!retBool) {
 					gqr.close();
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+				}
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				retBool = si.hasNext();
-				if(!retBool)
+				if (!retBool) {
 					si.close();
+				}
 			}
 			// need to include an engine type remote so that it can pull it through REST API
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				if(retSt != null) // they have not picked it up yet
+			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+				if (retSt != null) { // they have not picked it up yet
 					return true;
+				}
 				retSt = new SesameJenaConstructStatement();
 				// I need to pull from remote
 				// this is just so stupid to call its own
-				if(ris == null)
-				{
-					Hashtable params = new Hashtable<String,String>();
+				if (ris == null) {
+					Hashtable params = new Hashtable<String, String>();
 					params.put("id", remoteWrapperProxy.getRemoteId());
 					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-				}					
+				}
 				try {
 					Object myObject = ris.readObject();
-					
-					if(!myObject.toString().equalsIgnoreCase("null"))
-					{
+
+					if (!myObject.toString().equalsIgnoreCase("null")) {
 						org.apache.jena.rdf.model.Statement stmt = (org.apache.jena.rdf.model.Statement) myObject;
-						retSt.setSubject(stmt.getSubject()+"");
+						retSt.setSubject(stmt.getSubject() + "");
 						retSt.setObject(stmt.getObject());
 						retSt.setPredicate(stmt.getPredicate() + "");
-						//System.out.println("Abile to get the object appropriately here " + retSt.getSubject());
+						// System.out.println("Abile to get the object appropriately here " +
+						// retSt.getSubject());
 						retBool = true;
-					}
-					else
-					{
-						try{
-							if(ris!=null) {
+					} else {
+						try {
+							if (ris != null) {
 								ris.close();
 							}
-						} catch(IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+						} catch (IOException e) {
+							classLogger.error(Constants.STACKTRACE, e);
 						}
 					}
 
 				} catch (RuntimeException e) {
 					// TODO Auto-generated catch block
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					retSt = null;
 					retBool = false;
 				} catch (ClassNotFoundException e) {
 					// TODO Auto-generated catch block
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					retSt = null;
 					retBool = false;
 				}
 
-				
-				/*Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteID());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteID());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/hasNext", params);
-				Gson gson = new Gson();
-				retBool = gson.fromJson(output, Boolean.class); // cleans up automatically at the remote end
-				*/
-				
+				/*
+				 * Hashtable params = new Hashtable<String,String>(); params.put("id",
+				 * remoteWrapperProxy.getRemoteID()); System.out.println("ID for remote is " +
+				 * remoteWrapperProxy.getRemoteID()); String output =
+				 * Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/hasNext",
+				 * params); Gson gson = new Gson(); retBool = gson.fromJson(output,
+				 * Boolean.class); // cleans up automatically at the remote end
+				 */
+
 			}
-			
-			
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
+
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
-		logger.debug(" Next " + retBool);
+		classLogger.debug(" Next " + retBool);
 		return retBool;
 	}
-	
+
 	/**
-	 * Method next.  Processes the select statement for either Sesame or Jena.
-	
+	 * Method next. Processes the select statement for either Sesame or Jena.
+	 * 
 	 * @return SesameJenaConstructStatement - returns the construct statement.
 	 */
-	public SesameJenaConstructStatement next()
-	{
+	@Deprecated
+	public SesameJenaConstructStatement next() {
 		SesameJenaConstructStatement thisSt = null;
-		try
-		{
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+		try {
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				thisSt = new SesameJenaConstructStatement();
-				logger.debug("Adding a sesame statement ");
+				classLogger.debug("Adding a sesame statement ");
 				org.openrdf.model.Statement stmt = gqr.next();
-				thisSt.setSubject(stmt.getSubject()+"");
+				thisSt.setSubject(stmt.getSubject() + "");
 				thisSt.setObject(stmt.getObject());
 				thisSt.setPredicate(stmt.getPredicate() + "");
-				
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				thisSt = new SesameJenaConstructStatement();
 				org.apache.jena.rdf.model.Statement stmt = si.next();
-				logger.debug("Adding a JENA statement ");
+				classLogger.debug("Adding a JENA statement ");
 				curSt = stmt;
 				org.apache.jena.rdf.model.Resource sub = stmt.getSubject();
 				org.apache.jena.rdf.model.Property pred = stmt.getPredicate();
 				org.apache.jena.rdf.model.RDFNode node = stmt.getObject();
-				if(node.isAnon())
+				if (node.isAnon()) {
 					thisSt.setPredicate(Utility.getNextID());
-				else 	
+				} else {
 					thisSt.setPredicate(stmt.getPredicate() + "");
+				}
 
-				if(sub.isAnon())
+				if (sub.isAnon()) {
 					thisSt.setSubject(Utility.getNextID());
-				else
-					thisSt.setSubject(stmt.getSubject()+"");
-				
-				if(node.isAnon())
+				} else {
+					thisSt.setSubject(stmt.getSubject() + "");
+				}
+
+				if (node.isAnon()) {
 					thisSt.setObject(Utility.getNextID());
-				else
+				} else {
 					thisSt.setObject(stmt.getObject());
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
+				}
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
 				thisSt = retSt;
 				retSt = null;
 			}
 
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
-	}	
+	}
 
 	/**
-	 * Method getJenaStatement.  Gets the query solution for a JENA model.
-	
-	 * @return com.hp.hpl.jena.rdf.model.Statement */
-	public org.apache.jena.rdf.model.Statement getJenaStatement()
-	{
+	 * Method getJenaStatement. Gets the query solution for a JENA model.
+	 * 
+	 * @return com.hp.hpl.jena.rdf.model.Statement
+	 */
+	@Deprecated
+	public org.apache.jena.rdf.model.Statement getJenaStatement() {
 		return curSt;
 	}
-	
+
 	/**
 	 * Method setEngineType. Sets the engine type.
+	 * 
 	 * @param databaseType Enum - The type engine that this is being set to.
 	 */
-	public void setEngineType(DATABASE_TYPE databaseType)
-	{
+	@Deprecated
+	public void setEngineType(DATABASE_TYPE databaseType) {
 		this.databaseType = databaseType;
 	}
 
-//	public static void main(String [] args) throws Exception
-//	{
-//		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
-//		engine.setAPI("http://localhost:9080/Monolith/api/engine");
-//		engine.setDatabase("Movie_DB");
-//		engine.setEngineId("Movie_DB");
-//		
-//		engine.open(null);
-//		
-////		System.out.println("Perspectives is .... " + engine.getPerspectives());
-//		
-//		System.out.println("Trying.. ");
-//		SesameJenaConstructWrapper sjcw = new SesameJenaConstructWrapper(); //(SesameJenaSelectWrapper) engine.execSelectQuery("SELECT ?S ?P ?O WHERE {{?S ?P ?O}.} LIMIT 1");
-//		sjcw.setEngine(engine);
-//		sjcw.setEngineType(engine.getEngineType());
-//		sjcw.setQuery("CONSTRUCT {?subject ?predicate ?object} WHERE {{?subject ?predicate ?object.}}");
-//		
-//		sjcw.execute();
-//		
-//		System.out.println(" has next " + sjcw.hasNext());
-//		SesameJenaConstructStatement st = sjcw.next();
-//		
-//		System.out.println(st.getSubject());
-//		
-//		//System.out.println(" var " + sjcw.getVariables());
-//		
-//	}
-	
+	@Deprecated
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }

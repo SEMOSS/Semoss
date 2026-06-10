@@ -101,7 +101,7 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
     asset paths never see each other's cached copy.
 
     All other imports (e.g. torch, numpy, stdlib) fall through to the real
-    __import__ unchanged — sys.modules is never replaced.
+    __import__ unchanged - sys.modules is never replaced.
     """
     if level == 0 and "." not in name:
         active_paths = getattr(_asset_thread_local, "active_paths", None)
@@ -244,7 +244,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
-        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # stderr -> SemossConsole -> send_output() -> sendall(). Without this lock the
         # concurrent sendall() calls interleave bytes on the wire, which corrupts the
         # 4-byte size header that Java uses to frame messages. Java then tries to read
         # an astronomically large payload, its receive buffer fills up, sendall()
@@ -746,7 +746,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out — acquire the lock so concurrent calls from parallel
+        # send it out - acquire the lock so concurrent calls from parallel
         # download worker threads cannot interleave bytes and corrupt the protocol
         with self.send_lock:
             self.request.sendall(ret_array)
@@ -787,7 +787,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out — use the same lock as send_output() to prevent interleaving
+        # send it out - use the same lock as send_output() to prevent interleaving
         with self.send_lock:
             self.request.sendall(ret_array)
 

@@ -2,7 +2,7 @@
 JsonLogic - A Python implementation of the JsonLogic specification.
 
 This module provides a way to evaluate serializable logic rules expressed as
-JSON (Python dicts) against a data context. Rules are data — they can be stored
+JSON (Python dicts) against a data context. Rules are data - they can be stored
 in a database, transmitted over an API, and evaluated without arbitrary code
 execution.
 
@@ -82,7 +82,7 @@ class JsonLogic:
                 Defaults to an empty dict.
 
         Returns:
-            The evaluation result — type depends on the rule.
+            The evaluation result - type depends on the rule.
 
         Raises:
             JsonLogicError: If the rule references an unrecognised operator.
@@ -90,7 +90,7 @@ class JsonLogic:
         if data is None:
             data = {}
 
-        # Base case — primitives and lists are returned directly.
+        # Base case - primitives and lists are returned directly.
         if rule is None or not isinstance(rule, dict):
             return rule
 
@@ -241,7 +241,7 @@ class JsonLogic:
 
     @staticmethod
     def _hard_equals(a: Any, b: Any) -> bool:
-        """JS-style ``===`` — no type coercion."""
+        """JS-style ``===`` - no type coercion."""
         if type(a) is not type(b):
             return False
         return a == b
@@ -388,7 +388,7 @@ class JsonLogic:
     # -- Control-flow (lazy/short-circuit) ---------------------------------
 
     def _if(self, values: list[Any], data: dict[str, Any]) -> Any:
-        """Lazy ``if`` / ``?:`` — only evaluates the branch taken."""
+        """Lazy ``if`` / ``?:`` - only evaluates the branch taken."""
         for i in range(0, len(values) - 1, 2):
             if self.apply(values[i], data):
                 return self.apply(values[i + 1], data)
@@ -398,7 +398,7 @@ class JsonLogic:
         return None
 
     def _and(self, values: list[Any], data: dict[str, Any]) -> Any:
-        """Short-circuit ``and`` — returns last truthy or first falsy value."""
+        """Short-circuit ``and`` - returns last truthy or first falsy value."""
         result: Any = True
         for value in values:
             result = self.apply(value, data)
@@ -407,7 +407,7 @@ class JsonLogic:
         return result
 
     def _or(self, values: list[Any], data: dict[str, Any]) -> Any:
-        """Short-circuit ``or`` — returns first truthy or last falsy value."""
+        """Short-circuit ``or`` - returns first truthy or last falsy value."""
         result: Any = False
         for value in values:
             result = self.apply(value, data)
@@ -415,7 +415,7 @@ class JsonLogic:
                 return result
         return result
 
-    # -- Array iteration (lazy — callback rule is not pre-evaluated) -------
+    # -- Array iteration (lazy - callback rule is not pre-evaluated) -------
 
     def _filter(self, values: list[Any], data: dict[str, Any]) -> list[Any]:
         """Return elements of the array for which the rule is truthy."""

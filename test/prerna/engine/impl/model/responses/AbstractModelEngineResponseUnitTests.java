@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.engine.impl.model.responses;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;

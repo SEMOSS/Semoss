@@ -316,31 +316,29 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						// wait 1 minute at most
+						boolean result = future.get(60, TimeUnit.SECONDS);
+						classLogger.info("Stop PyServe result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
+						return false;
+					}
 				}
 			} else {
 				return true;
@@ -363,36 +361,34 @@ public class SocketClient implements Runnable, Closeable {
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-
-		Callable<String> callableTask = () -> {
-			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-					synchronized (ps) {
-						ps.notifyAll();
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			Callable<String> callableTask = () -> {
+				try {
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
+						ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+						synchronized (ps) {
+							ps.notifyAll();
+						}
 					}
+				} catch (Exception e) {
+					classLogger.error("Error releasing pending payload structs during crash", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error releasing pending payload structs during crash", e);
-			}
-			return "Successfully released the payload structs";
-		};
+				return "Successfully released the payload structs";
+			};
 
-		Future<String> future = executor.submit(callableTask);
-		try {
-			// wait 1 minute at most
-			String result = future.get(60, TimeUnit.SECONDS);
-			classLogger.info(result);
-		} catch (TimeoutException e) {
-			classLogger.warn("Not able to release the payload structs within a timely fashion");
-			future.cancel(true);
-		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error("Error waiting for crash cleanup to complete", e);
-		} finally {
-			executor.shutdown();
+			Future<String> future = executor.submit(callableTask);
+			try {
+				// wait 1 minute at most
+				String result = future.get(60, TimeUnit.SECONDS);
+				classLogger.info(result);
+			} catch (TimeoutException e) {
+				classLogger.warn("Not able to release the payload structs within a timely fashion");
+				future.cancel(true);
+			} catch (InterruptedException | ExecutionException e) {
+				classLogger.error("Error waiting for crash cleanup to complete", e);
+			}
 		}
 
 		this.close();

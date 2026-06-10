@@ -1126,7 +1126,7 @@ public final class JiraHelper {
 	 * @param baseUrl       Jira API base URL including cloud ID
 	 * @param jql           raw JQL query string
 	 * @param nextPageToken optional pagination token from a previous response
-	 * @param maxResults    requested page size (clamped to 1–100, default 50)
+	 * @param maxResults    requested page size (clamped to 1-100, default 50)
 	 * @return map containing {@code issues}, {@code isLast}, {@code maxResults},
 	 *         and optionally {@code nextPageToken}
 	 */

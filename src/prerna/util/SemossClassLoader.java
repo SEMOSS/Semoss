@@ -352,7 +352,7 @@ public class SemossClassLoader extends ClassLoader {
 	 *
 	 * <p>
 	 * Layout:
-	 * {@code classInternalName → constructorDescriptor → [factoryName, factoryDescriptor]}
+	 * {@code classInternalName -> constructorDescriptor -> [factoryName, factoryDescriptor]}
 	 *
 	 * <p>
 	 * Every constructor overload of each type must be present so that a suppressed

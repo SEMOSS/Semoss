@@ -94,13 +94,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
-			
-			// if we aren't already running in some span context, add one to correlate events on this thread
+
+			// if we aren't already running in some span context, add one to correlate
+			// events on this thread
 			if (!ThreadContext.containsKey(SemossLogUtils.SPAN_ID)) {
-				startCtx.put(SemossLogUtils.SPAN_ID, this.cpw == null ? "UNK_"+Utility.getRandomString(5) :
-					cpw.getPrefix());
+				startCtx.put(SemossLogUtils.SPAN_ID,
+						this.cpw == null ? "UNK_" + Utility.getRandomString(5) : cpw.getPrefix());
 			}
-			
+
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -717,34 +718,32 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.epoc = "stop_all";
+						ps.hasReturn = false;
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						ps.operation = PayloadStruct.OPERATION.CMD;
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.epoc = "stop_all";
-					ps.hasReturn = false;
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					ps.operation = PayloadStruct.OPERATION.CMD;
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					boolean result = future.get(5, TimeUnit.SECONDS);
-					classLogger.info("Stop socket result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					Thread.currentThread().interrupt();
-					classLogger.error("Interrupted or execution failure during stop server", e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						boolean result = future.get(5, TimeUnit.SECONDS);
+						classLogger.info("Stop socket result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						Thread.currentThread().interrupt();
+						classLogger.error("Interrupted or execution failure during stop server", e);
+						return false;
+					}
 				}
 			} else {
 				return true;
@@ -767,36 +766,35 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
 
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Callable<String> callableTask = () -> {
-			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-					ps.ex = "Client is disconnected from the server.";
-					synchronized (ps) {
-						ps.notifyAll();
+		try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+			Callable<String> callableTask = () -> {
+				try {
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
+						ps.ex = "Client is disconnected from the server.";
+						synchronized (ps) {
+							ps.notifyAll();
+						}
 					}
+				} catch (Exception e) {
+					classLogger.error("Error releasing pending payload structs during crash", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error releasing pending payload structs during crash", e);
-			}
-			return "Successfully released the payload structs";
-		};
+				return "Successfully released the payload structs";
+			};
 
-		Future<String> future = executor.submit(callableTask);
-		try {
-			// wait 1 minute at most
-			String result = future.get(60, TimeUnit.SECONDS);
-			classLogger.info(result);
-		} catch (TimeoutException e) {
-			classLogger.warn("Not able to release the payload structs within a timely fashion");
-			future.cancel(true);
-		} catch (InterruptedException | ExecutionException e) {
-			Thread.currentThread().interrupt();
-			classLogger.error("Interrupted or execution failure during crash", e);
-		} finally {
-			executor.shutdown();
+			Future<String> future = executor.submit(callableTask);
+			try {
+				// wait 1 minute at most
+				String result = future.get(60, TimeUnit.SECONDS);
+				classLogger.info(result);
+			} catch (TimeoutException e) {
+				classLogger.warn("Not able to release the payload structs within a timely fashion");
+				future.cancel(true);
+			} catch (InterruptedException | ExecutionException e) {
+				Thread.currentThread().interrupt();
+				classLogger.error("Interrupted or execution failure during crash", e);
+			}
 		}
 
 		this.close();

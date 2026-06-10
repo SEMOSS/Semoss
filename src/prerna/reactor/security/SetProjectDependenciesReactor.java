@@ -48,7 +48,7 @@ import prerna.util.UploadInputUtility;
 
 public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
-	private static final Logger logger = LogManager.getLogger(SetProjectDependenciesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SetProjectDependenciesReactor.class);
 
 	public SetProjectDependenciesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "dependencies" };
@@ -97,14 +97,14 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
 		// Regenerate the agent-facing selected-engines skill so Claude sees the
 		// updated engine connections. Reads back the full dependency details
-		// (with engine names) — required by the skill writer. Failures are
+		// (with engine names) - required by the skill writer. Failures are
 		// logged inside the helper; we don't let them surface as user-visible
 		// errors because the dependency write itself already succeeded.
 		try {
 			List<Map<String, Object>> details = SecurityProjectUtils.getProjectDependencyDetails(projectId);
 			AppBuilderHarnessConfiguration.regenerateSelectedEnginesSkillFromDependencies(projectId, details);
 		} catch (Exception e) {
-			logger.error("Failed to regenerate selected-engines skill for project: {}", projectId, e);
+			classLogger.error("Failed to regenerate selected-engines skill for project: {}", projectId, e);
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

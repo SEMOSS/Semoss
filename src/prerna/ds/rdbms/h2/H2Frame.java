@@ -32,8 +32,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -71,7 +69,6 @@ import prerna.reactor.imports.RdbmsImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
-import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -81,7 +78,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 public class H2Frame extends AbstractRdbmsFrame {
 
-	private Logger logger = LogManager.getLogger(H2Frame.class);
+	private static final Logger classLogger = LogManager.getLogger(H2Frame.class);
 
 	private String fileLocation;
 	private String fileNameToUse;
@@ -106,6 +103,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		super(headers, types);
 	}
 
+	@Override
 	protected void initConnAndBuilder() throws Exception {
 		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 
@@ -115,13 +113,11 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String folderToUsePath = null;
 		if (sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-			folderToUsePath = Utility.getInsightCacheDir() +
-					DIR_SEPARATOR + sessionId + DIR_SEPARATOR + insightId;
-			this.fileNameToUse = "H2_Store_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_")
-					+ ".mv.db";
+			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + insightId;
+			this.fileNameToUse = "H2_Store_" + UUID.randomUUID().toString().toUpperCase().replace("-", "_") + ".mv.db";
 		} else {
-			folderToUsePath = Utility.getInsightCacheDir() +
-					DIR_SEPARATOR + "H2_Store_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + "H2_Store_"
+					+ UUID.randomUUID().toString().toUpperCase().replace("-", "_");
 			this.fileNameToUse = "database.mv.db";
 		}
 
@@ -192,7 +188,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the statement after caching the H2 frame", e);
 				}
 			}
 		}
@@ -248,7 +244,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			r = new InputStreamReader(gis);
 			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error opening the cached H2 frame", e);
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			try {
@@ -262,7 +258,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 					r.close();
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing the streams while opening the cached H2 frame", e);
 			}
 
 			// open the meta details
@@ -277,8 +273,8 @@ public class H2Frame extends AbstractRdbmsFrame {
 	/////////////////////////////////////////////////////////////////////////////
 
 	/*
-	 * Random methods I am pulling from the old H2Builder
-	 * Not specifically used in any workflow at the moment
+	 * Random methods I am pulling from the old H2Builder Not specifically used in
+	 * any workflow at the moment
 	 */
 
 	public String connectFrame(String pass) {
@@ -293,50 +289,11 @@ public class H2Frame extends AbstractRdbmsFrame {
 				serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
 				server.start();
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error starting the H2 TCP server", e);
 			}
 		}
-		printSchemaTables(pass);
 		System.out.println("URL... " + serverURL);
 		return serverURL;
-	}
-
-	private void printSchemaTables(String pass) {
-		Connection conn = null;
-		ResultSet rs = null;
-		try {
-			Class.forName("org.h2.Driver");
-			String url = serverURL;
-			conn = DriverManager.getConnection(url, "sa", pass);
-			rs = conn.createStatement()
-					.executeQuery("SELECT TABLE_NAME FROM INFORMATIOn_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC'");
-
-			while (rs.next()) {
-				System.out.println("Table name is " + rs.getString(1));
-			}
-
-			// String schema = this.conn.getSchema();
-			System.out.println(".. " + conn.getMetaData().getURL());
-			System.out.println(".. " + conn.getMetaData().getUserName());
-		} catch (ClassNotFoundException | SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
 	}
 
 	public String[] createUser(String tableName) {
@@ -385,14 +342,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 				tablePermissions.put(tableName, retString);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error creating the H2 read-only user for table {}", tableName, e);
 			} finally {
 				if (stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error closing the statement after creating the H2 user", e);
 					}
 				}
 			}
@@ -417,9 +374,8 @@ public class H2Frame extends AbstractRdbmsFrame {
 	 */
 
 	/**
-	 * Execute and get back a result set
-	 * Responsibility of the method to grab the statement and close it
-	 * from the result set
+	 * Execute and get back a result set Responsibility of the method to grab the
+	 * statement and close it from the result set
 	 * 
 	 * @param query
 	 * @return
@@ -433,7 +389,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			return stmt.executeQuery();
 		} catch (SQLException e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing the query {}", query, e);
 		} finally {
 			// it is the responsibility of the code executing this
 			// to take the statement and close it if no error
@@ -441,7 +397,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the statement after executing the query", e);
 				}
 			}
 		}
@@ -454,7 +410,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		try {
 			this.builder.runQuery(query);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error deleting all rows from the H2 frame", e);
 		}
 	}
 
@@ -462,7 +418,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
 		long startTime = System.currentTimeMillis();
-		logger.info("Processing Component..................................");
+		classLogger.info("Processing Component..................................");
 
 		List<ISEMOSSTransformation> preTrans = component.getPreTrans();
 		Vector<Map<String, String>> joinColList = new Vector<Map<String, String>>();
@@ -532,7 +488,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		}
 
 		long time2 = System.currentTimeMillis();
-		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
+		classLogger.info(" Processed Merging Data: {} ms", (time2 - time1));
 	}
 
 	// @formatter:off

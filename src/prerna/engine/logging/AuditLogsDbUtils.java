@@ -234,7 +234,7 @@ public class AuditLogsDbUtils {
 			throws SQLException {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
-		// Step 1: fetch the page of rows. No subquery join — aggregation is deferred
+		// Step 1: fetch the page of rows. No subquery join - aggregation is deferred
 		// to
 		// step 2 so it only runs over the REQUEST_IDs we actually return.
 		SelectQueryStruct qs = new SelectQueryStruct();

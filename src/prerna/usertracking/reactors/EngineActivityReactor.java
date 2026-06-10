@@ -52,11 +52,11 @@ import prerna.usertracking.UserTrackingStatisticsUtils;
 import prerna.util.Utility;
 
 public class EngineActivityReactor extends AbstractReactor {
-	
-	private static final Logger logger = LogManager.getLogger(EngineActivityReactor.class);
-	
+
+	private static final Logger classLogger = LogManager.getLogger(EngineActivityReactor.class);
+
 	public EngineActivityReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 
 	@Override
@@ -65,23 +65,24 @@ public class EngineActivityReactor extends AbstractReactor {
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
-		
+
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		boolean addwarning = false;
 		// TODO: account for legacy
-		if(engineId == null) {
+		if (engineId == null) {
 			engineId = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey());
-			if(engineId != null) {
+			if (engineId != null) {
 				addwarning = true;
 			}
 		}
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId) 
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)
 				&& !SecurityEngineUtils.engineIsDiscoverable(engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to engine");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have access to engine");
 		}
-			
-		logger.info("Getting engine activity for engine: {}", engineId);
+
+		classLogger.info("Getting engine activity for engine: {}", engineId);
 		Map<String, Object> engineActivity = new HashMap<>();
 		addTotalViews(engineActivity, engineId);
 		addViewsByDate(engineActivity, engineId);
@@ -89,10 +90,10 @@ public class EngineActivityReactor extends AbstractReactor {
 		addUsesByDate(engineActivity, engineId);
 		addUsabilityScore(engineActivity, engineId);
 //		addDownloads(engineActivity, engineId);
-		
+
 //		return new NounMetadata(engineActivity, PixelDataType.MAP, PixelOperationType.ENGINE_ACTIVITY);
 		NounMetadata noun = new NounMetadata(engineActivity, PixelDataType.MAP, PixelOperationType.ENGINE_ACTIVITY);
-		if(addwarning) {
+		if (addwarning) {
 			noun.addAdditionalReturn(getWarning("Update reactor syntax to use engine= instead of database="));
 		}
 		return noun;
@@ -113,13 +114,13 @@ public class EngineActivityReactor extends AbstractReactor {
 		List<Pair<String, String>> usesInInsights = EngineUsageUtils.getInInsights(databaseId);
 		int totalUses = usesInInsights.size();
 		engineActivity.put("totalUses", totalUses);
-		
+
 		User user = this.insight.getUser();
-		List<Pair<String, String>> insightsUserCanView = usersCanView(usesInInsights, user);	
+		List<Pair<String, String>> insightsUserCanView = usersCanView(usesInInsights, user);
 		List<Map<String, String>> usedIn = convertToMap(insightsUserCanView);
 		engineActivity.put("usedIn", usedIn);
 	}
-	
+
 	private List<Pair<String, String>> usersCanView(List<Pair<String, String>> usesInInsights, User user) {
 		List<Pair<String, String>> insightsUserCanView = new ArrayList<>();
 		insightsUserCanView = usesInInsights.stream()
@@ -127,7 +128,7 @@ public class EngineActivityReactor extends AbstractReactor {
 				.collect(Collectors.toList());
 		return insightsUserCanView;
 	}
-	
+
 	private List<Map<String, String>> convertToMap(List<Pair<String, String>> insightsUserCanView) {
 		return insightsUserCanView.stream().map(s -> {
 			Map<String, String> m1 = new HashMap<>();
@@ -142,11 +143,11 @@ public class EngineActivityReactor extends AbstractReactor {
 		Map<String, Integer> ubd = usesByDate.stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 		engineActivity.put("usesByDate", ubd);
 	}
-	
+
 	private void addUsabilityScore(Map<String, Object> engineActivity, String databaseId) {
 		engineActivity.put("usabilityScore", UserTrackingStatisticsUtils.calculateScore(databaseId));
 	}
-	
+
 	// going to start tracking downloads later. adding it in now for front end
 	private void addDownloads(Map<String, Object> engineActivity, String databaseId) {
 		engineActivity.put("downloads", 0);

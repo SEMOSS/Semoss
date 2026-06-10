@@ -44,7 +44,7 @@ import prerna.util.Utility;
 
 public class RIterator implements Iterator<IHeadersDataRow> {
 
-	private static final Logger logger = LogManager.getLogger(RIterator.class);
+	private static final Logger classLogger = LogManager.getLogger(RIterator.class);
 
 	private RFrameBuilder builder;
 	private SelectQueryStruct qs;
@@ -126,7 +126,7 @@ public class RIterator implements Iterator<IHeadersDataRow> {
 		}
 
 		long end = System.currentTimeMillis();
-		logger.info("TIME TO EXECUTE MAIN R SCRIPT = {}ms", end - start);
+		classLogger.info("TIME TO EXECUTE MAIN R SCRIPT = {}ms", end - start);
 
 		// obtain headers from the qs
 		if (this.qs != null && !(this.qs instanceof HardSelectQueryStruct)) {
@@ -180,7 +180,7 @@ public class RIterator implements Iterator<IHeadersDataRow> {
 			String query = this.tempVarName + "[" + this.rowIndex + ":" + end + "]";
 			this.data = this.builder.getBulkDataRow(query, headers);
 			long endT = System.currentTimeMillis();
-			logger.debug("TIME TO GET SUBSET OF R VALUES = {}ms", endT - startT);
+			classLogger.debug("TIME TO GET SUBSET OF R VALUES = {}ms", endT - startT);
 
 			this.dataPos = 0;
 		}

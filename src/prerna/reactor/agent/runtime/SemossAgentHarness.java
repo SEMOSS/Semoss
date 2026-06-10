@@ -50,6 +50,8 @@ import prerna.reactor.agent.exceptions.AgentBudgetException;
 import prerna.reactor.agent.exceptions.AgentBudgetException.BudgetKind;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.skill.SkillScanner;
+import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 
@@ -132,19 +134,6 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 		}
 
-		// Compose the final prompt as:
-		//   <harness baseline>            -- SemossHarnessPrompts.SYSTEM_PROMPT (harness-specific)
-		//   <subagent control block>      -- only when subagents are configured
-		//   <agent-side composed layers>  -- AgentConfig.getComposedAgentPrompt()
-		//                                     = agent AGENTS.md + workdir AGENTS.md + authored prompt
-		// AgentConfig is resolved once by AgentConfigLoader at the top of AgentRunner.run() --
-		// no harness re-implements room/workspace resolution.
-		//
-		// We still overlay the composed text onto room.options.instructions for the duration
-		// of this run because the synthetic tool-result InputMessage built inside
-		// Room.addToolExecutionResult re-reads getEffectiveSystemPrompt() and would otherwise
-		// drop the harness baseline + AGENTS.md after the first tool call. Restored in finally.
-		// In-memory mutation only -- no DB write.
 		String agentSidePrompt = agentConfig.getComposedAgentPrompt();
 
 		Map<String, Object> opts = room.getOptionsMap();
@@ -155,6 +144,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn || isChildRun) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs, canSpawn, isChildRun));
+		}
+		// Advertise skills materialized into the working dir (by SkillStager, earlier in the run) so
+		// the model knows what it can pull in via LoadSkill. Empty when no skills are present.
+		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		if (!availableSkillsBlock.isEmpty()) {
+			composed.append("\n\n").append(availableSkillsBlock);
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
@@ -449,6 +444,57 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("may take a while, or when blocking would prevent the user from following up. ");
 		sb.append("Prefer Pattern A when: the user explicitly asked for a single combined answer ");
 		sb.append("and the work is expected to be fast.");
+		return sb.toString();
+	}
+
+	/**
+	 * Renders the skills discovered in {@code workingDir} as an {@code <available_skills>} block
+	 * for the system prompt, mirroring {@link #buildSubAgentPromptBlock}. Returns an empty string
+	 * when the working dir is blank or no skills are present, so the caller can skip appending an
+	 * empty block.
+	 *
+	 * <p>Discovery is delegated to {@link SkillScanner#scan(String)} -- the same logic the
+	 * {@code ListSkill} tool uses -- so the prompt and the tool agree on what's available. The
+	 * {@code <location>} of each skill is its working-dir-relative folder (e.g.
+	 * {@code .claude/skills/pdf}).
+	 */
+	private static String buildAvailableSkillsPromptBlock(String workingDir) {
+		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir);
+		logger.info("SemossAgentHarness: discovered {} skill(s) for available_skills block workingDir={}",
+				skills.size(), workingDir);
+		if (skills.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("<available_skills>\n");
+		for (DiscoveredSkill skill : skills) {
+			sb.append("  <skill>\n");
+			sb.append("    <name>").append(xmlEscape(skill.getName())).append("</name>\n");
+			sb.append("    <description>\n");
+			sb.append("      ").append(xmlEscape(skill.getDescription())).append("\n");
+			sb.append("    </description>\n");
+			sb.append("    <location>").append(xmlEscape(skill.getDirectory())).append("</location>\n");
+			sb.append("  </skill>\n");
+		}
+		sb.append("</available_skills>");
+		return sb.toString();
+	}
+
+	/** Minimal XML escaping for values interpolated into the {@code <available_skills>} block. */
+	private static String xmlEscape(String s) {
+		if (s == null || s.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder(s.length());
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			switch (c) {
+				case '&': sb.append("&amp;"); break;
+				case '<': sb.append("&lt;");  break;
+				case '>': sb.append("&gt;");  break;
+				default:  sb.append(c);
+			}
+		}
 		return sb.toString();
 	}
 

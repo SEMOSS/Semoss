@@ -335,6 +335,21 @@ public class MessageUtils {
 	 * @return ordered list of deserialized messages
 	 */
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
+		List<AbstractMessage> result = fromJsonArrayPreservingToolState(jsonArrayString, room);
+		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
+		return sanitizeOrphanToolCalls(result, room);
+	}
+
+	/**
+	 * Deserializes a JSON array of messages without trimming unresolved tool-call
+	 * state. Use this for room projection storage/hydration where a tool batch may
+	 * be partially persisted while parallel tool executions are still completing.
+	 *
+	 * @param jsonArrayString message-array JSON
+	 * @param room            room context used during message parsing
+	 * @return ordered list of deserialized messages
+	 */
+	public static List<AbstractMessage> fromJsonArrayPreservingToolState(String jsonArrayString, Room room) {
 		if (jsonArrayString == null || jsonArrayString.trim().isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -346,8 +361,7 @@ public class MessageUtils {
 				result.add(message);
 			}
 		}
-		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
-		return sanitizeOrphanToolCalls(result, room);
+		return result;
 	}
 
 	/**

@@ -453,13 +453,12 @@ public class ModelInferenceLogsUtils {
 		try {
 			executeSql(conn, dropMessageFK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist: {}",
-					ex.getMessage());
+			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist", ex);
 		}
 		try {
 			executeSql(conn, dropRoomPK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist: {}", ex.getMessage());
+			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist", ex);
 		}
 	}
 
@@ -1635,7 +1634,7 @@ public class ModelInferenceLogsUtils {
 					PixelDataType.CONST_STRING));
 		}
 
-		// ROOM OPTIONS SEARCH — free-text substring match on the OPTIONS text column.
+		// ROOM OPTIONS SEARCH - free-text substring match on the OPTIONS text column.
 		// Portable across H2 and PostgreSQL since OPTIONS is stored as plain text.
 		if (roomOptionsSearch != null && !roomOptionsSearch.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?like",
@@ -2171,7 +2170,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
-			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
+			classLogger.error("Failed to retrieve room for roomId '{}' and userId '{}'.", roomId, userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, stmt, resultSet);
 		}
@@ -2319,7 +2318,6 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 
-
 			try (PreparedStatement ps = con.prepareStatement(
 					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_TYPE != 'SKILL'")) {
 				int index = 1;
@@ -2444,8 +2442,9 @@ public class ModelInferenceLogsUtils {
 	 * Returns the parsed {@code WORKSPACE.CONFIG_JSON} for a workspace, or
 	 * {@code null} when the column is missing / empty / unparseable.
 	 *
-	 * <p>{@code CONFIG_JSON} carries the per-workspace agent config — system
-	 * prompt mirror, MCPs, budgets, hooks. Consumers (AgentConfigLoader,
+	 * <p>
+	 * {@code CONFIG_JSON} carries the per-workspace agent config - system prompt
+	 * mirror, MCPs, budgets, hooks. Consumers (AgentConfigLoader,
 	 * Room.getAllToolsJsonForRoom) layer this on top of the legacy column /
 	 * WORKSPACE_RESOURCE reads.
 	 *
@@ -2471,15 +2470,15 @@ public class ModelInferenceLogsUtils {
 		try {
 			return new JSONObject(text);
 		} catch (Exception e) {
-			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}",
-					workspaceId, e.getMessage());
+			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}", workspaceId,
+					e.getMessage());
 			return null;
 		}
 	}
 
 	/**
-	 * Writes {@code WORKSPACE.CONFIG_JSON} for a workspace. Pass {@code null}
-	 * to clear the column.
+	 * Writes {@code WORKSPACE.CONFIG_JSON} for a workspace. Pass {@code null} to
+	 * clear the column.
 	 *
 	 * @param workspaceId workspace identifier
 	 * @param configJson  parsed JSON to persist, or {@code null} to clear
@@ -2508,7 +2507,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to update CONFIG_JSON for workspaceId '" + workspaceId + "'.", e);
+			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
 			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2516,19 +2515,22 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring the
-	 * authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in sync - the
-	 * same dual-write pattern MCPs use ({@code EditWorkspaceReactor.mirrorCoreFieldsIntoConfigJson}).
-	 * Idempotent: a skill already present (matched by {@code skill_id}) is left untouched
-	 * and no write is issued.
+	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
+	 * the authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in
+	 * sync - the same dual-write pattern MCPs use
+	 * ({@code EditWorkspaceReactor.mirrorCoreFieldsIntoConfigJson}). Idempotent: a
+	 * skill already present (matched by {@code skill_id}) is left untouched and no
+	 * write is issued.
 	 *
-	 * <p>The entry shape matches what {@code AgentConfigLoader.resolveSkills} reads:
+	 * <p>
+	 * The entry shape matches what {@code AgentConfigLoader.resolveSkills} reads:
 	 * {@code { "skill_id": <id>, "pinned_version": <optional> }}. Note the key is
 	 * {@code skill_id} - NOT {@code id} as the MCP mirror uses.
 	 *
 	 * @param workspaceId   workspace identifier
 	 * @param skillId       skill identifier to add
-	 * @param pinnedVersion optional pinned version; the key is omitted when null/empty
+	 * @param pinnedVersion optional pinned version; the key is omitted when
+	 *                      null/empty
 	 * @throws SQLException if the CONFIG_JSON write fails
 	 */
 	public static void addSkillToWorkspaceConfigJson(String workspaceId, String skillId, String pinnedVersion)
@@ -2548,7 +2550,8 @@ public class ModelInferenceLogsUtils {
 		if (skills == null) {
 			skills = new JSONArray();
 		}
-		// Dedup by skill_id - keep the mirror idempotent like the attach reactor itself.
+		// Dedup by skill_id - keep the mirror idempotent like the attach reactor
+		// itself.
 		for (int i = 0; i < skills.length(); i++) {
 			JSONObject s = skills.optJSONObject(i);
 			if (s != null && skillId.equals(s.optString("skill_id", null))) {
@@ -2566,9 +2569,10 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Removes a skill reference from {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
-	 * deletion of the {@code WORKSPACE_RESOURCE} row. No-op (no write) when the workspace
-	 * has no CONFIG_JSON, no {@code skills} array, or the skill is not present.
+	 * Removes a skill reference from {@code WORKSPACE.CONFIG_JSON.skills[]},
+	 * mirroring deletion of the {@code WORKSPACE_RESOURCE} row. No-op (no write)
+	 * when the workspace has no CONFIG_JSON, no {@code skills} array, or the skill
+	 * is not present.
 	 *
 	 * @param workspaceId workspace identifier
 	 * @param skillId     skill identifier to remove
@@ -2979,9 +2983,8 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * Returns the workspace-resource row matching the (workspaceId, resourceId,
-	 * resourceType) tuple, or {@code null} when no row exists. Used by the
-	 * skill attach reactor to detect already-attached skills before issuing an
-	 * insert.
+	 * resourceType) tuple, or {@code null} when no row exists. Used by the skill
+	 * attach reactor to detect already-attached skills before issuing an insert.
 	 *
 	 * @param workspaceId  workspace identifier
 	 * @param resourceId   resource identifier (e.g. SKILL_ID)
@@ -3014,8 +3017,9 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to look up workspace resource for workspaceId '" + workspaceId + "', resourceId '"
-					+ resourceId + "', resourceType '" + resourceType + "'.", e);
+			classLogger.error(
+					"Failed to look up workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
+					workspaceId, resourceId, resourceType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
@@ -3048,8 +3052,9 @@ public class ModelInferenceLogsUtils {
 				return deleted;
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete workspace resource for workspaceId '" + workspaceId + "', resourceId '"
-					+ resourceId + "', resourceType '" + resourceType + "'.", e);
+			classLogger.error(
+					"Failed to delete workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
+					workspaceId, resourceId, resourceType, e);
 			throw new IllegalArgumentException("Error deleting workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -3555,17 +3560,17 @@ public class ModelInferenceLogsUtils {
 	 * the underlying Project (via {@code ProjectHelper.createSkillProject}) and for
 	 * writing the SKILL.md into {@code version/assets/skill/}.
 	 *
-	 * @param skillId      skill identifier — must equal the underlying project id
-	 * @param slug         stable slug (used as the staged directory name)
-	 * @param name         display name
-	 * @param description  SKILL.md frontmatter description, mirrored for search
-	 * @param createdBy    authoring user id (null/system for platform skills)
-	 * @param origin       USER | PLATFORM | IMPORTED | GENERATED
-	 * @param configJson   optional forward-compat blob
+	 * @param skillId     skill identifier - must equal the underlying project id
+	 * @param slug        stable slug (used as the staged directory name)
+	 * @param name        display name
+	 * @param description SKILL.md frontmatter description, mirrored for search
+	 * @param createdBy   authoring user id (null/system for platform skills)
+	 * @param origin      USER | PLATFORM | IMPORTED | GENERATED
+	 * @param configJson  optional forward-compat blob
 	 * @throws Exception if insert fails
 	 */
-	public static void createNewSkill(String skillId, String slug, String name, String description,
-			String createdBy, String origin, JSONObject configJson) throws Exception {
+	public static void createNewSkill(String skillId, String slug, String name, String description, String createdBy,
+			String origin, JSONObject configJson) throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 		String configJsonStr = configJson == null ? null : configJson.toString();
@@ -3573,8 +3578,8 @@ public class ModelInferenceLogsUtils {
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO SKILL (SKILL_ID, SLUG, NAME, DESCRIPTION, CREATED_BY, ORIGIN, "
+			try (PreparedStatement ps = con
+					.prepareStatement("INSERT INTO SKILL (SKILL_ID, SLUG, NAME, DESCRIPTION, CREATED_BY, ORIGIN, "
 							+ "CONFIG_JSON, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")) {
 				int index = 1;
 				ps.setString(index++, skillId);
@@ -3593,7 +3598,7 @@ public class ModelInferenceLogsUtils {
 				con.commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create skill '" + skillId + "'.", e);
+			classLogger.error("Failed to create skill '{}'.", skillId, e);
 			throw new IllegalArgumentException("Error creating skill: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -3603,14 +3608,14 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Updates metadata on a skill. Null arguments leave a field untouched.
 	 *
-	 * @param skillId      skill identifier
-	 * @param name         new display name, or null to skip
-	 * @param description  new description, or null to skip
-	 * @param configJson   new CONFIG_JSON, or null to skip
+	 * @param skillId     skill identifier
+	 * @param name        new display name, or null to skip
+	 * @param description new description, or null to skip
+	 * @param configJson  new CONFIG_JSON, or null to skip
 	 * @throws Exception if update fails
 	 */
-	public static void updateSkillMetadata(String skillId, String name, String description,
-			JSONObject configJson) throws Exception {
+	public static void updateSkillMetadata(String skillId, String name, String description, JSONObject configJson)
+			throws Exception {
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
 		}
@@ -3649,7 +3654,7 @@ public class ModelInferenceLogsUtils {
 					Object val = params.get(i);
 					int bindIdx = i + 1;
 					if (clobFlags.get(i)) {
-						modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, (String) val, bindIdx, GSON);
+						modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, val, bindIdx, GSON);
 					} else if (val instanceof Timestamp) {
 						ps.setTimestamp(bindIdx, (Timestamp) val);
 					} else {
@@ -3662,7 +3667,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to update metadata for skill '" + skillId + "'.", e);
+			classLogger.error("Failed to update metadata for skill '{}'.", skillId, e);
 			throw new IllegalArgumentException("Error updating skill metadata: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -3671,7 +3676,7 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * Removes the SKILL__ row and any WORKSPACE_RESOURCE__ rows pointing at this
-	 * skill. Does NOT delete the underlying Project — callers (typically the
+	 * skill. Does NOT delete the underlying Project - callers (typically the
 	 * project-delete path) own that.
 	 *
 	 * @param skillId skill identifier
@@ -3681,8 +3686,8 @@ public class ModelInferenceLogsUtils {
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps1 = con.prepareStatement(
-					"DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
+			try (PreparedStatement ps1 = con
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
 					PreparedStatement ps2 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
 				ps1.setString(1, "SKILL");
 				ps1.setString(2, skillId);
@@ -3694,7 +3699,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete skill '" + skillId + "'.", e);
+			classLogger.error("Failed to delete skill '{}'.", skillId, e);
 			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -3794,12 +3799,11 @@ public class ModelInferenceLogsUtils {
 				try {
 					map.put(headers[i], AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]));
 				} catch (java.sql.SQLException | java.io.IOException e) {
-					classLogger.warn("rowToMap: failed to read BLOB for column '{}': {}", headers[i], e.getMessage());
+					classLogger.warn("rowToMap: failed to read BLOB for column '{}'", headers[i], e);
 					map.put(headers[i], null);
 				}
 			} else if (values[i] instanceof prerna.date.SemossDate) {
-				map.put(headers[i],
-						((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+				map.put(headers[i], ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
 			} else {
 				map.put(headers[i], values[i]);
 			}

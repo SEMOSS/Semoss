@@ -42,7 +42,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.InsightFile;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.ParquetQueryStruct;
@@ -57,7 +57,6 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
 
 public class ImportReactor extends AbstractReactor {
 
@@ -85,13 +84,13 @@ public class ImportReactor extends AbstractReactor {
 		// set the logger into the frame
 		frame.setLogger(logger);
 
-		QUERY_STRUCT_TYPE thisImportQsType = qs.getQsType();
+		AbstractQueryStruct.QUERY_STRUCT_TYPE thisImportQsType = qs.getQsType();
 		boolean limitRawQuery = false;
 		long limitRawQueryVal = -1;
-		if (thisImportQsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| thisImportQsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
-				|| thisImportQsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
-				|| thisImportQsType == QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
+		if (thisImportQsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| thisImportQsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| thisImportQsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				|| thisImportQsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
 			if ((limitRawQueryVal = qs.getLimit()) > 0) {
 				limitRawQuery = true;
 			}
@@ -100,7 +99,8 @@ public class ImportReactor extends AbstractReactor {
 		// if we are loading from a native frame
 		// that is backed by a RDBMSNativeEngine
 		// we will flush the query into a HQS
-		if ((qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY || qs.getQsType() == QUERY_STRUCT_TYPE.FRAME)
+		if ((qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME)
 				&& qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE
 				&& frame.getFrameType() == DataFrameTypeEnum.NATIVE) {
 			NativeFrame queryFrame = (NativeFrame) qs.getFrame();
@@ -138,7 +138,7 @@ public class ImportReactor extends AbstractReactor {
 				} catch (SemossPixelException e) {
 					throw e;
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error occurred executing query to load into the frame", e);
 					String message = "Error occurred executing query to load into the frame";
 					if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 						message += ". " + e.getMessage();
@@ -172,7 +172,7 @@ public class ImportReactor extends AbstractReactor {
 					} catch (SemossPixelException e) {
 						throw e;
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error occurred verifying the import is within the frame size limit", e);
 						throw new SemossPixelException(
 								getError("Error occurred executing query before loading into frame"));
 					}
@@ -189,7 +189,7 @@ public class ImportReactor extends AbstractReactor {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error importing data into the frame", e);
 				throw new SemossPixelException(e.getMessage());
 			}
 			// need to clear the unique col count used by FE for determining the need for
@@ -197,11 +197,11 @@ public class ImportReactor extends AbstractReactor {
 			frame.clearCachedMetrics();
 			frame.clearQueryCache();
 
-			if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 				storeCsvFileMeta((CsvQueryStruct) qs);
-			} else if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 				storeExcelFileMeta((ExcelQueryStruct) qs);
-			} else if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE) {
 				storeParquetFileMeta((ParquetQueryStruct) qs);
 			}
 
@@ -213,14 +213,14 @@ public class ImportReactor extends AbstractReactor {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the iterator after importing into the frame", e);
 				}
 			}
 			if (task != null) {
 				try {
 					task.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the task after importing into the frame", e);
 				}
 			}
 		}

@@ -63,7 +63,7 @@ def migrate_pickle_to_safe(base_path: str) -> Tuple[int, int]:
         return (0, 0)
 
     _logger.warning(
-        "Legacy pickle index files detected under %s — migrating %d file(s) to safe formats (.parquet/.npy). "
+        "Legacy pickle index files detected under %s - migrating %d file(s) to safe formats (.parquet/.npy). "
         "This runs once; pickle files will be deleted after successful conversion.",
         base_path,
         len(candidates),

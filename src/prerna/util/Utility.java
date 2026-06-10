@@ -42,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -822,8 +823,7 @@ public final class Utility {
 	 * @return double
 	 */
 	public static double round(double valueToRound, int numberOfDecimalPlaces) {
-		BigDecimal bigD = new BigDecimal(valueToRound);
-		return bigD.setScale(numberOfDecimalPlaces, BigDecimal.ROUND_HALF_UP).doubleValue();
+		return BigDecimal.valueOf(valueToRound).setScale(numberOfDecimalPlaces, RoundingMode.HALF_EVEN).doubleValue();
 	}
 
 	/**
@@ -906,7 +906,7 @@ public final class Utility {
 				content.add(line);
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 
@@ -971,7 +971,7 @@ public final class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 	}
@@ -1033,7 +1033,7 @@ public final class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 	}
@@ -1175,14 +1175,14 @@ public final class Utility {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (newExcelFile != null) {
 					newExcelFile.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
 			}
 		}
 	}
@@ -1230,17 +1230,17 @@ public final class Utility {
 				}
 			}
 		} catch (RuntimeException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to retrieve HTTP response body: {}", ex.getMessage(), ex);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to retrieve HTTP response body: {}", ioe.getMessage(), ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error(Constants.STACKTRACE, nsae);
+			classLogger.error("Failed to retrieve HTTP response body: {}", nsae.getMessage(), nsae);
 		} catch (KeyStoreException kse) {
-			classLogger.error(Constants.STACKTRACE, kse);
+			classLogger.error("Failed to retrieve HTTP response body: {}", kse.getMessage(), kse);
 		} catch (URISyntaxException use) {
-			classLogger.error(Constants.STACKTRACE, use);
+			classLogger.error("Failed to retrieve HTTP response body: {}", use.getMessage(), use);
 		} catch (KeyManagementException kme) {
-			classLogger.error(Constants.STACKTRACE, kme);
+			classLogger.error("Failed to retrieve HTTP response body: {}", kme.getMessage(), kme);
 		} finally {
 			try {
 				if (inputStream != null) {
@@ -1250,7 +1250,7 @@ public final class Utility {
 					stream.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Error closing input stream for image");
+				classLogger.error("Failed to close image response stream", e);
 			}
 			try {
 				if (httpclient != null) {
@@ -1260,7 +1260,7 @@ public final class Utility {
 					stream.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Error closing socket for httpclient");
+				classLogger.error("Failed to close HTTP client while retrieving response body", e);
 			}
 		}
 		if (output.length() == 0) {
@@ -1304,17 +1304,17 @@ public final class Utility {
 			return entity.getContent();
 
 		} catch (RuntimeException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", ex.getMessage(), ex);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", ioe.getMessage(), ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error(Constants.STACKTRACE, nsae);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", nsae.getMessage(), nsae);
 		} catch (KeyStoreException kse) {
-			classLogger.error(Constants.STACKTRACE, kse);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", kse.getMessage(), kse);
 		} catch (URISyntaxException use) {
-			classLogger.error(Constants.STACKTRACE, use);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", use.getMessage(), use);
 		} catch (KeyManagementException kme) {
-			classLogger.error(Constants.STACKTRACE, kme);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", kme.getMessage(), kme);
 		}
 		return null;
 	}
@@ -1414,13 +1414,13 @@ public final class Utility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1458,13 +1458,13 @@ public final class Utility {
 				retArray.add(valArray);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1576,25 +1576,25 @@ public final class Utility {
 			classLogger.debug("Dataframe name is " + Utility.cleanLogString(className));
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
 			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
 		} catch (InstantiationException ie) {
-			classLogger.error(Constants.STACKTRACE, ie);
+			classLogger.error("Failed to instantiate class from name: {}", ie.getMessage(), ie);
 			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
 		} catch (IllegalAccessException iae) {
-			classLogger.error(Constants.STACKTRACE, iae);
+			classLogger.error("Failed to instantiate class from name: {}", iae.getMessage(), iae);
 			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
 		} catch (IllegalArgumentException iare) {
-			classLogger.error(Constants.STACKTRACE, iare);
+			classLogger.error("Failed to instantiate class from name: {}", iare.getMessage(), iare);
 			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
 		} catch (InvocationTargetException ite) {
-			classLogger.error(Constants.STACKTRACE, ite);
+			classLogger.error("Failed to instantiate class from name: {}", ite.getMessage(), ite);
 			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
 		} catch (NoSuchMethodException nsme) {
-			classLogger.error(Constants.STACKTRACE, nsme);
+			classLogger.error("Failed to instantiate class from name: {}", nsme.getMessage(), nsme);
 			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
 		} catch (SecurityException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to instantiate class from name: {}", se.getMessage(), se);
 			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
 		}
 		return obj;
@@ -1998,11 +1998,8 @@ public final class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch (Exception e) {
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name '{}' in smss file '{}': {}", rawType, smssFilePath, e.getMessage(),
+					e);
 		}
 		if (engineType == null) {
 			return;
@@ -2125,7 +2122,7 @@ public final class Utility {
 		} catch (Exception e) {
 			// null out the engine
 			engine = null;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2142,7 +2139,7 @@ public final class Utility {
 		try {
 			engine = (IDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load database engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2159,7 +2156,7 @@ public final class Utility {
 		try {
 			engine = (IStorageEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load storage engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2176,7 +2173,7 @@ public final class Utility {
 		try {
 			engine = (IModelEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load model engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2193,7 +2190,7 @@ public final class Utility {
 		try {
 			engine = (IVectorDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load vector engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2210,7 +2207,7 @@ public final class Utility {
 		try {
 			engine = (IFunctionEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load function engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2262,7 +2259,7 @@ public final class Utility {
 						ClusterUtil.pushProjectSmss(projectId);
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
 					// ignore
 				}
 			}
@@ -2290,13 +2287,13 @@ public final class Utility {
 				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch (InstantiationException ie) {
-			classLogger.error(Constants.STACKTRACE, ie);
+			classLogger.error("Failed to load project from SMSS metadata: {}", ie.getMessage(), ie);
 		} catch (IllegalAccessException iae) {
-			classLogger.error(Constants.STACKTRACE, iae);
+			classLogger.error("Failed to load project from SMSS metadata: {}", iae.getMessage(), iae);
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to load project from SMSS metadata: {}", cnfe.getMessage(), cnfe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
 		}
 
 		return project;
@@ -2984,7 +2981,7 @@ public final class Utility {
 //				fw.close();
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to read engine metadata from SMSS file: {}", ex.getMessage(), ex);
 		}
 
 		return prop;
@@ -3117,7 +3114,7 @@ public final class Utility {
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3266,28 +3263,28 @@ public final class Utility {
 			}
 
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 		}
 
@@ -3329,7 +3326,7 @@ public final class Utility {
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3455,28 +3452,28 @@ public final class Utility {
 			bufferedWriter.flush();
 
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 		}
 
@@ -3756,7 +3753,7 @@ public final class Utility {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
@@ -3781,7 +3778,7 @@ public final class Utility {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(file.getAbsolutePath()));
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
@@ -3804,7 +3801,7 @@ public final class Utility {
 			try {
 				retProp.load(is);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load properties from string input: {}", e.getMessage(), e);
 			}
 		}
 		return retProp;
@@ -4475,8 +4472,8 @@ public final class Utility {
 		cacheSetting = cacheSetting.trim();
 
 		if (!CronExpression.isValidExpression(cacheSetting)) {
-			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting
-					+ "' is not a valid cron expression");
+			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value '{}' is not a valid cron expression",
+					cacheSetting);
 			return null;
 		}
 
@@ -4744,8 +4741,7 @@ public final class Utility {
 				return protocol + "://" + host;
 			}
 		} catch (URISyntaxException | MalformedURLException e) {
-			classLogger.warn("Invalid redirect URL in social.properties for redirect");
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to resolve application base URL: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -4856,9 +4852,9 @@ public final class Utility {
 			out.close();
 			in.close();
 		} catch (MalformedURLException mue) {
-			classLogger.error(Constants.STACKTRACE, mue);
+			classLogger.error("Failed to copy URL content to file: {}", mue.getMessage(), mue);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to copy URL content to file: {}", ioe.getMessage(), ioe);
 		}
 	}
 
@@ -4892,7 +4888,7 @@ public final class Utility {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				classLogger.error("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from {}", classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -4946,9 +4942,11 @@ public final class Utility {
 									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 								}
 							} catch (NotFoundException nfe) {
-								classLogger.error(Constants.STACKTRACE, nfe);
+								classLogger.error("Failed to load configured reactor classes: {}", nfe.getMessage(),
+										nfe);
 							} catch (CannotCompileException cce) {
-								classLogger.error(Constants.STACKTRACE, cce);
+								classLogger.error("Failed to load configured reactor classes: {}", cce.getMessage(),
+										cce);
 							}
 
 							// once the new instance has been done.. it has been injected into heap.. after
@@ -4960,7 +4958,7 @@ public final class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load configured reactor classes: {}", ex.getMessage(), ex);
 		}
 
 		return thisMap;
@@ -5043,7 +5041,7 @@ public final class Utility {
 
 			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to build runtime classpath: {}", cnfe.getMessage(), cnfe);
 		}
 
 		return envClassPath.toString();
@@ -5089,7 +5087,7 @@ public final class Utility {
 					status = compileJava(files, folder, classpath);
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to compile Java source files: {}", e.getMessage(), e);
 			}
 			classLogger.info("Done compiling Java in Folder " + javaFolder);
 		}
@@ -5198,7 +5196,7 @@ public final class Utility {
 				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
 			}
 		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to validate domain URL: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
 		}
 	}
@@ -5331,9 +5329,9 @@ public final class Utility {
 						.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
 		} catch (InterruptedException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
 		}
 
 	}
@@ -5489,7 +5487,7 @@ public final class Utility {
 	}
 
 	/**
-	 * Returns true if the folder exists and contains any entries — files,
+	 * Returns true if the folder exists and contains any entries - files,
 	 * sub-directories, hidden files, dot files, etc. Use this when you just need to
 	 * know the folder is non-empty regardless of whether its contents are files or
 	 * directories (e.g., before syncing a room folder to cloud storage where the
