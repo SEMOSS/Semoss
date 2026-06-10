@@ -106,11 +106,38 @@ public class CreateProjectReactor extends AbstractReactor {
 		// will assume code if not provided
 		// else will assume it is insight
 		// TODO: potentially remove hasportal entirely
+		//
+		// Allow-list: CreateProject can only create CODE, BLOCKS, or INSIGHTS
+		// projects. WORKSPACE and SKILL projects have additional persistence
+		// requirements (inference-tracking WORKSPACE row + WORKSPACE_RESOURCE
+		// links for workspaces; skill metadata wiring for skills) that this
+		// reactor does not perform — calling CreateProject for those types
+		// leaves the system in a half-created state where downstream readers
+		// (e.g. GetAgentHooks, ListWorkspaces) cannot see the new row. Reject
+		// up-front and direct the caller at the right reactor.
 		if (hasPortal) {
 			if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
 				projectType = IProject.PROJECT_TYPE.CODE;
 			} else {
-				projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+				try {
+					projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+				} catch (IllegalArgumentException e) {
+					throw new IllegalArgumentException(
+							"Invalid projectType '" + projectTypeStr + "'. Allowed values: CODE, BLOCKS, INSIGHTS.");
+				}
+				if (projectType == IProject.PROJECT_TYPE.WORKSPACE) {
+					throw new IllegalArgumentException(
+							"CreateProject cannot create WORKSPACE-type projects. "
+									+ "Use AddWorkspace(name='...') instead — it performs the additional "
+									+ "inference-tracking WORKSPACE row + WORKSPACE_RESOURCE inserts that "
+									+ "CreateProject skips.");
+				}
+				if (projectType == IProject.PROJECT_TYPE.SKILL) {
+					throw new IllegalArgumentException(
+							"CreateProject cannot create SKILL-type projects. "
+									+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
+									+ "wiring that CreateProject skips.");
+				}
 			}
 		} else {
 			projectType = IProject.PROJECT_TYPE.INSIGHTS;
