@@ -143,12 +143,13 @@ final class AgentRunWorker {
 				return false;
 			}
 			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.RUNNING, false);
+			final AgentRunQueueCoordinator.ActiveRunLease claimedLease = lease;
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
 				try {
 					execute(record, insightHandle);
 				} finally {
 					activeThreadsByRun.remove(runId);
-					lease.close();
+					claimedLease.close();
 					localActiveRooms.remove(roomId);
 				}
 			});
