@@ -81,9 +81,11 @@ To create a new `MODEL` engine for a different provider or a new type of local m
 
 AWS exposes OpenAI models on Bedrock through the OpenAI-compatible "Mantle" endpoint at `https://bedrock-mantle.<region>.api.aws/openai/v1`. The Java engine class is still `prerna.engine.impl.model.BedrockEngine` — the only difference is the `INIT_MODEL_ENGINE` template, which routes to `genai_client.OpenAiClient` with `provider='bedrock-mantle'` instead of `genai_client.AnthropicClient`.
 
-The Python `OpenAiClient` wraps the standard OpenAI SDK with an httpx auth class that SigV4-signs each request using the AWS access/secret key. No separate Bedrock API key is required — the long-term IAM credentials handle authentication directly.
+The Python `OpenAiClient` wraps the standard OpenAI SDK with an httpx auth class that SigV4-signs each request. No separate Bedrock API key is required.
 
-*   **Example SMSS** (Responses API, `openai.gpt-5.4`):
+Credentials resolution follows the standard boto3 default chain when `AWS_ACCESS_KEY` / `AWS_SECRET_KEY` are omitted from the .smss: environment variables, `~/.aws/credentials`, AWS SSO, then EC2/ECS/Lambda instance role. Refreshable credentials (EC2 role, assumed role, SSO) auto-renew between requests, so the engine survives credential rotation without restart. `AWS_REGION` similarly falls back to the session's region (env var `AWS_REGION` / `AWS_DEFAULT_REGION` or EC2 instance metadata) if not set in the .smss.
+
+*   **Example SMSS** (Responses API, `openai.gpt-5.4`, explicit long-term keys):
 
     ```
     #Base Properties
@@ -103,7 +105,21 @@ The Python `OpenAiClient` wraps the standard OpenAI SDK with an httpx auth class
     INIT_MODEL_ENGINE   import genai_client;${VAR_NAME} = genai_client.OpenAiClient(is_azure=False, api_key='unused', model_name='${MODEL}', provider='${PROVIDER}', aws_region='${AWS_REGION}', aws_access_key='${AWS_ACCESS_KEY}', aws_secret_key='${AWS_SECRET_KEY}', chat_type='${CHAT_TYPE}', max_tokens=${MAX_TOKENS}, context_window=${CONTEXT_WINDOW})
     ```
 
-*   **IAM prerequisites on the principal**:
+*   **Example SMSS** (EC2 instance role — no AWS keys in the .smss):
+
+    ```
+    ENGINE_TYPE         prerna.engine.impl.model.BedrockEngine
+    NAME                GPT 5.4 Bedrock (EC2 role)
+    MODEL_TYPE          BEDROCK
+    PROVIDER            bedrock-mantle
+    MODEL               openai.gpt-5.4
+    VAR_NAME            gpt54Model
+    CHAT_TYPE           responses
+
+    INIT_MODEL_ENGINE   import genai_client;${VAR_NAME} = genai_client.OpenAiClient(is_azure=False, api_key='unused', model_name='${MODEL}', provider='${PROVIDER}', chat_type='${CHAT_TYPE}')
+    ```
+
+*   **IAM prerequisites on the principal** (IAM user, EC2 role, or assumed role):
     *   `bedrock-mantle:CreateInference` on the relevant Mantle project resources.
     *   For `openai.gpt-5.4` specifically: an AWS Marketplace subscription to the OpenAI GPT-5.4 listing in the target region (subscribe via the AWS Marketplace console, or grant `aws-marketplace:CreateAgreementRequest` + `aws-marketplace:Subscribe` to let the principal auto-subscribe on first invoke).
     *   The principal does *not* need `bedrock:InvokeModel` for Mantle calls — Mantle is a separate IAM action namespace from the classic Bedrock runtime.

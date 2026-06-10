@@ -3,16 +3,18 @@ from typing import TYPE_CHECKING, Generator
 import httpx
 
 if TYPE_CHECKING:
-    from botocore.credentials import ReadOnlyCredentials
+    from botocore.credentials import Credentials
 
 
 class BedrockSigV4Auth(httpx.Auth):
     # Mantle uses SigV4, not bearer tokens — overwrite the OpenAI SDK's Authorization header.
+    # Hold the live Credentials object (not a frozen snapshot) so refreshable
+    # creds (EC2 role, assumed role, SSO) auto-renew between requests.
     requires_request_body = True
 
     def __init__(
         self,
-        credentials: "ReadOnlyCredentials",
+        credentials: "Credentials",
         service: str = "bedrock-mantle",
         region: str = "us-east-1",
     ) -> None:

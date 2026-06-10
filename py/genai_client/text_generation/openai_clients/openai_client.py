@@ -154,11 +154,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             "aws_secret_access_key", None
         )
         aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
-        if not aws_region:
-            raise ValueError(
-                "provider='bedrock-mantle' requires aws_region (or region)"
-            )
 
+        # When access/secret are omitted, boto3 walks the default credential
+        # chain: env vars, shared file, SSO, EC2/ECS/Lambda instance role.
         session = boto3.Session(
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
@@ -170,21 +168,26 @@ class OpenAiClient(AbstractTextGenerationClient):
                 "Could not resolve AWS credentials for provider='bedrock-mantle' "
                 "(pass aws_access_key/aws_secret_key or configure the default chain)"
             )
-        frozen = credentials.get_frozen_credentials()
+        region = aws_region or session.region_name
+        if not region:
+            raise ValueError(
+                "provider='bedrock-mantle' requires a region "
+                "(pass aws_region, set AWS_REGION, or run on EC2 with a region)"
+            )
 
         base_url = (
             kwargs.pop("base_url", None)
             or kwargs.pop("endpoint", None)
-            or f"https://bedrock-mantle.{aws_region}.api.aws/openai/v1"
+            or f"https://bedrock-mantle.{region}.api.aws/openai/v1"
         )
         # First-invoke Marketplace finalization can take minutes.
         timeout = kwargs.pop("timeout", 300.0)
 
         http_client = httpx.Client(
             auth=BedrockSigV4Auth(
-                credentials=frozen,
+                credentials=credentials,
                 service="bedrock-mantle",
-                region=aws_region,
+                region=region,
             ),
             timeout=timeout,
         )
