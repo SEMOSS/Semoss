@@ -1,10 +1,6 @@
 from typing import Any, Dict, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    # Tokenizers are imported lazily inside _get_tokenizer() to keep heavy
-    # dependencies (e.g. transformers, pulled in by HuggingfaceTokenizer) off
-    # the client-construction path. These TYPE_CHECKING imports keep the type
-    # hints valid without paying the runtime import cost.
     from ...tokenizers.vllm_tokenizer import VLLMTokenizer
     from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 
@@ -50,11 +46,11 @@ class OpenAiClient(AbstractTextGenerationClient):
     def __init__(
         self,
         is_azure: bool,
-        api_key: str,
         **kwargs,
     ):
         self.is_azure = is_azure
         self.endpoint = kwargs.pop("endpoint", None)
+
         if self.endpoint:
             kwargs["base_url"] = self.endpoint
         chat_type = kwargs.pop("chat_type", "chat-completion")
@@ -72,7 +68,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         self.chat_type = self.model_settings.chat_type
         self.tokenizer = self._get_tokenizer(kwargs)
-        self.client = self._get_client(api_key, is_azure, **client_kwargs)
+        self.client = self._get_client(is_azure, **client_kwargs)
         self.simplify_messages = string_to_bool(
             parent_kwargs.get("simplify_messages", False)
         )
@@ -86,10 +82,6 @@ class OpenAiClient(AbstractTextGenerationClient):
     def _get_tokenizer(
         self, init_args: Dict = {}
     ) -> "Union[VLLMTokenizer, OpenAiTokenizer]":
-        # Tokenizers are imported lazily so that constructing an OpenAI/Azure
-        # client does not pull in heavy deps it never uses. In particular
-        # HuggingfaceTokenizer imports `transformers` (~2.5s warm / much more
-        # cold), which the default OpenAiTokenizer (tiktoken) path never needs.
         if not self.is_azure and self.endpoint and self.endpoint.strip():
             if self.deployment_type == "vllm":
                 from ...tokenizers.vllm_tokenizer import VLLMTokenizer
@@ -127,12 +119,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             max_completion_tokens=self.model_settings.max_completion_tokens,
         )
 
-    def _get_client(
-        self, api_key: str, is_azure: bool, **kwargs
-    ) -> Union[OpenAI, AzureOpenAI]:
+    def _get_client(self, is_azure: bool, **kwargs) -> Union[OpenAI, AzureOpenAI]:
         provider = (kwargs.pop("provider", None) or "").lower()
-        if provider == "bedrock-mantle":
-            return self._get_bedrock_mantle_client(api_key, **kwargs)
+        if provider == "bedrock":
+            return self._get_bedrock_client(**kwargs)
+        api_key = kwargs.pop("api_key", None)
+        if not api_key:
+            raise ValueError("api_key is required for OpenAI and Azure OpenAI clients")
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
             if endpoint is None:
@@ -141,8 +134,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
 
-    def _get_bedrock_mantle_client(self, api_key: str, **kwargs) -> OpenAI:
-        # Lazy import — only this provider needs boto3/httpx.
+    def _get_bedrock_client(self, **kwargs) -> OpenAI:
         import boto3
         import httpx
         from .bedrock_sigv4_auth import BedrockSigV4Auth
@@ -155,7 +147,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         )
         aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
 
-        # None values fall through to boto3's default credential / region chain.
         session = boto3.Session(
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
@@ -164,13 +155,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         credentials = session.get_credentials()
         if credentials is None:
             raise ValueError(
-                "Could not resolve AWS credentials for provider='bedrock-mantle' "
+                "Could not resolve AWS credentials for provider='bedrock' "
                 "(pass aws_access_key/aws_secret_key or configure the default chain)"
             )
         region = aws_region or session.region_name
         if not region:
             raise ValueError(
-                "provider='bedrock-mantle' requires a region "
+                "provider='bedrock' requires a region "
                 "(pass aws_region, set AWS_REGION, or run on EC2 with a region)"
             )
 
@@ -191,7 +182,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             timeout=timeout,
         )
         return OpenAI(
-            api_key=api_key or "unused-sigv4-signs-this",
+            api_key="unused-sigv4-signs-this",
             base_url=base_url,
             http_client=http_client,
         )
