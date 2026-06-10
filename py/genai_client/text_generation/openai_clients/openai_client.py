@@ -173,8 +173,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             or kwargs.pop("endpoint", None)
             or f"https://bedrock-mantle.{region}.api.aws/openai/v1"
         )
-        # First-invoke Marketplace finalization can take minutes.
-        timeout = kwargs.pop("timeout", 300.0)
 
         http_client = httpx.Client(
             auth=BedrockSigV4Auth(
@@ -182,7 +180,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 service="bedrock-mantle",
                 region=region,
             ),
-            timeout=timeout,
+            timeout=kwargs.pop("timeout", 300.0),
         )
         return OpenAI(
             api_key=api_key or "unused-sigv4-signs-this",

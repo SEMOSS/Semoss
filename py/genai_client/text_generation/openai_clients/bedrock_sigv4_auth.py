@@ -7,9 +7,6 @@ if TYPE_CHECKING:
 
 
 class BedrockSigV4Auth(httpx.Auth):
-    # SigV4-sign each request; pass live Credentials (not frozen) so EC2/SSO creds auto-refresh.
-    requires_request_body = True
-
     def __init__(
         self,
         credentials: "Credentials",
