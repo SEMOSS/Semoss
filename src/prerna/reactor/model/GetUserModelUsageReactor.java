@@ -33,10 +33,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -79,18 +79,41 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
 				startDate, endDate);
 
-		// Append engine name from the security engine database
-		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(usageData.stream()
-				.map(map -> (String) map.get("ENGINE_ID")).filter(Objects::nonNull).collect(Collectors.toList()));
+		// Look up engine names from the input engineIds — always use the input list so
+		// engines with zero usage still get a named zero row
+		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
+
+		// Index returned usage rows by engine ID for easy lookup
+		Map<String, Map<String, Object>> usageByEngineId = new HashMap<>();
 		for (Map<String, Object> entry : usageData) {
 			String engineId = (String) entry.get("ENGINE_ID");
 			if (engineId != null) {
-				String engineName = (String) idToAlias.get(engineId);
-				entry.put("ENGINE_NAME", engineName);
+				entry.put("ENGINE_NAME", idToAlias.get(engineId));
+				usageByEngineId.put(engineId, entry);
 			}
 		}
 
-		return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		// Ensure every requested engine has a row — fill zeros for engines with no usage
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (String engineId : engineIds) {
+			if (usageByEngineId.containsKey(engineId)) {
+				result.add(usageByEngineId.get(engineId));
+			} else {
+				Map<String, Object> zeroRow = new HashMap<>();
+				zeroRow.put("ENGINE_ID", engineId);
+				zeroRow.put("ENGINE_NAME", idToAlias.get(engineId));
+				zeroRow.put("INPUT_TOKENS", 0);
+				zeroRow.put("OUTPUT_TOKENS", 0);
+				zeroRow.put("CACHE_READ_TOKENS", 0);
+				zeroRow.put("CACHE_CREATION_TOKENS", 0);
+				zeroRow.put("THINKING_TOKENS", 0);
+				zeroRow.put("TOTAL_TOKENS", 0);
+				zeroRow.put("TOTAL_REQUESTS", 0);
+				result.add(zeroRow);
+			}
+		}
+
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
 	/**
@@ -131,6 +154,12 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 			} catch (DateTimeParseException e) {
 				throw new IllegalArgumentException(
 						"Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
+			}
+
+			// Validate start date is not in the future
+			ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+			if (start.isAfter(now)) {
+				throw new IllegalArgumentException("startDate cannot be in the future. Provided: startDate=" + startDate);
 			}
 
 			// Validate start date is before or equal to end date
