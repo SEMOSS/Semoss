@@ -94,11 +94,6 @@ public class Room implements Serializable {
 	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
-	// Fraction of the model's context window at which Room.ask auto-triggers
-	// compaction via CompactRoomMessagesReactor. Mirrored by the FE constant
-	// AUTO_COMPACT_THRESHOLD so the UI can preview the "Compacting..." indicator.
-	private static final double AUTO_COMPACT_THRESHOLD = 0.85;
-
 	private static final Pattern SYSTEM_PROMPT_VARIABLE_PATTERN = Pattern
 			.compile("\\{\\{\\s*([A-Z][A-Z0-9_]*)\\s*((?:\\.|\\[)[^}]*)?\\s*\\}\\}");
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
@@ -247,6 +242,12 @@ public class Room implements Serializable {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
+		// Pull the playground-only auto-compaction threshold out of the param map
+		// so it never reaches the model engine. Sent by the FE on every
+		// AskPlayground call as paramValues.auto_compact_threshold.
+		Object thresholdRaw = kwArgMap.remove("auto_compact_threshold");
+		Double autoCompactThreshold = thresholdRaw instanceof Number n ? n.doubleValue() : null;
+
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -317,12 +318,13 @@ public class Room implements Serializable {
 				msg.setParentMessageId(null); // first message
 			}
 
-			// Auto-compact when the branch exceeds the threshold. Re-parent the
+			// Auto-compact when the branch exceeds the per-room threshold provided
+			// by the caller in paramValues.auto_compact_threshold. Re-parent the
 			// in-flight user message to the new tail so the persisted tree stays
 			// linear (the FE rebuilds the tree by sorting on dateCreated, and
 			// msg.dateCreated predates the compaction messages).
 			String newParentAfterCompaction = maybeCompactConversation(modelEngine, msg.getParentMessageId(),
-					appendToHistory);
+					appendToHistory, autoCompactThreshold);
 			boolean compactionRan = newParentAfterCompaction != null;
 			if (compactionRan) {
 				msg.setParentMessageId(newParentAfterCompaction);
@@ -1426,17 +1428,22 @@ public class Room implements Serializable {
 	
 	/**
 	 * Auto-compacts the current branch via {@link CompactRoomMessagesReactor} when
-	 * its token usage meets {@link #AUTO_COMPACT_THRESHOLD}. Skips when the model
-	 * has no context window configured, when history is not being appended, or when
+	 * its token usage meets the per-call {@code threshold}. Skips when the caller
+	 * did not enable auto-compaction (threshold {@code null}), when the model has
+	 * no context window configured, when history is not being appended, or when
 	 * the reactor reports no successful compaction.
 	 *
+	 * @param threshold fraction of the model's context window above which to
+	 *                  compact; sourced from {@code paramValues.auto_compact_threshold}
+	 *                  on the originating pixel call. {@code null} disables.
 	 * @return messageId of the compaction-response (new branch tail) on success;
 	 *         {@code null} when the reactor was a no-op or failed. Callers use the
 	 *         id to re-parent the in-flight user message so the persisted tree
 	 *         stays linear after reload.
 	 */
-	private String maybeCompactConversation(IModelEngine modelEngine, String parentMessageId, boolean appendToHistory) {
-		if (!appendToHistory || this.insight == null || modelEngine == null || messages.isEmpty()
+	private String maybeCompactConversation(IModelEngine modelEngine, String parentMessageId, boolean appendToHistory,
+			Double threshold) {
+		if (threshold == null || !appendToHistory || this.insight == null || modelEngine == null || messages.isEmpty()
 				|| parentMessageId == null || parentMessageId.isEmpty()) {
 			return null;
 		}
@@ -1450,12 +1457,12 @@ public class Room implements Serializable {
 			return null;
 		}
 		double usage = (double) currentTokens / maxTokens;
-		if (usage < AUTO_COMPACT_THRESHOLD) {
+		if (usage < threshold) {
 			return null;
 		}
 		String engineId = modelEngine.getEngineId();
-		classLogger.info("Auto-compaction triggered for room {} engine {} (usage {}/{} = {})", this.room_id, engineId,
-				currentTokens, maxTokens, usage);
+		classLogger.info("Auto-compaction triggered for room {} engine {} (usage {}/{} = {}, threshold {})",
+				this.room_id, engineId, currentTokens, maxTokens, usage, threshold);
 		try {
 			NounStore ns = new NounStore(ReactorKeysEnum.ALL.getKey());
 			ns.makeGenRowStruct(ReactorKeysEnum.ROOM_ID.getKey()).addLiteral(this.room_id);
