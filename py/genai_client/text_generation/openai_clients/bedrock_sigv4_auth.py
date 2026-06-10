@@ -7,9 +7,7 @@ if TYPE_CHECKING:
 
 
 class BedrockSigV4Auth(httpx.Auth):
-    # Mantle uses SigV4, not bearer tokens — overwrite the OpenAI SDK's Authorization header.
-    # Hold the live Credentials object (not a frozen snapshot) so refreshable
-    # creds (EC2 role, assumed role, SSO) auto-renew between requests.
+    # SigV4-sign each request; pass live Credentials (not frozen) so EC2/SSO creds auto-refresh.
     requires_request_body = True
 
     def __init__(

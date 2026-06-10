@@ -155,8 +155,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         )
         aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
 
-        # When access/secret are omitted, boto3 walks the default credential
-        # chain: env vars, shared file, SSO, EC2/ECS/Lambda instance role.
+        # None values fall through to boto3's default credential / region chain.
         session = boto3.Session(
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
