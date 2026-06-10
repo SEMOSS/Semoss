@@ -130,6 +130,9 @@ class OpenAiClient(AbstractTextGenerationClient):
     def _get_client(
         self, api_key: str, is_azure: bool, **kwargs
     ) -> Union[OpenAI, AzureOpenAI]:
+        provider = (kwargs.pop("provider", None) or "").lower()
+        if provider == "bedrock-mantle":
+            return self._get_bedrock_mantle_client(api_key, **kwargs)
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
             if endpoint is None:
@@ -137,6 +140,59 @@ class OpenAiClient(AbstractTextGenerationClient):
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
+
+    def _get_bedrock_mantle_client(self, api_key: str, **kwargs) -> OpenAI:
+        # Lazy import — only this provider needs boto3/httpx.
+        import boto3
+        import httpx
+        from .bedrock_sigv4_auth import BedrockSigV4Auth
+
+        aws_access_key = kwargs.pop("aws_access_key", None) or kwargs.pop(
+            "aws_access_key_id", None
+        )
+        aws_secret_key = kwargs.pop("aws_secret_key", None) or kwargs.pop(
+            "aws_secret_access_key", None
+        )
+        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
+        if not aws_region:
+            raise ValueError(
+                "provider='bedrock-mantle' requires aws_region (or region)"
+            )
+
+        session = boto3.Session(
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name=aws_region,
+        )
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise ValueError(
+                "Could not resolve AWS credentials for provider='bedrock-mantle' "
+                "(pass aws_access_key/aws_secret_key or configure the default chain)"
+            )
+        frozen = credentials.get_frozen_credentials()
+
+        base_url = (
+            kwargs.pop("base_url", None)
+            or kwargs.pop("endpoint", None)
+            or f"https://bedrock-mantle.{aws_region}.api.aws/openai/v1"
+        )
+        # First-invoke Marketplace finalization can take minutes.
+        timeout = kwargs.pop("timeout", 300.0)
+
+        http_client = httpx.Client(
+            auth=BedrockSigV4Auth(
+                credentials=frozen,
+                service="bedrock-mantle",
+                region=aws_region,
+            ),
+            timeout=timeout,
+        )
+        return OpenAI(
+            api_key=api_key or "unused-sigv4-signs-this",
+            base_url=base_url,
+            http_client=http_client,
+        )
 
     def ask_call(
         self, prefix: str = "", **kwargs
