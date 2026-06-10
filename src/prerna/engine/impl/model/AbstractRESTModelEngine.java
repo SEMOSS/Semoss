@@ -53,7 +53,9 @@ import com.google.gson.Gson;
 
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
@@ -143,6 +145,30 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 				} else {
 					// Handle streaming response
 					if (entity != null) {
+						// Register a cancel hook on the PixelJobRunner so that
+						// StopPixelExecution can close this response mid-stream.
+						// Closing the response unblocks reader.readLine() with an
+						// IOException, which we detect below and convert to a clean
+						// cancellation exception rather than an error.
+						//
+						// NOTE: insightId != jobId — jobs are keyed by jobId in
+						// PixelJobManager. Use ThreadStore.getJobId() since this
+						// method runs on the PixelJobRunner thread which already
+						// has the correct jobId set in its ThreadLocal.
+						final CloseableHttpResponse responseRef = response;
+						String threadJobId = ThreadStore.getJobId();
+						PixelJobRunner jobRunner = threadJobId != null
+								? PixelJobManager.getManager().getJob(threadJobId)
+								: null;
+						if (jobRunner != null) {
+							jobRunner.setCancelHook(() -> {
+								try {
+									responseRef.close();
+								} catch (Exception ignored) {
+									// ignore — we're cancelling anyway
+								}
+							});
+						}
 						try (BufferedReader reader = new BufferedReader(
 								new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
 							String line;
@@ -151,6 +177,10 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 
 							while ((line = reader.readLine()) != null) {
 //	                        	System.out.println(line);
+								// fast-exit if cancellation was requested between lines
+								if (Thread.currentThread().isInterrupted()) {
+									break;
+								}
 								if (line.contains("data: [DONE]") || line.contains("data:[DONE]")) {
 									break;
 								}
@@ -174,9 +204,22 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 							responseObject.setResponse(responseAssimilator.toString());
 							return responseObject;
 						} catch (Exception e) {
+							// If the user cancelled, the IOException came from us closing
+							// the response — let the upstream pixel cancel handler take
+							// over (it throws SemossPixelException). The FE will then
+							// call RecordCancelledTurn to persist the visible partial.
+							if (Thread.currentThread().isInterrupted()
+									|| (jobRunner != null && jobRunner.isCancelRequested())) {
+								throw new IllegalStateException("LLM stream cancelled by user");
+							}
 							classLogger.error(Constants.STACKTRACE, e);
 							throw new IllegalArgumentException(
 									"There was an error processing the response from " + url);
+						} finally {
+							// always clear the hook so it can't be fired after the call ends
+							if (jobRunner != null) {
+								jobRunner.setCancelHook(null);
+							}
 						}
 					}
 				}
