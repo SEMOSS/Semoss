@@ -55,35 +55,35 @@ import prerna.util.Utility;
 
 public class DatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
-	private static final Logger logger = LogManager.getLogger(DatasourceTranslation.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(DatasourceTranslation.class.getName());
 
 	private List<Map<String, Object>> datasourcePixels = new ArrayList<Map<String, Object>>();
 	private Map<String, Object> currentSourceStatement = null;
-	
+
 	public DatasourceTranslation(Insight insight) {
 		super(insight);
 	}
-	
+
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		int currentIndex = 0;
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-		for(PRoutine e : copy) {
-    		this.resultKey = "$RESULT_" + e.hashCode();
+		for (PRoutine e : copy) {
+			this.resultKey = "$RESULT_" + e.hashCode();
 
 			String expression = e.toString();
-			logger.info("Processing " + Utility.cleanLogString(expression));
+			classLogger.info("Processing " + Utility.cleanLogString(expression));
 
 			boolean process = false;
-			for(String iType : importTypes) {
-				if(expression.contains(iType)) {
+			for (String iType : importTypes) {
+				if (expression.contains(iType)) {
 					process = true;
 					break;
 				}
 			}
-			
+
 			// only execute pixels that at least contain the import
-			if(process) {
+			if (process) {
 				// TODO:
 				// THIS IS IN A TRY CATCH BECAUSE WE ARE NOT PROPERLY LOOKING
 				// AT IF WE ARE NOT PROPERLY ISOLATING THE STEPS THAT ARE
@@ -91,7 +91,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 				try {
 					e.apply(this);
 					// if we ended up finding something to store
-					if(this.currentSourceStatement != null) {
+					if (this.currentSourceStatement != null) {
 						this.currentSourceStatement.put("pixelStepIndex", currentIndex);
 						// process to ensure query structs are broken into parts for FE to consume
 						postProcessParams(this.currentSourceStatement);
@@ -100,11 +100,11 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 						// at the end, we will null it
 						this.currentSourceStatement = null;
 					}
-				} catch(Exception e1) {
-					logger.error(Constants.STACKTRACE, e1);
+				} catch (Exception e1) {
+					classLogger.error(Constants.STACKTRACE, e1);
 				}
 			}
-			
+
 			// update the index
 			currentIndex++;
 		}
@@ -112,42 +112,42 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 
 	private void postProcessParams(Map<String, Object> sourceInfo) {
 		Map<String, List<Object>> paramMap = (Map<String, List<Object>>) sourceInfo.get("params");
-		if(paramMap != null) {
+		if (paramMap != null) {
 			Set<String> keysToRemove = new HashSet<String>();
 			Map<String, List<Object>> processedParams = new HashMap<String, List<Object>>();
-			for(String key : paramMap.keySet()) {
+			for (String key : paramMap.keySet()) {
 				// right now, only want to process query structs into a more readable format
-				if(key.equals(PixelDataType.QUERY_STRUCT.toString())) {
+				if (key.equals(PixelDataType.QUERY_STRUCT.toString())) {
 					List<Object> inputs = paramMap.get(key);
 					// i am 99.999999% positve this will always be size 1
 					SelectQueryStruct inputQs = (SelectQueryStruct) inputs.get(0);
 					// grab the unique set of selectors
 					Set<String> uniqueCols = new HashSet<String>();
 					List<IQuerySelector> selectors = inputQs.getSelectors();
-					for(IQuerySelector selector : selectors) {
+					for (IQuerySelector selector : selectors) {
 						List<QueryColumnSelector> baseColsUsed = selector.getAllQueryColumns();
-						for(QueryColumnSelector s : baseColsUsed) {
+						for (QueryColumnSelector s : baseColsUsed) {
 							uniqueCols.add(s.getQueryStructName());
 						}
 					}
 					List<IQueryFilter> filters = inputQs.getExplicitFilters().getFilters();
-					for(IQueryFilter f : filters) {
+					for (IQueryFilter f : filters) {
 						uniqueCols.addAll(f.getAllQueryStructNames());
 					}
 					// add all joins
 					Set<IRelation> relations = inputQs.getRelations();
 					for (IRelation relationship : relations) {
-						if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+						if (relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
 							BasicRelationship rel = (BasicRelationship) relationship;
 							String up = rel.getFromConcept();
 							String down = rel.getToConcept();
 							uniqueCols.add(up);
 							uniqueCols.add(down);
 						} else {
-							logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+							classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
 						}
 					}
-					
+
 //					Map<String, Map<String, List>> relations = inputQs.getRelations();
 //					for(String up : relations.keySet()) {
 //						// store the up node
@@ -161,7 +161,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 //							}
 //						}
 //					}
-					
+
 					// we have the list of columns that we would want to find equiv.
 					// for that are used in the import
 					// wrap in list to hold structure
@@ -172,7 +172,7 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 				}
 			}
 			// now we remove the QS and add the columns
-			if(!processedParams.isEmpty()) {
+			if (!processedParams.isEmpty()) {
 				paramMap.keySet().removeAll(keysToRemove);
 				paramMap.putAll(processedParams);
 			}
@@ -182,10 +182,10 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 	@Override
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
-		
+
 		// looking for data sources
 		String reactorId = node.getId().toString().trim();
-		if(importTypes.contains(reactorId)) {
+		if (importTypes.contains(reactorId)) {
 			this.currentSourceStatement = new HashMap<String, Object>();
 			this.currentSourceStatement.put("expression", node.toString());
 			this.currentSourceStatement.put("type", reactorId);
@@ -193,38 +193,40 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 			this.currentSourceStatement.put("params", sourceParams);
 		}
 	}
-	
+
 	@Override
 	public void outAOperation(AOperation node) {
-		if(this.currentSourceStatement != null) {
+		if (this.currentSourceStatement != null) {
 			// store the inputs of the
-			Map<String, List<Object>> sourceParams = (Map<String, List<Object>>) this.currentSourceStatement.get("params");
-			
+			Map<String, List<Object>> sourceParams = (Map<String, List<Object>>) this.currentSourceStatement
+					.get("params");
+
 			NounStore nouns = this.curReactor.getNounStore();
 			Set<String> inputKeys = nouns.getNounKeys();
 			boolean single = inputKeys.size() == 1;
-			for(String key : inputKeys) {
-				if(single && key.equals("all")) {
+			for (String key : inputKeys) {
+				if (single && key.equals("all")) {
 					GenRowStruct grs = nouns.getGenRowStruct(key);
-					if(!grs.isEmpty()) {
+					if (!grs.isEmpty()) {
 						sourceParams.put("noKey", grs.getAllValues());
 					}
-				} else if(!key.equals("all")) {
+				} else if (!key.equals("all")) {
 					GenRowStruct grs = nouns.getGenRowStruct(key);
 					sourceParams.put(key, grs.getAllValues());
 				}
 			}
 		}
-		
+
 		super.outAOperation(node);
 	}
-	
+
 	public List<Map<String, Object>> getDatasourcePixels() {
 		return this.datasourcePixels;
 	}
-	
+
 	/**
 	 * Testing method
+	 * 
 	 * @param args
 	 */
 //	public static void main(String[] args) {
@@ -268,6 +270,5 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 //		List<Map<String, Object>> sourcePixels = translation.getDatasourcePixels();
 //		System.out.println(gson.toJson(sourcePixels));
 //	}
-
 
 }

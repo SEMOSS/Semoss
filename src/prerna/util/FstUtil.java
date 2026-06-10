@@ -39,7 +39,7 @@ import org.nustaq.serialization.FSTObjectOutput;
 
 public class FstUtil {
 
-	private static final Logger logger = LogManager.getLogger(FstUtil.class);
+	private static final Logger classLogger = LogManager.getLogger(FstUtil.class);
 
 	public static byte[] serialize(Object input) {
 		ByteArrayOutputStream baos = null;
@@ -54,24 +54,24 @@ public class FstUtil {
 			byte[] retArr = baos.toByteArray();
 			return retArr;
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(fo != null) {
+			if (fo != null) {
 				try {
 					fo.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(baos != null) {
+			if (baos != null) {
 				try {
 					baos.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		return null;		
+		return null;
 	}
 
 	public static Object deserialize(byte[] data) {
@@ -82,21 +82,21 @@ public class FstUtil {
 			fi = new FSTObjectInput(bais);
 			Object object = fi.readObject();
 			return object;
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(fi != null) {
+			if (fi != null) {
 				try {
 					fi.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(bais != null) {
+			if (bais != null) {
 				try {
 					bais.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -106,8 +106,9 @@ public class FstUtil {
 	public static byte[] packBytes(Object obj) {
 		byte[] psBytes = FstUtil.serialize(obj);
 
-		if(psBytes == null)
+		if (psBytes == null) {
 			return psBytes;
+		}
 		// get the length
 		int length = psBytes.length;
 
@@ -117,11 +118,13 @@ public class FstUtil {
 		// pack both of these
 		byte[] finalByte = new byte[psBytes.length + lenBytes.length];
 
-		for (int lenIndex = 0; lenIndex < lenBytes.length; lenIndex++)
+		for (int lenIndex = 0; lenIndex < lenBytes.length; lenIndex++) {
 			finalByte[lenIndex] = lenBytes[lenIndex];
+		}
 
-		for (int lenIndex = 0; lenIndex < psBytes.length; lenIndex++)
+		for (int lenIndex = 0; lenIndex < psBytes.length; lenIndex++) {
 			finalByte[lenIndex + lenBytes.length] = psBytes[lenIndex];
+		}
 
 		return finalByte;
 	}

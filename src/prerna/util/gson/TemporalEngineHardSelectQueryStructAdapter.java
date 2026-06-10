@@ -37,10 +37,11 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 
-public class TemporalEngineHardSelectQueryStructAdapter extends AbstractSemossTypeAdapter<TemporalEngineHardQueryStruct> {
+public class TemporalEngineHardSelectQueryStructAdapter
+		extends AbstractSemossTypeAdapter<TemporalEngineHardQueryStruct> {
 
 	private static final Gson gson = new Gson();
 
@@ -54,39 +55,39 @@ public class TemporalEngineHardSelectQueryStructAdapter extends AbstractSemossTy
 		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
 
 		in.beginObject();
-		while(in.hasNext()) {
+		while (in.hasNext()) {
 			String name = in.nextName();
-			if(name.equals("qsType")) {
-				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
-			} else if(name.equals("engineName")) {
+			if (name.equals("qsType")) {
+				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.valueOf(in.nextString()));
+			} else if (name.equals("engineName")) {
 				qs.setEngineId(in.nextString());
-			} else if(name.equals("frameName")) {
+			} else if (name.equals("frameName")) {
 				qs.setFrameName(in.nextString());
-			} else if(name.equals("frameType")) {
+			} else if (name.equals("frameType")) {
 				qs.setFrameType(in.nextString());
-			} else if(name.equals("query")) {
+			} else if (name.equals("query")) {
 				qs.setQuery(in.nextString());
-			} else if(name.equals("config")) {
+			} else if (name.equals("config")) {
 				TypeAdapter<Map> configReader = gson.getAdapter(Map.class);
 				Map<String, Object> config = configReader.read(in);
 				qs.setConfig(config);
 			}
 		}
 		in.endObject();
-		
+
 		// the frame is not cached
 		// but we store the frame name
-		// set it in the QS if a 
+		// set it in the QS if a
 		// context insight is defined
-		if(this.insight != null) {
-			if(qs.getFrameName() != null) {
+		if (this.insight != null) {
+			if (qs.getFrameName() != null) {
 				qs.setFrame((ITableDataFrame) this.insight.getVar(qs.getFrameName()));
 			}
 		}
 
 		return qs;
 	}
-	
+
 	@Override
 	public void write(JsonWriter out, TemporalEngineHardQueryStruct value) throws IOException {
 		if (value == null) {
@@ -102,16 +103,16 @@ public class TemporalEngineHardSelectQueryStructAdapter extends AbstractSemossTy
 		// lets do the easy ones first
 		// qs type
 		out.name("qsType").value(value.getQsType().toString());
-		if(value.getEngineId() != null) {
+		if (value.getEngineId() != null) {
 			out.name("engineName").value(value.getEngineId());
 		}
-		if(value.getFrameName() != null) {
+		if (value.getFrameName() != null) {
 			out.name("frameName").value(value.getFrameName());
 			out.name("frameType").value(value.getFrameType());
 		}
 		out.name("query").value(value.getQuery());
-		
-		if(value.getConfig() != null) {
+
+		if (value.getConfig() != null) {
 			TypeAdapter<Map> configWriter = gson.getAdapter(Map.class);
 			out.name("config");
 			configWriter.write(out, value.getConfig());

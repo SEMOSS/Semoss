@@ -28,7 +28,7 @@
 package prerna.reactor.masterdatabase;
 
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.imports.RdbmsImporter;
@@ -57,7 +57,7 @@ public class GetPhysicalToPhysicalMappingReactor extends AbstractReactor {
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		qs.setEngine(SystemEngineRegistry.getLocalMasterDb());
 
 		H2Frame frame = new H2Frame();

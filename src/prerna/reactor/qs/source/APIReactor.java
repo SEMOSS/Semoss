@@ -37,9 +37,7 @@ import prerna.engine.impl.json.JsonAPIEngine;
 import prerna.engine.impl.json.JsonAPIEngine2;
 import prerna.engine.impl.web.WebScrapeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.ConfigSelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
 import prerna.reactor.EmbeddedScriptReactor;
 import prerna.reactor.GenericReactor;
@@ -52,13 +50,13 @@ import prerna.util.Utility;
 public class APIReactor extends AbstractQueryStructReactor {
 
 	public APIReactor() {
-		this.keysToGet = new String[]{};
+		this.keysToGet = new String[] {};
 	}
 
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		createTemporalStruct();
-		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
+		this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
 		return this.qs;
 	}
 
@@ -91,7 +89,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 		} else if (apiType.equalsIgnoreCase("WEB")) {
 			engine = new WebScrapeEngine();
 		}
-		
+
 		// if there is alias get it
 		if (this.getNounStore().getGenRowStruct("aliasFile") != null) {
 			String baseFolder = Utility.getBaseFolder();
@@ -117,17 +115,18 @@ public class APIReactor extends AbstractQueryStructReactor {
 			String source = "";
 			String operation = "";
 			// may be I can fit all these things into the alias map and call it a day.
-			HashMap map = new HashMap();;
+			HashMap map = new HashMap();
+			;
 
 			// also need a headersmap
 			if (this.getNounStore().getGenRowStruct("aliasMap") != null) {
 				map = (HashMap) this.getNounStore().getGenRowStruct("aliasMap").getNoun(0).getValue();
 			}
-			
+
 			if (this.getNounStore().getGenRowStruct("headersMap") != null) {
 				map.put("HEADERS", this.getNounStore().getGenRowStruct("headersMap").getNoun(0).getValue());
 			}
-			
+
 			Properties aliasProp = getAlias(null);
 			Iterator keys = map.keySet().iterator();
 			while (keys.hasNext()) {
@@ -139,7 +138,7 @@ public class APIReactor extends AbstractQueryStructReactor {
 			if (!aliasProp.containsKey("mandatory_input")) {
 				aliasProp.put("mandatory_input", "");
 			}
-			
+
 			if (engine != null) {
 				engine.setSmssProp(aliasProp);
 				String engineName = apiType + Utility.getRandomString(6);
@@ -152,27 +151,29 @@ public class APIReactor extends AbstractQueryStructReactor {
 
 	private Properties getAlias(String alias) {
 		Properties retProp = new Properties();
-		if (alias != null)
+		if (alias != null) {
 			// needs to implement this later
 			retProp = Utility.loadProperties(alias);
+		}
 		return new Properties();
 	}
-	
+
 	@Override
 	public void mergeUp() {
 		// merge this reactor into the parent reactor
 		init();
 		createQueryStructPlan();
-		if(parentReactor != null) {
+		if (parentReactor != null) {
 			// this is only called lazy
 			// have to init to set the qs
 			// to them add to the parent
 			NounMetadata data = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
-			if(parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
+			if (parentReactor instanceof EmbeddedScriptReactor || parentReactor instanceof EmbeddedRoutineReactor
 					|| parentReactor instanceof GenericReactor) {
 				parentReactor.getCurRow().add(data);
 			} else {
-				GenRowStruct parentQSInput = parentReactor.getNounStore().makeGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
+				GenRowStruct parentQSInput = parentReactor.getNounStore()
+						.makeGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 				parentQSInput.add(data);
 			}
 		}
@@ -181,15 +182,15 @@ public class APIReactor extends AbstractQueryStructReactor {
 	private AbstractQueryStruct createQueryStructPlan() {
 		// just loop through all the things
 		Map<String, Object> configMap = new HashMap<>();
-		for(String key : this.store.getNounKeys()) {
-			 GenRowStruct grs = this.store.getGenRowStruct(key);
-			 if(grs != null && !grs.isEmpty()) {
-				 configMap.put(key, grs.get(0));
-			 }
+		for (String key : this.store.getNounKeys()) {
+			GenRowStruct grs = this.store.getGenRowStruct(key);
+			if (grs != null && !grs.isEmpty()) {
+				configMap.put(key, grs.get(0));
+			}
 		}
-		
+
 		ConfigSelectQueryStruct qs = new ConfigSelectQueryStruct();
-		qs.setQsType(QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.DIRECT_API_QUERY);
 		qs.setConfig(configMap);
 		qs.setEngineId("FAKE_ENGINE");
 		this.qs = qs;
