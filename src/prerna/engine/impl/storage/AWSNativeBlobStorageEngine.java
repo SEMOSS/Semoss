@@ -347,16 +347,17 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Delete local files not present in S3
-		Files.walk(localDirectory).filter(Files::isRegularFile)
-				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
-					try {
-						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: {}", localFile);
-					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: {}", localFile, e);
-					}
-				});
-
+		try (Stream<Path> stream = Files.walk(localDirectory)) {
+			stream.filter(Files::isRegularFile).filter(localFile -> !cloudFiles.contains(localFile.toString()))
+					.forEach(localFile -> {
+						try {
+							Files.delete(localFile);
+							classLogger.info("Deleted extra local file: {}", localFile);
+						} catch (IOException e) {
+							classLogger.error("Failed to delete extra file: {}", localFile, e);
+						}
+					});
+		}
 		// Delete empty local directories
 		deleteEmptyDirectories(localDirectory);
 
@@ -392,8 +393,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			deleteEmptyDirectories(path);
 
 			if (Files.isDirectory(path)) {
-				try (Stream<Path> fileStream = Files.walk(path).filter(Files::isRegularFile)) {
-					fileStream.forEach(file -> {
+				try (Stream<Path> stream = Files.walk(path)) {
+					stream.filter(Files::isRegularFile).forEach(file -> {
 						try {
 							uploadedFiles.add(uploadFile(path, file, storageFolderPath, metadata));
 						} catch (Exception e) {
@@ -753,9 +754,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyDirectories(Path path) {
-		try {
-
-			List<Path> directories = Files.walk(path).sorted(Comparator.reverseOrder()) // Delete children first
+		try (Stream<Path> stream = Files.walk(path)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
 					.filter(Files::isDirectory).collect(Collectors.toList());
 
 			for (Path dir : directories) {
