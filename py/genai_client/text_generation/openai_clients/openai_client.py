@@ -147,6 +147,9 @@ class OpenAiClient(AbstractTextGenerationClient):
         )
         aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
 
+        # Optional openai api key; no idea why you would use it here
+        api_key = kwargs.pop("api_key", None)
+
         session = boto3.Session(
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
@@ -182,7 +185,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             timeout=timeout,
         )
         return OpenAI(
-            api_key="unused-sigv4-signs-this",
+            api_key=api_key or "unused-sigv4-signs-this",
             base_url=base_url,
             http_client=http_client,
         )
