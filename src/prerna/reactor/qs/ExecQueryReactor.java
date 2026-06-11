@@ -38,7 +38,6 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
@@ -52,7 +51,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class ExecQueryReactor extends AbstractReactor {
 
@@ -84,7 +82,8 @@ public class ExecQueryReactor extends AbstractReactor {
 
 		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+					|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
 				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
 						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
@@ -102,7 +101,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				if (!SecurityEngineUtils.userCanEditEngine(user, engine.getEngineId())) {
 					throw new IllegalArgumentException("User does not have permission to exec query for this app");
 				}
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
 				if (!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Query update/deletes only works for sql frames");
@@ -133,7 +132,8 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 
 		classLogger.info("Executing Query {} ", query);
-		if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+				|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			if (engine == null) {
 				throw new NullPointerException("No engine passed in to execute the query");
 			}
@@ -143,7 +143,7 @@ public class ExecQueryReactor extends AbstractReactor {
 					engine.commit();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute the query {} in the database", query, e);
 				String errorMessage = "An error occurred trying to execute the query in the database";
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();
@@ -171,7 +171,7 @@ public class ExecQueryReactor extends AbstractReactor {
 					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute the query {} to update the frame", query, e);
 				String errorMessage = "An error occurred trying to update the frame";
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage += ": " + e.getMessage();

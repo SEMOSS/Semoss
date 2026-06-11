@@ -48,6 +48,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -159,14 +160,14 @@ public class RatioReactor extends AbstractFrameReactor {
 						bufferedWriter.close();
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close buffered writer for ratio CSV file {}", path, e);
 				}
 				try {
 					if (writer != null) {
 						writer.close();
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close file writer for ratio CSV file {}", path, e);
 				}
 			}
 		}
@@ -270,7 +271,7 @@ public class RatioReactor extends AbstractFrameReactor {
 					counter++;
 					if (counter % 5000 == 0) {
 						Configurator.setLevel(logger.getName(), Level.INFO);
-						logger.info("Added row #" + counter);
+						logger.info("Added row #{}", counter);
 						Configurator.setLevel(logger.getName(), Level.OFF);
 					}
 				}
@@ -317,21 +318,21 @@ public class RatioReactor extends AbstractFrameReactor {
 			}
 			bufferedWriter.close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write ratio data to CSV file {}", path, e);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close buffered writer for ratio CSV file {}", path, e);
 			}
 			try {
 				if (writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close file writer for ratio CSV file {}", path, e);
 			}
 		}
 		Configurator.setLevel(logger.getName(), Level.INFO);
@@ -351,7 +352,7 @@ public class RatioReactor extends AbstractFrameReactor {
 			csvHeaders.put(this.ratioFrameHeaders[i], dataTypes[i]);
 		}
 		csvQS.setColumnTypes(csvHeaders);
-		csvQS.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE);
+		csvQS.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE);
 		RImporter importer = new RImporter(newFrame, csvQS);
 		importer.insertData();
 
@@ -395,13 +396,14 @@ public class RatioReactor extends AbstractFrameReactor {
 				instancValues.add(it.next().getRawValues()[0]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query unique instance values for column {}", instanceColumn, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close instance values query iterator for column {}", instanceColumn,
+							e);
 				}
 			}
 		}
@@ -440,13 +442,14 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query attribute values for column {} and instance {}", attributeCol,
+					sourceInstance, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close attribute values query iterator for column {}", attributeCol, e);
 				}
 			}
 		}
