@@ -43,12 +43,12 @@ import java.util.Set;
  * <p>The shell script is intentionally tiny and dispatches on the
  * {@link SandboxLauncherMain#ENV_BACKEND} env var so both {@link
  * LandlockLauncher} (Linux) and {@link SandboxExecLauncher} (macOS) can
- * use the same entry point — which matters because the Claude Agent SDK's
+ * use the same entry point - which matters because the Claude Agent SDK's
  * Python transport does {@code [cli_path, ...flags]} and has no hook to
  * prepend other arguments.
  *
  * <p>The script is written to the policy tmp dir (or the system tmp dir)
- * with mode 0700 and reused per-run — the parent process is free to
+ * with mode 0700 and reused per-run - the parent process is free to
  * delete it once the spawn completes.
  */
 public final class LauncherScriptWriter {
@@ -74,7 +74,7 @@ public final class LauncherScriptWriter {
                         PosixFilePermission.OWNER_EXECUTE);
                 Files.setPosixFilePermissions(script, perms);
             } catch (UnsupportedOperationException ignored) {
-                // non-POSIX FS — not our sandboxed platforms, ignore
+                // non-POSIX FS - not our sandboxed platforms, ignore
             }
             return script.toAbsolutePath();
         } catch (IOException e) {
@@ -85,7 +85,7 @@ public final class LauncherScriptWriter {
     /** Visible for testing. */
     static final String SCRIPT_BODY =
             "#!/bin/sh\n"
-            + "# SEMOSS sandbox wrapper — generated, do not edit.\n"
+            + "# SEMOSS sandbox wrapper - generated, do not edit.\n"
             + "# Dispatches to the configured sandbox backend and execs the target binary.\n"
             + "set -e\n"
             + "case \"${SEMOSS_SANDBOX_BACKEND:-noop}\" in\n"

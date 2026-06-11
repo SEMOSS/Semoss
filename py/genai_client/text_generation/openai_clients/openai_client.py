@@ -1,6 +1,8 @@
 from typing import Any, Dict, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
+    from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+    from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
@@ -16,10 +18,6 @@ from ...message_builders.openai.openai_message_builder import OpenAIMessageBuild
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
-from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-from ...tokenizers.tgi_tokenizer import TGITokenizer
-from ...tokenizers.openai_tokenizer import OpenAiTokenizer
-from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 from ...utils import string_to_bool
 
@@ -48,11 +46,11 @@ class OpenAiClient(AbstractTextGenerationClient):
     def __init__(
         self,
         is_azure: bool,
-        api_key: str,
         **kwargs,
     ):
         self.is_azure = is_azure
         self.endpoint = kwargs.pop("endpoint", None)
+
         if self.endpoint:
             kwargs["base_url"] = self.endpoint
         chat_type = kwargs.pop("chat_type", "chat-completion")
@@ -70,7 +68,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         self.chat_type = self.model_settings.chat_type
         self.tokenizer = self._get_tokenizer(kwargs)
-        self.client = self._get_client(api_key, is_azure, **client_kwargs)
+        self.client = self._get_client(is_azure, **client_kwargs)
         self.simplify_messages = string_to_bool(
             parent_kwargs.get("simplify_messages", False)
         )
@@ -83,19 +81,25 @@ class OpenAiClient(AbstractTextGenerationClient):
 
     def _get_tokenizer(
         self, init_args: Dict = {}
-    ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
+    ) -> "Union[VLLMTokenizer, OpenAiTokenizer]":
         if not self.is_azure and self.endpoint and self.endpoint.strip():
             if self.deployment_type == "vllm":
+                from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+
                 return VLLMTokenizer(
                     model_name=self.model_settings.model_name,
                     endpoint=self.endpoint,
                     api_key=init_args.get("api_key", "EMPTY"),
                 )
             elif self.deployment_type == "tgi":
+                from ...tokenizers.tgi_tokenizer import TGITokenizer
+
                 return TGITokenizer(
                     endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
                 )
             else:
+                from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+
                 return HuggingfaceTokenizer(
                     encoder_name=init_args.get("tokenizer_name", None)
                     or self.model_settings.model_name,
@@ -104,6 +108,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                     context_window=self.model_settings.context_window,
                     max_completion_tokens=self.model_settings.max_completion_tokens,
                 )
+        from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+
         return OpenAiTokenizer(
             encoder_name=init_args.get("tokenizer_name", None)
             or self.model_settings.model_name,
@@ -113,9 +119,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             max_completion_tokens=self.model_settings.max_completion_tokens,
         )
 
-    def _get_client(
-        self, api_key: str, is_azure: bool, **kwargs
-    ) -> Union[OpenAI, AzureOpenAI]:
+    def _get_client(self, is_azure: bool, **kwargs) -> Union[OpenAI, AzureOpenAI]:
+        provider = (kwargs.pop("provider", None) or "").lower()
+        if provider == "bedrock":
+            return self._get_bedrock_client(**kwargs)
+        api_key = kwargs.pop("api_key", None)
+        if not api_key:
+            raise ValueError("api_key is required for OpenAI and Azure OpenAI clients")
         if is_azure:
             endpoint = kwargs.pop("endpoint", None)
             if endpoint is None:
@@ -123,6 +133,60 @@ class OpenAiClient(AbstractTextGenerationClient):
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
+
+    def _get_bedrock_client(self, **kwargs) -> OpenAI:
+        import boto3
+        import httpx
+        from .bedrock_sigv4_auth import BedrockSigV4Auth
+
+        aws_access_key = kwargs.pop("aws_access_key", None) or kwargs.pop(
+            "aws_access_key_id", None
+        )
+        aws_secret_key = kwargs.pop("aws_secret_key", None) or kwargs.pop(
+            "aws_secret_access_key", None
+        )
+        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
+
+        # Optional openai api key; no idea why you would use it here
+        api_key = kwargs.pop("api_key", None)
+
+        session = boto3.Session(
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name=aws_region,
+        )
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise ValueError(
+                "Could not resolve AWS credentials for provider='bedrock' "
+                "(pass aws_access_key/aws_secret_key or configure the default chain)"
+            )
+        region = aws_region or session.region_name
+        if not region:
+            raise ValueError(
+                "provider='bedrock' requires a region "
+                "(pass aws_region, set AWS_REGION, or run on EC2 with a region)"
+            )
+
+        base_url = (
+            kwargs.pop("base_url", None)
+            or kwargs.pop("endpoint", None)
+            or f"https://bedrock-mantle.{region}.api.aws/openai/v1"
+        )
+
+        http_client = httpx.Client(
+            auth=BedrockSigV4Auth(
+                credentials=credentials,
+                service="bedrock-mantle",
+                region=region,
+            ),
+            timeout=kwargs.pop("timeout", 300.0),
+        )
+        return OpenAI(
+            api_key=api_key or "unused-sigv4-signs-this",
+            base_url=base_url,
+            http_client=http_client,
+        )
 
     def ask_call(
         self, prefix: str = "", **kwargs
@@ -333,6 +397,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                         (
                             [{"type": "THINKING", "thinking": aggregated_thinking}]
                             if aggregated_thinking
+                            else []
+                        )
+                        # preamble text the model emitted alongside the tool calls
+                        + (
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
                             else []
                         )
                         + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
@@ -549,6 +619,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
+                parts = (
+                    [{"type": "TEXT", "text": aggregated_content}]
+                    if aggregated_content
+                    else []
+                )
+                parts += [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
+
                 return AskModelEngineResponse2(
                     response=tool_result,
                     prompt_tokens=prompt_tokens,
@@ -558,7 +635,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
-                    parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tool_result],
+                    parts=parts,
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -682,6 +759,15 @@ class OpenAiClient(AbstractTextGenerationClient):
                     }
                 )
 
+        # preamble text the model emitted alongside the tool calls
+        preamble_text = None
+        if self.chat_type == "chat-completion":
+            preamble_text = response.choices[0].message.content
+        elif self.chat_type == "responses":
+            preamble_text = getattr(response, "output_text", None)
+
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
@@ -691,7 +777,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     @staticmethod

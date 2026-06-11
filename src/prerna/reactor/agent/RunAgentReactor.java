@@ -38,53 +38,38 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * Pixel reactor that invokes the generic agent loop.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * RunAgent(
- *   roomId     = "<roomId>",
- *   command    = "<user prompt>",
- *   engine     = "<engineId>",
- *   harnessType = "room_loop",
- *   maxTurns   = 30,
- *   maxReflections = 0,
- *   paramValues = {"key" : "val"}
- * )
- * }</pre>
- *
- * <p>Returns the final text as a {@code CONST_STRING NounMetadata}.
- */
+/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
 
     private static final String HARNESS_TYPE_KEY    = "harnessType";
-    private static final String AGENT_ID_KEY        = "agentId";
+    private static final String WORKSPACE_ID_KEY    = "workspaceId";
     private static final String MAX_TURNS_KEY       = "maxTurns";
     private static final String MAX_ITERATIONS_KEY  = "maxIterations";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
-                ReactorKeysEnum.ROOM_ID.getKey(),             
-                ReactorKeysEnum.COMMAND.getKey(),             
-                ReactorKeysEnum.ENGINE.getKey(),              
-                HARNESS_TYPE_KEY,                             
-                AGENT_ID_KEY,                                 
+                ReactorKeysEnum.ROOM_ID.getKey(),
+                ReactorKeysEnum.COMMAND.getKey(),
+                ReactorKeysEnum.ENGINE.getKey(),
+                HARNESS_TYPE_KEY,
+                WORKSPACE_ID_KEY,
                 MAX_TURNS_KEY,
                 MAX_ITERATIONS_KEY,
-                MAX_REFLECTIONS_KEY,                          
-                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+                MAX_REFLECTIONS_KEY,
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+                ReactorKeysEnum.AGENT_PARAMS.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -95,6 +80,7 @@ public class RunAgentReactor extends AbstractReactor {
         String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
         String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
+       
 
         // FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
         // forwarding to the harness so the prompt reaches the model intact.
@@ -105,9 +91,9 @@ public class RunAgentReactor extends AbstractReactor {
                 logger.warn("RunAgentReactor: command failed URL-decode, passing through raw: {}", e.getMessage());
             }
         }
-        
-        // agentId reserved for future agent-config lookup
-        // String agentId       = this.keyValue.get(AGENT_ID_KEY);
+        // workspaceId overrides room.options.workspace.workspace_id for this run.
+        String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
+
         int maxTurns = parseIntAtLeast(
                 StringUtils.firstNonBlank(
                         this.keyValue.get(MAX_TURNS_KEY),
@@ -116,7 +102,11 @@ public class RunAgentReactor extends AbstractReactor {
         int maxReflections = parseIntAtLeast(
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
-        Map<String, Object> paramMap = getMap();
+        Map<String, Object> paramMap = getMap("paramMap");
+        Map<String, Object> agentParams = getMap("agentParams");
+        if (explicitWorkspaceId != null) {
+            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
+        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -125,8 +115,8 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} maxTurns={} maxReflections={}",
-                roomId, engineIdFallback, harnessType, maxTurns, maxReflections);
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
 
         try {
             AgentHarnessResult result = AgentRunner.run(
@@ -137,6 +127,7 @@ public class RunAgentReactor extends AbstractReactor {
                     maxTurns,
                     maxReflections,
                     paramMap,
+                    agentParams,
                     this.insight);
 
             logger.info("RunAgentReactor: completed iterations={} reflections={} tools={}",
@@ -161,12 +152,32 @@ public class RunAgentReactor extends AbstractReactor {
     // Helpers
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+	protected Map<String, Object> getMap(String identifier) {
+    	String key = ReactorKeysEnum.PARAM_VALUES_MAP.getKey();
+    	if ("agentParams".equals(identifier)){
+    			key = ReactorKeysEnum.AGENT_PARAMS.getKey();
+    	}
+    	;
+        GenRowStruct mapGrs = this.store.getGenRowStruct(key);
         if (mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if (mapInputs != null && !mapInputs.isEmpty()) {
                 return (Map<String, Object>) mapInputs.get(0).getValue();
+            }
+        }
+        // Support the list-wrapped form: agentParams=[{...}]. The `[ ]` brackets make a
+        // VECTOR noun (see VectorReactor); unwrap it and return the first map inside.
+        if (mapGrs != null && !mapGrs.isEmpty()) {
+            for (NounMetadata vecNoun : mapGrs.getNounsOfType(PixelDataType.VECTOR)) {
+                Object vecVal = vecNoun.getValue();
+                if (vecVal instanceof List) {
+                    for (Object el : (List<?>) vecVal) {
+                        Object inner = (el instanceof NounMetadata) ? ((NounMetadata) el).getValue() : el;
+                        if (inner instanceof Map) {
+                            return (Map<String, Object>) inner;
+                        }
+                    }
+                }
             }
         }
         List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
@@ -175,7 +186,7 @@ public class RunAgentReactor extends AbstractReactor {
         }
         return new HashMap<>();
     }
-
+    
     /**
      * Parse {@code value} as an int, falling back to {@code defaultValue} when null,
      * blank, non-numeric, or below {@code minInclusive}.

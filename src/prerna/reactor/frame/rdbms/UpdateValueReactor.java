@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
+import java.sql.PreparedStatement;
 import java.util.Arrays;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,10 +39,9 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class UpdateValueReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(UpdateValueReactor.class);
 
 	@Override
@@ -69,54 +69,38 @@ public class UpdateValueReactor extends AbstractFrameReactor {
 		}
 
 		// get old column value
-		String oldValueSQL = getOldValueSQL();
+		String oldValue = getOldValue();
 
 		// get new column value
-		String newValueSQL = getNewValueSQL();
+		String newValue = getNewValue();
 
-		// create sql update table set column = REXP_REPLACE(column, oldValue, newValue);
-		String update = "UPDATE " + table + " SET " + column + " = REGEXP_REPLACE(" + column + ", " + oldValueSQL + ", " + newValueSQL + ");";
+		// create sql update table set column = REGEXP_REPLACE(column, oldValue,
+		// newValue);
+		String update = "UPDATE " + table + " SET " + column + " = REGEXP_REPLACE(" + column + ", ?, ?);";
 
-		try {
-			frame.getBuilder().runQuery(update);
+		try (PreparedStatement statement = frame.getConn().prepareStatement(update)) {
+			statement.setString(1, oldValue);
+			statement.setString(2, newValue);
+			statement.executeUpdate();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to replace value in column {} on table {} (oldValue={}, newValue={})", column,
+					table, oldValue, newValue, e);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	private String getNewValueSQL() {
+	private String getNewValue() {
 		GenRowStruct inputsGRS = this.getCurRow();
-		String newValueSQL = "";
 		NounMetadata noun = inputsGRS.getNoun(2);
-		PixelDataType nounType = noun.getNounType();
-		if (nounType.equals(PixelDataType.CONST_STRING)) {
-			newValueSQL = noun.getValue() + "";
-			if (newValueSQL.contains("'")) {
-				newValueSQL = newValueSQL.replaceAll("'", "''");
-			}
-			newValueSQL = "'" + newValueSQL + "'";
-		} else {
-			newValueSQL = noun.getValue() + "";
-		}
-		return newValueSQL;
+		Object nounValue = noun.getValue();
+		return nounValue == null ? null : nounValue.toString();
 	}
 
-	private String getOldValueSQL() {
+	private String getOldValue() {
 		GenRowStruct inputsGRS = this.getCurRow();
-		String oldValueSQL = "";
 		NounMetadata noun = inputsGRS.getNoun(1);
-		PixelDataType nounType = noun.getNounType();
-		if (nounType.equals(PixelDataType.CONST_STRING)) {
-			oldValueSQL = noun.getValue() + "";
-			if (oldValueSQL.contains("'")) {
-				oldValueSQL = oldValueSQL.replaceAll("'", "''");
-			}
-			oldValueSQL = "'" + oldValueSQL + "'";
-		} else {
-			oldValueSQL = noun.getValue() + "";
-		}
-		return oldValueSQL;
+		Object nounValue = noun.getValue();
+		return nounValue == null ? null : nounValue.toString();
 	}
 
 }

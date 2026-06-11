@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,8 +41,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
+
 public class RunDataQualityReactor extends AbstractPyFrameReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RunDataQualityReactor.class);
@@ -56,6 +56,7 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		this.keysToGet = new String[] { RULE_KEY, COLUMNS_KEY, OPTIONS_KEY, INPUT_TABLE_KEY };
 	}
 
+	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		PandasFrame frame = (PandasFrame) getFrame();
@@ -92,13 +93,15 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		if (inputTable == null) {
 			// create empty frame to append rows to
 			StringBuilder pyScript = new StringBuilder();
-			pyScript.append(retPyFrameName).append(" = pd.DataFrame(columns=['Columns', 'Errors', 'Valid', 'Total', 'Rules', 'Description', 'toColor'])");
+			pyScript.append(retPyFrameName).append(
+					" = pd.DataFrame(columns=['Columns', 'Errors', 'Valid', 'Total', 'Rules', 'Description', 'toColor'])");
 			frame.runScript(pyScript.toString());
 		}
 
 		// run mission control
 		StringBuilder pyScript = new StringBuilder();
-		pyScript.append(retPyFrameName).append(" = mc.missionControl(" + frameWrapper + ", " + pyRule + ", " + retPyFrameName + ")");
+		pyScript.append(retPyFrameName)
+				.append(" = mc.missionControl(" + frameWrapper + ", " + pyRule + ", " + retPyFrameName + ")");
 		frame.runScript(pyScript.toString());
 
 		if (inputTable != null) {
@@ -109,21 +112,22 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		try {
 			newFrame = (PandasFrame) FrameFactory.getFrame(this.insight, "PY", retPyFrameName);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create output data-quality frame {}.", retPyFrameName, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		
+
 		// set data for new frame object
 		frame.runScript(PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), retPyFrameName));
 		newFrame = (PandasFrame) recreateMetadata(newFrame, false);
-		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(retPyFrameName, noun);
 		return noun;
 	}
 
 	private List<Object> getOptions(String key) {
 		// instantiate var ruleList as a list of strings
-		List<Object> optionList = new Vector<>();
+		List<Object> optionList = new ArrayList<>();
 		GenRowStruct grs = this.store.getGenRowStruct(key);
 		if (grs == null || grs.isEmpty()) {
 			return optionList;

@@ -62,7 +62,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.Pixel;
 import prerna.om.ThreadStore;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
@@ -510,7 +510,7 @@ public class PixelStreamUtility {
 						}
 						if (!noCache && task instanceof BasicIteratorTask) {
 							SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-							if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+							if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 								noCache = !FrameFactory.canCacheFrameQueries(qs.getFrame());
 							} else {
 								// you are not a frame

@@ -51,37 +51,36 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class PurgeReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(PurgeReactor.class);
 
 	private static final String CLASS_NAME = PurgeReactor.class.getName();
-	
+
 	public PurgeReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.FILTERS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		
+
 		// get the frame
 		ITableDataFrame frame = getFrame();
 		GenRowFilters curFilters = getFilters();
-		if(curFilters == null) {
+		if (curFilters == null) {
 			curFilters = frame.getFrameFilters().copy();
 		}
 		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(false);
 		qs.setExplicitFilters(curFilters);
 		qs.setFrame(frame);
-		
+
 		ITableDataFrame newFrame = null;
-		
+
 		// i am going to optimize here
 		// so we can make things faster
-		if(frame instanceof RDataTable) {
+		if (frame instanceof RDataTable) {
 			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
 			logger.info("Running optimized purge for R frame");
 			RDataTable dt = (RDataTable) frame;
@@ -90,15 +89,14 @@ public class PurgeReactor extends AbstractFrameReactor {
 			interp.setQueryStruct(qs);
 			interp.setDataTableName(dt.getName());
 			interp.setColDataTypes(dt.getMetaData().getHeaderToTypeMap());
-//			interp.setAdditionalTypes(dt.getMetaData().getHeaderToAdtlTypeMap());
 			interp.setLogger(logger);
 			logger.info("Generating filter R Data Table query...");
 			String query = interp.composeQuery();
 			logger.info("Done generating filter R Data Table query");
-			
+
 			// execute
 			dt.executeRScript(frame.getName() + "<- {" + query + "};");
-			
+
 			// assign newFrame back to frame
 			newFrame = frame;
 			newFrame.getFrameFilters().removeAllFilters();
@@ -106,10 +104,10 @@ public class PurgeReactor extends AbstractFrameReactor {
 			newFrame.clearCachedMetrics();
 			newFrame.clearQueryCache();
 		}
-		//TODO: test this
-		//TODO: test this
-		//TODO: test this
-		//TODO: test this
+		// TODO: test this
+		// TODO: test this
+		// TODO: test this
+		// TODO: test this
 //		else if(frame instanceof PandasFrame) {
 //			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
 //			logger.info("Running optimized purge for Python frame");
@@ -131,7 +129,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 //			// assign newFrame back to frame
 //			newFrame = frame;
 //			newFrame.getFrameFilters().removeAllFilters();
-			// clear the cached queries
+		// clear the cached queries
 //			newFrame.clearCachedMetrics();
 //			newFrame.clearQueryCache();		
 //		} 
@@ -154,7 +152,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 				IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 				importer.insertData();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to purge frame {} using generic import flow.", frame.getName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 
@@ -166,17 +164,19 @@ public class PurgeReactor extends AbstractFrameReactor {
 			// override other references
 			Set<String> curReferences = varStore.getAllAliasForObjectReference(frame);
 			// switch to the new frame
-			for(String reference : curReferences) {
+			for (String reference : curReferences) {
 				varStore.put(reference, noun);
 			}
 		}
-		
+
 		// return the noun
-		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME,
+				PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	/**
 	 * Take in user defined filters
+	 * 
 	 * @return
 	 */
 	protected GenRowFilters getFilters() {
@@ -189,23 +189,23 @@ public class PurgeReactor extends AbstractFrameReactor {
 				grf.merge(qs.getCombinedFilters());
 			}
 		}
-		if(grf != null && !grf.isEmpty()) {
+		if (grf != null && !grf.isEmpty()) {
 			return grf;
 		}
-		
+
 		return null;
 	}
-	
+
 	@Override
 	public Map<String, List<Map>> getStoreMap() {
 		Map<String, List<Map>> inputMap = super.getStoreMap();
 		List<Map> list = inputMap.get(ReactorKeysEnum.FILTERS.getKey());
 		List<Map> newList = new ArrayList<>();
-		for(Map basicInput : list) {
+		for (Map basicInput : list) {
 			Object qsObj = basicInput.get("value");
-			if(qsObj instanceof SelectQueryStruct) {
+			if (qsObj instanceof SelectQueryStruct) {
 				SelectQueryStruct qs = (SelectQueryStruct) qsObj;
-				
+
 				Map<String, Object> newInput = new HashMap<>();
 				newInput.put("type", PixelDataType.FILTER.getKey());
 				GenRowFilters combinedFilters = qs.getCombinedFilters();
@@ -213,7 +213,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 				newList.add(newInput);
 			}
 		}
-		
+
 		inputMap.put(ReactorKeysEnum.FILTERS.getKey(), newList);
 		inputMap.put(ReactorKeysEnum.QUERY_STRUCT.getKey(), list);
 		return inputMap;

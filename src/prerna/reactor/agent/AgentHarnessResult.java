@@ -55,7 +55,7 @@ public final class AgentHarnessResult {
     /** Number of reflection rounds actually executed (0 if reflection was disabled). */
     private final int reflectionsUsed;
 
-    /** Backward-compatible constructor — sets {@code reflectionsUsed = 0}. */
+    /** Backward-compatible constructor - sets {@code reflectionsUsed = 0}. */
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords) {
         this(finalText, iterations, toolCallRecords, 0);
     }

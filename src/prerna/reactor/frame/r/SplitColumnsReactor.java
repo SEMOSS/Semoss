@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.frame.r;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import prerna.ds.OwlTemporalEngineMeta;
@@ -42,9 +41,18 @@ import prerna.util.Utility;
 public class SplitColumnsReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor splits columns based on a separator It replaces all portions of
-	 * the current cell value that is an exact match to the input value The inputs
-	 * to the reactor are: 1) the separator 2) the columns to split
+	 * the current cell value that is an exact match to the
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the separator</li>
+	 * <li>the columns to split</li>
+	 * </ul>
 	 */
 
 	private static final String SEARCH_TYPE = "search";
@@ -151,19 +159,9 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getGenRowStruct(keysToGet[2]);
-		if (separatorGrs == null || separatorGrs.isEmpty()) {
-			throw new IllegalArgumentException("Need to define a separator to split the column with");
-		}
-		String separator = separatorGrs.get(0).toString();
-		if (separator.isEmpty()) {
+		String separator = getString(keysToGet[2]);
+		if (separator == null || separator.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
 		return separator;
@@ -182,26 +180,10 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new ArrayList<String>();
-
-		// try its own key
-		GenRowStruct colsGrs = this.store.getGenRowStruct(keysToGet[1]);
-		if (colsGrs != null && !colsGrs.isEmpty()) {
-			int size = colsGrs.size();
-			for (int i = 0; i < size; i++) {
-				cols.add(colsGrs.get(i).toString());
-			}
+		List<String> cols = getListStringFromKeyOrCurRow(keysToGet[1]);
+		if (!cols.isEmpty()) {
 			return cols;
 		}
-
-		int inputSize = this.getCurRow().size();
-		if (inputSize > 0) {
-			for (int i = 0; i < inputSize; i++) {
-				cols.add(this.getCurRow().get(i).toString());
-			}
-			return cols;
-		}
-
 		throw new IllegalArgumentException("Need to define the columns to split");
 	}
 

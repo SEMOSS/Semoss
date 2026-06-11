@@ -69,7 +69,7 @@ class HardwareUtil:
             # get total memory
             gpu_total_memory = gpu.memoryTotal
             # get GPU temperature in Celsius
-            gpu_temperature = f"{gpu.temperature} °C"
+            gpu_temperature = f"{gpu.temperature}  degC"
             gpu_uuid = gpu.uuid
 
             # add all details

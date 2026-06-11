@@ -73,7 +73,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GetStorageFileAsBase64Reactor extends AbstractReactor {
@@ -123,10 +122,10 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 			return new NounMetadata(base64, PixelDataType.CONST_STRING);
 
 		} catch (UnsupportedOperationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read storage file content as base64: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("In-memory blob reading is not supported by this storage engine");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read storage file content as base64: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error reading blob from storage: " + storagePath);
 		}
 	}
@@ -272,7 +271,7 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 		}
 	}
 
-	// ==================== HTML → PDF VIA PLAYWRIGHT ====================
+	// ==================== HTML -> PDF VIA PLAYWRIGHT ====================
 
 	/**
 	 * Renders an HTML string to PDF bytes using Playwright's headless Chromium.
@@ -287,21 +286,18 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 		try {
 			Files.writeString(tempHtml, html, java.nio.charset.StandardCharsets.UTF_8);
 
-			try (Playwright pw = Playwright.create()) {
-				Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				Page page = browser.newPage();
+			try (Playwright pw = Playwright.create();
+					Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+					Page page = browser.newPage()) {
 				page.navigate("file:///" + tempHtml.toAbsolutePath());
 				page.waitForLoadState();
 
 				page.pdf(new Page.PdfOptions().setPath(tempPdf).setFormat("A4").setPrintBackground(true)
 						.setMargin(new com.microsoft.playwright.options.Margin().setTop("0.75in").setRight("0.75in")
 								.setBottom("0.75in").setLeft("0.75in")));
-
-				browser.close();
 			}
 
 			return Files.readAllBytes(tempPdf);
-
 		} finally {
 			// Always clean up temp files
 			Files.deleteIfExists(tempHtml);

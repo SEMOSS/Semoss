@@ -362,7 +362,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 											+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
 									.append("', output_file_name = '").append(extractedFileName).append("')");
 							setVectorFolderPermissions();
-							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
+							Number rows = (Number) pyTranslator
+									.runDirectPyNoCancelTrace(extractTextFromDocScript.toString());
 							rowsCreated = rows.intValue();
 							processed = true;
 						} else if (this.customDocumentProcessor) {
@@ -412,7 +413,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 								.append(chunkingStrategy).append(", chunking_method = '").append(chunkingMethod)
 								.append("', cfg_tokenizer = cfg_tokenizer)");
 
-						pyTranslator.runScript(splitTextCommand.toString());
+						pyTranslator.runScriptNoCancelTrace(splitTextCommand.toString());
 					}
 
 					extractedFiles.add(extractedFile);
@@ -855,7 +856,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			classLogger.info("Initializing '{}' python process with commands >>> {}",
 					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
 
-			this.pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
 
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
