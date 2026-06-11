@@ -494,6 +494,42 @@ public class UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * Get the previous login timestamp for a user from the USER_TRACKING table.
+	 * Returns the second most recent CREATED_ON timestamp to exclude the current session.
+	 * 
+	 * @param userId the user ID to query
+	 * @return the previous login timestamp, or null if no previous login exists
+	 */
+	public static Timestamp getPreviousLoginTimestamp(String userId) {
+		if (!Utility.isUserTrackingEnabled()) {
+			return null;
+		}
+
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+		String query = "SELECT CREATED_ON FROM USER_TRACKING WHERE USERID = ? ORDER BY CREATED_ON DESC LIMIT 2";
+		PreparedStatement ps = null;
+		java.sql.ResultSet rs = null;
+
+		try {
+			ps = userTrackingDb.getPreparedStatement(query);
+			ps.setString(1, userId);
+			rs = ps.executeQuery();
+
+			// Skip the first row (current session)
+			if (rs.next() && rs.next()) {
+				return rs.getTimestamp(1);
+			}
+
+			return null;
+		} catch (Exception e) {
+			classLogger.error("Error retrieving previous login timestamp", e);
+			return null;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, rs);
+		}
+	}
+
 	// End of User tracking methods
 
 	// ENGINE STUFF BELOW

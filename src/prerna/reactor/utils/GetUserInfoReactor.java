@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -40,8 +43,11 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserTrackingUtils;
 
 public class GetUserInfoReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetUserInfoReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -50,6 +56,28 @@ public class GetUserInfoReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		if (user != null) {
 			String userEpoch = user.getUserEpoch();
+
+			// Get last login from USER_TRACKING table (if tracking is enabled)
+			String lastLoginFromTracking = null;
+			try {
+				AuthProvider primaryProvider = user.getPrimaryLogin();
+				if (primaryProvider == null && !user.getLogins().isEmpty()) {
+					primaryProvider = user.getLogins().iterator().next();
+				}
+				if (primaryProvider != null) {
+					String userId = user.getAccessToken(primaryProvider).getId();
+					java.sql.Timestamp lastLogin = UserTrackingUtils.getPreviousLoginTimestamp(userId);
+					if (lastLogin != null) {
+						// Format as ISO-8601 for frontend
+						java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+						sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+						lastLoginFromTracking = sdf.format(lastLogin);
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error("Unable to retrieve last login from USER_TRACKING: ", e);
+			}
+
 			for (AuthProvider provider : user.getLogins()) {
 				String providerName = provider.name();
 				AccessToken token = user.getAccessToken(provider);
@@ -67,6 +95,11 @@ public class GetUserInfoReactor extends AbstractReactor {
 						token.getLastPasswordReset() == null ? "null" : token.getLastPasswordReset());
 				providerMap.put("lastLogin", token.getLastLogin() == null ? "null" : token.getLastLogin());
 
+				// Add last login from USER_TRACKING table
+                if (lastLoginFromTracking != null) {
+                    providerMap.put("lastLoginFromTracking", lastLoginFromTracking);
+                }
+				
 				// get extended user properties
 				Map<String, Collection<String>> meta = token.getMeta();
 				if (meta != null) {
