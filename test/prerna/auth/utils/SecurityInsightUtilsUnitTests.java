@@ -418,8 +418,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityInsightUtils
-				.setInsightFavorite(user2, "testProjectId", "testInsightId", true));
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityInsightUtils.setInsightFavorite(user2, "testProjectId", "testInsightId", true));
 		assertEquals("The user doesn't have the permission to modify this insight", ex.getMessage());
 	}
 
@@ -668,8 +668,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		assertTrue(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
 		assertFalse(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "testInsightId"));
 
-		SecurityInsightUtils.editInsightUserPermission(user, "user2id", "testProjectId", "testInsightId", "EDIT",
-				null);
+		SecurityInsightUtils.editInsightUserPermission(user, "user2id", "testProjectId", "testInsightId", "EDIT", null);
 
 		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "testInsightId"));
 	}
@@ -716,8 +715,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("user1", false);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		List<Map<String, Object>> results = SecurityInsightUtils.searchUserInsights(user, null, null, false, null,
-				null, null, null);
+		List<Map<String, Object>> results = SecurityInsightUtils.searchUserInsights(user, null, null, false, null, null,
+				null, null);
 		assertNotNull(results);
 	}
 
@@ -911,8 +910,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "testInsightId");
 
 		List<String> userIds = List.of("user2id");
-		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getUserInsightPermissionsWrapper(userIds,
-				"testProjectId", "testInsightId")) {
+		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getUserInsightPermissionsWrapper(userIds, "testProjectId",
+				"testInsightId")) {
 			assertNotNull(wrapper);
 			assertFalse(wrapper.hasNext());
 		}
@@ -928,8 +927,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "EDIT", null);
 
 		List<String> userIds = List.of("user2id");
-		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getUserInsightPermissionsWrapper(userIds,
-				"testProjectId", "testInsightId")) {
+		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getUserInsightPermissionsWrapper(userIds, "testProjectId",
+				"testInsightId")) {
 			assertNotNull(wrapper);
 			assertTrue(wrapper.hasNext());
 		}
@@ -946,8 +945,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityInsightUtils
-				.getInsightUsers(user2, "testProjectId", "testInsightId", null, null, 0, 0));
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityInsightUtils.getInsightUsers(user2, "testProjectId", "testInsightId", null, null, 0, 0));
 		assertEquals("The user does not have access to view this insight", ex.getMessage());
 	}
 
@@ -975,8 +974,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityInsightUtils
-				.getInsightUsersCount(user2, "testProjectId", "testInsightId", null, null));
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityInsightUtils.getInsightUsersCount(user2, "testProjectId", "testInsightId", null, null));
 		assertEquals("The user does not have access to view this insight", ex.getMessage());
 	}
 
@@ -1064,7 +1063,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		SecurityInsightUtils.updateExecutionCount("testProjectId", "testInsightId");
+		SecurityInsightUtils.updateExecutionCountAsync("testProjectId", "testInsightId");
 
 		// Verify no exception was thrown
 		assertTrue(SecurityInsightUtils.userIsInsightOwner(user, "testProjectId", "testInsightId"));
@@ -1168,9 +1167,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
-				() -> SecurityInsightUtils.removeInsightUsers(user2, List.of("user3id"), "testProjectId",
-						"testInsightId"));
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityInsightUtils
+				.removeInsightUsers(user2, List.of("user3id"), "testProjectId", "testInsightId"));
 		assertEquals("Insufficient privileges to modify this insight's permissions.", ex.getMessage());
 	}
 
@@ -1538,7 +1536,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		Map<String, List<String>> projectToInsightMap = new HashMap<>();
 		projectToInsightMap.put("testProjectId", List.of("testInsightId"));
 		List<String> metaKeys = List.of("description");
-		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectToInsightMap, metaKeys)) {
+		try (IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(projectToInsightMap,
+				metaKeys)) {
 			assertNotNull(wrapper);
 		}
 	}
@@ -1644,7 +1643,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 				"testInsightId", 3, user2); // 3 = READ_ONLY
 
 		// Verify the request was created by checking getUserAccessRequestsByInsight
-		// Note: getUserAccessRequestInsightPermission filters for APPROVER_DECISION=null,
+		// Note: getUserAccessRequestInsightPermission filters for
+		// APPROVER_DECISION=null,
 		// but setUserAccessRequest inserts with APPROVER_DECISION='NEW_REQUEST'
 		List<Map<String, Object>> requests = SecurityInsightUtils.getUserAccessRequestsByInsight("testProjectId",
 				"testInsightId");

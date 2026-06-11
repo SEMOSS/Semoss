@@ -28,7 +28,7 @@
 package prerna.reactor.masterdatabase;
 
 import prerna.ds.rdbms.h2.H2Frame;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.imports.RdbmsImporter;
@@ -44,7 +44,7 @@ public class GetPhysicalToLogicalMappingReactor extends AbstractReactor {
 		String query = "SELECT e.engineName, ec.physicalName, c.logicalName from Engine e INNER JOIN EngineConcept ec ON e.id=ec.engine INNER JOIN Concept c on ec.localConceptID = c.localConceptID";
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		qs.setEngine(SystemEngineRegistry.getLocalMasterDb());
 
 		H2Frame frame = new H2Frame();

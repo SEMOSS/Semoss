@@ -32,10 +32,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.reactor.agent.AppBuilderHarnessConfiguration;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -43,6 +47,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
 
 public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(SetProjectDependenciesReactor.class);
 
 	public SetProjectDependenciesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "dependencies" };
@@ -88,6 +94,18 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependencyList);
+
+		// Regenerate the agent-facing selected-engines skill so Claude sees the
+		// updated engine connections. Reads back the full dependency details
+		// (with engine names) - required by the skill writer. Failures are
+		// logged inside the helper; we don't let them surface as user-visible
+		// errors because the dependency write itself already succeeded.
+		try {
+			List<Map<String, Object>> details = SecurityProjectUtils.getProjectDependencyDetails(projectId);
+			AppBuilderHarnessConfiguration.regenerateSelectedEnginesSkillFromDependencies(projectId, details);
+		} catch (Exception e) {
+			classLogger.error("Failed to regenerate selected-engines skill for project: {}", projectId, e);
+		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new dependencies"));

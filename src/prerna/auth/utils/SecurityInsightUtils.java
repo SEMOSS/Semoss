@@ -1459,24 +1459,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param insightId
 	 */
-	public static void updateExecutionCount(String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, insightId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
+	public static void updateExecutionCountAsync(String projectId, String insightId) {
+		Thread.ofVirtual().start(() -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				classLogger.error("Unable to update execution count for project '{}' insight '{}'", projectId,
+						insightId, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to update execution count.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		});
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////

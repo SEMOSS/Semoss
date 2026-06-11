@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -85,8 +86,9 @@ import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.H2QueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SQLiteQueryUtil;
 
 public final class UploadUtilities {
 
@@ -246,7 +248,7 @@ public final class UploadUtilities {
 				secretStore.deleteEngineSecrets(engine.getCatalogType(), engine.getEngineId(), engine.getEngineName());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error during engine creation cleanup for engine id {}: {}", engineId, e.getMessage(), e);
 		}
 	}
 
@@ -353,7 +355,7 @@ public final class UploadUtilities {
 				}
 				owlFile.createNewFile();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create empty OWL file at {}: {}", owlLocation, e.getMessage(), e);
 			}
 		}
 		try (FileWriter writer = new FileWriter(owlFile); BufferedWriter bufferedWriter = new BufferedWriter(writer);) {
@@ -368,7 +370,7 @@ public final class UploadUtilities {
 			bufferedWriter.write("</rdf:RDF>");
 			bufferedWriter.flush();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write RDF/XML content to OWL file at {}: {}", owlLocation, e.getMessage(), e);
 		}
 
 		return owlFile;
@@ -489,65 +491,22 @@ public final class UploadUtilities {
 	 * @param file
 	 * @return
 	 * @throws IOException
+	 * @throws SQLException
 	 */
-	public static File createTemporaryRdbmsSmss(String databaseId, String databaseName, File owlFile,
+	public static File createTemporaryFileBasedRdbmsSmss(String databaseId, String databaseName, File owlFile,
 			RdbmsTypeEnum rdbmsType, String file) throws IOException {
 
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		Map<String, Object> properties = new HashMap<>();
+		properties.put(Constants.USERNAME, "sa");
+		properties.put(Constants.PASSWORD, "");
 
-		String dbTempSmssLoc = getEngineTempSmssLoc(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName);
-
-		// i am okay with deleting the .temp if it exists
-		// we dont leave this around
-		// and they should be deleted after loading
-		// so ideally this would never happen...
-		File dbTempSmss = new File(dbTempSmssLoc);
-		if (dbTempSmss.exists()) {
-			dbTempSmss.delete();
+		String connectionUrl = rdbmsType == RdbmsTypeEnum.H2_DB ? H2QueryUtil.BASE_H2_FILE_CONNECTION
+				: SQLiteQueryUtil.BASE_SQLITE_FILE_CONNECTION;
+		if (connectionUrl == null) {
+			throw new IllegalArgumentException("Unsupported rdbms type " + rdbmsType.getLabel());
 		}
-
-		final String newLine = "\n";
-		final String tab = "\t";
-
-		try (FileWriter writer = new FileWriter(dbTempSmss);
-				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
-			writeDefaultDatabaseSettings(bufferedWriter, databaseId, databaseName, owlFile,
-					RDBMSNativeEngine.class.getName(), newLine, tab);
-			bufferedWriter.write(newLine);
-			// write the rdbms type
-			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType + newLine);
-
-			if (secretStore != null) {
-				Map<String, Object> properties = new HashMap<>();
-				properties.put(Constants.ENGINE, databaseId);
-				properties.put(Constants.ENGINE_ALIAS, databaseName);
-				properties.put(Constants.ENGINE_TYPE, RDBMSNativeEngine.class.getName());
-				properties.put(Constants.OWL, owlFile.getName());
-				properties.put(Constants.RDBMS_TYPE, rdbmsType);
-				properties.put(Constants.DRIVER, rdbmsType.getDriver());
-				properties.put(Constants.USERNAME, "sa");
-				properties.put(Constants.PASSWORD, "");
-				properties.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/'));
-
-				secretStore.writeEngineSecrets(IEngine.CATALOG_TYPE.DATABASE, databaseId, databaseName, properties);
-			} else {
-				// write the driver
-				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + "\n");
-				// write the username
-				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
-				// write the password
-				bufferedWriter.write(Constants.PASSWORD + tab + newLine);
-				// most important piece
-				// the connection url
-				bufferedWriter.write(Constants.CONNECTION_URL + "\t"
-						+ RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
-			}
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Could not generate temporary smss file for database");
-		}
-
-		return dbTempSmss;
+		return createTemporaryExternalRdbmsSmss(databaseId, databaseName, owlFile, RDBMSNativeEngine.class.getName(),
+				rdbmsType, connectionUrl, properties, Map.of());
 	}
 
 	/**
@@ -622,7 +581,8 @@ public final class UploadUtilities {
 				}
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write Tinker database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -729,7 +689,8 @@ public final class UploadUtilities {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write RDF database smss file for database {}: {}", databaseName,
+					e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for database");
 		} finally {
 			try {
@@ -740,7 +701,8 @@ public final class UploadUtilities {
 					bufferedReader.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close RDF default properties reader for database {}: {}", databaseName,
+						e.getMessage(), e);
 			}
 		}
 
@@ -826,7 +788,8 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write JanusGraph database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -918,7 +881,8 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write external Tinker database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -1018,7 +982,8 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write DataStax database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -1027,7 +992,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Generate a neo4j smss
-	 * 
+	 *
 	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
@@ -1093,7 +1058,8 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.NAME_MAP + "\t" + GSON.toJson(nameMap) + "\n");
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write external Neo4j database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -1102,7 +1068,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Generate a neo4j smss
-	 * 
+	 *
 	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
@@ -1165,7 +1131,8 @@ public final class UploadUtilities {
 				bufferedWriter.write(Constants.NAME_MAP + tab + GSON.toJson(nameMap) + newLine);
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write embedded Neo4j database smss file for database {}: {}", databaseName,
+					ex.getMessage(), ex);
 			throw new IOException("Could not generate database smss file");
 		}
 
@@ -1190,7 +1157,7 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryExternalRdbmsSmss(String databaseId, String databaseName, File owlFile,
 			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, Map<String, Object> connectionDetails,
-			Map<String, Object> jdbcPropertiesMap) throws IOException, SQLException {
+			Map<String, Object> jdbcPropertiesMap) throws IOException {
 
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 
@@ -1220,9 +1187,8 @@ public final class UploadUtilities {
 			if (host != null && !host.isEmpty()) {
 				File f = new File(host);
 				if (f.exists()) {
-					String fileBasePath = f.getParent();
-					connectionUrl = connectionUrl.replace(fileBasePath,
-							"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
+					connectionUrl = AbstractSqlQueryUtil.parameterizeFileBasedConnectionUrl(connectionUrl,
+							f.getParent());
 				}
 			}
 
@@ -1232,6 +1198,7 @@ public final class UploadUtilities {
 				properties.put(Constants.ENGINE_ALIAS, databaseName);
 				properties.put(Constants.ENGINE_TYPE, TinkerEngine.class.getName());
 				properties.put(Constants.OWL, owlFile.getName());
+				properties.put(Constants.RDBMS_TYPE, dbType.getLabel());
 				properties.put(Constants.DRIVER, dbType.getDriver());
 
 				for (String key : connectionDetails.keySet()) {
@@ -1251,7 +1218,8 @@ public final class UploadUtilities {
 				// but ignore the connection url until the end
 				for (String key : connectionDetails.keySet()) {
 					if (key.equals(AbstractSqlQueryUtil.CONNECTION_URL) || connectionDetails.get(key) == null
-							|| connectionDetails.get(key).toString().isEmpty()) {
+							|| (!key.equals(AbstractSqlQueryUtil.PASSWORD)
+									&& connectionDetails.get(key).toString().isEmpty())) {
 						continue;
 					}
 					bufferedWriter.write(key.toUpperCase() + tab + connectionDetails.get(key) + newLine);
@@ -1273,7 +1241,8 @@ public final class UploadUtilities {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write external RDBMS database smss file for database {}: {}", databaseName,
+					e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for database");
 		}
 
@@ -1281,7 +1250,7 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param databaseId
 	 * @param databaseName
 	 * @param owlFile
@@ -1355,7 +1324,8 @@ public final class UploadUtilities {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write R native engine smss file for database {}: {}", databaseName,
+					e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for database");
 		}
 
@@ -1518,7 +1488,7 @@ public final class UploadUtilities {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write engine smss file for engine {}: {}", engineName, e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for model");
 		}
 
@@ -1661,7 +1631,8 @@ public final class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to add explore instance insight for database {}: {}", databaseName,
+						e.getMessage(), e);
 			}
 		}
 		return null;
@@ -1714,7 +1685,8 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add insight usage stats insight for project {}: {}", projectName,
+					e.getMessage(), e);
 		}
 		return null;
 	}
@@ -1765,7 +1737,7 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add grid delta insight for database {}: {}", databaseName, e.getMessage(), e);
 		}
 		return null;
 	}
@@ -1823,7 +1795,8 @@ public final class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to add audit modification view insight for database {}: {}", databaseName,
+						e.getMessage(), e);
 			}
 		}
 		return null;
@@ -1882,7 +1855,8 @@ public final class UploadUtilities {
 				retMap.put(SCHEMA_NAME_KEY, schemaName);
 				return retMap;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to add audit timeline view insight for database {}: {}", databaseName,
+						e.getMessage(), e);
 			}
 		}
 		return null;
@@ -1890,7 +1864,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Add insert form for csv
-	 * 
+	 *
 	 * @param projectId
 	 * @param projectName
 	 * @param databaseId
@@ -1945,7 +1919,7 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add insert form insight for database {}: {}", databaseName, e.getMessage(), e);
 		}
 
 		return null;
@@ -1953,7 +1927,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Add insert form for csv
-	 * 
+	 *
 	 * @param projectId
 	 * @param projectName
 	 * @param databaseId
@@ -2008,7 +1982,8 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add insert form insight (auto-headers) for database {}: {}", databaseName,
+					e.getMessage(), e);
 		}
 
 		return null;
@@ -2016,7 +1991,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Add insert form for excel
-	 * 
+	 *
 	 * @param insightDatabase
 	 * @param projectId
 	 * @param projectName
@@ -2073,7 +2048,8 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add Excel insert form insight for sheet {} in database {}: {}", sheetName,
+					databaseName, e.getMessage(), e);
 		}
 
 		return null;
@@ -2081,7 +2057,7 @@ public final class UploadUtilities {
 
 	/**
 	 * Create Excel form insight using data validation map
-	 * 
+	 *
 	 * @param insightEngine
 	 * @param projectId
 	 * @param projectName
@@ -2133,7 +2109,8 @@ public final class UploadUtilities {
 			retMap.put(SCHEMA_NAME_KEY, schemaName);
 			return retMap;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add Excel form insight (widget JSON) for sheet {} in database {}: {}",
+					sheetName, databaseName, e.getMessage(), e);
 		}
 
 		return null;
@@ -2141,7 +2118,7 @@ public final class UploadUtilities {
 
 	/**
 	 * The name of the form insight
-	 * 
+	 *
 	 * @param sheetName
 	 * @return
 	 */
@@ -2189,7 +2166,7 @@ public final class UploadUtilities {
 			}
 		} catch (Exception e) {
 			classLogger.warn("OWL is not formatted properly...");
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read OWL metamodel structure: {}", e.getMessage(), e);
 		}
 		return existingMetaModel;
 	}
@@ -2422,7 +2399,7 @@ public final class UploadUtilities {
 		Date currDate = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
-		String dbFolderPath = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId,
+		String dbFolderPath = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId,
 				databaseName);
 		String metaModelFilePath = dbFolderPath + DIR_SEPARATOR + databaseName + "_" + csvFileName + "_" + dateName
 				+ "_PROP.json";
@@ -2431,10 +2408,11 @@ public final class UploadUtilities {
 		// create file
 		File f = new File(Utility.normalizePath(metaModelFilePath));
 		try {
+			f.getParentFile().mkdirs();
 			// write json to file
-			FileUtils.writeStringToFile(f, json);
+			FileUtils.writeStringToFile(f, json, StandardCharsets.UTF_8);
 		} catch (IOException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to write metamodel prop file at {}: {}", metaModelFilePath, e1.getMessage(), e1);
 			return false;
 		}
 		return true;

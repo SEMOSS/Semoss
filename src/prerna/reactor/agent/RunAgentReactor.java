@@ -27,55 +27,49 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * Pixel reactor that invokes the generic agent loop.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * RunGenericAgent(
- *   roomId     = "<roomId>",
- *   command    = "<user prompt>",
- *   engine     = "<engineId>",
- *   harnessType = "room_loop",
- *   paramValues = {"key" : "val"}
- * )
- * }</pre>
- *
- * <p>Returns the final text as a {@code CONST_STRING NounMetadata}.
- */
+/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
 
     private static final String HARNESS_TYPE_KEY    = "harnessType";
-    private static final String AGENT_ID_KEY        = "agentId";
+    private static final String WORKSPACE_ID_KEY    = "workspaceId";
+    private static final String MAX_TURNS_KEY       = "maxTurns";
+    private static final String MAX_ITERATIONS_KEY  = "maxIterations";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
-                ReactorKeysEnum.ROOM_ID.getKey(),             
-                ReactorKeysEnum.COMMAND.getKey(),             
-                ReactorKeysEnum.ENGINE.getKey(),              
-                HARNESS_TYPE_KEY,                             
-                AGENT_ID_KEY,                                 
-                MAX_REFLECTIONS_KEY,                          
-                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+                ReactorKeysEnum.ROOM_ID.getKey(),
+                ReactorKeysEnum.COMMAND.getKey(),
+                ReactorKeysEnum.ENGINE.getKey(),
+                HARNESS_TYPE_KEY,
+                WORKSPACE_ID_KEY,
+                MAX_TURNS_KEY,
+                MAX_ITERATIONS_KEY,
+                MAX_REFLECTIONS_KEY,
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+                ReactorKeysEnum.AGENT_PARAMS.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -86,68 +80,104 @@ public class RunAgentReactor extends AbstractReactor {
         String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
         String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
-        
-        // agentId reserved for future agent-config lookup
-        // String agentId       = this.keyValue.get(AGENT_ID_KEY);
-        String maxReflectionsStr = this.keyValue.get(MAX_REFLECTIONS_KEY);
-        int maxReflections = GenericAgentContext.DEFAULT_MAX_REFLECTIONS;
-        if (maxReflectionsStr != null && !maxReflectionsStr.trim().isEmpty()) {
+       
+
+        // FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
+        // forwarding to the harness so the prompt reaches the model intact.
+        if (input != null && input.indexOf('%') >= 0) {
             try {
-                maxReflections = Integer.parseInt(maxReflectionsStr.trim());
-            } catch (NumberFormatException ignored) {
-                // leave as default
+                input = URLDecoder.decode(input, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                logger.warn("RunAgentReactor: command failed URL-decode, passing through raw: {}", e.getMessage());
             }
         }
-        Map<String, Object> paramMap = getMap();
+        // workspaceId overrides room.options.workspace.workspace_id for this run.
+        String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
+
+        int maxTurns = parseIntAtLeast(
+                StringUtils.firstNonBlank(
+                        this.keyValue.get(MAX_TURNS_KEY),
+                        this.keyValue.get(MAX_ITERATIONS_KEY)),
+                AgentRunContext.DEFAULT_MAX_TURNS, 1);
+        int maxReflections = parseIntAtLeast(
+                this.keyValue.get(MAX_REFLECTIONS_KEY),
+                AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
+        Map<String, Object> paramMap = getMap("paramMap");
+        Map<String, Object> agentParams = getMap("agentParams");
+        if (explicitWorkspaceId != null) {
+            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
+        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
-            throw new IllegalArgumentException("roomId is required for RunGenericAgent");
+            throw new IllegalArgumentException("roomId is required for RunAgent");
         }
         if (input == null || input.trim().isEmpty()) {
-            throw new IllegalArgumentException("command (input) is required for RunGenericAgent");
+            throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunGenericAgentReactor: roomId={} engineFallback={} harnessType={} maxReflections={}",
-                roomId, engineIdFallback, harnessType, maxReflections);
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
 
         try {
-            AgentHarnessResult result = GenericAgent.run(
+            AgentHarnessResult result = AgentRunner.run(
                     roomId,
                     input,
                     engineIdFallback,
                     harnessType,
+                    maxTurns,
                     maxReflections,
                     paramMap,
+                    agentParams,
                     this.insight);
 
-            logger.info("RunGenericAgentReactor: completed iterations={} reflections={} tools={}",
+            logger.info("RunAgentReactor: completed iterations={} reflections={} tools={}",
                     result.getIterations(), result.getReflectionsUsed(), result.getToolCallRecords().size());
 
             return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
                     PixelOperationType.OPERATION);
 
-        } catch (AgentMaxIterationsException e) {
+        } catch (AgentMaxTurnsException e) {
             throw new IllegalStateException(e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("RunGenericAgentReactor: error running agent loop", e);
+            logger.error("RunAgentReactor: error running agent loop", e);
             throw new IllegalStateException("Agent execution failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public String getReactorDescription() {
-        return "Run a generic agent loop using a pluggable harness (room_loop or claude_code)";
+        return "Run a generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
     }
 
     // Helpers
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+	protected Map<String, Object> getMap(String identifier) {
+    	String key = ReactorKeysEnum.PARAM_VALUES_MAP.getKey();
+    	if ("agentParams".equals(identifier)){
+    			key = ReactorKeysEnum.AGENT_PARAMS.getKey();
+    	}
+    	;
+        GenRowStruct mapGrs = this.store.getGenRowStruct(key);
         if (mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if (mapInputs != null && !mapInputs.isEmpty()) {
                 return (Map<String, Object>) mapInputs.get(0).getValue();
+            }
+        }
+        // Support the list-wrapped form: agentParams=[{...}]. The `[ ]` brackets make a
+        // VECTOR noun (see VectorReactor); unwrap it and return the first map inside.
+        if (mapGrs != null && !mapGrs.isEmpty()) {
+            for (NounMetadata vecNoun : mapGrs.getNounsOfType(PixelDataType.VECTOR)) {
+                Object vecVal = vecNoun.getValue();
+                if (vecVal instanceof List) {
+                    for (Object el : (List<?>) vecVal) {
+                        Object inner = (el instanceof NounMetadata) ? ((NounMetadata) el).getValue() : el;
+                        if (inner instanceof Map) {
+                            return (Map<String, Object>) inner;
+                        }
+                    }
+                }
             }
         }
         List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
@@ -155,5 +185,19 @@ public class RunAgentReactor extends AbstractReactor {
             return (Map<String, Object>) mapInputs.get(0).getValue();
         }
         return new HashMap<>();
+    }
+    
+    /**
+     * Parse {@code value} as an int, falling back to {@code defaultValue} when null,
+     * blank, non-numeric, or below {@code minInclusive}.
+     */
+    private static int parseIntAtLeast(String value, int defaultValue, int minInclusive) {
+        if (value == null || value.trim().isEmpty()) return defaultValue;
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed >= minInclusive ? parsed : defaultValue;
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 }

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.frame.r.util;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,20 +46,18 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
-	private static final Logger logger = LogManager.getLogger(RJavaUserRserveTranslator.class);
+	private static final Logger classLogger = LogManager.getLogger(RJavaUserRserveTranslator.class);
 
 	private IRUserConnection rcon;
 	private boolean envConfig = false;
-	
+
 	////////////////////////////////////////
 	// Starting R
 	////////////////////////////////////////
@@ -68,7 +65,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public void startR() {
 		// Try to start R
 		try {
-			// First define the rcon 
+			// First define the rcon
 			if (userRconIsDefined()) {
 				rcon = this.insight.getUser().getRcon();
 			} else {
@@ -83,15 +80,17 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				rcon.initializeConnection();
 				rcon.loadDefaultPackages();
 				// this needs to be at the every instance level. so moved this to factory
-				//initREnv(); // TODO>>>timb: R - why do we need these? They are not called in recover methods of the RUserConnection framework (later)
+				// initREnv(); // TODO>>>timb: R - why do we need these? They are not called in
+				// recover methods of the RUserConnection framework (later)
 			}
-			//TODO 
-			if ( !envConfig){
-				// Doesnt setMemoryLimit need to be moved as well? Every insight is a new env so we need to reset that every time.
+			// TODO
+			if (!envConfig) {
+				// Doesnt setMemoryLimit need to be moved as well? Every insight is a new env so
+				// we need to reset that every time.
 				initREnv();
 				setMemoryLimit();
 				removeRFunctions();
-				
+
 				envConfig = true;
 			}
 		} catch (Exception e) {
@@ -105,100 +104,89 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					this.insight.getUser().setRcon(null);
 				}
 			}
-			throw new IllegalArgumentException("Failed to start R: " +  e.getMessage(), e);
+			throw new IllegalArgumentException("Failed to start R: " + e.getMessage(), e);
 		}
-		
+
 		// need to set the rprocess in the user
-		if(this.insight != null && this.insight.getUser() != null && rcon instanceof RUserConnectionDedicated)
-		{
+		if (this.insight != null && this.insight.getUser() != null && rcon instanceof RUserConnectionDedicated) {
 			this.insight.getUser().setrProcess(rcon.getProcess());
-			this.insight.getUser().setrPort(((RUserConnectionDedicated)rcon).getPort());
+			this.insight.getUser().setrPort(((RUserConnectionDedicated) rcon).getPort());
 		}
 	}
 
 	private boolean userRconIsDefined() {
 		return userIsDefined() && this.insight.getUser().getRcon() != null;
 	}
-	
+
 	private boolean userIsDefined() {
 		return this.insight != null && this.insight.getUser() != null;
 	}
-	
+
 	private String getUserInfo() {
 		String userInfo = null;
 		User user = this.insight.getUser();
-		if(user.isAnonymous()) {
+		if (user.isAnonymous()) {
 			userInfo = "unk" + "___" + user.getAnonymousId();
 		} else {
 			AuthProvider primaryProvider = user.getPrimaryLogin();
 			AccessToken token = user.getAccessToken(primaryProvider);
-			if(token.getName() == null) {
+			if (token.getName() == null) {
 				userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
 			} else {
 				userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
 			}
 		}
-		return userInfo; 
+		return userInfo;
 	}
-	
+
 	private String getRDataFile() {
 		if (userIsDefined()) {
-			// do we have a user workspace and is the person logged in?
-			if ( Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.USER_WORKSPACE)) && !this.insight.getUser().isAnonymous() ) {
-				String assetDirectory = WorkspaceAssetUtils.getUserAssetRootDirectory(this.insight.getUser(), this.insight.getUser().getPrimaryLogin());
-				if (assetDirectory != null && new File(assetDirectory).isDirectory()) {
-					String rDataDirectory = assetDirectory + "/" + "RData";
-					new File(rDataDirectory).mkdir();
-					return RserveUtil.getRDataFile(rDataDirectory, getUserInfo());
-				}
-			}
 			return RserveUtil.getRDataFile(getUserInfo());
 		} else {
 			return RserveUtil.getRDataFile("anonymous");
 		}
 	}
-	
+
 	@Override
 	public void initREnv() {
 		try {
-			rcon.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
+			rcon.eval("if(!exists(\"" + this.env + "\")) {" + this.env + "<- new.env();}");
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to initialize R environment.", e);
 		}
 	}
-	
-	
+
 	////////////////////////////////////////
 	// R evaluations
 	////////////////////////////////////////
 	@Override
 	public Object executeR(String rScript) {
 		// escape quotes
-		//rScript = rScript.replaceAll("\"", "\\\"");
-		//rScript = rScript.replaceAll("'", "\\'");
+		// rScript = rScript.replaceAll("\"", "\\\"");
+		// rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		return rcon.eval(rScript);
 	}
-	
+
 	@Override
 	public void executeEmptyR(String rScript) {
 		// escape quotes
-		//rScript = rScript.replaceAll("\"", "\\\"");
-		//rScript = rScript.replaceAll("'", "\\'");
+		// rScript = rScript.replaceAll("\"", "\\\"");
+		// rScript = rScript.replaceAll("'", "\\'");
 		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
-	
+
 	@Override
 	public Object executeRDirect(String rScript) {
 		return rcon.eval(rScript);
 	}
-	
+
 	@Override
 	public void executeEmptyRDirect(String rScript) {
 		rcon.voidEval(rScript);
 	}
-	
+
 	////////////////////////////////////////
 	// Cancellation
 	////////////////////////////////////////
@@ -207,8 +195,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		return false;
 		// TODO >>>timb: R - need to complete cancellation here (later)
 	}
-	
-	
+
 	////////////////////////////////////////
 	// Raw R connection
 	////////////////////////////////////////
@@ -217,8 +204,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public RConnection getConnection() {
 		return rcon.getRConnection();
 	}
-	
-	
+
 	////////////////////////////////////////
 	// Data types
 	////////////////////////////////////////
@@ -241,35 +227,36 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			throw new IllegalArgumentException("R did not evaluate to a string array.");
 		}
 	}
-	
+
 	/**
 	 * This method is used to get the column types of a frame
 	 * 
 	 * @param frameName
 	 */
+	@Override
 	public String[] getColumnTypes(String frameName) {
 		String rScript = "sapply(" + frameName + ", class);";
 		rScript = encapsulateForEnv(rScript);
 		REXP val = rcon.eval(rScript);
 		try {
-			 return val.asStrings();
+			return val.asStrings();
 		} catch (REXPMismatchException e) {
 			// ignore
 		}
-		
+
 		try {
 			RList list = val.asList();
 			int size = list.size();
 			String[] arr = new String[size];
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				Object v = list.get(i);
-				if(v instanceof REXP) {
+				if (v instanceof REXP) {
 					try {
 						REXP vRexp = (REXP) v;
 						arr[i] = vRexp.asString();
-					}  catch (REXPMismatchException e) {
+					} catch (REXPMismatchException e) {
 						// could be an array
-						// actually, seems like RServe 
+						// actually, seems like RServe
 						// will give you the first element
 						// of an array if you use asString
 						// even if asStrings() works
@@ -280,7 +267,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					arr[i] = v.toString();
 				}
 			}
-			
+
 			return arr;
 		} catch (REXPMismatchException e) {
 			logger.error(Constants.STACKTRACE, e);
@@ -415,7 +402,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
-		
+
 		List<Object[]> dataMatrix = new ArrayList<Object[]>();
 
 		int numCols = colNames.length;
@@ -514,75 +501,75 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		REXP rs = rcon.eval(rScript);
 		try {
 			RList result = rs.asList();
-			
+
 			// match the returns based on index
 			int numColumns = headerOrdering.length;
 			int[] headerIndex = new int[numColumns];
-			for(int i = 0; i < numColumns; i++) {
+			for (int i = 0; i < numColumns; i++) {
 				headerIndex[i] = result.names.indexOf(headerOrdering[i]);
 			}
-			
-			for(int colNum = 0; colNum < numColumns; colNum++) {
+
+			for (int colNum = 0; colNum < numColumns; colNum++) {
 				// grab the right column index
 				int columnIndex = headerIndex[colNum];
 				// each column comes back as an array
 				// need to first initialize my return matrix
 				REXP val = (REXP) result.get(columnIndex);
-				if(val.isFactor()) {
+				if (val.isFactor()) {
 					RFactor data = val.asFactor();
-					if(retArr.isEmpty()) {
-						for(int i = 0; i < data.size(); i++) {
+					if (retArr.isEmpty()) {
+						for (int i = 0; i < data.size(); i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data.at(i);
 							retArr.add(values);
 						}
 					} else {
-						for(int i = 0; i < data.size(); i++) {
+						for (int i = 0; i < data.size(); i++) {
 							Object[] values = retArr.get(i);
 							values[colNum] = data.at(i);
 						}
 					}
-				} else if(val.isInteger()) {
+				} else if (val.isInteger()) {
 					// see if the integer is pointing to a factor
 					// NOTE ::: CAN NEVER GET .asFactor() to return true when it is a factor...
 					RList attributeList = null;
 					boolean isFactor = false;
-					if(val._attr() != null) {
+					if (val._attr() != null) {
 						attributeList = val._attr().asList();
-						if(attributeList != null) {
+						if (attributeList != null) {
 							isFactor = attributeList.names.contains("levels");
 						}
 					}
 					int[] data = val.asIntegers();
 					boolean[] na = val.isNA();
-					if(isFactor && attributeList != null) {
+					if (isFactor && attributeList != null) {
 						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
-						if(retArr.isEmpty()) {
-							for(int i = 0; i < data.length; i++) {
+						if (retArr.isEmpty()) {
+							for (int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
-								if(na[i]) {
+								if (na[i]) {
 									// keep it as null
 									retArr.add(values);
 									continue;
 								}
-								values[colNum] = levels[data[i]-1];
+								values[colNum] = levels[data[i] - 1];
 								retArr.add(values);
 							}
 						} else {
-							for(int i = 0; i < data.length; i++) {
+							for (int i = 0; i < data.length; i++) {
 								Object[] values = retArr.get(i);
-								if(na[i]) {
+								if (na[i]) {
 									// keep it as null
 									continue;
 								}
-								values[colNum] = levels[data[i]-1];
+								values[colNum] = levels[data[i] - 1];
 							}
 						}
 					} else {
-						if(retArr.isEmpty()) {
-							for(int i = 0; i < data.length; i++) {
+						if (retArr.isEmpty()) {
+							for (int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
-								if(na[i]) {
+								if (na[i]) {
 									// keep it as null
 									retArr.add(values);
 									continue;
@@ -591,9 +578,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 								retArr.add(values);
 							}
 						} else {
-							for(int i = 0; i < data.length; i++) {
+							for (int i = 0; i < data.length; i++) {
 								Object[] values = retArr.get(i);
-								if(na[i]) {
+								if (na[i]) {
 									// keep it as null
 									continue;
 								}
@@ -601,13 +588,13 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 							}
 						}
 					}
-				} else if(val.isNumeric()) {
+				} else if (val.isNumeric()) {
 					double[] data = val.asDoubles();
 					boolean[] na = val.isNA();
-					if(retArr.isEmpty()) {
-						for(int i = 0; i < data.length; i++) {
+					if (retArr.isEmpty()) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
-							if(na[i]) {
+							if (na[i]) {
 								// keep it as null
 								retArr.add(values);
 								continue;
@@ -616,36 +603,36 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 							retArr.add(values);
 						}
 					} else {
-						for(int i = 0; i < data.length; i++) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = retArr.get(i);
-							if(na[i]) {
+							if (na[i]) {
 								// keep it as null
 								continue;
 							}
 							values[colNum] = data[i];
 						}
 					}
-				} else if(val.isString()) {
+				} else if (val.isString()) {
 					String[] data = val.asStrings();
-					if(retArr.isEmpty()) {
-						for(int i = 0; i < data.length; i++) {
+					if (retArr.isEmpty()) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
 							values[colNum] = data[i];
 							retArr.add(values);
 						}
 					} else {
-						for(int i = 0; i < data.length; i++) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = retArr.get(i);
 							values[colNum] = data[i];
 						}
 					}
-				} else if(val.isLogical()) {
+				} else if (val.isLogical()) {
 					int[] data = val.asIntegers();
 					boolean[] na = val.isNA();
-					if(retArr.isEmpty()) {
-						for(int i = 0; i < data.length; i++) {
+					if (retArr.isEmpty()) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
-							if(na[i]) {
+							if (na[i]) {
 								// keep it as null
 								retArr.add(values);
 								continue;
@@ -654,9 +641,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 							retArr.add(values);
 						}
 					} else {
-						for(int i = 0; i < data.length; i++) {
+						for (int i = 0; i < data.length; i++) {
 							Object[] values = retArr.get(i);
-							if(na[i]) {
+							if (na[i]) {
 								// keep it as null
 								continue;
 							}
@@ -665,10 +652,10 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 				}
 			}
-		} catch(REXPMismatchException e) {
+		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 		}
-		
+
 		return retArr;
 	}
 }

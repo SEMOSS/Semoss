@@ -44,7 +44,7 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.NounStore;
@@ -87,7 +87,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sqlQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
+		String sqlQuery = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
 		String commitStr = this.keyValue.get(this.keysToGet[3]);
@@ -192,7 +192,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
-			this.insight.addQueriedDatabasesese(databaseId);
+			this.insight.addQueriedDatabases(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
 			classLogger.error("Unable to execute the admin SELECT query.", e);
@@ -251,7 +251,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		qs.setEngineId(databaseId);
 		qs.setEngine(engine);
 		qs.setQuery(sqlQuery);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
 	}
 

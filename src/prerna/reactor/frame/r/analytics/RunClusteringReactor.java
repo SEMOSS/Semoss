@@ -51,29 +51,41 @@ import prerna.util.Utility;
 public class RunClusteringReactor extends AbstractRFrameReactor {
 
 	/**
-	 * with specific cluster # RunClustering ( algorithm = [kmeans], multiOption =
-	 * [false], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth"
-	 * , "PetalLength" , "PetalWidth" ], numClusters = [ 3 ], uniqInstPerRow = [Yes]
-	 * ) ;
-	 * 
-	 * with min-max range of cluster #s RunClustering ( algorithm = [kmeans],
-	 * multiOption = [true], instance = [ Species ] , attributes = [ "SepalLength" ,
-	 * "SepalWidth" , "PetalLength" , "PetalWidth" ], minNumClusters = [2],
-	 * maxNumClusters = [10] , uniqInstPerRow = [Yes]) ;
-	 * 
-	 * Input keys: 1. algorithm (optional) - kmeans (numerical data only), pam
-	 * (numerical data only), pamGower (categorical/numerical data). default =
-	 * kmeans for numerical only data or pamGower for numerical and/or categorical
-	 * data 2. multiOption (required) - boolean (true or false) if true, then
-	 * multiclustering (minNumClusters/maxnNumClusters can be specified) if false,
-	 * then single clustering (numClusters can be specified) 3. instance (required)
-	 * 4. attributes (required) 5. numClusters (optional) - can be specified if
-	 * multioption = false. default = 5 6. minNumClusters (optional) - can be
-	 * specified if multioption = true. default = 2 7. maxnNumClusters (optional) -
-	 * can be specified if multioption = true. default = 20 8. uniqInstPerRow
-	 * (optional; if not passed in, assumes no) - if yes, then will treat each row
-	 * in the frame as a unique instance/record; if no, then will aggregate the data
-	 * in the attributes columns by the instance column first
+	 * <p>
+	 * RunClustering(algorithm = [kmeans], multiOption = [false], instance =
+	 * [Species], attributes = ["SepalLength", "SepalWidth", "PetalLength",
+	 * "PetalWidth"], numClusters = [3], uniqInstPerRow = [Yes]);
+	 * </p>
+	 *
+	 * <p>
+	 * RunClustering(algorithm = [kmeans], multiOption = [true], instance =
+	 * [Species], attributes = ["SepalLength", "SepalWidth", "PetalLength",
+	 * "PetalWidth"], minNumClusters = [2], maxNumClusters = [10], uniqInstPerRow =
+	 * [Yes]);
+	 * </p>
+	 *
+	 * <p>
+	 * Input keys:
+	 * </p>
+	 * <ul>
+	 * <li>algorithm (optional) - kmeans (numerical data only), pam (numerical data
+	 * only), pamGower (categorical/numerical data). Default is kmeans for
+	 * numerical-only data, or pamGower for numerical and/or categorical data</li>
+	 * <li>multiOption (required) - boolean (true or false). If true, runs
+	 * multiclustering (minNumClusters/maxNumClusters can be specified). If false,
+	 * runs single clustering (numClusters can be specified)</li>
+	 * <li>instance (required)</li>
+	 * <li>attributes (required)</li>
+	 * <li>numClusters (optional) - can be specified if multiOption = false; default
+	 * is 5</li>
+	 * <li>minNumClusters (optional) - can be specified if multiOption = true;
+	 * default is 2</li>
+	 * <li>maxNumClusters (optional) - can be specified if multiOption = true;
+	 * default is 20</li>
+	 * <li>uniqInstPerRow (optional; if not passed in, assumes no) - if yes, each
+	 * row is treated as a unique instance/record; if no, data in the attribute
+	 * columns is aggregated by the instance column first</li>
+	 * </ul>
 	 */
 
 	private static final String MIN_NUM_CLUSTERS = "minNumClusters";
@@ -292,12 +304,6 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		meta.setDataTypeToProperty(frameName + "__" + tempKeyCol, "INT");
 	}
 
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-	////////////////////// Input Methods///////////////////////////
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-
 	private String getAlgorithm() {
 		GenRowStruct algorithmGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String algorithm;
@@ -321,15 +327,9 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	}
 
 	private String getInstanceColumn() {
-		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[2]);
-		String instanceCol = "";
-		NounMetadata instanceColNoun;
-		if (instanceGrs != null) {
-			instanceColNoun = instanceGrs.getNoun(0);
-			instanceCol = (String) instanceColNoun.getValue();
-		} else {
-			instanceColNoun = this.curRow.getNoun(0);
-			instanceCol = (String) instanceColNoun.getValue();
+		String instanceCol = getStringFromKeyOrCurRow(keysToGet[2], 0);
+		if (instanceCol == null || instanceCol.isEmpty()) {
+			throw new IllegalArgumentException("Specify an instance column.");
 		}
 		return instanceCol;
 	}
@@ -344,29 +344,14 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumnsList(String instanceColumn) {
-		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
-		// retList.add(this.instanceColumn);
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (columnGrs != null) {
-			for (NounMetadata noun : columnGrs.vector) {
-				String attr = noun.getValue().toString();
-				if (!(attr.equals(instanceColumn))) {
-					retList.add(attr);
-				}
-			}
+			retList.addAll(convertAllValuesToString(columnGrs));
 		} else {
-			// else, we assume it is the second index in the current row
-			// grab lengths 2-> end columns
-			int rowLength = this.curRow.size();
-			for (int i = 2; i < rowLength; i++) {
-				NounMetadata colNoun = this.curRow.getNoun(i);
-				String attr = colNoun.getValue().toString();
-				if (!(attr.equals(instanceColumn))) {
-					retList.add(attr);
-				}
-			}
+			retList.addAll(getCurRowValuesAsString(2));
 		}
+		retList.removeIf(instanceColumn::equals);
 		return retList;
 	}
 

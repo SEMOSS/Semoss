@@ -239,16 +239,13 @@ class ClusterUtilUnitTests {
         @Test void testPushRoom_o() { assertDoesNotThrow(() -> ClusterUtil.pushRoom("rm2")); }
         @Test void testPullRoom() { assertDoesNotThrow(() -> ClusterUtil.pullRoom("rm")); }
         @Test void testPullRoom_o() { assertDoesNotThrow(() -> ClusterUtil.pullRoom("rm2")); }
-        @Test void testPushUW_t() { assertDoesNotThrow(() -> ClusterUtil.pushUserWorkspace("p", true)); }
-        @Test void testPushUW_f() { assertDoesNotThrow(() -> ClusterUtil.pushUserWorkspace("p", false)); }
-        @Test void testPullUW_2t() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true)); }
-        @Test void testPullUW_2f() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", false)); }
-        @Test void testPullUW_3tf() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true, false)); }
-        @Test void testPullUW_3tt() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true, true)); }
-        @Test void testPullUW_3ff() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", false, false)); }
+        @Test void testPushUserAsset() { assertDoesNotThrow(() -> ClusterUtil.pushUserAsset("p")); }
+        @Test void testPullUserAsset_1arg() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p")); }
+        @Test void testPullUserAsset_notAlreadyLoaded() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p", false)); }
+        @Test void testPullUserAsset_alreadyLoaded() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p", true)); }
     }
 
-    // ── Helpers for modifying static final fields ──────────────────────────
+    // -- Helpers for modifying static final fields --------------------------
 
     private static Unsafe getUnsafe() throws Exception {
         Field f = Unsafe.class.getDeclaredField("theUnsafe");
@@ -264,7 +261,7 @@ class ClusterUtilUnitTests {
         unsafe.putBoolean(base, offset, value);
     }
 
-    // ── IS_CLUSTER=true delegation tests ───────────────────────────────────
+    // -- IS_CLUSTER=true delegation tests -----------------------------------
 
     @Nested
     class ClusteredDelegationTests {
@@ -621,38 +618,38 @@ class ClusterUtilUnitTests {
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pushUserWorkspace() throws Exception {
+        @Test void pushUserAsset() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pushUserWorkspace("p13", true);
-                verify(mock).pushUserAssetOrWorkspace("p13", true);
+                ClusterUtil.pushUserAsset("p13");
+                verify(mock).pushUserAsset("p13");
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_2arg() throws Exception {
+        @Test void pullUserAsset_1arg() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pullUserWorkspace("p14", false);
-                verify(mock).pullUserAssetOrWorkspace("p14", false, false);
+                ClusterUtil.pullUserAsset("p14");
+                verify(mock).pullUserAsset("p14", false);
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_3arg() throws Exception {
+        @Test void pullUserAsset_2arg() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pullUserWorkspace("p15", true, true);
-                verify(mock).pullUserAssetOrWorkspace("p15", true, true);
+                ClusterUtil.pullUserAsset("p15", true);
+                verify(mock).pullUserAsset("p15", true);
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
     }
 
-    // ── Error path tests (CCS throws → SemossPixelException) ───────────────
+    // -- Error path tests (CCS throws -> SemossPixelException) ---------------
 
     @Nested
     class ClusteredErrorTests {
@@ -989,38 +986,38 @@ class ClusterUtilUnitTests {
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pushUserWorkspace_error() throws Exception {
+        @Test void pushUserAsset_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pushUserAssetOrWorkspace("p", true);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserWorkspace("p", true));
+                doThrow(new RuntimeException("fail")).when(mock).pushUserAsset("p");
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserAsset("p"));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_2arg_error() throws Exception {
+        @Test void pullUserAsset_1arg_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pullUserAssetOrWorkspace("p", false, false);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserWorkspace("p", false));
+                doThrow(new RuntimeException("fail")).when(mock).pullUserAsset("p", false);
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserAsset("p"));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_3arg_error() throws Exception {
+        @Test void pullUserAsset_2arg_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pullUserAssetOrWorkspace("p", true, true);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserWorkspace("p", true, true));
+                doThrow(new RuntimeException("fail")).when(mock).pullUserAsset("p", true);
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserAsset("p", true));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
     }
 
-    // ── ZK synchronizer tests ──────────────────────────────────────────────
+    // -- ZK synchronizer tests ----------------------------------------------
 
     @Nested
     class ZkSynchronizerTests {
@@ -1179,7 +1176,7 @@ class ClusterUtilUnitTests {
             }
         }
 
-        @Test void pushUserWorkspace_publishesZk() throws Exception {
+        @Test void pushUserAsset_publishesZk() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
@@ -1188,8 +1185,8 @@ class ClusterUtilUnitTests {
                 ClusterSynchronizer mockSync = mock(ClusterSynchronizer.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mockStorage);
                 zk.when(ClusterSynchronizer::getInstance).thenReturn(mockSync);
-                ClusterUtil.pushUserWorkspace("proj5", true);
-                verify(mockSync).publishProjectChange(eq("proj5"), eq("pullUserWorkspace"), eq("proj5"), eq(true));
+                ClusterUtil.pushUserAsset("proj5");
+                verify(mockSync).publishUserChange(eq("proj5"), eq("pullUserAsset"), eq("proj5"));
             } finally {
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", false);
@@ -1341,7 +1338,7 @@ class ClusterUtilUnitTests {
             }
         }
 
-        @Test void pushUserWorkspace_zkError() throws Exception {
+        @Test void pushUserAsset_zkError() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
@@ -1349,7 +1346,7 @@ class ClusterUtilUnitTests {
                 CentralCloudStorage mockStorage = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mockStorage);
                 zk.when(ClusterSynchronizer::getInstance).thenThrow(new RuntimeException("zk fail"));
-                SemossPixelException ex = assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserWorkspace("proj5", false));
+                SemossPixelException ex = assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserAsset("proj5"));
                 assertTrue(ex.isContinueThreadOfExecution());
             } finally {
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
@@ -1358,7 +1355,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── IProject folder overload tests ─────────────────────────────────────
+    // -- IProject folder overload tests -------------------------------------
 
     @Nested
     class ProjectFolderOverloadTests {
@@ -1402,7 +1399,7 @@ class ClusterUtilUnitTests {
                   .thenReturn(projHome);
 
                 String absPath = tempDir.resolve("base").toString();
-                // relativePath is "extra" — will be appended with separator
+                // relativePath is "extra" - will be appended with separator
                 String separator = java.nio.file.FileSystems.getDefault().getSeparator();
                 String expectedAbs = absPath + separator + "extra";
                 ClusterUtil.pushProjectFolder(project, absPath, "extra");
@@ -1561,7 +1558,7 @@ class ClusterUtilUnitTests {
                   .thenReturn(projHome);
 
                 String absPath = tempDir.resolve("sub2").toString();
-                // empty relative → treated as null-like (trimmed to empty → skipped)
+                // empty relative -> treated as null-like (trimmed to empty -> skipped)
                 ClusterUtil.pushProjectFolder(project, absPath, "  ");
 
                 verify(mockStorage).pushProjectFolder(eq("pid6"), eq(absPath), eq("sub2"));
@@ -1585,7 +1582,7 @@ class ClusterUtilUnitTests {
 
                 String separator = java.nio.file.FileSystems.getDefault().getSeparator();
                 String absPath = tempDir.resolve("folder").toString() + separator;
-                // abs ends with separator → relativePath appended directly
+                // abs ends with separator -> relativePath appended directly
                 ClusterUtil.pushProjectFolder(project, absPath, "deeper");
 
                 verify(mockStorage).pushProjectFolder(eq("pid7"), eq(absPath + "deeper"), anyString());
@@ -1593,7 +1590,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── isSchedulerExecutor tests (IS_CLUSTER=true paths) ────────────────
+    // -- isSchedulerExecutor tests (IS_CLUSTER=true paths) ----------------
 
     @Nested
     class IsSchedulerExecutorTests {
@@ -1619,13 +1616,13 @@ class ClusterUtilUnitTests {
         @Test void isCluster_diPropertyEmpty_fallsToEnvCheck() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<Utility> util = mockStatic(Utility.class)) {
-                // DI property returns empty → falls through to env check
+                // DI property returns empty -> falls through to env check
                 util.when(() -> Utility.getDIHelperProperty("SCHEDULER_EXECUTOR"))
                     .thenReturn("");
                 // env var won't be set (no SCHEDULER_EXECUTOR env), so falls to ZK
                 // We can't easily test the ZK path, but we test the branching logic
                 // The SchedulerListener.getListener().isZKLeader() will be called
-                // which will fail → just verify the DI empty branch triggers
+                // which will fail -> just verify the DI empty branch triggers
                 try (MockedStatic<SchedulerListener> sl = mockStatic(SchedulerListener.class)) {
                     SchedulerListener mockListener = mock(SchedulerListener.class);
                     sl.when(SchedulerListener::getListener).thenReturn(mockListener);
@@ -1649,7 +1646,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── IEngine folder overload tests ──────────────────────────────────────
+    // -- IEngine folder overload tests --------------------------------------
 
     @Nested
     class EngineFolderOverloadTests {
@@ -1843,7 +1840,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── getEngineAndProjectImage tests ─────────────────────────────────────
+    // -- getEngineAndProjectImage tests -------------------------------------
 
     @Nested
     class GetEngineAndProjectImageTests {
@@ -1950,7 +1947,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── getCentralStorageClient / getClusterSynchronizer tests ─────────────
+    // -- getCentralStorageClient / getClusterSynchronizer tests -------------
 
     @Nested
     class StaticAccessorTests {

@@ -79,7 +79,7 @@ public final class PBEDecryptReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			if (size == 1) {
-				String stringValue = Utility.decodeURIComponent(grs.get(0) + "");
+				String stringValue = grs.get(0) + "";
 				return stringValue.getBytes();
 			} else {
 				byte[] arr = new byte[size];
@@ -93,7 +93,7 @@ public final class PBEDecryptReactor extends AbstractReactor {
 
 		int size = this.curRow.size();
 		if (size == 1) {
-			String stringValue = Utility.decodeURIComponent(this.curRow.get(0) + "");
+			String stringValue = this.curRow.get(0) + "";
 			return stringValue.getBytes();
 		} else {
 			byte[] arr = new byte[size];

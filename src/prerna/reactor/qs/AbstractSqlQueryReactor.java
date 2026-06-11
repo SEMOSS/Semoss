@@ -45,7 +45,9 @@ import net.sf.jsqlparser.statement.update.Update;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.NounStore;
@@ -99,6 +101,11 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			throw new SemossPixelException("Database id is required");
 		}
 
+		IEngine engine = Utility.getEngine(databaseId);
+		if (!(engine instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("The database is not a RDBMS engine that accepts SQL");
+		}
+
 		try {
 			// determine query type
 			QueryType queryType = detectQueryType(sqlQuery);
@@ -142,7 +149,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 				return QueryType.OTHER;
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not parse SQL statement, using keyword fallback: " + e.getMessage());
+			classLogger.warn("Could not parse SQL statement, using keyword fallback: {}", e.getMessage());
 			return detectQueryTypeFromKeyword(sql);
 		}
 	}
@@ -225,7 +232,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
-			this.insight.addQueriedDatabasesese(databaseId);
+			this.insight.addQueriedDatabases(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
 			classLogger.error("Error executing SELECT SQL query for database {}", databaseId, e);
@@ -279,7 +286,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		qs.setEngineId(databaseId);
 		qs.setEngine(engine);
 		qs.setQuery(sqlQuery);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
 	}
 
@@ -297,15 +304,15 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 				limit = Integer.parseInt(limitStr.trim());
 
 				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: " + limit + ", using default " + DEFAULT_LIMIT);
+					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
 					limit = DEFAULT_LIMIT;
 				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value " + limit + " exceeds maximum " + MAX_LIMIT + ", using maximum");
+					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
 					limit = MAX_LIMIT;
 				}
 
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid limit value: " + limitStr + ", using default " + DEFAULT_LIMIT);
+				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}
 		}
 

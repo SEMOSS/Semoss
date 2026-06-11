@@ -33,8 +33,12 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,10 +47,9 @@ import org.javatuples.Pair;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.LogActivityRecord;
+import prerna.logging.RequestDurationRecord;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.joins.IRelation;
-import prerna.query.querystruct.joins.SubqueryRelationship;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
@@ -199,8 +202,6 @@ public class AuditLogsDbUtils {
 		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(auditLogsDb.getEngineId());
 		}
 
 		Connection conn = null;
@@ -233,11 +234,11 @@ public class AuditLogsDbUtils {
 			throws SQLException {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
+		// Step 1: fetch the page of rows. No subquery join - aggregation is deferred
+		// to
+		// step 2 so it only runs over the REQUEST_IDs we actually return.
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
-		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__START_TIME"));
-		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__END_TIME"));
-		qs.addSelector(new QueryColumnSelector("MIN_MAX_DURATION__DURATION"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
@@ -251,7 +252,6 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SPAN_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 
-		// add filters dynamically if present
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
@@ -260,7 +260,6 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
 
-		// pagination
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -268,43 +267,35 @@ public class AuditLogsDbUtils {
 			qs.setOffSet(offset);
 		}
 
-		SelectQueryStruct minMaxDuration = new SelectQueryStruct();
-		minMaxDuration.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
-		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
-				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
-		minMaxDuration.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-				"AUDIT_LOGS__RESPONSE_END_TIME", "END_TIME"));
-		minMaxDuration.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__REQUEST_START_TIME",
-						"START_TIME"),
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
-						"END_TIME"),
-				"DURATION"));
-		// filter for minMaxDuration
-		addStartDateEndDateFitler(minMaxDuration, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
-		addFilter(minMaxDuration, "AUDIT_LOGS__USER_ID", "==", userId);
-		addFilter(minMaxDuration, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
-		addFilter(minMaxDuration, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
-		addFilter(minMaxDuration, "AUDIT_LOGS__ROOM_ID", "==", roomId);
-		addFilter(minMaxDuration, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+		List<Map<String, Object>> pageRows = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		if (pageRows.isEmpty()) {
+			return Collections.emptyList();
+		}
 
-		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
-		IRelation subQuery = new SubqueryRelationship(minMaxDuration, "MIN_MAX_DURATION", "inner.join",
-				new String[] { "AUDIT_LOGS__REQUEST_ID", "MIN_MAX_DURATION__REQUEST_ID", "=" });
-		qs.addRelation(subQuery);
+		Set<String> requestIds = new LinkedHashSet<>();
+		for (Map<String, Object> row : pageRows) {
+			String reqId = getOrDefault(row.get("REQUEST_ID"), "");
+			if (!reqId.isEmpty()) {
+				requestIds.add(reqId);
+			}
+		}
 
-		List<LogActivityRecord> activityList = new ArrayList<>();
-		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
-		for (Map<String, Object> map : list) {
+		// Step 2: aggregate MIN/MAX/DURATION only for the REQUEST_IDs in this page
+		Map<String, RequestDurationRecord> durationsByRequestId = fetchDurationsForRequestIds(auditLogsDb, requestIds);
+
+		List<LogActivityRecord> activityList = new ArrayList<>(pageRows.size());
+		for (Map<String, Object> map : pageRows) {
 			String requestId = getOrDefault(map.get("REQUEST_ID"), "");
-			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
-			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
+			RequestDurationRecord duration = durationsByRequestId.get(requestId);
+			Timestamp startTime = duration != null ? duration.startTime() : null;
+			Timestamp endTime = duration != null ? duration.endTime() : null;
+			long latency = duration != null ? duration.durationSeconds() : 0L;
+
 			String request = getOrDefault(map.get("REQUEST"), "");
 			String response = getOrDefault(map.get("RESPONSE"), "");
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
 			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
-			long latency = map.get("DURATION") instanceof Long ? (Long) map.get("DURATION") : 0L;
 			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
 			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
@@ -319,6 +310,47 @@ public class AuditLogsDbUtils {
 
 		}
 		return activityList;
+	}
+
+	/**
+	 * 
+	 * @param auditLogsDb
+	 * @param requestIds
+	 * @return
+	 */
+	private static Map<String, RequestDurationRecord> fetchDurationsForRequestIds(IRDBMSEngine auditLogsDb,
+			Set<String> requestIds) {
+		if (requestIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+				"AUDIT_LOGS__RESPONSE_END_TIME", "END_TIME"));
+		qs.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__REQUEST_START_TIME",
+						"START_TIME"),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
+						"END_TIME"),
+				"DURATION"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__REQUEST_ID", "==", new ArrayList<>(requestIds)));
+		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
+
+		Map<String, RequestDurationRecord> result = new HashMap<>(requestIds.size());
+		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(auditLogsDb, qs)) {
+			String reqId = getOrDefault(row.get("REQUEST_ID"), "");
+			if (reqId.isEmpty()) {
+				continue;
+			}
+			Timestamp startTime = extractTimestamp(row.get("START_TIME"));
+			Timestamp endTime = extractTimestamp(row.get("END_TIME"));
+			long durationSeconds = row.get("DURATION") instanceof Long ? (Long) row.get("DURATION") : 0L;
+			result.put(reqId, new RequestDurationRecord(startTime, endTime, durationSeconds));
+		}
+		return result;
 	}
 
 	// Helper Methods

@@ -69,7 +69,6 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
@@ -146,12 +145,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// but some will have it as accessKey/secretKey
 		// so accounting for that here
 		this.userName = this.smssProp.getProperty(queryUtil.getConnectionUserKey());
-		if (smssFilePath != null) {
-			this.password = decryptPass(smssFilePath, false);
-		}
-		if (this.password == null) {
-			this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
-		}
+		this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
 
 		// grab the connection url
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
@@ -170,7 +164,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 
 		}
 		if (this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
-			this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId,
+			this.connectionURL = this.queryUtil.fillFileParameterizedConnectionUrl(this.connectionURL, this.engineId,
 					this.engineName);
 			this.smssProp.put(Constants.CONNECTION_URL, this.connectionURL);
 		}
@@ -193,7 +187,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.fetchSize = Integer.parseInt(fetchSizeStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the fetch size");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse fetch size value '{}': {}", fetchSizeStr, e.getMessage(), e);
 				}
 			}
 		}
@@ -205,7 +199,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.queryTimeout = Integer.parseInt(queryTimeoutStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the query timeout");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse query timeout value '{}': {}", queryTimeoutStr, e.getMessage(),
+							e);
 				}
 			}
 		}
@@ -237,7 +232,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.leakDetectionThresholdMilliseconds = Long.parseLong(leakDetectionStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the leak detection threshold");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse leak detection threshold value '{}': {}", leakDetectionStr,
+							e.getMessage(), e);
 				}
 			}
 		}
@@ -249,7 +245,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.idelTimeout = Long.parseLong(idleTimeoutStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the idle timeout");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse idle timeout value '{}': {}", idleTimeoutStr, e.getMessage(), e);
 				}
 			}
 		}
@@ -261,7 +257,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.poolMinSize = Integer.parseInt(minPoolSizeStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the min pool size");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse min pool size value '{}': {}", minPoolSizeStr, e.getMessage(),
+							e);
 				}
 			}
 		}
@@ -273,7 +270,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.poolMaxSize = Integer.parseInt(maxPoolSizeStr);
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to parse and get the max pool size");
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to parse max pool size value '{}': {}", maxPoolSizeStr, e.getMessage(),
+							e);
 				}
 			}
 		}
@@ -337,7 +335,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			}
 			this.engineConnected = true;
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to establish database connection during open: {}", e.getMessage(), e);
 		}
 	}
 
@@ -376,7 +374,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-		if (this.connectionTestQuery != null && this.connectionTestQuery.isEmpty()) {
+		if (this.connectionTestQuery != null && !this.connectionTestQuery.isEmpty()) {
 			dataSource.setConnectionTestQuery(this.connectionTestQuery);
 		}
 	}
@@ -402,13 +400,13 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				DatabaseMetaData meta = conn.getMetaData();
 				this.schema = RdbmsConnectionHelper.getSchema(meta, conn, this.connectionURL, this.dbType);
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve database schema from connection metadata: {}", e.getMessage(), e);
 			} finally {
 				if (this.datasourceConnected && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close connection after schema retrieval: {}", e.getMessage(), e);
 					}
 				}
 			}
@@ -444,15 +442,17 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.queryUtil.setDatabase(this.database);
 			this.queryUtil.setSchema(this.schema);
 		} catch (ClassNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load JDBC driver class '{}': {}", driver, e.getMessage(), e);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to establish connection from file or execute create statement: {}",
+					e.getMessage(), e);
 		} finally {
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close statement after file-based connection setup: {}", e.getMessage(),
+							e);
 				}
 			}
 		}
@@ -465,7 +465,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			makeConnectionFromFile(this.driver, this.userName, this.password, this.connectionURL,
 					this.fileCreateString);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close existing connection while reloading file-based database: {}",
+					e.getMessage(), e);
 		}
 	}
 
@@ -547,14 +548,14 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try (Statement statement = conn.createStatement()) {
 					statement.executeUpdate(query);
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to execute CREATE statement: {}", e.getMessage(), e);
 					throw e;
 				}
 			} else {
 				try (PreparedStatement statement = conn.prepareStatement(query)) {
 					statement.execute();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to execute insert/update prepared statement: {}", e.getMessage(), e);
 					throw e;
 				}
 			}
@@ -630,11 +631,11 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				try {
 					rs.setFetchSize(this.fetchSize);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to set fetch size on result set: {}", e.getMessage(), e);
 				}
 			}
 		} catch (SQLTimeoutException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Query execution timed out: {}", e.getMessage(), e);
 			hasError = true;
 			if (this.queryTimeout > 0) {
 				throw new SQLTimeoutException(
@@ -657,7 +658,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			throw e;
 		} catch (SQLException e) {
 			classLogger.warn("Error with query {}", query);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute query: {}", e.getMessage(), e);
 			hasError = true;
 			throw e;
 		} finally {
@@ -719,7 +720,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close database connection: {}", e.getMessage(), e);
 			throw new IOException("Error closing the connection to the database");
 		}
 	}
@@ -731,7 +732,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				this.dataSource.close();
 				this.datasourceConnected = false;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close HikariCP data source: {}", e.getMessage(), e);
 			}
 		}
 	}
@@ -757,7 +758,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					try {
 						stmt.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close statement after H2 SHUTDOWN: {}", e.getMessage(), e);
 					}
 				}
 			}
@@ -772,7 +773,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			try (PreparedStatement statement = conn.prepareStatement(query)) {
 				statement.execute();
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute remove/delete prepared statement: {}", e.getMessage(), e);
 				throw e;
 			}
 			// you have to commit on the connection itself
@@ -808,7 +809,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to commit transaction: {}", e.getMessage(), e);
 		}
 	}
 
@@ -823,7 +824,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				DeleteDbFiles.execute(path, "database", false);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete RDBMS engine '{}': {}", this.engineName, e.getMessage(), e);
 		}
 		// clean up remaining files
 		super.delete();
@@ -841,7 +842,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			try {
 				this.engineConn.setAutoCommit(this.autoCommit);
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set auto-commit to '{}' on connection: {}", autoCommit, e.getMessage(), e);
 			}
 		}
 	}
@@ -854,7 +855,8 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					this.engineConn.setTransactionIsolation(this.transactionIsolationType);
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set transaction isolation type '{}' on connection: {}",
+						transactionIsolationType, e.getMessage(), e);
 			}
 		}
 	}
@@ -912,7 +914,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			return conn.prepareStatement(sql);
 		} catch (SQLException e) {
 			error = true;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create prepared statement for SQL: {}", e.getMessage(), e);
 			throw e;
 		} finally {
 			if (error) {
@@ -936,14 +938,15 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			return conn.getMetaData();
 		} catch (SQLException e) {
 			error = true;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve connection metadata: {}", e.getMessage(), e);
 		} finally {
 			if (error) {
 				if (this.datasourceConnected && this.dataSource != null && conn != null) {
 					try {
 						conn.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close connection after metadata retrieval error: {}",
+								e.getMessage(), e);
 					}
 				}
 			}
@@ -963,7 +966,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.engineConnected = !this.engineConn.isClosed();
 			this.autoCommit = this.engineConn.getAutoCommit();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read connection state while setting engine connection: {}", e.getMessage(), e);
 		}
 	}
 
@@ -1050,7 +1053,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 					conceptURI = row.getBinding("concept").getValue().toString();
 				}
 			} catch (org.openrdf.query.QueryEvaluationException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to evaluate ontology query for type '{}': {}", type, e.getMessage(), e);
 			}
 			query = "SELECT DISTINCT " + Utility.getInstanceName(type) + " FROM " + Utility.getInstanceName(conceptURI);
 		} else if (type.contains(":")) {
@@ -1072,7 +1075,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			Vector<Object> columnsFromResult = getColumnsFromResultSet(1, rs);
 			return columnsFromResult;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute entity-of-type query for type '{}': {}", type, e.getMessage(), e);
 		} finally {
 			closeConnections(conn, rs, stmt);
 		}
@@ -1099,7 +1102,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read columns from result set: {}", e.getMessage(), e);
 		}
 		classLogger.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
@@ -1161,7 +1164,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 				}
 			}
 		} catch (org.openrdf.query.QueryEvaluationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to evaluate ontology relation query: {}", e.getMessage(), e);
 		}
 
 		return relation;

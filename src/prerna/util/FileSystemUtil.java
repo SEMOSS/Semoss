@@ -101,13 +101,17 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name
+		// case-insensitively
 		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 
@@ -129,13 +133,17 @@ public final class FileSystemUtil {
 		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name
+		// case-insensitively
 		Collections.sort(results, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 		return results;
@@ -211,6 +219,9 @@ public final class FileSystemUtil {
 			String inputFilePath = Utility.normalizePath(rawPath.trim());
 			if (inputFilePath == null || inputFilePath.isEmpty()) {
 				continue;
+			}
+			while (inputFilePath.startsWith("/")) {
+				inputFilePath = inputFilePath.substring(1);
 			}
 
 			String realFilePath = assetFolder + "/" + inputFilePath;
@@ -353,10 +364,14 @@ public final class FileSystemUtil {
 	 * @param filePath    The relative path for the new directory.
 	 */
 	public static void createNewAssetDirectory(String assetFolder, String filePath) {
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		File directory = new File(assetFolder + "/" + filePath);
 
 		if (directory.exists() && directory.isDirectory()) {
-			throw new IllegalArgumentException("Folder already exists");
+			classLogger.warn("Folder already exists: {}. Skipping creation.", filePath);
+			return;
 		}
 
 		try {
@@ -379,6 +394,9 @@ public final class FileSystemUtil {
 	 * @param filePath    The relative path for the new file.
 	 */
 	public static void createNewAssetFile(String assetFolder, String filePath) {
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		File file = new File(assetFolder + "/" + filePath);
 		try {
 			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
@@ -399,6 +417,12 @@ public final class FileSystemUtil {
 	 * @param newFileName     The new relative path for the file/directory.
 	 */
 	public static void renameAsset(String assetFolder, String currentFileName, String newFileName) {
+		while (currentFileName.startsWith("/")) {
+			currentFileName = currentFileName.substring(1);
+		}
+		while (newFileName.startsWith("/")) {
+			newFileName = newFileName.substring(1);
+		}
 		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
 		String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
 		File oldFile = new File(oldAbs);
@@ -437,6 +461,57 @@ public final class FileSystemUtil {
 	}
 
 	/**
+	 * Copies a file or directory within the asset folder.
+	 * 
+	 * @param assetFolder    The base folder for the assets.
+	 * @param sourceFileName The current relative path of the file/directory to
+	 *                       copy.
+	 * @param destFileName   The destination relative path for the copy.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		while (sourceFileName.startsWith("/")) {
+			sourceFileName = sourceFileName.substring(1);
+		}
+		while (destFileName.startsWith("/")) {
+			destFileName = destFileName.substring(1);
+		}
+		String sourceAbs = (assetFolder + "/" + sourceFileName).replace("\\", "/");
+		String destAbs = (assetFolder + "/" + destFileName).replace("\\", "/");
+		File sourceFile = new File(sourceAbs);
+		File destFile = new File(destAbs);
+
+		if (!sourceFile.exists()) {
+			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
+		}
+		if (destFile.exists()) {
+			throw new IllegalArgumentException(
+					"A file or directory already exists at the destination: " + destFileName);
+		}
+
+		try {
+			FileUtils.forceMkdirParent(destFile);
+		} catch (IOException e) {
+			classLogger.error("Error creating parent directory for copy destination {}", destFileName, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + destFileName));
+		}
+
+		try {
+			if (sourceFile.isDirectory()) {
+				FileUtils.copyDirectory(sourceFile, destFile);
+			} else {
+				FileUtils.copyFile(sourceFile, destFile);
+			}
+		} catch (IOException e) {
+			classLogger.error("Error copying asset from {} to {}", sourceFileName, destFileName, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to copy " + sourceFileName));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+	}
+
+	/**
 	 * Validates a list of file paths against a set of rules.
 	 * 
 	 * @param filePaths          A list of file paths to validate.
@@ -469,10 +544,14 @@ public final class FileSystemUtil {
 			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 
 			String filePath = assetFolder + "/" + fileName;
+			// content is written as-is: the Pixel translation layer already decodes
+			// <encode> blocks (PR #2510); decoding again corrupts literal "%xx" (e.g. %02x)
 			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
 
 			File file = new File(filePath);
 			try {
@@ -505,6 +584,9 @@ public final class FileSystemUtil {
 			String fileName = Utility.normalizePath(rawFileName);
 			if (fileName == null || fileName.isEmpty()) {
 				continue;
+			}
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
 			}
 
 			String filePath = assetFolder + "/" + fileName;

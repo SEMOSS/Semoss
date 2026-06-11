@@ -1,12 +1,11 @@
 from typing import Dict, List, Any, Optional, Union, Tuple
-
 import sys
 import socketserver
-
 import traceback as tb
 import threading
-
 import importlib
+import importlib.util
+import builtins as _builtins_mod
 import os
 import gc as gc
 import sys
@@ -22,19 +21,29 @@ import socket
 import string
 import random
 import datetime
-from clean import PyFrame
-import gaas_server_proxy as gsp
 import logging
 import smssutil
-
-import jsonpickle as jp
 import json as json
 import math
-import numpy as np
-import pandas as pd
-
 import contextlib
 import semoss_console as console
+
+
+def _lazy_import(name):
+    """Bind the module now but defer its import cost to first attribute access."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.find_spec(name)
+    spec.loader = importlib.util.LazyLoader(spec.loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+pd = _lazy_import("pandas")
+np = _lazy_import("numpy")
+jp = _lazy_import("jsonpickle")
 
 from typing import TYPE_CHECKING
 
@@ -57,6 +66,8 @@ def custom_tostr_handler(value: Any) -> str:
 
 def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     """Custom handler to stringify values in pandas DataFrame"""
+    import pandas as pd
+
     if isinstance(dataframe, pd.DataFrame):
         data_dict = dataframe.to_dict(orient="split")
         for col_name, col_data in data_dict["data"].items():
@@ -68,8 +79,74 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     return dataframe
 
 
+from gaas_tcp_server_thread_local import (
+    _asset_thread_local,
+    _asset_ns_key,
+    smss_clear_app_imports as _smss_clear_app_imports,
+    smss_get_runtime_var as _smss_get_runtime_var,
+)
+
+# Capture the real __import__ before we replace it.
+_orig_import = _builtins_mod.__import__
+
+
+def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0):
+    """
+    Wraps builtins.__import__ to isolate project-local modules per asset path.
+
+    When handle_python sets _asset_thread_local.active_paths, any simple
+    (non-dotted, absolute) import whose .py file exists inside one of those
+    paths is loaded from the explicit file path and cached under a namespaced
+    sys.modules key (_smss_{hash}_{name}).  Concurrent threads with different
+    asset paths never see each other's cached copy.
+
+    All other imports (e.g. torch, numpy, stdlib) fall through to the real
+    __import__ unchanged - sys.modules is never replaced.
+    """
+    if level == 0 and "." not in name:
+        active_paths = getattr(_asset_thread_local, "active_paths", None)
+        if active_paths:
+            for path in active_paths:
+                ns_key = _asset_ns_key(path) + "_" + name
+                cached = sys.modules.get(ns_key)
+                if cached is not None:
+                    return cached
+                candidate = os.path.join(path, name + ".py")
+                if os.path.exists(candidate):
+                    spec = importlib.util.spec_from_file_location(ns_key, candidate)
+                    mod = importlib.util.module_from_spec(spec)
+                    # Register before exec so circular imports resolve correctly
+                    sys.modules[ns_key] = mod
+                    spec.loader.exec_module(mod)
+                    return mod
+    return _orig_import(name, _globals, _locals, fromlist, level)
+
+
+_builtins_mod.__import__ = _asset_aware_import
+
+
 class ExecutionCancelled(Exception):
     """Raised when a running python execution is cancelled by a remote request."""
+
+
+class SemossLogHandler(logging.Handler):
+    """Routes Python log records back to Java via the LOG operation.
+    LOG payloads are forwarded to the py.native Log4j2 logger only.
+    They do not appear in the frontend job output."""
+
+    def __init__(self, socket_handler: "TCPServerHandler"):
+        super().__init__()
+        self.socket_handler = socket_handler
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            msg = self.format(record)
+            self.socket_handler.send_output(msg, operation="LOG")
+        except OSError:
+            # Socket was closed (normal during shutdown); discard silently.
+            pass
+        except Exception:
+            self.handleError(record)
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
@@ -120,23 +197,29 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """Configures logging with environment-based log levels."""
         try:
             log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
+            log_level = self.log_level_mapper(log_level_name)
+            fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-            logging.basicConfig(
-                filename=f"{self.insight_folder}/log.txt",
-                level=self.log_level_mapper(log_level_name),
-                format="%(asctime)s - %(levelname)s - %(message)s",
-                filemode="a",
-                force=True,
-            )
-
-            # Create a logger and apply a filter to log only the exact level
             self.logger = logging.getLogger("TCPServerHandler")
-            log_level = getattr(
-                logging, log_level_name, self.log_level_mapper(log_level_name)
+            self.logger.setLevel(log_level)
+            self.logger.handlers.clear()
+            self.logger.propagate = False
+
+            # File handler writes only the exact
+            # configured level to log.txt (not >= level, only ==).
+            file_handler = logging.FileHandler(
+                f"{self.insight_folder}/log.txt", mode="a"
             )
-            self.logger.addFilter(
-                lambda record: record.levelno == log_level
-            )  # Logs only the selected level
+            file_handler.setFormatter(fmt)
+            file_handler.addFilter(lambda record: record.levelno == log_level)
+            self.logger.addHandler(file_handler)
+
+            # Socket handler forwards all records at >= configured level to Java's
+            # py.native logger with standard severity behaviour.
+            socket_handler = SemossLogHandler(self)
+            socket_handler.setFormatter(fmt)
+            self.logger.addHandler(socket_handler)
+
             self.logger.info("Logging Setup Completed")
         except Exception as e:
             self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
@@ -161,7 +244,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
-        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # stderr -> SemossConsole -> send_output() -> sendall(). Without this lock the
         # concurrent sendall() calls interleave bytes on the wire, which corrupts the
         # 4-byte size header that Java uses to frame messages. Java then tries to read
         # an astronomically large payload, its receive buffer fills up, sendall()
@@ -206,6 +289,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # experimental
         if self.try_jp:
+            import numpy as np
+            import pandas as pd
+
             jp.handlers.register(float, custom_nan_handler)
             jp.handlers.register(np.datetime64, custom_tostr_handler)
             jp.handlers.register(pd.DataFrame, custom_pandas_handler)
@@ -320,6 +406,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except socket.timeout:
                 self.logger.warning("Client connection timed out. Closing this socket.")
                 self.stop_request()
+            except (ConnectionAbortedError, ConnectionResetError):
+                # Client disconnected cleanly; shut down without logging through the socket.
+                self.stop_request()
+            except RuntimeError as e:
+                if "No data received or connection closed" in str(e):
+                    # recv() returned empty -- client closed the connection normally.
+                    self.stop_request()
+                else:
+                    self.logger.warning(f"An unexpected error occurred: {e}")
+                    self.logger.warning("Closing this socket due to an unexpected error.")
+                    self.stop_request()
             except Exception as e:
                 self.logger.warning(f"An unexpected error occurred: {e}")
                 self.logger.warning("Closing this socket due to an unexpected error.")
@@ -484,7 +581,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     response=True,
                     exception=True,
                 )
-        except Exception as e:
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
             print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
             error_payload = {"epoc": epoc, "ex": [output]}
@@ -608,7 +707,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": (orig_payload.get("epoc") if orig_payload else None),
+            "epoc": (orig_payload.get("epoc") if orig_payload else ("py_" + "".join(random.choice(string.digits) for _ in range(17)))),
             "response": response,
             "interim": interim,
             "payload": [output],
@@ -647,7 +746,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out — acquire the lock so concurrent calls from parallel
+        # send it out - acquire the lock so concurrent calls from parallel
         # download worker threads cannot interleave bytes and corrupt the protocol
         with self.send_lock:
             self.request.sendall(ret_array)
@@ -688,7 +787,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out — use the same lock as send_output() to prevent interleaving
+        # send it out - use the same lock as send_output() to prevent interleaving
         with self.send_lock:
             self.request.sendall(ret_array)
 
@@ -819,6 +918,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        runtime_vars = payload.get("runtime_vars") or {}
         cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
         cancel_trace = self._build_cancel_trace(cancel_events)
 
@@ -835,8 +935,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 for asset_path in reversed(asset_paths):
                     if not asset_path:
                         continue
-                    path_script += textwrap.dedent(
-                        f"""
+                    path_script += textwrap.dedent(f"""
                         import sys
                         asset_path = r'{asset_path}'
                         if asset_path in sys.path:
@@ -844,33 +943,46 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         sys.path.insert(0, asset_path)
                         del asset_path
 
-                        """
-                    )
+                        """)
                 command = path_script + command
+
+        # If legacy append_vars are provided, prepend these vars at the start of the script
+        append_vars = payload.get("append_vars") or {}
+        if append_vars:
+            append_vars_script = ""
+            # Add each variable
+            for key in append_vars:
+                append_vars_script += textwrap.dedent(f"""
+                        {key} = r'{append_vars.get(key)}'
+                        """)
+            append_vars_script += "\n"
+            command = append_vars_script + command
 
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
-        if "mcp_driver" in sys.modules and asset_paths:
-            try:
-                mcp_module = sys.modules["mcp_driver"]
-                if hasattr(mcp_module, "__file__") and mcp_module.__file__:
-                    module_path = os.path.abspath(mcp_module.__file__)
+        # Collect the normalised asset paths for per-project module isolation.
+        # _asset_aware_import reads _asset_thread_local.active_paths to namespace
+        # any project-local .py file under a per-path key in sys.modules so
+        # concurrent threads for different projects never share helper modules.
+        _active_paths = (
+            [p for p in (asset_paths or []) if p]
+            if isinstance(asset_paths, list)
+            else ([asset_paths] if asset_paths else [])
+        )
 
-                    is_correct_path = False
-                    for p in asset_paths:
-                        if module_path.startswith(os.path.abspath(p)):
-                            is_correct_path = True
-                            break
+        # Store insight_globals in thread-local so smss_clear_app_imports()
+        # (gaas_tcp_server_thread_local) can evict __smss_mcp_* aliases at call
+        # time without needing to import this module. Injecting the same module-
+        # level function object every time means there is no closure and no race
+        # on the 'smss_clear_app_imports' key in insight_globals.
+        _asset_thread_local.insight_globals = insight_globals
+        insight_globals["smss_clear_app_imports"] = _smss_clear_app_imports
 
-                    if not is_correct_path:
-                        reload_mcp_function = insight_globals.get("reload_mcp_function")
-                        if reload_mcp_function:
-                            reload_mcp_function()
-            except Exception:
-                # If anything goes wrong during the check, do nothing and proceed
-                pass
+        # Store runtime vars in thread-local so they can be accessed by the smss_get_runtime_var function that is injected into the insight's globals. This is so variables can be passed from Java to Python without running into a race condition on the insight_globals when multiple threads are running for the same insight.
+        _asset_thread_local.runtime_vars = runtime_vars
+
+        insight_globals["smss_get_runtime_var"] = _smss_get_runtime_var
 
         # Define and inject the smss_stream function
         def smss_stream_func(
@@ -894,6 +1006,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
+            # Activate per-project module isolation for this thread
+            _asset_thread_local.active_paths = _active_paths if _active_paths else None
 
             # Determine the target CWD for this specific insight from its globals
             target_cwd = insight_globals.get("__smss_cwd__")
@@ -917,14 +1031,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
+                    # Engine-owned python processes (model / vector / etc.) set
+                    # disableCancelTrace because their executions can never be
+                    # cancelled by a user. Skipping sys.settrace avoids its large
+                    # overhead on import-heavy init / ask scripts.
+                    disable_cancel_trace = bool(payload.get("disableCancelTrace"))
                     previous_trace = sys.gettrace()
                     try:
-                        sys.settrace(cancel_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(cancel_trace)
                         output, is_exception, user_cancelled = self.execute_and_capture(
                             command, insight_globals
                         )
                     finally:
-                        sys.settrace(previous_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
@@ -940,6 +1061,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         finally:
             # Always clear the function for the current thread
             clear_smss_stream()
+            _asset_thread_local.active_paths = None
+            _asset_thread_local.insight_globals = None
+            _asset_thread_local.runtime_vars = None
             # Always change back to the original process CWD
             if process_cwd is not None:
                 os.chdir(process_cwd)
@@ -1040,8 +1164,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         except ExecutionCancelled as e:
             return (str(e), True, True)
-        except Exception as e:
-            # if we fail all attempts then send back the traceback
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
+            # Catch BaseException (not just Exception) so that C-extension panics
+            # such as pyo3_runtime.PanicException are captured and returned to the
+            # caller instead of crashing the thread silently.
             traceback = sys.exc_info()[2]
             full_trace = ["Traceback (most recent call last):\n"]
             full_trace = (
@@ -1414,23 +1542,6 @@ class InsightGlobalStore:
 
                 return module
 
-            def reload_mcp_function(globals_dict):
-                """
-                Reloads the mcp_driver module
-                """
-                import importlib
-
-                if "mcp_driver" in sys.modules:
-                    # Use importlib.reload for a proper reload
-                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
-                else:
-                    # First-time import
-                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
-
-                # Inject the newly loaded module into the current insight's globals
-                globals_dict["mcp_driver"] = mcp_module
-                return mcp_module
-
             # First-time initialization: build the globals dict
             globals_dict = {
                 "__builtins__": {
@@ -1446,13 +1557,9 @@ class InsightGlobalStore:
                 "json": json,
                 "jsonpickle": jp,
                 "math": math,
-                "PyFrame": PyFrame,
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
-                globals_dict
-            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1472,7 +1579,6 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",
@@ -1481,7 +1587,6 @@ class InsightGlobalStore:
                     "json",
                     "jsonpickle",
                     "math",
-                    "PyFrame",
                     "smssutil",
                 ]
             }

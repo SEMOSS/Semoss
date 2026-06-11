@@ -33,10 +33,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,7 +84,6 @@ import prerna.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.reactor.cluster.OpenDatabaseReactor;
 import prerna.reactor.cluster.VersionReactor;
 import prerna.reactor.database.DatabaseColumnUniqueReactor;
@@ -383,11 +380,7 @@ import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
-import prerna.reactor.utils.BDelReactor;
-import prerna.reactor.utils.BQReactor;
 import prerna.reactor.utils.BackupDatabaseReactor;
-import prerna.reactor.utils.BaddReactor;
-import prerna.reactor.utils.BupdReactor;
 import prerna.reactor.utils.CheckRPackagesReactor;
 import prerna.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.reactor.utils.DatabaseProfileReactor;
@@ -523,39 +516,6 @@ public class ReactorFactory {
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
 
-//	public static void main(String [] args)
-//	{
-//		// print the inconsistencies
-//		
-//		printInconsistency("Generic", reactorHash);
-//		printInconsistency("h2", h2FrameHash);
-//		printInconsistency("R", rFrameHash);
-//		printInconsistency("Pandas", pandasFrameHash);
-//	}
-
-	public static void printInconsistency(String mapname, Map map) {
-
-		Iterator keys = map.keySet().iterator();
-
-		System.out.println(mapname);
-		System.out.println("-----------");
-
-		while (keys.hasNext()) {
-			String key = (String) keys.next();
-			Class value = (Class) map.get(key);
-
-			String name = value.getSimpleName();
-
-			name = name.replaceAll("Reactor", "");
-			if (!name.equals(key)) {
-				System.out.println(key + " <<>> " + name);
-			}
-
-		}
-		System.out.println("-----------");
-
-	}
-
 	/**
 	 * Load reactors based on the class path
 	 * 
@@ -625,17 +585,6 @@ public class ReactorFactory {
 		}
 	}
 
-	/*
-	 * public static void writeReacFile() { if(write) { String reacFileName =
-	 * "c:/users/pkapaleeswaran/workspacej3/temp/reactornames.txt";
-	 * System.err.println("Writing file.. "); try { PrintWriter br = new
-	 * PrintWriter(new OutputStreamWriter(new FileOutputStream(reacFileName)));
-	 * Iterator rIt = reactors.keySet().iterator(); while(rIt.hasNext())
-	 * br.write(rIt.next().toString() + "\n"); { } br.flush(); br.close(); write =
-	 * false; } catch (FileNotFoundException e) { // TODO Auto-generated catch block
-	 * classLogger.error(Constants.STACKTRACE, e); } catch (IOException e) { // TODO
-	 * Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); } } }
-	 */
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
@@ -1074,7 +1023,6 @@ public class ReactorFactory {
 
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
-		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
@@ -1135,12 +1083,6 @@ public class ReactorFactory {
 //		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 //		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
 //		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
-
-		// bitly
-		reactorHash.put("badd", BaddReactor.class);
-		reactorHash.put("bupd", BupdReactor.class);
-		reactorHash.put("bdel", BDelReactor.class);
-		reactorHash.put("bq", BQReactor.class);
 
 		// Dates
 		reactorHash.put("DATE", DateReactor.class);
@@ -1453,32 +1395,6 @@ public class ReactorFactory {
 	 */
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
-	}
-
-	/**
-	 * This method takes in a prop file to build the reactorHash
-	 * 
-	 * @param propFile    - the path to the prop file with the reactor names and
-	 *                    classes
-	 * @param reactorHash - the specific reactor hash object that we are building
-	 * 
-	 */
-	public static void buildReactorHashFromPropertyFile(Map<String, Class<? extends IReactor>> hash, String propFile) {
-		// move info from the prop file into a Properties object
-		Properties properties = Utility.loadProperties(propFile);
-		// for each line in the file
-		// each line maps a reactor (operation) to a class
-		for (Object operation : properties.keySet()) {
-			try {
-				// identify the class that corresponds to each reactor
-				String reactorClass = properties.get(operation).toString();
-				Class reactor = (Class.forName(reactorClass));
-				// put the operation and the class into the reactor hash
-				hash.put(operation.toString(), reactor);
-			} catch (ClassNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 	}
 
 	/**

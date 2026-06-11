@@ -52,6 +52,11 @@ public class RSourceReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+		// strip leading separators so we don't get a double slash after concat with
+		// assetFolder
+		while (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+			relativePath = relativePath.substring(1);
+		}
 
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
@@ -89,10 +94,10 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		}
 
 		// if we have a chroot, mount the project for that user.
-//		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-//			//get the app_root folder for the project
-//			this.insight.getUser().getUserMountHelper().mountFolder(assetFolder,assetFolder, false);
-//		}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			// get the app_root folder for the project
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+		}
 
 		// in case your script is using other files
 		// we must load in the ROOT, APP_ROOT, and USER_ROOT

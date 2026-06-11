@@ -47,9 +47,10 @@ public class RemoveNodeReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = RemoveNodeReactor.class.getName();
 
 	public RemoveNodeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(),
+				ReactorKeysEnum.VALUE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		String[] packages = new String[] { "igraph" };
@@ -58,39 +59,26 @@ public class RemoveNodeReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		ITableDataFrame frame = getFrame();
-		if(!(frame instanceof TinkerFrame)) {
+		if (!(frame instanceof TinkerFrame)) {
 			throw new IllegalArgumentException("Frame must be a graph frame type");
 		}
 		TinkerFrame graph = (TinkerFrame) frame;
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
-		if(!graph.isIGraphSynched()) {
+		if (!graph.isIGraphSynched()) {
 			String wd = this.insight.getInsightFolder();
 			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
 		}
-		
+
 		String type = getColumn();
 		List<Object> values = getValues();
 		graph.remove(type, values);
 		iGraphUtilities.removeNodeFromR(graph.getName(), rJavaTranslator, type, values, logger);
 		return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
-	/**
-	 * 
-	 * @return
-	 */
+
 	private String getColumn() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[1]);
-		if (inputsGRS == null) {
-			inputsGRS = this.getCurRow();
-		}
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to update
-			NounMetadata noun1 = inputsGRS.getNoun(0);
-			String fullUpdateCol = noun1.getValue() + "";
-			if (fullUpdateCol.length() == 0) {
-				throw new IllegalArgumentException("Need to define column type");
-			}
+		String fullUpdateCol = getStringFromKeyOrCurRow(this.keysToGet[1], 0);
+		if (fullUpdateCol != null && !fullUpdateCol.isEmpty()) {
 			return fullUpdateCol;
 		}
 		throw new IllegalArgumentException("Need to define column type");

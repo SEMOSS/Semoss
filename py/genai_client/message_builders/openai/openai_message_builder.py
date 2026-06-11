@@ -115,6 +115,8 @@ class OpenAIMessageBuilder:
 
             if message.parts:
                 content_parts = []
+                is_assistant = message.io != "INPUT"
+                assistant_media_parts = []
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
                         content_parts.append(
@@ -129,10 +131,24 @@ class OpenAIMessageBuilder:
                         )
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_parts.append(media_content)
+                        if is_assistant:
+                            # OpenAI does not allow image blocks in assistant turns;
+                            # add a text placeholder and queue the image for a synthetic user message.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_parts.append(
+                                self._build_text_content_part(
+                                    f"[Generated image: {file_name}]",
+                                    type="output_text",
+                                )
+                            )
+                            assistant_media_parts.append(
+                                self._build_media_content_single_part(p.media_info)
+                            )
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         # other provider messages might have text with tool calls
@@ -205,6 +221,20 @@ class OpenAIMessageBuilder:
                         )
                     )
 
+                # Inject a synthetic user message with the images so the model can reference them
+                if assistant_media_parts:
+                    synthetic_content = [
+                        self._build_text_content_part(
+                            "Here is the generated image:", type="input_text"
+                        )
+                    ] + assistant_media_parts
+                    openai_messages.append(
+                        OpenAIResponsesMessage(
+                            role=OpenAIRoles.USER.value,
+                            content=synthetic_content,
+                        )
+                    )
+
                 # handle parameters update based on last message same as w/o parts
                 if is_last:
                     param_map.update(message.param_map)
@@ -272,6 +302,7 @@ class OpenAIMessageBuilder:
             reasoning = self._resolve_extended_reasoning(param_map)
             if reasoning:
                 param_map["reasoning"] = reasoning
+                param_map.pop("temperature", None)
         except Exception:
             pass
 
@@ -313,15 +344,30 @@ class OpenAIMessageBuilder:
             if message.parts:
                 content_parts = []
                 tool_call_parts = []
+                is_assistant = message.io != "INPUT"
+                assistant_media_parts = []
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
                         content_parts.append(self._build_text_content_part(p.text))
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_parts.append(media_content)
+                        if is_assistant:
+                            # OpenAI does not allow image blocks in assistant turns;
+                            # add a text placeholder and queue the image for a synthetic user message.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_parts.append(
+                                self._build_text_content_part(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                            assistant_media_parts.append(
+                                self._build_media_content_single_part(p.media_info)
+                            )
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         # other provider messages might have text with tool calls
@@ -413,6 +459,18 @@ class OpenAIMessageBuilder:
                                 else OpenAIRoles.ASSISTANT.value
                             ),
                             content=content,
+                        )
+                    )
+
+                # Inject a synthetic user message with the images so the model can reference them
+                if assistant_media_parts:
+                    synthetic_content = [
+                        self._build_text_content_part("Here is the generated image:")
+                    ] + assistant_media_parts
+                    openai_messages.append(
+                        OpenAIMessage(
+                            role=OpenAIRoles.USER.value,
+                            content=synthetic_content,
                         )
                     )
 
@@ -835,6 +893,12 @@ class OpenAIMessageBuilder:
             )
             param_map["stream"] = streaming_bool
 
+        stream_options = param_map.get("stream_options")
+        if isinstance(stream_options, dict):
+            stream_options.pop("include_usage", None)
+            if not stream_options:
+                param_map.pop("stream_options", None)
+
         # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
@@ -845,6 +909,8 @@ class OpenAIMessageBuilder:
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         param_map.pop("chat_type", None)
+        # Removing client-specific metadata not accepted by the Responses API
+        param_map.pop("client_metadata", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
@@ -1097,7 +1163,7 @@ class OpenAIMessageBuilder:
     # ) -> List[dict]:
     #     """
     #     Returns a ChatML history whose **total** token count
-    #     is ≤ safe_window.
+    #     is <= safe_window.
     #     Oldest non-system messages are dropped first; when only
     #     one message needs trimming we cut tokens from its *start*.
     #     """

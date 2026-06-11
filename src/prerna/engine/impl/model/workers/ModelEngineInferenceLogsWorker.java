@@ -66,12 +66,19 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private String response;
 	private Integer responseTokens;
 	private ZonedDateTime responseTime;
+	// per-transaction granular tokens (nullable when provider/cache unavailable)
+	private Integer inputTokens;
+	private Integer outputTokens;
+	private Integer cacheReadTokens;
+	private Integer cacheCreationTokens;
+	// thinking tokens are recorded on the RESPONSE row only (assistant output)
+	private Integer thinkingTokens;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
-		String messageId, 
+		String messageId,
 		String transactionId,
-		String messageMethod, 
+		String messageMethod,
 		IEngine engine,
 		String insightId,
 	    String projectContextId,
@@ -87,6 +94,36 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	String response,
 	   	Integer responseTokens,
 	   	ZonedDateTime responseTime
+	) {
+    	this(messageId, transactionId, messageMethod, engine, insightId, projectContextId, projectId, user,
+    			sessionId, roomId, context, prompt, fullPrompt, promptTokens, inputTime, response, responseTokens,
+    			responseTime, null, null, null, null, null);
+    }
+
+    public ModelEngineInferenceLogsWorker(
+		String messageId,
+		String transactionId,
+		String messageMethod,
+		IEngine engine,
+		String insightId,
+	    String projectContextId,
+	    String projectId,
+	    User user,
+		String sessionId,
+		String roomId,
+	   	String context,
+	   	String prompt,
+	   	Object fullPrompt,
+	   	Integer promptTokens,
+	   	ZonedDateTime inputTime,
+	   	String response,
+	   	Integer responseTokens,
+	   	ZonedDateTime responseTime,
+	   	Integer inputTokens,
+	   	Integer outputTokens,
+	   	Integer cacheReadTokens,
+	   	Integer cacheCreationTokens,
+	   	Integer thinkingTokens
 	) {
     	this.messageId = messageId;
     	this.transactionId = transactionId;
@@ -109,6 +146,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.response = response;
         this.responseTokens = responseTokens;
         this.responseTime = responseTime;
+        this.inputTokens = inputTokens;
+        this.outputTokens = outputTokens;
+        this.cacheReadTokens = cacheReadTokens;
+        this.cacheCreationTokens = cacheCreationTokens;
+        this.thinkingTokens = thinkingTokens;
     }
     // @formatter:on
 
@@ -205,77 +247,55 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 
 		// @formatter:off
-		if(keepInputOutput) {
-			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId,
-				this.transactionId,
-				INPUT,
-				this.prompt,
-				this.messageMethod,
-				this.promptTokens,
-				millisecondsDouble,
-				this.inputTime,
-				this.engine.getEngineId(),
-				insightId,
-				this.sessionId,
-				this.roomId,
-				userId,
-				userName,
-				userEmail
-			);
-			ModelInferenceLogsUtils.doRecordMessage(
-				this.transactionId,
-				this.transactionId,
-				RESPONSE,
-				this.response,
-				this.messageMethod,
-				this.responseTokens,
-				millisecondsDouble,
-				this.responseTime,
-				this.engine.getEngineId(),
-				insightId,
-				this.sessionId,
-				this.roomId,
-				userId,
-				userName,
-				userEmail
-			);
-		} else {
-			ModelInferenceLogsUtils.doRecordMessage(
-				this.messageId,
-				this.transactionId, 
-				INPUT,
-				null,
-				this.messageMethod,
-				this.promptTokens,
-				millisecondsDouble,
-				this.inputTime,
-				this.engine.getEngineId(),
-				insightId,
-				this.sessionId,
-				this.roomId,
-				userId,
-				userName,
-				userEmail
-			);
-			ModelInferenceLogsUtils.doRecordMessage(
-				this.transactionId,
-				this.transactionId,
-				RESPONSE,
-				null,
-				this.messageMethod,
-				this.responseTokens,
-				millisecondsDouble,
-				this.responseTime,
-				this.engine.getEngineId(),
-				insightId,
-				this.sessionId,
-				this.roomId,
-				userId,
-				userName,
-				userEmail
-			);
-		}
+		// Granular tokens split by row type so SUM(<col>) gives correct totals without
+		// filtering by MESSAGE_TYPE. INPUT row carries prompt-side counts (input + cache),
+		// RESPONSE row carries assistant-side counts (output + thinking).
+		String messageBody = keepInputOutput ? this.prompt : null;
+		String responseBody = keepInputOutput ? this.response : null;
+		ModelInferenceLogsUtils.doRecordMessage(
+			this.messageId,
+			this.transactionId,
+			INPUT,
+			messageBody,
+			this.messageMethod,
+			this.promptTokens,
+			this.inputTokens,
+			null, // output tokens belong on the RESPONSE row
+			this.cacheReadTokens,
+			this.cacheCreationTokens,
+			null, // thinking tokens belong on the RESPONSE row
+			millisecondsDouble,
+			this.inputTime,
+			this.engine.getEngineId(),
+			insightId,
+			this.sessionId,
+			this.roomId,
+			userId,
+			userName,
+			userEmail
+		);
+		ModelInferenceLogsUtils.doRecordMessage(
+			this.transactionId,
+			this.transactionId,
+			RESPONSE,
+			responseBody,
+			this.messageMethod,
+			this.responseTokens,
+			null, // input tokens belong on the INPUT row
+			this.outputTokens,
+			null, // cache_read belongs on the INPUT row
+			null, // cache_creation belongs on the INPUT row
+			this.thinkingTokens,
+			millisecondsDouble,
+			this.responseTime,
+			this.engine.getEngineId(),
+			insightId,
+			this.sessionId,
+			this.roomId,
+			userId,
+			userName,
+			userEmail
+		);
 		// @formatter:on
 	}
 }

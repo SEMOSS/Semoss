@@ -30,6 +30,9 @@ package prerna.reactor.util;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -47,9 +50,6 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class UnzipFileReactor extends AbstractReactor {
 
@@ -119,14 +119,13 @@ public class UnzipFileReactor extends AbstractReactor {
 		// track unzipped files in git when space is a project
 		if (engine != null && engineType == CATALOG_TYPE.PROJECT) {
 			try {
-				String gitFolder = EngineUtility.getSpecificEngineVersionFolder(
-						CATALOG_TYPE.PROJECT, engine.getEngineId(), engine.getEngineName());
+				String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT,
+						engine.getEngineId(), engine.getEngineName());
 				GitRepoUtils.addAllFiles(gitFolder, false);
 				AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 				String author = accessToken.getUsername();
 				String email = accessToken.getEmail();
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						"add: unzipped " + fileRelativePath, author, email);
+				GitRepoUtils.commitAddedFiles(gitFolder, "add: unzipped " + fileRelativePath, author, email);
 			} catch (Exception e) {
 				classLogger.error("Error committing unzipped files to git for project {}", space, e);
 			}
@@ -138,7 +137,7 @@ public class UnzipFileReactor extends AbstractReactor {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				if (projectId != null && !(projectId.isEmpty())) {
-					ClusterUtil.pushUserWorkspace(projectId, true);
+					ClusterUtil.pushUserAsset(projectId);
 				}
 				// is it in the insight space of a saved insight?
 			} else if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {

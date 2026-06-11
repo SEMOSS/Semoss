@@ -107,16 +107,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
-			throw new RuntimeException("Must pass in an access key");
+			throw new IllegalArgumentException("Must pass in an access key");
 		}
 		if (this.secretKey == null || this.secretKey.isEmpty()) {
-			throw new RuntimeException("Must pass in a secret key");
+			throw new IllegalArgumentException("Must pass in a secret key");
 		}
 		if (this.region == null || this.region.isEmpty()) {
-			throw new RuntimeException("Must pass in a region");
+			throw new IllegalArgumentException("Must pass in a region");
 		}
 		if (this.bucket == null || this.bucket.isEmpty()) {
-			throw new RuntimeException("Must pass in a S3BucketPath");
+			throw new IllegalArgumentException("Must pass in a S3BucketPath");
 		}
 		createServiceClient();
 	}
@@ -259,14 +259,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Delete extra directory from AWS s3 storage
 			syncStorageDeletion(storagePath, localBasePath);
 
-			Files.walk(localFilePath).filter(Files::isRegularFile).forEach(file -> {
-				try {
-					uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
-				} catch (Exception e) {
-					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: {}", file, e);
-				}
-			});
+			try (Stream<Path> stream = Files.walk(localFilePath)) {
+				stream.filter(Files::isRegularFile).forEach(file -> {
+					try {
+						uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
+					} catch (Exception e) {
+						failedFiles.add(file.toString());
+						classLogger.error("Failed to upload file: {}", file, e);
+					}
+				});
+			}
 			found = true;
 		} catch (Exception e) {
 			classLogger.error("Sync operation failed.Rolling back failed uploads.", e);
@@ -345,16 +347,17 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Delete local files not present in S3
-		Files.walk(localDirectory).filter(Files::isRegularFile)
-				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
-					try {
-						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: {}", localFile);
-					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: {}", localFile, e);
-					}
-				});
-
+		try (Stream<Path> stream = Files.walk(localDirectory)) {
+			stream.filter(Files::isRegularFile).filter(localFile -> !cloudFiles.contains(localFile.toString()))
+					.forEach(localFile -> {
+						try {
+							Files.delete(localFile);
+							classLogger.info("Deleted extra local file: {}", localFile);
+						} catch (IOException e) {
+							classLogger.error("Failed to delete extra file: {}", localFile, e);
+						}
+					});
+		}
 		// Delete empty local directories
 		deleteEmptyDirectories(localDirectory);
 
@@ -390,8 +393,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			deleteEmptyDirectories(path);
 
 			if (Files.isDirectory(path)) {
-				try (Stream<Path> fileStream = Files.walk(path).filter(Files::isRegularFile)) {
-					fileStream.forEach(file -> {
+				try (Stream<Path> stream = Files.walk(path)) {
+					stream.filter(Files::isRegularFile).forEach(file -> {
 						try {
 							uploadedFiles.add(uploadFile(path, file, storageFolderPath, metadata));
 						} catch (Exception e) {
@@ -751,9 +754,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyDirectories(Path path) {
-		try {
-
-			List<Path> directories = Files.walk(path).sorted(Comparator.reverseOrder()) // Delete children first
+		try (Stream<Path> stream = Files.walk(path)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
 					.filter(Files::isDirectory).collect(Collectors.toList());
 
 			for (Path dir : directories) {

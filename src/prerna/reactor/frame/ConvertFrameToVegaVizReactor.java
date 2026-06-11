@@ -27,35 +27,33 @@
  *******************************************************************************/
 package prerna.reactor.frame;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.date.SemossDate;
-import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.message.InputMessage;
-import prerna.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.VarStore;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.Utility;
-
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.date.SemossDate;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
+
 public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 
-	private static final Logger logger = LogManager.getLogger(ConvertFrameToVegaVizReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ConvertFrameToVegaVizReactor.class);
 
 	private static final String CATEGORICAL = "CATEGORICAL";
 	private static final String NUMERICAL = "NUMERICAL";
@@ -89,7 +87,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		String modelResponse = callLLM(CONTEXT, FINAL_PROMPT);
 
 		if (modelResponse != null) {
-			logger.info("LLM Response: " + modelResponse);
+			classLogger.info("LLM Response: " + modelResponse);
 		} else {
 			throw new SemossPixelException("No valid response from model API call");
 		}
@@ -98,8 +96,9 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 	}
 
 	private String buildUserPrompt(String userInput) {
-		if (userInput == null || userInput.isEmpty())
+		if (userInput == null || userInput.isEmpty()) {
 			return "";
+		}
 		return """
 				First, carefully consider the user's input:
 				- If the user specifies a type of graph, use that graph type. If not specified, select from a template from the list that best fits the data.
@@ -134,7 +133,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 				"""
 				.formatted(barTemplate, lineTemplate, pieTemplate);
 	}
-	
+
 	/**
 	 * Returns the selected frame by frame ID, or defaults to the insight's primary
 	 * frame. If neither is available, throws a SemossPixelException.
@@ -147,7 +146,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 
 		// Get the first frame with the specified frame name
 		if (selectedFrame == null || selectedFrame.trim().isEmpty()) {
-			logger.warn("Frame ID '" + selectedFrame + "' not found, falling back to default frame.");
+			classLogger.warn("Frame ID '" + selectedFrame + "' not found, falling back to default frame.");
 		} else {
 			VarStore varStore = this.insight.getVarStore();
 			for (String k : varStore.getKeys()) {
@@ -157,7 +156,8 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 					String frameName = frame.getOriginalName();
 					if (frameName.equals(selectedFrame)) {
 						return frame;
-					};
+					}
+					;
 				}
 			}
 		}
@@ -169,7 +169,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		if (defaultFrame != null) {
 			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey())
 					.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
-			logger.info("Returning default frame from insight.");
+			classLogger.info("Returning default frame from insight.");
 			return defaultFrame;
 		}
 		throw new SemossPixelException(
@@ -218,26 +218,26 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 	@SuppressWarnings("unchecked")
 	private String callLLM(String context, String question) {
 
-		
-		String modelId = (String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
-        if (modelId == null || modelId.trim().isEmpty()) {
-            throw new SemossPixelException("Model id is required");
-        }
+		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
+		if (modelId == null || modelId.trim().isEmpty()) {
+			throw new SemossPixelException("Model id is required");
+		}
 
-        if (!AbstractSecurityUtils.ignoreDatabase(modelId) && !AbstractSecurityUtils.containsEngineId(modelId)) {
-            throw new SemossPixelException("Model not registered in security DB: " + modelId);
-        }
-        if (AbstractSecurityUtils.adminOnlyEngineAddAccess(modelId)) {
-            throw new SemossPixelException("Insufficient permissions to use model: " + modelId);
-        }
+		if (!AbstractSecurityUtils.ignoreDatabase(modelId) && !AbstractSecurityUtils.containsEngineId(modelId)) {
+			throw new SemossPixelException("Model not registered in security DB: " + modelId);
+		}
+		if (AbstractSecurityUtils.adminOnlyEngineAddAccess(modelId)) {
+			throw new SemossPixelException("Insufficient permissions to use model: " + modelId);
+		}
 
 		//////// TEMPORARY ROOM SETUP ////////
 		Room room = new Room();
 		room.setId(this.keyValue.get(PixelDataType.FRAME.getKey()).toString()); // Use frame id for the room id
 		room.setInsight(this.insight);
-		// room.setModelId((String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey())); // try this?
+		// room.setModelId((String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey()));
+		// // try this?
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).build();
-		
+
 		HashMap<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("use_history", USE_HISTORY);
 		paramMap.put("temperature", TEMPERATURE);
@@ -292,10 +292,12 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 	}
 
 	private String detectType(Object cell) {
-		if (cell instanceof Integer || cell instanceof Double)
+		if (cell instanceof Integer || cell instanceof Double) {
 			return NUMERICAL;
-		if (cell instanceof SemossDate)
+		}
+		if (cell instanceof SemossDate) {
 			return TEMPORAL;
+		}
 		return CATEGORICAL;
 	}
 
@@ -530,6 +532,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 				     """;
 	}
 
+	@Override
 	public String getName() {
 		return "FrameToGraph";
 	}

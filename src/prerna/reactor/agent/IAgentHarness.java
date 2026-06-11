@@ -30,16 +30,9 @@ package prerna.reactor.agent;
 /**
  * Pluggable harness interface for the generic agent loop.
  *
- * <p>Implementations receive a fully-resolved {@link GenericAgentContext} and are
- * responsible for driving the model/tool loop until a final text response is obtained.
- *
- * <p>Built-in implementations:
- * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — SEMOSS Room tool-calling loop
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness} — ClaudeCode SDK
- * </ul>
- *
- * <p>Custom harnesses can be registered at startup via {@link AgentHarnessRegistry#register}.
+ * <p>Implementations receive a resolved {@link AgentRunContext} and drive the
+ * model/tool loop to a final response. Built-ins are registered through
+ * {@link AgentHarnessRegistry}, and custom harnesses can be added at startup.
  */
 public interface IAgentHarness {
 
@@ -56,5 +49,5 @@ public interface IAgentHarness {
      * @return result with final text, iteration count, and per-tool-call trace
      * @throws Exception on unrecoverable errors (callers should wrap and surface to the user)
      */
-    AgentHarnessResult execute(GenericAgentContext ctx) throws Exception;
+    AgentHarnessResult execute(AgentRunContext ctx) throws Exception;
 }

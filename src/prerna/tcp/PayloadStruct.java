@@ -37,7 +37,7 @@ public class PayloadStruct implements Serializable {
 	public String epoc = null;
 
 	public enum OPERATION {
-		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED
+		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED, LOG
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R
@@ -88,6 +88,15 @@ public class PayloadStruct implements Serializable {
 	// set the job id
 	public String jobId = null;
 
+	/**
+	 * When true, the python server must NOT install the per-execution cancel trace
+	 * (sys.settrace) for this command. Engine-owned python processes never surface
+	 * their jobId / insightId to the user, so their executions can never be
+	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
+	 * import-heavy init / ask scripts.
+	 */
+	public boolean disableCancelTrace = false;
+
 	// set the session id
 	public String sessionId = null;
 
@@ -96,6 +105,26 @@ public class PayloadStruct implements Serializable {
 	 * we are dealing with multiple insights set at different apps at the same time
 	 */
 	public String[] asset_paths = null;
+
+	/**
+	 * Set runtime vars for the thread of execution (instead of globals() which can
+	 * run into race conditions). This is useful to passing ROOT, APP_ROOT,
+	 * USER_ROOT variables to the executing python. Within the executing python
+	 * code, the user can run:
+	 * <p>
+	 * smss_get_runtime_var("ROOT")
+	 * </p>
+	 * in order to get the value
+	 */
+	public Map<String, Object> runtime_vars = null;
+
+	/**
+	 * This is to support legacy code execution for variables like ROOT, APP_ROOT,
+	 * USER_ROOT. We should not use this but instead shift towards
+	 * {@link #runtime_vars}
+	 */
+	@Deprecated
+	public Map<String, Object> append_vars = null;
 
 	/*
 	 * This is really important If we have a User invoking an engine python process

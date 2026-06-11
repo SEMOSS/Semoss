@@ -40,7 +40,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CountIfReactor extends AbstractFrameReactor {
@@ -109,7 +108,8 @@ public class CountIfReactor extends AbstractFrameReactor {
 			metaData.setAliasToProperty(table + "__" + newColumnName, newColumnName);
 			metaData.setDataTypeToProperty(table + "__" + newColumnName, dataType);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to count regex matches for column {} into {} on table {} using regex {}",
+					columnToCount, newColumnName, table, regex, e);
 		}
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

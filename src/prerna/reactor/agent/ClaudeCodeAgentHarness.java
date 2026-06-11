@@ -29,7 +29,6 @@ package prerna.reactor.agent;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,23 +38,29 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * {@link IAgentHarness} implementation that delegates to {@link ClaudeCodeManager}.
+ * {@link IAgentHarness} that delegates to {@link ClaudeCodeManager} - spawns the
+ * external {@code claude} CLI in the agent's working directory and parses its
+ * transcript.
  *
- * <p>Resolves:
+ * <p>Reads from {@link AgentRunContext}:
  * <ul>
- *   <li>{@code projectId} from {@code ctx.getFilePath()} or from {@code paramMap} under
- *       key {@code "project_id"}
- *   <li>MCP list from {@code room.getOptionsMap()} under key {@code "mcp"}
- *   <li>{@code allowedTools} from {@code paramMap} under key {@code "allowed_tools"};
- *       defaults to {@code ["*"]}
- *   <li>{@code permissionMode} from {@code paramMap} under key {@code "permission_mode"};
- *       defaults to {@code "default"}
+ *   <li>working dir - {@code ctx.getFilePath()} (raw - no {@code /client} suffix
+ *       imposed; callers wanting that pass {@code subdir="client"} to {@code RunAgent})</li>
+ *   <li>system prompt - {@code ctx.getRoom().getRoomOrWorkspaceSystemPrompt()} (raw
+ *       authored layer; no enterprise-template wrap, no {@code {{VAR}}} expansion -
+ *       the external CLI gets the agent's prompt as-authored)</li>
+ *   <li>engine id - {@code ctx.getRoom().getModelId()}</li>
+ *   <li>MCP list - {@code ctx.getAgentConfig().getMcps()} (union of
+ *       {@code WORKSPACE_RESOURCE} + {@code room.options.mcp[]})</li>
+ *   <li>{@code allowed_tools}, {@code permission_mode} - read inline from paramMap</li>
  * </ul>
  *
- * <p>{@code ClaudeCodeManager} manages its own internal agentic loop (file read/write/edit
- * tools), so this harness returns {@code iterations = 0} and an empty tool-call trace.
+ * <p>{@code ClaudeCodeManager} manages its own internal agentic loop, so this harness
+ * returns {@code iterations = 0} and an empty tool-call trace.
  */
 public class ClaudeCodeAgentHarness implements IAgentHarness {
 
@@ -64,60 +69,43 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "claude_code";
 
-    private static final String PARAM_ALLOWED_TOOLS  = "allowed_tools";
-    private static final String PARAM_PERMISSION_MODE = "permission_mode";
-
     @Override
     public String getName() {
         return NAME;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
-        Room               room    = ctx.getRoom();
-        Map<String, Object> params = ctx.getParamMap();
-        String             input   = ctx.getInput();
+    public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
+        Room                room     = ctx.getRoom();
+        Map<String, Object> params   = ctx.getParamMap();
+        String              input    = ctx.getInput();
+        String              filePath = ctx.getFilePath();
 
-        String filePath = ctx.getFilePath();
-
-        //Resolve model engine ID
-        String engineId = room.getModelId();
+        String       engineId       = room.getModelId();
         if (engineId == null || engineId.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "ClaudeCodeAgentHarness: room does not have a modelId set");
+            throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
         }
-
-        //Resolve system prompt
-        String systemPrompt = room.getEffectiveSystemPrompt();
-        if (systemPrompt == null) systemPrompt = "";
-
-        //Resolve allowed tools
-        List<String> allowedTools;
-        Object allowedToolsObj = params.get(PARAM_ALLOWED_TOOLS);
-        if (allowedToolsObj instanceof List) {
-            allowedTools = (List<String>) allowedToolsObj;
-        } else {
-            allowedTools = Collections.singletonList("*");
+        String       systemPrompt   = room.getRoomOrWorkspaceSystemPrompt();
+        if (systemPrompt == null) {
+            systemPrompt = "";
         }
-
-        // Resolve permission mode
-        String permissionMode = params.containsKey(PARAM_PERMISSION_MODE)
-                ? String.valueOf(params.get(PARAM_PERMISSION_MODE))
-                : "default";
-
-        // Build MCP list from room options
-        List<Map<String, String>> mcps = buildMcpList(room);
-
-        // Resolve User
-        User user = ctx.getInsight().getUser();
+        User         user           = ctx.getInsight().getUser();
         if (user == null) {
-            throw new IllegalArgumentException("ClaudeCodeAgentHarness: insight has no user");
+            throw new IllegalArgumentException(NAME + ": insight has no user");
         }
+        List<String> allowedTools   = resolveAllowedTools(params, Collections.singletonList("*"));
+        String       permissionMode = resolvePermissionMode(params);
+        List<Map<String, String>> mcps = ctx.getAgentConfig().getMcps();
 
-        // Delegate to ClaudeCodeManager
-        logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
+        logger.debug("[{}] pre-message: room={}, inputLen={}",
+                NAME, room.getId(), input == null ? 0 : input.length());
+        logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}",
+                engineId, filePath, mcps == null ? 0 : mcps.size());
+
         ClaudeCodeManager manager = new ClaudeCodeManager();
+        String targetBinary = ClaudeCodeManager.resolveClaudeBinary();
+        SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
+                room.getRoomFolderPath(), filePath, targetBinary, ctx.getSandboxPolicy());
         String output = manager.query(
                 ctx.getInsight(),
                 user,
@@ -128,33 +116,32 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
                 room.getId(),
                 allowedTools,
                 permissionMode,
-                mcps);
+                mcps,
+                policy);
 
-        return new AgentHarnessResult(output, 0, new ArrayList<>());
+        AgentHarnessResult result = new AgentHarnessResult(output, 0, new ArrayList<>());
+        logger.debug("[{}] post-message: room={}, iterations={}, finalTextLen={}",
+                NAME, room.getId(), result.getIterations(),
+                output == null ? 0 : output.length());
+        return result;
     }
 
-    // Helpers
-
     @SuppressWarnings("unchecked")
-    private List<Map<String, String>> buildMcpList(Room room) {
-        List<Map<String, String>> result = new ArrayList<>();
-        Map<String, Object> opts = room.getOptionsMap();
-        if (opts == null || !opts.containsKey("mcp")) return result;
-        Object mcpObj = opts.get("mcp");
-        if (!(mcpObj instanceof List)) return result;
-        List<?> mcpList = (List<?>) mcpObj;
-        for (Object item : mcpList) {
-            if (!(item instanceof Map)) continue;
-            Map<String, Object> mcpEntry = (Map<String, Object>) item;
-            String id   = mcpEntry.containsKey("id")   ? String.valueOf(mcpEntry.get("id"))   : null;
-            String name = mcpEntry.containsKey("name") ? String.valueOf(mcpEntry.get("name")) : id;
-            if (id != null) {
-                Map<String, String> entry = new HashMap<>();
-                entry.put("id",   id);
-                entry.put("name", name != null ? name : id);
-                result.add(entry);
-            }
+    private static List<String> resolveAllowedTools(Map<String, Object> params, List<String> defaults) {
+        if (params == null) {
+            return defaults;
         }
-        return result;
+        Object o = params.get("allowed_tools");
+        if (o instanceof List) {
+            return (List<String>) o;
+        }
+        return defaults;
+    }
+
+    private static String resolvePermissionMode(Map<String, Object> params) {
+        if (params == null || !params.containsKey("permission_mode")) {
+            return "default";
+        }
+        return String.valueOf(params.get("permission_mode"));
     }
 }

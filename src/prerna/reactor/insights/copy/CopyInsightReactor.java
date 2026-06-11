@@ -213,7 +213,6 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			List<String> recipe = new ArrayList<String>();
 			try {
 				List<String> recipeToRun = getRecipe();
-				recipeToRun = decodeRecipe(recipeToRun);
 				recipe.addAll(recipeToRun);
 			} catch (IllegalArgumentException e) {
 				// ignore

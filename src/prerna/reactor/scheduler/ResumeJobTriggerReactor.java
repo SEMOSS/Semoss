@@ -45,12 +45,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
 	public ResumeJobTriggerReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -58,12 +57,13 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
+
 		/**
-		 * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+		 * RescheduleJobFromDB(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
 		 * 
 		 * This reactor will reschedule existing unscheduled jobs in Quartz.
 		 */
@@ -77,12 +77,13 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
 		// resume the job in quartz
-		// later grab cron expression and add functionality to resume specific trigger under job
+		// later grab cron expression and add functionality to resume specific trigger
+		// under job
 		try {
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			String triggerName = jobId.concat("Trigger");
@@ -99,7 +100,8 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 				scheduler.resumeTrigger(triggerKey);
 			}
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 		}
 
 		// Save metadata into a map and return

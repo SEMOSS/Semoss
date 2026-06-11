@@ -1228,19 +1228,19 @@ class CentralCloudStorageUnitTests {
 		}
 
 		@Test
-		void testPullUserAssetOrWorkspace_alreadyLoaded_nullProject_throws() {
+		void testPullUserAsset_alreadyLoaded_nullProject_throws() {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
-				utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", true)).thenReturn(null);
+				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(null);
 				assertThrows(IllegalArgumentException.class,
-						() -> instance.pullUserAssetOrWorkspace("proj1", true, true));
+						() -> instance.pullUserAsset("proj1", true));
 			}
 		}
 
 		@Test
-		void testPushUserAssetOrWorkspace_nullProject_throws() {
+		void testPushUserAsset_nullProject_throws() {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
-				utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", false)).thenReturn(null);
-				assertThrows(IllegalArgumentException.class, () -> instance.pushUserAssetOrWorkspace("proj1", false));
+				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(null);
+				assertThrows(IllegalArgumentException.class, () -> instance.pushUserAsset("proj1"));
 			}
 		}
 
@@ -2653,10 +2653,10 @@ class CentralCloudStorageUnitTests {
 			}
 		}
 
-		// ------- pullUserAssetOrWorkspace / pushUserAssetOrWorkspace -------
+		// ------- pullUserAsset / pushUserAsset -------
 
 		@Test
-		void testPullUserAssetOrWorkspace_notLoaded_isAsset(@TempDir Path testDir) throws Exception {
+		void testPullUserAsset_notLoaded(@TempDir Path testDir) throws Exception {
 			String origUserFolder = EngineUtility.USER_FOLDER;
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
@@ -2665,10 +2665,10 @@ class CentralCloudStorageUnitTests {
 
 				try (MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
 					smssMock.when(() -> SmssUtilities
-							.getUniqueName(prerna.auth.utils.WorkspaceAssetUtils.ASSET_APP_NAME, "proj1"))
+							.getUniqueName(prerna.auth.utils.UserAssetUtils.ASSET_APP_NAME, "proj1"))
 							.thenReturn("Asset__proj1");
 
-					instance.pullUserAssetOrWorkspace("proj1", true, false);
+					instance.pullUserAsset("proj1", false);
 
 					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
 					verify(mockStorageEngine).copyToLocal(anyString(), eq(testDir.toString()), (String) isNull());
@@ -2679,29 +2679,7 @@ class CentralCloudStorageUnitTests {
 		}
 
 		@Test
-		void testPullUserAssetOrWorkspace_notLoaded_isWorkspace(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
-
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-
-				try (MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
-					smssMock.when(() -> SmssUtilities
-							.getUniqueName(prerna.auth.utils.WorkspaceAssetUtils.WORKSPACE_APP_NAME, "proj1"))
-							.thenReturn("Workspace__proj1");
-
-					instance.pullUserAssetOrWorkspace("proj1", false, false);
-
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
-			}
-		}
-
-		@Test
-		void testPullUserAssetOrWorkspace_loaded(@TempDir Path testDir) throws Exception {
+		void testPullUserAsset_loaded(@TempDir Path testDir) throws Exception {
 			String origUserFolder = EngineUtility.USER_FOLDER;
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
@@ -2714,12 +2692,12 @@ class CentralCloudStorageUnitTests {
 						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
 
-					utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", true)).thenReturn(mockProject);
+					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 					smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
 
-					instance.pullUserAssetOrWorkspace("proj1", true, true);
+					instance.pullUserAsset("proj1", true);
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
@@ -2731,7 +2709,7 @@ class CentralCloudStorageUnitTests {
 		}
 
 		@Test
-		void testPushUserAssetOrWorkspace_happyPath(@TempDir Path testDir) throws Exception {
+		void testPushUserAsset_happyPath(@TempDir Path testDir) throws Exception {
 			String origUserFolder = EngineUtility.USER_FOLDER;
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
@@ -2743,11 +2721,11 @@ class CentralCloudStorageUnitTests {
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
 
-					utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", true)).thenReturn(mockProject);
+					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
 
-					instance.pushUserAssetOrWorkspace("proj1", true);
+					instance.pushUserAsset("proj1");
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
@@ -2998,10 +2976,10 @@ class CentralCloudStorageUnitTests {
 			}
 		}
 
-		// ------- pushUserAssetOrWorkspace with rclone reuse -------
+		// ------- pushUserAsset with rclone reuse -------
 
 		@Test
-		void testPushUserAssetOrWorkspace_withRcloneReuse(@TempDir Path testDir) throws Exception {
+		void testPushUserAsset_withRcloneReuse(@TempDir Path testDir) throws Exception {
 			String origUserFolder = EngineUtility.USER_FOLDER;
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
@@ -3014,11 +2992,11 @@ class CentralCloudStorageUnitTests {
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
 
-					utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", true)).thenReturn(mockProject);
+					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
 
-					instance.pushUserAssetOrWorkspace("proj1", true);
+					instance.pushUserAsset("proj1");
 
 					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), eq("rcfg"), any());
 					verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("rcfg"), any());
@@ -3029,10 +3007,10 @@ class CentralCloudStorageUnitTests {
 			}
 		}
 
-		// ------- pullUserAssetOrWorkspace with rclone reuse -------
+		// ------- pullUserAsset with rclone reuse -------
 
 		@Test
-		void testPullUserAssetOrWorkspace_loaded_withRcloneReuse(@TempDir Path testDir) throws Exception {
+		void testPullUserAsset_loaded_withRcloneReuse(@TempDir Path testDir) throws Exception {
 			String origUserFolder = EngineUtility.USER_FOLDER;
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
@@ -3046,12 +3024,12 @@ class CentralCloudStorageUnitTests {
 						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
 
-					utilMock.when(() -> Utility.getUserAssetWorkspaceProject("proj1", true)).thenReturn(mockProject);
+					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 					smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
 
-					instance.pullUserAssetOrWorkspace("proj1", true, true);
+					instance.pullUserAsset("proj1", true);
 
 					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), eq("rcfg"));
 					verify(mockStorageEngine).copyToLocal(anyString(), anyString(), eq("rcfg"));

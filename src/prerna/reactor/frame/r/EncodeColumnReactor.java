@@ -32,7 +32,6 @@ import java.util.List;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,7 +53,7 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getName();
-		List<String> columns = getColumns();
+		List<String> columns = getListStringFromKeyOrCurRow(this.keysToGet[0]);
 		if (columns == null || columns.isEmpty()) {
 			throw new IllegalArgumentException("Need to pass in the columns to encode");
 		}
@@ -79,17 +78,6 @@ public class EncodeColumnReactor extends AbstractRFrameReactor {
 
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		return noun;
-	}
-
-	private List<String> getColumns() {
-		// EncodeColumn(columns=["a","b","c"]);
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-
-		// this is if passed in directly EncodeColumn("a","b","c");
-		return this.curRow.getAllStrValues();
 	}
 
 }

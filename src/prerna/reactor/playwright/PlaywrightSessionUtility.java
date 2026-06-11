@@ -106,7 +106,7 @@ public class PlaywrightSessionUtility {
 			return response;
 
 		} catch (Exception e) {
-			classLogger.error("Failed to apply step: " + e.getMessage(), e);
+			classLogger.error("Failed to apply Playwright step {}", step.type(), e);
 			response.put("isPageChanged", true);
 			return response;
 		}
@@ -127,7 +127,7 @@ public class PlaywrightSessionUtility {
 			page.waitForFunction("sel => document.readyState === 'complete' || !!document.querySelector(sel)",
 					selectorValue, new Page.WaitForFunctionOptions().setTimeout(800));
 		} catch (PlaywrightException e) {
-			classLogger.error("Non-blocking wait timeout (safe): " + e.getMessage(), e.getMessage());
+			classLogger.warn("Non-blocking wait timed out while checking page readiness", e);
 		}
 	}
 
@@ -197,7 +197,7 @@ public class PlaywrightSessionUtility {
 				};
 				return loc != null ? loc.first() : null;
 			} catch (Exception e) {
-				classLogger.error("Unable to resolve locator in iframe: " + e.getMessage(), e);
+				classLogger.error("Unable to resolve locator in iframe '{}'", frameSelector, e);
 				return null;
 			}
 		}
@@ -229,7 +229,7 @@ public class PlaywrightSessionUtility {
 
 			return loc.first();
 		} catch (Exception e) {
-			classLogger.error("Unable to resolve location error: " + e.getMessage(), e);
+			classLogger.error("Unable to resolve locator on main page for strategy '{}' and value '{}'", strat, val, e);
 			return null;
 		}
 	}
@@ -430,7 +430,7 @@ public class PlaywrightSessionUtility {
 				loc.click(new Locator.ClickOptions().setTimeout(300));
 				return true;
 			} catch (Exception e) {
-				classLogger.error("Selector click failed: " + e.getMessage(), e);
+				classLogger.error("Primary selector click failed for step {}", step.id(), e);
 			}
 		}
 
@@ -447,7 +447,7 @@ public class PlaywrightSessionUtility {
 					healed.click(new Locator.ClickOptions().setTimeout(300));
 					return true;
 				} catch (Exception e) {
-					classLogger.error("Healed click failed: " + e.getMessage(), e);
+					classLogger.error("Healed selector click failed for step {}", step.id(), e);
 				}
 			}
 		}
@@ -494,7 +494,7 @@ public class PlaywrightSessionUtility {
 		try {
 			newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
 		} catch (Exception e) {
-			classLogger.error("New tab load timeout: " + e.getMessage(), e);
+			classLogger.warn("Timed out waiting for new tab to reach load state at URL '{}'", newPage.url(), e);
 		}
 
 		try {
@@ -528,7 +528,7 @@ public class PlaywrightSessionUtility {
 				}
 				try {
 					loc.fill(text, new Locator.FillOptions().setTimeout(500));
-				} // reduced from 1000–1200
+				} // reduced from 1000-1200
 				catch (Exception e) {
 					loc.fill(text, new Locator.FillOptions().setTimeout(700));
 				}
@@ -673,7 +673,7 @@ public class PlaywrightSessionUtility {
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match – don’t drop to coords; surface as SELECTOR_NOT_FOUND
+				// No selector match - don't drop to coords; surface as SELECTOR_NOT_FOUND
 				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
 			}
 			// otherwise proceed with the clickable path above
@@ -699,7 +699,7 @@ public class PlaywrightSessionUtility {
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match – don't drop to coords; surface as SELECTOR_NOT_FOUND
+				// No selector match - don't drop to coords; surface as SELECTOR_NOT_FOUND
 				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
 			}
 			// otherwise proceed with the clickable path above

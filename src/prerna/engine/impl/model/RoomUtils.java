@@ -33,6 +33,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -119,55 +121,52 @@ public final class RoomUtils {
 			roomId = insight.getInsightId();
 		}
 
-		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
-		if (!roomExistsInDB) {
-			String agentType = null;
-			String engineId = null;
-			if (modelEngine != null) {
-				agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
-				engineId = modelEngine.getEngineId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
+			boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
+			if (!roomExistsInDB) {
+				String agentType = null;
+				String engineId = null;
+				if (modelEngine != null) {
+					agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+					engineId = modelEngine.getEngineId();
+				}
+				User user = insight.getUser();
+				AccessToken userToken = user.getPrimaryLoginToken();
+				String userName = userToken.getName();
+				String userEmail = userToken.getEmail();
+				if (projectId == null) {
+					projectId = insight.getContextProjectId();
+				}
+				if (projectId == null) {
+					projectId = insight.getProjectId();
+				}
+				String projectName = null;
+				// ignore playground project id
+				if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+					IProject project = Utility.getProject(projectId);
+					projectName = project != null ? project.getProjectName() : null;
+				}
+				String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
+				// @formatter:off
+				ModelInferenceLogsUtils.doCreateNewConversation(
+						insight.getInsightId(),
+						roomId,
+						roomName,
+						context,
+						userToken.getId(),
+						userName,
+						userEmail,
+						agentType,
+						engineId,
+						true,
+						projectId,
+						projectName,
+						workspaceId,
+						options,
+						parentRoomId
+				);
+				// @formatter:on
 			}
-			User user = insight.getUser();
-			AccessToken userToken = user.getPrimaryLoginToken();
-			String userName = userToken.getName();
-			String userEmail = userToken.getEmail();
-			if (projectId == null) {
-				projectId = insight.getContextProjectId();
-			}
-			if (projectId == null) {
-				projectId = insight.getProjectId();
-			}
-			String projectName = null;
-			// ignore playground project id
-			if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
-				IProject project = Utility.getProject(projectId);
-				projectName = project != null ? project.getProjectName() : null;
-			}
-			String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
-			// @formatter:off
-            ModelInferenceLogsUtils.doCreateNewConversation(
-            		insight.getInsightId(),
-                    roomId,
-                    roomName,
-                    context,
-                    userToken.getId(),
-                    userName,
-                    userEmail,
-                    agentType,
-                    engineId,
-                    true,
-                    projectId,
-                    projectName,
-                    workspaceId,
-                    options,
-                    parentRoomId
-            );
-    		// @formatter:on
-
-			// Always get the loaded room object (avoiding any skipping, ensures in-memory
-			// cache is filled)
-			return RoomUtils.getOrLoadRoom(roomId, insight);
-		} else {
 			return RoomUtils.getOrLoadRoom(roomId, insight);
 		}
 	}
@@ -185,7 +184,8 @@ public final class RoomUtils {
 		// Check in user's cache (roomHash)
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
-				room = (Room) insight.getUser().getRoomHash().get(roomId);
+				room = insight.getUser().getRoomHash().get(roomId);
+				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
 				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
@@ -225,6 +225,13 @@ public final class RoomUtils {
 		insight.getUser().getRoomHash().put(roomId, room);
 		symlinkRoomFolderIfNeeded(room, insight);
 		return room;
+	}
+
+	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null || !RoomMessageStore.isRedisEnabled()) {
+			return;
+		}
+		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**
@@ -308,8 +315,7 @@ public final class RoomUtils {
 		if (!changed && upgraded.equals(json)) {
 			return;
 		}
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				upgraded);
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**
@@ -334,9 +340,7 @@ public final class RoomUtils {
 
 		// set and persist the normalized messages in one pass
 		room.setMessages(messages);
-		String messageJson = room.getMessagesAsString();
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				messageJson);
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**
@@ -666,7 +670,7 @@ public final class RoomUtils {
 	 * @param value input string
 	 * @return {@code true} for supported image/pdf data URIs
 	 */
-	private static boolean isBase64MediaDataUri(String value) {
+	public static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
@@ -717,11 +721,14 @@ public final class RoomUtils {
 			}
 
 			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
 			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
+
+			// Content-addressed name -- identical bytes dedup to the same file.
+			String fileName = "media_" + sha256Hex(decoded).substring(0, 16) + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+			if (!Files.exists(destination)) {
+				Files.write(destination, decoded);
+			}
 			return fileName;
 		} catch (IllegalArgumentException e) {
 			// base64 decoder throws IllegalArgumentException on bad input
@@ -730,6 +737,21 @@ public final class RoomUtils {
 		} catch (IOException e) {
 			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
 			return null;
+		}
+	}
+
+	private static String sha256Hex(byte[] data) {
+		try {
+			byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+			StringBuilder sb = new StringBuilder(hash.length * 2);
+			for (byte b : hash) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			// SHA-256 is required by the JRE spec; fall back to a UUID if it ever fails.
+			classLogger.warn("SHA-256 unavailable; falling back to random media filename", e);
+			return UUID.randomUUID().toString().replace("-", "");
 		}
 	}
 

@@ -34,6 +34,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.AssistantText;
+import prerna.reactor.agent.ClaudeCodeTranscriptModels.MaxTurnsReached;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolInvocation;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolResult;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolStats;
@@ -68,6 +69,8 @@ public class ClaudeCodeTranscriptParser {
 			return parseUserLine(raw);
 		case "assistant":
 			return parseAssistantLine(raw);
+		case "attachment":
+			return parseAttachmentLine(raw);
 		default:
 			return null;
 		}
@@ -234,8 +237,8 @@ public class ClaudeCodeTranscriptParser {
 	/**
 	 * Extract and concatenate all meaningful entries from a content array.
 	 *
-	 * Recognized entry types: - type="text" → appends the text value directly -
-	 * type="tool_reference" → appends "[Tool: {tool_name}]"
+	 * Recognized entry types: - type="text" -> appends the text value directly -
+	 * type="tool_reference" -> appends "[Tool: {tool_name}]"
 	 */
 	private static String extractTextFromContentArray(JSONArray contentArray) {
 		if (contentArray == null || contentArray.length() == 0) {
@@ -275,6 +278,23 @@ public class ClaudeCodeTranscriptParser {
 	}
 
 	/**
+	 * An "attachment" line carries metadata. Currently only "max_turns_reached" is
+	 * surfaced; all other attachment subtypes are silently skipped.
+	 */
+	private static JSONObject parseAttachmentLine(JSONObject raw) {
+		JSONObject attachment = raw.optJSONObject("attachment");
+		if (attachment == null) {
+			return null;
+		}
+		if ("max_turns_reached".equals(attachment.optString("type", ""))) {
+			MaxTurnsReached mtr = new MaxTurnsReached(attachment.optInt("maxTurns", 0),
+					attachment.optInt("turnCount", 0), raw.optString("timestamp", ""));
+			return toEvent("max_turns_reached", maxTurnsReachedToJson(mtr), raw);
+		}
+		return null;
+	}
+
+	/**
 	 * An "assistant" line contains message.content[] blocks that can be: -
 	 * type="text" AssistantText - type="tool_use" ToolInvocation
 	 *
@@ -293,6 +313,10 @@ public class ClaudeCodeTranscriptParser {
 
 		String model = message.optString("model", "");
 		String timestamp = raw.optString("timestamp", "");
+		String stopReason = message.has("stop_reason") && !message.isNull("stop_reason")
+				? message.getString("stop_reason")
+				: null;
+		JSONObject usage = message.optJSONObject("usage");
 
 		List<JSONObject> texts = new ArrayList<>();
 		List<JSONObject> toolInvocations = new ArrayList<>();
@@ -322,12 +346,17 @@ public class ClaudeCodeTranscriptParser {
 			data.put("toolInvocations", new JSONArray(toolInvocations));
 		}
 		data.put("model", model);
+		// stopReason marks turn-end: "end_turn" is the JSONL equivalent of a streamed ResultMessage,
+		// "tool_use" means the assistant is waiting on a tool. Frontend keys off this for result-style UI.
+		data.put("stopReason", stopReason != null ? stopReason : JSONObject.NULL);
+		if (usage != null) {
+			data.put("usage", usage);
+		}
 
 		return toEvent("assistant", data, raw);
 	}
 
-	// --- Helpers to extract a useful description from tool input ---
-
+	// - Helpers to extract a useful description from tool input
 	private static String extractDescription(JSONObject input) {
 		if (input == null) {
 			return "";
@@ -399,6 +428,14 @@ public class ClaudeCodeTranscriptParser {
 			s.put("linesRemoved", tr.stats().linesRemoved());
 			j.put("stats", s);
 		}
+		return j;
+	}
+
+	private static JSONObject maxTurnsReachedToJson(MaxTurnsReached mtr) {
+		JSONObject j = new JSONObject();
+		j.put("maxTurns", mtr.maxTurns());
+		j.put("turnCount", mtr.turnCount());
+		j.put("timestamp", mtr.timestamp());
 		return j;
 	}
 

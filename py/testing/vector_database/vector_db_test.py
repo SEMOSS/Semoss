@@ -8,9 +8,10 @@ Ensure the below items before run it,
     - Make sure you have the below model engines,
         - Dev_Testing_FAISS__1222b449-1bc6-4358-9398-1ed828e4f26a
         - TextEmbeddings BAAI-Large-En-V1.5__e4449559-bcff-4941-ae72-0e3f18e06660_engine
-    - Make sure you have added the `dataset.pkl`, `vectors.pkl` and `dummy.pdf` in the test_files folder
+    - Make sure you have added the `dataset.parquet`, `vectors.npy` and `dummy.pdf` in the test_files folder
         - test_files path - Semoss/py/testing/vector_database/test_files
-        - Create the test_files folder if you don't have and add the pkl files into it from Dev_Testing_FAISS engine (Dev_Testing_FAISS_\Dev_Testing_FAISS_\schema\default)
+        - Create the test_files folder if you don't have and add the index files into it from Dev_Testing_FAISS engine (Dev_Testing_FAISS_\Dev_Testing_FAISS_\schema\default).
+          Legacy `.pkl` index files are auto-migrated on first FAISSSearcher init.
     - Make sure you have a valid `.env.example` file with the below required keys:
         - SERVER_CLIENT_BASE
         - SERVER_ACCESS_KEY
@@ -52,8 +53,8 @@ def test_nearestNeighbor_with_local_model(embed_tokenizer):
     Test the nearestNeighbor function using local model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
         - Checking the `searcher_exists` function by checking the existing `default` searcher.
-        - Checking the `load_dataset` by loading the `dataset.pkl` file.
-        - Checking the `load_encoded_vectors` by loading the `vectors.pkl` file.
+        - Checking the `load_dataset` by loading the `dataset.parquet` file.
+        - Checking the `load_encoded_vectors` by loading the `vectors.npy` file.
         - Checking the `nearestNeighbor` function by finding the nearest neightbor against the question.
         - Test the results of `nearestNeighbor` function
             - Checking the type of results
@@ -83,9 +84,11 @@ def test_nearestNeighbor_with_local_model(embed_tokenizer):
     faiss_db.create_searcher(searcher_name="default", base_path=path_to_index_class)
     is_exist = faiss_db.searcher_exists(searcher_name="default")
     if is_exist:  # if 'default' searcher exists
-        faiss_db.searchers["default"].load_dataset(path_to_index_class + "/dataset.pkl")
+        faiss_db.searchers["default"].load_dataset(
+            path_to_index_class + "/dataset.parquet"
+        )
         faiss_db.searchers["default"].load_encoded_vectors(
-            path_to_index_class + "/vectors.pkl"
+            path_to_index_class + "/vectors.npy"
         )
         search_results = faiss_db.searchers["default"].nearestNeighbor(
             question="how is the president chosen?"
@@ -104,8 +107,8 @@ def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
     """
     Test the nearestNeighbor function using Tomcat model engine using related functions and assertions.
         - Checking the `create_searcher` function by creating `default` searcher.
-        - Checking the `load_dataset` by loading the `dataset.pkl` file.
-        - Checking the `load_encoded_vectors` by loading the `vectors.pkl` file.
+        - Checking the `load_dataset` by loading the `dataset.parquet` file.
+        - Checking the `load_encoded_vectors` by loading the `vectors.npy` file.
         - Checking the `nearestNeighbor` function by finding the nearest neightbor against the question.
         - Test the results of `nearestNeighbor` function
             - Checking the type of results
@@ -132,9 +135,9 @@ def test_nearestNeighbor_with_tomcat_via_ai_server(embed_tokenizer):
     )
 
     faiss_db.create_searcher(searcher_name="default", base_path=path_to_index_class)
-    faiss_db.searchers["default"].load_dataset(path_to_index_class + "/dataset.pkl")
+    faiss_db.searchers["default"].load_dataset(path_to_index_class + "/dataset.parquet")
     faiss_db.searchers["default"].load_encoded_vectors(
-        path_to_index_class + "/vectors.pkl"
+        path_to_index_class + "/vectors.npy"
     )
     search_results = faiss_db.searchers["default"].nearestNeighbor(
         question="how is the president chosen?"
@@ -184,7 +187,7 @@ def sample_csv():
         "Content": [
             "This is a test page one.",
             "This is test page two. It has more words.",
-            """Before college the two main things I worked on, outside of school, were writing and programming. I didn't write essays. I wrote what beginning writers were supposed to write then, and probably still are: short stories. My stories were awful. They had hardly any plot, just characters with strong feelings, which I imagined made them deep. The first programs I tried writing were on the IBM 1401 that our school district used for what was then called "data processing." This was in 9th grade, so I was 13 or 14. The school district's 1401 happened to be in the basement of our junior high school, and my friend Rich Draves and I got permission to use it. It was like a mini Bond villain's lair down there, with all these alien-looking machines — CPU, disk drives, printer, card reader — sitting up on a raised floor under bright fluorescent lights.""",
+            """Before college the two main things I worked on, outside of school, were writing and programming. I didn't write essays. I wrote what beginning writers were supposed to write then, and probably still are: short stories. My stories were awful. They had hardly any plot, just characters with strong feelings, which I imagined made them deep. The first programs I tried writing were on the IBM 1401 that our school district used for what was then called "data processing." This was in 9th grade, so I was 13 or 14. The school district's 1401 happened to be in the basement of our junior high school, and my friend Rich Draves and I got permission to use it. It was like a mini Bond villain's lair down there, with all these alien-looking machines - CPU, disk drives, printer, card reader - sitting up on a raised floor under bright fluorescent lights.""",
         ],
     }
     df = pd.DataFrame(data)

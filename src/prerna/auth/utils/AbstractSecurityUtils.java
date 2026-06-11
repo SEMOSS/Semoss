@@ -843,8 +843,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			/*
-			 * 
-			 * 
+			 *
+			 *
 			 * ADDING IN INITIAL PROJECT TABLES
 			 * 
 			 */
@@ -1149,62 +1149,6 @@ public abstract class AbstractSecurityUtils {
 			 * 
 			 */
 
-			// WORKSPACEENGINE
-			colNames = new String[] { "TYPE", "USERID", "PROJECTID" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-			defaultValues = null;
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "WORKSPACEENGINE", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("WORKSPACEENGINE", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "WORKSPACEENGINE", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if ((!allCols.contains("PROJECTID") && !allCols.contains("projectid"))
-						&& (allCols.contains("ENGINEID") || allCols.contains("engineid"))) {
-					String updateColName = queryUtil.modColumnName("WORKSPACEENGINE", "ENGINEID", "PROJECTID");
-					classLogger.info("Running sql {}", updateColName);
-					securityDb.insertData(updateColName);
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-				sql = queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", database,
-						schema)) {
-					String sql = queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-				if (!queryUtil.indexExists(securityDb, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", database,
-						schema)) {
-					String sql = queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-
 			// ASSETENGINE
 			colNames = new String[] { "USERID", "TYPE", "PROJECTID" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
@@ -1221,10 +1165,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			{
 				List<String> allCols = queryUtil.getTableColumns(conn, "ASSETENGINE", database, schema);
@@ -1279,11 +1219,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			{
 				List<String> insightCols = queryUtil.getTableColumns(conn, "INSIGHT", database, schema);
@@ -1365,9 +1300,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			{
 				List<String> allCols = queryUtil.getTableColumns(conn, "USERINSIGHTPERMISSION", database, schema);
@@ -1460,8 +1392,6 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
-			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			// MAKING MODIFICATION FROM ENGINEID TO PROJECTID - 04/22/2021
 			{
 				List<String> allCols = queryUtil.getTableColumns(conn, "INSIGHTMETA", database, schema);
@@ -2440,7 +2370,6 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("SMSS_USER", new String[] { "TYPE" });
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] { "TYPE" });
 		allValues.put("USERINSIGHTPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
-		allValues.put("WORKSPACEENGINE", new String[] { "TYPE" });
 
 		// grab the new fixed names to the old names
 		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
@@ -2727,7 +2656,7 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		// engine is an asset
-		if (WorkspaceAssetUtils.isAssetProject(databaseId)) {
+		if (UserAssetUtils.isAssetProject(databaseId)) {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times

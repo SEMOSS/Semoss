@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from claude_agent_sdk import (
     AssistantMessage,
+    ResultMessage,
     TextBlock,
     ToolResultBlock,
     ToolUseBlock,
@@ -212,42 +213,24 @@ def make_tool_result_event(msg: UserMessage) -> Optional[dict]:
     return _envelope("tool_result", data, uuid_val=msg.uuid)
 
 
-def _build_change_logger(cwd: str):
-    """
-    Factory that returns a PostToolUse hook callback bound to the given cwd.
-    Logs every file-modifying tool call to {cwd}/.claude/logs/change_log.txt.
-    """
-    log_path = os.path.join(cwd, ".claude", "logs", "change_log.txt")
-
-    async def log_change(input_data: dict, tool_use_id: str | None, context) -> dict:
-        tool_name = input_data.get("tool_name", "unknown")
-        tool_input = input_data.get("tool_input", {})
-        timestamp = datetime.now(timezone.utc).isoformat()
-
-        file_path = (
-            tool_input.get("file_path")
-            or tool_input.get("path")
-            or tool_input.get("file")
-            or "N/A"
-        )
-
-        if tool_name == "Bash":
-            command = tool_input.get("command", "N/A")
-            entry = f"[{timestamp}] TOOL={tool_name} CMD={command}\n"
-        else:
-            description = tool_input.get("description", "")
-            entry = f"[{timestamp}] TOOL={tool_name} FILE={file_path}"
-            if description:
-                entry += f" DESC={description}"
-            entry += "\n"
-
-        try:
-            os.makedirs(os.path.dirname(log_path), exist_ok=True)
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(entry)
-        except OSError:
-            pass
-
-        return {}
-
-    return log_change
+def make_result_event(msg: ResultMessage) -> dict:
+    """Envelope for a ResultMessage - emitted once at the end of a session.
+    Surfaces subtype, error state, turn count, cost, and any error strings."""
+    data: dict = {
+        "subtype": msg.subtype,
+        "isError": msg.is_error,
+        "numTurns": msg.num_turns,
+        "stopReason": msg.stop_reason,
+        "totalCostUsd": msg.total_cost_usd,
+        "durationMs": msg.duration_ms,
+        "errors": msg.errors or [],
+        "timestamp": _iso_now(),
+    }
+    if msg.usage:
+        data["usage"] = msg.usage
+    return _envelope(
+        "result",
+        data,
+        uuid_val=msg.uuid,
+        session_id=msg.session_id or "",
+    )

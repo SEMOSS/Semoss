@@ -57,6 +57,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
@@ -94,7 +95,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.security.InstallCertNow;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GitRepoUtils {
@@ -150,16 +150,16 @@ public class GitRepoUtils {
 						.autoInit(false);
 				ghr.create();
 			} catch (SSLHandshakeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to create remote repository: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create remote repository: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				makeRemoteRepository(gh, username, repoName, attempt);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create remote repository: {}", e.getMessage(), e);
 				throw new IllegalArgumentException(
 						"Error with creating remote repository at " + username + "/" + repoName);
 			}
@@ -187,16 +187,16 @@ public class GitRepoUtils {
 				config.unsetSection("remote", repositoryName);
 				config.save();
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to remove git remote: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to remove git remote: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				removeRemote(localRepository, repositoryName, attempt);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to remove git remote: {}", e.getMessage(), e);
 				throw new IllegalArgumentException("Unable to drop remote");
 			} finally {
 				if (thisRepo != null) {
@@ -232,16 +232,16 @@ public class GitRepoUtils {
 					ghr = gh.getRepository(repositoryName);
 					ghr.delete();
 				} catch (HttpException ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Failed to delete remote repository: {}", ex.getMessage(), ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
 					}
 					attempt = attempt + 1;
 					deleteRemoteRepository(repositoryName, username, password, attempt);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
 					throw new IllegalArgumentException("Unable to delete remote repository at " + repositoryName);
 				}
 			}
@@ -261,9 +261,9 @@ public class GitRepoUtils {
 			remover.setRemoteName(repositoryName.split("/")[1]);
 			remover.call();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to delete remote repository settings: {}", ioe.getMessage(), ioe);
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete remote repository settings: {}", e.getMessage(), e);
 		}
 	}
 
@@ -293,11 +293,11 @@ public class GitRepoUtils {
 			try {
 				service.getRepository(username, repositoryName);
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to check remote repository access: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to check remote repository access: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				checkRemoteRepository(repositoryName, username, password, attempt);
@@ -349,11 +349,11 @@ public class GitRepoUtils {
 				service.getRepository(repoParts[0], repoParts[1]);
 
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to check remote repository access using OAuth: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to check remote repository access using OAuth: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				checkRemoteRepositoryO(repositoryName, oauth, attempt);
@@ -389,7 +389,7 @@ public class GitRepoUtils {
 			config.setString("remote", repoName, "fetch", "+refs/heads/*:refs/remotes/" + repoName + "/*");
 			config.save();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add git remote: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error with adding the remote repository");
 		} finally {
 			if (thisRepo != null) {
@@ -421,7 +421,7 @@ public class GitRepoUtils {
 		try {
 			InstallCertNow.please("github.com", null, null);
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to fetch from remote repository: {}", e1.getMessage(), e1);
 		}
 
 		if (attempt < 3) {
@@ -443,16 +443,16 @@ public class GitRepoUtils {
 				}
 
 			} catch (TransportException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to fetch from remote repository: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
 			} catch (IOException | GitAPIException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
 				mon.endTask();
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
@@ -504,7 +504,7 @@ public class GitRepoUtils {
 				returnList.add(remoteMap);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list configured git remotes: {}", e.getMessage(), e);
 		} finally {
 			if (thisRepo != null) {
 				thisRepo.close();
@@ -542,7 +542,7 @@ public class GitRepoUtils {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read configured remote URL: {}", e.getMessage(), e);
 		} finally {
 			if (thisRepo != null) {
 				thisRepo.close();
@@ -580,17 +580,17 @@ public class GitRepoUtils {
 					remoteRepos.add(repList.get(repIndex).getName());
 				}
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to list remote repositories for user: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				listRemotesForUser(username, password, attempt);
 
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
 			}
 
 			return remoteRepos;
@@ -625,17 +625,17 @@ public class GitRepoUtils {
 					remoteRepos.add(repList.get(repIndex).getName());
 				}
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to list remote repositories for user: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				listRemotesForUser(token, attempt);
 
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
 			}
 
 			return remoteRepos;
@@ -666,16 +666,16 @@ public class GitRepoUtils {
 					ghr = gh.getRepository(repositoryName);
 					ghr.delete();
 				} catch (HttpException ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Failed to delete remote repository: {}", ex.getMessage(), ex);
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
 					}
 					attempt = attempt + 1;
 					deleteRemoteRepository(repositoryName, token, attempt);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
 					throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
 				}
 			}
@@ -715,17 +715,17 @@ public class GitRepoUtils {
 					thisGit.fetch().setRemote(remoteRepo).call();
 				}
 			} catch (SSLHandshakeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to fetch from remote repository: {}", ex.getMessage(), ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
 				}
 				attempt = attempt + 1;
 				fetchRemote(localRepo, remoteRepo, token, attempt);
 
 			} catch (IOException | GitAPIException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
 				if (thisGit != null) {
@@ -771,10 +771,10 @@ public class GitRepoUtils {
 			InstallCertNow.please(domain, null, null);
 			return true;
 		} catch (URISyntaxException use) {
-			classLogger.error(Constants.STACKTRACE, use);
+			classLogger.error("Failed to install certificate for repository domain: {}", use.getMessage(), use);
 			return false;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to install certificate for repository domain: {}", e.getMessage(), e);
 			return false;
 		}
 	}
@@ -822,11 +822,11 @@ public class GitRepoUtils {
 				// break;
 			}
 		} catch (NoHeadException nhe) {
-			classLogger.error(Constants.STACKTRACE, nhe);
+			classLogger.error("Failed to list commit history: {}", nhe.getMessage(), nhe);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to list commit history: {}", ioe.getMessage(), ioe);
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list commit history: {}", e.getMessage(), e);
 		}
 
 		return builder;
@@ -862,11 +862,11 @@ public class GitRepoUtils {
 				commitList.add(commitMap);
 			}
 		} catch (NoHeadException nhe) {
-			classLogger.error(Constants.STACKTRACE, nhe);
+			classLogger.error("Failed to read commit details: {}", nhe.getMessage(), nhe);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to read commit details: {}", ioe.getMessage(), ioe);
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read commit details: {}", e.getMessage(), e);
 		}
 
 		return commitList;
@@ -925,30 +925,30 @@ public class GitRepoUtils {
 				output = new String(bytes);
 			}
 		} catch (MissingObjectException moe) {
-			classLogger.error(Constants.STACKTRACE, moe);
+			classLogger.error("Failed to read file content from commit: {}", moe.getMessage(), moe);
 		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error(Constants.STACKTRACE, iote);
+			classLogger.error("Failed to read file content from commit: {}", iote.getMessage(), iote);
 		} catch (CorruptObjectException coe) {
-			classLogger.error(Constants.STACKTRACE, coe);
+			classLogger.error("Failed to read file content from commit: {}", coe.getMessage(), coe);
 		} catch (LargeObjectException loe) {
-			classLogger.error(Constants.STACKTRACE, loe);
+			classLogger.error("Failed to read file content from commit: {}", loe.getMessage(), loe);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to read file content from commit: {}", ioe.getMessage(), ioe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read file content from commit: {}", e.getMessage(), e);
 		} finally {
 			if (fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to read file content from commit: {}", e.getMessage(), e);
 				}
 			}
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to read file content from commit: {}", e.getMessage(), e);
 				}
 			}
 			if (thisGit != null) {
@@ -999,17 +999,17 @@ public class GitRepoUtils {
 				bytes = objectLoader.getBytes();
 			}
 		} catch (MissingObjectException moe) {
-			classLogger.error(Constants.STACKTRACE, moe);
+			classLogger.error("Failed to read binary file content from commit: {}", moe.getMessage(), moe);
 		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error(Constants.STACKTRACE, iote);
+			classLogger.error("Failed to read binary file content from commit: {}", iote.getMessage(), iote);
 		} catch (CorruptObjectException coe) {
-			classLogger.error(Constants.STACKTRACE, coe);
+			classLogger.error("Failed to read binary file content from commit: {}", coe.getMessage(), coe);
 		} catch (LargeObjectException loe) {
-			classLogger.error(Constants.STACKTRACE, loe);
+			classLogger.error("Failed to read binary file content from commit: {}", loe.getMessage(), loe);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to read binary file content from commit: {}", ioe.getMessage(), ioe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read binary file content from commit: {}", e.getMessage(), e);
 		} finally {
 			if (thisGit != null) {
 				thisGit.close();
@@ -1030,7 +1030,7 @@ public class GitRepoUtils {
 			thisGit = Git.open(new File(gitFolder));
 			status = thisGit.status().call();
 		} catch (IOException | NoWorkTreeException | GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to stage files in git repository: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
@@ -1061,7 +1061,7 @@ public class GitRepoUtils {
 			try {
 				ac.call();
 			} catch (GitAPIException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to stage files in git repository: {}", e.getMessage(), e);
 				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
 			}
 		}
@@ -1191,12 +1191,11 @@ public class GitRepoUtils {
 		try {
 			// Check if there are actually staged changes before committing
 			Status status = thisGit.status().call();
-			boolean hasStagedChanges = !status.getAdded().isEmpty()
-					|| !status.getChanged().isEmpty()
+			boolean hasStagedChanges = !status.getAdded().isEmpty() || !status.getChanged().isEmpty()
 					|| !status.getRemoved().isEmpty();
 
 			if (!hasStagedChanges) {
-				classLogger.warn("Skipping commit in {} — no staged changes to commit", gitFolder);
+				classLogger.warn("Skipping commit in {} - no staged changes to commit", gitFolder);
 				return;
 			}
 
@@ -1220,6 +1219,94 @@ public class GitRepoUtils {
 		}
 	}
 
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, null, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
+			User user) {
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getUsername(),
+				accessToken.getEmail());
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
+			String author, String email) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+			Status status = thisGit.status().call();
+
+			AddCommand ac = thisGit.add();
+			boolean stagedAnyAdd = false;
+			Iterator<String> upFiles = status.getUntracked().iterator();
+			while (upFiles.hasNext()) {
+				String daFile = upFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			Iterator<String> modFiles = status.getModified().iterator();
+			while (modFiles.hasNext()) {
+				String daFile = modFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			if (stagedAnyAdd) {
+				ac.call();
+			}
+
+			RmCommand rc = thisGit.rm().setCached(true);
+			boolean stagedAnyRm = false;
+			Iterator<String> delFiles = status.getMissing().iterator();
+			while (delFiles.hasNext()) {
+				String daFile = delFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					rc.addFilepattern(daFile);
+					stagedAnyRm = true;
+				}
+			}
+			if (stagedAnyRm) {
+				rc.call();
+			}
+
+			Status post = thisGit.status().call();
+			boolean hasStagedChanges = !post.getAdded().isEmpty() || !post.getChanged().isEmpty()
+					|| !post.getRemoved().isEmpty();
+			if (!hasStagedChanges) {
+				classLogger.warn("Skipping commit in {} no staged changes to commit", gitFolder);
+				return;
+			}
+
+			if (message == null || message.isEmpty()) {
+				message = GitUtils.getDateMessage("Commited on.. ");
+			}
+			if (author == null || author.isEmpty()) {
+				author = "SEMOSS";
+			}
+			if (email == null || email.isEmpty()) {
+				email = "semoss@semoss.org";
+			}
+
+			thisGit.commit().setMessage(message).setAuthor(author, email).call();
+			classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
+		} catch (IOException | GitAPIException e) {
+			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
+			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
+		}
+	}
+
 	public static void revertCommit(String gitFolder, String comm1) {
 
 		Git thisGit = null;
@@ -1238,25 +1325,25 @@ public class GitRepoUtils {
 					.setOurCommitName("new Commit").call();
 			// thisGit.commit().setMessage("Post Revert.. " ).call();
 		} catch (RevisionSyntaxException rse) {
-			classLogger.error(Constants.STACKTRACE, rse);
+			classLogger.error("Failed to revert commit: {}", rse.getMessage(), rse);
 		} catch (NoMessageException nme) {
-			classLogger.error(Constants.STACKTRACE, nme);
+			classLogger.error("Failed to revert commit: {}", nme.getMessage(), nme);
 		} catch (UnmergedPathsException upe) {
-			classLogger.error(Constants.STACKTRACE, upe);
+			classLogger.error("Failed to revert commit: {}", upe.getMessage(), upe);
 		} catch (ConcurrentRefUpdateException cfue) {
-			classLogger.error(Constants.STACKTRACE, cfue);
+			classLogger.error("Failed to revert commit: {}", cfue.getMessage(), cfue);
 		} catch (WrongRepositoryStateException wrse) {
-			classLogger.error(Constants.STACKTRACE, wrse);
+			classLogger.error("Failed to revert commit: {}", wrse.getMessage(), wrse);
 		} catch (AmbiguousObjectException aoe) {
-			classLogger.error(Constants.STACKTRACE, aoe);
+			classLogger.error("Failed to revert commit: {}", aoe.getMessage(), aoe);
 		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error(Constants.STACKTRACE, iote);
+			classLogger.error("Failed to revert commit: {}", iote.getMessage(), iote);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to revert commit: {}", ioe.getMessage(), ioe);
 		} catch (GitAPIException gae) {
-			classLogger.error(Constants.STACKTRACE, gae);
+			classLogger.error("Failed to revert commit: {}", gae.getMessage(), gae);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to revert commit: {}", e.getMessage(), e);
 		} finally {
 			if (thisGit != null) {
 				thisGit.close();
@@ -1275,13 +1362,13 @@ public class GitRepoUtils {
 			// revert sets it up where you go back as if nothing has happened
 			thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
 		} catch (CheckoutConflictException cce) {
-			classLogger.error(Constants.STACKTRACE, cce);
+			classLogger.error("Failed to reset commit: {}", cce.getMessage(), cce);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to reset commit: {}", ioe.getMessage(), ioe);
 		} catch (GitAPIException gae) {
-			classLogger.error(Constants.STACKTRACE, gae);
+			classLogger.error("Failed to reset commit: {}", gae.getMessage(), gae);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to reset commit: {}", e.getMessage(), e);
 		} finally {
 			if (thisGit != null) {
 				thisGit.close();
@@ -1336,17 +1423,17 @@ public class GitRepoUtils {
 			fos.write(bytes);
 
 		} catch (MissingObjectException moe) {
-			classLogger.error(Constants.STACKTRACE, moe);
+			classLogger.error("Failed to save commit file for download: {}", moe.getMessage(), moe);
 		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error(Constants.STACKTRACE, iote);
+			classLogger.error("Failed to save commit file for download: {}", iote.getMessage(), iote);
 		} catch (CorruptObjectException coe) {
-			classLogger.error(Constants.STACKTRACE, coe);
+			classLogger.error("Failed to save commit file for download: {}", coe.getMessage(), coe);
 		} catch (LargeObjectException loe) {
-			classLogger.error(Constants.STACKTRACE, loe);
+			classLogger.error("Failed to save commit file for download: {}", loe.getMessage(), loe);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to save commit file for download: {}", ioe.getMessage(), ioe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to save commit file for download: {}", e.getMessage(), e);
 		} finally {
 			if (thisGit != null) {
 				thisGit.close();
@@ -1359,7 +1446,7 @@ public class GitRepoUtils {
 					fos.flush();
 					fos.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to save commit file for download: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1383,7 +1470,7 @@ public class GitRepoUtils {
 			addAllFiles(gitFolder, false);
 			commitAddedFiles(gitFolder, message);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create and commit ASCII file: {}", e.getMessage(), e);
 		}
 	}
 
@@ -1413,11 +1500,11 @@ public class GitRepoUtils {
 				ClusterUtil.validateFolder(folder);
 			}
 		} catch (IllegalStateException ise) {
-			classLogger.error(Constants.STACKTRACE, ise);
+			classLogger.error("Failed to initialize git repository: {}", ise.getMessage(), ise);
 		} catch (GitAPIException gae) {
-			classLogger.error(Constants.STACKTRACE, gae);
+			classLogger.error("Failed to initialize git repository: {}", gae.getMessage(), gae);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize git repository: {}", e.getMessage(), e);
 		}
 	}
 
@@ -1451,13 +1538,13 @@ public class GitRepoUtils {
 				bw.newLine();
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to create gitignore file: {}", ex.getMessage(), ex);
 		}
 	}
 
 	/**
-	 * Normalizes a git file pattern to be repo-relative with forward slashes,
-	 * no leading slash, and no repeated slashes.
+	 * Normalizes a git file pattern to be repo-relative with forward slashes, no
+	 * leading slash, and no repeated slashes.
 	 * 
 	 * @param pattern the raw file pattern
 	 * @return the normalized pattern suitable for JGit AddCommand/RmCommand

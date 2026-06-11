@@ -63,6 +63,7 @@ import prerna.util.gson.SemossDateAdapter;
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
+	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -124,7 +125,37 @@ public class MessageUtils {
 				}
 			}).create();
 
+	private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
+	}.getType();
+
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * Normalize a tool-call `arguments` value into something the Python side can
+	 * deserialize without double-escaping. The provider wire format delivers
+	 * arguments as a JSON-encoded string; if we leave that string in place, Gson
+	 * escapes the inner quotes a second time and json.loads on the Python side
+	 * chokes on payloads with shell escapes, code edits, newlines, etc. Parsing to
+	 * a Map here means args ride as a dict alongside every other field. On parse
+	 * failure we return the raw string so the downstream builder can still forward
+	 * it verbatim.
+	 */
+	private static Object toolArgumentsForPy(Object argsRaw) {
+		if (argsRaw == null) {
+			return new HashMap<>();
+		}
+		if (!(argsRaw instanceof String)) {
+			// some providers deliver a structured object already; re-serialize so
+			// the shape matches the string-input path
+			return GSON_FOR_PY.toJson(argsRaw);
+		}
+		try {
+			Map<String, Object> map = GSON_FOR_PY.fromJson((String) argsRaw, MAP_TYPE);
+			return map != null ? map : argsRaw;
+		} catch (Exception e) {
+			return argsRaw;
+		}
+	}
 
 	/**
 	 * API compatibility: add legacy flat fields into a map built from a message
@@ -304,6 +335,21 @@ public class MessageUtils {
 	 * @return ordered list of deserialized messages
 	 */
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
+		List<AbstractMessage> result = fromJsonArrayPreservingToolState(jsonArrayString, room);
+		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
+		return sanitizeOrphanToolCalls(result, room);
+	}
+
+	/**
+	 * Deserializes a JSON array of messages without trimming unresolved tool-call
+	 * state. Use this for room projection storage/hydration where a tool batch may
+	 * be partially persisted while parallel tool executions are still completing.
+	 *
+	 * @param jsonArrayString message-array JSON
+	 * @param room            room context used during message parsing
+	 * @return ordered list of deserialized messages
+	 */
+	public static List<AbstractMessage> fromJsonArrayPreservingToolState(String jsonArrayString, Room room) {
 		if (jsonArrayString == null || jsonArrayString.trim().isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -316,6 +362,67 @@ public class MessageUtils {
 			}
 		}
 		return result;
+	}
+
+	/**
+	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
+	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
+	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 */
+	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
+		if (messages == null || messages.size() < 2) {
+			return messages != null ? messages : new ArrayList<>();
+		}
+		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
+		List<int[]> toolCallSlots = new ArrayList<>();
+		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
+		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
+		for (int i = 0; i < messages.size(); i++) {
+			AbstractMessage m = messages.get(i);
+			if (m == null) continue;
+			for (MessagePart part : m.getParts()) {
+				if (part instanceof ToolCallMessagePart tcp) {
+					Map<String, Object> tc = tcp.getToolCall();
+					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+					if (id != null && !id.isBlank()) {
+						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
+							toolCallSlots.add(new int[] { i });
+							toolCallIdsPerSlot.add(new ArrayList<>());
+						}
+						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
+					}
+				} else if (part instanceof ToolResultMessagePart trp) {
+					ToolResultPart tr = trp.getToolResult();
+					String id = tr != null ? tr.getToolCallId() : null;
+					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+				}
+			}
+		}
+		if (toolCallSlots.isEmpty()) return messages;
+
+		// pass 2: first slot with any unanswered id is the truncation point
+		int truncateAt = -1;
+		List<String> orphanIds = null;
+		for (int s = 0; s < toolCallSlots.size(); s++) {
+			List<String> unmatched = null;
+			for (String id : toolCallIdsPerSlot.get(s)) {
+				if (!resultIdsSeen.contains(id)) {
+					if (unmatched == null) unmatched = new ArrayList<>();
+					unmatched.add(id);
+				}
+			}
+			if (unmatched != null && !unmatched.isEmpty()) {
+				truncateAt = toolCallSlots.get(s)[0];
+				orphanIds = unmatched;
+				break;
+			}
+		}
+		if (truncateAt < 0) return messages;
+
+		String roomId = room != null ? room.getId() : "<unknown>";
+		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
+				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
+		return new ArrayList<>(messages.subList(0, truncateAt));
 	}
 
 	// --- Core two serialization methods ---
@@ -418,10 +525,18 @@ public class MessageUtils {
 			history.add(messages.getLast());
 		}
 		String currentId = history.getLast().getParentMessageId();
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -455,10 +570,18 @@ public class MessageUtils {
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
 		String currentId = parentMessageId;
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -470,6 +593,28 @@ public class MessageUtils {
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
 		return history;
+	}
+
+	private static AbstractMessage deepCopyForPruning(AbstractMessage m) {
+		String json = GSON_FOR_DB.toJson(m);
+		return GSON_FOR_DB.fromJson(json, m.getClass());
+	}
+
+	private static void pruneToolsPartFromMessage(AbstractMessage m) {
+		List<MessagePart> p = m.getParts();
+		for (MessagePart part : p) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+				if (tr != null) {
+					tr.setOutput(TOOL_CONTENT_PLACEHOLDER);
+				}
+			} else if (part instanceof ToolCallMessagePart) {
+				Map<String, Object> toolCall = ((ToolCallMessagePart) part).getToolCall();
+				if (toolCall != null) {
+					toolCall.put("arguments", "{}");
+				}
+			}
+		}
 	}
 
 	/**
@@ -534,7 +679,7 @@ public class MessageUtils {
 			if ("function_call_output".equals(entryType)) {
 				String callId = asStringOrNull(map.get("call_id"));
 				String output = asStringOrNull(map.get("output"));
-				result.add(InputMessage.toolExecution(room, callId, null, output, null, null));
+				result.add(InputMessage.toolExecution(room, callId, null, output, null, null, false));
 				continue;
 			}
 
@@ -613,19 +758,17 @@ public class MessageUtils {
 							Map<String, Object> flatTool = new HashMap<>();
 							flatTool.put("id", asStringOrNull(callMap.get("id"))); // tool_call id
 							flatTool.put("type", asStringOrNull(callMap.get("type")));
+							// Vertex/Gemini extended-thinking signature, attached upstream
+							Object thoughtSig = callMap.get("thought_signature");
+							if (thoughtSig instanceof String && !((String) thoughtSig).isEmpty()) {
+								flatTool.put("thought_signature", thoughtSig);
+							}
 							// openAI: "function": {...}
 							Object functionObj = callMap.get("function");
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								Object argsRaw = funcMap.get("arguments");
-								if (argsRaw instanceof String) {
-									flatTool.put("arguments", argsRaw);
-								} else if (argsRaw != null) {
-									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
-								} else {
-									flatTool.put("arguments", "{}");
-								}
+								flatTool.put("arguments", toolArgumentsForPy(funcMap.get("arguments")));
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
@@ -659,7 +802,7 @@ public class MessageUtils {
 
 				// Add as tool execution message (in my earlier pattern)
 				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null,
-						null);
+						null, false);
 				result.add(toolExecMsg);
 				continue;
 			}
@@ -767,15 +910,15 @@ public class MessageUtils {
 		if (toolChoiceInput instanceof String) {
 			String val = ((String) toolChoiceInput).trim().toLowerCase();
 			switch (val) {
-			case "auto":
-				return makeToolChoice(ToolChoiceType.AUTO, null);
-			case "none":
-				return makeToolChoice(ToolChoiceType.NONE, null);
-			case "required":
-				return makeToolChoice(ToolChoiceType.REQUIRED, null);
-			default:
-				// "any" or unknown: treat as auto
-				return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "auto":
+					return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "none":
+					return makeToolChoice(ToolChoiceType.NONE, null);
+				case "required":
+					return makeToolChoice(ToolChoiceType.REQUIRED, null);
+				default:
+					// "any" or unknown: treat as auto
+					return makeToolChoice(ToolChoiceType.AUTO, null);
 			}
 		}
 
@@ -789,28 +932,28 @@ public class MessageUtils {
 			if (typeObj instanceof String) {
 				String type = ((String) typeObj).toLowerCase();
 				switch (type) {
-				case "auto":
-				case "any": // map OpenAI "any" to MCP/AUTO
-					return makeToolChoice(ToolChoiceType.AUTO, null);
-				case "none":
-					return makeToolChoice(ToolChoiceType.NONE, null);
-				case "required":
-					return makeToolChoice(ToolChoiceType.REQUIRED, null);
-				case "forced":
-					// (assume correct MCP style)
-					Object nameF = obj.get("name");
-					return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
-				case "function":
-					// OpenAI style object: {"type":"function", "name":"..."}
-					Object forcedName = obj.get("name");
-					if (forcedName instanceof String) {
-						return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
-					}
-					// Don't handle allowed_tools for now, skip
-					break;
-				default:
-					// Fallback
-					return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "auto":
+					case "any": // map OpenAI "any" to MCP/AUTO
+						return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "none":
+						return makeToolChoice(ToolChoiceType.NONE, null);
+					case "required":
+						return makeToolChoice(ToolChoiceType.REQUIRED, null);
+					case "forced":
+						// (assume correct MCP style)
+						Object nameF = obj.get("name");
+						return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+					case "function":
+						// OpenAI style object: {"type":"function", "name":"..."}
+						Object forcedName = obj.get("name");
+						if (forcedName instanceof String) {
+							return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+						}
+						// Don't handle allowed_tools for now, skip
+						break;
+					default:
+						// Fallback
+						return makeToolChoice(ToolChoiceType.AUTO, null);
 				}
 			}
 		}

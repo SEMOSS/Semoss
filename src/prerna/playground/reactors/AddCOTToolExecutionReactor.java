@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -73,7 +74,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		String toolId = this.keyValue.get(this.keysToGet[index++]);
 		String toolName = this.keyValue.get(this.keysToGet[index++]);
 		Map<String, Object> toolPredictionArgs = getMap(this.keysToGet[index++]);
-		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[index++]));
+		String toolResponseRaw = this.keyValue.get(this.keysToGet[index++]);
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[index - 1] + " cannot be empty");
 		}
@@ -111,7 +112,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		{
 			String toolStatus = this.keyValue.get(this.keysToGet[index++]);
 			toolExecutionMessage = InputMessage.toolExecution(room, toolId, toolName, toolResponseRaw,
-					toolParamterValues, toolStatus);
+					toolParamterValues, toolStatus, false);
 			toolExecutionMessage.setSystemPrompt(room.getEffectiveSystemPrompt());
 			toolExecutionMessage.setModel(modelEngine);
 			toolExecutionMessage.setParentMessageId(parentMessageId);
@@ -132,8 +133,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		pixelReturn.put("toolExecution", jsonToMap(MessageUtils.toJson(toolExecutionMessage)));
 		pixelReturn.put("toolResponse", jsonToMap(MessageUtils.toJson(toolAcknowledgedMessage)));
 
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				room.getMessagesAsString());
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}

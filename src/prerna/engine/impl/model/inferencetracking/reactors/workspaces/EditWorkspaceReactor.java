@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -48,7 +50,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
@@ -68,8 +69,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String workspaceName = this.keyValue.get(NAME);
-		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
-		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
+		String workspaceDescription = this.keyValue.get(DESCRIPTION);
+		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
 
 		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
@@ -172,7 +173,67 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			classLogger.error("Failed to update workspace '{}' (ID: {}).", workspaceName, workspaceId, e);
 			return getError("Error during workspace update: " + e.getMessage());
 		}
+
+		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs into
+		// WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields (e.g. hooks)
+		// the workspace already has. Best-effort - a failure here is logged but does
+		// not fail the reactor, since the legacy SYSTEM_PROMPT column +
+		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
+		// correctly from those.
+		try {
+			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies);
+		} catch (Exception e) {
+			classLogger.warn(
+					"Failed to mirror system_prompt/mcps into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
+					workspaceId, e);
+			Map<String, Object> partial = new HashMap<>();
+			partial.put("success", true);
+			partial.put("warning", "Workspace saved but CONFIG_JSON sync failed: " + e.getMessage());
+			return new NounMetadata(partial, PixelDataType.MAP);
+		}
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	/**
+	 * Persist {@code system_prompt} and the engine/project MCP refs into
+	 * {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already there.
+	 *
+	 * <p>
+	 * Empty {@code engines} + empty {@code projects} writes an empty {@code mcps}
+	 * array - intentional, since the user may be removing all MCPs. Null
+	 * {@code systemPrompt} omits the key (vs. writing JSON null), so the loader
+	 * falls through to the legacy SYSTEM_PROMPT column read for that field.
+	 */
+	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects) throws Exception {
+		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		if (systemPrompt != null && !systemPrompt.isEmpty()) {
+			cfg.put("system_prompt", systemPrompt);
+		} else {
+			cfg.remove("system_prompt");
+		}
+
+		JSONArray mcpsJson = new JSONArray();
+		for (String id : engines) {
+			JSONObject entry = new JSONObject();
+			entry.put("id", id);
+			entry.put("name", id);
+			mcpsJson.put(entry);
+		}
+		for (String id : projects) {
+			JSONObject entry = new JSONObject();
+			entry.put("id", id);
+			entry.put("name", id);
+			mcpsJson.put(entry);
+		}
+		cfg.put("mcps", mcpsJson);
+
+		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
 }

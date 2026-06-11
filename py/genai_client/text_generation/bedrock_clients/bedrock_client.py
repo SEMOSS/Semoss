@@ -1,4 +1,4 @@
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
 
@@ -137,6 +137,10 @@ class BedrockClient(AbstractTextGenerationClient):
 
         prompt_tokens = 0
         output_tokens = 0
+        # Bedrock outputTokens is total billed (thinking already included). thinkingTokens is observational.
+        cache_read_tokens: Optional[int] = None
+        cache_creation_tokens: Optional[int] = None
+        thinking_tokens: Optional[int] = None
 
         content_array = []
         this_content_block: Dict[str, Any] = {}
@@ -233,8 +237,12 @@ class BedrockClient(AbstractTextGenerationClient):
             if "metadata" in event:
                 metadata = event["metadata"]
                 if "usage" in metadata:
-                    prompt_tokens = metadata["usage"]["inputTokens"]
-                    output_tokens = metadata["usage"]["outputTokens"]
+                    usage = metadata["usage"]
+                    prompt_tokens = usage["inputTokens"]
+                    output_tokens = usage["outputTokens"]
+                    cache_read_tokens = usage.get("cacheReadInputTokens") or None
+                    cache_creation_tokens = usage.get("cacheWriteInputTokens") or None
+                    thinking_tokens = usage.get("thinkingTokens") or None
 
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
@@ -334,6 +342,9 @@ class BedrockClient(AbstractTextGenerationClient):
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=prompt_tokens,
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
+                thinking_tokens=thinking_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -344,6 +355,9 @@ class BedrockClient(AbstractTextGenerationClient):
             response=final_response,
             response_tokens=output_tokens,
             prompt_tokens=prompt_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
+            thinking_tokens=thinking_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,
@@ -397,10 +411,14 @@ class BedrockClient(AbstractTextGenerationClient):
         if tool_uses:
             for t in tool_uses:
                 parts.append({"type": "TOOL_CALL", "tool_call": t})
+        usage = response.get("usage", {})
         return AskModelEngineResponse2(
             response=final_response,
-            prompt_tokens=response["usage"]["inputTokens"],
-            response_tokens=response["usage"]["outputTokens"],
+            prompt_tokens=usage.get("inputTokens", 0),
+            response_tokens=usage.get("outputTokens", 0),
+            cache_read_tokens=usage.get("cacheReadInputTokens") or None,
+            cache_creation_tokens=usage.get("cacheWriteInputTokens") or None,
+            thinking_tokens=usage.get("thinkingTokens") or None,
             messageType=message_type,
             schemaVersion=2,
             io="OUTPUT",

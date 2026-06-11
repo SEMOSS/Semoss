@@ -40,8 +40,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -82,7 +82,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
 
-		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
@@ -113,8 +113,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 			room.updateToolResponseMeta(response);
 		}

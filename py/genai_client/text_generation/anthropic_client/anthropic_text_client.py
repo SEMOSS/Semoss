@@ -10,11 +10,6 @@ if TYPE_CHECKING:
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
-from ...clients.google_clients import (
-    GoogleClient,
-    GoogleClientConfig,
-    GoogleClientType,
-)
 from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
 from ...constants import (
     AskModelEngineResponse2,
@@ -26,7 +21,6 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -51,7 +45,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
-        prompt_caching: Optional[Union[str, bool]] = False,
+        prompt_caching: Optional[Union[str, bool]] = True,
         **kwargs,
     ):
         super().__init__(
@@ -81,7 +75,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
+        # Provider-specific SDKs are imported lazily so a client only pays for
+        # the backend it actually uses. In particular the Google clients pull in
+        # google / google.auth / google.genai (~0.85s) that direct-Anthropic,
+        # Bedrock and Azure providers never need.
         if self.provider == "google":
+            from ...clients.google_clients import (
+                GoogleClient,
+                GoogleClientConfig,
+                GoogleClientType,
+            )
+
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
                 service_account_credentials=kwargs.pop(
@@ -94,17 +98,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
+            from anthropic import AnthropicBedrock
+
             return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
             )
         elif self.provider == "azure":
+            from anthropic import AnthropicFoundry
+
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
                 api_key=kwargs.pop("api_key", None),
             )
         elif self.provider == "anthropic":
+            from anthropic import Anthropic
+
             return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
@@ -117,7 +127,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
         """
         Add cache_control to the last tool definition. Tools are evaluated
-        first in Anthropic's cache breakpoint order (tools → system → messages),
+        first in Anthropic's cache breakpoint order (tools -> system -> messages),
         so caching them saves tokens whenever the tool list is large and static.
         """
         tools = request_config.tools
@@ -143,7 +153,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
             ]
         elif isinstance(system, list):
-            # Already a list — attach to the last text block.
+            # Already a list - attach to the last text block.
             for block in reversed(system):
                 if isinstance(block, dict) and block.get("type") == "text":
                     block["cache_control"] = {"type": "ephemeral"}
@@ -162,7 +172,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         On each turn the last message is the newest one, so the marker
         naturally moves forward through the conversation as history grows.
 
-        Supports text, tool_result, image, and document blocks — not just text —
+        Supports text, tool_result, image, and document blocks - not just text -
         so that tool execution turns (whose last message contains tool_result
         blocks) are also cached correctly.
         """
@@ -269,10 +279,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 )
 
             if response.stop_reason == "tool_use":
+                _cache_read = (
+                    getattr(response.usage, "cache_read_input_tokens", None) or 0
+                )
+                _cache_creation = (
+                    getattr(response.usage, "cache_creation_input_tokens", None) or 0
+                )
                 return self._parse_tools_call_response(
                     response,
-                    prompt_tokens=response.usage.input_tokens,
+                    prompt_tokens=response.usage.input_tokens
+                    + _cache_read
+                    + _cache_creation,
                     response_tokens=response.usage.output_tokens,
+                    cache_read_tokens=_cache_read,
+                    cache_creation_tokens=_cache_creation,
                 )
 
             thinking_text = ""
@@ -296,6 +316,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             cache_creation_tokens = (
                 getattr(response.usage, "cache_creation_input_tokens", None) or None
             )
+            # Normalize Anthropic input_tokens (new-only) to total billed, matching OpenAI/Gemini
+            total_input_tokens = (
+                usage.input_tokens
+                + (cache_read_tokens or 0)
+                + (cache_creation_tokens or 0)
+            )
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
@@ -313,7 +339,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return AskModelEngineResponse2(
                 response=response_text,
                 response_tokens=usage.output_tokens,
-                prompt_tokens=usage.input_tokens,
+                prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
@@ -327,9 +353,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = 0, response_tokens: int = 0
+        self,
+        response,
+        prompt_tokens: int = 0,
+        response_tokens: int = 0,
+        cache_read_tokens: Optional[int] = None,
+        cache_creation_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
+        # preamble text blocks the model emitted alongside the tool_use blocks
+        preamble_text = ""
         for content in response.content:
             if content.type == "tool_use":
                 tool_use = {
@@ -339,6 +372,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "type": "function",
                 }
                 tools_result.append(tool_use)
+            elif content.type == "text":
+                preamble_text += getattr(content, "text", "") or ""
 
         if self.has_schema:
             is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
@@ -348,19 +383,26 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response=json_str,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=parts,
                     messageType="CHAT",
                 )
 
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+
         return AskModelEngineResponse2(
             response=tools_result,
             response_tokens=response_tokens,
             prompt_tokens=prompt_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
             messageType="TOOL",
         )
 
@@ -384,6 +426,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         this_content_block_type = ""
 
         tool_result = []
+        # Maps server-tool_use id -> the underlying tool name (e.g. "web_search").
+        # Populated when a server_tool_use block closes, read when its result block
+        # arrives so the persisted TOOL_RESULT carries the real tool name instead
+        # of an Anthropic-specific block-type string.
+        server_tool_use_names: Dict[str, str] = {}
 
         use_beta_stream = self.use_beta_header and hasattr(
             self.client.beta.messages, "stream"
@@ -397,7 +444,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
             # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
-            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            # the Bedrock SDK converts anthropic-beta header -> anthropic_beta body field
             stream_kwargs.pop("betas", None)
             stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
 
@@ -415,6 +462,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             event.message.usage, "cache_creation_input_tokens", None
                         )
                         or None
+                    )
+                    # Normalize to total input billed (see non-streaming path).
+                    input_tokens = (
+                        input_tokens
+                        + (cache_read_tokens or 0)
+                        + (cache_creation_tokens or 0)
+                    )
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=input_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
+                        ),
+                        stream_type="usage",
                     )
 
                 elif event.type == "content_block_start":
@@ -474,17 +536,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         print(prefix + str(data), end="")
 
                     elif this_content_block_type == "web_search_tool_result":
+                        tool_use_id = event.content_block.tool_use_id
                         this_content_block.update(
                             {
-                                "tool_use_id": None,
+                                "tool_use_id": tool_use_id,
                                 "type": "tool_result",
                                 "content": [],
-                                "name": "web_search_tool_result",
+                                # Resolve to the underlying tool name (e.g. "web_search")
+                                # captured when the matching server_tool_use block closed.
+                                "name": server_tool_use_names.get(
+                                    tool_use_id, "web_search"
+                                ),
                                 "server_tool": True,
                             }
-                        )
-                        this_content_block["tool_use_id"] = (
-                            event.content_block.tool_use_id
                         )
                         for item in event.content_block.content:
                             this_content_block["content"].append(
@@ -546,7 +610,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         except json.decoder.JSONDecodeError:
                             arguments = this_content_block["function"]["arguments"]
 
-                        if not this_content_block["server_tool"]:
+                        if this_content_block["server_tool"]:
+                            # Remember the real tool name so the paired result block
+                            # can replay with `name="web_search"` rather than the
+                            # Anthropic block-type string.
+                            server_tool_use_names[this_content_block["id"]] = (
+                                this_content_block["function"]["name"]
+                            )
+                        else:
                             tool_result.append(
                                 {
                                     "id": this_content_block["id"],
@@ -580,6 +651,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         event.delta, "stop_reason", None
                     ):
                         stop_reason = event.delta.stop_reason
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(output_tokens=output_tokens),
+                        stream_type="usage",
+                    )
 
             if stop_reason is None:
                 try:
@@ -695,6 +771,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         "tool_result": {
                             "id": tool_use_id,
                             "tool_name": tool_name,
+                            "server_tool": content.get("server_tool", False),
                             "output": json.dumps(tool_content, ensure_ascii=False),
                         },
                     }
@@ -711,6 +788,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 flush=True,
             )
 
+        # input_tokens was already normalized to include cache at message_start
+        total_input_tokens = input_tokens
+
         if tool_result:
             if self.has_schema:
                 # TODO: come back to this method and have it properly mantain and update the existing parts instead of making a new one
@@ -726,7 +806,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
-                        prompt_tokens=input_tokens,
+                        prompt_tokens=total_input_tokens,
                         cache_read_tokens=cache_read_tokens,
                         cache_creation_tokens=cache_creation_tokens,
                         schemaVersion=2,
@@ -738,7 +818,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
-                prompt_tokens=input_tokens,
+                prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
@@ -749,7 +829,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return AskModelEngineResponse2(
             response=final_response,
-            prompt_tokens=input_tokens,
+            prompt_tokens=total_input_tokens,
             response_tokens=output_tokens,
             cache_read_tokens=cache_read_tokens,
             cache_creation_tokens=cache_creation_tokens,

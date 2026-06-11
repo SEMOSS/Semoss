@@ -48,6 +48,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -57,21 +58,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 /**
- * {@link IAgentHarness} implementation that drives the SEMOSS Room tool-calling loop.
+ * Legacy {@link IAgentHarness} that drives the SEMOSS Room tool loop directly.
  *
- * <p>Replicates the {@code AgentHarness} logic from the AI_Repository app project in core so
- * that any SEMOSS server-side job can run a full model-and-tools loop without depending on an
- * app-scoped class.
+ * <p>Multiple tool calls from one response can run in parallel. New work
+ * should use {@link prerna.reactor.agent.runtime.SemossAgentHarness}.
  *
- * <p>Tool execution uses {@link McpCallMode#REACTOR} by default (delegates to
- * {@link RunMCPToolReactor}) which inherits all SEMOSS engine-resolution and security changes
- * automatically.
- *
- * <p>When the model returns multiple tool calls in a single response, they are executed in
- * parallel via a thread pool. {@code Room.addToolExecutionResult()} is synchronized and only
- * triggers the next model call once every tool ID in the batch has reported in, so concurrent
- * submissions are safe.
+ * @deprecated Retained as {@code "room_loop"} for backward compatibility.
  */
+@Deprecated
 public class RoomAgentHarness implements IAgentHarness {
 
     private static final Logger logger = LogManager.getLogger(RoomAgentHarness.class);
@@ -84,7 +78,7 @@ public class RoomAgentHarness implements IAgentHarness {
 
     /** How MCP tools are executed inside the harness. */
     public enum McpCallMode {
-        /** Delegates to {@link RunMCPToolReactor} — picks up all SEMOSS engine-resolution and security changes. */
+        /** Delegates to {@link RunMCPToolReactor} - picks up all SEMOSS engine-resolution and security changes. */
         REACTOR,
         /** Calls the MCP API directly via {@link IMCP#callTool}. No security check overhead. */
         DIRECT_API
@@ -115,7 +109,7 @@ public class RoomAgentHarness implements IAgentHarness {
 
     @Override
     @SuppressWarnings({"unchecked"})
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+    public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
         Room                room           = ctx.getRoom();
         int                 maxReflections = ctx.getMaxReflections();
         Map<String, Object> paramMap       = new HashMap<>(ctx.getParamMap());
@@ -124,7 +118,7 @@ public class RoomAgentHarness implements IAgentHarness {
         AtomicInteger iterationsCounter = new AtomicInteger(0);
 
         // 1. Initial ask
-        String systemPrompt = room.getEffectiveSystemPrompt();
+        String systemPrompt = room.getRoomOrWorkspaceSystemPrompt();
         InputMessage firstMsg = InputMessage.builder(room)
                 .withSystemPrompt(systemPrompt)
                 .withText(ctx.getInput())
@@ -162,11 +156,11 @@ public class RoomAgentHarness implements IAgentHarness {
             }
         }
 
-        // 4. Iteration cap check
+        // 4. Turn cap check
         if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
-                    ctx.getMaxIterations());
-            throw new AgentMaxIterationsException(ctx.getMaxIterations());
+            logger.warn("RoomAgentHarness: maxTurns ({}) reached without RESPONSE_TEXT",
+                    ctx.getMaxTurns());
+            throw new AgentMaxTurnsException(ctx.getMaxTurns());
         }
 
         // 5. Return result
@@ -175,13 +169,9 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     /**
-     * Drives the tool-call loop from a starting response until RESPONSE_TEXT or the iteration
-     * cap is hit. Shared by the main loop and each reflection round.
+     * Drives the tool loop until text is returned or the turn cap is reached.
      *
-     * <p>When the model returns multiple tool calls in one response they are executed in parallel.
-     * Single-tool responses use the fast path without thread overhead.
-     *
-     * @param iterationsCounter accumulates iteration count across multiple driveToolLoop calls
+     * @param iterationsCounter accumulates iteration count across calls
      */
     @SuppressWarnings("unchecked")
     private ResponseMessage driveToolLoop(
@@ -189,14 +179,14 @@ public class RoomAgentHarness implements IAgentHarness {
             AtomicInteger iterationsCounter,
             Map<String, Object> paramMap,
             List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
-            GenericAgentContext ctx) throws Exception {
+            AgentRunContext ctx) throws Exception {
 
-        Room room          = ctx.getRoom();
-        int  maxIterations = ctx.getMaxIterations();
+        Room room     = ctx.getRoom();
+        int  maxTurns = ctx.getMaxTurns();
 
         while (response != null
                 && response.getMessageType() == MessageType.RESPONSE_TOOL
-                && iterationsCounter.get() < maxIterations) {
+                && iterationsCounter.get() < maxTurns) {
 
             int iterations = iterationsCounter.incrementAndGet();
 
@@ -206,7 +196,7 @@ public class RoomAgentHarness implements IAgentHarness {
             AskModelEngineResponse<?> nextModelResponse = null;
 
             if (toolCalls.size() == 1) {
-                // Fast path: single tool — no thread overhead.
+                // Fast path: single tool - no thread overhead.
                 ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
                 ToolExecResult result = executeOneTool(tc, iterations, paramMap, parentMessageId, ctx);
                 toolCallRecords.add(result.record);
@@ -300,7 +290,7 @@ public class RoomAgentHarness implements IAgentHarness {
      * Called from both the single-tool fast path and each parallel future.
      */
     private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, Map<String, Object> paramMap,
-                                          String parentMessageId, GenericAgentContext ctx) {
+                                          String parentMessageId, AgentRunContext ctx) {
         Room room = ctx.getRoom();
         logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, iter);
@@ -313,7 +303,7 @@ public class RoomAgentHarness implements IAgentHarness {
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
                 tc.rawToolName, tc.toolCallId, outcome.content, durationMs, outcome.success);
 
-        // IMPORTANT: pass a fresh copy of paramMap — Room.appendToolsToParams() mutates it.
+        // IMPORTANT: pass a fresh copy of paramMap - Room.appendToolsToParams() mutates it.
         AskModelEngineResponse<?> modelResponse = room.addToolExecutionResult(
                 tc.toolCallId, tc.rawToolName, outcome.content, tc.toolParams,
                 new HashMap<>(paramMap), parentMessageId,
@@ -336,7 +326,7 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
-                                              GenericAgentContext ctx) {
+                                              AgentRunContext ctx) {
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
@@ -359,7 +349,7 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private String callMcpToolViaReactor(String rawToolName, String engineId,
-                                         Map<String, Object> params, GenericAgentContext ctx) {
+                                         Map<String, Object> params, AgentRunContext ctx) {
         try {
             RunMCPToolReactor reactor = new RunMCPToolReactor();
             reactor.In();
@@ -387,12 +377,12 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private String callMcpToolViaApi(String rawToolName, String engineId,
-                                     Map<String, Object> params, GenericAgentContext ctx) {
+                                     Map<String, Object> params, AgentRunContext ctx) {
         IEngine engine = null;
         try {
             engine = Utility.getEngine(engineId);
         } catch (Exception ignored) {
-            // not an engine — try project
+            // not an engine - try project
         }
         if (engine == null) {
             engine = (IEngine) Utility.getProject(engineId);

@@ -62,9 +62,9 @@ public class PyTranslator {
 	private Insight globalStoreInsight = null;
 
 	/**
-	 * 
-	 * @param sc
-	 * @param this.globalStoreInsight
+	 * @param sc                 the socket client connected to the Python process
+	 * @param globalStoreInsight the insight whose globals dict is used as the
+	 *                           Python execution namespace
 	 */
 	public PyTranslator(SocketClient sc, Insight globalStoreInsight) {
 		this.sc = sc;
@@ -93,7 +93,7 @@ public class PyTranslator {
 	 */
 	public String getCurEncoding() {
 		if (curEncoding == null) {
-			curEncoding = (String) transportScript(null, "sys.stdout.encoding");
+			curEncoding = (String) transportScript(null, "sys.stdout.encoding", false);
 		}
 		return curEncoding;
 	}
@@ -105,7 +105,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<Object> getList(String script) {
-		return (List<Object>) transportScript(null, script);
+		return (List<Object>) transportScript(null, script, false);
 	}
 
 	/**
@@ -115,7 +115,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<String> getStringList(String script) {
-		List<String> val = (List<String>) transportScript(null, script);
+		List<String> val = (List<String>) transportScript(null, script, false);
 		return val;
 	}
 
@@ -139,7 +139,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public boolean getBoolean(String script) {
-		Boolean x = (Boolean) transportScript(null, script);
+		Boolean x = (Boolean) transportScript(null, script, false);
 		return x.booleanValue();
 	}
 
@@ -150,7 +150,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public int getInt(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.intValue();
 	}
 
@@ -161,7 +161,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Long getLong(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.longValue();
 	}
 
@@ -172,7 +172,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public double getDouble(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.doubleValue();
 	}
 
@@ -183,7 +183,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public String getString(String script) {
-		return (String) transportScript(null, script);
+		return (String) transportScript(null, script, false);
 	}
 
 	/*
@@ -193,7 +193,7 @@ public class PyTranslator {
 	 */
 	public String[] getColumns(String frameName) {
 		String script = "list(" + frameName + ".columns)";
-		List<String> colNames = (List<String>) transportScript(null, script);
+		List<String> colNames = (List<String>) transportScript(null, script, false);
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
@@ -206,7 +206,19 @@ public class PyTranslator {
 	 * @param script
 	 */
 	public void runEmptyPy(String... script) {
-		this.transportScript(null, convertArrayToString(script));
+		this.transportScript(null, convertArrayToString(script), false);
+	}
+
+	/**
+	 * Same as {@link #runEmptyPy(String...)} but tells the python server to skip
+	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user, to avoid
+	 * the trace overhead on import-heavy setup scripts.
+	 *
+	 * @param script
+	 */
+	public void runEmptyPyNoCancelTrace(String... script) {
+		this.transportScript(null, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -216,7 +228,19 @@ public class PyTranslator {
 	 * @param script
 	 */
 	public Object runDirectPy(String... script) {
-		return this.transportScript(null, convertArrayToString(script));
+		return this.transportScript(null, convertArrayToString(script), false);
+	}
+
+	/**
+	 * Same as {@link #runDirectPy(String...)} but tells the python server to skip
+	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user.
+	 *
+	 * @param script
+	 * @return
+	 */
+	public Object runDirectPyNoCancelTrace(String... script) {
+		return this.transportScript(null, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -234,7 +258,21 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runDirectPy(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script));
+		return this.transportScript(executionInsight, convertArrayToString(script), false);
+	}
+
+	/**
+	 * Same as {@link #runDirectPy(Insight, String...)} but tells the python server
+	 * to skip the per-execution cancel trace (sys.settrace). Use this for
+	 * engine-owned python processes whose execution can never be cancelled by a
+	 * user.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param script
+	 * @return
+	 */
+	public Object runDirectPyNoCancelTrace(Insight executionInsight, String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -244,7 +282,19 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScript(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script));
+		return this.transportScript(null, convertArrayToString(script), true);
+	}
+
+	/**
+	 * Same as {@link #runScript(String...)} but tells the python server to skip the
+	 * per-execution cancel trace (sys.settrace). Use this for engine-owned python
+	 * processes whose execution can never be cancelled by a user.
+	 *
+	 * @param script
+	 * @return
+	 */
+	public Object runScriptNoCancelTrace(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true, true);
 	}
 
 	/**
@@ -261,73 +311,91 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScript(Insight executionInsight, String... script) {
-		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
+		return this.transportScript(executionInsight, convertArrayToString(script), false);
 	}
 
 	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
-	 * execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
-	 *             instead.
+	 * Same as {@link #runScript(Insight, String...)} but tells the python server to
+	 * skip the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user.
+	 *
+	 * @param executionInsight the security-context insight; may be null
 	 * @param script
-	 * @param this.globalStoreInsight
 	 * @return
 	 */
-	@Deprecated
-	public Object runSmssWrapperEval(String script) {
-		return this.transportScript(null, script);
+	public Object runScriptNoCancelTrace(Insight executionInsight, String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
 	}
 
 	/**
-	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
-	 *             instead.
-	 * @param script
-	 * @return
+	 * Executes a Python script with explicitly supplied asset paths, bypassing the
+	 * shared Insight context fields ({@code contextProjectId} /
+	 * {@code contextProjectName}).
+	 * <p>
+	 * Use this instead of {@link #runScript} whenever the calling code already
+	 * knows the target engine's assets folder and must not race with other threads
+	 * that may concurrently call {@code insight.setContext()}. The supplied
+	 * {@code assetsDir} is used to set {@code APP_ROOT} for the execution; all
+	 * paths are forwarded to the Python process via
+	 * {@code PayloadStruct.asset_paths} so that the per-project module isolation in
+	 * {@code _asset_aware_import} picks them up correctly.
+	 *
+	 * @param executionInsight     the insight whose security context governs this
+	 *                             call; may differ from the translator's
+	 *                             {@code globalStoreInsight} when an engine invokes
+	 *                             Python on behalf of a user
+	 * @param script               the Python code to execute
+	 * @param assetsDir            the engine assets root folder (becomes
+	 *                             {@code APP_ROOT})
+	 * @param additionalAssetsDirs extra paths appended to {@code asset_paths} (e.g.
+	 *                             the {@code /py} sub-folder); may be null
+	 * @return the value of the last expression evaluated, or an empty string if the
+	 *         script produces no evaluable expression
 	 */
-	@Deprecated
-	public String runPyAndReturnOutput(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
-	}
+	public Object runScriptWithExplicitAssetPaths(Insight executionInsight, String script, String assetsDir,
+			String[] additionalAssetsDirs) {
+		final String ROOT = executionInsight.getInsightFolder().replace('\\', '/');
+		final String APP_ROOT = assetsDir.replace('\\', '/');
+		String userRootTmp = null;
+		try {
+			userRootTmp = AssetUtility.getRootFolderPath(executionInsight, AssetUtility.USER_SPACE_KEY, false)
+					.replace('\\', '/');
+		} catch (Exception e) {
+			// best effort; keep null
+		}
+		final String USER_ROOT = userRootTmp;
 
-	/**
-	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
-	 *             instead.
-	 * @param script
-	 * @return
-	 */
-	@Deprecated
-	public String runSingle(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
-	}
+		// get runtime vars
+		Map<String, Object> runtimeVars = new HashMap<>();
+		runtimeVars.put("ROOT", ROOT);
+		runtimeVars.put("APP_ROOT", APP_ROOT);
+		if (USER_ROOT != null) {
+			runtimeVars.put("USER_ROOT", USER_ROOT);
+		}
 
-	/**
-	 * 
-	 * @param executionInsight
-	 * @param script
-	 * @return
-	 */
-	private Object executePyWithDefualtVars(Insight executionInsight, String script) {
-		String[] paths = getDefaultPaths(this.globalStoreInsight);
-		StringBuilder pathVars = generateDefaultVars(paths);
-		transportScript(executionInsight, pathVars.toString());
+		// get paths
+		int numAssetsDir = 1 + (additionalAssetsDirs == null ? 0 : additionalAssetsDirs.length);
+		String[] finalAssetsDir = new String[numAssetsDir];
+		finalAssetsDir[0] = assetsDir.replace('\\', '/');
+		if (additionalAssetsDirs != null) {
+			for (int i = 0; i < additionalAssetsDirs.length; i++) {
+				finalAssetsDir[i + 1] = additionalAssetsDirs[i].replace('\\', '/');
+			}
+		}
 
-		Object output = transportScript(executionInsight, script);
+		// execute
+		Object output = transportScriptWithExplicitPaths(executionInsight, script, finalAssetsDir, runtimeVars, false);
+		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
-			// clean up the output
-			if (paths[0] != null && strOutput.contains(paths[0])) {
-				strOutput = strOutput.replace(paths[0], "$IF");
+			if (ROOT != null && strOutput.contains(ROOT)) {
+				strOutput = strOutput.replace(ROOT, "$IF");
 			}
-			if (paths[1] != null && strOutput.contains(paths[1])) {
-				strOutput = strOutput.replace(paths[1], "$APP_IF");
+			if (APP_ROOT != null && strOutput.contains(APP_ROOT)) {
+				strOutput = strOutput.replace(APP_ROOT, "$APP_IF");
 			}
-			if (paths[2] != null && strOutput.contains(paths[2])) {
-				strOutput = strOutput.replace(paths[2], "$USER_IF");
+			if (USER_ROOT != null && strOutput.contains(USER_ROOT)) {
+				strOutput = strOutput.replace(USER_ROOT, "$USER_IF");
 			}
 			return strOutput;
 		}
@@ -335,75 +403,119 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
-	 * @param defaultPaths
-	 * @return
+	 * Sends a Python script to the socket process and returns the result. Infers
+	 * {@code asset_paths} from the global-store insight's current context project
+	 * when one is set.
+	 *
+	 * @param executionInsight  the security-context insight; may be null
+	 * @param script            the Python code to execute
+	 * @param supportLegacyVars if we should support legacy usage to access ROOT,
+	 *                          APP_ROOT, USER_ROOT varaibles instead of new
+	 *                          <p>
+	 *                          from smssutil import smss_get_runtime_var
+	 *                          smss_get_runtime_var("ROOT")
+	 *                          </p>
+	 *                          ;
+	 * @return the deserialized result from the Python process
 	 */
-	private StringBuilder generateDefaultVars(String[] defaultPaths) {
-		StringBuilder script = new StringBuilder();
-		String[] pathVars = new String[] { "ROOT", "APP_ROOT", "USER_ROOT" };
-		for (int i = 0; i < pathVars.length; i++) {
-			if (defaultPaths[i] != null && !(defaultPaths[i] = defaultPaths[i].trim()).isEmpty()) {
-				script.append(pathVars[i]).append(" = '").append(defaultPaths[i]).append("'\n");
-			}
-		}
-
-		return script;
+	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars) {
+		return transportScript(executionInsight, script, supportLegacyVars, false);
 	}
 
-	/**
-	 * 
-	 * @param insight
-	 * @return
-	 */
-	private String[] getDefaultPaths(Insight insight) {
-		String insightPath = insight.getInsightFolder().replace('\\', '/');
-		String appPath = null;
-		String userPath = null;
-
-		// context project takes precedence
-		if (insight.getContextProjectId() != null) {
-			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(),
-					insight.getContextProjectId());
-			appPath = appPath.replace('\\', '/');
-		} else if (insight.isSavedInsight()) {
-			appPath = insight.getAppFolder();
-			appPath = appPath.replace('\\', '/');
-		}
+	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars,
+			boolean disableCancelTrace) {
+		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
+		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
+				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+						this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName())
+				.replace('\\', '/') : null;
+		String userRootTmp = null;
 		try {
-			userPath = AssetUtility.getRootFolderPath(insight, AssetUtility.USER_SPACE_KEY, false);
-			userPath = userPath.replace('\\', '/');
-		} catch (Exception ignore) {
-			// ignore
+			if (this.globalStoreInsight.getUser() != null) {
+				userRootTmp = AssetUtility
+						.getRootFolderPath(this.globalStoreInsight, AssetUtility.USER_SPACE_KEY, false)
+						.replace('\\', '/');
+			}
+		} catch (Exception e) {
+			// best effort; keep null
+		}
+		final String USER_ROOT = userRootTmp;
+
+		// get runtime vars
+		Map<String, Object> runtimeVars = new HashMap<>();
+		runtimeVars.put("ROOT", ROOT);
+		runtimeVars.put("APP_ROOT", APP_ROOT);
+		if (USER_ROOT != null) {
+			runtimeVars.put("USER_ROOT", USER_ROOT);
 		}
 
-		return new String[] { insightPath, appPath, userPath };
-	}
-
-	/**
-	 * 
-	 * @param executionInsight
-	 * @param script
-	 * @return
-	 */
-	private Object transportScript(Insight executionInsight, String script) {
-		String methodName = new Object() {
-		}.getClass().getEnclosingMethod().getName();
-
-		PayloadStruct ps = new PayloadStruct();
-		ps.operation = PayloadStruct.OPERATION.PYTHON;
-		ps.methodName = methodName;
-		ps.payload = new Object[] { script };
-		ps.payloadClasses = new Class[] { String.class };
-		ps.longRunning = true;
-		// we always need an insight
-		ps.insightId = this.globalStoreInsight.getInsightId();
-		// so we have a context project id that we need to set?
+		String[] asset_paths = null;
 		if (this.globalStoreInsight.getContextProjectId() != null) {
 			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
 			String assetsPyDir = assetsDir + "/py";
-			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
+			asset_paths = new String[] { assetsDir, assetsPyDir };
+		}
+
+		Object output = transportScriptWithExplicitPaths(executionInsight, script, asset_paths, runtimeVars,
+				supportLegacyVars, disableCancelTrace);
+		// try to perform some cleanup
+		if (output instanceof String) {
+			String strOutput = (String) output;
+			if (ROOT != null && strOutput.contains(ROOT)) {
+				strOutput = strOutput.replace(ROOT, "$IF");
+			}
+			if (APP_ROOT != null && strOutput.contains(APP_ROOT)) {
+				strOutput = strOutput.replace(APP_ROOT, "$APP_IF");
+			}
+			if (USER_ROOT != null && strOutput.contains(USER_ROOT)) {
+				strOutput = strOutput.replace(USER_ROOT, "$USER_IF");
+			}
+			return strOutput;
+		}
+		return output;
+	}
+
+	/**
+	 * Low-level transport that accepts an explicit {@code asset_paths} array
+	 * instead of inferring it from the shared Insight context. Unlike
+	 * {@link #transportScript}, this method never reads {@code contextProjectId} or
+	 * {@code contextProjectName}, making it safe to call from concurrent threads
+	 * targeting different engines on the same Insight.
+	 *
+	 * @param executionInsight   the security-context insight; may be null
+	 * @param script             the Python code (already prefixed with path
+	 *                           variable assignments)
+	 * @param explicitAssetPaths paths forwarded to the Python process as
+	 *                           {@code asset_paths}
+	 * @return the deserialized result from the Python process
+	 */
+	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
+			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars) {
+		return transportScriptWithExplicitPaths(executionInsight, script, explicitAssetPaths, runtimeVars,
+				supportLegacyVars, false);
+	}
+
+	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
+			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars,
+			boolean disableCancelTrace) {
+		PayloadStruct ps = new PayloadStruct();
+		ps.disableCancelTrace = disableCancelTrace;
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.methodName = new Object() {
+		}.getClass().getEnclosingMethod().getName();
+		ps.payload = new Object[] { script };
+		ps.payloadClasses = new Class[] { String.class };
+		ps.longRunning = true;
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		if (explicitAssetPaths != null) {
+			ps.asset_paths = explicitAssetPaths;
+		}
+		if (runtimeVars != null) {
+			ps.runtime_vars = runtimeVars;
+		}
+		if (supportLegacyVars) {
+			ps.append_vars = runtimeVars;
 		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
@@ -411,7 +523,6 @@ public class PyTranslator {
 		if (executionInsight != null) {
 			ps.executionInsightId = executionInsight.getInsightId();
 		}
-
 		if (sc.isConnected()) {
 			ps = (PayloadStruct) sc.executeCommand(ps);
 			if (ps == null) {
@@ -428,7 +539,9 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
+	 * Sends a {@code CLEAR_NON_MODULE_GLOBALS} command to the Python process,
+	 * removing all user-defined variables from this insight's globals dict while
+	 * preserving imported modules and framework entries.
 	 */
 	public void clearInsightGlobals() {
 		PayloadStruct ps = new PayloadStruct();
@@ -453,7 +566,9 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
+	 * Sends a {@code REMOVE_INSIGHT_GLOBALS} command to the Python process,
+	 * completely dropping the globals dict for this insight and requesting garbage
+	 * collection to free all Python objects held by it.
 	 */
 	public void removeInsightGlobals() {
 		PayloadStruct ps = new PayloadStruct();
@@ -570,6 +685,49 @@ public class PyTranslator {
 		}
 
 		return pyResponse;
+	}
+
+	// DEPRECATED METHODS
+
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
+	 *             instead.
+	 * @param script
+	 * @param this.globalStoreInsight
+	 * @return
+	 */
+	@Deprecated
+	public Object runSmssWrapperEval(String script) {
+		return this.transportScript(null, script, false);
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runPyAndReturnOutput(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true) + "";
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runSingle(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true) + "";
 	}
 
 }

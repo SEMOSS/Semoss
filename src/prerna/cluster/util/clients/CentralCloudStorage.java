@@ -45,7 +45,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterSynchronizer;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
@@ -644,11 +644,12 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine not found...");
 		}
+
 		if (storageRelativePath != null) {
 			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if (storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
+			if (storageRelativePath.startsWith("/")) {
+				storageRelativePath = storageRelativePath.substring(1);
+			}
 		}
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
@@ -666,22 +667,22 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 			ClusterUtil.validateFolder(localEngineFolder);
 		}
-		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
-		String cloudEngineFolder = cloudContainerPrefix + engineId;
+
+		String storageEngineFolderPath = getCloudPrefixForEngine(engineType) + engineId;
 		if (storageRelativePath != null) {
-			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+			storageEngineFolderPath = storageEngineFolderPath + "/" + storageRelativePath;
 		}
 
 		// TODO: we might not need the lock - these are only assets
-
 		classLogger.info("Applying lock for engine {} to push engine relative folder {}", aliasAndEngineId,
 				storageRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
 		classLogger.info("Engine {} is locked", aliasAndEngineId);
 		try {
-			classLogger.info("Pushing folder from local={} to remote={}", localAbsoluteFilePath, storageRelativePath);
-			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageRelativePath, null);
+			classLogger.info("Pushing folder from local={} to remote={}", localAbsoluteFilePath,
+					storageEngineFolderPath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageEngineFolderPath, null);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -1399,35 +1400,30 @@ public final class CentralCloudStorage implements ICloudClient {
 		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDbFileName;
 		// synchronize on the project id
 		classLogger.info("Applying lock for {} to pull insights db", aliasAndProjectId);
+
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		classLogger.info("Project {} is locked", aliasAndProjectId);
 		try {
-			project.getInsightDatabase().close();
-			centralStorageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
-		} finally {
 			try {
-				// open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
-				if (insightDbLoc != null) {
-					try {
-						project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
-								LogManager.getLogger(AbstractDatabaseEngine.class)));
-					} catch (Exception e) {
-						classLogger.error(
-								"Failed to reload insights database engine after pullInsightsDB for project {} ({}).",
-								projectId, aliasAndProjectId, e);
-						throw new IllegalArgumentException(
-								"Error in loading new insights database for project " + aliasAndProjectId);
-					}
-				} else {
-					throw new IllegalArgumentException("Insight database was not able to be found");
+				project.getInsightDatabase().close();
+				centralStorageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
+			} catch (Exception primary) {
+				// pull failed: still reopen the db we closed, but don't let a reload failure
+				// hide the cause
+				try {
+					reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pullInsightsDB");
+				} catch (Exception reopenEx) {
+					primary.addSuppressed(reopenEx);
 				}
-			} finally {
-				// always unlock regardless of errors
-				lock.unlock();
-				classLogger.info("Project {} is unlocked", aliasAndProjectId);
+				throw primary;
 			}
+			// pull succeeded: reopen and surface any reload failure to the caller
+			reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pullInsightsDB");
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project {} is unlocked", aliasAndProjectId);
 		}
 	}
 
@@ -1452,31 +1448,50 @@ public final class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project {} is locked", aliasAndProjectId);
 		try {
-			project.getInsightDatabase().close();
-			centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder, null);
-		} finally {
 			try {
-				// open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
-				if (insightDbLoc != null) {
-					try {
-						project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
-								LogManager.getLogger(AbstractDatabaseEngine.class)));
-					} catch (Exception e) {
-						classLogger.error(
-								"Failed to reload insights database engine after pushInsightDB for project {} ({}).",
-								projectId, aliasAndProjectId, e);
-						throw new IllegalArgumentException(
-								"Error in loading new insights database for project " + aliasAndProjectId);
-					}
-				} else {
-					throw new IllegalArgumentException("Insight database was not able to be found");
+				project.getInsightDatabase().close();
+				centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder, null);
+			} catch (Exception primary) {
+				// push failed: still reopen the db we closed, but don't let a reload failure
+				// hide the cause
+				try {
+					reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pushInsightDB");
+				} catch (Exception reopenEx) {
+					primary.addSuppressed(reopenEx);
 				}
-			} finally {
-				// always unlock regardless of errors
-				lock.unlock();
-				classLogger.info("Project {} is unlocked", aliasAndProjectId);
+				throw primary;
 			}
+			// push succeeded: reopen and surface any reload failure to the caller
+			reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pushInsightDB");
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project {} is unlocked", aliasAndProjectId);
+		}
+	}
+
+	/**
+	 * Re-opens the project's insight database after it was closed for an insights
+	 * DB pull/push. Invoked on both the success and failure paths so the project is
+	 * never left with a closed insight database.
+	 *
+	 * @throws IllegalArgumentException if the insight database cannot be
+	 *                                  located/reloaded
+	 */
+	private void reopenInsightsDatabase(IProject project, String projectId, String aliasAndProjectId,
+			String operation) {
+		String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
+		if (insightDbLoc == null) {
+			throw new IllegalArgumentException("Insight database was not able to be found");
+		}
+		try {
+			project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
+					LogManager.getLogger(AbstractDatabaseEngine.class)));
+		} catch (Exception e) {
+			classLogger.error("Failed to reload insights database engine after {} for project {} ({}).", operation,
+					projectId, aliasAndProjectId, e);
+			throw new IllegalArgumentException(
+					"Error in loading new insights database for project " + aliasAndProjectId);
 		}
 	}
 
@@ -1487,11 +1502,12 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+
 		if (storageRelativePath != null) {
 			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if (storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
+			if (storageRelativePath.startsWith("/")) {
+				storageRelativePath = storageRelativePath.substring(1);
+			}
 		}
 
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -1691,29 +1707,24 @@ public final class CentralCloudStorage implements ICloudClient {
 	 */
 
 	@Override
-	public void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded)
-			throws IOException, InterruptedException {
+	public void pullUserAsset(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException {
 		IProject project = null;
 		String alias = null;
 		if (projectAlreadyLoaded) {
-			project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+			project = Utility.getUserAssetProject(projectId);
 			if (project == null) {
-				throw new IllegalArgumentException("User asset/workspace project not found...");
+				throw new IllegalArgumentException("User asset project not found...");
 			}
 			alias = project.getProjectName();
 		} else {
-			if (isAsset) {
-				alias = WorkspaceAssetUtils.ASSET_APP_NAME;
-			} else {
-				alias = WorkspaceAssetUtils.WORKSPACE_APP_NAME;
-			}
+			alias = UserAssetUtils.ASSET_APP_NAME;
 		}
 
 		// We need to pull the folder alias__projectId and the file
 		// alias__projectId.smss
-		String aliasAndUserAssetWorkspaceId = SmssUtilities.getUniqueName(alias, projectId);
-		String localUserAndAssetFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetWorkspaceId;
-		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
+		String aliasAndUserAssetId = SmssUtilities.getUniqueName(alias, projectId);
+		String localUserAndAssetFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetId;
+		String storageUserAssetFolder = USER_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
 		String sharedRCloneConfig = null;
@@ -1721,25 +1732,25 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			// Close the user asset/workspace project so that we can pull without file locks
+			// Close the user asset project so that we can pull without file locks
 			try {
 				if (projectAlreadyLoaded) {
 					UploadUtilities.removeProjectExcludingSMSSFromDIHelper(projectId);
 					project.close();
 				}
 
-				// Make the user asset/workspace directory (if it doesn't already exist)
+				// Make the user asset directory (if it doesn't already exist)
 				File localUserAndAssetF = new File(localUserAndAssetFolder);
 				if (!localUserAndAssetF.exists() || !localUserAndAssetF.isDirectory()) {
 					localUserAndAssetF.mkdir();
 				}
 
 				// Pull the contents of the project folder before the smss
-				classLogger.info("Pulling user asset/workspace from remote={} to target={}",
-						storageUserAssetWorkspaceFolder, localUserAndAssetFolder);
-				centralStorageEngine.syncStorageToLocal(storageUserAssetWorkspaceFolder, localUserAndAssetFolder,
+				classLogger.info("Pulling user asset from remote={} to target={}", storageUserAssetFolder,
+						localUserAndAssetFolder);
+				centralStorageEngine.syncStorageToLocal(storageUserAssetFolder, localUserAndAssetFolder,
 						sharedRCloneConfig);
-				classLogger.debug("Done pulling from remote={} to target={}", storageUserAssetWorkspaceFolder,
+				classLogger.debug("Done pulling from remote={} to target={}", storageUserAssetFolder,
 						localUserAndAssetFolder);
 
 				// Now pull the smss
@@ -1753,7 +1764,7 @@ public final class CentralCloudStorage implements ICloudClient {
 			} finally {
 				// Re-open the project
 				if (projectAlreadyLoaded) {
-					Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+					Utility.getUserAssetProject(projectId);
 				}
 			}
 		} finally {
@@ -1761,33 +1772,31 @@ public final class CentralCloudStorage implements ICloudClient {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch (Exception e) {
-					classLogger.error(
-							"Failed to delete shared rclone config '{}' after pullUserAssetOrWorkspace for project {} (isAsset={}).",
-							sharedRCloneConfig, projectId, isAsset, e);
+					classLogger.error("Failed to delete shared rclone config '{}' after pullUserAsset for project {}.",
+							sharedRCloneConfig, projectId, e);
 				}
 			}
 		}
 	}
 
 	@Override
-	public void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException {
-		IProject project = Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+	public void pushUserAsset(String projectId) throws IOException, InterruptedException {
+		IProject project = Utility.getUserAssetProject(projectId);
 		if (project == null) {
-			throw new IllegalArgumentException("User asset/workspace project not found...");
+			throw new IllegalArgumentException("User asset project not found...");
 		}
 
 		// We need to push the folder alias__projectId and the file
 		// alias__projectId.smss
 		String alias = project.getProjectName();
-		String aliasAndUserAssetWorkspaceId = alias + "__" + projectId;
-		String localUserAssetWorkspaceFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR
-				+ aliasAndUserAssetWorkspaceId;
-		String localSmssFileName = aliasAndUserAssetWorkspaceId + ".smss";
+		String aliasAndUserAssetId = alias + "__" + projectId;
+		String localUserAssetFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetId;
+		String localSmssFileName = aliasAndUserAssetId + ".smss";
 		String localSmssFilePath = EngineUtility.USER_FOLDER + FILE_SEPARATOR + localSmssFileName;
 
 		String sharedRCloneConfig = null;
 
-		String storageUserAssetWorkspaceFolder = USER_CONTAINER_PREFIX + projectId;
+		String storageUserAssetFolder = USER_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
 		try {
@@ -1797,25 +1806,23 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localUserAssetWorkspaceFolder, storageUserAssetWorkspaceFolder,
-					sharedRCloneConfig, null);
+			centralStorageEngine.syncLocalToStorage(localUserAssetFolder, storageUserAssetFolder, sharedRCloneConfig,
+					null);
 			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the project
-				Utility.getUserAssetWorkspaceProject(projectId, isAsset);
+				Utility.getUserAssetProject(projectId);
 			} catch (Exception e) {
-				classLogger.error(
-						"Failed to reopen user asset/workspace project {} after pushUserAssetOrWorkspace (isAsset={}).",
-						projectId, isAsset, e);
+				classLogger.error("Failed to reopen user asset project {} after pushUserAssetOrWorkspace.", projectId,
+						e);
 			}
 			if (sharedRCloneConfig != null) {
 				try {
 					centralStorageEngine.deleteRcloneConfig(sharedRCloneConfig);
 				} catch (Exception e) {
-					classLogger.error(
-							"Failed to delete shared rclone config '{}' after pushUserAssetOrWorkspace for project {} (isAsset={}).",
-							sharedRCloneConfig, projectId, isAsset, e);
+					classLogger.error("Failed to delete shared rclone config '{}' after pushUserAsset for project {}.",
+							sharedRCloneConfig, projectId, e);
 				}
 			}
 		}
@@ -1833,7 +1840,9 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
 				+ roomId;
-		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
+		// Use rclone copy (not sync) - sync deletes local files missing on cloud,
+		// which wipes in-flight session-state mid-turn when cloud is empty.
+		centralStorageEngine.copyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
 	}
 
 	/**

@@ -207,12 +207,9 @@ public class Project implements IProject {
 
 		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if (this.isAsset) {
-			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(this.projectName,
-					this.projectId);
-			this.projectVersionFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder(this.projectName,
-					this.projectId);
-			this.projectAssetFolder = AssetUtility.getUserAssetAndWorkspaceAssetFolder(this.projectName,
-					this.projectId);
+			this.projectBaseFolder = AssetUtility.getUserAssetAppRootFolder(this.projectName, this.projectId);
+			this.projectVersionFolder = AssetUtility.getUserAssetVersionFolder(this.projectName, this.projectId);
+			this.projectAssetFolder = AssetUtility.getUserAssetFolder(this.projectName, this.projectId);
 		} else {
 			this.projectBaseFolder = AssetUtility.getProjectAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId);

@@ -37,10 +37,9 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class ToLowerCaseReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ToLowerCaseReactor.class);
 
 	@Override
@@ -55,7 +54,7 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
 				String columnName = input.getValue() + "";
-				
+
 				String table = frame.getName();
 				String column = columnName;
 				if (columnName.contains("__")) {
@@ -63,7 +62,7 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 					table = split[0];
 					column = split[1];
 				}
-				
+
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equals("STRING")) {
 					// execute update table set column = UPPER(column);
@@ -74,7 +73,8 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to convert selected columns to lowercase on frame {}", frame.getName(),
+							e);
 				}
 			}
 		}

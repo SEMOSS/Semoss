@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -95,7 +94,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		}
 		Logger logger = getLogger(CLASS_NAME);
 
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		this.code = this.curRow.get(0).toString();
 		int tokens = code.split("\\n").length;
 
 		return handlePyPlot(code);
@@ -206,8 +205,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			mimeType = Files.probeContentType(new File(seabornFile).toPath());
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to encode generated plot image file {}.", seabornFile, e);
 		}
 
 		new File(seabornFile).delete();
@@ -283,7 +281,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 
 		// delete the pivot later
 		if (bin.length() > 0) {
-			Vector<NounMetadata> retList = new Vector<>();
+			List<NounMetadata> retList = new ArrayList<>();
 			// can make panel id random moving forward
 			InsightPanel daPanel = insight.getInsightPanel(panelId);
 			// newWindow = daPanel != null;
@@ -304,7 +302,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			// return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET,
 			// PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		} else {
-			List<NounMetadata> outputs = new Vector<NounMetadata>(1);
+			List<NounMetadata> outputs = new ArrayList<NounMetadata>(1);
 			outputs.add(new NounMetadata(seabornFile, PixelDataType.CONST_STRING));
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}

@@ -78,6 +78,9 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
 			comment = "add: created directory " + filePath;

@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -88,9 +89,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(this.keysToGet[1]);
 		String toolId = this.keyValue.get(this.keysToGet[2]);
 		String toolName = this.keyValue.get(this.keysToGet[3]);
-		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
+		String toolResponseRaw = this.keyValue.get(this.keysToGet[4]);
 		if (toolResponseRaw == null) {
-			toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(tool_execution_response));
+			toolResponseRaw = this.keyValue.get(tool_execution_response);
 		}
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
@@ -136,8 +137,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+					RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
 					room.updateToolResponseMeta(lastMessage);
 				}

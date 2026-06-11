@@ -32,6 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.UnixDomainSocketAddress;
+import java.nio.channels.Channels;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -71,6 +74,7 @@ public class SocketClient implements Runnable, Closeable {
 	String HOST = null;
 	int PORT = -1;
 	boolean SSL = false;
+	String udsPath = null;
 
 	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
 	Map<String, PayloadStruct> responseMap = new ConcurrentHashMap<>();
@@ -89,6 +93,7 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, String> startMdc = null;
 
 	Socket clientSocket = null;
+	SocketChannel udsChannel = null;
 	SocketClientHandler sch = new SocketClientHandler();
 
 	volatile InputStream is = null;
@@ -120,6 +125,28 @@ public class SocketClient implements Runnable, Closeable {
 		this.SSL = SSL;
 	}
 
+	public void connectUds(final String udsPath) {
+		this.udsPath = udsPath;
+		this.SSL = false;
+	}
+
+	protected void openConnection() throws IOException {
+		if (this.udsPath != null) {
+			UnixDomainSocketAddress address = UnixDomainSocketAddress.of(this.udsPath);
+			this.udsChannel = SocketChannel.open(address);
+			this.is = Channels.newInputStream(this.udsChannel);
+			this.os = Channels.newOutputStream(this.udsChannel);
+		} else {
+			this.clientSocket = new Socket(this.HOST, this.PORT);
+			this.is = this.clientSocket.getInputStream();
+			this.os = this.clientSocket.getOutputStream();
+		}
+	}
+
+	protected String transportTarget() {
+		return this.udsPath != null ? ("unix:" + this.udsPath) : (this.HOST + ":" + this.PORT);
+	}
+
 	@Override
 	public void run() {
 		// Configure SSL.git
@@ -144,11 +171,7 @@ public class SocketClient implements Runnable, Closeable {
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 
-				clientSocket = new Socket(this.HOST, this.PORT);
-
-				// pick input and output stream and start the threads
-				this.is = clientSocket.getInputStream();
-				this.os = clientSocket.getOutputStream();
+				openConnection();
 				sch.setClient(this);
 				sch.setInputStream(this.is);
 
@@ -156,7 +179,7 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("CLIENT Connection complete !!!!!!!");
+				classLogger.info("Connected to socket server at {}", transportTarget());
 				Thread.sleep(100); // sleep some before executing command
 				// prime it
 				// logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -181,7 +204,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		if (attempt >= 6) {
-			classLogger.info("CLIENT Connection Failed !!!!!!!");
+			classLogger.error("Failed to connect to socket server at {} after {} attempts", transportTarget(), attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
@@ -293,31 +316,29 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping server", e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						// wait 1 minute at most
+						boolean result = future.get(60, TimeUnit.SECONDS);
+						classLogger.info("Stop PyServe result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
+						return false;
+					}
 				}
 			} else {
 				return true;
@@ -340,36 +361,34 @@ public class SocketClient implements Runnable, Closeable {
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-
-		Callable<String> callableTask = () -> {
-			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-					synchronized (ps) {
-						ps.notifyAll();
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			Callable<String> callableTask = () -> {
+				try {
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
+						ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+						synchronized (ps) {
+							ps.notifyAll();
+						}
 					}
+				} catch (Exception e) {
+					classLogger.error("Error releasing pending payload structs during crash", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error releasing pending payload structs during crash", e);
-			}
-			return "Successfully released the payload structs";
-		};
+				return "Successfully released the payload structs";
+			};
 
-		Future<String> future = executor.submit(callableTask);
-		try {
-			// wait 1 minute at most
-			String result = future.get(60, TimeUnit.SECONDS);
-			classLogger.info(result);
-		} catch (TimeoutException e) {
-			classLogger.warn("Not able to release the payload structs within a timely fashion");
-			future.cancel(true);
-		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error("Error waiting for crash cleanup to complete", e);
-		} finally {
-			executor.shutdown();
+			Future<String> future = executor.submit(callableTask);
+			try {
+				// wait 1 minute at most
+				String result = future.get(60, TimeUnit.SECONDS);
+				classLogger.info(result);
+			} catch (TimeoutException e) {
+				classLogger.warn("Not able to release the payload structs within a timely fashion");
+				future.cancel(true);
+			} catch (InterruptedException | ExecutionException e) {
+				classLogger.error("Error waiting for crash cleanup to complete", e);
+			}
 		}
 
 		this.close();
@@ -394,6 +413,7 @@ public class SocketClient implements Runnable, Closeable {
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
+		closeStream(this.udsChannel);
 		this.killAll = true;
 		this.connected = false;
 	}

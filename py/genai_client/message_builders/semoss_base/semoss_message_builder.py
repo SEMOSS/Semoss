@@ -69,14 +69,18 @@ class SEMOSSMessageBuilder:
                         )
 
                     elif p.get("type") == "TEXT":
-                        text_part = SEMOSSTextMessagePart(text=p.get("text"))
+                        text_part = SEMOSSTextMessagePart(
+                            text=p.get("text"),
+                            ui_text=p.get("uiText") or p.get("ui_text"),
+                        )
                         process_parts.append(text_part)
 
                     elif p.get("type") == "MEDIA":
                         media_part = self._parse_media_from_part_dict(p)
-                        process_parts.append(
-                            SEMOSSMediaMessagePart(media_info=media_part)
-                        )
+                        if media_part is not None:
+                            process_parts.append(
+                                SEMOSSMediaMessagePart(media_info=media_part)
+                            )
 
                     elif p.get("type") == "TOOL_CALL":
                         tc = p.get("toolCall") or p.get("tool_call")
@@ -89,18 +93,22 @@ class SEMOSSMessageBuilder:
                                 ),
                                 id=tc.get("id"),
                                 type="function",
-                                thought_signature=tc.get("thought_signature"),
+                                thought_signature=tc.get("thought_signature")
+                                or tc.get("thoughtSignature"),
+                                server_tool=tc.get("server_tool")
+                                or tc.get("serverTool"),
                             )
                         )
                         process_parts.append(tool_call_part)
 
                     elif p.get("type") == "TOOL_RESULT":
                         tr = p.get("toolResult") or p.get("tool_result")
+                        # SEMOSSToolExecution has AliasChoices on every field,
+                        # so model_validate maps both snake_case and camelCase
+                        # keys (id/toolCallId, tool_name/toolName, server_tool/serverTool, ...)
+                        # without duplicating the alias logic here.
                         tool_result_part = SEMOSSToolResultMessagePart(
-                            tool_result=SEMOSSToolExecution(
-                                id=tr.get("id") or tr.get("toolCallId"),
-                                output=tr.get("output"),
-                            )
+                            tool_result=SEMOSSToolExecution.model_validate(tr)
                         )
                         process_parts.append(tool_result_part)
 
@@ -138,16 +146,20 @@ class SEMOSSMessageBuilder:
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
                 tool_calls = []
                 for tool_resp in message["tool_responses"]:
-                    tool_calls.append(
-                        {
-                            "function": {
-                                "name": tool_resp["name"],
-                                "arguments": tool_resp.get("arguments", {}),
-                            },
-                            "id": str(tool_resp["id"]),
-                            "type": "function",
-                        }
-                    )
+                    tool_call_dict = {
+                        "function": {
+                            "name": tool_resp["name"],
+                            "arguments": tool_resp.get("arguments", {}),
+                        },
+                        "id": str(tool_resp["id"]),
+                        "type": "function",
+                    }
+                    # Preserve Vertex/Gemini extended-thinking signature (This is mostly for the agent harnesses for now)
+                    if tool_resp.get("thought_signature"):
+                        tool_call_dict["thought_signature"] = tool_resp[
+                            "thought_signature"
+                        ]
+                    tool_calls.append(tool_call_dict)
                 semoss_message.tool_calls = tool_calls
 
             if message_type == "INPUT_TOOL_EXEC":
@@ -178,7 +190,9 @@ class SEMOSSMessageBuilder:
         text_parts = []
         for part in parts:
             if isinstance(part, dict) and part.get("type") == "TEXT":
-                text = part.get("text") or part.get("uiText") or part.get("ui_text") or ""
+                text = (
+                    part.get("text") or part.get("uiText") or part.get("ui_text") or ""
+                )
                 if text:
                     text_parts.append(text)
         return "\n".join(text_parts) if text_parts else ""

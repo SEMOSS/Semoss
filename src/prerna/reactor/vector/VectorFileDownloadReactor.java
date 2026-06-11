@@ -51,7 +51,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -82,10 +81,10 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		try {
 			return getDownload(engineId, fileNames);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to process vector file download request: {}", e.getMessage(), e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to process vector file download request: {}", e.getMessage(), e);
 			throw new IllegalArgumentException(
 					"Error occurred attempting to download the files. Detailed message = " + e.getMessage());
 		}
@@ -110,8 +109,6 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 		List<String> warnings = new ArrayList<>();
 
-		FileOutputStream fos = null;
-		ZipOutputStream zos = null;
 		try {
 			if (fileNames.size() == 1) {
 				String filepath = vectorDbDocumentFilePath + DIR_SEPARATOR + fileNames.get(0);
@@ -124,43 +121,27 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 				Files.copy(fileToCheck, new File(outFilePath));
 			} else {
 				outFilePath = outputDir + DIR_SEPARATOR + engineNameAndId + "_files.zip";
-				fos = new FileOutputStream(outFilePath);
-				zos = new ZipOutputStream(fos);
-
-				int fileExistsCount = 0;
-				for (String fileName : fileNames) {
-					File filetozip = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
-					if (filetozip.exists()) {
-						ZipUtils.addToZipFile(filetozip, zos);
-						fileExistsCount++;
-					} else {
-						warnings.add(fileName);
+				try (FileOutputStream fos = new FileOutputStream(outFilePath);
+						ZipOutputStream zos = new ZipOutputStream(fos);) {
+					int fileExistsCount = 0;
+					for (String fileName : fileNames) {
+						File filetozip = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
+						if (filetozip.exists()) {
+							ZipUtils.addToZipFile(filetozip, zos);
+							fileExistsCount++;
+						} else {
+							warnings.add(fileName);
+						}
 					}
-				}
-				if (fileExistsCount == 0) {
-					throw new SemossPixelException(
-							"None of the files selected to download exist in the vector db to download");
+					if (fileExistsCount == 0) {
+						throw new SemossPixelException(
+								"None of the files selected to download exist in the vector db to download");
+					}
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to build vector file download package: {}", e.getMessage(), e);
 			throw e;
-		} finally {
-			try {
-				if (zos != null) {
-					zos.flush();
-					zos.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			try {
-				if (fos != null) {
-					fos.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 
 		InsightFile insightFile = new InsightFile();

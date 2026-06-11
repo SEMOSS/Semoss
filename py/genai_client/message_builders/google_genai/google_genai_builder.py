@@ -324,6 +324,7 @@ class GoogleGenAIMessageBuilder:
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
             top_k=kwargs.pop("top_k", None),
+            seed=kwargs.pop("seed", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             presence_penalty=kwargs.pop("presence_penalty", None),
             frequency_penalty=kwargs.pop("frequency_penalty", None),
@@ -384,6 +385,62 @@ class GoogleGenAIMessageBuilder:
         else:
             raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
 
+    _GOOGLE_SCHEMA_ALLOWED = {
+        "type", "format", "description", "default", "enum", "example",
+        "properties", "required", "items",
+        "min_items", "max_items", "minItems", "maxItems",
+        "min_length", "max_length", "minLength", "maxLength", "pattern",
+        "minimum", "maximum", "nullable",
+        "any_of", "anyOf", "property_ordering", "propertyOrdering",
+        "min_properties", "max_properties", "minProperties", "maxProperties",
+        "additional_properties", "additionalProperties",
+    }
+
+    def _sanitize_schema_for_google(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Sanitize a JSON Schema fragment so it conforms to the subset accepted by
+        google.genai.types.Schema. Translates numeric exclusiveMinimum/exclusiveMaximum
+        (JSON Schema Draft 2020-12) into Google's supported minimum/maximum, and drops
+        keywords Google's pydantic Schema model does not declare (which would otherwise
+        raise extra_forbidden).
+        """
+        if not isinstance(schema, dict):
+            return schema
+
+        excl_min = schema.get("exclusiveMinimum")
+        excl_max = schema.get("exclusiveMaximum")
+        is_int = schema.get("type") == "integer"
+
+        out: Dict[str, Any] = {}
+        for k, v in schema.items():
+            if k in ("exclusiveMinimum", "exclusiveMaximum"):
+                continue
+            if k == "title":
+                continue
+            if k not in self._GOOGLE_SCHEMA_ALLOWED:
+                continue
+            if k == "properties" and isinstance(v, dict):
+                out[k] = {
+                    pk: self._sanitize_schema_for_google(pv) for pk, pv in v.items()
+                }
+            elif k == "items" and isinstance(v, dict):
+                out[k] = self._sanitize_schema_for_google(v)
+            elif k in ("anyOf", "any_of") and isinstance(v, list):
+                out[k] = [self._sanitize_schema_for_google(s) for s in v]
+            else:
+                out[k] = v
+
+        if isinstance(excl_min, (int, float)) and not isinstance(excl_min, bool):
+            if is_int:
+                translated = int(excl_min) + 1
+                out["minimum"] = max(out["minimum"], translated) if "minimum" in out else translated
+        if isinstance(excl_max, (int, float)) and not isinstance(excl_max, bool):
+            if is_int:
+                translated = int(excl_max) - 1
+                out["maximum"] = min(out["maximum"], translated) if "maximum" in out else translated
+
+        return out
+
     def convert_mcp_to_google_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
         Convert MCP-formatted tools to Google GenAI function calling format.
@@ -395,20 +452,20 @@ class GoogleGenAIMessageBuilder:
         function_declarations = []
 
         for tool in mcp_tools:
+            input_schema = tool.get("inputSchema", {}) or {}
+            sanitized_properties = {
+                prop_name: self._sanitize_schema_for_google(prop_def)
+                for prop_name, prop_def in input_schema.get("properties", {}).items()
+            }
             function_declaration = {
                 "name": tool["name"],
                 "description": tool["description"],
                 "parameters": {
-                    "type": tool["inputSchema"]["type"],
-                    "properties": {},
-                    "required": tool["inputSchema"].get("required", []),
+                    "type": input_schema.get("type", "object"),
+                    "properties": sanitized_properties,
+                    "required": input_schema.get("required", []),
                 },
             }
-
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                function_declaration["parameters"]["properties"][prop_name] = {
-                    k: v for k, v in prop_def.items() if k != "title"
-                }
 
             function_declarations.append(function_declaration)
 

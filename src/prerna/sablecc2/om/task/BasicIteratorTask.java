@@ -49,7 +49,7 @@ import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -78,6 +78,7 @@ public class BasicIteratorTask extends AbstractTask {
 
 	private long collectLimit = -1;
 	private long collectCounter = 0;
+	private boolean returnRaw = false;
 
 	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
@@ -136,7 +137,7 @@ public class BasicIteratorTask extends AbstractTask {
 			try {
 				generateIterator();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to generate the iterator for the query struct", e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}
@@ -153,6 +154,10 @@ public class BasicIteratorTask extends AbstractTask {
 		return iterator.hasNext();
 	}
 
+	public void setReturnRaw(boolean returnRaw) {
+		this.returnRaw = returnRaw;
+	}
+
 	@Override
 	public IHeadersDataRow next() {
 		if (this.iterator == null) {
@@ -162,7 +167,11 @@ public class BasicIteratorTask extends AbstractTask {
 		if (this.collectLimit > -1) {
 			collectCounter++;
 		}
-		return iterator.next();
+		IHeadersDataRow row = iterator.next();
+		if (row != null) {
+			row.setRaw(this.returnRaw);
+		}
+		return row;
 	}
 
 	@Override
@@ -176,7 +185,7 @@ public class BasicIteratorTask extends AbstractTask {
 				try {
 					generateIterator();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to generate the iterator while resolving header types from the wrapper", e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}
@@ -197,7 +206,7 @@ public class BasicIteratorTask extends AbstractTask {
 				try {
 					generateIterator();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to generate the iterator while resolving header info from the wrapper", e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}
@@ -255,7 +264,7 @@ public class BasicIteratorTask extends AbstractTask {
 		try {
 			close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close the iterator while resetting the task", e);
 		}
 		if (this.qs != null) {
 			this.qs.setLimit(this.startLimit);
@@ -268,17 +277,15 @@ public class BasicIteratorTask extends AbstractTask {
 	private void generateIterator() throws Exception {
 		// I need a way here to see if this is already done as a iterator and if so take
 		// a copy of it
-		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if (qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE
-				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+		AbstractQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
+		if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			iterator = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), this.qs);
-		} else if (qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+		} else if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) this.qs);
-		} else if (qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs); // new
-																								// ExcelFileIterator((ExcelQueryStruct)
-																								// qs);
+		} else if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs);
 		} else {
 			ITableDataFrame frame = this.qs.getFrame();
 			frame.setLogger(classLogger);
@@ -409,8 +416,8 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 
 	private void setQsMetadata(SelectQueryStruct qs) {
-		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			this.grabFromWrapper = true;
 			setSortInfo(new ArrayList<Map<String, Object>>());
 			setFilterInfo(new GenRowFilters());

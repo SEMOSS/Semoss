@@ -198,15 +198,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 			step++;
 
-			// check if project id already exists in security db
-			if (SecurityProjectUtils.projectExists(projectId)) {
-				cleanUpFolders(randomTempUnzipF);
-				SemossPixelException exception = new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Project id already exists"));
-				exception.setContinueThreadOfExecution(false);
-				throw exception;
-			}
-
 			finalProjectFolderF = new File(Utility.normalizePath(
 					projectFolderPath + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)));
 			finalProjectSmssF = new File(Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
@@ -219,6 +210,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				// if yes, do you have access to update?
 				if (replace) {
 					if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
+						cleanUpFolders(randomTempUnzipF);
 						SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
 								"User is not an owner to replace the existing project with id = " + projectId));
 						exception.setContinueThreadOfExecution(false);
@@ -235,6 +227,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 						FileUtils.delete(finalProjectSmssF);
 					}
 				} else {
+					cleanUpFolders(randomTempUnzipF);
 					SemossPixelException exception = new SemossPixelException(
 							NounMetadata.getErrorNounMessage("Project id already exists"));
 					exception.setContinueThreadOfExecution(false);

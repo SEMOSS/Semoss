@@ -57,26 +57,37 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetFrameFilterStateReactor.class);
 
 	/**
+	 * <p>
 	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional
-	 * 4) offset <- optional 5) panel <- optional
-	 * 
-	 * This reactor returns the filter values that are filtered out i.e. these
-	 * would be values that are unchecked in a drop down selection
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- optional</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * This reactor returns the filter values that are filtered out i.e. these would
+	 * be values that are unchecked in a drop down selection
+	 * </p>
 	 */
 
 	public GetFrameFilterStateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey(),
-				DYNAMIC_KEY, OPTIONS_CACHE_KEY};
+				DYNAMIC_KEY, OPTIONS_CACHE_KEY };
 	}
 
 	@Override
@@ -113,20 +124,20 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			String panelId = panelGrs.get(0) + "";
 			panel = this.insight.getInsightPanel(panelId);
 		}
-		
+
 		boolean dynamic = false;
 		GenRowStruct dynamicGrs = this.store.getGenRowStruct(keysToGet[5]);
 		if (dynamicGrs != null && !dynamicGrs.isEmpty()) {
 			dynamic = Boolean.parseBoolean(dynamicGrs.get(0) + "");
 		}
-		
+
 		boolean optionsCache = false;
 		GenRowStruct optionsCacheGrs = this.store.getGenRowStruct(keysToGet[6]);
 		if (optionsCacheGrs != null && !optionsCacheGrs.isEmpty()) {
 			optionsCache = Boolean.parseBoolean(optionsCacheGrs.get(0) + "");
 		}
-		
-		if(dynamic && optionsCache) {
+
+		if (dynamic && optionsCache) {
 			throw new IllegalArgumentException("Cannot have dynamic filters with cached options");
 		}
 
@@ -135,13 +146,13 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 
 	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
 			int offset, boolean dynamic, boolean optionsCache, InsightPanel panel) {
-		
+
 		DataFrameTypeEnum frameType = dataframe.getFrameType();
 		ITableDataFrame queryFrame = dataframe;
-		if(optionsCache) {
+		if (optionsCache) {
 			String uKey = dataframe.getName() + tableCol;
 			ITableDataFrame cache = insight.getCachedFitlerModelFrame(uKey);
-			if(cache == null) {
+			if (cache == null) {
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(tableCol));
 				qs.setFrame(dataframe);
@@ -149,22 +160,25 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				try {
 					it = dataframe.query(qs);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to query source frame {} while preparing options cache for column {}.",
+							dataframe.getName(), tableCol, e);
 					throw new SemossPixelException(
-							new NounMetadata("Error occurred executing query before loading into frame", 
+							new NounMetadata("Error occurred executing query before loading into frame",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 				try {
 					cache = FrameFactory.getFrame(this.insight, frameType.getTypeAsString(), uKey);
 				} catch (Exception e) {
-					throw new IllegalArgumentException("Error occurred trying to create the cached options frame of type " + frameType, e);
+					throw new IllegalArgumentException(
+							"Error occurred trying to create the cached options frame of type " + frameType, e);
 				}
 				// insert the data for the new frame
 				IImporter importer = ImportFactory.getImporter(cache, qs, it);
 				try {
 					importer.insertData();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to populate cached options frame {} for source frame {} and column {}.",
+							uKey, dataframe.getName(), tableCol, e);
 					throw new SemossPixelException(e.getMessage());
 				}
 				// now store this
@@ -173,7 +187,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			// set the new dataframe reference to the cache
 			queryFrame = cache;
 		}
-		
+
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -201,7 +215,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		// get total count of options
 		SelectQueryStruct totalCountQS = new SelectQueryStruct();
 		totalCountQS.addSelector(uCountFunc);
-		
+
 		// if search add to totalCount
 		// add the filter word as a like filter
 		SimpleQueryFilter wFilter = null;
@@ -212,10 +226,10 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			totalCountQS.addExplicitFilter(wFilter);
 		}
-		if(dynamic) {
+		if (dynamic) {
 			totalCountQS.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
-		
+
 		int totalCount = 0;
 		IRawSelectWrapper totalCountIt = null;
 		try {
@@ -225,17 +239,19 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				totalCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve total distinct count for column {} in frame filter state.", tableCol,
+					e);
 		} finally {
-			if(totalCountIt != null) {
+			if (totalCountIt != null) {
 				try {
 					totalCountIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close total-count iterator for column {} in frame filter state.",
+							tableCol, e);
 				}
 			}
 		}
-		
+
 		retMap.put("totalCount", totalCount);
 
 		// set the base info in the query struct to collect values
@@ -245,11 +261,11 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
 		qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
-		
+
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
 			qs.addExplicitFilter(wFilter);
 		}
-		if(dynamic) {
+		if (dynamic) {
 			qs.mergeImplicitFilters(baseFiltersExcludeCol);
 		}
 		// grab all the values
@@ -262,13 +278,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				options.add(allValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve option values for column {} in frame filter state.", tableCol, e);
 		} finally {
-			if(allValuesIt != null) {
+			if (allValuesIt != null) {
 				try {
 					allValuesIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close options iterator for column {} in frame filter state.", tableCol,
+							e);
 				}
 			}
 		}
@@ -305,13 +322,14 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve selected values for column {} in frame filter state.", tableCol, e);
 		} finally {
-			if(unFilterValuesIt != null) {
+			if (unFilterValuesIt != null) {
 				try {
 					unFilterValuesIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close selected-values iterator for column {} in frame filter state.",
+							tableCol, e);
 				}
 			}
 		}
@@ -322,7 +340,7 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 		SelectQueryStruct selectedCountQS = new SelectQueryStruct();
 		selectedCountQS.addSelector(uCountFunc);
 		selectedCountQS.setExplicitFilters(baseFilters);
-		
+
 		int selectedCount = 0;
 		IRawSelectWrapper selectedCountIt = null;
 		try {
@@ -332,13 +350,15 @@ public class GetFrameFilterStateReactor extends AbstractFilterReactor {
 				selectedCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve selected distinct count for column {} in frame filter state.",
+					tableCol, e);
 		} finally {
-			if(selectedCountIt != null) {
+			if (selectedCountIt != null) {
 				try {
 					selectedCountIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close selected-count iterator for column {} in frame filter state.",
+							tableCol, e);
 				}
 			}
 		}
