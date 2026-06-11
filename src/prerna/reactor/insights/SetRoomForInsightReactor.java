@@ -45,7 +45,7 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
-
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();

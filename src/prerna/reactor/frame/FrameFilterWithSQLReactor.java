@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
@@ -79,7 +78,7 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			query = query.replace("\"", "\\\"");
 			// drop into sqlite the new name
 			String frameMaker = newFrameName + " = pd.read_sql(\"" + query + "\", " + sqlite + ")";
-			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
+			logger.info("Creating frame with query {} using script {}", query, frameMaker);
 			insight.getPyTranslator().runDirectPy(frameMaker);
 			// need to make the wrapper in this instance
 			insight.getPyTranslator().runScript(PandasSyntaxHelper
@@ -101,7 +100,7 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 		} else if (frame instanceof RDataTable) {
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			String frameMaker = newFrameName + " <- as.data.table(sqldf(\"" + query.replace("\"", "\\\"") + "\"))";
-			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
+			logger.info("Creating frame with query {} using script {}", query, frameMaker);
 			rt.runRAndReturnOutput("library(sqldf)");
 			rt.runR(frameMaker); // load the sql df
 			if (!oldFrameName.equalsIgnoreCase(frame.getOriginalName())) {
@@ -113,14 +112,16 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 			try {
 				((AbstractRdbmsFrame) frame).getBuilder().runQuery(sql);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Failed to create filtered frame table {} from query for source frame {}.", newFrameName,
+						oldFrameName, e);
 				throw new IllegalArgumentException("Unable to generate new frame from sql", e);
 			}
 			if (!oldFrameName.equalsIgnoreCase(frame.getOriginalName())) {
 				try {
 					((AbstractRdbmsFrame) frame).getBuilder().runQuery("DROP TABLE " + oldFrameName);
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to drop previous frame table {} after creating {}.", oldFrameName,
+							newFrameName, e);
 				}
 			}
 		} else if (frame instanceof NativeFrame) {

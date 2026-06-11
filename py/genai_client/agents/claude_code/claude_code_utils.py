@@ -214,7 +214,7 @@ def make_tool_result_event(msg: UserMessage) -> Optional[dict]:
 
 
 def make_result_event(msg: ResultMessage) -> dict:
-    """Envelope for a ResultMessage — emitted once at the end of a session.
+    """Envelope for a ResultMessage - emitted once at the end of a session.
     Surfaces subtype, error state, turn count, cost, and any error strings."""
     data: dict = {
         "subtype": msg.subtype,

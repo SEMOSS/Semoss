@@ -35,7 +35,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
@@ -51,7 +50,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(AdminExecQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminExecQueryReactor.class);
 
 	private NounMetadata qStruct = null;
 
@@ -76,7 +75,8 @@ public class AdminExecQueryReactor extends AbstractReactor {
 
 		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+					|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
 				if (engine == null) {
 					throw new NullPointerException("No engine passed in to execute the query");
@@ -111,11 +111,11 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 
-		logger.info("EXEC QUERY.... {}", query);
+		classLogger.info("EXEC QUERY.... {}", query);
 		try {
 			engine.insertData(query);
 		} catch (Exception e) {
-			logger.error("Unable to execute the admin database query.", e);
+			classLogger.error("Unable to execute the admin database query.", e);
 			String errorMessage = "An error occurred trying to execute the query in the database";
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				errorMessage += ": " + e.getMessage();

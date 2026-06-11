@@ -60,12 +60,11 @@ import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.gson.GsonUtility;
 
 public class NotebookHelper implements INotebookHelper {
 
-	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
+	private static final Logger classLogger = LogManager.getLogger(NotebookHelper.class);
 
 	private JsonObject blocksFileJson = null;
 
@@ -79,7 +78,7 @@ public class NotebookHelper implements INotebookHelper {
 		try {
 			this.blocksFileJson = blocksFileJson.getAsJsonObject();
 		} catch (IllegalStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to parse blocks file json as a JsonObject: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("The json is not of the valid format for this version.", e);
 		}
 	}
@@ -130,10 +129,10 @@ public class NotebookHelper implements INotebookHelper {
 		// otherwise, lets hope the order is correct from the notebook
 		// keyset list
 		Collection<String> notebookNames = null;
-		JsonObject blocksQueryMap = blocksFileJson.getAsJsonObject("queries");
+		JsonObject blocksNotebookMap = getNotebooksJson();
 		JsonArray executionOrder = blocksFileJson.getAsJsonArray("executionOrder");
 		if (executionOrder == null || executionOrder.isEmpty()) {
-			notebookNames = blocksQueryMap.keySet();
+			notebookNames = blocksNotebookMap.keySet();
 		} else {
 			notebookNames = new ArrayList<>();
 			for (JsonElement ele : executionOrder) {
@@ -143,7 +142,7 @@ public class NotebookHelper implements INotebookHelper {
 
 		for (String notebookName : notebookNames) {
 			// these are from the blocks json
-			JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
+			JsonObject blocksNotebook = blocksNotebookMap.getAsJsonObject(notebookName);
 			String notebookId = blocksNotebook.get("id").getAsString();
 
 			// store the final output for the notebook
@@ -218,7 +217,28 @@ public class NotebookHelper implements INotebookHelper {
 	}
 
 	/**
-	 * 
+	 * Return the map of notebooks from the blocks file. Prefers the
+	 * {@code notebooks} key; falls back to the legacy {@code queries} key when
+	 * {@code notebooks} is missing or empty. Always returns a non-null
+	 * {@link JsonObject} - an empty object when neither key is present - so callers
+	 * can iterate {@code keySet()} without a null check.
+	 *
+	 * @return the notebooks map, or an empty object if neither key is present
+	 */
+	private JsonObject getNotebooksJson() {
+		JsonObject notebooks = blocksFileJson.getAsJsonObject("notebooks");
+		if (notebooks != null && notebooks.size() > 0) {
+			return notebooks;
+		}
+		JsonObject queries = blocksFileJson.getAsJsonObject("queries");
+		if (queries != null) {
+			return queries;
+		}
+		return new JsonObject();
+	}
+
+	/**
+	 *
 	 * @param pixel
 	 * @param replacements
 	 * @return
@@ -407,7 +427,8 @@ public class NotebookHelper implements INotebookHelper {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write generated python functions to file '{}': {}", file.getAbsolutePath(),
+					e.getMessage(), e);
 		}
 		return cellIdToFunctionName;
 	}
@@ -416,7 +437,7 @@ public class NotebookHelper implements INotebookHelper {
 	public Map<String, String> transformNotebookToMcpDriver(String filePath, IModelEngine model, Insight insight) {
 		// we will go through every cell in the mcp_driver notebook
 		// and turn that into a function
-		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
+		JsonObject notebooks = getNotebooksJson();
 		JsonObject mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.MCP_NOTEBOOK_NAME);
 		if (mcpNotebookJson == null) {
 			// try legacy name
@@ -446,7 +467,7 @@ public class NotebookHelper implements INotebookHelper {
 			String cellId) {
 		// we will go through every cell in the mcp_driver notebook
 		// and turn that into a function
-		JsonObject notebooks = blocksFileJson.getAsJsonObject("queries");
+		JsonObject notebooks = getNotebooksJson();
 		JsonObject mcpNotebookJson = notebooks.getAsJsonObject(MCPUtility.MCP_NOTEBOOK_NAME);
 		if (mcpNotebookJson == null) {
 			// try legacy name

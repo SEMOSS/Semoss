@@ -40,7 +40,7 @@ public class TestEngineUtilities {
 
 	public static void setEngineMetadata(String engineId, Map<String, Object> metaMap) {
 		String addMetaPixel = ApiSemossTestUtils.buildPixelCall(SetEngineMetadataReactor.class,
-				ReactorKeysEnum.ENGINE.getKey(), engineId, "meta", metaMap, false,
+				ReactorKeysEnum.ENGINE.getKey(), engineId, "meta", metaMap,
 				ReactorKeysEnum.JSON_CLEANUP.getKey(), false);
 		NounMetadata metaPixelCall = ApiSemossTestUtils.processPixel(addMetaPixel);
 		assertTrue(Boolean.valueOf(metaPixelCall.getValue().toString()));

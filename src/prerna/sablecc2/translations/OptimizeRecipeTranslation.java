@@ -80,7 +80,7 @@ import prerna.util.insight.InsightUtility;
 public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 	// create logger
-	private static final Logger logger = LogManager.getLogger(OptimizeRecipeTranslation.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(OptimizeRecipeTranslation.class.getName());
 
 	// set of reactors that send back task data to visualize
 	private static Set<String> taskReactors = new HashSet<String>();
@@ -199,7 +199,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			// change to the unencoded version
 			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 			expressionMap.put(index, expression);
-			logger.info("Processing " + Utility.cleanLogString(expression) + "at index: " + index);
+			classLogger.info("Processing " + Utility.cleanLogString(expression) + "at index: " + index);
 			e.apply(this);
 			// if we made it through all reactors of the expression without ever hitting
 			// TaskOptions, go ahead and add the expression to expressionsToKeep
@@ -854,7 +854,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 								if (!expressionsToKeep.contains(origTaskIndex)) {
 									{
 										String keepExpression = expressionMap.get(origTaskIndex);
-										logger.info("Optimize recipe saving recipe step = " + keepExpression);
+										classLogger.info("Optimize recipe saving recipe step = " + keepExpression);
 									}
 									expressionsToKeep.add(origTaskIndex);
 
@@ -878,7 +878,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				int lastExpressionIndex = expressionsForLayer.get(expressionsForLayer.size() - 1);
 				{
 					String keepExpression = expressionMap.get(lastExpressionIndex);
-					logger.info("Optimize recipe saving recipe step = " + keepExpression);
+					classLogger.info("Optimize recipe saving recipe step = " + keepExpression);
 				}
 				expressionsToKeep.add(lastExpressionIndex);
 
@@ -894,7 +894,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 						if (ornamentIndex > lastExpressionIndex) {
 							{
 								String keepExpression = expressionMap.get(ornamentIndex);
-								logger.info("Optimize recipe saving recipe step = " + keepExpression);
+								classLogger.info("Optimize recipe saving recipe step = " + keepExpression);
 							}
 							expressionsToKeep.add(ornamentIndex);
 						}

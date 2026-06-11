@@ -45,7 +45,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 @Deprecated
 public class GetRoomMessages2Reactor extends AbstractReactor {
 	@SuppressWarnings("unused")
-	private static final Logger logger = LogManager.getLogger(GetRoomMessages2Reactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetRoomMessages2Reactor.class);
 
     public GetRoomMessages2Reactor() {
         this.keysToGet = new String[] {"roomId","limit","offset","sort"};

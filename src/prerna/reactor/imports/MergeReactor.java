@@ -51,7 +51,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -72,7 +71,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.util.Constants;
 
 public class MergeReactor extends AbstractReactor {
 
@@ -89,8 +87,8 @@ public class MergeReactor extends AbstractReactor {
 		SelectQueryStruct qs = getQueryStruct();
 		if (qs != null) {
 			AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
-			if ((type == QUERY_STRUCT_TYPE.FRAME || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY)
-					&& qs.getFrame() == null) {
+			if ((type == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME
+					|| type == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) && qs.getFrame() == null) {
 				qs.setFrame(frame);
 			}
 		}
@@ -115,7 +113,7 @@ public class MergeReactor extends AbstractReactor {
 			try {
 				mergeFrame = mergeNative(curFrame, frame, qs, joins);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to merge data into the native frame", e);
 				throw new SemossPixelException(e.getMessage(), e);
 			}
 		}
@@ -125,7 +123,7 @@ public class MergeReactor extends AbstractReactor {
 				try {
 					mergeFrame = mergeFromQs(frame, qs, joins);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to merge data from the query struct into the frame", e);
 					throw new SemossPixelException(e.getMessage(), e);
 				}
 			} else {
@@ -134,13 +132,13 @@ public class MergeReactor extends AbstractReactor {
 					try {
 						mergeFrame = mergeFromTask(frame, task, joins);
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to merge data from the task into the frame", e);
 						throw new SemossPixelException(e.getMessage(), e);
 					} finally {
 						try {
 							task.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close the task after merging into the frame", e);
 						}
 					}
 				} else {
@@ -318,7 +316,9 @@ public class MergeReactor extends AbstractReactor {
 							qs.addImplicitFilter(
 									SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 						} catch (Exception e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to query existing frame values to build the join filter on column {}",
+									leftColumnJoin, e);
 							throw new IllegalArgumentException(
 									"Trying to merge on a column that does not exist within the frame!");
 						}
@@ -359,9 +359,9 @@ public class MergeReactor extends AbstractReactor {
 			// this only happens for native frame
 			frame = importer.mergeData(joins);
 
-			if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 				storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
-			} else if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 				storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 			}
 
@@ -371,7 +371,7 @@ public class MergeReactor extends AbstractReactor {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the iterator after merging into the frame", e);
 				}
 			}
 		}

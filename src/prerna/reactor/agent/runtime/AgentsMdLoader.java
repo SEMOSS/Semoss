@@ -35,71 +35,57 @@ import java.nio.file.Files;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.util.Utility;
-
 /**
- * Discovers and reads the nearest {@code AGENTS.md} or {@code CLAUDE.md} by walking
- * up from a starting directory toward the SEMOSS base folder.
+ * Reads {@code AGENTS.md} or {@code CLAUDE.md} from the agent's working directory.
  *
- * <p>Used by {@link SemossAgentHarness} to inject workspace context into the system prompt.
+ * <p><b>Never walks up.</b> The earlier walk-up implementation leaked unrelated
+ * repo-level instructions (e.g. {@code Semoss/CLAUDE.md}) into every run when
+ * {@code SEMOSS_BASE_FOLDER} lived inside the source tree. We now only look at
+ * the working dir itself.
+ *
+ * <p>Used by {@link prerna.reactor.agent.config.AgentConfigLoader} to inject
+ * workspace context into the system prompt.
  */
-class AgentsMdLoader {
+public class AgentsMdLoader {
 
     private static final Logger logger = LogManager.getLogger(AgentsMdLoader.class);
 
-    static final String[] NAMES = { "AGENTS.md", "CLAUDE.md" };
-    static final int MAX_WALK_DEPTH = 10;
-    static final int MAX_BYTES = 100 * 1024;
+    public static final String[] NAMES = { "AGENTS.md", "CLAUDE.md" };
+    public static final int MAX_BYTES = 100 * 1024;
 
     private AgentsMdLoader() {}
 
     /**
-     * Walk up from {@code startPath} looking for {@code AGENTS.md} then {@code CLAUDE.md}
-     * at each directory level. Returns the content of the first file found, or {@code null}.
+     * Look for {@code AGENTS.md} then {@code CLAUDE.md} at {@code workingDir} itself.
+     * Returns the content of the first file found, or {@code null}.
      *
-     * <p>Stops at the SEMOSS base folder, the filesystem root, or after {@value #MAX_WALK_DEPTH}
-     * levels — whichever comes first.
+     * <p>No directory traversal. Drop the doc at the root of your workingDir.
      */
-    static String discover(String startPath) {
-        if (startPath == null || startPath.isBlank()) {
+    public static String discover(String workingDir) {
+        if (workingDir == null || workingDir.isBlank()) {
             return null;
         }
 
-        File dir = new File(startPath).getAbsoluteFile();
-        if (!dir.isDirectory()) {
-            dir = dir.getParentFile();
-        }
-        if (dir == null || !dir.exists()) {
+        File dir = new File(workingDir).getAbsoluteFile();
+        if (!dir.isDirectory() || !dir.exists()) {
+            logger.debug("AgentsMdLoader: workingDir is not a directory: {}", workingDir);
             return null;
         }
 
-        String baseFolder = resolveBaseFolder();
-
-        for (int depth = 0; depth < MAX_WALK_DEPTH && dir != null; depth++) {
-            for (String name : NAMES) {
-                File candidate = new File(dir, name);
-                if (candidate.isFile()) {
-                    String content = tryRead(candidate);
-                    if (content != null) {
-                        logger.info("AgentsMdLoader: loaded {} ({} chars) at depth={}",
-                                candidate.getAbsolutePath(), content.length(), depth);
-                        return content;
-                    }
+        for (String name : NAMES) {
+            File candidate = new File(dir, name);
+            if (candidate.isFile()) {
+                String content = tryRead(candidate);
+                if (content != null) {
+                    logger.info("AgentsMdLoader: loaded {} ({} chars)",
+                            candidate.getAbsolutePath(), content.length());
+                    return content;
                 }
             }
-
-            if (baseFolder != null && dir.getAbsolutePath().equals(baseFolder)) {
-                break;
-            }
-
-            File parent = dir.getParentFile();
-            if (parent == null || parent.equals(dir)) {
-                break;
-            }
-            dir = parent;
         }
 
-        logger.debug("AgentsMdLoader: no AGENTS.md or CLAUDE.md found under startPath={}", startPath);
+        logger.debug("AgentsMdLoader: no AGENTS.md or CLAUDE.md at workingDir={}",
+                dir.getAbsolutePath());
         return null;
     }
 
@@ -116,15 +102,5 @@ class AgentsMdLoader {
             logger.warn("AgentsMdLoader: could not read {}: {}", f.getAbsolutePath(), e.getMessage());
             return null;
         }
-    }
-
-    private static String resolveBaseFolder() {
-        try {
-            String base = Utility.getBaseFolder();
-            if (base != null && !base.isBlank()) {
-                return new File(base).getAbsolutePath();
-            }
-        } catch (Exception ignored) {}
-        return null;
     }
 }

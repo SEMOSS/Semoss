@@ -36,27 +36,28 @@ import prerna.util.Utility;
 
 public class UserTrackingFactory {
 
-	private static final Logger logger = LogManager.getLogger(UserTrackingFactory.class);
-	
+	private static final Logger classLogger = LogManager.getLogger(UserTrackingFactory.class);
+
 	private UserTrackingFactory() {
-		
+
 	}
-	
+
 	public static IUserTracking getUserTrackingConnector() {
 		if (!Utility.isUserTrackingEnabled()) {
 			return null;
 		}
 
 		String method = Utility.getUserTrackingMethod();
-		if(method == null) {
-			logger.warn("User Tracking is enabled but could not find key for method ('" + Constants.USER_TRACKING_METHOD + "')");
+		if (method == null) {
+			classLogger.warn("User Tracking is enabled but could not find key for method ('"
+					+ Constants.USER_TRACKING_METHOD + "')");
 			return null;
 		}
-		
+
 		if (method.equalsIgnoreCase(IUserTracking.GEO_IP2)) {
 			return Geoip2UserTrackingUtils.getInstance();
 		} else {
-			logger.warn("User Tracking is enabled but could not find type for input = '" + method + "'");
+			classLogger.warn("User Tracking is enabled but could not find type for input = '" + method + "'");
 			return null;
 		}
 	}

@@ -53,7 +53,7 @@ public class DeleteAppSkillReactor extends AbstractReactor {
 		String skillName = this.keyValue.get("skillName");
 
 		User user = this.insight.getUser();
-		Boolean response = AppBuildingHarness.deleteSkill(user, projectId, skillName);
+		Boolean response = AppBuilderHarnessConfiguration.deleteSkill(user, projectId, skillName);
 		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 }

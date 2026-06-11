@@ -909,6 +909,8 @@ class OpenAIMessageBuilder:
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         param_map.pop("chat_type", None)
+        # Removing client-specific metadata not accepted by the Responses API
+        param_map.pop("client_metadata", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
@@ -1161,7 +1163,7 @@ class OpenAIMessageBuilder:
     # ) -> List[dict]:
     #     """
     #     Returns a ChatML history whose **total** token count
-    #     is ≤ safe_window.
+    #     is <= safe_window.
     #     Oldest non-system messages are dropped first; when only
     #     one message needs trimming we cut tokens from its *start*.
     #     """

@@ -123,8 +123,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				String newId = newUser.getId();
 
 				// this user was added by the user and we need to update
-				String salt = SecurityQueryUtils.generateSalt();
-				String hashedPassword = (SecurityQueryUtils.hash(password, salt));
+				String salt = AbstractSecurityUtils.generateSalt();
+				String hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
@@ -738,8 +738,8 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		validPassword(userId, AuthProvider.NATIVE, password);
 
 		// validate the new password to run the edit logic
-		String salt = SecurityQueryUtils.generateSalt();
-		String hashPassword = SecurityQueryUtils.hash(password, salt);
+		String salt = AbstractSecurityUtils.generateSalt();
+		String hashPassword = AbstractSecurityUtils.hash(password, salt);
 		String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=?";
 		PreparedStatement ps = null;
 		try {

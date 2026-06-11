@@ -245,7 +245,7 @@ class ClusterUtilUnitTests {
         @Test void testPullUserAsset_alreadyLoaded() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p", true)); }
     }
 
-    // ── Helpers for modifying static final fields ──────────────────────────
+    // -- Helpers for modifying static final fields --------------------------
 
     private static Unsafe getUnsafe() throws Exception {
         Field f = Unsafe.class.getDeclaredField("theUnsafe");
@@ -261,7 +261,7 @@ class ClusterUtilUnitTests {
         unsafe.putBoolean(base, offset, value);
     }
 
-    // ── IS_CLUSTER=true delegation tests ───────────────────────────────────
+    // -- IS_CLUSTER=true delegation tests -----------------------------------
 
     @Nested
     class ClusteredDelegationTests {
@@ -649,7 +649,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── Error path tests (CCS throws → SemossPixelException) ───────────────
+    // -- Error path tests (CCS throws -> SemossPixelException) ---------------
 
     @Nested
     class ClusteredErrorTests {
@@ -1017,7 +1017,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── ZK synchronizer tests ──────────────────────────────────────────────
+    // -- ZK synchronizer tests ----------------------------------------------
 
     @Nested
     class ZkSynchronizerTests {
@@ -1355,7 +1355,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── IProject folder overload tests ─────────────────────────────────────
+    // -- IProject folder overload tests -------------------------------------
 
     @Nested
     class ProjectFolderOverloadTests {
@@ -1399,7 +1399,7 @@ class ClusterUtilUnitTests {
                   .thenReturn(projHome);
 
                 String absPath = tempDir.resolve("base").toString();
-                // relativePath is "extra" — will be appended with separator
+                // relativePath is "extra" - will be appended with separator
                 String separator = java.nio.file.FileSystems.getDefault().getSeparator();
                 String expectedAbs = absPath + separator + "extra";
                 ClusterUtil.pushProjectFolder(project, absPath, "extra");
@@ -1558,7 +1558,7 @@ class ClusterUtilUnitTests {
                   .thenReturn(projHome);
 
                 String absPath = tempDir.resolve("sub2").toString();
-                // empty relative → treated as null-like (trimmed to empty → skipped)
+                // empty relative -> treated as null-like (trimmed to empty -> skipped)
                 ClusterUtil.pushProjectFolder(project, absPath, "  ");
 
                 verify(mockStorage).pushProjectFolder(eq("pid6"), eq(absPath), eq("sub2"));
@@ -1582,7 +1582,7 @@ class ClusterUtilUnitTests {
 
                 String separator = java.nio.file.FileSystems.getDefault().getSeparator();
                 String absPath = tempDir.resolve("folder").toString() + separator;
-                // abs ends with separator → relativePath appended directly
+                // abs ends with separator -> relativePath appended directly
                 ClusterUtil.pushProjectFolder(project, absPath, "deeper");
 
                 verify(mockStorage).pushProjectFolder(eq("pid7"), eq(absPath + "deeper"), anyString());
@@ -1590,7 +1590,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── isSchedulerExecutor tests (IS_CLUSTER=true paths) ────────────────
+    // -- isSchedulerExecutor tests (IS_CLUSTER=true paths) ----------------
 
     @Nested
     class IsSchedulerExecutorTests {
@@ -1616,13 +1616,13 @@ class ClusterUtilUnitTests {
         @Test void isCluster_diPropertyEmpty_fallsToEnvCheck() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<Utility> util = mockStatic(Utility.class)) {
-                // DI property returns empty → falls through to env check
+                // DI property returns empty -> falls through to env check
                 util.when(() -> Utility.getDIHelperProperty("SCHEDULER_EXECUTOR"))
                     .thenReturn("");
                 // env var won't be set (no SCHEDULER_EXECUTOR env), so falls to ZK
                 // We can't easily test the ZK path, but we test the branching logic
                 // The SchedulerListener.getListener().isZKLeader() will be called
-                // which will fail → just verify the DI empty branch triggers
+                // which will fail -> just verify the DI empty branch triggers
                 try (MockedStatic<SchedulerListener> sl = mockStatic(SchedulerListener.class)) {
                     SchedulerListener mockListener = mock(SchedulerListener.class);
                     sl.when(SchedulerListener::getListener).thenReturn(mockListener);
@@ -1646,7 +1646,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── IEngine folder overload tests ──────────────────────────────────────
+    // -- IEngine folder overload tests --------------------------------------
 
     @Nested
     class EngineFolderOverloadTests {
@@ -1840,7 +1840,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── getEngineAndProjectImage tests ─────────────────────────────────────
+    // -- getEngineAndProjectImage tests -------------------------------------
 
     @Nested
     class GetEngineAndProjectImageTests {
@@ -1947,7 +1947,7 @@ class ClusterUtilUnitTests {
         }
     }
 
-    // ── getCentralStorageClient / getClusterSynchronizer tests ─────────────
+    // -- getCentralStorageClient / getClusterSynchronizer tests -------------
 
     @Nested
     class StaticAccessorTests {

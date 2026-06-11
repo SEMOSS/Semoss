@@ -37,7 +37,7 @@ public class PayloadStruct implements Serializable {
 	public String epoc = null;
 
 	public enum OPERATION {
-		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED
+		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED, LOG
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R
@@ -87,6 +87,15 @@ public class PayloadStruct implements Serializable {
 
 	// set the job id
 	public String jobId = null;
+
+	/**
+	 * When true, the python server must NOT install the per-execution cancel trace
+	 * (sys.settrace) for this command. Engine-owned python processes never surface
+	 * their jobId / insightId to the user, so their executions can never be
+	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
+	 * import-heavy init / ask scripts.
+	 */
+	public boolean disableCancelTrace = false;
 
 	// set the session id
 	public String sessionId = null;

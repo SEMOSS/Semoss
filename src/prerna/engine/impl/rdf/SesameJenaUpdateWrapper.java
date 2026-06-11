@@ -26,74 +26,88 @@
  * 	GNU General Public License for more details.
  *******************************************************************************/
 package prerna.engine.impl.rdf;
-import prerna.util.Constants;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.util.Constants;
 
 /**
- * Insert and delete queries.  This will set the graph query result for the sesame.
+ * Insert and delete queries. This will set the graph query result for the
+ * sesame.
  */
 @Deprecated
 public class SesameJenaUpdateWrapper {
+	@Deprecated
 	GraphQueryResult gqr = null;
-	
-	org.apache.jena.rdf.model.Model model = null;	
-	org.apache.jena.rdf.model.StmtIterator si = null;	
+
+	@Deprecated
+	org.apache.jena.rdf.model.Model model = null;
+	@Deprecated
+	org.apache.jena.rdf.model.StmtIterator si = null;
+	@Deprecated
 	org.apache.jena.rdf.model.Statement curSt = null;
 
+	@Deprecated
 	IDatabaseEngine engine = null;
+	@Deprecated
 	IDatabaseEngine.DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;
+	@Deprecated
 	String query = null;
-	
-	static final Logger logger = LogManager.getLogger(SesameJenaUpdateWrapper.class.getName());
-	
+
+	@Deprecated
+	static final Logger classLogger = LogManager.getLogger(SesameJenaUpdateWrapper.class.getName());
+
 	/**
-	 * Method setGqr.  Sets the graph query result to the active graph query result.
+	 * Method setGqr. Sets the graph query result to the active graph query result.
+	 * 
 	 * @param gqr GraphQueryResult
 	 */
-	public void setGqr(GraphQueryResult gqr)
-	{
+	@Deprecated
+	public void setGqr(GraphQueryResult gqr) {
 		this.gqr = gqr;
 	}
-	
+
 	/**
 	 * Method setEngine. Sets the engine.
+	 * 
 	 * @param engine IDatabase - The engine that this is being set to.
 	 */
-	public void setEngine(IDatabaseEngine engine)
-	{
+	@Deprecated
+	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
 		engineType = engine.getDatabaseType();
 	}
-	
+
 	/**
 	 * Method setQuery. - Sets the SPARQL query statement.
+	 * 
 	 * @param query String - The string version of the SPARQL query.
 	 */
-	public void setQuery(String query)
-	{
+	@Deprecated
+	public void setQuery(String query) {
 		this.query = query;
 	}
-	
+
 	/**
-	 * Method execute.  Executes the SPARQL query based on the type of engine selected.
-	
-	 * @return boolean - True if inserting the query is a success.*/
-	public boolean execute()
-	{
+	 * Method execute. Executes the SPARQL query based on the type of engine
+	 * selected.
+	 * 
+	 * @return boolean - True if inserting the query is a success.
+	 */
+	@Deprecated
+	public boolean execute() {
 		boolean success = true;
 		try {
 			engine.insertData(query);
 		} catch (Exception e) {
 			success = false;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return success;
 	}
-	
 
 }

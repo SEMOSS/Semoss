@@ -53,25 +53,33 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelVisibleValuesReactor.class);
 
 	/**
+	 * <p>
 	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required
-	 * 2) filterWord <- optional
-	 * 3) limit <- optional
-	 * 4) offset <- optional
-	 * 5) panel <- optional
-	 * 
-	 * This reactor returns the visible values for a column
-	 * i.e. these would be values that are checked in a drop down selection
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- optional</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * This reactor returns the visible values for a column i.e. these would be
+	 * values that are checked in a drop down selection
+	 * </p>
 	 */
-	
+
 	public FrameFilterModelVisibleValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
@@ -114,7 +122,8 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, panel);
 	}
 
-	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit, int offset, InsightPanel panel) {
+	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
+			int offset, InsightPanel panel) {
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -144,12 +153,12 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			baseFilters.addFilters(wFilter);
 		}
-		
+
 		// figure out the visible values
 		List<Object> frameValues = new ArrayList<Object>();
 		// this is just the values of the column given the current filters
 		qs.setExplicitFilters(baseFilters);
-		
+
 		// now run and flush out the values
 		IRawSelectWrapper unFilterValuesIt = null;
 		try {
@@ -158,18 +167,19 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				frameValues.add(unFilterValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to retrieve visible values for column {} in frame filter model.", tableCol, e1);
 		} finally {
-			if(unFilterValuesIt != null) {
+			if (unFilterValuesIt != null) {
 				try {
 					unFilterValuesIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close visible-values iterator for column {} in frame filter model.",
+							tableCol, e);
 				}
 			}
 		}
 		retMap.put("unfilterValues", frameValues);
-		
+
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
 		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
@@ -183,7 +193,7 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
+
 			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 
@@ -194,13 +204,15 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMin", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -210,13 +222,15 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMax", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -228,13 +242,15 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				it = dataframe.query(mathQS);
 				minMaxMap.put("max", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -244,13 +260,15 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 				it = dataframe.query(mathQS);
 				minMaxMap.put("min", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}

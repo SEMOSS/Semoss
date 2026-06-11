@@ -23,6 +23,7 @@ from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
+from .google_video_client import GoogleGenAiVideoClient
 
 
 class UsageMetadata(BaseModel):
@@ -66,7 +67,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             api_key=api_key,
             base_url=base_url,
         )
-        self.client = GoogleClient(config=self.client_config).client
+        self.google_client = GoogleClient(config=self.client_config).client
+        self.video_client = GoogleGenAiVideoClient(parent_client=self)
 
         self.safety_settings = safety_settings
 
@@ -78,7 +80,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prefix="",
         **kwargs,
     ):
-        if self.client is None:
+        if self.google_client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
         if (
@@ -103,6 +105,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         try:
             semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
+
+            if self.model_settings.model_type == "video":
+                return self.video_client.ask_call(semoss_messages=semoss_messages)
 
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(
@@ -233,17 +238,22 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         tools_result = []
 
         parts_with_fc = []
+        # preamble text the model emitted alongside the function_calls
+        preamble_text = ""
         if (
             hasattr(response, "candidates")
             and response.candidates
             and hasattr(response.candidates[0], "content")
             and getattr(response.candidates[0].content, "parts", None)
         ):
-            parts_with_fc = [
-                p
-                for p in response.candidates[0].content.parts
-                if getattr(p, "function_call", None) is not None
-            ]
+            for p in response.candidates[0].content.parts:
+                if getattr(p, "function_call", None) is not None:
+                    parts_with_fc.append(p)
+                elif (
+                    getattr(p, "text", None)
+                    and not getattr(p, "thought", False)
+                ):
+                    preamble_text += p.text
 
         for i, function_call in enumerate(response.function_calls):
             function_id = function_call.id or str(uuid.uuid4())
@@ -261,6 +271,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
             tools_result.append(tool_entry)
 
+        text_parts = (
+            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        )
+
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
@@ -270,7 +284,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _handle_streaming(
@@ -294,7 +309,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         latest_usage_metadata = None
         tool_result = []
 
-        stream = self.client.models.generate_content_stream(
+        stream = self.google_client.models.generate_content_stream(
             model=self.model_name, contents=contents, config=config
         )
 
@@ -435,7 +450,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if latest_usage_metadata is not None:
             if getattr(latest_usage_metadata, "prompt_token_count", None) is not None:
                 input_tokens = latest_usage_metadata.prompt_token_count
-            if getattr(latest_usage_metadata, "candidates_token_count", None) is not None:
+            if (
+                getattr(latest_usage_metadata, "candidates_token_count", None)
+                is not None
+            ):
                 output_tokens = latest_usage_metadata.candidates_token_count
             cache_read_tokens = getattr(
                 latest_usage_metadata, "cached_content_token_count", None
@@ -489,6 +507,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             parts = []
             if thinking_response:
                 parts.append({"type": "THINKING", "thinking": thinking_response})
+            # preamble text the model emitted alongside the function_calls
+            if final_response:
+                parts.append({"type": "TEXT", "text": final_response})
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "media_info": media_info})
             parts.extend([{"type": "TOOL_CALL", "tool_call": t} for t in tool_result])
@@ -542,7 +563,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
-            response = self.client.models.count_tokens(
+            response = self.google_client.models.count_tokens(
                 model=self.model_name,
                 contents=contents,
             )

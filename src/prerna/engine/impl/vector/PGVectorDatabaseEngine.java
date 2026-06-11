@@ -141,7 +141,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
 	// maintain details in the log database
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -563,7 +562,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			classLogger.error("Failed to insert embedding row into table: " + this.vectorTableName, e);
 			throw e;
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
 	}
 
@@ -1008,7 +1007,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyTranslator.runEmptyPy(commands);
+			pyTranslator.runEmptyPyNoCancelTrace(commands);
 
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
@@ -1212,7 +1211,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 								.append(tokenOverlapBetweenChunks).append(", chunking_strategy = ")
 								.append(chunkingStrategy).append(", cfg_tokenizer = cfg_tokenizer)");
 
-						pyTranslator.runScript(splitTextCommand.toString());
+						pyTranslator.runScriptNoCancelTrace(splitTextCommand.toString());
 					}
 
 					extractedFiles.add(extractedFile);

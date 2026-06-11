@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.auth.utils.reactors.admin;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -55,7 +55,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
@@ -121,7 +120,7 @@ public class AdminExecQueryReactorUnitTests {
 //			
 //			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 //			
-//			qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
+//			qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY;
 //
 //			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 //			assertEquals("Input to admin exec query requires a query struct on an engine", e.getMessage());
@@ -159,8 +158,8 @@ public class AdminExecQueryReactorUnitTests {
 	}
 
 	@ParameterizedTest
-	@EnumSource(value = QUERY_STRUCT_TYPE.class, names = { "ENGINE", "RAW_ENGINE_QUERY" })
-	void testQueryStructNoEngine(QUERY_STRUCT_TYPE qsType) {
+	@EnumSource(value = AbstractQueryStruct.QUERY_STRUCT_TYPE.class, names = { "ENGINE", "RAW_ENGINE_QUERY" })
+	void testQueryStructNoEngine(AbstractQueryStruct.QUERY_STRUCT_TYPE qsType) {
 		NounStore ns = mock(NounStore.class);
 		reactor.setNounStore(ns);
 		GenRowStruct grs = mock(GenRowStruct.class);
@@ -186,21 +185,23 @@ public class AdminExecQueryReactorUnitTests {
 	static Stream<Arguments> notRdbmsOrRdfDb() {
 		return Stream.of(
 				// Examples of invalids
-				arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.TINKER));
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY,
+						IDatabaseEngine.DATABASE_TYPE.TINKER));
 	}
 
 	static Stream<Arguments> RdbmsOrRdfDb() {
-		return Stream.of(arguments(QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.RDBMS),
-				arguments(QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.SESAME),
-				arguments(QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.JENA),
-				arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.RDBMS),
-				arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.SESAME),
-				arguments(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.JENA));
+		return Stream.of(arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.RDBMS),
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.SESAME),
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, IDatabaseEngine.DATABASE_TYPE.JENA),
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.RDBMS),
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.SESAME),
+				arguments(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, IDatabaseEngine.DATABASE_TYPE.JENA));
 	}
 
 	@ParameterizedTest
 	@MethodSource("notRdbmsOrRdfDb")
-	void testDatabaseIsNotRDBMSOrRDF(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+	void testDatabaseIsNotRDBMSOrRDF(AbstractQueryStruct.QUERY_STRUCT_TYPE qsType,
+			IDatabaseEngine.DATABASE_TYPE dbType) {
 		NounStore ns = mock(NounStore.class);
 		reactor.setNounStore(ns);
 		GenRowStruct grs = mock(GenRowStruct.class);
@@ -227,7 +228,7 @@ public class AdminExecQueryReactorUnitTests {
 	}
 
 //	@Test
-//	void testNullInsertDataIntoEngine(QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
+//	void testNullInsertDataIntoEngine(AbstractQueryStruct.QUERY_STRUCT_TYPE qsType, IDatabaseEngine.DATABASE_TYPE dbType) {
 //		NounStore ns = mock(NounStore.class);
 //		reactor.setNounStore(ns);
 //		GenRowStruct grs = mock(GenRowStruct.class);
@@ -237,7 +238,7 @@ public class AdminExecQueryReactorUnitTests {
 //		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 //		when(grs.getNoun(0)).thenReturn(nm);
 //
-//		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+//		when(qs.getQsType()).thenReturn(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 //		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
 //		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 //		
@@ -273,7 +274,7 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.getQsType()).thenReturn(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
 		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 
@@ -308,7 +309,7 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.getQsType()).thenReturn(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
 		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 
@@ -354,7 +355,7 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.getQsType()).thenReturn(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
 		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 
@@ -399,7 +400,7 @@ public class AdminExecQueryReactorUnitTests {
 		NounMetadata nm = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		when(grs.getNoun(0)).thenReturn(nm);
 
-		when(qs.getQsType()).thenReturn(QUERY_STRUCT_TYPE.ENGINE);
+		when(qs.getQsType()).thenReturn(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		when(qs.retrieveQueryStructEngine()).thenReturn(engine);
 		when(engine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.RDBMS);
 
