@@ -41,7 +41,6 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -184,6 +183,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					}
 				}
 
+				// when we convert from fullPrompt to semoss message structure
+				// inputMessage in the method is not the same as the message array of the room
+				// so update to the last message of the array
+				inputMessage = room.getMessages().getLast();
+
 				fullPrompt = MessageUtils.toJsonArray(room.getMessages());
 				question = MessageUtils.toJsonArray(room.getMessages());
 			}
@@ -216,36 +220,36 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				projectId = room.getProjectId();
 			}
 
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/ inputMessage.getMessageId(),
-					/*transactionId*/askModelResponse.getMessageId(),
-					/*messageMethod*/"ask",
-					/*engine*/this,
-					/*insightId*/room.getInsight().getInsightId(),
-					/*projectContextId*/room.getInsight().getContextProjectId(),
-					/*projectId*/room.getInsight().getProjectId(),
-					/*user*/room.getInsight().getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/room.getId(),
-					/*context*/context,
-					/*prompt*/question,
-					/*fullPrompt*/fullPrompt,
-					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime,
-					/*response*/askModelResponse.getStringResponse(),
-					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime,
-					/*inputTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
-					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
-					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
-					));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
+			// @formatter:off
+			if (inferenceLogsEnbaled) {
+				Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
+						/*messageId*/ inputMessage.getMessageId(),
+						/*transactionId*/askModelResponse.getMessageId(),
+						/*messageMethod*/"ask",
+						/*engine*/this,
+						/*insightId*/room.getInsight().getInsightId(),
+						/*projectContextId*/room.getInsight().getContextProjectId(),
+						/*projectId*/room.getInsight().getProjectId(),
+						/*user*/room.getInsight().getUser(),
+						/*sessionId*/ThreadStore.getSessionId(),
+						/*roomId*/room.getId(),
+						/*context*/context,
+						/*prompt*/question,
+						/*fullPrompt*/fullPrompt,
+						/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+						/*inputTime*/inputTime,
+						/*response*/askModelResponse.getStringResponse(),
+						/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
+						/*outputTime*/outputTime,
+						/*inputTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+						/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
+						/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
+						/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
+						/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
+						));
+				inferenceRecorder.start();
+			}
+			// @formatter:on
 
 			// update current usage based on this new request
 			ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse,
