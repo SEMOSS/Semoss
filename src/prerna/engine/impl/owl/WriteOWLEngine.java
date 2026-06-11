@@ -62,7 +62,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -80,32 +79,29 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	protected Hashtable<String, String> propHash = new Hashtable<String, String>();
 	// set of conceptual names
 	protected Set<String> pixelNames = new HashSet<String>();
-	
+
 	private final Semaphore writeSemaphore;
 	private IDatabaseEngine.DATABASE_TYPE dbType = IDatabaseEngine.DATABASE_TYPE.RDBMS;
 
-	public WriteOWLEngine(Semaphore writeSemaphore, 
-			RDFFileSesameEngine baseDataEngine, 
-			IDatabaseEngine.DATABASE_TYPE dbType, 
-			String engineId, 
-			String engineName) {
+	public WriteOWLEngine(Semaphore writeSemaphore, RDFFileSesameEngine baseDataEngine,
+			IDatabaseEngine.DATABASE_TYPE dbType, String engineId, String engineName) {
 		super(baseDataEngine, engineId, engineName);
 		this.dbType = dbType;
 
-		if(writeSemaphore == null) {
+		if (writeSemaphore == null) {
 			throw new NullPointerException("Cannot have a null semaphore");
 		}
-		
+
 		loadDatabaseValues();
-		
+
 		this.writeSemaphore = writeSemaphore;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		this.writeSemaphore.release();
 	}
-	
+
 	protected void loadDatabaseValues() {
 		Hashtable<String, String> conceptHash = new Hashtable<>();
 		Hashtable<String, String> propHash = new Hashtable<>();
@@ -158,9 +154,9 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		setPropHash(propHash);
 		setRelationHash(relationHash);
 	}
-	
+
 	/**
-	 * @throws Exception 
+	 * @throws Exception
 	 * 
 	 */
 	public void createEmptyOWLFile() throws Exception {
@@ -171,7 +167,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		// clear out the values in the maps
 		this.loadDatabaseValues();
 	}
-	
+
 	/**
 	 * 
 	 * @throws Exception
@@ -179,12 +175,12 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	public void reloadOWLFile() throws Exception {
 		this.baseDataEngine.reloadFile();
 	}
-	
+
 	/*
 	 * Adding into the OWL
 	 */
 
-	/////////////////// ADDING CONCEPTS INTO THE OWL ////////////////// 
+	/////////////////// ADDING CONCEPTS INTO THE OWL //////////////////
 
 	/**
 	 * Add a concept to the OWL If RDF : a concept has a data type (String) If RDBMS
@@ -247,9 +243,11 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		return addConcept(concept, "STRING", null);
 	}
 
-	////////////////////////////////// END ADDING CONCEPTS INTO THE OWL //////////////////////////////////
+	////////////////////////////////// END ADDING CONCEPTS INTO THE OWL
+	////////////////////////////////// //////////////////////////////////
 
-	////////////////////////////////// ADDING RELATIONSHIP INTO THE OWL //////////////////////////////////
+	////////////////////////////////// ADDING RELATIONSHIP INTO THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/**
 	 * Add a relationship between two concepts In RDBMS : the predicate must be
@@ -292,9 +290,11 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		return relationHash.get(fromTable + toTable + predicate);
 	}
 
-	////////////////////////////////// END ADDING RELATIONSHIP INTO THE OWL //////////////////////////////////
+	////////////////////////////////// END ADDING RELATIONSHIP INTO THE OWL
+	////////////////////////////////// //////////////////////////////////
 
-	////////////////////////////////// ADDING PROPERTIES TO CONCEPTS IN THE OWL //////////////////////////////////
+	////////////////////////////////// ADDING PROPERTIES TO CONCEPTS IN THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/**
 	 * Add a property to a given concept
@@ -306,7 +306,8 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	 * @param conceptual
 	 * @return
 	 */
-	public String addProp(String tableName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
+	public String addProp(String tableName, String propertyCol, String dataType, String adtlDataType,
+			String conceptual) {
 		if (!propHash.containsKey(tableName + "%" + propertyCol)) {
 			String conceptURI = addConcept(tableName, null, null);
 
@@ -412,13 +413,13 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					String propertyPhysicalUri = queryEngine.getPhysicalUriFromPixelSelector(selectorPixel);
 					this.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error calculating unique count for selector {}", selectorPixel, e);
 				} finally {
-					if(it != null) {
+					if (it != null) {
 						try {
 							it.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close wrapper while adding unique counts", e);
 						}
 					}
 				}
@@ -429,12 +430,12 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		try {
 			this.export(false);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to export OWL file after adding unique counts", e);
 		}
 	}
 
-	////////////////////////////////// END ADDING PROPERTIES TO CONCEPTS INTO THE OWL //////////////////////////////////
-
+	////////////////////////////////// END ADDING PROPERTIES TO CONCEPTS INTO THE
+	////////////////////////////////// OWL //////////////////////////////////
 
 	public void addLegacyPrimKey(String tableName, String columnName) {
 		String physicalUri = conceptHash.get(tableName);
@@ -444,12 +445,13 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		this.addToBaseEngine(physicalUri, LEGACY_PRIM_KEY_URI, columnName, false);
 	}
 
-	////////////////////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL //////////////////////////////////
+	////////////////////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/**
-	 * Have one class a subclass of another class
-	 * This code is really intended for RDF databases... 
-	 * not sure what use it will have to utilize this within an RDBMS
+	 * Have one class a subclass of another class This code is really intended for
+	 * RDF databases... not sure what use it will have to utilize this within an
+	 * RDBMS
 	 * 
 	 * @param childType  The child concept node
 	 * @param parentType The parent concept node
@@ -460,13 +462,15 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		this.addToBaseEngine(childURI, RDFS.SUBCLASSOF.stringValue(), parentURI);
 	}
 
-	////////////////////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL //////////////////////////////////
+	////////////////////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/*
 	 * REMOVING FROM THE OWL
 	 */
 
-	////////////////////////////////// REMOVING CONCEPTS FROM THE OWL //////////////////////////////////
+	////////////////////////////////// REMOVING CONCEPTS FROM THE OWL
+	////////////////////////////////// //////////////////////////////////
 	/**
 	 * Remove a concept from the OWL If RDF : a concept has a data type (String) If
 	 * RDBMS : this will represent a table and not have a datatype
@@ -486,31 +490,33 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 		// remove relationships to node
 		List<String[]> fkRelationships = getPhysicalRelationships(this.baseDataEngine);
-		classLogger.info("Removing relationships for concept='"+tableName+"'");
-		for (String[] relations: fkRelationships) {
+		classLogger.info("Removing relationships for concept='{}'", tableName);
+		for (String[] relations : fkRelationships) {
 			String instanceName = Utility.getInstanceName(relations[2]);
 			String[] tablesAndPrimaryKeys = instanceName.split("\\.");
 
-			for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
+			for (int i = 0; i < tablesAndPrimaryKeys.length; i += 2) {
 				String key = tablesAndPrimaryKeys[i];
 
 				if (tableName.equalsIgnoreCase(key)) {
-					this.baseDataEngine.removeStatement(new Object[] { relations[0], relations[2], relations[1], true });
-					this.baseDataEngine.removeStatement(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
+					this.baseDataEngine
+							.removeStatement(new Object[] { relations[0], relations[2], relations[1], true });
+					this.baseDataEngine.removeStatement(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(),
+							"http://semoss.org/ontologies/Relation", true });
 				}
 			}
 		}
-		
+
 		List<String> properties = this.getPropertyUris4PhysicalUri(conceptPhysical);
-		for(String prop : properties) {
-			 // pixel URI is always column/table
-	        String columnName = Utility.getClassName(prop);
+		for (String prop : properties) {
+			// pixel URI is always column/table
+			String columnName = Utility.getClassName(prop);
 			removeProp(tableName, columnName);
 		}
 
 		boolean hasTriple = false;
 
-		classLogger.info("Removing downstream triples for concept='"+tableName+"'");
+		classLogger.info("Removing downstream triples for concept='{}'", tableName);
 		// now repeat for the node itself
 		// remove everything downstream of the node
 		{
@@ -525,19 +531,20 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					executeRemoveQuery(headerRows, this.baseDataEngine);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error removing downstream triples for concept {}", tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close wrapper while removing downstream triples for concept {}",
+								tableName, e);
 					}
 				}
 			}
 		}
 
-		classLogger.info("Removing upstream triples for concept='"+tableName+"'");
+		classLogger.info("Removing upstream triples for concept='{}'", tableName);
 		// repeat for upstream of the node
 		{
 			String query = "select ?s ?p ?o where { bind(<" + conceptPhysical + "> as ?o) {?s ?p ?o} }";
@@ -551,13 +558,14 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					executeRemoveQuery(headerRows, this.baseDataEngine);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error removing upstream triples for concept {}", tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close wrapper while removing upstream triples for concept {}",
+								tableName, e);
 					}
 				}
 			}
@@ -566,26 +574,28 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		if (!hasTriple) {
 			throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 		}
-		
+
 		// remove from hash
 		conceptHash.remove(tableName);
-		
+
 		long end = System.currentTimeMillis();
-		classLogger.info("Time for property concept = "+(end-start)+"ms");
-		
+		classLogger.info("Time for property concept = {}ms", (end - start));
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 
-	////////////////////////////////// END REMOVING CONCEPTS FROM THE OWL //////////////////////////////////
+	////////////////////////////////// END REMOVING CONCEPTS FROM THE OWL
+	////////////////////////////////// //////////////////////////////////
 
-
-	////////////////////////////////// REMOVING RELATIONSHIPS FROM THE OWL //////////////////////////////////
+	////////////////////////////////// REMOVING RELATIONSHIPS FROM THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/**
 	 * Remove an added predicate joining two tables together
+	 * 
 	 * @param fromTable
 	 * @param toTable
 	 * @param predicate
@@ -611,14 +621,15 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		relationHash.remove(fromTable + toTable + predicate);
 	}
 
-	////////////////////////////////// END REMOVING RELATIONSHIPS FROM THE OWL //////////////////////////////////
+	////////////////////////////////// END REMOVING RELATIONSHIPS FROM THE OWL
+	////////////////////////////////// //////////////////////////////////
 
-
-	////////////////////////////////// REMOVING PROPERTIES FROM THE OWL //////////////////////////////////
+	////////////////////////////////// REMOVING PROPERTIES FROM THE OWL
+	////////////////////////////////// //////////////////////////////////
 
 	/**
-	 * This method will remove a property from a concept in the OWL file There are some
-	 * differences based on how the information is used based on if it is a RDF
+	 * This method will remove a property from a concept in the OWL file There are
+	 * some differences based on how the information is used based on if it is a RDF
 	 * engine or a RDBMS engine
 	 * 
 	 * @param tableName
@@ -638,7 +649,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		}
 
 		{
-			classLogger.info("Removing downstream of property ='"+propertyCol+"/"+tableName+"'");
+			classLogger.info("Removing downstream of property ='{}/{}'", propertyCol, tableName);
 			// remove everything downstream of the property
 			String downstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?s) " + "{?s ?p ?o} }";
 			IRawSelectWrapper it = null;
@@ -649,20 +660,22 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					executeRemoveQuery(headerRows, this.baseDataEngine);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error removing downstream triples for property {}/{}", propertyCol, tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to close wrapper while removing downstream triples for property {}/{}",
+								propertyCol, tableName, e);
 					}
 				}
 			}
 		}
 
 		{
-			classLogger.info("Removing upstream of property ='"+propertyCol+"/"+tableName+"'");
+			classLogger.info("Removing upstream of property ='{}/{}'", propertyCol, tableName);
 			// repeat for upstream of the property
 			String upstreamQuery = "select ?s ?p ?o where { bind(<" + property + "> as ?o) {?s ?p ?o} }";
 			IRawSelectWrapper it = null;
@@ -673,35 +686,38 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					executeRemoveQuery(headerRows, this.baseDataEngine);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error removing upstream triples for property {}/{}", propertyCol, tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close wrapper while removing upstream triples for property {}/{}",
+								propertyCol, tableName, e);
 					}
 				}
 			}
 		}
-		
+
 		// remove from hash
 		this.propHash.remove(tableName + "%" + propertyCol);
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time for property removal = "+(end-start)+"ms");
-		
+		classLogger.info("Time for property removal = {}ms", (end - start));
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING,
+				PixelOperationType.SUCCESS));
 		return noun;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	
+
 	// rename things
-	
+
 	/**
 	 * Rename an old concept name to a new name
+	 * 
 	 * @param appId
 	 * @param oldConceptName
 	 * @param newConceptName
@@ -716,14 +732,15 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		Map<String, String> newRelations = new HashMap<String, String>();
 
 		List<String> properties = null;
-		
+
 		// then everything downstream needs to be edited
 		// then everything upstream needs to be edited
 		List<Object[]> newTriplesToAdd = new ArrayList<>();
 		List<Object[]> oldTriplesToDelete = new ArrayList<>();
 
-		// then we need to change the property name as well to point to the new table name
-		
+		// then we need to change the property name as well to point to the new table
+		// name
+
 		String oldConceptPhysical = this.getPhysicalUriFromPixelSelector(oldConceptName);
 		properties = this.getPropertyUris4PhysicalUri(oldConceptPhysical);
 		StringBuilder bindings = new StringBuilder();
@@ -748,7 +765,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			String relURI = relations[2];
 			String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
 			String[] tablesAndPrimaryKeys = relationName.split("\\.");
-				
+
 			String newStart = relations[0];
 			String newEnd = relations[1];
 			if (start.equals(oldConceptPhysical)) {
@@ -789,11 +806,13 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 				// store old relationship info
 				oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
-				oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
+				oldTriplesToDelete
+						.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
 
 				// store new relationship info
 				newTriplesToAdd.add(new Object[] { newStart, newRelationURI, newEnd, true });
-				newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
+				newTriplesToAdd
+						.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
 			}
 
 		}
@@ -828,13 +847,16 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error querying downstream property triples while renaming concept {}",
+							oldConceptName, e);
 				} finally {
-					if(it != null) {
+					if (it != null) {
 						try {
 							it.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to close wrapper while querying downstream property triples for concept {}",
+									oldConceptName, e);
 						}
 					}
 				}
@@ -864,13 +886,16 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error querying upstream property triples while renaming concept {}",
+							oldConceptName, e);
 				} finally {
-					if(it != null) {
+					if (it != null) {
 						try {
 							it.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to close wrapper while querying upstream property triples for concept {}",
+									oldConceptName, e);
 						}
 					}
 				}
@@ -916,13 +941,16 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					storeTripleToDelete(headerRows, oldTriplesToDelete);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error querying downstream node triples while renaming concept {}", oldConceptName,
+						e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to close wrapper while querying downstream node triples for concept {}",
+								oldConceptName, e);
 					}
 				}
 			}
@@ -957,13 +985,14 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					storeTripleToDelete(headerRows, oldTriplesToDelete);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error querying upstream node triples while renaming concept {}", oldConceptName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close wrapper while querying upstream node triples for concept {}",
+								oldConceptName, e);
 					}
 				}
 			}
@@ -972,7 +1001,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		if (!hasTriple) {
 			throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 		}
-			
+
 		// delete the old triples
 		for (Object[] data : oldTriplesToDelete) {
 			this.baseDataEngine.removeStatement(data);
@@ -983,10 +1012,11 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed concept and all its dependencies",
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
+
 	/**
 	 * Remove a concept from the OWL If RDF : a concept has a data type (String) If
 	 * RDBMS : this will represent a table and not have a datatype
@@ -1000,7 +1030,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	public NounMetadata renameProp(String tableName, String oldPropName, String newPropName) {
 		// need to grab everything downstream of the node and edit it
 		// need to grab everything upstream of the node and edit it
-		
+
 		String propPhysicalUri = BASE_PROPERTY_URI + "/" + oldPropName + "/" + tableName;
 		String newPropPhysicalUri = BASE_PROPERTY_URI + "/" + newPropName + "/" + tableName;
 
@@ -1011,7 +1041,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		List<String[]> fkRelationships = getPhysicalRelationships(this.baseDataEngine);
 		String baseRelationURI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
 
-		for (String[] relations: fkRelationships) {
+		for (String[] relations : fkRelationships) {
 			// track if change needs to be made
 			boolean editRelation = false;
 			String start = relations[0];
@@ -1019,12 +1049,12 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			String relURI = relations[2];
 			String relationName = Utility.getInstanceName(relURI); // this is either a.b.c.d or x.a.b.y.c.d
 			String[] tablesAndPrimaryKeys = relationName.split("\\.");
-			
+
 			// need to change the b or d in relationName
 			if (tablesAndPrimaryKeys.length == 4) {
 				String startCol = tablesAndPrimaryKeys[1];
 				String endCol = tablesAndPrimaryKeys[3];
-				if(startCol.equals(oldPropName)) {
+				if (startCol.equals(oldPropName)) {
 					editRelation = true;
 					tablesAndPrimaryKeys[1] = newPropName;
 				} else if (endCol.equals(oldPropName)) {
@@ -1036,7 +1066,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 				// x.a.b.y.c.d
 				String startCol = tablesAndPrimaryKeys[2];
 				String endCol = tablesAndPrimaryKeys[5];
-				if(startCol.equals(oldPropName)) {
+				if (startCol.equals(oldPropName)) {
 					editRelation = true;
 					tablesAndPrimaryKeys[2] = newPropName;
 				} else if (endCol.equals(oldPropName)) {
@@ -1052,16 +1082,17 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 				// store old relationship info
 				oldTriplesToDelete.add(new Object[] { relations[0], relations[2], relations[1], true });
-				oldTriplesToDelete.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
+				oldTriplesToDelete
+						.add(new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
 
 				// store new relationship info
 				newTriplesToAdd.add(new Object[] { start, newRelationURI, end, true });
-				newTriplesToAdd.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
+				newTriplesToAdd
+						.add(new Object[] { newRelationURI, RDFS.SUBPROPERTYOF.toString(), BASE_RELATION_URI, true });
 			}
 
 		}
-		
-		
+
 		{
 			// remove everything downstream of the property
 			String downstreamQuery = "select ?s ?p ?o where { bind(<" + propPhysicalUri + "> as ?s) " + "{?s ?p ?o} }";
@@ -1083,13 +1114,16 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error querying downstream triples while renaming property {} to {} on table {}",
+						oldPropName, newPropName, tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to close wrapper while querying downstream triples for property {} on table {}",
+								oldPropName, tableName, e);
 					}
 				}
 			}
@@ -1104,20 +1138,23 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 				while (it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
 					storeTripleToDelete(headerRows, oldTriplesToDelete);
-					
+
 					Object[] raw = headerRows.getRawValues();
 					String s = raw[0].toString();
 					String p = raw[1].toString();
 					newTriplesToAdd.add(new Object[] { s, p, newPropPhysicalUri, true });
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error querying upstream triples while renaming property {} to {} on table {}",
+						oldPropName, newPropName, tableName, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to close wrapper while querying upstream triples for property {} on table {}",
+								oldPropName, tableName, e);
 					}
 				}
 			}
@@ -1126,21 +1163,23 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		for (Object[] data : oldTriplesToDelete) {
 			this.baseDataEngine.removeStatement(data);
 		}
-		
+
 		// add new triples
-		for(Object[] data : newTriplesToAdd) {
+		for (Object[] data : newTriplesToAdd) {
 			this.baseDataEngine.addStatement(data);
 		}
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed property", PixelDataType.CONST_STRING,
+				PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
 
-	////////////////////////////////// END REMOVING PROPERTIES TO CONCEPTS INTO THE OWL //////////////////////////////////
+	////////////////////////////////// END REMOVING PROPERTIES TO CONCEPTS INTO THE
+	////////////////////////////////// OWL //////////////////////////////////
 
-	////////////////////////////////// UTILITY METHODS TO REMOVE FROM OWL //////////////////////////////////
+	////////////////////////////////// UTILITY METHODS TO REMOVE FROM OWL
+	////////////////////////////////// //////////////////////////////////
 
 	private List<String[]> getPhysicalRelationships(IDatabaseEngine engine) {
 		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
@@ -1164,8 +1203,8 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 			owlEngine.removeStatement(new Object[] { s, p, o, true });
 		}
 	}
-	
-	private void storeTripleToDelete(IHeadersDataRow headerRows, List<Object[]> dataToDelete ) {
+
+	private void storeTripleToDelete(IHeadersDataRow headerRows, List<Object[]> dataToDelete) {
 		Object[] raw = headerRows.getRawValues();
 		String s = raw[0].toString();
 		String p = raw[1].toString();
@@ -1199,11 +1238,12 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		}
 		return false;
 	}
-	
+
 	/**
-	 * Adding information into the base engine
-	 * Currently assumes we are only adding URIs (object is never a literal)
-	 * @param triple 			The triple to load into the engine and into baseDataHash
+	 * Adding information into the base engine Currently assumes we are only adding
+	 * URIs (object is never a literal)
+	 * 
+	 * @param triple The triple to load into the engine and into baseDataHash
 	 */
 	public void addToBaseEngine(Object[] triple) {
 		String sub = (String) triple[0];
@@ -1213,21 +1253,22 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
-		
+
 		Object objValue = triple[2];
 		// if it is a URI
 		// gotta clean up the value
-		if(concept) {
+		if (concept) {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
-		
-		baseDataEngine.addStatement(new Object[]{cleanSub, cleanPred, objValue, concept});
+
+		baseDataEngine.addStatement(new Object[] { cleanSub, cleanPred, objValue, concept });
 	}
-	
+
 	/**
-	 * Adding information into the base engine
-	 * Currently assumes we are only adding URIs (object is never a literal)
-	 * @param triple 			The triple to load into the engine and into baseDataHash
+	 * Adding information into the base engine Currently assumes we are only adding
+	 * URIs (object is never a literal)
+	 * 
+	 * @param triple The triple to load into the engine and into baseDataHash
 	 */
 	public void removeFromBaseEngine(Object[] triple) {
 		String sub = (String) triple[0];
@@ -1241,31 +1282,31 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 		Object objValue = triple[2];
 		// if it is a URI
 		// gotta clean up the value
-		if(concept) {
+		if (concept) {
 			objValue = Utility.cleanString(objValue.toString(), false);
 		}
-		
-		baseDataEngine.removeStatement(new Object[]{cleanSub, cleanPred, objValue, concept});
+
+		baseDataEngine.removeStatement(new Object[] { cleanSub, cleanPred, objValue, concept });
 	}
-	
+
 	// set this as separate pieces as well
 	public void addToBaseEngine(String subject, String predicate, String object) {
-		addToBaseEngine(new Object[]{subject, predicate, object, true});
+		addToBaseEngine(new Object[] { subject, predicate, object, true });
 	}
-	
+
 	public void addToBaseEngine(String subject, String predicate, Object object, boolean isUri) {
-		addToBaseEngine(new Object[]{subject, predicate, object, isUri});
+		addToBaseEngine(new Object[] { subject, predicate, object, isUri });
 	}
-	
+
 	// set this as separate pieces as well
 	public void removeFromBaseEngine(String subject, String predicate, String object) {
-		removeFromBaseEngine(new Object[]{subject, predicate, object, true});
+		removeFromBaseEngine(new Object[] { subject, predicate, object, true });
 	}
 
 	public void removeFromBaseEngine(String subject, String predicate, Object object, boolean isUri) {
-		removeFromBaseEngine(new Object[]{subject, predicate, object, isUri});
+		removeFromBaseEngine(new Object[] { subject, predicate, object, isUri });
 	}
-	
+
 	/**
 	 * 
 	 * @throws IOException
@@ -1273,38 +1314,37 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	public void export() throws IOException {
 		export(true);
 	}
-	
+
 	/**
 	 * 
 	 * @throws IOException
 	 */
 	public void export(boolean addTimeStamp) throws IOException {
 		try {
-			//adding a time-stamp to the OWL file
-			if(addTimeStamp) {
+			// adding a time-stamp to the OWL file
+			if (addTimeStamp) {
 				deleteExisitngTimestamp();
 				String cleanObj = LocalDateTime.now().format(DATE_FORMATTER);
-				this.baseDataEngine.addStatement(new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
+				this.baseDataEngine.addStatement(new Object[] { TIME_URL, TIME_KEY, cleanObj, false });
 			}
 			this.baseDataEngine.exportDB();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error writing OWL file", e);
 			throw new IOException("Error in writing OWL file. Detailed message = " + e.getMessage());
 		}
 	}
 
 	private void deleteExisitngTimestamp() {
 		String getAllTimestampQuery = "SELECT DISTINCT ?time ?val WHERE { "
-				+ "BIND(<http://semoss.org/ontologies/Concept/TimeStamp> AS ?time)"
-				+ "{?time <" + TIME_KEY + "> ?val} "
+				+ "BIND(<http://semoss.org/ontologies/Concept/TimeStamp> AS ?time)" + "{?time <" + TIME_KEY + "> ?val} "
 				+ "}";
-		
+
 		List<String> currTimes = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getAllTimestampQuery);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Object[] rawRow = row.getRawValues();
 				Object[] cleanRow = row.getValues();
@@ -1312,24 +1352,24 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 				currTimes.add(cleanRow[1] + "");
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error querying existing OWL timestamps to delete", e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close wrapper while deleting existing OWL timestamp", e);
 				}
 			}
 		}
-		
-		for(int delIndex = 0; delIndex < currTimes.size(); delIndex+=2) {
+
+		for (int delIndex = 0; delIndex < currTimes.size(); delIndex += 2) {
 			Object[] delTriples = new Object[4];
 			delTriples[0] = currTimes.get(delIndex);
 			delTriples[1] = TIME_KEY;
-			delTriples[2] = currTimes.get(delIndex+1);
+			delTriples[2] = currTimes.get(delIndex + 1);
 			delTriples[3] = false;
-			
+
 			this.baseDataEngine.removeStatement(delTriples);
 		}
 	}
@@ -1340,7 +1380,7 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	public void commit() {
 		baseDataEngine.commit();
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -1350,155 +1390,162 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	}
 
 	/**
-	 * @throws IOException 
+	 * @throws IOException
 	 * 
 	 */
 	public void closeOwl() throws IOException {
 		this.baseDataEngine.close();
 	}
-	
-	/////////////////// ADD LOGICAL NAMES AND DESCRIPTIONS INTO THE OWL /////////////////////////////////
+
+	/////////////////// ADD LOGICAL NAMES AND DESCRIPTIONS INTO THE OWL
+	/////////////////// /////////////////////////////////
 
 	/**
 	 * Add logical names to a physical uri
+	 * 
 	 * @param physicalUri
 	 * @param logicalNames
 	 */
 	public void addLogicalNames(String physicalUri, String... logicalNames) {
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				if(lName != null && !lName.isEmpty()) {
-					this.addToBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+		if (logicalNames != null) {
+			for (String lName : logicalNames) {
+				if (lName != null && !lName.isEmpty()) {
+					this.addToBaseEngine(new Object[] { physicalUri, OWL.sameAs.toString(), lName, false });
 				}
 			}
 		}
 	}
-	
+
 	public void addLogicalNames(String physicalUri, Collection<String> logicalNames) {
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				if(lName != null && !lName.isEmpty()) {
-					this.addToBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+		if (logicalNames != null) {
+			for (String lName : logicalNames) {
+				if (lName != null && !lName.isEmpty()) {
+					this.addToBaseEngine(new Object[] { physicalUri, OWL.sameAs.toString(), lName, false });
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Remove logical names from a physical uri
+	 * 
 	 * @param physicalUri
 	 * @param logicalNames
 	 */
 	public void deleteLogicalNames(String physicalUri, String... logicalNames) {
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				if(lName != null && !lName.isEmpty()) {
-					this.removeFromBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+		if (logicalNames != null) {
+			for (String lName : logicalNames) {
+				if (lName != null && !lName.isEmpty()) {
+					this.removeFromBaseEngine(new Object[] { physicalUri, OWL.sameAs.toString(), lName, false });
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Remove logical names from a physical uri
+	 * 
 	 * @param physicalUri
 	 * @param logicalNames
 	 */
 	public void deleteLogicalNames(String physicalUri, Collection<String> logicalNames) {
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				if(lName != null && !lName.isEmpty()) {
-					this.removeFromBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+		if (logicalNames != null) {
+			for (String lName : logicalNames) {
+				if (lName != null && !lName.isEmpty()) {
+					this.removeFromBaseEngine(new Object[] { physicalUri, OWL.sameAs.toString(), lName, false });
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Add descriptions to a physical uri
+	 * 
 	 * @param physicalUri
 	 * @param description
 	 */
 	public void addDescription(String physicalUri, String description) {
-		if(description != null && !description.trim().isEmpty()) {
+		if (description != null && !description.trim().isEmpty()) {
 			description = description.replaceAll("[^\\p{ASCII}]", "");
-			this.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
+			this.addToBaseEngine(new Object[] { physicalUri, RDFS.COMMENT.toString(), description, false });
 		}
 	}
-	
+
 	/**
 	 * Remove descriptions to a physical uri
+	 * 
 	 * @param physicalUri
 	 * @param description
 	 */
 	public void deleteDescription(String physicalUri, String description) {
-		if(description != null && !description.trim().isEmpty()) {
+		if (description != null && !description.trim().isEmpty()) {
 			description = description.replaceAll("[^\\p{ASCII}]", "");
-			this.removeFromBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
+			this.removeFromBaseEngine(new Object[] { physicalUri, RDFS.COMMENT.toString(), description, false });
 		}
 	}
-	
-	/////////////////// END ADDING LOGICAL NAMES INTO THE OWL /////////////////////////////////
 
-	
-	/////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
-	
+	/////////////////// END ADDING LOGICAL NAMES INTO THE OWL
+	/////////////////// /////////////////////////////////
+
+	/////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL
+	/////////////////// /////////////////////////////////
+
 	/**
-	 * Store the custom base URI used to create instance URIs within the OWL
-	 * E.g. of usage is current RDF MHS databases, which use "http://health.mil/ontologies" as the custom base URI
-	 * @param customBaseURI				The customBaseURI to store
+	 * Store the custom base URI used to create instance URIs within the OWL E.g. of
+	 * usage is current RDF MHS databases, which use "http://health.mil/ontologies"
+	 * as the custom base URI
+	 * 
+	 * @param customBaseURI The customBaseURI to store
 	 */
 	public void addCustomBaseURI(String customBaseURI) {
-		this.addToBaseEngine("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI", customBaseURI+"/"+DEFAULT_NODE_CLASS+"/");
+		this.addToBaseEngine("SEMOSS:ENGINE_METADATA", "CONTAINS:BASE_URI",
+				customBaseURI + "/" + DEFAULT_NODE_CLASS + "/");
 	}
-	
-	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
-	
-	
+
+	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL
+	/////////////////// /////////////////////////////////
+
 	///////////////// GETTERS ///////////////////////
-	
+
 	/*
-	 * The getters exist for the conceptHash, relationHash, and propHash
-	 * These are only used during RDF uploading
-	 * RDF requires the meta data information to also be stored in the database
-	 * along with the instance data
+	 * The getters exist for the conceptHash, relationHash, and propHash These are
+	 * only used during RDF uploading RDF requires the meta data information to also
+	 * be stored in the database along with the instance data
 	 */
-	
+
 	public Hashtable<String, String> getConceptHash() {
 		return conceptHash;
 	}
-	
+
 	public Hashtable<String, String> getRelationHash() {
 		return relationHash;
 	}
-	
+
 	public Hashtable<String, String> getPropHash() {
 		return propHash;
 	}
-	
+
 	public Set<String> getPixelNames() {
 		return pixelNames;
 	}
-	
+
 	///////////////// END GETTERS ///////////////////////
 
 	///////////////// SETTERS ///////////////////////
-	
+
 	public void setConceptHash(Hashtable<String, String> conceptHash) {
 		this.conceptHash = conceptHash;
 	}
-	
+
 	public void setRelationHash(Hashtable<String, String> relationHash) {
 		this.relationHash = relationHash;
 	}
-	
+
 	public void setPropHash(Hashtable<String, String> propHash) {
 		this.propHash = propHash;
 	}
-	
+
 	///////////////// END SETTERS ///////////////////////
-	
-	
 
 	@Override
 	public RDFFileSesameEngine getBaseDataEngine() {
@@ -1509,6 +1556,6 @@ public class WriteOWLEngine extends AbstractOWLEngine implements Closeable {
 	@Override
 	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
 		// TODO Auto-generated method stub
-		
+
 	}
 }

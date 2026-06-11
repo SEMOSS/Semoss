@@ -46,7 +46,7 @@ import prerna.util.Utility;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PauseJobTriggerReactor.class);
 
 	public PauseJobTriggerReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -95,7 +95,7 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 			}
 		} catch (SchedulerException se) {
-			logger.error("Failed to pause job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+			classLogger.error("Failed to pause job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
 					se.getMessage(), se);
 		}
 

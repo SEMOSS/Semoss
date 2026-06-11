@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.hslf.usermodel.HSLFPictureData;
 import org.apache.poi.sl.usermodel.PictureData;
 import org.apache.poi.util.IOUtils;
@@ -70,20 +72,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 // export to excel non-native is the NN
 public class ExportToPPTNNReactor extends AbstractReactor {
 
 	public static final String exportTemplate = "PPT_EXPORT_TEMPLATE";
-	private static final Logger logger = LogManager.getLogger(ExportToPPTNNReactor.class);
-
+	private static final Logger classLogger = LogManager.getLogger(ExportToPPTNNReactor.class);
 
 	public ExportToPPTNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(), ReactorKeysEnum.SLIDE_LAYOUT.getKey(), ReactorKeysEnum.SHAPE_INDEX.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.HEIGHT.getKey(), ReactorKeysEnum.WIDTH.getKey(),
+				ReactorKeysEnum.SLIDE_LAYOUT.getKey(), ReactorKeysEnum.SHAPE_INDEX.getKey(),
+				ReactorKeysEnum.EXPORT_TEMPLATE.getKey() };
 	}
 
 	@Override
@@ -96,14 +96,14 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 		insightFile.setDeleteOnInsightClose(true);
-		
+
 		String insightFolder = this.insight.getInsightFolder();
 		String fileName = null;
 		int height = 800;
@@ -111,48 +111,48 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		String slideLayout = null;
 		int shapeIndex = -1;
 
-		if(keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
-			insightFolder =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
+			insightFolder = Utility.normalizePath(keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 			insightFile.setDeleteOnInsightClose(false);
 		}
-		if(keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey())) {
-			fileName =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.FILE_NAME.getKey())) {
+			fileName = Utility.normalizePath(keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		}
 
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String imageUrl = this.insight.getLiveURL();
 		boolean panel = false;
-		if(keyValue.containsKey(ReactorKeysEnum.USE_PANEL.getKey())) {
-			String panelUse= (String)keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
+		if (keyValue.containsKey(ReactorKeysEnum.USE_PANEL.getKey())) {
+			String panelUse = keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
 			panel = panelUse.equalsIgnoreCase("yes") || panelUse.equalsIgnoreCase("true");
 		}
 
-		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
-			height= Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
+			height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey()));
 		}
 
-		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
-			width= Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
+			width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey()));
 		}
 
-		if(keyValue.containsKey(ReactorKeysEnum.SLIDE_LAYOUT.getKey())) {
-			slideLayout= keyValue.get(ReactorKeysEnum.SLIDE_LAYOUT.getKey());
+		if (keyValue.containsKey(ReactorKeysEnum.SLIDE_LAYOUT.getKey())) {
+			slideLayout = keyValue.get(ReactorKeysEnum.SLIDE_LAYOUT.getKey());
 		}
 
-		if(keyValue.containsKey(ReactorKeysEnum.SHAPE_INDEX.getKey())) {
-			shapeIndex= Integer.parseInt(keyValue.get(ReactorKeysEnum.SHAPE_INDEX.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.SHAPE_INDEX.getKey())) {
+			shapeIndex = Integer.parseInt(keyValue.get(ReactorKeysEnum.SHAPE_INDEX.getKey()));
 		}
 
 		String template = insight.getProperty(exportTemplate);
-		Map <String, InsightSheet> allSheets = insight.getInsightSheets();
-		Map <String, InsightPanel> allPanels = insight.getInsightPanels();
+		Map<String, InsightSheet> allSheets = insight.getInsightSheets();
+		Map<String, InsightPanel> allPanels = insight.getInsightPanels();
 
-		Iterator <String> keys = allSheets.keySet().iterator();
-		if(panel) {
+		Iterator<String> keys = allSheets.keySet().iterator();
+		if (panel) {
 			keys = allPanels.keySet().iterator();
 		}
-		
+
 		// open a workbook
 		XMLSlideShow hslfSlideShow = null;
 		FileOutputStream fileOut = null;
@@ -160,28 +160,27 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		ChromeDriverUtility util = null;
 		XSLFSlideLayout targetLayout = null;
 		try {
-			if(template != null) {
-				hslfSlideShow = new XMLSlideShow(new FileInputStream(template));	 
-				if(slideLayout != null) {
+			if (template != null) {
+				hslfSlideShow = new XMLSlideShow(new FileInputStream(template));
+				if (slideLayout != null) {
 					targetLayout = getLayout(hslfSlideShow, slideLayout);
 				}
 			} else {
-				hslfSlideShow = new XMLSlideShow();	 
+				hslfSlideShow = new XMLSlideShow();
 			}
 
 			XSLFSlide templateSlide = null;
-			if(template != null) {
+			if (template != null) {
 				// assumes 0th slide is the slide
 				templateSlide = hslfSlideShow.getSlides().get(0);
 			}
 
-
-			while(keys.hasNext()) {
+			while (keys.hasNext()) {
 				String thisKey = keys.next();
 				String sheetAppender = "";
 				String panelAppender = "";
 
-				if(panel) {			   
+				if (panel) {
 					InsightPanel thisPanel = allPanels.get(thisKey);
 					panelAppender = "&panel=" + thisKey;
 
@@ -195,10 +194,10 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				XSLFSlide blankSlide = null;
 
 				// make a copy of the slide
-				if(templateSlide != null && targetLayout != null) {
+				if (templateSlide != null && targetLayout != null) {
 					blankSlide = hslfSlideShow.createSlide(targetLayout);
 					// apply this layout
-				} else if(templateSlide != null) {
+				} else if (templateSlide != null) {
 					blankSlide = hslfSlideShow.createSlide();
 					blankSlide.importContent(templateSlide);
 				} else {
@@ -211,20 +210,22 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 				util = new ChromeDriverUtility();
 
-				if(driver == null) {
+				if (driver == null) {
 					driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, height, width);
 				}
 				// download this file
-				util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800);
-				//driver = ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, false);
+				util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation,
+						sessionId, 800);
+				// driver = ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender +
+				// panelAppender, fileLocation, sessionId, 800, 600, false);
 				// write this to the sheet now
 
-				//1920 x 936
-				//FileInputStream obtains input bytes from the image file
+				// 1920 x 936
+				// FileInputStream obtains input bytes from the image file
 				InputStream inputStream = new FileInputStream(fileLocation);
-				//Get the contents of an InputStream as a byte[].
+				// Get the contents of an InputStream as a byte[].
 				byte[] bytes = IOUtils.toByteArray(inputStream);
-				//close the input stream
+				// close the input stream
 				inputStream.close();
 
 				FileUtils.forceDelete(new File(fileLocation));
@@ -232,20 +233,20 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				XSLFPictureData hslfPictureData = hslfSlideShow.addPicture(bytes, HSLFPictureData.PictureType.PNG);
 
 				// see if the shape index is specified and if so place it there
-				if(shapeIndex == -1) {
+				if (shapeIndex == -1) {
 					XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
 					pic.setAnchor(new Rectangle(0, 0, height, width));
 				} else {
 					List<XSLFShape> shapes = blankSlide.getShapes();
 
 					// get the anchor of the shape
-					XSLFShape pic =  shapes.get(1);
+					XSLFShape pic = shapes.get(1);
 					java.awt.geom.Rectangle2D anchor2 = pic.getAnchor();
 					XSLFPictureData pd = hslfSlideShow.addPicture(bytes, PictureData.PictureType.PNG);
 
 					XSLFPictureShape picture = blankSlide.createPicture(pd);
 					blankSlide.removeShape(pic);
-					picture.setAnchor(anchor2);  
+					picture.setAnchor(anchor2);
 
 					// may be fill in the title too
 					// add title to the slide
@@ -262,7 +263,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			}
 
 			// remove the template slide
-			if(templateSlide != null && slideLayout == null) {
+			if (templateSlide != null && slideLayout == null) {
 				hslfSlideShow.removeSlide(0);
 			}
 
@@ -271,29 +272,30 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			fileOut = new FileOutputStream(fileLocation);
 			hslfSlideShow.write(fileOut);
-			
+
 			insightFile.setFilePath(fileLocation);
-			// store the insight file 
+			// store the insight file
 			// in the insight so the FE can download it
 			// only from the given insight
 			this.insight.addExportFile(downloadKey, insightFile);
 
-			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+					PixelOperationType.FILE_DOWNLOAD);
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the ppt file"));
 			return retNoun;
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred generating the ppt file");
 		} finally {
-			if(fileOut != null) {
+			if (fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(driver != null && driver instanceof ChromeDriver) {
-				((ChromeDriver)driver).quit();
+			if (driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver) driver).quit();
 			}
 		}
 	}
@@ -303,16 +305,16 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 		XSLFSlideLayout targetLayout = null;
 
 		// do the power point
-		List <XSLFSlideMaster> sm = ppt.getSlideMasters();
-		for(int slideMasterIndex = 0;slideMasterIndex < sm.size();slideMasterIndex++) {
+		List<XSLFSlideMaster> sm = ppt.getSlideMasters();
+		for (int slideMasterIndex = 0; slideMasterIndex < sm.size(); slideMasterIndex++) {
 			XSLFSlideMaster thisSM = sm.get(slideMasterIndex);
-			XSLFSlideLayout [] sl = thisSM.getSlideLayouts();
-			for(int layoutIndex = 0; layoutIndex < sl.length; layoutIndex++) {
-				//if(targetLayout == null)
-				//   targetLayout = sl[layoutIndex]; // assign to the first one - need some layout
-				//if(targetLayoutName == null)
-				//   break;
-				if(sl[layoutIndex].getName().equalsIgnoreCase(targetLayoutName)) {
+			XSLFSlideLayout[] sl = thisSM.getSlideLayouts();
+			for (int layoutIndex = 0; layoutIndex < sl.length; layoutIndex++) {
+				// if(targetLayout == null)
+				// targetLayout = sl[layoutIndex]; // assign to the first one - need some layout
+				// if(targetLayoutName == null)
+				// break;
+				if (sl[layoutIndex].getName().equalsIgnoreCase(targetLayoutName)) {
 					targetLayout = sl[layoutIndex];
 					break;
 				}

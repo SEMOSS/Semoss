@@ -141,7 +141,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
 	// maintain details in the log database
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -563,7 +562,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			classLogger.error("Failed to insert embedding row into table: " + this.vectorTableName, e);
 			throw e;
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
 	}
 

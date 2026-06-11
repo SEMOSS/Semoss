@@ -53,7 +53,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SplitColumnsReactor extends AbstractFrameReactor {
 
-	private static final Logger logger = LogManager.getLogger(SplitColumnsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SplitColumnsReactor.class);
 
 	private static final String COLUMNS_KEY = "columns";
 	private static final String SEPARATOR_KEY = "sep";
@@ -89,7 +89,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 			try {
 				colIterator = frame.query(qs);
 			} catch (Exception e) {
-				logger.error("Failed to query values for split column {} on table {}", column, table, e);
+				classLogger.error("Failed to query values for split column {} on table {}", column, table, e);
 				throw new IllegalArgumentException("Error executing query with message = " + e.getMessage());
 			}
 
@@ -169,15 +169,15 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 					ps.executeBatch();
 				}
 			} catch (SQLException e) {
-				logger.error("Failed to split values for column {} on table {} with separator {}", column, table,
+				classLogger.error("Failed to split values for column {} on table {} with separator {}", column, table,
 						separator, e);
 			} finally {
 				if (ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						logger.error("Failed to close split update statement for column {} on table {}", column, table,
-								e);
+						classLogger.error("Failed to close split update statement for column {} on table {}", column,
+								table, e);
 					}
 				}
 			}

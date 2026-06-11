@@ -41,8 +41,8 @@ import prerna.util.Constants;
 
 public class CopyInsightPermissionsReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(CopyInsightPermissionsReactor.class);
-	
+	private static final Logger classLogger = LogManager.getLogger(CopyInsightPermissionsReactor.class);
+
 	private static String SOURCE_PROJECT = "sourceProject";
 	private static String SOURCE_INSIGHT = "sourceInsight";
 
@@ -50,7 +50,7 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 	private static String TARGET_INSIGHT = "targetInsight";
 
 	public CopyInsightPermissionsReactor() {
-		this.keysToGet = new String[]{ SOURCE_PROJECT, SOURCE_INSIGHT, TARGET_PROJECT, TARGET_INSIGHT };
+		this.keysToGet = new String[] { SOURCE_PROJECT, SOURCE_INSIGHT, TARGET_PROJECT, TARGET_INSIGHT };
 	}
 
 	@Override
@@ -62,49 +62,51 @@ public class CopyInsightPermissionsReactor extends AbstractReactor {
 		String targetInsightId = this.keyValue.get(this.keysToGet[3]);
 
 		// must be an editor for both to run this
-		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), sourceProjectId)) {
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), sourceProjectId)) {
 			throw new IllegalArgumentException("You do not have edit access to the source project");
 		}
-		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), targetProjectId)) {
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), targetProjectId)) {
 			throw new IllegalArgumentException("You do not have edit access to the target project");
 		}
-		
+
 		String sourceInsightName = SecurityQueryUtils.getInsightNameForId(sourceProjectId, sourceInsightId);
 		String targetInsightName = SecurityQueryUtils.getInsightNameForId(targetProjectId, targetInsightId);
-		
+
 		// if the insight name is null, then it doesn't exist
-		if(sourceInsightName == null) {
+		if (sourceInsightName == null) {
 			throw new IllegalArgumentException("Could not find the insight defined in the source app");
 		}
-		if(targetInsightName == null) {
+		if (targetInsightName == null) {
 			throw new IllegalArgumentException("Could not find the insight defined in the target app");
 		}
-		
+
 		// now perform the operation
 		try {
-			SecurityInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId, targetInsightId);
+			SecurityInsightUtils.copyInsightPermissions(sourceProjectId, sourceInsightId, targetProjectId,
+					targetInsightId);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred copying the insight permissions.  Detailed error: " + e.getMessage());
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(
+					"An error occurred copying the insight permissions.  Detailed error: " + e.getMessage());
 		}
 
 		String sourceProject = SecurityProjectUtils.getProjectAliasForId(sourceProjectId);
 		String targetProject = SecurityProjectUtils.getProjectAliasForId(targetProjectId);
-		
-		return new NounMetadata("Copied permissions from project " + sourceProject + "__" + sourceProjectId 
-				+ " insight \"" + sourceInsightName + "\" to " + targetProject + "__" + targetProjectId 
-				+ " insight \"" + targetInsightName + "\"", PixelDataType.CONST_STRING);
+
+		return new NounMetadata("Copied permissions from project " + sourceProject + "__" + sourceProjectId
+				+ " insight \"" + sourceInsightName + "\" to " + targetProject + "__" + targetProjectId + " insight \""
+				+ targetInsightName + "\"", PixelDataType.CONST_STRING);
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(SOURCE_PROJECT)) {
+		if (key.equals(SOURCE_PROJECT)) {
 			return "The project id that is used to provide information";
-		} else if(key.equals(TARGET_PROJECT)) {
+		} else if (key.equals(TARGET_PROJECT)) {
 			return "The project id that the operation is applied on";
-		} else if(key.equals(SOURCE_INSIGHT)) {
+		} else if (key.equals(SOURCE_INSIGHT)) {
 			return "The insight id in the source project to provide information";
-		} else if(key.equals(TARGET_INSIGHT)) {
+		} else if (key.equals(TARGET_INSIGHT)) {
 			return "The insight id in the target project that the operation is applied on";
 		}
 		return ReactorKeysEnum.getDescriptionFromKey(key);
