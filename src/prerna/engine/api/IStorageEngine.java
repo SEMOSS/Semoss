@@ -64,6 +64,18 @@ public interface IStorageEngine extends IEngine {
 	List<Map<String, Object>> listDetails(String path) throws Exception;
 
 	/**
+	 * List all versions of a specific object in storage.
+	 * Only supported by engines with versioning enabled (S3, GCS).
+	 * 
+	 * @param storagePath the path to the object in storage
+	 * @return a list of version details (versionId, lastModified, size, isLatest)
+	 * @throws Exception if listing fails
+	 */
+	default List<Map<String, Object>> listVersions(String storagePath) throws Exception {
+		throw new UnsupportedOperationException("Object versioning is not supported by this storage engine");
+	}
+
+	/**
 	 * 
 	 * @param localPath
 	 * @param storagePath

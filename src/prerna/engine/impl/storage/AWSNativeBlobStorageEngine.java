@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,9 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsResponse;
+import software.amazon.awssdk.services.s3.model.ObjectVersion;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -239,6 +243,39 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		return objectDetails;
+	}
+
+	@Override
+	public List<Map<String, Object>> listVersions(String storagePath) throws Exception {
+		List<Map<String, Object>> versions = new ArrayList<>();
+		String key = normalizeStoragePrefixPath(storagePath);
+		// Remove trailing slash for file keys
+		if (key.endsWith("/")) {
+			key = key.substring(0, key.length() - 1);
+		}
+
+		ListObjectVersionsRequest request = ListObjectVersionsRequest.builder()
+				.bucket(this.bucket)
+				.prefix(key)
+				.build();
+
+		ListObjectVersionsResponse response = this.client.listObjectVersions(request);
+
+		for (ObjectVersion version : response.versions()) {
+			// Only include exact key matches (not prefix matches)
+			if (!version.key().equals(key)) {
+				continue;
+			}
+			Map<String, Object> versionInfo = new LinkedHashMap<>();
+			versionInfo.put("versionId", version.versionId());
+			versionInfo.put("lastModified", version.lastModified() != null ? version.lastModified().toString() : null);
+			versionInfo.put("size", version.size());
+			versionInfo.put("isLatest", version.isLatest());
+			versionInfo.put("key", version.key());
+			versions.add(versionInfo);
+		}
+
+		return versions;
 	}
 
 	@Override

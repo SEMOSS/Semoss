@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -247,6 +248,40 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			detailsList.add(details);
 		}
 		return detailsList;
+	}
+
+	@Override
+	public List<Map<String, Object>> listVersions(String storagePath) throws Exception {
+		List<Map<String, Object>> versions = new ArrayList<>();
+		String key = storagePath == null ? "" : Utility.normalizePath(storagePath).trim();
+		if (key.startsWith("/")) {
+			key = key.substring(1);
+		}
+		if (key.endsWith("/")) {
+			key = key.substring(0, key.length() - 1);
+		}
+
+		// List all versions using versions(true) option
+		Page<Blob> page = this.bucket.list(
+				Storage.BlobListOption.prefix(key),
+				Storage.BlobListOption.versions(true));
+
+		for (Blob blob : page.iterateAll()) {
+			// Only include exact key matches
+			if (!blob.getName().equals(key)) {
+				continue;
+			}
+			Map<String, Object> versionInfo = new LinkedHashMap<>();
+			versionInfo.put("versionId", String.valueOf(blob.getGeneration()));
+			versionInfo.put("lastModified", blob.getUpdateTimeOffsetDateTime() != null
+					? blob.getUpdateTimeOffsetDateTime().toString() : null);
+			versionInfo.put("size", blob.getSize());
+			versionInfo.put("isLatest", !blob.isDirectory());
+			versionInfo.put("key", blob.getName());
+			versions.add(versionInfo);
+		}
+
+		return versions;
 	}
 
 	@Override
