@@ -484,7 +484,7 @@ public class InputMessage extends AbstractMessage {
 			Map<String, Object> toolParameterValues, String toolStatus, boolean serverTool) {
 		InputMessage toolExecution = builder(room)
 				.withToolResult(toolCallId, toolName, content, toolParameterValues, toolStatus, serverTool).build();
-		toolExecution.setVisibile(false);
+		toolExecution.setVisible(false);
 		return toolExecution;
 	}
 
