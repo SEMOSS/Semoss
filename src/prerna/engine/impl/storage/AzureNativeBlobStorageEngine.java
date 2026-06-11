@@ -303,7 +303,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		// Extract container and blob directory
 		String[] containerAndPath = extractContainerAndPath(storageFolderPath);
@@ -358,6 +358,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
 				storageFolderPath);
+		return null;
 	}
 
 	@Override

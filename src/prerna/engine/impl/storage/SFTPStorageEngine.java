@@ -272,7 +272,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		SSHClient sshClient = null;
 		SFTPClient sftpClient = null;
@@ -306,6 +306,7 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 				close(sftpClient, sshClient);
 			}
 		}
+		return null;
 	}
 
 	@Override

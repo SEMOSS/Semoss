@@ -94,39 +94,16 @@ public interface IStorageEngine extends IEngine {
 
 	/**
 	 * Copy local files to a storage folder path.
+	 * Returns the version identifier if the underlying storage has versioning enabled,
+	 * or null if versioning is not supported/enabled.
 	 * 
 	 * @param localFilePath     the local file or folder path(s) to upload
 	 * @param storageFolderPath the destination path in storage
 	 * @param metadata          optional metadata to attach to the uploaded objects
+	 * @return the version identifier (S3 versionId or GCS generation), or null if not available
 	 * @throws Exception if the upload fails
 	 */
-	void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
-
-	/**
-	 * Check if object versioning is enabled for this storage engine.
-	 * 
-	 * @return true if versioning is enabled, false by default
-	 */
-	default boolean isVersioningEnabled() {
-		return false;
-	}
-
-	/**
-	 * Copy local files to storage and return the version identifier of the uploaded object.
-	 * Only supported by engines with versioning enabled (S3, GCS).
-	 * Default implementation delegates to {@link #copyToStorage} and returns null.
-	 * 
-	 * @param localFilePath     the local file or folder path(s) to upload
-	 * @param storageFolderPath the destination path in storage
-	 * @param metadata          optional metadata to attach to the uploaded objects
-	 * @return the version identifier (S3 versionId or GCS generation), or null if not supported
-	 * @throws Exception if the upload fails
-	 */
-	default String copyToStorageVersioned(String localFilePath, String storageFolderPath,
-			Map<String, Object> metadata) throws Exception {
-		copyToStorage(localFilePath, storageFolderPath, metadata);
-		return null;
-	}
+	String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
 
 	/**
 	 * 

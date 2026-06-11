@@ -153,10 +153,10 @@ public class JCIFSStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		// TODO Auto-generated method stub
-
+		return null;
 	}
 
 	@Override

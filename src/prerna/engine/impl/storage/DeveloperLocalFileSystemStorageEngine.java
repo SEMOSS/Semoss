@@ -284,7 +284,7 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		List<Path> sources = parseLocalPaths(localFilePath);
 		Path destinationFolder = resolveStoragePath(storageFolderPath);
@@ -302,6 +302,7 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 						StandardCopyOption.COPY_ATTRIBUTES);
 			}
 		}
+		return null;
 	}
 
 	@Override

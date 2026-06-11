@@ -411,61 +411,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
-			throws Exception {
-		List<Path> paths = parseLocalPaths(localFilePath);
-		List<String> uploadedFiles = new ArrayList<>();
-		List<String> failedFiles = new ArrayList<>();
-		boolean found = false;
-		for (Path filePath : paths) {
-			if (!Files.exists(filePath)) {
-				classLogger.error("File not found: {}", filePath);
-				failedFiles.add(filePath.toString());
-				continue;
-			}
-
-			// Delete empty directories before upload
-			deleteEmptyDirectories(filePath);
-
-			if (Files.isDirectory(filePath)) {
-				try (Stream<Path> stream = Files.walk(filePath)) {
-					stream.filter(Files::isRegularFile).forEach(file -> {
-						try {
-							uploadedFiles.add(uploadFileToGCS(filePath, file, storageFolderPath, metadata));
-						} catch (Exception e) {
-							failedFiles.add(file.toString());
-							classLogger.error("Failed to upload file: {}", file, e);
-							rollbackUploads(storage, failedFiles);
-						}
-					});
-					found = true;
-				}
-			} else {
-				try {
-					uploadedFiles.add(uploadFileToGCS(filePath.getParent(), filePath, storageFolderPath, metadata));
-					found = true;
-				} catch (Exception e) {
-					failedFiles.add(filePath.toString());
-					classLogger.error("Failed to upload file: {}", filePath, e);
-					rollbackUploads(storage, failedFiles);
-				}
-			}
-		}
-
-		// Delete empty blobs from GCS
-		deleteEmptyBlobs(storageFolderPath);
-
-		if (uploadedFiles.isEmpty()) {
-			classLogger.info("No files were uploaded.");
-		} else {
-			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
-		}
-		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
-				storageFolderPath);
-	}
-
-	@Override
-	public String copyToStorageVersioned(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		List<Path> paths = parseLocalPaths(localFilePath);
 		List<String> uploadedFiles = new ArrayList<>();
@@ -486,7 +432,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				try (Stream<Path> stream = Files.walk(filePath)) {
 					stream.filter(Files::isRegularFile).forEach(file -> {
 						try {
-							String generation = uploadFileToGCSVersioned(filePath, file, storageFolderPath, metadata);
+							String generation = uploadFileToGCS(filePath, file, storageFolderPath, metadata);
 							uploadedFiles.add(file.toString());
 							if (generation != null) {
 								lastVersionId.set(generation);
@@ -501,8 +447,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				}
 			} else {
 				try {
-					String generation = uploadFileToGCSVersioned(filePath.getParent(), filePath, storageFolderPath,
-							metadata);
+					String generation = uploadFileToGCS(filePath.getParent(), filePath, storageFolderPath, metadata);
 					uploadedFiles.add(filePath.toString());
 					if (generation != null) {
 						lastVersionId.set(generation);
@@ -996,36 +941,6 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
 		}
 
-		retryOperation(() -> {
-			try {
-				storage.create(blobInfoBuilder.build(), Files.readAllBytes(file));
-				classLogger.info("Uploaded file to GCS: {}", blobName);
-			} catch (IOException e) {
-				classLogger.error("Failed to upload file to GCS: {}", blobName, e);
-			}
-		}, "Uploading: " + blobName);
-
-		return blobName;
-	}
-
-	private String uploadFileToGCSVersioned(Path rootPath, Path file, String storageFolderPath,
-			Map<String, Object> metadata) throws IOException {
-		String normalizedPath = Utility.normalizePath(storageFolderPath).trim();
-		if (normalizedPath.startsWith("/")) {
-			normalizedPath = normalizedPath.substring(1);
-		}
-		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
-		String blobName = normalizedPath.isEmpty() ? relativePath
-				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
-
-		BlobId blobId = BlobId.of(this.BUCKET, blobName);
-		BlobInfo.Builder blobInfoBuilder = BlobInfo.newBuilder(blobId);
-
-		if (metadata != null && !metadata.isEmpty()) {
-			blobInfoBuilder.setMetadata(metadata.entrySet().stream()
-					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
-		}
-
 		AtomicReference<String> generationRef = new AtomicReference<>(null);
 		retryOperation(() -> {
 			try {
@@ -1033,7 +948,6 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				classLogger.info("Uploaded file to GCS: {}", blobName);
 				if (blob.getGeneration() != null) {
 					generationRef.set(String.valueOf(blob.getGeneration()));
-					classLogger.info("Generation for {}: {}", blobName, blob.getGeneration());
 				}
 			} catch (IOException e) {
 				classLogger.error("Failed to upload file to GCS: {}", blobName, e);

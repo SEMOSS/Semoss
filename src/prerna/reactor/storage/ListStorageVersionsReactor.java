@@ -68,10 +68,6 @@ public class ListStorageVersionsReactor extends AbstractReactor {
 		IStorageEngine storage = getStorage();
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
 
-		if (!storage.isVersioningEnabled()) {
-			throw new IllegalArgumentException("Storage engine does not have versioning enabled");
-		}
-
 		try {
 			List<Map<String, Object>> versions = storage.listVersions(storagePath);
 			return new NounMetadata(versions, PixelDataType.VECTOR);

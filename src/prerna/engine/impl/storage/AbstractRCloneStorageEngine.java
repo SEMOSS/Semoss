@@ -135,9 +135,10 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws IOException, InterruptedException {
 		copyToStorage(localFilePath, storageFolderPath, null, metadata);
+		return null;
 	}
 
 	@Override

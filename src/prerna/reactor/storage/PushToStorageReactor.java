@@ -86,17 +86,12 @@ public class PushToStorageReactor extends AbstractReactor {
 
 		Map<String, Object> metadata = getMetadata();
 		try {
-			// If this engine supports versioning, use the versioned upload
-			if (storage.isVersioningEnabled()) {
-				String versionId = storage.copyToStorageVersioned(fileLocation, storageFolderPath, metadata);
-				if (versionId != null && !versionId.isEmpty()) {
-					Map<String, Object> result = new HashMap<>();
-					result.put("success", true);
-					result.put("versionId", versionId);
-					return new NounMetadata(result, PixelDataType.MAP);
-				}
-			} else {
-				storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			String versionId = storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			if (versionId != null && !versionId.isEmpty()) {
+				Map<String, Object> result = new HashMap<>();
+				result.put("success", true);
+				result.put("versionId", versionId);
+				return new NounMetadata(result, PixelDataType.MAP);
 			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {

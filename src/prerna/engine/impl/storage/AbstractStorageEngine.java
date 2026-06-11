@@ -47,10 +47,6 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-	public static final String VERSIONING_ENABLED_KEY = "VERSIONING_ENABLED";
-
-	protected boolean versioningEnabled = false;
-
 	/**
 	 * Init the general storage values
 	 * 
@@ -60,20 +56,6 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		String versioningStr = smssProp.getProperty(VERSIONING_ENABLED_KEY);
-		if (versioningStr != null && !versioningStr.isEmpty()) {
-			this.versioningEnabled = Boolean.parseBoolean(versioningStr);
-		}
-	}
-
-	/**
-	 * Check if versioning is enabled for this storage engine.
-	 * 
-	 * @return true if versioning is enabled
-	 */
-	@Override
-	public boolean isVersioningEnabled() {
-		return this.versioningEnabled;
 	}
 
 	/**
