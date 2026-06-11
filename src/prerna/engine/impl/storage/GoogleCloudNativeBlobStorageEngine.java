@@ -276,7 +276,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			versionInfo.put("lastModified", blob.getUpdateTimeOffsetDateTime() != null
 					? blob.getUpdateTimeOffsetDateTime().toString() : null);
 			versionInfo.put("size", blob.getSize());
-			versionInfo.put("isLatest", !blob.isDirectory());
+			versionInfo.put("isLatest", blob.getDeleteTimeOffsetDateTime() == null);
 			versionInfo.put("key", blob.getName());
 			versions.add(versionInfo);
 		}
