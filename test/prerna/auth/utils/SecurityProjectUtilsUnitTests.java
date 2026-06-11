@@ -466,7 +466,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createUser("user3", false);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> requests = List.of(Map.of("userid", "user3id", "permission", "EDIT"));
+        List<Map<String, String>> requests = List.of(Map.of("userid", "user3id", "permission", "EDIT"));
 
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
                 SecurityProjectUtils.editProjectUserPermissions(user2, "testProjectId", requests, null));
@@ -482,15 +482,15 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "READ_ONLY", null);
         SecurityProjectUtils.addProjectUser(user, "user3id", "testProjectId", "READ_ONLY", null);
 
-        Map<String, Object> perm1 = new HashMap<>();
+        Map<String, String> perm1 = new HashMap<>();
         perm1.put("userid", "user2id");
         perm1.put("permission", "EDIT");
 
-        Map<String, Object> perm2 = new HashMap<>();
+        Map<String, String> perm2 = new HashMap<>();
         perm2.put("userid", "user3id");
         perm2.put("permission", "EDIT");
 
-        List<Map<String, Object>> requests = List.of(perm1, perm2);
+        List<Map<String, String>> requests = List.of(perm1, perm2);
         SecurityProjectUtils.editProjectUserPermissions(user, "testProjectId", requests, null);
 
         assertTrue(SecurityProjectUtils.userCanEditProject(user2, "testProjectId"));
@@ -590,7 +590,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createUser("user3", false);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> permissions = List.of(Map.of("userid", "user3id", "permission", "READ_ONLY"));
+        List<Map<String, String>> permissions = List.of(Map.of("userid", "user3id", "permission", "READ_ONLY"));
 
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
                 SecurityProjectUtils.addProjectUserPermissions(user2, "testProjectId", permissions, null));
@@ -604,15 +604,15 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         User user3 = UnitTestSecurityAuthUtils.createUser("user3", false);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        Map<String, Object> perm1 = new HashMap<>();
+        Map<String, String> perm1 = new HashMap<>();
         perm1.put("userid", "user2id");
         perm1.put("permission", "READ_ONLY");
 
-        Map<String, Object> perm2 = new HashMap<>();
+        Map<String, String> perm2 = new HashMap<>();
         perm2.put("userid", "user3id");
         perm2.put("permission", "EDIT");
 
-        List<Map<String, Object>> permissions = List.of(perm1, perm2);
+        List<Map<String, String>> permissions = List.of(perm1, perm2);
         SecurityProjectUtils.addProjectUserPermissions(user, "testProjectId", permissions, null);
 
         assertTrue(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
@@ -1543,7 +1543,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createUser("user2", false);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        Map<String, Object> perm = new HashMap<>();
+        Map<String, String> perm = new HashMap<>();
         perm.put("userid", "user2id");
         perm.put("permission", "EDIT");
 
@@ -1559,7 +1559,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "EDIT", null);
 
-        Map<String, Object> perm = new HashMap<>();
+        Map<String, String> perm = new HashMap<>();
         perm.put("userid", "adminid");
         perm.put("permission", "EDIT");
 
@@ -1577,7 +1577,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "EDIT", null);
         SecurityProjectUtils.addProjectUser(user, "user3id", "testProjectId", "READ_ONLY", null);
 
-        Map<String, Object> perm = new HashMap<>();
+        Map<String, String> perm = new HashMap<>();
         perm.put("userid", "user3id");
         perm.put("permission", "OWNER");
 
@@ -1638,7 +1638,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "READ_ONLY", null);
 
-        Map<String, Object> perm = new HashMap<>();
+        Map<String, String> perm = new HashMap<>();
         perm.put("userid", "user2id");
         perm.put("permission", "EDIT");
 
@@ -1655,7 +1655,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "EDIT", null);
 
-        Map<String, Object> perm = new HashMap<>();
+        Map<String, String> perm = new HashMap<>();
         perm.put("userid", "user3id");
         perm.put("permission", "OWNER");
 
@@ -1883,7 +1883,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
         // Call propagate with no project dependencies - should return empty result maps
-        Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id", "user", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id", "user", "READ_ONLY", null, null, null, 0, 0.0);
         assertNotNull(result);
     }
 

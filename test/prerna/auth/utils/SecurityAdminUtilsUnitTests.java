@@ -520,7 +520,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testGetEngineUsers_multipleUsers() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         List<Map<String, Object>> users = instance.getEngineUsers("engine1", null, null, 10, 0);
         assertNotNull(users);
@@ -535,7 +535,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testGetEngineUsersCount() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         long count = instance.getEngineUsersCount("engine1", null, null);
         assertEquals(2, count);
@@ -577,7 +577,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 
-        instance.addEngineUser("user2id", "engine1", "READ_ONLY", adminUser, null, null, null, 0, 0.0, 0, 0);
+        instance.addEngineUser("user2id", "engine1", "READ_ONLY", adminUser, null, null, null, 0, 0.0);
 
         assertTrue(SecurityEngineUtils.userCanViewEngine(user2, "engine1"));
     }
@@ -587,7 +587,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 
-        instance.addEngineUser("user2id", "engine1", "OWNER", adminUser, null, null, null, 0, 0.0, 0, 0);
+        instance.addEngineUser("user2id", "engine1", "OWNER", adminUser, null, null, null, 0, 0.0);
 
         Integer permission = SecurityEngineUtils.getUserEnginePermission("user2id", "engine1");
         assertEquals(AccessPermissionEnum.OWNER.getId(), permission);
@@ -615,9 +615,9 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testEditEngineUserPermission() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
-        instance.editEngineUserPermission("user2id", "engine1", "EDIT", adminUser, null, null, null, 0, 0.0, 0, 0);
+        instance.editEngineUserPermission("user2id", "engine1", "EDIT", adminUser, null, null, null, 0, 0.0);
 
         assertTrue(SecurityEngineUtils.userCanEditEngine(user2, "engine1"));
     }
@@ -645,7 +645,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testRemoveEngineUser() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
         assertTrue(SecurityEngineUtils.userCanViewEngine(user2, "engine1"));
 
         instance.removeEngineUser("user2id", "engine1");
@@ -678,8 +678,8 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
         User user3 = UnitTestSecurityAuthUtils.createUser("user3", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
-        SecurityEngineUtils.addEngineUser(adminUser, "user3id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user3id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         instance.removeEngineUsers(List.of("user2id", "user3id"), "engine1");
 
@@ -856,7 +856,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testGetEnginesUserHasExplicitAccess_hasAccess() throws IllegalAccessException {
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         List<String> engines = instance.getEnginesUserHasExplicitAccess("user2id", null);
         assertNotNull(engines);
@@ -1141,7 +1141,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testEditEngineUserPermissions_batch() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         List<Map<String, Object>> permissions = new ArrayList<>();
         Map<String, Object> perm1 = new HashMap<>();
@@ -1273,7 +1273,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testUpdateEngineUserPermissions() throws IllegalAccessException {
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         instance.updateEngineUserPermissions("engine1", "EDIT", adminUser, null);
 
@@ -1468,7 +1468,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testGetEnginesAndVisibilityUserHasExplicitAccess_hasAccess() throws IllegalAccessException {
         User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
         UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
-        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
+        SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
         Map<String, Boolean> engines = instance.getEnginesAndVisibilityUserHasExplicitAccess("user2id", null);
         assertNotNull(engines);

@@ -311,7 +311,7 @@ public class UnitTestSecurityAuthUtils {
 	static void addPermissionsToUserForProject(User user, String pid, String uid, String permission)
 			throws IllegalAccessException {
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
-		List<Map<String, Object>> permissions = List.of(Map.of("userid", uid, "permission", permission));
+		List<Map<String, String>> permissions = List.of(Map.of("userid", uid, "permission", permission));
 		SecurityProjectUtils.addProjectUserPermissions(user, pid, permissions, endDate);
 	}
 

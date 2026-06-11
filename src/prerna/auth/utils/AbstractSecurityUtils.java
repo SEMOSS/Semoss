@@ -746,13 +746,13 @@ public abstract class AbstractSecurityUtils {
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",
-					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS" };
+					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY" };
 			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,
-					"VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
+					"VARCHAR(255)" };
 			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null, null, null, null,
-					null, null, null };
+					null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types,
 						defaultValues);
@@ -998,16 +998,11 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE",
-					"USAGERESTRICTION", "USAGEFREQUENCY", "MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS",
-					"MAXRESPONSETIME", "RESTRICT_PER_MODEL" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
 			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-					DOBLE_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null,
-					null, null, null, null, null, null, false };
+					TIMESTAMP_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types,
 						defaultValues);
@@ -1650,12 +1645,9 @@ public abstract class AbstractSecurityUtils {
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned
 			// at group lvl
 			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "USAGERESTRICTION", "USAGEFREQUENCY",
-					"MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAXRESPONSETIME" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-					INTEGER_DATATYPE_NAME, "DOUBLE" };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1688,12 +1680,9 @@ public abstract class AbstractSecurityUtils {
 			// TODO::: look into how we want to allow user hiding of projects that are
 			// assigned at group lvl
 			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "USAGERESTRICTION", "USAGEFREQUENCY",
-					"MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAXRESPONSETIME" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-					INTEGER_DATATYPE_NAME, "DOUBLE" };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);

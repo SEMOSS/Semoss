@@ -549,8 +549,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", "max_tokens"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", "max_response_time"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USAGEFREQUENCY", "usage_frequency"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAX_INPUT_TOKENS", "max_input_tokens"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAX_OUTPUT_TOKENS", "max_output_tokens"));
 		// filter to the engine
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (hasSearchParam) {

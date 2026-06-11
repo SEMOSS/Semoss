@@ -57,7 +57,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.project.api.IProject;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -709,7 +709,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -836,8 +836,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				error += e.getMessage();
 			}
 			if (error.isEmpty()) {
-				newSalt = SecurityQueryUtils.generateSalt();
-				newHashPass = SecurityQueryUtils.hash(password, newSalt);
+				newSalt = AbstractSecurityUtils.generateSalt();
+				newHashPass = AbstractSecurityUtils.hash(password, newSalt);
 			}
 		}
 		if (phone != null && !phone.isEmpty()) {
@@ -1706,8 +1706,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 */
 	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate,
-			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime,
-			int maxInputTokens, int maxOutputTokens) {
+			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -1725,7 +1724,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1757,16 +1756,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 			} else {
 				ps.setDouble(parameterIndex++, maxResponseTime);
-			}
-			if (maxInputTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-			} else {
-				ps.setInt(parameterIndex++, maxInputTokens);
-			}
-			if (maxOutputTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-			} else {
-				ps.setInt(parameterIndex++, maxOutputTokens);
 			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -1808,7 +1797,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1855,16 +1844,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				}
-				if (thisPermissionMap.get("maxInputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				}
-				if (thisPermissionMap.get("maxOutputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 
 				ps.addBatch();
@@ -2551,8 +2530,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param usageFrequency
 	 */
 	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
-			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime,
-			int maxInputTokens, int maxOutputTokens) {
+			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
@@ -2569,7 +2547,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2599,16 +2577,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 			} else {
 				ps.setDouble(parameterIndex++, maxResponseTime);
-			}
-			if (maxInputTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-			} else {
-				ps.setInt(parameterIndex++, maxInputTokens);
-			}
-			if (maxOutputTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-			} else {
-				ps.setInt(parameterIndex++, maxOutputTokens);
 			}
 			// WHERE
 			ps.setString(parameterIndex++, existingUserId);
@@ -2662,7 +2630,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2707,16 +2675,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-				}
-				if (thisPermissionMap.get("maxInputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-				}
-				if (thisPermissionMap.get("maxOutputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
-				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 
 				// WHERE

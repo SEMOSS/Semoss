@@ -464,14 +464,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(
 				new QueryColumnSelector("PROJECTPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__DATEADDED", "date_added"));
-		// usage restriction
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USAGERESTRICTION", "usage_restriction"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USAGEFREQUENCY", "usage_frequency"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__MAXTOKENS", "max_tokens"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__MAX_INPUT_TOKENS", "max_input_tokens"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__MAX_OUTPUT_TOKENS", "max_output_tokens"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__MAXRESPONSETIME", "max_response_time"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__RESTRICT_PER_MODEL", "restrict_per_model"));
 		// filter to the project
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		if (hasSearchParam) {

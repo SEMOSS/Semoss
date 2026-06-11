@@ -36,17 +36,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEntityDefaultTokenUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityGroupEngineUtils;
-import prerna.auth.utils.SecurityGroupProjectUtils;
 import prerna.auth.utils.SecurityModelTokenUtils;
 import prerna.auth.utils.SecurityPrincipalTokenLimitUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityRoomTokenUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -54,8 +47,6 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class ModelUsageRestrictionUtility {
-
-	private static final Logger classLogger = LogManager.getLogger(ModelUsageRestrictionUtility.class);
 
 	// exception Message for throttle limit
 	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
@@ -76,6 +67,9 @@ public final class ModelUsageRestrictionUtility {
 	public static final String TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Input token limit exceeded for team level: You have used %d input tokens, but the limit is %d";
 	public static final String TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Output token limit exceeded for team level: You have used %d output tokens, but the limit is %d";
 	public static final String TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for team level: You have reached %.2f seconds, but the limit is %.2f seconds.";
+	private static final String LIMIT_SCOPE_KEY = "__limitScope";
+	private static final String LIMIT_SCOPE_USER = "USER";
+	private static final String LIMIT_SCOPE_TEAM = "TEAM";
 
 	// Room-level token limit messages
 	public static final String ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for room level: This room has used %d tokens, but the limit is %d";
@@ -129,22 +123,6 @@ public final class ModelUsageRestrictionUtility {
 
 		if (projectId != null && !projectId.trim().isEmpty()) {
 			checkProjectLevelRestriction(user, engineId, projectId, currentDateTime, userRestrictionMap);
-		}
-
-		Map<String, Object> userModelUsageMap = SecurityEngineUtils.getUserModelUsageMap(user);
-		String userLvlModelUsageRestriction = userModelUsageMap == null ? null
-				: (String) userModelUsageMap.get(Constants.USER_USAGE_RESTRICTION_KEY);
-		String userLvlModelUsageFrequency = userModelUsageMap == null ? null
-				: (String) userModelUsageMap.get(Constants.USER_MODEL_USAGE_FREQUENCY_KEY);
-		Number userLvlModelUsageMaxTokens = userModelUsageMap == null ? null
-				: (Number) userModelUsageMap.get(Constants.USER_MODEL_MAX_TOKEN_KEY);
-		Number userLvlModelUsageMaxResponseTime = userModelUsageMap == null ? null
-				: (Number) userModelUsageMap.get(Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY);
-
-		if (userRestrictionMap.isEmpty()
-				&& userLvlModelUsageRestriction != null && !userLvlModelUsageRestriction.isEmpty()) {
-			checkUserLevelRestriction(user, engineId, userLvlModelUsageRestriction, userLvlModelUsageFrequency,
-					userLvlModelUsageMaxTokens, userLvlModelUsageMaxResponseTime, currentDateTime, userRestrictionMap);
 		}
 
 		return userRestrictionMap;
@@ -216,159 +194,54 @@ public final class ModelUsageRestrictionUtility {
 			Map<String, Object> userRestrictionMap) {
 		List<Map<String, Object>> engineUserTokenLimits = SecurityPrincipalTokenLimitUtils
 				.getApplicableEngineUserTokenLimits(user, engineId);
-		boolean hasDedicatedUserTokenLimit = false;
-		boolean hasDedicatedUserComputeLimit = false;
-		List<Map<String, Object>> userTokenCandidates = new java.util.ArrayList<>();
+		List<Map<String, Object>> specificUserCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> limit : engineUserTokenLimits) {
 			if (!hasActiveConfiguredPrincipalLimit(limit)) {
 				continue;
 			}
-			String restriction = (String) limit.get("usageRestriction");
-			Number maxTokens = (Number) limit.get("maxTokens");
-			Number maxInputTokens = (Number) limit.get("maxInputTokens");
-			Number maxOutputTokens = (Number) limit.get("maxOutputTokens");
-			Number maxResponseTime = (Number) limit.get("maxResponseTime");
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				hasDedicatedUserComputeLimit = true;
-				applyEngineRestriction(user, engineId, currentDateTime, restriction,
-						(String) limit.get("usageFrequency"), maxTokens, maxInputTokens, maxOutputTokens,
-						maxResponseTime, userRestrictionMap, ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				hasDedicatedUserTokenLimit = true;
-				userTokenCandidates.add(limit);
-			}
-		}
-
-		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user, engineId);
-		boolean hasSpecificUserComputeLimit = false;
-		for (Map<String, Object> engineUserPermissionMap : engineUserPermission) {
-			String engineRestriction = engineUserPermissionMap == null ? null
-					: (String) engineUserPermissionMap.get(Constants.ENGINE_USAGE_RESTRICTION_KEY);
-			String engineFrequency = engineUserPermissionMap == null ? null
-					: (String) engineUserPermissionMap.get(Constants.ENGINE_USAGE_FREQUENCY_KEY);
-			Number engineMaxTokens = engineUserPermissionMap == null ? null
-					: (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_TOKEN_KEY);
-			Number engineMaxInputTokens = engineUserPermissionMap == null ? null
-					: (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_INPUT_TOKEN_KEY);
-			Number engineMaxOutputTokens = engineUserPermissionMap == null ? null
-					: (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_OUTPUT_TOKEN_KEY);
-			Number engineMaxResponseTime = engineUserPermissionMap == null ? null
-					: (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
-
-			if (!hasConfiguredLimit(engineRestriction, engineMaxTokens, engineMaxInputTokens, engineMaxOutputTokens,
-					engineMaxResponseTime)) {
-				continue;
-			}
-			boolean isComputeRestriction = isComputeRestriction(engineRestriction, engineMaxTokens, engineMaxInputTokens,
-					engineMaxOutputTokens, engineMaxResponseTime);
-			if (isComputeRestriction && hasDedicatedUserComputeLimit) {
-				continue;
-			}
-			if (!isComputeRestriction && hasDedicatedUserTokenLimit) {
-				continue;
-			}
-			if (isComputeRestriction) {
-				hasSpecificUserComputeLimit = true;
-				applyEngineRestriction(user, engineId, currentDateTime, engineRestriction, engineFrequency,
-						engineMaxTokens, engineMaxInputTokens, engineMaxOutputTokens, engineMaxResponseTime,
-						userRestrictionMap, ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				userTokenCandidates.add(engineUserPermissionMap);
-			}
+			specificUserCandidates.add(markLimitScope(limit, LIMIT_SCOPE_USER));
 		}
 
 		List<Map<String, Object>> engineTeamTokenLimits = SecurityPrincipalTokenLimitUtils
 				.getApplicableEngineTeamTokenLimits(user, engineId);
-		List<Map<String, Object>> teamTokenCandidates = new java.util.ArrayList<>();
-		boolean hasDedicatedTeamComputeLimit = false;
+		List<Map<String, Object>> specificTeamCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> limit : engineTeamTokenLimits) {
 			if (!hasActiveConfiguredPrincipalLimit(limit)) {
 				continue;
 			}
-			String restriction = (String) limit.get("usageRestriction");
-			Number maxTokens = (Number) limit.get("maxTokens");
-			Number maxInputTokens = (Number) limit.get("maxInputTokens");
-			Number maxOutputTokens = (Number) limit.get("maxOutputTokens");
-			Number maxResponseTime = (Number) limit.get("maxResponseTime");
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				hasDedicatedTeamComputeLimit = true;
-				applyEngineRestriction(user, engineId, currentDateTime, restriction,
-						(String) limit.get("usageFrequency"), maxTokens, maxInputTokens, maxOutputTokens,
-						maxResponseTime, userRestrictionMap, TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				teamTokenCandidates.add(limit);
-			}
-		}
-
-		List<Map<String, Object>> teamLimits = SecurityGroupEngineUtils.getApplicableGroupEngineUsagePermissions(user,
-				engineId);
-		boolean hasSpecificTeamComputeLimit = false;
-		for (Map<String, Object> teamLimit : teamLimits) {
-			String restriction = (String) teamLimit.get(Constants.ENGINE_USAGE_RESTRICTION_KEY);
-			String frequency = (String) teamLimit.get(Constants.ENGINE_USAGE_FREQUENCY_KEY);
-			Number maxTokens = (Number) teamLimit.get(Constants.ENGINE_MAX_TOKEN_KEY);
-			Number maxInputTokens = (Number) teamLimit.get(Constants.ENGINE_MAX_INPUT_TOKEN_KEY);
-			Number maxOutputTokens = (Number) teamLimit.get(Constants.ENGINE_MAX_OUTPUT_TOKEN_KEY);
-			Number maxResponseTime = (Number) teamLimit.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
-			if (!hasConfiguredLimit(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				continue;
-			}
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				if (hasDedicatedTeamComputeLimit) {
-					continue;
-				}
-				hasSpecificTeamComputeLimit = true;
-				applyEngineRestriction(user, engineId, currentDateTime, restriction, frequency, maxTokens,
-						maxInputTokens, maxOutputTokens, maxResponseTime, userRestrictionMap,
-						TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				teamTokenCandidates.add(teamLimit);
-			}
-		}
-
-		if (applyMostPermissiveTokenLimits(user, engineId, currentDateTime, userTokenCandidates, teamTokenCandidates,
-				userRestrictionMap, ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-				ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE)) {
-			return;
+			specificTeamCandidates.add(markLimitScope(limit, LIMIT_SCOPE_TEAM));
 		}
 
 		List<Map<String, Object>> defaultUserLimits = SecurityEntityDefaultTokenUtils.getEngineDefaultTokenLimits(engineId);
-		boolean hasDefaultUserLimit = false;
+		List<Map<String, Object>> defaultUserCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> defaultUserLimit : defaultUserLimits) {
 			if (!hasActiveConfiguredDefaultLimit(defaultUserLimit)) {
 				continue;
 			}
-			hasDefaultUserLimit = true;
-			applyEngineRestriction(user, engineId, currentDateTime, (String) defaultUserLimit.get("usageRestriction"),
-					(String) defaultUserLimit.get("usageFrequency"), (Number) defaultUserLimit.get("maxTokens"),
-					(Number) defaultUserLimit.get("maxInputTokens"), (Number) defaultUserLimit.get("maxOutputTokens"),
-					(Number) defaultUserLimit.get("maxResponseTime"), userRestrictionMap,
-					ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-		}
-		if (hasDefaultUserLimit || hasSpecificUserComputeLimit || hasDedicatedUserComputeLimit
-				|| hasSpecificTeamComputeLimit || hasDedicatedTeamComputeLimit) {
-			return;
+			defaultUserCandidates.add(markLimitScope(defaultUserLimit, LIMIT_SCOPE_USER));
 		}
 
 		List<Map<String, Object>> defaultTeamLimits = SecurityEntityDefaultTokenUtils.getEngineDefaultTeamTokenLimits(engineId);
+		List<Map<String, Object>> defaultTeamCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> defaultTeamLimit : defaultTeamLimits) {
 			if (!hasActiveConfiguredDefaultLimit(defaultTeamLimit)) {
 				continue;
 			}
-			applyEngineRestriction(user, engineId, currentDateTime, (String) defaultTeamLimit.get("usageRestriction"),
-					(String) defaultTeamLimit.get("usageFrequency"), (Number) defaultTeamLimit.get("maxTokens"),
-					(Number) defaultTeamLimit.get("maxInputTokens"), (Number) defaultTeamLimit.get("maxOutputTokens"),
-					(Number) defaultTeamLimit.get("maxResponseTime"), userRestrictionMap,
-					TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
+			defaultTeamCandidates.add(markLimitScope(defaultTeamLimit, LIMIT_SCOPE_TEAM));
+		}
+
+		Map<String, Map<String, Object>> selectedByFrequency = selectEffectiveLimitsByFrequency(
+				specificUserCandidates, specificTeamCandidates, defaultUserCandidates, defaultTeamCandidates);
+		for (Map<String, Object> selectedLimit : selectedByFrequency.values()) {
+			boolean fromTeam = isTeamScopedLimit(selectedLimit);
+			applyEngineRestriction(user, engineId, currentDateTime, (String) selectedLimit.get("usageRestriction"),
+					(String) selectedLimit.get("usageFrequency"), (Number) selectedLimit.get("maxTokens"),
+					(Number) selectedLimit.get("maxInputTokens"), (Number) selectedLimit.get("maxOutputTokens"),
+					(Number) selectedLimit.get("maxResponseTime"), userRestrictionMap,
+					fromTeam ? TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE : ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE : ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE : ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE : ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
 		}
 	}
 
@@ -468,155 +341,55 @@ public final class ModelUsageRestrictionUtility {
 			ZonedDateTime currentDateTime, Map<String, Object> userRestrictionMap) {
 		List<Map<String, Object>> projectUserTokenLimits = SecurityPrincipalTokenLimitUtils
 				.getApplicableProjectUserTokenLimits(user, projectId, engineId);
-		List<Map<String, Object>> userTokenCandidates = new java.util.ArrayList<>();
-		boolean hasDedicatedProjectUserComputeLimit = false;
+		List<Map<String, Object>> specificUserCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> limit : projectUserTokenLimits) {
 			if (!hasActiveConfiguredPrincipalLimit(limit)) {
 				continue;
 			}
-			String restriction = (String) limit.get("usageRestriction");
-			Number maxTokens = (Number) limit.get("maxTokens");
-			Number maxInputTokens = (Number) limit.get("maxInputTokens");
-			Number maxOutputTokens = (Number) limit.get("maxOutputTokens");
-			Number maxResponseTime = (Number) limit.get("maxResponseTime");
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				hasDedicatedProjectUserComputeLimit = true;
-				applyProjectRestriction(user, engineId, projectId, currentDateTime, restriction,
-						(String) limit.get("usageFrequency"), maxTokens, maxInputTokens, maxOutputTokens,
-						maxResponseTime, isRestrictPerModel(limit, engineId), userRestrictionMap,
-						PROJECT_TOKEN_LIMIT_EXCEEDED_MESSAGE, PROJECT_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, PROJECT_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				userTokenCandidates.add(limit);
-			}
-		}
-
-		List<Map<String, Object>> projectPermission = SecurityProjectUtils.getProjectUsagePermissionMap(user, projectId);
-		boolean hasSpecificProjectComputeLimit = false;
-		for (Map<String, Object> projMap : projectPermission) {
-			String projRestriction = projMap == null ? null : (String) projMap.get(Constants.PROJECT_USAGE_RESTRICTION_KEY);
-			String projFrequency = projMap == null ? null : (String) projMap.get(Constants.PROJECT_USAGE_FREQUENCY_KEY);
-			Number projMaxTokens = projMap == null ? null : (Number) projMap.get(Constants.PROJECT_MAX_TOKEN_KEY);
-			Number projMaxInputTokens = projMap == null ? null : (Number) projMap.get(Constants.PROJECT_MAX_INPUT_TOKEN_KEY);
-			Number projMaxOutputTokens = projMap == null ? null : (Number) projMap.get(Constants.PROJECT_MAX_OUTPUT_TOKEN_KEY);
-			Number projMaxResponseTime = projMap == null ? null
-					: (Number) projMap.get(Constants.PROJECT_MAX_RESPONSE_TIME_KEY);
-			Object restrictPerModelObj = projMap == null ? null : projMap.get(Constants.PROJECT_RESTRICT_PER_MODEL_KEY);
-			boolean restrictPerModel = restrictPerModelObj != null && Boolean.TRUE.equals(restrictPerModelObj);
-
-			if (!hasConfiguredLimit(projRestriction, projMaxTokens, projMaxInputTokens, projMaxOutputTokens,
-					projMaxResponseTime)) {
-				continue;
-			}
-			if (isComputeRestriction(projRestriction, projMaxTokens, projMaxInputTokens, projMaxOutputTokens,
-					projMaxResponseTime)) {
-				if (hasDedicatedProjectUserComputeLimit) {
-					continue;
-				}
-				hasSpecificProjectComputeLimit = true;
-				applyProjectRestriction(user, engineId, projectId, currentDateTime, projRestriction, projFrequency,
-						projMaxTokens, projMaxInputTokens, projMaxOutputTokens, projMaxResponseTime, restrictPerModel,
-						userRestrictionMap, PROJECT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						PROJECT_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						PROJECT_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				userTokenCandidates.add(projMap);
-			}
+			specificUserCandidates.add(markLimitScope(limit, LIMIT_SCOPE_USER));
 		}
 
 		List<Map<String, Object>> projectTeamTokenLimits = SecurityPrincipalTokenLimitUtils
 				.getApplicableProjectTeamTokenLimits(user, projectId, engineId);
-		List<Map<String, Object>> teamTokenCandidates = new java.util.ArrayList<>();
-		boolean hasDedicatedProjectTeamComputeLimit = false;
+		List<Map<String, Object>> specificTeamCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> limit : projectTeamTokenLimits) {
 			if (!hasActiveConfiguredPrincipalLimit(limit)) {
 				continue;
 			}
-			String restriction = (String) limit.get("usageRestriction");
-			Number maxTokens = (Number) limit.get("maxTokens");
-			Number maxInputTokens = (Number) limit.get("maxInputTokens");
-			Number maxOutputTokens = (Number) limit.get("maxOutputTokens");
-			Number maxResponseTime = (Number) limit.get("maxResponseTime");
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				hasDedicatedProjectTeamComputeLimit = true;
-				applyProjectRestriction(user, engineId, projectId, currentDateTime, restriction,
-						(String) limit.get("usageFrequency"), maxTokens, maxInputTokens, maxOutputTokens,
-						maxResponseTime, isRestrictPerModel(limit, engineId), userRestrictionMap,
-						TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				teamTokenCandidates.add(limit);
-			}
-		}
-
-		List<Map<String, Object>> teamLimits = SecurityGroupProjectUtils.getApplicableGroupProjectUsagePermissions(user,
-				projectId);
-		boolean hasSpecificTeamComputeLimit = false;
-		for (Map<String, Object> teamLimit : teamLimits) {
-			String restriction = (String) teamLimit.get(Constants.PROJECT_USAGE_RESTRICTION_KEY);
-			String frequency = (String) teamLimit.get(Constants.PROJECT_USAGE_FREQUENCY_KEY);
-			Number maxTokens = (Number) teamLimit.get(Constants.PROJECT_MAX_TOKEN_KEY);
-			Number maxInputTokens = (Number) teamLimit.get(Constants.PROJECT_MAX_INPUT_TOKEN_KEY);
-			Number maxOutputTokens = (Number) teamLimit.get(Constants.PROJECT_MAX_OUTPUT_TOKEN_KEY);
-			Number maxResponseTime = (Number) teamLimit.get(Constants.PROJECT_MAX_RESPONSE_TIME_KEY);
-			if (!hasConfiguredLimit(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				continue;
-			}
-			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
-				if (hasDedicatedProjectTeamComputeLimit) {
-					continue;
-				}
-				hasSpecificTeamComputeLimit = true;
-				applyProjectRestriction(user, engineId, projectId, currentDateTime, restriction, frequency, maxTokens,
-						maxInputTokens, maxOutputTokens, maxResponseTime, false, userRestrictionMap,
-						TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-			} else {
-				teamTokenCandidates.add(teamLimit);
-			}
-		}
-
-		if (applyMostPermissiveProjectTokenLimits(user, engineId, projectId, currentDateTime, userTokenCandidates,
-				teamTokenCandidates, userRestrictionMap, PROJECT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-				PROJECT_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-				TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-				TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE)) {
-			return;
+			specificTeamCandidates.add(markLimitScope(limit, LIMIT_SCOPE_TEAM));
 		}
 
 		List<Map<String, Object>> defaultUserLimits = SecurityEntityDefaultTokenUtils.getProjectDefaultTokenLimits(projectId);
-		boolean hasDefaultProjectUserLimit = false;
+		List<Map<String, Object>> defaultUserCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> defaultUserLimit : defaultUserLimits) {
 			if (!hasActiveConfiguredDefaultLimit(defaultUserLimit)) {
 				continue;
 			}
-			hasDefaultProjectUserLimit = true;
-			boolean defaultRestrictPerModel = Boolean.TRUE.equals(defaultUserLimit.get("restrictPerModel"));
-			applyProjectRestriction(user, engineId, projectId, currentDateTime,
-					(String) defaultUserLimit.get("usageRestriction"), (String) defaultUserLimit.get("usageFrequency"),
-					(Number) defaultUserLimit.get("maxTokens"), (Number) defaultUserLimit.get("maxInputTokens"),
-					(Number) defaultUserLimit.get("maxOutputTokens"), (Number) defaultUserLimit.get("maxResponseTime"),
-					defaultRestrictPerModel, userRestrictionMap, PROJECT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					PROJECT_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					PROJECT_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-		}
-		if (hasDefaultProjectUserLimit || hasDedicatedProjectUserComputeLimit || hasSpecificProjectComputeLimit
-				|| hasDedicatedProjectTeamComputeLimit || hasSpecificTeamComputeLimit) {
-			return;
+			defaultUserCandidates.add(markLimitScope(defaultUserLimit, LIMIT_SCOPE_USER));
 		}
 
 		List<Map<String, Object>> defaultTeamLimits = SecurityEntityDefaultTokenUtils.getProjectDefaultTeamTokenLimits(projectId);
+		List<Map<String, Object>> defaultTeamCandidates = new java.util.ArrayList<>();
 		for (Map<String, Object> defaultTeamLimit : defaultTeamLimits) {
 			if (!hasActiveConfiguredDefaultLimit(defaultTeamLimit)) {
 				continue;
 			}
+			defaultTeamCandidates.add(markLimitScope(defaultTeamLimit, LIMIT_SCOPE_TEAM));
+		}
+
+		Map<String, Map<String, Object>> selectedByFrequency = selectEffectiveLimitsByFrequency(
+				specificUserCandidates, specificTeamCandidates, defaultUserCandidates, defaultTeamCandidates);
+		for (Map<String, Object> selectedLimit : selectedByFrequency.values()) {
+			boolean fromTeam = isTeamScopedLimit(selectedLimit);
 			applyProjectRestriction(user, engineId, projectId, currentDateTime,
-					(String) defaultTeamLimit.get("usageRestriction"), (String) defaultTeamLimit.get("usageFrequency"),
-					(Number) defaultTeamLimit.get("maxTokens"), (Number) defaultTeamLimit.get("maxInputTokens"),
-					(Number) defaultTeamLimit.get("maxOutputTokens"), (Number) defaultTeamLimit.get("maxResponseTime"),
-					false, userRestrictionMap, TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-					TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
+					(String) selectedLimit.get("usageRestriction"), (String) selectedLimit.get("usageFrequency"),
+					(Number) selectedLimit.get("maxTokens"), (Number) selectedLimit.get("maxInputTokens"),
+					(Number) selectedLimit.get("maxOutputTokens"), (Number) selectedLimit.get("maxResponseTime"),
+					isRestrictPerModel(selectedLimit, engineId), userRestrictionMap,
+					fromTeam ? TEAM_TOKEN_LIMIT_EXCEEDED_MESSAGE : PROJECT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE : PROJECT_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE : PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+					fromTeam ? TEAM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE : PROJECT_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
 		}
 	}
 
@@ -699,58 +472,31 @@ public final class ModelUsageRestrictionUtility {
 		}
 	}
 
-	private static boolean applyMostPermissiveTokenLimits(User user, String engineId, ZonedDateTime currentDateTime,
-			List<Map<String, Object>> userTokenCandidates, List<Map<String, Object>> teamTokenCandidates,
-			Map<String, Object> userRestrictionMap, String tokenExceededMessage, String inputExceededMessage,
-			String outputExceededMessage) {
-		Map<String, Map<String, Object>> selectedByFrequency = selectMostPermissiveTokenRowsByFrequency(
-				userTokenCandidates, teamTokenCandidates);
-		for (Map<String, Object> selectedLimit : selectedByFrequency.values()) {
-			checkEngineLevelTokenLimits(user, engineId, currentDateTime,
-					(String) selectedLimit.get("usageFrequency"), (Number) selectedLimit.get("maxTokens"),
-					(Number) selectedLimit.get("maxInputTokens"), (Number) selectedLimit.get("maxOutputTokens"),
-					userRestrictionMap, tokenExceededMessage, inputExceededMessage, outputExceededMessage);
-		}
-		return !selectedByFrequency.isEmpty();
-	}
-
-	private static boolean applyMostPermissiveProjectTokenLimits(User user, String engineId, String projectId,
-			ZonedDateTime currentDateTime, List<Map<String, Object>> userTokenCandidates,
-			List<Map<String, Object>> teamTokenCandidates, Map<String, Object> userRestrictionMap,
-			String userTokenExceededMessage, String userInputExceededMessage, String userOutputExceededMessage,
-			String teamTokenExceededMessage, String teamInputExceededMessage, String teamOutputExceededMessage) {
-		Map<String, Map<String, Object>> selectedByFrequency = selectMostPermissiveTokenRowsByFrequency(
-				userTokenCandidates, teamTokenCandidates);
-		for (Map<String, Object> selectedLimit : selectedByFrequency.values()) {
-			boolean fromTeam = isTeamScopedLimit(selectedLimit);
-			checkProjectTokenLimits(user, projectId,
-					resolveProjectScopedEngineId(engineId, selectedLimit), currentDateTime,
-					(String) selectedLimit.get("usageFrequency"), (Number) selectedLimit.get("maxTokens"),
-					(Number) selectedLimit.get("maxInputTokens"), (Number) selectedLimit.get("maxOutputTokens"),
-					userRestrictionMap, fromTeam ? teamTokenExceededMessage : userTokenExceededMessage,
-					fromTeam ? teamInputExceededMessage : userInputExceededMessage,
-					fromTeam ? teamOutputExceededMessage : userOutputExceededMessage);
-		}
-		return !selectedByFrequency.isEmpty();
-	}
-
-	private static Map<String, Map<String, Object>> selectMostPermissiveTokenRowsByFrequency(
-			List<Map<String, Object>> userTokenCandidates, List<Map<String, Object>> teamTokenCandidates) {
+	private static Map<String, Map<String, Object>> selectEffectiveLimitsByFrequency(
+			List<Map<String, Object>> specificUserCandidates, List<Map<String, Object>> specificTeamCandidates,
+			List<Map<String, Object>> defaultUserCandidates, List<Map<String, Object>> defaultTeamCandidates) {
 		Map<String, Map<String, Object>> selectedByFrequency = new HashMap<>();
-		Map<String, Map<String, Object>> bestUserByFrequency = selectBestTokenRowsPerFrequency(userTokenCandidates);
-		Map<String, Map<String, Object>> bestTeamByFrequency = selectBestTokenRowsPerFrequency(teamTokenCandidates);
+		Map<String, Map<String, Object>> specificUserByFrequency = selectBestTokenRowsPerFrequency(specificUserCandidates);
+		Map<String, Map<String, Object>> specificTeamByFrequency = selectBestTokenRowsPerFrequency(specificTeamCandidates);
+		Map<String, Map<String, Object>> defaultUserByFrequency = selectBestTokenRowsPerFrequency(defaultUserCandidates);
+		Map<String, Map<String, Object>> defaultTeamByFrequency = selectBestTokenRowsPerFrequency(defaultTeamCandidates);
+
 		java.util.Set<String> frequencies = new java.util.HashSet<>();
-		frequencies.addAll(bestUserByFrequency.keySet());
-		frequencies.addAll(bestTeamByFrequency.keySet());
+		frequencies.addAll(specificUserByFrequency.keySet());
+		frequencies.addAll(specificTeamByFrequency.keySet());
+		frequencies.addAll(defaultUserByFrequency.keySet());
+		frequencies.addAll(defaultTeamByFrequency.keySet());
+
 		for (String frequency : frequencies) {
-			Map<String, Object> bestUser = bestUserByFrequency.get(frequency);
-			Map<String, Object> bestTeam = bestTeamByFrequency.get(frequency);
-			if (bestUser == null) {
-				selectedByFrequency.put(frequency, bestTeam);
-			} else if (bestTeam == null) {
-				selectedByFrequency.put(frequency, bestUser);
-			} else {
-				selectedByFrequency.put(frequency, pickMorePermissiveTokenRow(bestUser, bestTeam));
+			Map<String, Object> userLimit = specificUserByFrequency.containsKey(frequency)
+					? specificUserByFrequency.get(frequency)
+					: defaultUserByFrequency.get(frequency);
+			Map<String, Object> teamLimit = specificTeamByFrequency.containsKey(frequency)
+					? specificTeamByFrequency.get(frequency)
+					: defaultTeamByFrequency.get(frequency);
+			Map<String, Object> selectedLimit = pickMorePermissiveTokenRow(userLimit, teamLimit);
+			if (selectedLimit != null) {
+				selectedByFrequency.put(frequency, selectedLimit);
 			}
 		}
 		return selectedByFrequency;
@@ -803,10 +549,10 @@ public final class ModelUsageRestrictionUtility {
 	}
 
 	private static int compareNullableLimitNumbers(Number left, Number right) {
-		boolean leftConfigured = left != null && left.longValue() >= 0;
-		boolean rightConfigured = right != null && right.longValue() >= 0;
+		boolean leftConfigured = left != null && left.doubleValue() >= 0;
+		boolean rightConfigured = right != null && right.doubleValue() >= 0;
 		if (leftConfigured && rightConfigured) {
-			return Long.compare(left.longValue(), right.longValue());
+			return Double.compare(left.doubleValue(), right.doubleValue());
 		}
 		if (leftConfigured) {
 			return 1;
@@ -818,18 +564,14 @@ public final class ModelUsageRestrictionUtility {
 	}
 
 	private static boolean isTeamScopedLimit(Map<String, Object> limit) {
-		return limit.get("groupId") != null || limit.get("groupType") != null;
+		return LIMIT_SCOPE_TEAM.equals(limit.get(LIMIT_SCOPE_KEY))
+				|| limit.get("groupId") != null || limit.get("groupType") != null;
 	}
 
-	private static String resolveProjectScopedEngineId(String engineId, Map<String, Object> limit) {
-		Object scopedEngineId = limit.get("engineId");
-		if (scopedEngineId != null && engineId != null && engineId.equals(scopedEngineId.toString())) {
-			return engineId;
-		}
-		if (Boolean.TRUE.equals(limit.get("restrictPerModel"))) {
-			return engineId;
-		}
-		return null;
+	private static Map<String, Object> markLimitScope(Map<String, Object> limit, String scope) {
+		Map<String, Object> scopedLimit = new HashMap<>(limit);
+		scopedLimit.put(LIMIT_SCOPE_KEY, scope);
+		return scopedLimit;
 	}
 
 	private static boolean hasActiveConfiguredDefaultLimit(Map<String, Object> limitMap) {
@@ -863,17 +605,10 @@ public final class ModelUsageRestrictionUtility {
 		if (restriction == null || restriction.trim().isEmpty()) {
 			return false;
 		}
-		return maxTokens != null || maxInputTokens != null || maxOutputTokens != null || maxResponseTime != null;
-	}
-
-	private static boolean isComputeRestriction(String restriction, Number maxTokens, Number maxInputTokens,
-			Number maxOutputTokens, Number maxResponseTime) {
-		if (restriction != null
-				&& Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction.trim())) {
-			return true;
-		}
-		boolean hasTokenLimit = maxTokens != null || maxInputTokens != null || maxOutputTokens != null;
-		return !hasTokenLimit && maxResponseTime != null;
+		return (maxTokens != null && maxTokens.longValue() >= 0)
+				|| (maxInputTokens != null && maxInputTokens.longValue() >= 0)
+				|| (maxOutputTokens != null && maxOutputTokens.longValue() >= 0)
+				|| (maxResponseTime != null && maxResponseTime.doubleValue() >= 0);
 	}
 
 	private static boolean isActive(Object isActiveObj) {
@@ -949,57 +684,6 @@ public final class ModelUsageRestrictionUtility {
 			}
 			userRestrictionMap.put("roomOutputTokensCurrent", outputUsage.longValue());
 			userRestrictionMap.put("roomOutputTokensMax", maxOutputTokens.longValue());
-		}
-	}
-
-	/**
-	 * Check user-level global usage restrictions.
-	 */
-	private static void checkUserLevelRestriction(User user, String engineId,
-			String userLvlModelUsageRestriction, String userLvlModelUsageFrequency,
-			Number userLvlModelUsageMaxTokens, Number userLvlModelUsageMaxResponseTime,
-			ZonedDateTime currentDateTime, Map<String, Object> userRestrictionMap) {
-		if (!Utility.isModelInferenceLogsEnabled()) {
-			throw new IllegalArgumentException(
-					"User model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
-		}
-
-		Number currentUsage = null;
-		if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
-			currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE,
-					user, engineId, currentDateTime, userLvlModelUsageFrequency);
-
-			if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
-				throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-						currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
-			}
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-					Constants.MODEL_TOKEN_RESTRICTION_VALUE);
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-					currentUsage.intValue());
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-					userLvlModelUsageMaxTokens.intValue());
-
-		} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
-				.equalsIgnoreCase(userLvlModelUsageRestriction)) {
-			currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
-					Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
-					userLvlModelUsageFrequency);
-
-			if (currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
-				throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
-						currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
-			}
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-					Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-					currentUsage.intValue());
-			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-					userLvlModelUsageMaxResponseTime.intValue());
-
-		} else {
-			classLogger.warn("Unknown user level model restriction type = '" + userLvlModelUsageRestriction
-					+ "' for user = " + User.getSingleLogginName(user));
 		}
 	}
 

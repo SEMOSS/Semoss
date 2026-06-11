@@ -30,7 +30,6 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -424,13 +422,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
-		addEngineGroupPermission(user, groupId, groupType, engineId, permission, endDate, null, null, null, null,
-				null, null);
-	}
-
-	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
-			String permission, String endDate, String usageRestriction, String usageFrequency, Integer maxTokens,
-			Double maxResponseTime, Integer maxInputTokens, Integer maxOutputTokens) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
@@ -448,14 +439,11 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		String resolvedUsageRestriction = resolveUsageRestriction(usageRestriction, maxTokens, maxInputTokens,
-				maxOutputTokens, maxResponseTime);
-		String resolvedUsageFrequency = resolvedUsageRestriction == null ? null : usageFrequency;
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
@@ -465,12 +453,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
-			bindNullableString(ps, parameterIndex++, resolvedUsageFrequency);
-			bindNullableInteger(ps, parameterIndex++, maxTokens);
-			bindNullableDouble(ps, parameterIndex++, maxResponseTime);
-			bindNullableInteger(ps, parameterIndex++, maxInputTokens);
-			bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -524,13 +506,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId,
 			String newPermission, String endDate) throws IllegalAccessException {
-		editDatabaseGroupPermission(user, groupId, groupType, engineId, newPermission, endDate, null, null, null,
-				null, null, null);
-	}
-
-	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId,
-			String newPermission, String endDate, String usageRestriction, String usageFrequency, Integer maxTokens,
-			Double maxResponseTime, Integer maxInputTokens, Integer maxOutputTokens) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
@@ -571,26 +546,17 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
-		String resolvedUsageRestriction = resolveUsageRestriction(usageRestriction, maxTokens, maxInputTokens,
-				maxOutputTokens, maxResponseTime);
-		String resolvedUsageFrequency = resolvedUsageRestriction == null ? null : usageFrequency;
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(
-					"UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE ID=? AND TYPE=? AND ENGINEID=?");
+					"UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND ENGINEID=?");
 			int parameterIndex = 1;
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
-			bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
-			bindNullableString(ps, parameterIndex++, resolvedUsageFrequency);
-			bindNullableInteger(ps, parameterIndex++, maxTokens);
-			bindNullableDouble(ps, parameterIndex++, maxResponseTime);
-			bindNullableInteger(ps, parameterIndex++, maxInputTokens);
-			bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, engineId);
@@ -600,142 +566,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			}
 		} catch (SQLException e) {
 			classLogger.error("Unable to retrieve the group-based engine permission.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	public static void setGroupEngineTokenLimit(User user, String groupId, String groupType, String engineId,
-			String usageFrequency, String existingUsageFrequency, Integer maxTokens, Double maxResponseTime,
-			Integer maxInputTokens, Integer maxOutputTokens) throws IllegalAccessException {
-		if (usageFrequency == null || usageFrequency.trim().isEmpty()) {
-			throw new IllegalArgumentException("Must provide a usageFrequency");
-		}
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
-
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify database permission for a group who does not currently have access to the database");
-		}
-
-		String lookupFrequency = existingUsageFrequency != null && !existingUsageFrequency.trim().isEmpty()
-				? existingUsageFrequency
-				: usageFrequency;
-		if (!lookupFrequency.equalsIgnoreCase(usageFrequency)
-				&& hasGroupEngineUsageLimitRow(groupId, groupType, engineId, usageFrequency)) {
-			throw new IllegalArgumentException("A team limit already exists for usageFrequency " + usageFrequency);
-		}
-
-		String resolvedUsageRestriction = resolveUsageRestriction(Constants.MODEL_TOKEN_RESTRICTION_VALUE, maxTokens,
-				maxInputTokens, maxOutputTokens, maxResponseTime);
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		PreparedStatement ps = null;
-		try {
-			if (hasGroupEngineUsageLimitRow(groupId, groupType, engineId, lookupFrequency)) {
-				ps = securityDb.getPreparedStatement(
-						"UPDATE GROUPENGINEPERMISSION SET USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=?, DATEADDED=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND ENGINEID=? AND USAGEFREQUENCY=?");
-				int parameterIndex = 1;
-				bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
-				bindNullableString(ps, parameterIndex++, usageFrequency);
-				bindNullableInteger(ps, parameterIndex++, maxTokens);
-				bindNullableDouble(ps, parameterIndex++, maxResponseTime);
-				bindNullableInteger(ps, parameterIndex++, maxInputTokens);
-				bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
-				ps.setString(parameterIndex++, engineId);
-				ps.setString(parameterIndex++, lookupFrequency);
-				ps.execute();
-			} else {
-				ps = securityDb.getPreparedStatement(
-						"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
-				ps.setString(parameterIndex++, engineId);
-				ps.setInt(parameterIndex++, existingGroupPermission);
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, null);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
-				bindNullableString(ps, parameterIndex++, usageFrequency);
-				bindNullableInteger(ps, parameterIndex++, maxTokens);
-				bindNullableDouble(ps, parameterIndex++, maxResponseTime);
-				bindNullableInteger(ps, parameterIndex++, maxInputTokens);
-				bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
-				ps.execute();
-			}
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to upsert the group-based engine token limit.", e);
-			throw new IllegalArgumentException("Failed to save group engine token limit");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	public static void removeGroupEngineTokenLimit(User user, String groupId, String groupType, String engineId,
-			String usageFrequency) throws IllegalAccessException {
-		if (usageFrequency == null || usageFrequency.trim().isEmpty()) {
-			throw new IllegalArgumentException("Must provide a usageFrequency");
-		}
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
-
-		if (!hasGroupEngineUsageLimitRow(groupId, groupType, engineId, usageFrequency)) {
-			return;
-		}
-
-		PreparedStatement ps = null;
-		try {
-			if (countGroupEnginePermissionRows(groupId, groupType, engineId) <= 1) {
-				ps = securityDb.getPreparedStatement(
-						"UPDATE GROUPENGINEPERMISSION SET USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE ID=? AND TYPE=? AND ENGINEID=? AND USAGEFREQUENCY=?");
-				int parameterIndex = 1;
-				bindNullableString(ps, parameterIndex++, null);
-				bindNullableString(ps, parameterIndex++, null);
-				bindNullableInteger(ps, parameterIndex++, null);
-				bindNullableDouble(ps, parameterIndex++, null);
-				bindNullableInteger(ps, parameterIndex++, null);
-				bindNullableInteger(ps, parameterIndex++, null);
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
-				ps.setString(parameterIndex++, engineId);
-				ps.setString(parameterIndex++, usageFrequency);
-				ps.execute();
-			} else {
-				ps = securityDb.getPreparedStatement(
-						"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=? AND USAGEFREQUENCY=?");
-				ps.setString(1, groupId);
-				ps.setString(2, groupType);
-				ps.setString(3, engineId);
-				ps.setString(4, usageFrequency);
-				ps.execute();
-			}
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to remove the group-based engine token limit.", e);
-			throw new IllegalArgumentException("Failed to remove group engine token limit");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -864,82 +694,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 
-	public static List<Map<String, Object>> getApplicableGroupEngineUsagePermissions(User user, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (user == null || engineId == null || engineId.trim().isEmpty()) {
-			return new ArrayList<>();
-		}
-
-		OrQueryFilter orFilter = buildUserGroupAccessFilter(user, "GROUPENGINEPERMISSION__ID",
-				"GROUPENGINEPERMISSION__TYPE");
-		if (orFilter == null || orFilter.getFilterList().isEmpty()) {
-			return new ArrayList<>();
-		}
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID", "groupId"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE", "groupType"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGERESTRICTION",
-				Constants.ENGINE_USAGE_RESTRICTION_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGEFREQUENCY",
-				Constants.ENGINE_USAGE_FREQUENCY_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXTOKENS", Constants.ENGINE_MAX_TOKEN_KEY));
-		qs.addSelector(
-				new QueryColumnSelector("GROUPENGINEPERMISSION__MAXRESPONSETIME", Constants.ENGINE_MAX_RESPONSE_TIME_KEY));
-		qs.addSelector(
-				new QueryColumnSelector("GROUPENGINEPERMISSION__MAX_INPUT_TOKENS", Constants.ENGINE_MAX_INPUT_TOKEN_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAX_OUTPUT_TOKENS",
-				Constants.ENGINE_MAX_OUTPUT_TOKEN_KEY));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null,
-				PixelDataType.CONST_INT));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__USAGEFREQUENCY", "!=", null));
-		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-
-	private static boolean hasGroupEngineUsageLimitRow(String groupId, String groupType, String engineId,
-			String usageFrequency) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__USAGEFREQUENCY", "==", usageFrequency));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			return wrapper.hasNext();
-		} catch (Exception e) {
-			classLogger.error("Unable to verify the group-based engine usage row.", e);
-			return false;
-		}
-	}
-
-	private static int countGroupEnginePermissionRows(String groupId, String groupType, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		QueryFunctionSelector countSelector = new QueryFunctionSelector();
-		countSelector.setFunction(QueryFunctionHelper.COUNT);
-		countSelector.setAlias("numRows");
-		countSelector.addInnerSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
-		qs.addSelector(countSelector);
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				Object value = wrapper.next().getValues()[0];
-				if (value instanceof Number) {
-					return ((Number) value).intValue();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to count group-based engine permission rows.", e);
-		}
-		return 0;
-	}
-
 	/**
 	 * Get groups that have access to an engine
 	 * 
@@ -960,12 +714,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGERESTRICTION"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGEFREQUENCY"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXTOKENS"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXRESPONSETIME"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAX_INPUT_TOKENS"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAX_OUTPUT_TOKENS"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (limit > 0) {
@@ -996,67 +744,5 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				"GROUPENGINEPERMISSION__ID", "numGroups"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
-	}
-
-	private static OrQueryFilter buildUserGroupAccessFilter(User user, String idColumn, String typeColumn) {
-		OrQueryFilter orFilter = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider login : logins) {
-			AccessToken accessToken = user.getAccessToken(login);
-			Collection<String> userGroups = accessToken.getUserGroups();
-			Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
-			if (!userCustomGroups.isEmpty()) {
-				AndQueryFilter customAndFilter = new AndQueryFilter();
-				customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(typeColumn, "==", "CUSTOM"));
-				customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(idColumn, "==", userCustomGroups));
-				orFilter.addFilter(customAndFilter);
-			}
-			if (!userGroups.isEmpty()) {
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(
-						SimpleQueryFilter.makeColToValFilter(typeColumn, "==", accessToken.getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(idColumn, "==", userGroups));
-				orFilter.addFilter(andFilter);
-			}
-		}
-		return orFilter;
-	}
-
-	private static String resolveUsageRestriction(String usageRestriction, Integer maxTokens, Integer maxInputTokens,
-			Integer maxOutputTokens, Double maxResponseTime) {
-		if (usageRestriction != null && !(usageRestriction = usageRestriction.trim()).isEmpty()) {
-			return usageRestriction;
-		}
-		if (maxTokens != null || maxInputTokens != null || maxOutputTokens != null) {
-			return Constants.MODEL_TOKEN_RESTRICTION_VALUE;
-		}
-		if (maxResponseTime != null) {
-			return Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE;
-		}
-		return null;
-	}
-
-	private static void bindNullableString(PreparedStatement ps, int index, String value) throws SQLException {
-		if (value == null || value.trim().isEmpty()) {
-			ps.setNull(index, java.sql.Types.VARCHAR);
-		} else {
-			ps.setString(index, value);
-		}
-	}
-
-	private static void bindNullableInteger(PreparedStatement ps, int index, Integer value) throws SQLException {
-		if (value == null) {
-			ps.setNull(index, java.sql.Types.INTEGER);
-		} else {
-			ps.setInt(index, value.intValue());
-		}
-	}
-
-	private static void bindNullableDouble(PreparedStatement ps, int index, Double value) throws SQLException {
-		if (value == null) {
-			ps.setNull(index, java.sql.Types.DOUBLE);
-		} else {
-			ps.setDouble(index, value.doubleValue());
-		}
 	}
 }
