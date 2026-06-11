@@ -3275,30 +3275,42 @@ public class ModelInferenceLogsUtils {
 
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
-		// Granular token columns — each is only populated on the row type it belongs to,
-		// so SUM() across both row types gives the correct per-engine total directly.
-		// COALESCE(..., 0) ensures null (no data) is returned as 0 rather than omitted.
+		// INPUT_TOKENS / RESPONSE_TOKENS — derived from MESSAGE_TOKENS via CASE so that
+		// records written before per-type granular columns existed are still included.
+		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"INPUT_IF");
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, inputIf, "INPUT_TOKENS"));
+
+		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"RESPONSE_IF");
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
+
+		// TOTAL_TOKENS — sum across all rows covers the full history.
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+				MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", "TOTAL_TOKENS"));
+
+		// Granular token detail columns — only populated for records written after
+		// per-type tracking was introduced. Prefixed DETAIL_ so the reactor can nest
+		// them into a TOKEN_DETAIL sub-object without conflicting with the legacy names.
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "INPUT_TOKENS", null),
-				new QueryConstantSelector(0), "INPUT_TOKENS"));
+				new QueryConstantSelector(0), "DETAIL_INPUT_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", null),
-				new QueryConstantSelector(0), "OUTPUT_TOKENS"));
+				new QueryConstantSelector(0), "DETAIL_OUTPUT_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_READ_TOKENS", null),
-				new QueryConstantSelector(0), "CACHE_READ_TOKENS"));
+				new QueryConstantSelector(0), "DETAIL_CACHE_READ_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_CREATION_TOKENS", null),
-				new QueryConstantSelector(0), "CACHE_CREATION_TOKENS"));
+				new QueryConstantSelector(0), "DETAIL_CACHE_CREATION_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
-				new QueryConstantSelector(0), "THINKING_TOKENS"));
-
-		// Legacy MESSAGE_TOKENS is the sum of prompt+response tokens; sum across both
-		// rows gives total billable tokens (equivalent to INPUT_TOKENS + OUTPUT_TOKENS).
-		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", null),
-				new QueryConstantSelector(0), "TOTAL_TOKENS"));
+				new QueryConstantSelector(0), "DETAIL_THINKING_TOKENS"));
 
 		// Count number of requests (INPUT messages only)
 		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(

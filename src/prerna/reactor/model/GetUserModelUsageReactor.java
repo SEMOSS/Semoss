@@ -34,6 +34,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,10 +85,20 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
 
 		// Index returned usage rows by engine ID for easy lookup
+		List<String> detailKeys = Arrays.asList(
+				"DETAIL_INPUT_TOKENS", "DETAIL_OUTPUT_TOKENS",
+				"DETAIL_CACHE_READ_TOKENS", "DETAIL_CACHE_CREATION_TOKENS", "DETAIL_THINKING_TOKENS");
+
 		Map<String, Map<String, Object>> usageByEngineId = new HashMap<>();
 		for (Map<String, Object> entry : usageData) {
 			String engineId = (String) entry.get("ENGINE_ID");
 			if (engineId != null) {
+				// Nest DETAIL_* columns into TOKEN_DETAIL, stripping the prefix
+				Map<String, Object> tokenDetail = new HashMap<>();
+				for (String detailKey : detailKeys) {
+					tokenDetail.put(detailKey.substring("DETAIL_".length()), entry.remove(detailKey));
+				}
+				entry.put("TOKEN_DETAIL", tokenDetail);
 				entry.put("ENGINE_NAME", idToAlias.get(engineId));
 				usageByEngineId.put(engineId, entry);
 			}
@@ -103,12 +114,16 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 				zeroRow.put("ENGINE_ID", engineId);
 				zeroRow.put("ENGINE_NAME", idToAlias.get(engineId));
 				zeroRow.put("INPUT_TOKENS", 0);
-				zeroRow.put("OUTPUT_TOKENS", 0);
-				zeroRow.put("CACHE_READ_TOKENS", 0);
-				zeroRow.put("CACHE_CREATION_TOKENS", 0);
-				zeroRow.put("THINKING_TOKENS", 0);
+				zeroRow.put("RESPONSE_TOKENS", 0);
 				zeroRow.put("TOTAL_TOKENS", 0);
 				zeroRow.put("TOTAL_REQUESTS", 0);
+				Map<String, Object> tokenDetail = new HashMap<>();
+				tokenDetail.put("INPUT_TOKENS", 0);
+				tokenDetail.put("OUTPUT_TOKENS", 0);
+				tokenDetail.put("CACHE_READ_TOKENS", 0);
+				tokenDetail.put("CACHE_CREATION_TOKENS", 0);
+				tokenDetail.put("THINKING_TOKENS", 0);
+				zeroRow.put("TOKEN_DETAIL", tokenDetail);
 				result.add(zeroRow);
 			}
 		}
