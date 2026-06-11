@@ -38,9 +38,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.util.Utility;
 
 public class VirusScannerUtils {
-	
-	private static Logger logger = LogManager.getLogger(VirusScannerUtils.class);
-	
+
+	private static Logger classLogger = LogManager.getLogger(VirusScannerUtils.class);
+
 	public static Map<String, Collection<String>> getViruses(String name, InputStream is) {
 		if (Utility.isVirusScanningEnabled()) {
 			long start = System.currentTimeMillis();
@@ -48,14 +48,14 @@ public class VirusScannerUtils {
 			if (vs == null) {
 				throw new IllegalArgumentException("Could not find virus scanner.");
 			}
-			
+
 			Map<String, Collection<String>> viruses = vs.getViruses(name, is);
 			long end = System.currentTimeMillis();
-			logger.info("TIME TOOK: {} ms", (end - start));
-			
+			classLogger.info("TIME TOOK: {} ms", (end - start));
+
 			return viruses;
 		} else {
-			logger.warn("Virus scanner is disabled.");
+			classLogger.warn("Virus scanner is disabled.");
 			return new HashMap<String, Collection<String>>();
 		}
 	}

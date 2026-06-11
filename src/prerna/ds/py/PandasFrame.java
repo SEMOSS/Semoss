@@ -34,7 +34,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -81,15 +80,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "PandasFrame";
 
-	public static final String PANDAS_IMPORT_VAR = "pandas_import_var";
+	public static final String PANDAS_IMPORT_VAR = "pd";
 	public static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 
-	public static final String NUMPY_IMPORT_VAR = "np_import_var";
+	public static final String NUMPY_IMPORT_VAR = "np";
 	public static final String NUMPY_IMPORT_STRING = "import numpy as " + NUMPY_IMPORT_VAR;
 
-	static Map<String, SemossDataType> pyS = new Hashtable<>();
-	static Map<String, Object> pyJ = new Hashtable<>();
-	static Map<Object, String> spy = new Hashtable<>();
+	static Map<String, SemossDataType> pyS = new HashMap<>();
+	static Map<String, Object> pyJ = new HashMap<>();
+	static Map<Object, String> spy = new HashMap<>();
 
 	// gets all the commands in one fell swoop
 	List<String> commands = new ArrayList<>();

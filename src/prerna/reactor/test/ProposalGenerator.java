@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 public class ProposalGenerator {
 
-	private static final Logger logger = LogManager.getLogger(ProposalGenerator.class);
+	private static final Logger classLogger = LogManager.getLogger(ProposalGenerator.class);
 
 	private static final String STACKTRACE = "StackTrace: ";
 

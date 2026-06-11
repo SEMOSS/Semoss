@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
@@ -92,7 +91,7 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 			con = AbstractSqlQueryUtil.makeConnection(queryUtil, connectionUrl, connectionDetails);
 			queryUtil.enhanceConnection(con);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to establish the JDBC connection given the provided connection details", e);
 			String driverError = e.getMessage();
 			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
 			errorMessage += driverError;
@@ -108,7 +107,7 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		temporalEngine.setQueryUtil(queryUtil);
 
 		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(connectionDetails);
 		qs.setEngine(temporalEngine);
 		if (query != null && !query.isEmpty()) {
@@ -145,7 +144,7 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		Map<String, Object> connectionDetails = getConDetails();
 
 		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(connectionDetails);
 		qs.setEngineId("FAKE_ENGINE");
 		if (query != null && !query.isEmpty()) {

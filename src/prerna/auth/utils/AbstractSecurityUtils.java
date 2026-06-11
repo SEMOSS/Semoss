@@ -843,8 +843,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			/*
-			 * 
-			 * 
+			 *
+			 *
 			 * ADDING IN INITIAL PROJECT TABLES
 			 * 
 			 */

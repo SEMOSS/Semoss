@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,11 +36,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class ExtractLettersReactor extends AbstractFrameReactor {
 
@@ -56,9 +54,9 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 		// get table name
 		String table = frame.getName();
 		// get columns to extract alphabet characters
-		List<String> columns = getColumns();
+		List<String> columns = getListString(COLUMNS, new ArrayList<String>());
 		// check if user want to override the column or create new columns
-		boolean overrideColumn = getOverride();
+		boolean overrideColumn = getBoolean(OVERRIDE, false);
 		// update existing columns
 		if (overrideColumn) {
 			String update = "";
@@ -70,7 +68,8 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(update);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to extract alphabetic characters in-place for columns {} on table {}",
+						columns, table, e);
 			}
 		}
 		// create new columns
@@ -86,7 +85,8 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to extract alphabetic characters from column {} into {} on table {}",
+							column, newColumn, table, e);
 				}
 				// if query runs successfully add new column metadata
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
@@ -96,35 +96,6 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-	}
-
-	private List<String> getColumns() {
-		GenRowStruct grs = this.store.getGenRowStruct(COLUMNS);
-		Vector<String> columns = new Vector<String>();
-		NounMetadata noun;
-		if (grs != null) {
-			for (int i = 0; i < grs.size(); i++) {
-				noun = grs.getNoun(i);
-				if (noun != null) {
-					String column = noun.getValue() + "";
-					if (column.length() > 0) {
-						columns.add(column);
-					}
-				}
-			}
-		}
-		return columns;
-	}
-
-	private boolean getOverride() {
-		GenRowStruct grs = this.store.getGenRowStruct(OVERRIDE);
-		boolean override = false;
-		NounMetadata noun;
-		if (grs != null) {
-			noun = grs.getNoun(0);
-			override = (Boolean) noun.getValue();
-		}
-		return override;
 	}
 
 }

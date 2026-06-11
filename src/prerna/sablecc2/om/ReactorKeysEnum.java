@@ -36,6 +36,7 @@ public enum ReactorKeysEnum {
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
 	ADDITIONAL_PIXELS("additionalPixels",						"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
+	AGENT_PARAMS("agentParams",                                 "Parameters for an agent that are not specifically for the model. Useful for passing parameters to agent hooks."),
 	ALL("all",                                              	"Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 

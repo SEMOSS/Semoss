@@ -51,13 +51,25 @@ import prerna.util.Utility;
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor runs the semantic blending routine on a given column and flushes
-	 * the results out as a table The inputs to the reactor are: 1) the columns 2)
-	 * the number of results to be displayed (defaults to 3 if none is entered) 3)
-	 * the number of random values to use in the routine (defaults to 20 if none is
-	 * entered) 4) boolean indicator if we want to create an r data table, otherwise
-	 * just return table of results; true indicates widget is used; defaults to
-	 * false 5) name for r data table, if one is to be created
+	 * the results out as a table
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the columns</li>
+	 * <li>the number of results to be displayed (defaults to 3 if none is
+	 * entered)</li>
+	 * <li>the number of random values to use in the routine (defaults to 20 if none
+	 * is entered)</li>
+	 * <li>boolean indicator if we want to create an r data table, otherwise just
+	 * return table of results; true indicates widget is used; defaults to
+	 * false</li>
+	 * <li>name for r data table, if one is to be created</li>
+	 * </ul>
 	 */
 
 	private static final String CLASS_NAME = SemanticBlendingReactor.class.getName();

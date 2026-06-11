@@ -220,8 +220,8 @@ public class NotebookHelper implements INotebookHelper {
 	 * Return the map of notebooks from the blocks file. Prefers the
 	 * {@code notebooks} key; falls back to the legacy {@code queries} key when
 	 * {@code notebooks} is missing or empty. Always returns a non-null
-	 * {@link JsonObject} — an empty object when neither key is present — so
-	 * callers can iterate {@code keySet()} without a null check.
+	 * {@link JsonObject} - an empty object when neither key is present - so callers
+	 * can iterate {@code keySet()} without a null check.
 	 *
 	 * @return the notebooks map, or an empty object if neither key is present
 	 */

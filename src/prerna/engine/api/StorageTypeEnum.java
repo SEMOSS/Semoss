@@ -31,6 +31,7 @@ import prerna.engine.impl.storage.AWSNativeBlobStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.AzureNativeBlobStorageEngine;
 import prerna.engine.impl.storage.CephStorageEngine;
+import prerna.engine.impl.storage.DeveloperLocalFileSystemStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudNativeBlobStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.JCIFSStorageEngine;
@@ -48,6 +49,7 @@ public enum StorageTypeEnum {
 	GOOGLE_CLOUD_NATIVE_STORAGE("GOOGLE_CLOUD_NATIVE_STORAGE", GoogleCloudNativeBlobStorageEngine.class.getName()),
 	JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
 	LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
+	DEVELOPER_LOCAL_FILE_SYSTEM("DEVELOPER_LOCAL_FILE_SYSTEM", DeveloperLocalFileSystemStorageEngine.class.getName()),
 //	GOOGLE_DRIVE("GOOGLE_DRIVE",""),
 	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
 	MICROSOFT_AZURE_NATIVE_BLOB_STORAGE("MICROSOFT_AZURE_NATIVE_BLOB_STORAGE", AzureNativeBlobStorageEngine.class.getName()),

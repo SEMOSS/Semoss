@@ -1,15 +1,11 @@
 from typing import Dict, List, Any, Optional, Union, Tuple
-
 import sys
 import socketserver
-
 import traceback as tb
 import threading
-
 import importlib
 import importlib.util
 import builtins as _builtins_mod
-
 import os
 import gc as gc
 import sys
@@ -25,19 +21,29 @@ import socket
 import string
 import random
 import datetime
-from clean import PyFrame
-import gaas_server_proxy as gsp
 import logging
 import smssutil
-
-import jsonpickle as jp
 import json as json
 import math
-import numpy as np
-import pandas as pd
-
 import contextlib
 import semoss_console as console
+
+
+def _lazy_import(name):
+    """Bind the module now but defer its import cost to first attribute access."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.find_spec(name)
+    spec.loader = importlib.util.LazyLoader(spec.loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+pd = _lazy_import("pandas")
+np = _lazy_import("numpy")
+jp = _lazy_import("jsonpickle")
 
 from typing import TYPE_CHECKING
 
@@ -60,6 +66,8 @@ def custom_tostr_handler(value: Any) -> str:
 
 def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     """Custom handler to stringify values in pandas DataFrame"""
+    import pandas as pd
+
     if isinstance(dataframe, pd.DataFrame):
         data_dict = dataframe.to_dict(orient="split")
         for col_name, col_data in data_dict["data"].items():
@@ -78,7 +86,6 @@ from gaas_tcp_server_thread_local import (
     smss_get_runtime_var as _smss_get_runtime_var,
 )
 
-
 # Capture the real __import__ before we replace it.
 _orig_import = _builtins_mod.__import__
 
@@ -94,7 +101,7 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
     asset paths never see each other's cached copy.
 
     All other imports (e.g. torch, numpy, stdlib) fall through to the real
-    __import__ unchanged — sys.modules is never replaced.
+    __import__ unchanged - sys.modules is never replaced.
     """
     if level == 0 and "." not in name:
         active_paths = getattr(_asset_thread_local, "active_paths", None)
@@ -120,6 +127,26 @@ _builtins_mod.__import__ = _asset_aware_import
 
 class ExecutionCancelled(Exception):
     """Raised when a running python execution is cancelled by a remote request."""
+
+
+class SemossLogHandler(logging.Handler):
+    """Routes Python log records back to Java via the LOG operation.
+    LOG payloads are forwarded to the py.native Log4j2 logger only.
+    They do not appear in the frontend job output."""
+
+    def __init__(self, socket_handler: "TCPServerHandler"):
+        super().__init__()
+        self.socket_handler = socket_handler
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            msg = self.format(record)
+            self.socket_handler.send_output(msg, operation="LOG")
+        except OSError:
+            # Socket was closed (normal during shutdown); discard silently.
+            pass
+        except Exception:
+            self.handleError(record)
 
 
 class TCPServerHandler(socketserver.BaseRequestHandler):
@@ -170,23 +197,29 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """Configures logging with environment-based log levels."""
         try:
             log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
+            log_level = self.log_level_mapper(log_level_name)
+            fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-            logging.basicConfig(
-                filename=f"{self.insight_folder}/log.txt",
-                level=self.log_level_mapper(log_level_name),
-                format="%(asctime)s - %(levelname)s - %(message)s",
-                filemode="a",
-                force=True,
-            )
-
-            # Create a logger and apply a filter to log only the exact level
             self.logger = logging.getLogger("TCPServerHandler")
-            log_level = getattr(
-                logging, log_level_name, self.log_level_mapper(log_level_name)
+            self.logger.setLevel(log_level)
+            self.logger.handlers.clear()
+            self.logger.propagate = False
+
+            # File handler writes only the exact
+            # configured level to log.txt (not >= level, only ==).
+            file_handler = logging.FileHandler(
+                f"{self.insight_folder}/log.txt", mode="a"
             )
-            self.logger.addFilter(
-                lambda record: record.levelno == log_level
-            )  # Logs only the selected level
+            file_handler.setFormatter(fmt)
+            file_handler.addFilter(lambda record: record.levelno == log_level)
+            self.logger.addHandler(file_handler)
+
+            # Socket handler forwards all records at >= configured level to Java's
+            # py.native logger with standard severity behaviour.
+            socket_handler = SemossLogHandler(self)
+            socket_handler.setFormatter(fmt)
+            self.logger.addHandler(socket_handler)
+
             self.logger.info("Logging Setup Completed")
         except Exception as e:
             self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
@@ -211,7 +244,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
-        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # stderr -> SemossConsole -> send_output() -> sendall(). Without this lock the
         # concurrent sendall() calls interleave bytes on the wire, which corrupts the
         # 4-byte size header that Java uses to frame messages. Java then tries to read
         # an astronomically large payload, its receive buffer fills up, sendall()
@@ -256,6 +289,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # experimental
         if self.try_jp:
+            import numpy as np
+            import pandas as pd
+
             jp.handlers.register(float, custom_nan_handler)
             jp.handlers.register(np.datetime64, custom_tostr_handler)
             jp.handlers.register(pd.DataFrame, custom_pandas_handler)
@@ -370,6 +406,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except socket.timeout:
                 self.logger.warning("Client connection timed out. Closing this socket.")
                 self.stop_request()
+            except (ConnectionAbortedError, ConnectionResetError):
+                # Client disconnected cleanly; shut down without logging through the socket.
+                self.stop_request()
+            except RuntimeError as e:
+                if "No data received or connection closed" in str(e):
+                    # recv() returned empty -- client closed the connection normally.
+                    self.stop_request()
+                else:
+                    self.logger.warning(f"An unexpected error occurred: {e}")
+                    self.logger.warning("Closing this socket due to an unexpected error.")
+                    self.stop_request()
             except Exception as e:
                 self.logger.warning(f"An unexpected error occurred: {e}")
                 self.logger.warning("Closing this socket due to an unexpected error.")
@@ -660,7 +707,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": (orig_payload.get("epoc") if orig_payload else None),
+            "epoc": (orig_payload.get("epoc") if orig_payload else ("py_" + "".join(random.choice(string.digits) for _ in range(17)))),
             "response": response,
             "interim": interim,
             "payload": [output],
@@ -699,7 +746,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out — acquire the lock so concurrent calls from parallel
+        # send it out - acquire the lock so concurrent calls from parallel
         # download worker threads cannot interleave bytes and corrupt the protocol
         with self.send_lock:
             self.request.sendall(ret_array)
@@ -740,7 +787,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out — use the same lock as send_output() to prevent interleaving
+        # send it out - use the same lock as send_output() to prevent interleaving
         with self.send_lock:
             self.request.sendall(ret_array)
 
@@ -888,8 +935,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 for asset_path in reversed(asset_paths):
                     if not asset_path:
                         continue
-                    path_script += textwrap.dedent(
-                        f"""
+                    path_script += textwrap.dedent(f"""
                         import sys
                         asset_path = r'{asset_path}'
                         if asset_path in sys.path:
@@ -897,8 +943,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         sys.path.insert(0, asset_path)
                         del asset_path
 
-                        """
-                    )
+                        """)
                 command = path_script + command
 
         # If legacy append_vars are provided, prepend these vars at the start of the script
@@ -907,11 +952,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             append_vars_script = ""
             # Add each variable
             for key in append_vars:
-                append_vars_script += textwrap.dedent(
-                    f"""
+                append_vars_script += textwrap.dedent(f"""
                         {key} = r'{append_vars.get(key)}'
-                        """
-                )
+                        """)
             append_vars_script += "\n"
             command = append_vars_script + command
 
@@ -988,14 +1031,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
+                    # Engine-owned python processes (model / vector / etc.) set
+                    # disableCancelTrace because their executions can never be
+                    # cancelled by a user. Skipping sys.settrace avoids its large
+                    # overhead on import-heavy init / ask scripts.
+                    disable_cancel_trace = bool(payload.get("disableCancelTrace"))
                     previous_trace = sys.gettrace()
                     try:
-                        sys.settrace(cancel_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(cancel_trace)
                         output, is_exception, user_cancelled = self.execute_and_capture(
                             command, insight_globals
                         )
                     finally:
-                        sys.settrace(previous_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
@@ -1507,7 +1557,6 @@ class InsightGlobalStore:
                 "json": json,
                 "jsonpickle": jp,
                 "math": math,
-                "PyFrame": PyFrame,
                 "smssutil": smssutil,
             }
 
@@ -1538,7 +1587,6 @@ class InsightGlobalStore:
                     "json",
                     "jsonpickle",
                     "math",
-                    "PyFrame",
                     "smssutil",
                 ]
             }

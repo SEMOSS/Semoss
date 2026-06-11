@@ -117,7 +117,7 @@ class ExcelWorkbookFileHelperUnitTests {
         try {
             ex = assertThrows(RuntimeException.class, () -> helper.parse(bad.toString(), null));
         } finally {
-            // parse likely opened a stream; ensure it’s closed even on failure
+            // parse likely opened a stream; ensure it's closed even on failure
             helper.clear();
         }
 

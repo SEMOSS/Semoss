@@ -122,8 +122,7 @@ public class RserveUtil {
 	 * @throws Exception
 	 */
 	public static RConnection connect(String host, int port) throws Exception {
-		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-		try {
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
 				@Override
 				public RConnection call() throws Exception {
@@ -131,8 +130,6 @@ public class RserveUtil {
 				}
 			});
 			return future.get(7L, TimeUnit.SECONDS);
-		} finally {
-			executor.shutdownNow();
 		}
 	}
 
@@ -205,7 +202,8 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}", Utility.cleanLogString(pid), port, e);
+						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}",
+								Utility.cleanLogString(pid), port, e);
 						throw e;
 					}
 					// Go through and kill these processes
@@ -229,7 +227,8 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}", Utility.cleanLogString(pid), port, e);
+						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}",
+								Utility.cleanLogString(pid), port, e);
 						throw e;
 					}
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();

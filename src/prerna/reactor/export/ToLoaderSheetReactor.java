@@ -61,7 +61,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.InsightFile;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -71,7 +71,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ToLoaderSheetReactor extends AbstractReactor {
@@ -141,7 +140,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			String conceptPixelName = Utility.getInstanceName(conceptPixelUri);
 
 			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 			qs.setEngine(engine);
 			qs.addSelector(new QueryColumnSelector(conceptPixelName));
 
@@ -156,31 +155,32 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				qs.addSelector(new QueryColumnSelector(conceptPixelName + "__" + propertyConceptualName));
 			}
 
-			logger.info("Start node sheet for concept = " + conceptPixelName);
+			logger.info("Start node sheet for concept = {}", conceptPixelName);
 			IRawSelectWrapper iterator = null;
 			try {
 				iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 				writeNodePropSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle, iterator,
 						physicalConceptName, properties);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to write the node sheet for concept {}", conceptPixelName, e);
 			} finally {
 				if (iterator != null) {
 					try {
 						iterator.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close the iterator after writing the node sheet for concept {}",
+								conceptPixelName, e);
 					}
 				}
 			}
-			logger.info("Finsihed node sheet for concept = " + conceptPixelName);
+			logger.info("Finsihed node sheet for concept = {}", conceptPixelName);
 		}
 
 		// now i need all the relationships
 		List<String[]> rels = engine.getPhysicalRelationships();
 		if (engine.getDatabaseType() == DATABASE_TYPE.SESAME) {
 			for (String[] rel : rels) {
-				logger.info("Start rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
+				logger.info("Start rel sheet for {}", Utility.cleanLogString(Arrays.toString(rel)));
 				List<String> edgeProps = getEdgeProperties(engine, rel[0], rel[1], rel[2]);
 				String query = generateSparqlQuery(engine, rel[0], rel[1], rel[2], edgeProps);
 				IRawSelectWrapper iterator = null;
@@ -189,17 +189,20 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle,
 							iterator, rel, edgeProps);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write the relationship sheet for {}",
+							Utility.cleanLogString(Arrays.toString(rel)), e);
 				} finally {
 					if (iterator != null) {
 						try {
 							iterator.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to close the iterator after writing the relationship sheet for {}",
+									Utility.cleanLogString(Arrays.toString(rel)), e);
 						}
 					}
 				}
-				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
+				logger.info("Finished rel sheet for {}", Utility.cleanLogString(Arrays.toString(rel)));
 			}
 		} else {
 			for (String[] rel : rels) {
@@ -207,32 +210,35 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				String fromConceptualName = Utility.getInstanceName(rel[1]);
 
 				SelectQueryStruct qs = new SelectQueryStruct();
-				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 				qs.setEngine(engine);
 				qs.addSelector(new QueryColumnSelector(toConceptualName));
 				qs.addSelector(new QueryColumnSelector(fromConceptualName));
 				qs.addRelation(toConceptualName, fromConceptualName, "inner.join");
 				qs.addOrderBy(new QueryColumnOrderBySelector(toConceptualName));
 
-				logger.info("Start rel sheet for "
-						+ Arrays.toString(new String[] { toConceptualName, fromConceptualName }));
+				logger.info("Start rel sheet for {}",
+						Arrays.toString(new String[] { toConceptualName, fromConceptualName }));
 				IRawSelectWrapper iterator = null;
 				try {
 					iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 					writeRelationshipSheet(engine, workbook, dateCellStyle, timeStampCellStyle, doubleCellStyle,
 							iterator, rel, new ArrayList<String>());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write the relationship sheet for {}",
+							Utility.cleanLogString(Arrays.toString(rel)), e);
 				} finally {
 					if (iterator != null) {
 						try {
 							iterator.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to close the iterator after writing the relationship sheet for {}",
+									Utility.cleanLogString(Arrays.toString(rel)), e);
 						}
 					}
 				}
-				logger.info("Finished rel sheet for " + Utility.cleanLogString(Arrays.toString(rel)));
+				logger.info("Finished rel sheet for {}", Utility.cleanLogString(Arrays.toString(rel)));
 			}
 		}
 
@@ -242,7 +248,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 
 		logger.info("Start exporting");
 		Utility.writeWorkbook(workbook, fileLoc);
-		logger.info("Done exporting worksheet for engine = " + engineId);
+		logger.info("Done exporting worksheet for engine = {}", engineId);
 
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
@@ -501,13 +507,15 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				props.add(it.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve the edge properties for relationship {}", relName, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(
+							"Failed to close the iterator after retrieving the edge properties for relationship {}",
+							relName, e);
 				}
 			}
 		}

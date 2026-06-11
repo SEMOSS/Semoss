@@ -48,7 +48,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractRUserConnection implements IRUserConnection {
 
-	protected static final Logger logger = LogManager.getLogger(AbstractRUserConnection.class);
+	protected static final Logger classLogger = LogManager.getLogger(AbstractRUserConnection.class);
 
 	// keep tracked if we have stopped the R connection
 	protected boolean stoppedR = false;
@@ -103,18 +103,18 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if (rScript.length() > 500) {
-				logger.info("Running R script (truncated): {}...", rScript.substring(0, 500));
-				logger.debug("Running R script: {}", rScript);
+				classLogger.info("Running R script (truncated): {}...", rScript.substring(0, 500));
+				classLogger.debug("Running R script: {}", rScript);
 			} else {
-				logger.info("Running R script: {}", rScript);
+				classLogger.info("Running R script: {}", rScript);
 			}
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<REXP> future = executor.submit(new Callable<REXP>() {
 						@Override
 						public REXP call() throws Exception {
-							REXP rexp = rcon.eval(rScript); // fails here .. if you wrapped this.. all is well I feel..
+							REXP rexp = rcon.eval(rScript); // fails here .. if you wrapped this.. all is well I
+															// feel..
 							if (recoveryEnabled) {
 								saveImage(); // Save image after execution
 							}
@@ -124,16 +124,13 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						logger.error("Timed out or interrupted waiting for R eval to complete", e);
+						classLogger.error("Timed out or interrupted waiting for R eval to complete", e);
 						throw new IllegalArgumentException("Timout occurred when running R script.");
 					} catch (ExecutionException e) {
-						logger.error("R eval threw an exception during execution", e);
+						classLogger.error("R eval threw an exception during execution", e);
 						throw new IllegalArgumentException("Failed to run R script.");
 					}
 				}
-
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 
@@ -165,13 +162,12 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
 		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			if (rScript.length() > 500) {
-				logger.info("Running R script (truncated): {}...", rScript.substring(0, 500));
-				logger.debug("Running R script: {}", rScript);
+				classLogger.info("Running R script (truncated): {}...", rScript.substring(0, 500));
+				classLogger.debug("Running R script: {}", rScript);
 			} else {
-				logger.info("Running R script: {}", rScript);
+				classLogger.info("Running R script: {}", rScript);
 			}
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
@@ -186,15 +182,13 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						logger.error("Timed out or interrupted waiting for R voidEval to complete", e);
+						classLogger.error("Timed out or interrupted waiting for R voidEval to complete", e);
 						throw new IllegalArgumentException("Timout occurred when running R script = " + rScript);
 					} catch (ExecutionException e) {
-						logger.error("R voidEval threw an exception during execution", e);
+						classLogger.error("R voidEval threw an exception during execution", e);
 						throw new IllegalArgumentException("Failed to run R script = " + rScript);
 					}
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 
@@ -217,9 +211,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	@Override
 	public RSession detach() {
 		if (isHealthy()) {
-			logger.info("Detaching R.");
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			classLogger.info("Detaching R.");
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<RSession> future = executor.submit(new Callable<RSession>() {
 						@Override
@@ -233,15 +226,13 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					try {
 						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
 					} catch (TimeoutException | InterruptedException e) {
-						logger.error("Timed out or interrupted waiting for R session to detach", e);
+						classLogger.error("Timed out or interrupted waiting for R session to detach", e);
 						throw new IllegalArgumentException("Timout occurred when detaching R.");
 					} catch (ExecutionException e) {
-						logger.error("R detach threw an exception during execution", e);
+						classLogger.error("R detach threw an exception during execution", e);
 						throw new IllegalArgumentException("Failed to detach R.");
 					}
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} else {
 			throw recoveryStatus();
@@ -264,10 +255,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	@Override
 	public void loadDefaultPackages() {
 		try {
-
 			// load all the libraries
-			ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-			try {
+			try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 				synchronized (rconMonitor) {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
@@ -275,38 +264,38 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 
 							// split stack shape
 							rcon.eval("library(splitstackshape);");
-							logger.info("Loaded packages splitstackshape");
+							classLogger.info("Loaded packages splitstackshape");
 
 							// data table
 							rcon.eval("library(data.table);");
-							logger.info("Loaded packages data.table");
+							classLogger.info("Loaded packages data.table");
 
 							// reshape2
 							rcon.eval("library(reshape2);");
-							logger.info("Loaded packages reshape2");
+							classLogger.info("Loaded packages reshape2");
 
 							// stringr
 							rcon.eval("library(stringr)");
-							logger.info("Loaded packages stringr");
+							classLogger.info("Loaded packages stringr");
 
 							// lubridate
 							rcon.eval("library(lubridate);");
-							logger.info("Loaded packages lubridate");
+							classLogger.info("Loaded packages lubridate");
 
 							// dplyr
 							rcon.eval("library(dplyr);");
-							logger.info("Loaded packages dplyr");
+							classLogger.info("Loaded packages dplyr");
 							return null;
 						}
 					});
 					// sometimes this is slow on startup
 					future.get(DEFAULT_PACAKGES_TIMEOUT, DEFAULT_PACAKGES_UNIT);
 				}
-			} finally {
-				executor.shutdownNow();
 			}
 		} catch (Exception e) {
-			logger.error("Failed to load one or more default R libraries (splitstackshape, data.table, reshape2, stringr, lubridate, dplyr)", e);
+			classLogger.error(
+					"Failed to load one or more default R libraries (splitstackshape, data.table, reshape2, stringr, lubridate, dplyr)",
+					e);
 			throw new IllegalArgumentException(
 					"Could not load R libraries.\n Please make sure the following libraries are installed:\n "
 							+ "1)splitstackshape\n" + "2)data.table\n" + "3)reshape2\n" + "4)stringr\n"
@@ -401,8 +390,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	protected boolean isHealthy(long timeout, TimeUnit timeUnit) {
 		boolean beating = false; // Healthy skepticism
 
-		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-		try {
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 			synchronized (rconMonitor) {
 				Future<REXP> future = executor.submit(new Callable<REXP>() {
 					@Override
@@ -416,13 +404,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				}
 			}
 		} catch (TimeoutException | InterruptedException e) {
-			logger.warn("R health check timed out waiting for eval response", e);
+			classLogger.warn("R health check timed out waiting for eval response", e);
 		} catch (ExecutionException e) {
-			logger.warn("R health check eval threw an exception", e);
+			classLogger.warn("R health check eval threw an exception", e);
 		} catch (REXPMismatchException e) {
-			logger.warn("R health check returned an unexpected result type; expected numeric 3.0", e);
-		} finally {
-			executor.shutdownNow();
+			classLogger.warn("R health check returned an unexpected result type; expected numeric 3.0", e);
 		}
 
 		return beating;

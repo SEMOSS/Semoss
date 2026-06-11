@@ -61,7 +61,7 @@ public class ApiRTestUtils {
 			FileUtils.cleanDirectory(test.toFile());
 		}
 
-		classLogger.info("Copying source to testfolder");
+		classLogger.info("Copying source to test workspace");
 		FileUtils.copyDirectory(source.toFile(), test.toFile());
 
 	}

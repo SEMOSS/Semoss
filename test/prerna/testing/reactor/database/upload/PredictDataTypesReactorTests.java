@@ -27,12 +27,12 @@
  *******************************************************************************/
 package prerna.testing.reactor.database.upload;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import prerna.algorithm.api.SemossDataType;
@@ -52,11 +52,11 @@ public class PredictDataTypesReactorTests extends AbstractBaseSemossApiTests {
 		
 		// test output
 		String[] headers = (String[]) predictedTypes.get("headers");
-		Assert.assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue-Domestic",
+		assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue-Domestic",
 				"MovieBudget", "Revenue-International", "RottenTomatoes-Critics", "RottenTomatoes-Audience" }, headers);
 
 		String[] cleanHeaders = (String[]) predictedTypes.get("cleanHeaders");
-		Assert.assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue_Domestic",
+		assertArrayEquals(new String[] { "Nominated", "Title", "Genre", "Studio", "Director", "Revenue_Domestic",
 				"MovieBudget", "Revenue_International", "RottenTomatoes_Critics", "RottenTomatoes_Audience" }, cleanHeaders);
 		
 		Map<String, Object> dataTypes =  (Map<String, Object>) predictedTypes.get("dataTypes");

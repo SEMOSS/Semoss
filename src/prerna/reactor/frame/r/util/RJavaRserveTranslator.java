@@ -54,7 +54,7 @@ import prerna.util.Constants;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
-	private static final Logger logger = LogManager.getLogger(RJavaRserveTranslator.class);
+	private static final Logger classLogger = LogManager.getLogger(RJavaRserveTranslator.class);
 
 	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<>();
 	
