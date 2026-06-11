@@ -22,6 +22,46 @@ from ..model_engine_exception import ModelEngineException, ErrorDetails
 from ...utils import string_to_bool
 
 
+def _build_aws_sigv4_http_client(access_key: str, secret_key: str, region: str, service: str):
+    """Return an httpx.Client that SigV4-signs every request.
+
+    Used for AWS endpoints that accept the OpenAI wire format but require AWS
+    auth instead of a bearer token (e.g. ``bedrock-mantle``).
+    """
+    try:
+        import boto3
+        import httpx
+        from botocore.auth import SigV4Auth
+        from botocore.awsrequest import AWSRequest
+    except ImportError as e:
+        raise ImportError(
+            "boto3, botocore, and httpx are required for AWS SigV4 auth. "
+            "Install them with: pip install boto3 httpx"
+        ) from e
+
+    session = boto3.Session(
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region,
+    )
+    creds = session.get_credentials().get_frozen_credentials()
+
+    class _SigV4Auth(httpx.Auth):
+        def auth_flow(self, request):
+            aws_request = AWSRequest(
+                method=request.method,
+                url=str(request.url),
+                data=request.content,
+                headers={"host": request.url.host},
+            )
+            SigV4Auth(creds, service, region).add_auth(aws_request)
+            for k, v in aws_request.headers.items():
+                request.headers[k] = v
+            yield request
+
+    return httpx.Client(auth=_SigV4Auth())
+
+
 class OpenAiClient(AbstractTextGenerationClient):
     PARENT_PARAMS = {
         "template",
@@ -61,6 +101,11 @@ class OpenAiClient(AbstractTextGenerationClient):
             override = kwargs.setdefault("global_param_override", {})
             if isinstance(override, dict):
                 override.setdefault("stream", stream_kwarg)
+        # AWS SigV4 auth — extracted before splitting parent/client kwargs
+        self._aws_access_key = kwargs.pop("aws_access_key", None)
+        self._aws_secret_key = kwargs.pop("aws_secret_key", None)
+        self._aws_region = kwargs.pop("aws_region", None)
+        self._aws_service = kwargs.pop("aws_service", "bedrock-mantle")
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
@@ -132,6 +177,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                 endpoint = kwargs.pop("base_url", None)
             kwargs["azure_endpoint"] = endpoint
             return AzureOpenAI(api_key=api_key, **kwargs)
+        if self._aws_access_key and self._aws_secret_key and self._aws_region:
+            kwargs["http_client"] = _build_aws_sigv4_http_client(
+                self._aws_access_key,
+                self._aws_secret_key,
+                self._aws_region,
+                self._aws_service,
+            )
+            api_key = "dummy"  # SDK requires a non-empty value; SigV4 handles real auth
         return OpenAI(api_key=api_key, **kwargs)
 
     def _get_bedrock_client(self, **kwargs) -> OpenAI:
