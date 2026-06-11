@@ -34,7 +34,7 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -63,13 +63,13 @@ public class QsToPixelConverter {
 	public static String getHardQsPixel(HardSelectQueryStruct qs, boolean includeSource) {
 		StringBuilder pixel = new StringBuilder();
 		if (includeSource) {
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 				pixel.append("Frame(");
 				if (qs.getFrameName() != null) {
 					pixel.append(qs.getFrameName());
 				}
 				pixel.append(") | ");
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 				pixel.append("Database(").append(qs.getEngineId()).append(") | ");
 			}
 		}
@@ -161,13 +161,13 @@ public class QsToPixelConverter {
 
 		StringBuilder pixel = new StringBuilder();
 		if (includeSource) {
-			if (qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+			if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 				pixel.append("Frame(");
 				if (qs.getFrameName() != null) {
 					pixel.append(qs.getFrameName());
 				}
 				pixel.append(") | ");
-			} else if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+			} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 				pixel.append("Database(").append(qs.getEngineId()).append(") | ");
 			}
 			// TODO: account for csv/excel directly to UI
@@ -218,7 +218,7 @@ public class QsToPixelConverter {
 				b.append("(").append(startCol).append(", ").append(joinType).append(", ").append(endCol).append(")");
 				first = false;
 			} else {
-				classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
+				classLogger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 			}
 		}
 		return b.toString();
