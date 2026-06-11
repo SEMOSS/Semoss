@@ -91,6 +91,15 @@ public interface IStorageEngine extends IEngine {
 	void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
 
 	/**
+	 * Check if object versioning is enabled for this storage engine.
+	 * 
+	 * @return true if versioning is enabled, false by default
+	 */
+	default boolean isVersioningEnabled() {
+		return false;
+	}
+
+	/**
 	 * Copy local files to storage and return the version identifier of the uploaded object.
 	 * Only supported by engines with versioning enabled (S3, GCS).
 	 * Default implementation delegates to {@link #copyToStorage} and returns null.

@@ -71,6 +71,7 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	 * 
 	 * @return true if versioning is enabled
 	 */
+	@Override
 	public boolean isVersioningEnabled() {
 		return this.versioningEnabled;
 	}

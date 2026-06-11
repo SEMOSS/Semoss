@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
-import prerna.engine.impl.storage.AbstractStorageEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -88,8 +87,7 @@ public class PushToStorageReactor extends AbstractReactor {
 		Map<String, Object> metadata = getMetadata();
 		try {
 			// If this engine supports versioning, use the versioned upload
-			if (storage instanceof AbstractStorageEngine
-					&& ((AbstractStorageEngine) storage).isVersioningEnabled()) {
+			if (storage.isVersioningEnabled()) {
 				String versionId = storage.copyToStorageVersioned(fileLocation, storageFolderPath, metadata);
 				if (versionId != null && !versionId.isEmpty()) {
 					Map<String, Object> result = new HashMap<>();
