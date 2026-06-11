@@ -54,12 +54,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PIXEL = "pixel";
 	private static final String LANGCHAIN = "LANGCHAIN";
 	private static final String OPENAI = "OPENAI";
+	private static final String ANTHROPIC = "ANTHROPIC";
+	private static final String OLLAMA = "OLLAMA";
+	private static final String ENGINE_ID_PLACEHOLDER = "<engineid>";
+	private static final String API_ENDPOINT_PLACEHOLDER = "<apiendpoint>";
+	private static final String OPENAI_ENDPOINT_PLACEHOLDER = "<openaiendpoint>";
+	private static final String ANTHROPIC_ENDPOINT_PLACEHOLDER = "<anthropicendpoint>";
+	private static final String OLLAMA_ENDPOINT_PLACEHOLDER = "<ollamaendpoint>";
 
 	private static final String PIXEL_LABEL = "How to use in Pixel";
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
 	private static final String OPENAI_LABEL = "How to use externally with OpenAI API (with or without our Python SDK)";
+	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API (chat generation)";
+	private static final String OLLAMA_LABEL = "How to use externally with Ollama API (chat generation)";
 
 	private static final String SAMPLE_ENGINE_ID = "SAMPLE_ENGINE_ID";
 
@@ -306,91 +315,164 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				```
 				""", engineId);
 
-		addUsage(usage, OPENAI, OPENAI_LABEL,
-				"""
-						Direct Client Setup (Without ai_server SDK)
-						```python
-						from openai import OpenAI
+		addUsage(usage, OPENAI, OPENAI_LABEL, """
+				Direct Client Setup (Without ai_server SDK)
+				```python
+				from openai import OpenAI
 
-						# access key + secret key format
-						client = OpenAI(
-						    api_key="<accesskey>:<secretkey>",
-						    base_url="<the api endpoint>"         # example: https://{domain}/{directory/path segment}/Monolith/api
-						)
-						```
+				# access key + secret key format
+				client = OpenAI(
+				    api_key="<accesskey>:<secretkey>",
+				    base_url="<openaiendpoint>"
+				)
+				```
 
-						Chat Completions (Without ai_server SDK)
-						```python
-						response = client.chat.completions.create(
-						    model="<engineid>",
-						    messages=[
-						        {"role": "system", "content": "You are a helpful assistant."},
-						        {"role": "user", "content": "Who won the world series in 2020?"}
-						    ],
-						    extra_body={"insight_id":"<optional insight id>"}
-						)
-						```
+				Chat Completions (Without ai_server SDK)
+				```python
+				response = client.chat.completions.create(
+				    model="<engineid>",
+				    messages=[
+				        {"role": "system", "content": "You are a helpful assistant."},
+				        {"role": "user", "content": "Who won the world series in 2020?"}
+				    ],
+				    extra_body={"insight_id":"<optional insight id>"}
+				)
+				```
 
-						Client Setup (With ai_server SDK)
+				Responses API (Without ai_server SDK)
+				```python
+				response = client.responses.create(
+				    model="<engineid>",
+				    instructions="You are a helpful assistant.",
+				    input="Who won the world series in 2020?",
+				    extra_body={"insight_id":"<optional insight id>"}
+				)
+				print(response.output_text)
+				```
 
-						SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
-						```python
-						# Requires user access/secret, service account, or bearer token
-						import ai_server
-						server_connection=ai_server.ServerClient(
-						    base="<the api endpoint>",         # example: https://{domain}/{directory/path segment}/Monolith/api
-						    access_key="<your access key>",
-						    secret_key="<your secret key>"
-						)
+				Client Setup (With ai_server SDK)
 
-						# Configure the OpenAI client to route through this Semoss instance
-						from openai import OpenAI
-						import httpx as httpx
-						http_client = httpx.Client()
-						http_client.cookies=server_connection.cookies
+				SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
+				```python
+				# Requires user access/secret, service account, or bearer token
+				import ai_server
+				server_connection=ai_server.ServerClient(
+				    base="<apiendpoint>",
+				    access_key="<your access key>",
+				    secret_key="<your secret key>"
+				)
 
-						client = OpenAI(
-						    api_key="EMPTY",
-						    base_url=server_connection.get_openai_endpoint(),
-						    default_headers=server_connection.get_auth_headers(),
-						    http_client=http_client
-						)
-						```
+				# Configure the OpenAI client to route through this Semoss instance
+				from openai import OpenAI
+				import httpx as httpx
+				http_client = httpx.Client()
+				http_client.cookies=server_connection.cookies
 
-						Chat Completions (With ai_server SDK)
-						```python
-						response = client.chat.completions.create(
-						    model="<engineid>",
-						    messages=[
-						        {"role": "system", "content": "You are a helpful assistant."},
-						        {"role": "user", "content": "Who won the world series in 2020?"},
-						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-						        {"role": "user", "content": "Where was it played?"}
-						    ],
-						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-						    extra_body={"insight_id":server_connection.cur_insight}
-						)
-						```
+				client = OpenAI(
+				    api_key="EMPTY",
+				    base_url=server_connection.get_openai_endpoint(),
+				    default_headers=server_connection.get_auth_headers(),
+				    http_client=http_client
+				)
+				```
 
-						Legacy Completions (Deprecated)
-						```python
-						response = client.completions.create(
-						    model="<engineid>",
-						    prompt="Write a tagline for an ice cream shop.",
-						    extra_body={"insight_id":server_connection.cur_insight}
-						)
-						```
+				Chat Completions (With ai_server SDK)
+				```python
+				response = client.chat.completions.create(
+				    model="<engineid>",
+				    messages=[
+				        {"role": "system", "content": "You are a helpful assistant."},
+				        {"role": "user", "content": "Who won the world series in 2020?"},
+				        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+				        {"role": "user", "content": "Where was it played?"}
+				    ],
+				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+				    extra_body={"insight_id":server_connection.cur_insight}
+				)
+				```
 
-						Embeddings
-						```python
-						embeddings = client.embeddings.create(
-						    model="<engineid>",
-						    input=["Your text string goes here"],
-						    extra_body={"insight_id":server_connection.cur_insight}
-						)
-						```
-						""",
-				engineId);
+				Responses API (With ai_server SDK)
+				```python
+				response = client.responses.create(
+				    model="<engineid>",
+				    instructions="You are a helpful assistant.",
+				    input="Who won the world series in 2020?",
+				    extra_body={"insight_id":server_connection.cur_insight}
+				)
+				print(response.output_text)
+				```
+
+				Legacy Completions (Deprecated)
+				```python
+				response = client.completions.create(
+				    model="<engineid>",
+				    prompt="Write a tagline for an ice cream shop.",
+				    extra_body={"insight_id":server_connection.cur_insight}
+				)
+				```
+
+				Embeddings
+				```python
+				embeddings = client.embeddings.create(
+				    model="<engineid>",
+				    input=["Your text string goes here"],
+				    extra_body={"insight_id":server_connection.cur_insight}
+				)
+				```
+				""", engineId);
+
+		addUsage(usage, ANTHROPIC, ANTHROPIC_LABEL, """
+				Direct Client Setup
+				```python
+				from anthropic import Anthropic
+
+				# access key + secret key format
+				client = Anthropic(
+				    auth_token="<accesskey>:<secretkey>",
+				    base_url="<anthropicendpoint>"
+				)
+				```
+
+				Chat Generation
+				```python
+				response = client.messages.create(
+				    model="<engineid>",
+				    max_tokens=1024,
+				    messages=[
+				        {"role": "user", "content": "Who won the world series in 2020?"}
+				    ],
+				    extra_body={"insight_id":"<optional insight id>"}
+				)
+				print(response.content[0].text)
+				```
+
+				Embeddings are not supported for this Anthropic route yet.
+				""", engineId);
+
+		addUsage(usage, OLLAMA, OLLAMA_LABEL, """
+				Direct Client Setup
+				```python
+				from ollama import Client
+
+				client = Client(
+				    host="<ollamaendpoint>",
+				    headers={"Authorization": "Bearer <accesskey>:<secretkey>"}
+				)
+				```
+
+				Chat Generation
+				```python
+				response = client.chat(
+				    model="<engineid>",
+				    messages=[
+				        {"role": "user", "content": "Who won the world series in 2020?"}
+				    ]
+				)
+				print(response["message"]["content"])
+				```
+
+				Embeddings are not supported for this Ollama route yet.
+				""", engineId);
 
 		addUsage(usage, JAVA, JAVA_LABEL, """
 				```java
@@ -1008,10 +1090,28 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	}
 
 	private String formatUsageCode(String codeTemplate, String engineId) {
-		if (engineId == null || engineId.isEmpty()) {
-			return codeTemplate.trim();
+		String formattedCode = codeTemplate.trim();
+		if (engineId != null && !engineId.isEmpty()) {
+			formattedCode = formattedCode.replace(ENGINE_ID_PLACEHOLDER, engineId);
 		}
-		return codeTemplate.trim().replace("<engineid>", engineId);
+		String applicationUrl = Utility.getApplicationUrl();
+		if (applicationUrl != null && !applicationUrl.isEmpty()) {
+			String apiEndpoint = appendPath(applicationUrl, "api");
+			String openAiEndpoint = appendPath(apiEndpoint, "model/openai");
+			String anthropicEndpoint = appendPath(apiEndpoint, "model/anthropic");
+			String ollamaEndpoint = appendPath(apiEndpoint, "model/ollama");
+			formattedCode = formattedCode.replace(API_ENDPOINT_PLACEHOLDER, apiEndpoint)
+					.replace(OPENAI_ENDPOINT_PLACEHOLDER, openAiEndpoint)
+					.replace(ANTHROPIC_ENDPOINT_PLACEHOLDER, anthropicEndpoint)
+					.replace(OLLAMA_ENDPOINT_PLACEHOLDER, ollamaEndpoint);
+		}
+		return formattedCode;
+	}
+
+	private String appendPath(String baseUrl, String pathSegment) {
+		String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+		String normalizedPath = pathSegment.startsWith("/") ? pathSegment.substring(1) : pathSegment;
+		return normalizedBase + "/" + normalizedPath;
 	}
 
 	private Map<String, Object> fillMap(String type, String label, String code) {
