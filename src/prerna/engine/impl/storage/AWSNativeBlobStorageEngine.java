@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -69,6 +70,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
@@ -416,7 +418,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				}
 			}
 		}
-		// Delete empty blobs from GCS
+		// Delete empty blobs from S3
 		deleteEmptyBlobsFromS3(storageFolderPath);
 		if (uploadedFiles.isEmpty()) {
 			classLogger.info("No files were uploaded.");
@@ -425,6 +427,68 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
 				storageFolderPath);
+	}
+
+	@Override
+	public String copyToStorageVersioned(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+			throws Exception {
+		List<Path> paths = parseLocalPaths(localFilePath);
+		List<String> uploadedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		AtomicReference<String> lastVersionId = new AtomicReference<>(null);
+		boolean found = false;
+
+		for (Path path : paths) {
+			if (!Files.exists(path)) {
+				classLogger.error("File not found: {}", path);
+				failedFiles.add(path.toString());
+				continue;
+			}
+
+			deleteEmptyDirectories(path);
+
+			if (Files.isDirectory(path)) {
+				try (Stream<Path> stream = Files.walk(path)) {
+					stream.filter(Files::isRegularFile).forEach(file -> {
+						try {
+							String versionId = uploadFileVersioned(path, file, storageFolderPath, metadata);
+							uploadedFiles.add(file.toString());
+							if (versionId != null) {
+								lastVersionId.set(versionId);
+							}
+						} catch (Exception e) {
+							failedFiles.add(file.toString());
+							classLogger.error("Failed to upload file: {}", file, e);
+							rollbackUploads(this.client, failedFiles);
+						}
+					});
+					found = true;
+				}
+			} else {
+				try {
+					String versionId = uploadFileVersioned(path.getParent(), path, storageFolderPath, metadata);
+					uploadedFiles.add(path.toString());
+					if (versionId != null) {
+						lastVersionId.set(versionId);
+					}
+					found = true;
+				} catch (Exception e) {
+					failedFiles.add(path.toString());
+					classLogger.error("Failed to upload file: {}", path, e);
+					rollbackUploads(this.client, failedFiles);
+				}
+			}
+		}
+		// Delete empty blobs from S3
+		deleteEmptyBlobsFromS3(storageFolderPath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFolderPath);
+		return lastVersionId.get();
 	}
 
 	@Override
@@ -508,6 +572,31 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
 				storageFilePath);
+	}
+
+	@Override
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		if (versionId != null && !versionId.isEmpty()) {
+			String key = normalizeStoragePrefixPath(storageFilePath);
+			Path localDirectory = Paths.get(localFolderPath);
+			Files.createDirectories(localDirectory);
+
+			String fileName = key.contains("/") ? key.substring(key.lastIndexOf("/") + 1) : key;
+			Path localFilePath = localDirectory.resolve(fileName);
+
+			GetObjectRequest getRequest = GetObjectRequest.builder()
+					.bucket(this.bucket)
+					.key(key)
+					.versionId(versionId)
+					.build();
+
+			try (ResponseInputStream<GetObjectResponse> responseStream = this.client.getObject(getRequest)) {
+				Files.copy(responseStream, localFilePath, StandardCopyOption.REPLACE_EXISTING);
+				classLogger.info("Downloaded versioned file: {} (versionId={})", localFilePath, versionId);
+			}
+		} else {
+			copyToLocal(storageFilePath, localFolderPath);
+		}
 	}
 
 	@Override
@@ -699,9 +788,11 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			PutObjectRequest putRequest = PutObjectRequest.builder().bucket(this.bucket).key(fileKey).metadata(metaMap)
 					.build();
 
-			this.client.putObject(putRequest, filePath);
+			PutObjectResponse response = this.client.putObject(putRequest, filePath);
 			classLogger.info("Uploaded/Updated file: {}", fileKey);
-			return;
+			if (this.versioningEnabled && response.versionId() != null) {
+				classLogger.info("Version ID for {}: {}", fileKey, response.versionId());
+			}
 		}, "Uploading file to S3: " + fileKey);
 
 		return fileKey;
@@ -877,6 +968,37 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}, "Uploading to S3: " + fileKey);
 
 		return fileKey;
+	}
+
+	private String uploadFileVersioned(Path rootPath, Path file, String storageFolderPath,
+			Map<String, Object> metadata) throws IOException {
+		String normalizedPath = Utility.normalizePath(storageFolderPath).trim();
+		if (normalizedPath.startsWith("/")) {
+			normalizedPath = normalizedPath.substring(1);
+		}
+
+		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
+		String fileKey = normalizedPath.isEmpty() ? relativePath
+				: (normalizedPath.endsWith("/") ? normalizedPath + relativePath : normalizedPath + "/" + relativePath);
+
+		PutObjectRequest.Builder putBuilder = PutObjectRequest.builder().bucket(this.bucket).key(fileKey);
+
+		if (metadata != null && !metadata.isEmpty()) {
+			putBuilder.metadata(metadata.entrySet().stream()
+					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
+		}
+
+		AtomicReference<String> versionIdRef = new AtomicReference<>(null);
+		retryOperation(() -> {
+			PutObjectResponse response = this.client.putObject(putBuilder.build(), file);
+			classLogger.info("Uploaded file to S3: {}", fileKey);
+			if (response.versionId() != null) {
+				versionIdRef.set(response.versionId());
+				classLogger.info("Version ID for {}: {}", fileKey, response.versionId());
+			}
+		}, "Uploading to S3: " + fileKey);
+
+		return versionIdRef.get();
 	}
 
 	private void downloadFile(String key, Path localFilePath) throws IOException {

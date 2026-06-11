@@ -81,13 +81,31 @@ public interface IStorageEngine extends IEngine {
 	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
 
 	/**
+	 * Copy local files to a storage folder path.
 	 * 
-	 * @param localFilePath
-	 * @param storageFolderPath
-	 * @param metadata
-	 * @throws Exception
+	 * @param localFilePath     the local file or folder path(s) to upload
+	 * @param storageFolderPath the destination path in storage
+	 * @param metadata          optional metadata to attach to the uploaded objects
+	 * @throws Exception if the upload fails
 	 */
 	void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
+
+	/**
+	 * Copy local files to storage and return the version identifier of the uploaded object.
+	 * Only supported by engines with versioning enabled (S3, GCS).
+	 * Default implementation delegates to {@link #copyToStorage} and returns null.
+	 * 
+	 * @param localFilePath     the local file or folder path(s) to upload
+	 * @param storageFolderPath the destination path in storage
+	 * @param metadata          optional metadata to attach to the uploaded objects
+	 * @return the version identifier (S3 versionId or GCS generation), or null if not supported
+	 * @throws Exception if the upload fails
+	 */
+	default String copyToStorageVersioned(String localFilePath, String storageFolderPath,
+			Map<String, Object> metadata) throws Exception {
+		copyToStorage(localFilePath, storageFolderPath, metadata);
+		return null;
+	}
 
 	/**
 	 * 
@@ -140,5 +158,17 @@ public interface IStorageEngine extends IEngine {
 	 */
 	default void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
 		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine"); 
+	}
+
+	/**
+	 * Copy a specific version of a file from storage to local.
+	 * 
+	 * @param storageFilePath the path to the file in storage
+	 * @param localFolderPath the local folder to download to
+	 * @param versionId       the version identifier (S3 versionId or GCS generation number)
+	 * @throws Exception if the operation is not supported or fails
+	 */
+	default void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		copyToLocal(storageFilePath, localFolderPath);
 	}
 }

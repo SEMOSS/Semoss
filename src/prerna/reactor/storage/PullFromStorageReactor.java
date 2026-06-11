@@ -44,14 +44,29 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
+/**
+ * Pull files from a storage path to a local path.
+ *
+ * Pixel usage: PullFromStorage(storage=["<id>"], storagePath=["<path>"], filePath=["<local>"], version=["<versionId>"]);
+ *
+ * Parameters:
+ *   storage     (String, required) - The storage engine instance or id
+ *   storagePath (String, required) - The storage path(s) to download from
+ *   filePath    (String, required) - The local path to download files to
+ *   space       (String, optional) - The project space context
+ *   version     (String, optional) - The version ID to download a specific object version
+ *
+ * Returns: BOOLEAN - true on success.
+ */
 public class PullFromStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(PullFromStorageReactor.class);
 
 	public PullFromStorageReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 1 };
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.VERSION.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
 	}
 
 	@Override
@@ -64,8 +79,14 @@ public class PullFromStorageReactor extends AbstractReactor {
 			new File(fileLocation).mkdirs();
 		}
 
+		String versionId = this.keyValue.get(ReactorKeysEnum.VERSION.getKey());
+
 		try {
-			storage.copyToLocal(storagePath, fileLocation);
+			if (versionId != null && !versionId.isEmpty()) {
+				storage.copyToLocal(storagePath, fileLocation, versionId);
+			} else {
+				storage.copyToLocal(storagePath, fileLocation);
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -111,6 +132,8 @@ public class PullFromStorageReactor extends AbstractReactor {
 			return "The storage path(s) to download from";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The local path to download files to";
+		} else if (key.equals(ReactorKeysEnum.VERSION.getKey())) {
+			return "Optional version ID to download a specific object version (S3 versionId or GCS generation)";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -28,6 +28,7 @@
 package prerna.reactor.storage;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.impl.storage.AbstractStorageEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,6 +47,20 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
+/**
+ * Push files from a local path to a storage path.
+ *
+ * Pixel usage: PushToStorage(storage=["<id>"], storagePath=["<path>"], filePath=["<local>"], metadata=[{}]);
+ *
+ * Parameters:
+ *   storage     (String, required) - The storage engine instance or id
+ *   storagePath (String, required) - The storage path to upload files to
+ *   filePath    (String, required) - The local path(s) to upload from
+ *   space       (String, optional) - The project space context
+ *   metadata    (Map, optional)    - Metadata to attach to uploaded objects
+ *
+ * Returns: MAP - containing success status and versionId (if versioning enabled), or BOOLEAN true.
+ */
 public class PushToStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(PushToStorageReactor.class);
@@ -71,7 +87,19 @@ public class PushToStorageReactor extends AbstractReactor {
 
 		Map<String, Object> metadata = getMetadata();
 		try {
-			storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			// If this engine supports versioning, use the versioned upload
+			if (storage instanceof AbstractStorageEngine
+					&& ((AbstractStorageEngine) storage).isVersioningEnabled()) {
+				String versionId = storage.copyToStorageVersioned(fileLocation, storageFolderPath, metadata);
+				if (versionId != null && !versionId.isEmpty()) {
+					Map<String, Object> result = new HashMap<>();
+					result.put("success", true);
+					result.put("versionId", versionId);
+					return new NounMetadata(result, PixelDataType.MAP);
+				}
+			} else {
+				storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -128,6 +156,8 @@ public class PushToStorageReactor extends AbstractReactor {
 			return "The storage path to upload files to";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The local path(s) to upload from";
+		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return "Optional metadata map to attach to uploaded objects";
 		}
 		return super.getDescriptionForKey(key);
 	}
