@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +59,13 @@ import prerna.testing.utility.TestExcelInputObject;
 import prerna.testing.utility.TestExcelInputUtility;
 
 public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
+
+	private Path getOutputFilePath() throws IOException {
+		try (Stream<Path> stream = Files.list(ApiSemossTestInsightUtils.getInsightCache())) {
+			return stream.filter(s -> s.toString().contains("output")).findFirst()
+					.orElseThrow(() -> new RuntimeException("Could not find file"));
+		}
+	}
 
 	@Test
 	public void testToXML() throws IOException {
@@ -96,9 +104,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(4, linesFromXml.size());
@@ -146,9 +152,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(3, linesFromXml.size());
@@ -193,9 +197,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(3, linesFromXml.size());
@@ -240,9 +242,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(3, linesFromXml.size());
@@ -287,9 +287,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(3, linesFromXml.size());
@@ -337,9 +335,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(3, linesFromXml.size());
@@ -395,9 +391,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(4, linesFromXml.size());
@@ -454,9 +448,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-				.filter(s -> s.toString().contains("output")).findFirst()
-				.orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 		assertEquals(5, linesFromXml.size());
@@ -556,9 +548,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// Read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-		        .filter(s -> s.toString().contains("output")).findFirst()
-		        .orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 
@@ -613,9 +603,7 @@ public class ToXmlReactorTests extends AbstractBaseSemossApiTests {
 		assertNotNull(nm.getValue());
 
 		// Read file
-		Path pathToFile = Files.list(ApiSemossTestInsightUtils.getInsightCache())
-		        .filter(s -> s.toString().contains("output")).findFirst()
-		        .orElseThrow(() -> new RuntimeException("Could not find file"));
+		Path pathToFile = getOutputFilePath();
 
 		List<String> linesFromXml = Files.readAllLines(pathToFile);
 

@@ -49,28 +49,29 @@ public class CollectGraphReactor extends CollectReactor {
 	/**
 	 * This class is responsible for collecting all graph data from a frame
 	 */
-	
+
 	public CollectGraphReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey() };
 	}
-	
+
+	@Override
 	public NounMetadata execute() {
 		this.task = getTask();
 
 		ITableDataFrame frame = getFrame();
 		IGraphExporter exporter;
-		
+
 		// check if the user has defined their own color scheme in the insight
 		NounMetadata graphMetadata = this.insight.getVarStore().get("GRAPH_COLORS");
 		if (graphMetadata != null) {
-			Map<String, Color> colorsMap  = (Map<String, Color>) graphMetadata.getValue();
+			Map<String, Color> colorsMap = (Map<String, Color>) graphMetadata.getValue();
 			exporter = GraphExporterFactory.getExporter(frame, colorsMap);
 		} else {
 			exporter = GraphExporterFactory.getExporter(frame);
 		}
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", exporter.getData());
-		
+
 		Map<String, Object> formatMap = new HashMap<String, Object>();
 		formatMap.put("type", "GRAPH");
 		collectedData.put("format", formatMap);
@@ -81,22 +82,24 @@ public class CollectGraphReactor extends CollectReactor {
 		collectedData.put("filterInfo", this.task.getFilterInfo());
 		collectedData.put("taskId", this.task.getId());
 		collectedData.put("sources", getSources(frame));
-		
-		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+
+		NounMetadata result = new NounMetadata(collectedData, PixelDataType.FORMATTED_DATA_SET,
+				PixelOperationType.TASK_DATA);
 		return result;
 	}
-	
+
 	private List<Map<String, Object>> getHeaderInfo(ITableDataFrame frame) {
 		// TODO: this is dumb
 		// why did I not make everything consistent...
 		// why am i dumb
-		List<Map<String, Object>> x = (List<Map<String, Object>>) frame.getMetaData().getTableHeaderObjects().get("headers");
-		for(Map<String, Object> val : x) {
+		List<Map<String, Object>> x = (List<Map<String, Object>>) frame.getMetaData().getTableHeaderObjects()
+				.get("headers");
+		for (Map<String, Object> val : x) {
 			val.put("alias", val.remove("displayName"));
 		}
 		return x;
 	}
-	
+
 	private List<Map<String, Object>> getSources(ITableDataFrame frame) {
 		Map<String, Object> sourceMap = new HashMap<>();
 		sourceMap.put("name", frame.getName());
@@ -105,30 +108,33 @@ public class CollectGraphReactor extends CollectReactor {
 		sources.add(sourceMap);
 		return sources;
 	}
-	
+
 	private ITableDataFrame getFrame() {
 		// try the key
 		GenRowStruct fGrs = store.getGenRowStruct(this.keysToGet[0]);
-		if(fGrs != null && !fGrs.isEmpty()) {
+		if (fGrs != null && !fGrs.isEmpty()) {
 			return (ITableDataFrame) fGrs.get(0);
 		}
-		
+
 		// try the cur row
 		List<Object> allNumericInputs = this.curRow.getValuesOfType(PixelDataType.FRAME);
-		if(allNumericInputs != null && !allNumericInputs.isEmpty()) {
+		if (allNumericInputs != null && !allNumericInputs.isEmpty()) {
 			return (ITableDataFrame) allNumericInputs.get(0);
 		}
-		
+
 		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
-		if(outputs != null) return outputs;
-		
+		if (outputs != null) {
+			return outputs;
+		}
+
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET,
+				PixelOperationType.TASK_DATA);
 		outputs.add(output);
 		return outputs;
 	}

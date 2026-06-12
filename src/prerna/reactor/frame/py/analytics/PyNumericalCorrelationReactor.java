@@ -28,7 +28,6 @@
 package prerna.reactor.frame.py.analytics;
 
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -36,7 +35,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.reactor.task.constant.ConstantTaskCreationHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,9 +61,9 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 
 		// figure out inputs
 		// need the panelId for passing the task to the FE
-		String panelId = getPanelId();
+		String panelId = getString(keysToGet[2]);
 
-		List<String> numericalCols = getColumns();
+		List<String> numericalCols = getListStringFromKeyOrCurRow(keysToGet[0]);
 		int numCols = numericalCols.size();
 		if (numCols == 0) {
 			String errorString = "No columns were passed as attributes for the correlation routine.";
@@ -131,45 +129,4 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 		return noun;
 	}
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	/*
-	 * Retrieving inputs
-	 */
-
-	private List<String> getColumns() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[0]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for (Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
-			}
-		}
-
-		// else, we assume it is column values in the curRow
-		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
-		for (Object obj : values) {
-			strValues.add(obj.toString());
-		}
-		return strValues;
-	}
-
-	private String getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-		return null;
-	}
 }

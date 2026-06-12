@@ -54,6 +54,7 @@ import com.microsoft.playwright.BrowserContext;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
@@ -81,7 +82,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	private Map<String, Object> roomHash = new ConcurrentHashMap<>();
+	private Map<String, Room> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -449,7 +450,7 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public Map<String, Object> getRoomHash() {
+	public Map<String, Room> getRoomHash() {
 		return roomHash;
 	}
 

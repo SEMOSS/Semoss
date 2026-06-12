@@ -78,7 +78,7 @@ public class AdminMyEnginesReactorUnitTests {
 		reactor.setNounStore(ns);
 		when(insight.getUser()).thenReturn(user);
 
-		// curRow is accessed by getMetaMap() — use reflection since it's protected in
+		// curRow is accessed by getMetaMap() - use reflection since it's protected in
 		// AbstractReactor
 		GenRowStruct curRow = mock(GenRowStruct.class);
 		Field curRowField = AbstractReactor.class.getDeclaredField("curRow");
@@ -172,7 +172,7 @@ public class AdminMyEnginesReactorUnitTests {
 			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
 			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
-			// Verify metadata was added — second value should create a list
+			// Verify metadata was added - second value should create a list
 			Object desc = value.get(0).get("description");
 			assertNotNull(desc);
 		}

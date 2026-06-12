@@ -224,8 +224,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
 					}
 				} catch (IOException e) {
-					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
-							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to copy CSV file '{}' to vector documents directory '{}'",
+							vectorF.getAbsolutePath(), documentDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ documentDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -243,8 +243,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					// store to move to cloud
 					filesToCopyToCloud.add(indexDestinationFile.getAbsolutePath());
 				} catch (IOException e) {
-					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
-							+ "' to indexed-files directory '" + indexFilesDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to copy CSV file '{}' to indexed-files directory '{}'",
+							vectorF.getAbsolutePath(), indexFilesDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ indexDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -357,7 +357,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error("Error reading file for line count: {}", file.getName(), e);
+			classLogger.error("Failed to count records in file '{}'", file.getName(), e);
 		}
 		return lines;
 	}
@@ -414,75 +414,65 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
-		DirectoryStream<Path> stream = null;
-		try {
-			List<String> sourceNames = new ArrayList<>();
-			for (String document : fileNames) {
-				String documentName = FilenameUtils.getName(document);
-				File f = new File(document);
-				if (f.exists() && f.getName().endsWith(".csv")) {
-					sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
-				} else {
-					sourceNames.add(documentName);
-				}
+		List<String> sourceNames = new ArrayList<>();
+		for (String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if (f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
 			}
+		}
 
-			for (String document : sourceNames) {
-				String documentName = FilenameUtils.getName(document);
-				// Include both new safe extensions and the legacy .pkl pair so this method
-				// works against partially-migrated engines as well as freshly-written ones.
-				String[] fileNamesToDelete = { documentName + "_dataset.parquet", documentName + "_vectors.npy",
-						documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv" };
+		for (String document : sourceNames) {
+			String documentName = FilenameUtils.getName(document);
+			// Include both new safe extensions and the legacy .pkl pair so this method
+			// works against partially-migrated engines as well as freshly-written ones.
+			String[] fileNamesToDelete = { documentName + "_dataset.parquet", documentName + "_vectors.npy",
+					documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv" };
 
-				// Create a filter for the file names
-				DirectoryStream.Filter<Path> fileNameFilters = entry -> {
-					String fileName = entry.getFileName().toString();
-					for (String fileNameToDelete : fileNamesToDelete) {
-						if (fileName.equals(fileNameToDelete)) {
-							return true;
-						}
+			// Create a filter for the file names
+			DirectoryStream.Filter<Path> fileNameFilters = entry -> {
+				String fileName = entry.getFileName().toString();
+				for (String fileNameToDelete : fileNamesToDelete) {
+					if (fileName.equals(fileNameToDelete)) {
+						return true;
 					}
-					return false;
-				};
-
-				try {
-					stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
-				} catch (IOException e) {
-					classLogger.error("Failed to list indexed files in directory: " + indexDirectory, e);
-					throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 				}
+				return false;
+			};
+
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(indexDirectory, fileNameFilters)) {
 				for (Path entry : stream) {
 					// Delete each file that matches the specified file name
 					try {
 						Files.delete(entry);
 						filesToRemoveFromCloud.add(entry.toString());
 					} catch (IOException e) {
-						classLogger.error("Failed to delete indexed file: " + entry, e);
+						classLogger.error("Failed to delete indexed file '{}'", entry, e);
 						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
 					}
 					classLogger.info("Deleted: " + entry.toString());
 				}
-				try {
-					File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
-							+ FILE_SEPARATOR + "documents", document);
-					if (documentFile.exists() && documentFile.isFile()) {
-						FileUtils.forceDelete(documentFile);
-						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to delete document '" + document
-							+ "' from documents directory for index class: " + indexClass, e);
-					throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
-				}
+			} catch (IllegalArgumentException e) {
+				throw e;
+			} catch (IOException e) {
+				classLogger.error("Failed to list indexed files in directory '{}'", indexDirectory, e);
+				throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 			}
-		} finally {
-			if (stream != null) {
-				try {
-					stream.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close indexed-files directory stream for index class: " + indexClass,
-							e);
+
+			try {
+				File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
+						+ FILE_SEPARATOR + "documents", document);
+				if (documentFile.exists() && documentFile.isFile()) {
+					FileUtils.forceDelete(documentFile);
+					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
+			} catch (IOException e) {
+				classLogger.error("Failed to delete document '{}' from documents directory for index class '{}'",
+						document, indexClass, e);
+				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
 			}
 		}
 
@@ -507,7 +497,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				// delete the entire folder
 				FileUtils.forceDelete(indexClassDirectory);
 			} catch (IOException e) {
-				classLogger.error("Failed to delete index class folder for index class: " + indexClass, e);
+				classLogger.error("Failed to delete index class folder for index class '{}'", indexClass, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
 			this.pyTranslator

@@ -55,7 +55,7 @@ import prerna.util.Constants;
 
 public class SecretsUtility {
 
-	private static final Logger logger = LogManager.getLogger(SecretsUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(SecretsUtility.class);
 
 	private SecretsUtility() {
 
@@ -86,7 +86,7 @@ public class SecretsUtility {
 			cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 		if (cipher == null) {
 			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");
@@ -128,7 +128,7 @@ public class SecretsUtility {
 			cipher.init(Cipher.DECRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			classLogger.error(Constants.STACKTRACE, e1);
 		}
 		if (cipher == null) {
 			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");
