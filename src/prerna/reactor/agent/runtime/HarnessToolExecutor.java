@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.agent.runtime;
 
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -60,6 +62,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.comm.PixelJobManager;
 
 /**
  * Tool dispatch utilities for {@link SemossAgentHarness}.
@@ -75,6 +78,7 @@ final class HarnessToolExecutor {
     private static final String TOOL_STATUS_ERROR   = "error";
 
     private static final Gson GSON = new Gson();
+    private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
 
     /** How often the parallel-batch wait polls for cancellation. */
     private static final long CANCEL_POLL_MS = 100L;
@@ -206,6 +210,7 @@ final class HarnessToolExecutor {
 
         // Post-tool hooks - fired even on failure so observability survives errors.
         fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
+        publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
 
         logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}",
                 tc.rawToolName, durMs, outcome.success);
@@ -221,6 +226,40 @@ final class HarnessToolExecutor {
                 outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
 
         return new ToolExecResult(record, modelResp);
+    }
+
+    private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,
+            long durationMs, boolean success) {
+        if (jobId == null || jobId.isBlank() || toolCallId == null || toolCallId.isBlank()) {
+            return;
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("kind", "tool-result");
+        data.put("eventId", "semoss-tool-result-" + toolCallId);
+        data.put("toolUseId", toolCallId);
+        if (toolName != null && !toolName.isBlank()) {
+            data.put("toolName", toolName);
+        }
+        data.put("status", success ? "completed" : "error");
+        data.put("isPartial", false);
+        data.put("durationMs", durationMs);
+        String content = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
+        if (content != null && !content.isBlank()) {
+            data.put("content", content);
+        }
+        data.put("timestamp", Instant.now().toString());
+
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("stream_type", "tool");
+        envelope.put("data", data);
+        PixelJobManager.getManager().addStreamOut(jobId, envelope);
+    }
+
+    private static String truncate(String value, int maxChars) {
+        if (value == null || value.length() <= maxChars) {
+            return value;
+        }
+        return value.substring(0, maxChars) + "\n... [truncated for live stream]";
     }
 
     // Fire all configured pre-tool hooks. Each hook is isolated so a thrower does not

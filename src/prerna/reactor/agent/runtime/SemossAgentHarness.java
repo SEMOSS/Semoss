@@ -113,6 +113,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		stripHarnessOnlyParams(paramMap);
+		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
