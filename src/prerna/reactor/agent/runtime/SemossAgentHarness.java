@@ -122,13 +122,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
 		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
-		boolean isChildRun = ctx.getSpawnDepth() > AgentRunContext.ROOT_SPAWN_DEPTH;
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
 		if (canSpawn) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
-		}
-		if (isChildRun) {
-			subAgentTools.addAll(SubAgentToolSynthesizer.childTools());
 		}
 		injectSubAgentTools(paramMap, subAgentTools);
 
@@ -140,10 +136,10 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (AgentSubAgentRegistry.getManager().registerRoot(runJobId, policy)) {
 					rootJobIdRegistered = runJobId;
 				}
-					logger.info(
-					"SemossAgentHarness: root spawn policy active jobId={} maxDepth={} maxPerRun={} maxPerTurn={}",
-					runJobId, policy.getMaxSubagentDepth(), policy.getMaxSubagentsPerRun(),
-					policy.getMaxSpawnsPerTurn());
+				logger.info(
+						"SemossAgentHarness: root spawn policy active jobId={} maxDepth={} maxPerRun={} maxPerTurn={}",
+						runJobId, policy.getMaxSubagentDepth(), policy.getMaxSubagentsPerRun(),
+						policy.getMaxSpawnsPerTurn());
 			}
 		}
 
@@ -155,8 +151,8 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn || isChildRun) {
-			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs, canSpawn, isChildRun));
+		if (canSpawn) {
+			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier in the run) so
 		// the model knows what it can pull in via LoadSkill. Empty when no skills are present.
@@ -310,11 +306,6 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (rootJobIdRegistered != null) {
 				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
 			}
-			String exitingJobId = ThreadStore.getJobId();
-			if (exitingJobId != null && !exitingJobId.isBlank()) {
-				AgentSubAgentRegistry.getManager().cleanupClarification(exitingJobId);
-				AgentSubAgentRegistry.getManager().cleanupClarificationsForParent(exitingJobId);
-			}
 		}
 	}
 
@@ -427,17 +418,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * non-empty, the block also lists named specialist subagents the LLM can
 	 * delegate to; when empty, only the anonymous-spawn guidance is included.
 	 */
-	private static String buildSubAgentPromptBlock(List<SubAgentSpec> specs, boolean canSpawn, boolean isChildRun) {
+	private static String buildSubAgentPromptBlock(List<SubAgentSpec> specs) {
 		StringBuilder sb = new StringBuilder();
-		if (!canSpawn && isChildRun) {
-			sb.append("You can communicate with your parent agent using these tools:\n");
-			sb.append("- `NotifyParent(message, kind)` sends a progress/status event and then you keep working.\n");
-			sb.append("- `AskParent(question)` asks your parent for clarification. This tool pauses until ");
-			sb.append("the parent replies, and the reply is returned as the tool result. Use it sparingly; ");
-			sb.append("when a reasonable assumption is safe, make the assumption and optionally notify the parent.\n");
-			return sb.toString();
-		}
-
 		if (specs != null && !specs.isEmpty()) {
 			sb.append("You can delegate work to specialist subagents via these tools: ");
 			boolean first = true;
@@ -457,16 +439,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		  .append("until the subagent completes or your timeoutSec elapses.\n");
 		sb.append("- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.\n");
 		sb.append("- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.\n\n");
-		sb.append("If `WaitForSubAgent` or `CheckSubAgentStatus` returns `status: needs_input`, ");
-		sb.append("answer the child's question with `ReplyToSubAgentAsk(jobId=<handle>, requestId=<requestId>, message=<answer>)`. ");
-		sb.append("The reply becomes the child's native `AskParent` tool result. Do not try to send ");
-		sb.append("unsolicited steering messages; V1 only supports replies to explicit child questions.\n\n");
-
-		if (isChildRun) {
-			sb.append("Because this run is itself a subagent, you can also call `NotifyParent` for progress ");
-			sb.append("or `AskParent` when you truly need clarification. These are child-to-parent tools; ");
-			sb.append("they do not inject messages into either room transcript.\n\n");
-		}
+		sb.append("Subagents have separate room transcripts. They may share your workdir only when ")
+		  .append("you explicitly set `inherit_parent_workdir=true` while spawning them.\n\n");
 
 		sb.append("## Two patterns: blocking vs deferred\n\n");
 		sb.append("**Pattern A -- blocking (default for quick subagent work, <30s expected):**\n");

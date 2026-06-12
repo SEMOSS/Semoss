@@ -47,9 +47,6 @@ import prerna.reactor.agent.config.SubAgentSpec;
  *   <li>{@code SpawnSubAgent} -- anonymous clone of the parent agent</li>
  *   <li>{@code CheckSubAgentStatus} -- non-blocking status peek</li>
  *   <li>{@code WaitForSubAgent}     -- block until a child finishes (or timeout)</li>
- *   <li>{@code ReplyToSubAgentAsk}  -- parent reply to a child clarification</li>
- *   <li>{@code NotifyParent}        -- child progress event</li>
- *   <li>{@code AskParent}           -- child clarification request</li>
  * </ul>
  *
  * <p>Tool dispatch routing uses {@link #BUILTIN_TOOL_NAMES} and the alias set from
@@ -62,15 +59,10 @@ public final class SubAgentToolSynthesizer {
     public static final String TOOL_SPAWN_SUBAGENT = "SpawnSubAgent";
     public static final String TOOL_CHECK_SUBAGENT = "CheckSubAgentStatus";
     public static final String TOOL_WAIT_SUBAGENT  = "WaitForSubAgent";
-    public static final String TOOL_REPLY_TO_SUBAGENT_ASK = "ReplyToSubAgentAsk";
-    public static final String TOOL_NOTIFY_PARENT = "NotifyParent";
-    public static final String TOOL_ASK_PARENT = "AskParent";
-
     /** Convenience set for {@code contains()} checks during dispatch. */
     public static final Set<String> BUILTIN_TOOL_NAMES = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
-                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT,
-                    TOOL_REPLY_TO_SUBAGENT_ASK, TOOL_NOTIFY_PARENT, TOOL_ASK_PARENT)));
+                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT)));
 
     private SubAgentToolSynthesizer() {}
 
@@ -91,22 +83,13 @@ public final class SubAgentToolSynthesizer {
 
     /**
      * Parent-side built-in subagent control tools. Always returned in the same order:
-     * spawn -> check -> wait -> reply.
+     * spawn -> check -> wait.
      */
     public static List<Map<String, Object>> builtInTools() {
-        List<Map<String, Object>> out = new ArrayList<>(4);
+        List<Map<String, Object>> out = new ArrayList<>(3);
         out.add(buildSpawnTool());
         out.add(buildCheckTool());
         out.add(buildWaitTool());
-        out.add(buildReplyToSubAgentAskTool());
-        return out;
-    }
-
-    /** Child-side tools only surfaced inside subagent runs. */
-    public static List<Map<String, Object>> childTools() {
-        List<Map<String, Object>> out = new ArrayList<>(2);
-        out.add(buildNotifyParentTool());
-        out.add(buildAskParentTool());
         return out;
     }
 
@@ -179,91 +162,6 @@ public final class SubAgentToolSynthesizer {
         return tool;
     }
 
-    private static Map<String, Object> buildReplyToSubAgentAskTool() {
-        Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("jobId", schemaString(
-                "Direct child subagent job id that is currently waiting with status='needs_input'."));
-        properties.put("requestId", schemaString(
-                "Exact requestId returned by WaitForSubAgent or CheckSubAgentStatus when status='needs_input'."));
-        properties.put("message", schemaString(
-                "Reply to the child's clarification question. This becomes the AskParent tool result in the child."));
-
-        Map<String, Object> inputSchema = new LinkedHashMap<>();
-        inputSchema.put("type", "object");
-        inputSchema.put("title", "ReplyToSubAgentAsk_Arguments");
-        inputSchema.put("properties", properties);
-        inputSchema.put("required", Arrays.asList("jobId", "requestId", "message"));
-
-        Map<String, Object> tool = new LinkedHashMap<>();
-        tool.put("name", TOOL_REPLY_TO_SUBAGENT_ASK);
-        tool.put("description",
-                "Reply to a direct child subagent that asked for clarification. Only use this after "
-                        + "WaitForSubAgent or CheckSubAgentStatus returns status='needs_input'. "
-                        + "Requires the exact requestId from that envelope; wrong or stale requestIds are rejected.");
-        tool.put("inputSchema", inputSchema);
-
-        Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("SMSS_TOOL_KIND", "semoss_subagent_reply");
-        tool.put("_meta", meta);
-        return tool;
-    }
-
-    private static Map<String, Object> buildNotifyParentTool() {
-        Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("message", schemaString(
-                "Progress or milestone text for your parent. Fire-and-forget; you keep running after this call."));
-        Map<String, Object> kindProp = new LinkedHashMap<>();
-        kindProp.put("description", "Notice kind. Defaults to progress.");
-        kindProp.put("title", "kind");
-        kindProp.put("type", "string");
-        kindProp.put("enum", Arrays.asList("progress", "completed", "blocked", "milestone"));
-        properties.put("kind", kindProp);
-
-        Map<String, Object> inputSchema = new LinkedHashMap<>();
-        inputSchema.put("type", "object");
-        inputSchema.put("title", "NotifyParent_Arguments");
-        inputSchema.put("properties", properties);
-        inputSchema.put("required", Collections.singletonList("message"));
-
-        Map<String, Object> tool = new LinkedHashMap<>();
-        tool.put("name", TOOL_NOTIFY_PARENT);
-        tool.put("description",
-                "Send a progress or milestone event to your parent agent. This does not pause you "
-                        + "and does not replace your final answer; final completion still flows through WaitForSubAgent.");
-        tool.put("inputSchema", inputSchema);
-
-        Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("SMSS_TOOL_KIND", "semoss_subagent_notify");
-        tool.put("_meta", meta);
-        return tool;
-    }
-
-    private static Map<String, Object> buildAskParentTool() {
-        Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("question", schemaString(
-                "Clarification question for your parent. This tool pauses until the parent replies; "
-                        + "the parent's answer is returned as this tool's result."));
-
-        Map<String, Object> inputSchema = new LinkedHashMap<>();
-        inputSchema.put("type", "object");
-        inputSchema.put("title", "AskParent_Arguments");
-        inputSchema.put("properties", properties);
-        inputSchema.put("required", Collections.singletonList("question"));
-
-        Map<String, Object> tool = new LinkedHashMap<>();
-        tool.put("name", TOOL_ASK_PARENT);
-        tool.put("description",
-                "Ask your parent agent for clarification. Use sparingly. The parent sees "
-                        + "status='needs_input' from WaitForSubAgent/CheckSubAgentStatus and replies "
-                        + "with ReplyToSubAgentAsk; that reply becomes this tool's result.");
-        tool.put("inputSchema", inputSchema);
-
-        Map<String, Object> meta = new LinkedHashMap<>();
-        meta.put("SMSS_TOOL_KIND", "semoss_subagent_ask");
-        tool.put("_meta", meta);
-        return tool;
-    }
-
     private static Map<String, Object> buildSpawnTool() {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(
@@ -315,7 +213,7 @@ public final class SubAgentToolSynthesizer {
                         + "'running' (still working) or terminal: "
                         + "'succeeded' (result holds final text) / "
                         + "'failed' (error holds short message) / "
-                        + "'cancelled' / 'timed_out'. "
+                        + "'cancelled'. "
                         + "WHEN status is terminal AND you (or the user) want the actual output, "
                         + "IMMEDIATELY call WaitForSubAgent(jobId) in the same turn -- it returns "
                         + "the same envelope and is the canonical fetch path. Use CheckSubAgentStatus "
@@ -358,7 +256,7 @@ public final class SubAgentToolSynthesizer {
                 "Block until a spawned subagent reaches a terminal status (or timeoutSec elapses). "
                         + "Always returns the envelope {jobId, status, result, error}. "
                         + "On success: status='succeeded' with the final text in result. "
-                        + "On failure: status='failed'/'cancelled'/'timed_out' with a short error message. "
+                        + "On failure: status='failed'/'cancelled' with a short error message. "
                         + "On wait-side timeout: status='running' (the subagent keeps working in the "
                         + "background and you can call WaitForSubAgent again later). "
                         + "Use this whenever you want a subagent's OUTPUT -- either right after spawn "

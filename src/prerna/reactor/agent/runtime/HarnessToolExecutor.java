@@ -395,7 +395,7 @@ final class HarnessToolExecutor {
         }
         if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
             Object jobIdObj = params == null ? null : params.get("jobId");
-            return SubAgentDispatcher.check(jobIdObj == null ? null : String.valueOf(jobIdObj));
+            return SubAgentDispatcher.check(jobIdObj == null ? null : String.valueOf(jobIdObj), ctx.getInsight());
         }
         if (SubAgentToolSynthesizer.TOOL_WAIT_SUBAGENT.equals(rawToolName)) {
             Object jobIdObj = params == null ? null : params.get("jobId");
@@ -407,31 +407,8 @@ final class HarnessToolExecutor {
                 try { timeoutSec = Integer.parseInt(((String) timeoutObj).trim()); }
                 catch (NumberFormatException ignored) { /* keep default */ }
             }
-            return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), timeoutSec);
-        }
-        if (SubAgentToolSynthesizer.TOOL_REPLY_TO_SUBAGENT_ASK.equals(rawToolName)) {
-            Object jobIdObj = params == null ? null : params.get("jobId");
-            Object requestIdObj = params == null ? null : params.get("requestId");
-            Object messageObj = params == null ? null : params.get("message");
-            return SubAgentDispatcher.replyToSubAgentAsk(
-                    parentJobId,
-                    jobIdObj == null ? null : String.valueOf(jobIdObj),
-                    requestIdObj == null ? null : String.valueOf(requestIdObj),
-                    messageObj == null ? null : String.valueOf(messageObj));
-        }
-        if (SubAgentToolSynthesizer.TOOL_NOTIFY_PARENT.equals(rawToolName)) {
-            Object messageObj = params == null ? null : params.get("message");
-            Object kindObj = params == null ? null : params.get("kind");
-            return SubAgentDispatcher.notifyParent(
-                    parentJobId,
-                    messageObj == null ? null : String.valueOf(messageObj),
-                    kindObj == null ? null : String.valueOf(kindObj));
-        }
-        if (SubAgentToolSynthesizer.TOOL_ASK_PARENT.equals(rawToolName)) {
-            Object questionObj = params == null ? null : params.get("question");
-            return SubAgentDispatcher.askParent(
-                    parentJobId,
-                    questionObj == null ? null : String.valueOf(questionObj));
+            return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), ctx.getInsight(),
+                    timeoutSec);
         }
         // Named subagent tool - look up the spec and spawn.
         SubAgentSpec spec = SubAgentToolSynthesizer.findSpec(specs, rawToolName);

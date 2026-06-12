@@ -62,12 +62,23 @@ public final class AgentRuntimeManager {
 
 	public RunAgentResult run(RunAgentRequest request) {
 		String runId = resolveRunId(request.getInsight());
+		return runWithId(runId, request);
+	}
+
+	public RunAgentResult runWithId(String runId, RunAgentRequest request) {
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		String resolvedRunId = runId.trim();
+		if (store.runExists(resolvedRunId)) {
+			throw new IllegalArgumentException("AGENT_RUN already exists for runId=" + resolvedRunId);
+		}
 		String userId = resolveUserId(request.getInsight());
-		store.insertSubmitted(runId, request, userId);
-		AgentRunEventBus.get().publishStatus(runId, request.getRoomId(), AgentRunStatus.SUBMITTED, false);
-		worker.rememberInsight(runId, request.getInsight());
+		store.insertSubmitted(resolvedRunId, request, userId);
+		AgentRunEventBus.get().publishStatus(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, false);
+		worker.rememberInsight(resolvedRunId, request.getInsight());
 		worker.signal();
-		return new RunAgentResult(runId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
+		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
 	}
 
 	public Map<String, Object> getRun(String runId, Insight insight) {
@@ -133,6 +144,19 @@ public final class AgentRuntimeManager {
 			AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
 		}
 		return getRun(runId, insight);
+	}
+
+	public boolean cancelRun(String runId, String roomId, String reason) {
+		if (runId == null || runId.trim().isEmpty()) {
+			return false;
+		}
+		String message = reason == null || reason.trim().isEmpty() ? "Agent run cancelled" : reason.trim();
+		worker.cancel(runId);
+		boolean updated = store.markCancelledIfNotTerminal(runId, runId, message);
+		if (updated) {
+			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.CANCELLED, true);
+		}
+		return updated;
 	}
 
 	boolean isCancelled(Throwable t) {
