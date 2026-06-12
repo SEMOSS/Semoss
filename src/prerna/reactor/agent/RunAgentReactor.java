@@ -39,13 +39,16 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.RunAgentRequest;
+import prerna.reactor.agent.run.RunAgentResult;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
+/** Starts a durable generic agent run and waits by default unless wait=false is passed. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
@@ -55,6 +58,8 @@ public class RunAgentReactor extends AbstractReactor {
     private static final String MAX_TURNS_KEY       = "maxTurns";
     private static final String MAX_ITERATIONS_KEY  = "maxIterations";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
+    private static final String WAIT_KEY            = "wait";
+    private static final String WAIT_TIMEOUT_MS_KEY = "waitTimeoutMs";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
@@ -66,10 +71,12 @@ public class RunAgentReactor extends AbstractReactor {
                 MAX_TURNS_KEY,
                 MAX_ITERATIONS_KEY,
                 MAX_REFLECTIONS_KEY,
+                WAIT_KEY,
+                WAIT_TIMEOUT_MS_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
                 ReactorKeysEnum.AGENT_PARAMS.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -102,11 +109,10 @@ public class RunAgentReactor extends AbstractReactor {
         int maxReflections = parseIntAtLeast(
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
+        boolean wait = parseBoolean(this.keyValue.get(WAIT_KEY), true);
+        long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
-        if (explicitWorkspaceId != null) {
-            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
-        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -115,25 +121,37 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={}",
-                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections, wait, waitTimeoutMs);
 
         try {
-            AgentHarnessResult result = AgentRunner.run(
+            RunAgentRequest request = new RunAgentRequest(
                     roomId,
                     input,
                     engineIdFallback,
                     harnessType,
+                    explicitWorkspaceId,
                     maxTurns,
                     maxReflections,
                     paramMap,
                     agentParams,
                     this.insight);
+            RunAgentResult handle = AgentRuntimeManager.get().run(request);
+            Map<String, Object> output = handle.toMap();
+            if (wait) {
+                output = AgentRuntimeManager.get().waitForRun(handle.getRunId(), this.insight, waitTimeoutMs);
+            }
+            AgentHarnessResult result = handle.getResult();
 
-            logger.info("RunAgentReactor: completed iterations={} reflections={} tools={}",
-                    result.getIterations(), result.getReflectionsUsed(), result.getToolCallRecords().size());
+            if (result != null) {
+                logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
+                        handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
+                        result.getToolCallRecords().size());
+            } else {
+                logger.info("RunAgentReactor: runId={} status={}", handle.getRunId(), handle.getStatus());
+            }
 
-            return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
+            return new NounMetadata(output, PixelDataType.MAP,
                     PixelOperationType.OPERATION);
 
         } catch (AgentMaxTurnsException e) {
@@ -146,7 +164,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Run a generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+        return "Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
     }
 
     // Helpers
@@ -199,5 +217,29 @@ public class RunAgentReactor extends AbstractReactor {
         } catch (NumberFormatException ignored) {
             return defaultValue;
         }
+    }
+
+    private static long parseLongAtLeast(String value, long defaultValue, long minInclusive) {
+        if (value == null || value.trim().isEmpty()) return defaultValue;
+        try {
+            long parsed = Long.parseLong(value.trim());
+            return parsed >= minInclusive ? parsed : defaultValue;
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
+    private static boolean parseBoolean(String value, boolean defaultValue) {
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        if ("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized)) {
+            return false;
+        }
+        if ("true".equals(normalized) || "1".equals(normalized) || "yes".equals(normalized)) {
+            return true;
+        }
+        return defaultValue;
     }
 }
