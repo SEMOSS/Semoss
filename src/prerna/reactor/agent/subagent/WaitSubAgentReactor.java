@@ -33,8 +33,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Platform reactor that blocks until a spawned subagent finishes (or {@code timeoutSec}
- * elapses), then returns the subagent's final-text string.
+ * Platform reactor that blocks until a spawned subagent AgentRun finishes (or
+ * {@code timeoutSec} elapses), then returns the subagent result envelope.
  *
  * <h3>Pixel syntax</h3>
  * <pre>{@code
@@ -42,9 +42,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * WaitSubAgent(jobId='<id>', timeoutSec=60)
  * }</pre>
  *
- * <p>Returns the subagent's final-text string on success; a JSON
- * {@code {"error":"timeout","jobId":"...","timeoutSec":N}} on timeout; or a JSON
- * {@code {"error":...}} when the underlying job errored / was canceled.
+ * <p>Returns a JSON string {@code {jobId, status, result, error}}.
  */
 public class WaitSubAgentReactor extends AbstractReactor {
 
@@ -73,12 +71,12 @@ public class WaitSubAgentReactor extends AbstractReactor {
                 if (parsed > 0) timeoutSec = parsed;
             } catch (NumberFormatException ignored) { /* keep default */ }
         }
-        return new NounMetadata(SubAgentDispatcher.wait(jobId, timeoutSec), PixelDataType.CONST_STRING);
+        return new NounMetadata(SubAgentDispatcher.wait(jobId, this.insight, timeoutSec), PixelDataType.CONST_STRING);
     }
 
     @Override
     public String getReactorDescription() {
         return "Block until a spawned subagent completes or timeoutSec (default 300) elapses; "
-                + "returns the final-text string, or a JSON error object on timeout / failure.";
+                + "returns a JSON string with {jobId, status, result, error}.";
     }
 }

@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.agent.subagent;
 
+import prerna.reactor.agent.run.AgentRunStatus;
+
 /**
  * Output of {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
  *
@@ -39,15 +41,22 @@ public final class SpawnResult {
     private final String jobId;
     private final String roomId;
     private final String alias;
+    private final AgentRunStatus status;
 
-    public SpawnResult(String jobId, String roomId, String alias) {
+    public SpawnResult(String jobId, String roomId, String alias, AgentRunStatus status) {
         this.jobId  = jobId;
         this.roomId = roomId;
         this.alias  = alias;
+        this.status = status;
     }
 
-    /** Async pixel job id assigned to the spawned subagent run. */
+    /** Durable child AgentRun id, also exposed as the job handle for wait/check tools. */
     public String getJobId() {
+        return jobId;
+    }
+
+    /** Durable AgentRun id; currently equal to {@link #getJobId()}. */
+    public String getRunId() {
         return jobId;
     }
 
@@ -59,5 +68,10 @@ public final class SpawnResult {
     /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
     public String getAlias() {
         return alias;
+    }
+
+    /** Initial AgentRun status after submission. */
+    public AgentRunStatus getStatus() {
+        return status;
     }
 }
