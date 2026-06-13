@@ -30,8 +30,8 @@ package prerna.reactor.agent.subagent;
 /**
  * Per-spawn metadata recorded by {@link AgentSubAgentRegistry}.
  *
- * <p>Heavy state (thread, status, stream queue, interrupt) lives in
- * {@link prerna.sablecc2.comm.PixelJobManager}; this record is just the
+ * <p>Heavy state (queueing, status, execution, interrupt) lives in
+ * {@link prerna.reactor.agent.run.AgentRuntimeManager}; this record is just the
  * parent/alias/workspace context needed to assemble a subagent tree and
  * address stream events.
  *

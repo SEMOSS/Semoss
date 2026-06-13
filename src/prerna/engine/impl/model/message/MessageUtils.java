@@ -230,6 +230,36 @@ public class MessageUtils {
 	}
 
 	/**
+	 * Removes system prompt metadata from a serialized message map before returning
+	 * it to client-facing playground APIs.
+	 *
+	 * @param messageMap serialized message map
+	 * @return the same map instance, sanitized for response use
+	 */
+	public static Map<String, Object> removeSystemPromptFromMessageMap(Map<String, Object> messageMap) {
+		if (messageMap == null) {
+			return null;
+		}
+		messageMap.remove("systemPrompt");
+		messageMap.remove("system_prompt");
+
+		Object partsObj = messageMap.get("parts");
+		if (partsObj instanceof List<?>) {
+			((List<?>) partsObj).removeIf(MessageUtils::isSystemMessagePart);
+		}
+
+		return messageMap;
+	}
+
+	private static boolean isSystemMessagePart(Object partObj) {
+		if (!(partObj instanceof Map<?, ?>)) {
+			return false;
+		}
+		Object typeObj = ((Map<?, ?>) partObj).get("type");
+		return typeObj != null && MessagePartType.SYSTEM.name().equalsIgnoreCase(typeObj.toString());
+	}
+
+	/**
 	 * Deserializes a single message JSON payload into either {@link InputMessage}
 	 * or {@link ResponseMessage}, using schema discriminators and legacy fallbacks.
 	 *
