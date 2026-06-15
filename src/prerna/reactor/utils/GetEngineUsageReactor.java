@@ -66,9 +66,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
-	private static final String OPENAI_LABEL = "How to use externally with OpenAI API (with or without our Python SDK)";
-	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API (chat generation)";
-	private static final String OLLAMA_LABEL = "How to use externally with Ollama API (chat generation)";
+	private static final String OPENAI_LABEL = "How to use externally with OpenAI API";
+	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API";
+	private static final String OLLAMA_LABEL = "How to use externally with Ollama API";
 
 	private static final String SAMPLE_ENGINE_ID = "SAMPLE_ENGINE_ID";
 
@@ -193,7 +193,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				"""
 						Method Parameters<br/>
 						`command` (str): prompt sent to the model.<br/>
-						`question` (str): deprecated, use `command`.<br/>
 						`room_id` (Optional[str]): conversation identifier.<br/>
 						`context` (Optional[str]): system prompt context.<br/>
 						`image` (Optional[List]): base64 image payload(s).<br/>
@@ -316,7 +315,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				""", engineId);
 
 		addUsage(usage, OPENAI, OPENAI_LABEL, """
-				Direct Client Setup (Without ai_server SDK)
+				Direct Client Setup (without sdk)
 				```python
 				from openai import OpenAI
 
@@ -327,30 +326,46 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				)
 				```
 
-				Chat Completions (Without ai_server SDK)
+				Chat Completions (without sdk)
 				```python
 				response = client.chat.completions.create(
 				    model="<engineid>",
 				    messages=[
 				        {"role": "system", "content": "You are a helpful assistant."},
 				        {"role": "user", "content": "Who won the world series in 2020?"}
-				    ],
-				    extra_body={"insight_id":"<optional insight id>"}
+				    ]
 				)
+				print(response.choices[0].message.content)
 				```
 
-				Responses API (Without ai_server SDK)
+				Responses API (without sdk)
 				```python
 				response = client.responses.create(
 				    model="<engineid>",
 				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?",
-				    extra_body={"insight_id":"<optional insight id>"}
+				    input="Who won the world series in 2020?"
 				)
-				print(response.output_text)
+				print(response.output[0].text)
 				```
 
-				Client Setup (With ai_server SDK)
+				Legacy Completions (Deprecated by OpenAI, without sdk)
+				```python
+				response = client.completions.create(
+				    model="<engineid>",
+				    prompt="Write a tagline for an ice cream shop.",
+				    extra_body={"insight_id":"<optional insight id>"}
+				)
+				```
+
+				Embeddings (without sdk)
+				```python
+				embeddings = client.embeddings.create(
+				    model="<engineid>",
+				    input=["Your text string goes here"]
+				)
+				```
+
+				Client Setup (with sdk)
 
 				SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
 				```python
@@ -376,7 +391,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				)
 				```
 
-				Chat Completions (With ai_server SDK)
+				Chat Completions (with sdk)
 				```python
 				response = client.chat.completions.create(
 				    model="<engineid>",
@@ -391,31 +406,34 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				)
 				```
 
-				Responses API (With ai_server SDK)
+				Responses API (with sdk)
 				```python
 				response = client.responses.create(
 				    model="<engineid>",
 				    instructions="You are a helpful assistant.",
 				    input="Who won the world series in 2020?",
+					# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
 				    extra_body={"insight_id":server_connection.cur_insight}
 				)
-				print(response.output_text)
+				print(response.output[0].text)
 				```
 
-				Legacy Completions (Deprecated)
+				Legacy Completions (Deprecated by OpenAI, with sdk)
 				```python
 				response = client.completions.create(
 				    model="<engineid>",
 				    prompt="Write a tagline for an ice cream shop.",
+				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
 				    extra_body={"insight_id":server_connection.cur_insight}
 				)
 				```
 
-				Embeddings
+				Embeddings (with sdk)
 				```python
 				embeddings = client.embeddings.create(
 				    model="<engineid>",
 				    input=["Your text string goes here"],
+				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
 				    extra_body={"insight_id":server_connection.cur_insight}
 				)
 				```
@@ -440,13 +458,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				    max_tokens=1024,
 				    messages=[
 				        {"role": "user", "content": "Who won the world series in 2020?"}
-				    ],
-				    extra_body={"insight_id":"<optional insight id>"}
+				    ]
 				)
 				print(response.content[0].text)
 				```
-
-				Embeddings are not supported for this Anthropic route yet.
 				""", engineId);
 
 		addUsage(usage, OLLAMA, OLLAMA_LABEL, """
@@ -454,6 +469,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				```python
 				from ollama import Client
 
+				# access key + secret key format
 				client = Client(
 				    host="<ollamaendpoint>",
 				    headers={"Authorization": "Bearer <accesskey>:<secretkey>"}
@@ -470,8 +486,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				)
 				print(response["message"]["content"])
 				```
-
-				Embeddings are not supported for this Ollama route yet.
 				""", engineId);
 
 		addUsage(usage, JAVA, JAVA_LABEL, """

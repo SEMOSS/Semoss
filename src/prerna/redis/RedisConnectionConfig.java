@@ -34,6 +34,7 @@ import prerna.util.Utility;
  */
 public final class RedisConnectionConfig {
 
+	public static final String REDIS_ENABLED = "REDIS_ENABLED";
 	public static final String REDIS_HOST = "REDIS_HOST";
 	public static final String REDIS_PORT = "REDIS_PORT";
 	public static final String REDIS_PASSWORD = "REDIS_PASSWORD";
