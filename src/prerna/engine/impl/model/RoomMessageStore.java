@@ -64,7 +64,6 @@ public final class RoomMessageStore {
 
 	private static final Logger classLogger = LogManager.getLogger(RoomMessageStore.class);
 
-	private static final String REDIS_ENABLED = "ROOM_MESSAGE_STORE_REDIS_ENABLED";
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
 
@@ -370,7 +369,7 @@ public final class RoomMessageStore {
 	}
 
 	public static boolean isRedisEnabled() {
-		return Boolean.parseBoolean(String.valueOf(Utility.getDIHelperProperty(REDIS_ENABLED)));
+		return Boolean.parseBoolean(String.valueOf(Utility.getDIHelperProperty(RedisConnectionConfig.REDIS_ENABLED)));
 	}
 
 	public static RoomMessageRedisClient redisClient() {

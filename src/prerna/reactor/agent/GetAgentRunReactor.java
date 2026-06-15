@@ -25,58 +25,40 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground;
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *******************************************************************************/
+package prerna.reactor.agent;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
-import com.google.gson.annotations.SerializedName;
+import org.apache.commons.lang3.StringUtils;
 
-public class SuccessCriteria {
-    
-    public enum EvaluationLogic {
-        @SerializedName("ALL")
-        ALL,
-        @SerializedName("ANY") 
-        ANY
-    }
-    
-    @SerializedName("evaluation_logic")
-    private EvaluationLogic evaluationLogic;
-    
-    @SerializedName("conditions")
-    private List<Map<String, Object>> conditions;
-    
-    // Private constructor
-    public SuccessCriteria() {
-        this.conditions = new ArrayList<>();
-    }
-    
-    // Setters
-    public void setEvaluationLogic(EvaluationLogic evaluationLogic) {
-        this.evaluationLogic = evaluationLogic;
-    }
-    
-    public void setConditions(List<Map<String, Object>> conditions) {
-        this.conditions = conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
-    }
-    
-    public void addConditions(List<Map<String, Object>> conditions) {
-    	if (this.conditions == null) {
-    		this.conditions = new ArrayList<Map<String, Object>>();
-    	}
-    	if (conditions != null) {
-    		this.conditions.addAll(conditions);
-    	}
-    }
-    
-    // Getters
-    public EvaluationLogic getEvaluationLogic() {
-        return evaluationLogic;
-    }
-    
-    public List<Map<String, Object>> getConditions() {
-        return conditions == null ? new ArrayList<>() : new ArrayList<>(conditions);
-    }
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class GetAgentRunReactor extends AbstractReactor {
+
+	private static final String RUN_ID_KEY = "runId";
+
+	public GetAgentRunReactor() {
+		this.keysToGet = new String[] { RUN_ID_KEY };
+		this.keyRequired = new int[] { 1 };
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
+		Map<String, Object> result = AgentRuntimeManager.get().getRun(runId, this.insight);
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Get durable AgentRun status, output, message ids, error, and pending actions.";
+	}
 }

@@ -25,42 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.subagent;
+package prerna.util.gson;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import java.io.IOException;
+import java.time.ZoneId;
 
-/**
- * Platform reactor for non-blocking subagent status checks.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * CheckSubAgent(jobId='<id>')
- * }</pre>
- *
- * <p>Returns a JSON string {@code {jobId, status, result, error}}.
- */
-public class CheckSubAgentReactor extends AbstractReactor {
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 
-    public CheckSubAgentReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey() };
-        this.keyRequired = new int[] { 1 };
-    }
+public class ZoneIdTypeAdapter extends TypeAdapter<ZoneId> {
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
-        if (jobId == null || jobId.trim().isEmpty()) {
-            throw new IllegalArgumentException("jobId is required for CheckSubAgent");
-        }
-        return new NounMetadata(SubAgentDispatcher.check(jobId, this.insight), PixelDataType.CONST_STRING);
-    }
+	@Override
+	public void write(JsonWriter out, ZoneId value) throws IOException {
+		if (value == null) {
+			out.nullValue();
+			return;
+		}
+		out.value(value.getId());
+	}
 
-    @Override
-    public String getReactorDescription() {
-        return "Non-blocking subagent status check; returns a JSON string with {jobId, status, result, error}.";
-    }
+	@Override
+	public ZoneId read(JsonReader in) throws IOException {
+		if (in.peek() == JsonToken.NULL) {
+			in.nextNull();
+			return null;
+		}
+		return ZoneId.of(in.nextString());
+	}
 }
