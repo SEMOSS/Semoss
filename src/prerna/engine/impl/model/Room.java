@@ -502,7 +502,7 @@ public class Room implements Serializable {
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
-				toolResultsMessage.setVisibile(false);
+				toolResultsMessage.setVisible(false);
 			} else {
 				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
 						toolExecutionResponse, toolParameterValues, toolStatus, false)));
