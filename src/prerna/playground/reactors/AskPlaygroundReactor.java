@@ -51,6 +51,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
@@ -120,8 +121,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
+		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+		if (hideSystemMessages) {
+			MessageUtils.removeSystemPromptFromMessageMap(inputMap);
+		}
 //		MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 

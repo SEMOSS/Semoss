@@ -217,7 +217,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		// Inherit the parent of the oldest pruned message so other branches stay intact
 		toolPruneMessage.setParentMessageId(branch.getLast().getMessageId());
-		toolPruneMessage.setVisibile(false);
+		toolPruneMessage.setVisible(false);
 
 		// Set token count to last input + response - expected tokens pruned
 		// Will be off by a few tokens but it will get fixed anyway on the next message
@@ -249,7 +249,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 						+ "results were pruned if the user asks for specifics.")
 				.build();
 		toolPruneResponse.setParentMessageId(toolPruneMessage.getMessageId());
-		toolPruneResponse.setVisibile(false);
+		toolPruneResponse.setVisible(false);
 
 		// summary response tokens + last n messages tokens - original tokens in that
 		// span (to avoid double counting)
@@ -403,7 +403,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		// Inherit the parent of the oldest pruned message so other branches stay intact
 		compactedMessage.setParentMessageId(null);
 		compactedMessage.setSummaryLeafMessageId(messageId);
-		compactedMessage.setVisibile(false);
+		compactedMessage.setVisible(false);
 
 		// Disclaimer:
 		// UI needs a non-zero token count
@@ -414,7 +414,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		// Pair the compacted input with a response message so the branch is complete
 		ResponseMessage compactedResponse = ResponseMessage.builder().withText(compactedTextMessage).build();
 		compactedResponse.setParentMessageId(compactedMessage.getMessageId());
-		compactedResponse.setVisibile(false);
+		compactedResponse.setVisible(false);
 
 		// summary response tokens + last n messages tokens - original tokens in that
 		// span (to avoid double counting)
