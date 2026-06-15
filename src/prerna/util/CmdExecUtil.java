@@ -227,7 +227,7 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
-		Map<String, String> environment = null;
+		Map<String, String> environment = new HashMap<>(System.getenv());
 		String[] foutput = new String[2];
 		boolean success = true;
 
@@ -257,7 +257,6 @@ public class CmdExecUtil {
 
 		// Check if we need to use chroot
 		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
-			environment = new HashMap<>();
 			environment.put("HOME", "/home/default");
 			// Validate chroot setup
 			File chrootDir = new File(this.chrootFolderPath);
@@ -288,6 +287,7 @@ public class CmdExecUtil {
 			cmdLine.addArgument("cd '" + escapedWorkingDir + "' && " + command, false);
 		} else {
 			// non-chroot execution
+			applyConfiguredPythonPath(environment);
 			cmdLine = new CommandLine(commandAppender);
 			if (commandAppender.equalsIgnoreCase("/bin/bash")) {
 				cmdLine.addArgument("-c");
@@ -312,11 +312,7 @@ public class CmdExecUtil {
 
 			int exitValue = -1;
 			try {
-				if (environment == null) {
-					exitValue = executor.execute(cmdLine);
-				} else {
-					exitValue = executor.execute(cmdLine, environment);
-				}
+				exitValue = executor.execute(cmdLine, environment);
 				classLogger.debug("Command executed successfully with exit code: " + exitValue);
 			} catch (Exception ex) {
 				success = false;
@@ -353,6 +349,36 @@ public class CmdExecUtil {
 		}
 
 		return foutput;
+	}
+
+	private void applyConfiguredPythonPath(Map<String, String> environment) {
+		String pythonHome = System.getenv(Settings.PYTHONHOME);
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PYTHONHOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = System.getenv(Settings.PY_HOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			return;
+		}
+
+		String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
+		String existingPath = environment.get("PATH");
+		if (existingPath == null || existingPath.isEmpty()) {
+			environment.put("PATH", pythonBin);
+			return;
+		}
+
+		for (String entry : existingPath.split(File.pathSeparator)) {
+			if (pythonBin.equals(entry)) {
+				return;
+			}
+		}
+		environment.put("PATH", pythonBin + File.pathSeparator + existingPath);
 	}
 
 	/**
