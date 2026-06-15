@@ -46,6 +46,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.agent.skill.PlatformSkillBootstrap;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -240,6 +241,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry
 							.loadSystemEngine(folderToWatch + "/" + fileNames[modelInferenceLogsDBNameIndex]);
 					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+					// Disabled stub; platform-skill migration to Skill-Projects is handled
+					// out-of-band. Kept here so the call site is documented.
+					PlatformSkillBootstrap.scan();
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}

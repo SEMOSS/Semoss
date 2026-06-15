@@ -210,6 +210,18 @@ public class PyTranslator {
 	}
 
 	/**
+	 * Same as {@link #runEmptyPy(String...)} but tells the python server to skip
+	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user, to avoid
+	 * the trace overhead on import-heavy setup scripts.
+	 *
+	 * @param script
+	 */
+	public void runEmptyPyNoCancelTrace(String... script) {
+		this.transportScript(null, convertArrayToString(script), false, true);
+	}
+
+	/**
 	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
 	 * execution
 	 * 
@@ -217,6 +229,18 @@ public class PyTranslator {
 	 */
 	public Object runDirectPy(String... script) {
 		return this.transportScript(null, convertArrayToString(script), false);
+	}
+
+	/**
+	 * Same as {@link #runDirectPy(String...)} but tells the python server to skip
+	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user.
+	 *
+	 * @param script
+	 * @return
+	 */
+	public Object runDirectPyNoCancelTrace(String... script) {
+		return this.transportScript(null, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -238,6 +262,20 @@ public class PyTranslator {
 	}
 
 	/**
+	 * Same as {@link #runDirectPy(Insight, String...)} but tells the python server
+	 * to skip the per-execution cancel trace (sys.settrace). Use this for
+	 * engine-owned python processes whose execution can never be cancelled by a
+	 * user.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param script
+	 * @return
+	 */
+	public Object runDirectPyNoCancelTrace(Insight executionInsight, String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
+	}
+
+	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
 	 * 
 	 * @param script
@@ -245,6 +283,18 @@ public class PyTranslator {
 	 */
 	public Object runScript(String... script) {
 		return this.transportScript(null, convertArrayToString(script), true);
+	}
+
+	/**
+	 * Same as {@link #runScript(String...)} but tells the python server to skip the
+	 * per-execution cancel trace (sys.settrace). Use this for engine-owned python
+	 * processes whose execution can never be cancelled by a user.
+	 *
+	 * @param script
+	 * @return
+	 */
+	public Object runScriptNoCancelTrace(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true, true);
 	}
 
 	/**
@@ -262,6 +312,19 @@ public class PyTranslator {
 	 */
 	public Object runScript(Insight executionInsight, String... script) {
 		return this.transportScript(executionInsight, convertArrayToString(script), false);
+	}
+
+	/**
+	 * Same as {@link #runScript(Insight, String...)} but tells the python server to
+	 * skip the per-execution cancel trace (sys.settrace). Use this for engine-owned
+	 * python processes whose execution can never be cancelled by a user.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param script
+	 * @return
+	 */
+	public Object runScriptNoCancelTrace(Insight executionInsight, String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -356,6 +419,11 @@ public class PyTranslator {
 	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars) {
+		return transportScript(executionInsight, script, supportLegacyVars, false);
+	}
+
+	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars,
+			boolean disableCancelTrace) {
 		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
 		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
 				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
@@ -390,7 +458,7 @@ public class PyTranslator {
 		}
 
 		Object output = transportScriptWithExplicitPaths(executionInsight, script, asset_paths, runtimeVars,
-				supportLegacyVars);
+				supportLegacyVars, disableCancelTrace);
 		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
@@ -424,7 +492,15 @@ public class PyTranslator {
 	 */
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars) {
+		return transportScriptWithExplicitPaths(executionInsight, script, explicitAssetPaths, runtimeVars,
+				supportLegacyVars, false);
+	}
+
+	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
+			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars,
+			boolean disableCancelTrace) {
 		PayloadStruct ps = new PayloadStruct();
+		ps.disableCancelTrace = disableCancelTrace;
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = new Object() {
 		}.getClass().getEnclosingMethod().getName();

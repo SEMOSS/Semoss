@@ -33,7 +33,6 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.imports.RdbmsImporter;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -43,8 +42,16 @@ import prerna.util.Utility;
 public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor takes an r frame and synchronizes it to an h2 frame in semoss
-	 * inputs are: 1) r data table name
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>r data table name</li>
+	 * </ul>
 	 */
 
 	public GenerateH2FrameFromRVariableReactor() {
@@ -56,7 +63,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		// get rFrameName
-		String varName = getVarName();
+		String varName = getStringFromKeyOrCurRow(ReactorKeysEnum.VARIABLE.getKey(), 0);
 		H2Frame newTable;
 		try {
 			newTable = new H2Frame(varName);
@@ -66,7 +73,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 		// sync R dataframe to H2Frame
 		syncFromR(this.rJavaTranslator, varName, newTable);
-		if (overrideFrame()) {
+		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
 			this.insight.setDataMaker(newTable);
 		}
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
@@ -128,32 +135,6 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// importer will create the necessary meta information
 		importer.insertData();
 	}
-
-	/**
-	 * Get the input being the r variable name
-	 * 
-	 * @return
-	 */
-	private String getVarName() {
-		// key based
-		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.VARIABLE.getKey());
-		if (overrideGrs != null && !overrideGrs.isEmpty()) {
-			return (String) overrideGrs.get(0);
-		}
-		// first input
-		return this.curRow.get(0).toString();
-	}
-
-	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
-		if (overrideGrs != null && !overrideGrs.isEmpty()) {
-			return (boolean) overrideGrs.get(0);
-		}
-		// default is to override
-		return true;
-	}
-
-	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {

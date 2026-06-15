@@ -41,6 +41,7 @@ import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -194,9 +195,9 @@ public class Insight implements Serializable {
 	private transient PlaywrightBrowserUtil playwrightUtil = null;
 
 	// SQL expression wrappers keyed by an auto-generated ID
-	Map<String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
-	Map<String, String> id2SQLMapper = new HashMap<String, String>();
-	int idCount = 0;
+	private transient Map<String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
+	private transient Map<String, String> id2SQLMapper = new HashMap<String, String>();
+	private transient AtomicInteger idCount = new AtomicInteger();
 
 	////////////////////////////////////////////////////////////////
 	// CONSTRUCTORS & INITIALIZATION
@@ -2094,8 +2095,7 @@ public class Insight implements Serializable {
 	 * @return the generated ID for this wrapper
 	 */
 	public String setSQLWrapper(String sql, GenExpressionWrapper wrapper) {
-		String id = "id" + idCount;
-		idCount++;
+		String id = "id" + idCount.getAndIncrement();
 		this.sqlWrapperMap.put(sql, wrapper);
 		this.id2SQLMapper.put(id, sql);
 		return id;

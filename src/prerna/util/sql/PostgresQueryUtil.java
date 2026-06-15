@@ -59,6 +59,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(PostgresQueryUtil.class);
+	private static final Object ENHANCE_LOCK = new Object();
+	private static volatile boolean functionCreated = false;
 
 	PostgresQueryUtil() {
 		super();
@@ -72,67 +74,83 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public void enhanceConnection(Connection con) {
-		final String functionName = "SMSS_DATEDIFF";
-		final String schema = getCurrentSchema(con);
+		if (functionCreated) {
+			return;
+		}
 
-		if (!checkIfFunctionExists(con, "SMSS_DATEDIFF", schema)) {
-			String datediffSql = """
-					CREATE OR REPLACE FUNCTION <functionName>(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
-					RETURNS INTEGER AS $$
-					BEGIN
-					  CASE LOWER(unit)
-					    WHEN 'day' THEN
-					    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
-					    WHEN 'month' THEN
-					    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
-					    WHEN 'year' THEN
-					    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
-					    WHEN 'hour'
-					    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
-					    WHEN 'minute'
-					    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
-					    WHEN 'second'
-					    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
-					    ELSE
-					    	RAISE EXCEPTION 'Invalid unit: %', unit;
-					  END CASE;
-					END;
-					$$ LANGUAGE plpgsql;
-					"""
-					.replace("<functionName>", functionName);
+		synchronized (ENHANCE_LOCK) {
+			if (functionCreated) {
+				return;
+			}
+			final String functionName = "SMSS_DATEDIFF";
+			final String schema = getCurrentSchema(con);
 
-			Savepoint sp = null;
-			try (Statement stmt = con.createStatement()) {
-				if (!con.getAutoCommit()) {
-					sp = con.setSavepoint();
-				}
-				stmt.execute(datediffSql);
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			} catch (Exception e) {
-				classLogger.error("Error creating SMSS_DATEDIFF function", e);
-				if (sp != null) {
-					try {
-						con.rollback(sp);
-						classLogger.info("Successful rollback to save point prior to creating SMSS_DATEDIFF function",
-								e);
-					} catch (Exception e1) {
-						classLogger.error("Error rollback to save point", e);
-					}
-				} else {
-					try {
+			if (!checkIfFunctionExists(con, "SMSS_DATEDIFF", schema)) {
+				String datediffSql = """
+						CREATE OR REPLACE FUNCTION <functionName>(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
+						RETURNS INTEGER AS $$
+						BEGIN
+						  CASE LOWER(unit)
+						    WHEN 'day' THEN
+						    	RETURN EXTRACT(DAY FROM end_date - start_date)::INTEGER;
+						    WHEN 'month' THEN
+						    	RETURN (EXTRACT(YEAR FROM AGE(end_date, start_date)) * 12 + EXTRACT(MONTH FROM AGE(end_date, start_date)))::INTEGER;
+						    WHEN 'year' THEN
+						    	RETURN EXTRACT(YEAR FROM AGE(end_date, start_date))::INTEGER;
+						    WHEN 'hour'
+						    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 3600)::INTEGER;
+						    WHEN 'minute'
+						    	THEN RETURN (EXTRACT(EPOCH FROM end_date - start_date) / 60)::INTEGER;
+						    WHEN 'second'
+						    	THEN RETURN EXTRACT(EPOCH FROM end_date - start_date)::INTEGER;
+						    ELSE
+						    	RAISE EXCEPTION 'Invalid unit: %', unit;
+						  END CASE;
+						END;
+						$$ LANGUAGE plpgsql;
+						"""
+						.replace("<functionName>", functionName);
+
+				Savepoint sp = null;
+					try (Statement stmt = con.createStatement()) {
 						if (!con.getAutoCommit()) {
-							con.rollback();
-							classLogger.info(
-									"Successful rollback of transactions prior to create SMSS_DATEDIFF function", e);
+							sp = con.setSavepoint();
 						}
-					} catch (SQLException e1) {
-						classLogger.error("Error rollback of transaction", e);
+						stmt.execute(datediffSql);
+						if (!con.getAutoCommit()) {
+							con.commit();
+						}
+						functionCreated = true;
+					} catch (Exception e) {
+						classLogger.error("Failed to create SMSS_DATEDIFF function in schema '{}'", schema, e);
+						if (sp != null) {
+							try {
+								con.rollback(sp);
+								classLogger.info(
+										"Rolled back to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
+										schema);
+							} catch (Exception e1) {
+								classLogger.error(
+										"Failed to rollback to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
+										schema, e1);
+							}
+						} else {
+							try {
+								if (!con.getAutoCommit()) {
+									con.rollback();
+									classLogger.info(
+											"Rolled back transaction after SMSS_DATEDIFF creation failure in schema '{}'",
+											schema);
+								}
+							} catch (SQLException e1) {
+								classLogger.error(
+										"Failed to rollback transaction after SMSS_DATEDIFF creation failure in schema '{}'",
+										schema, e1);
+							}
+						}
 					}
 				}
 			}
-		}
 	}
 
 	/**
@@ -159,7 +177,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error("Error checking if {} function exists", functionName, e);
+			classLogger.error("Error checking if function '{}' exists in schema '{}'", functionName, schema, e);
 		}
 		return false;
 	}
@@ -184,7 +202,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error("Error resolving current schema", e);
+			classLogger.error("Error resolving current schema from PostgreSQL search_path; defaulting to 'public'", e);
 		}
 		return "public"; // fallback
 	}
@@ -307,7 +325,8 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			statement.setNull(index, java.sql.Types.BLOB);
+			// blob data type name is BYTEA. so, need Types.BINARY here instead of Types.BLOB
+			statement.setNull(index, java.sql.Types.BINARY);
 		} else {
 			statement.setBytes(index, object.getBytes("UTF-8"));
 		}
@@ -346,12 +365,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
-		return new String(result.getBytes(key));
+		byte[] bytes = result.getBytes(key);
+		return bytes != null ? new String(bytes) : null;
 	}
 
 	@Override
 	public String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException {
-		return new String(result.getBytes(index));
+		byte[] bytes = result.getBytes(index);
+		return bytes != null ? new String(bytes) : null;
 	}
 
 	@Override

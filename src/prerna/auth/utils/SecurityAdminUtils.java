@@ -57,7 +57,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.project.api.IProject;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -204,6 +204,57 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "TYPE"));
+		if (hasSearchTerm) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
+	}
+
+	/**
+	 * Get all API users
+	 *
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public List<Map<String, Object>> getAllAPIUsers(String searchTerm, long limit, long offset)
+			throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+
+		final String SMSS_USER_PREFIX = "SMSS_USER__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "ID", "id"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "NAME", "name"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "USERNAME", "username"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "ADMIN", "admin"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PUBLISHER", "publisher"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EXPORTER", "EXPORTER"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONE", "phone"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONEEXTENSION", "phoneextension"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "ountrycode"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "DATECREATED", "date_created"));
+		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "TYPE", "==",
+				AuthProvider.API_USER.toString()));
 		if (hasSearchTerm) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
@@ -658,7 +709,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -785,8 +836,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				error += e.getMessage();
 			}
 			if (error.isEmpty()) {
-				newSalt = SecurityQueryUtils.generateSalt();
-				newHashPass = SecurityQueryUtils.hash(password, newSalt);
+				newSalt = AbstractSecurityUtils.generateSalt();
+				newHashPass = AbstractSecurityUtils.hash(password, newSalt);
 			}
 		}
 		if (phone != null && !phone.isEmpty()) {
@@ -4512,14 +4563,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumUsers() {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-		fSelector.setAlias("num_users");
-		fSelector.setFunction(QueryFunctionHelper.COUNT);
-		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addSelector(fSelector);
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
+		return getNumUsers(null);
 	}
 
 	/**
@@ -4532,14 +4576,46 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
+		final String SMSS_USER_PREFIX = "SMSS_USER__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		QueryFunctionSelector fSelector = new QueryFunctionSelector();
-		fSelector.setAlias("num_users");
-		fSelector.setFunction(QueryFunctionHelper.COUNT);
-		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addSelector(fSelector);
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, SMSS_USER_PREFIX + "ID",
+				"num_users"));
 		if (hasSearchTerm) {
-			final String SMSS_USER_PREFIX = "SMSS_USER__";
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public Long getNumAPIUsers() {
+		return getNumAPIUsers(null);
+	}
+
+	/**
+	 * 
+	 * @param searchTerm
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public Long getNumAPIUsers(String searchTerm) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+
+		final String SMSS_USER_PREFIX = "SMSS_USER__";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, SMSS_USER_PREFIX + "ID",
+				"num_users"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "TYPE", "==",
+				AuthProvider.API_USER.toString()));
+		if (hasSearchTerm) {
 			OrQueryFilter or = new OrQueryFilter();
 			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
 			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));

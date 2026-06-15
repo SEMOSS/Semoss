@@ -42,61 +42,71 @@ import prerna.sablecc2.om.task.ITask;
 public class HistogramReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor gets a histogram
-	 * The inputs to the reactor are: 
-	 * 1) the column to base the histogram on
-	 * 2) the number of breaks
-	 * 3) the panel id - defaults to zero if nothing is entered
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to base the histogram on</li>
+	 * <li>the number of breaks</li>
+	 * <li>the panel id - defaults to zero if nothing is entered</li>
+	 * </ul>
 	 */
-	
+
 	public HistogramReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.BREAKS.getKey(), ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.BREAKS.getKey(),
+				ReactorKeysEnum.PANEL.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		
+
 		// initialize the rJavaTranslator
 		init();
 		AbstractRJavaTranslator rJavaTranslator = this.rJavaTranslator;
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
-		//get frame name
+		// get frame name
 		String table = frame.getName();
-		
-		//get inputs
+
+		// get inputs
 		String column = getColumn();
-		//clean column name
+		// clean column name
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
-		//get number of breaks as an integer
+		// get number of breaks as an integer
 		int numBreaks = getNumBreaks();
-		
-		//need to retrieve panel id to use in the task options
+
+		// need to retrieve panel id to use in the task options
 		String panelId = getPanelId();
-		
-		//build the r script to execute
+
+		// build the r script to execute
 		return getHistogram(rJavaTranslator, table, column, panelId, numBreaks);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// MAKE HISTOGRAM ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
-	//method to make the histogram - now we can easily use the histogram code from other reactors
-	protected NounMetadata getHistogram(AbstractRJavaTranslator rJavaTranslator, String table, String column, String panelId, int numBreaks) {
-	
+
+	// method to make the histogram - now we can easily use the histogram code from
+	// other reactors
+	protected NounMetadata getHistogram(AbstractRJavaTranslator rJavaTranslator, String table, String column,
+			String panelId, int numBreaks) {
+
 		String script = null;
-		if(numBreaks > 1) {
+		if (numBreaks > 1) {
 			script = "hist(" + table + "$" + column + ", breaks=" + numBreaks + ", plot=FALSE)";
 		} else {
 			script = "hist(" + table + "$" + column + ", plot=FALSE)";
 		}
-		
+
 		// so we know a bit about the structure
 		// we can get the following values
 		// 1: breaks
@@ -109,41 +119,42 @@ public class HistogramReactor extends AbstractRFrameReactor {
 		// we only need the breaks and counts
 		// format each range to the count value
 
-		//get r vector - this will be specific to reserve or JRI
-		//then use the r vector to get the breaks (double array) and the counts (int array)
+		// get r vector - this will be specific to reserve or JRI
+		// then use the r vector to get the breaks (double array) and the counts (int
+		// array)
 		Map<String, Object> hist = rJavaTranslator.getHistogramBreaksAndCounts(script);
 		double[] breaks = (double[]) hist.get("breaks");
 		int[] counts = (int[]) hist.get("counts");
-		
-		//get the number of bins from the length of the counts
+
+		// get the number of bins from the length of the counts
 		int numBins;
-		if (counts != null){
+		if (counts != null) {
 			numBins = counts.length;
 		} else {
 			numBins = 0;
 		}
 		Object[][] data = new Object[numBins][2];
 
-		//add the data to the data object
-		for(int i = 0; i < numBins; i++) {
-			data[i][0] = breaks[i] + " - " + breaks[i+1];
+		// add the data to the data object
+		for (int i = 0; i < numBins; i++) {
+			data[i][0] = breaks[i] + " - " + breaks[i + 1];
 			data[i][1] = counts[i];
 		}
-		
-		//task data includes task options
+
+		// task data includes task options
 		ITask taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "Frequency", data);
-		
-		//return metadata
+
+		// return metadata
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
-	//get column using key "COLUMN"
+
+	// get column using key "COLUMN"
 	private String getColumn() {
 		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
 		if (columnGRS != null && !columnGRS.isEmpty()) {
@@ -156,8 +167,8 @@ public class HistogramReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define column to build histogram");
 	}
-	
-	//get number of breaks using key "BREAKS"
+
+	// get number of breaks using key "BREAKS"
 	private int getNumBreaks() {
 		int numBreaks = 0;
 		GenRowStruct breaksGRS = this.store.getGenRowStruct(keysToGet[1]);
@@ -169,8 +180,8 @@ public class HistogramReactor extends AbstractRFrameReactor {
 		}
 		return numBreaks;
 	}
-	
-	//get panel id using key "PANEL"
+
+	// get panel id using key "PANEL"
 	private String getPanelId() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);

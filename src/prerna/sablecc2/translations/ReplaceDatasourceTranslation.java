@@ -50,62 +50,63 @@ import prerna.util.Utility;
 
 public class ReplaceDatasourceTranslation extends AbstractDatasourceModificationTranslation {
 
-	private static final Logger logger = LogManager.getLogger(ReplaceDatasourceTranslation.class);
+	private static final Logger classLogger = LogManager.getLogger(ReplaceDatasourceTranslation.class);
 
 	// this will store the list of pixels that were passed in
 	private List<String> pixels = new Vector<String>();
-	
+
 	private List<Map<String, Object>> replacements = null;
 	private int currentIndex = 0;
-	
+
 	// a replacement for the given input
 	private String origPixelPortion = null;
 	private String replacementSourcePixel = null;
 	private Map<String, String> headerMods = null;
-	
+
 	// contain the query struct
 	private SelectQueryStruct importQs;
 	private String importStr;
-	
+
 	// this is for the special case
 	// where the index isn't provided
 	// and we just want to replace the first source
 	private boolean replaceFirst = false;
 	private boolean doneReplaceFirst = false;
-	
+
 	public ReplaceDatasourceTranslation(Insight insight) {
 		super(insight);
 	}
-	
+
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-		for(PRoutine e : copy) {
-    		this.resultKey = "$RESULT_" + e.hashCode();
+		for (PRoutine e : copy) {
+			this.resultKey = "$RESULT_" + e.hashCode();
 
 			String expression = e.toString();
-			logger.info("Processing " + Utility.cleanLogString(expression));
+			classLogger.info("Processing " + Utility.cleanLogString(expression));
 
 			boolean process = false;
-			for(String iType : importTypes) {
-				if(expression.contains(iType)) {
+			for (String iType : importTypes) {
+				if (expression.contains(iType)) {
 					process = true;
 					break;
 				}
 			}
-			
+
 			// only execute pixels that at least contain the import
-			if(process) {
+			if (process) {
 				e.apply(this);
-				
+
 				// if we ended up finding something to store
-				if(this.replacementSourcePixel != null && this.origPixelPortion != null) {
-					
+				if (this.replacementSourcePixel != null && this.origPixelPortion != null) {
+
 					String newExpression = null;
-					if(this.importQs != null && this.headerMods != null) {
+					if (this.importQs != null && this.headerMods != null) {
 						// need to replace the columns as well
-						newExpression = this.replacementSourcePixel 
-								+ " | " + QsToPixelConverter.getPixel(QSRenameColumnConverter.convertQs(this.importQs, this.headerMods, true), false)
+						newExpression = this.replacementSourcePixel + " | "
+								+ QsToPixelConverter.getPixel(
+										QSRenameColumnConverter.convertQs(this.importQs, this.headerMods, true), false)
 								+ " | " + this.importStr + ";";
 					} else {
 						// just replace the source
@@ -113,60 +114,60 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 					}
 					this.pixels.add(newExpression);
 
-					
 					// now we need to null replacement
 					this.replacementSourcePixel = null;
 					this.origPixelPortion = null;
 					this.importQs = null;
 					this.headerMods = null;
 					this.importStr = null;
-					
+
 				} else {
-		        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
+					expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList,
+							encodedToOriginal);
 					this.pixels.add(expression);
 				}
-				
+
 			} else {
-	        	expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
+				expression = PixelUtility.recreateOriginalPixelExpression(expression, encodingList, encodedToOriginal);
 				this.pixels.add(expression);
 			}
-			
+
 			// update the index
 			this.currentIndex++;
 		}
 	}
-	
+
 	@Override
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
 		defaultIn(node);
-		
+
 		// looking for data sources
 		String reactorId = node.getId().toString().trim();
-		if(importTypes.contains(reactorId)) {
+		if (importTypes.contains(reactorId)) {
 			tryPerformReplacement(node.toString().trim());
-		} else if(reactorId.equals("Import") || reactorId.equals("Merge")) {
+		} else if (reactorId.equals("Import") || reactorId.equals("Merge")) {
 			this.importStr = node.toString();
 		}
 	}
-	
+
 	private void tryPerformReplacement(String nodeString) {
-		if(this.replaceFirst && !this.doneReplaceFirst) {
-			// we need to replace 
+		if (this.replaceFirst && !this.doneReplaceFirst) {
+			// we need to replace
 			Map<String, Object> singleReplacement = this.replacements.get(0);
-			
+
 			// set the values for the replacement
 			this.origPixelPortion = nodeString;
 			this.replacementSourcePixel = (String) singleReplacement.get("pixel");
 			this.headerMods = (Map<String, String>) singleReplacement.get("headerMod");
-			
+
 			this.doneReplaceFirst = true;
-		} else if(!doneReplaceFirst) { // add the else if for performance
+		} else if (!doneReplaceFirst) { // add the else if for performance
 			// try and see if there is a replacement that matches
 			// based on the index
-			for(Map<String, Object> replacementOption : this.replacements) {
+			for (Map<String, Object> replacementOption : this.replacements) {
 				int index = (int) replacementOption.get("index");
-				if(index == this.currentIndex) {
+				if (index == this.currentIndex) {
 					// set the values for the replacement
 					this.origPixelPortion = nodeString;
 					this.replacementSourcePixel = (String) replacementOption.get("pixel");
@@ -177,59 +178,62 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 			}
 		}
 	}
-	
+
 	@Override
 	public void outAOperation(AOperation node) {
 		super.outAOperation(node);
 
-		if(this.replacementSourcePixel != null && prevReactor != null) {
+		if (this.replacementSourcePixel != null && prevReactor != null) {
 			// we are doing some kind of replacement
 			// so we are going to try to find the import qs
 			NounStore nouns = prevReactor.getNounStore();
 			GenRowStruct grs = nouns.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
-			if(grs != null && !grs.isEmpty()) {
+			if (grs != null && !grs.isEmpty()) {
 				this.importQs = (SelectQueryStruct) grs.get(0);
 			} else {
 				grs = prevReactor.getCurRow();
-				if(grs != null && !grs.isEmpty()) {
+				if (grs != null && !grs.isEmpty()) {
 					List<Object> qsList = grs.getValuesOfType(PixelDataType.QUERY_STRUCT);
-					if(qsList != null && !qsList.isEmpty()) {
+					if (qsList != null && !qsList.isEmpty()) {
 						this.importQs = (SelectQueryStruct) qsList.get(0);
 					}
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Get the new pixels
+	 * 
 	 * @return
 	 */
 	public List<String> getPixels() {
 		return this.pixels;
 	}
-	
+
 	/**
 	 * Set the replacements
+	 * 
 	 * @param replacements
 	 */
 	public void setReplacements(List<Map<String, Object>> replacements) {
 		this.replacements = replacements;
-		
+
 		// accounting for special case
-		if(this.replacements.size() == 1) {
+		if (this.replacements.size() == 1) {
 			Map<String, Object> singleReplacement = this.replacements.get(0);
-			if(!singleReplacement.containsKey("index")) {
+			if (!singleReplacement.containsKey("index")) {
 				// no index was provided
 				// so we will just replace the first source we get
 				this.replaceFirst = true;
 			}
 		}
-		
+
 	}
-	
+
 	/**
 	 * Testing method
+	 * 
 	 * @param args
 	 */
 //	public static void main(String[] args) {
@@ -335,5 +339,4 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 //		System.out.println(gson.toJson(sourcePixels));
 //	}
 
-	
 }

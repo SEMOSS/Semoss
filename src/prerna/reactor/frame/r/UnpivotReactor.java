@@ -32,7 +32,6 @@ import java.util.List;
 
 import prerna.ds.r.RDataTable;
 import prerna.om.HeadersException;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,10 +41,18 @@ import prerna.util.Utility;
 public class UnpivotReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor unpivots columns so that the columns selected will be removed
 	 * and combined to generate 2 new columns "variable" and "value" "variable" -
-	 * original column headers "value" - value for original column header The inputs
-	 * to the reactor are: 1) the columns to unpivot
+	 * original column headers "value" - value for original column header
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the columns to unpivot</li>
+	 * </ul>
 	 */
 
 	public UnpivotReactor() {
@@ -116,49 +123,24 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	private String getColumn(int i) {
-		NounMetadata input = this.getCurRow().getNoun(i);
-		String column = input.getValue() + "";
-		return column;
-	}
-
 	private String[] getStringArray() {
-		// get columns from key
-		String[] columns = null;
-		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			columns = new String[colGrs.size()];
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns[selectIndex] = column;
-			}
-			return columns;
-		} else {
-
-			// get columns from index
-			GenRowStruct inputsGRS = this.getCurRow();
-			columns = new String[inputsGRS.size()];
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				// input is the columns to unpivot
-				for (int i = 0; i < inputsGRS.size(); i++) {
-					NounMetadata input = this.getCurRow().getNoun(i);
-					String column = input.getValue() + "";
-					// clean column
-					if (column.contains("__")) {
-						column = column.split("__")[1];
-						// add the columns to keep to the string array
-					}
-					columns[i] = column;
-				}
-				return columns;
-			}
+		List<String> keyColumns = getListString(this.keysToGet[0]);
+		if (keyColumns != null && !keyColumns.isEmpty()) {
+			return keyColumns.toArray(new String[0]);
 		}
+
+		List<String> columns = getCurRowValuesAsString();
+		if (!columns.isEmpty()) {
+			for (int i = 0; i < columns.size(); i++) {
+				String column = columns.get(i);
+				if (column != null && column.contains("__")) {
+					column = column.split("__")[1];
+				}
+				columns.set(i, column);
+			}
+			return columns.toArray(new String[0]);
+		}
+
 		throw new IllegalArgumentException("Need to define columns to unpivot");
 	}
 }

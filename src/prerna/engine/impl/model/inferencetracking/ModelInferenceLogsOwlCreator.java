@@ -39,7 +39,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsOwlCreator {
-	
+
 	// each column name paired to its type in a var
 	private List<Pair<String, String>> agentColumns = null;
 	private List<Pair<String, String>> roomColumns = null;
@@ -47,15 +47,17 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> feedbackColumns = null;
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
+	private List<Pair<String, String>> skillColumns = null;
+	private List<Pair<String, String>> agentRunColumns = null;
 
-	// pairs table name with table's primary keys 
+	// pairs table name with table's primary keys
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
-	
-	// pairs table name with table's foreign keys 
+
+	// pairs table name with table's foreign keys
 	private List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> foreignKeys = null;
 	// Pairs table name with its respective columns
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
-	
+
 	// concepts are tables within db
 	// props are cols w/i concepts
 	private static List<String> conceptsRequired = new ArrayList<>();
@@ -66,17 +68,19 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("FEEDBACK");
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
+		conceptsRequired.add("SKILL");
+		conceptsRequired.add("AGENT_RUN");
 	}
-	
+
 	private IRDBMSEngine modelInferenceDb;
-	
+
 	public ModelInferenceLogsOwlCreator(IRDBMSEngine modelInferenceDb) {
 		this.modelInferenceDb = modelInferenceDb;
 		createColumnsAndTypes(this.modelInferenceDb.getQueryUtil());
 //		definePrimaryKeys();
 //		defineForeignKeys(); // TODO make this generic for all rdms engines
 	}
-	
+
 	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
@@ -85,6 +89,7 @@ public class ModelInferenceLogsOwlCreator {
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 
+		// @formatter:off
 		this.agentColumns = Arrays.asList(
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
 				Pair.with("AGENT_NAME", "VARCHAR(255)"),
@@ -93,7 +98,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("AUTHOR", "VARCHAR(255)"),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
 			);
-		
+		// @formatter:on
+
 //		this.roomColumns = Arrays.asList(
 //				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
 //				Pair.with("ROOM_NAME", "VARCHAR(255)"),
@@ -109,7 +115,8 @@ public class ModelInferenceLogsOwlCreator {
 //				Pair.with("PROJECT_ID", "VARCHAR(50)"),
 //				Pair.with("PROJECT_NAME", "VARCHAR(255)")
 //			);
-		
+
+		// @formatter:off
 		this.roomColumns = Arrays.asList(
 			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),
 			    Pair.with("ROOM_ID", "VARCHAR(50)"),
@@ -133,7 +140,9 @@ public class ModelInferenceLogsOwlCreator {
 			    Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
 			    Pair.with("PARENT_ROOM_ID", "VARCHAR(50)")
 			);
+		// @formatter:on
 
+		// @formatter:off
 		this.messageColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
 				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),
@@ -158,7 +167,9 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("USER_NAME", "VARCHAR(255)"),
 				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
 			);
-		
+		// @formatter:on
+
+		// @formatter:off
 		this.feedbackColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
@@ -166,18 +177,27 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
-		
+		// @formatter:on
+
+		// CONFIG_JSON holds the full AgentConfig serialization for this workspace -
+		// system_prompt mirror, mcps, budgets, hooks. See AgentConfigLoader for the
+		// read order (CONFIG_JSON-first with legacy column/WORKSPACE_RESOURCE fallback)
+		// and the workspace setter reactors (SetAgentHooks etc.) for the write path.
+		// @formatter:off
 		this.workspaceColumns = Arrays.asList(
 				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
 				Pair.with("OWNER", "VARCHAR(255)"),
 				Pair.with("NAME", "VARCHAR(255)"),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
 			);
-		
+		// @formatter:on
+
+		// @formatter:off
 		this.workspaceResourceColumns = Arrays.asList(
 				Pair.with("WORKSPACE_RESOURCE_ID", "VARCHAR(255)"),
 				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
@@ -185,17 +205,64 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
 				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
 			);
-		
+		// @formatter:on
+
+		// Skill registry. SKILL_ID == the underlying Project ID (skills are projects
+		// of type SKILL, identified via PROJECTMETA tag = Skill_Project). The Project
+		// owns content, versioning (git in version/), and permissions. This table only
+		// holds the skill-specific metadata used for fast listing and the
+		// platform-vs-user
+		// ORIGIN distinction.
+		// @formatter:off
+		this.skillColumns = Arrays.asList(
+				Pair.with("SKILL_ID", "VARCHAR(50)"),
+				Pair.with("SLUG", "VARCHAR(255)"),
+				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", "VARCHAR(255)"),
+				Pair.with("ORIGIN", "VARCHAR(50)"),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+			);
+		// @formatter:on
+
+		// @formatter:off
+		this.agentRunColumns = Arrays.asList(
+				Pair.with("RUN_ID", "VARCHAR(50)"),
+				Pair.with("ROOM_ID", "VARCHAR(50)"),
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("MODEL_ID", "VARCHAR(255)"),
+				Pair.with("HARNESS_TYPE", "VARCHAR(50)"),
+				Pair.with("JOB_ID", "VARCHAR(50)"),
+				Pair.with("STATUS", "VARCHAR(50)"),
+				Pair.with("INPUT", CLOB_DATATYPE_NAME),
+				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("INPUT_MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
+				Pair.with("FINAL_OUTPUT_MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", "VARCHAR(255)")
+			);
+		// @formatter:on
+
+		// @formatter:off
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
+				Pair.with("SKILL", skillColumns),
+				Pair.with("AGENT_RUN", agentRunColumns)
 			);
+		// @formatter:on
 	}
-	
+
 //	public void definePrimaryKeys() {
 //		// returns ArrayList so its ordered
 //		this.primaryKeys = Arrays.asList(
@@ -216,37 +283,36 @@ public class ModelInferenceLogsOwlCreator {
 //				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
 //			);
 //	}
-	
+
 	/**
 	 * Determine if we need to remake the OWL
+	 * 
 	 * @return
 	 */
 	public boolean needsRemake() {
 		/*
-		 * This is a very simple check
-		 * Just looking at the tables
-		 * Not doing anything with columns but should eventually do that
+		 * This is a very simple check Just looking at the tables Not doing anything
+		 * with columns but should eventually do that
 		 */
-		
+
 		List<String> cleanConcepts = new ArrayList<>();
 		List<String> concepts = modelInferenceDb.getPhysicalConcepts();
-		for(String concept : concepts) {
-			if(concept.equals("http://semoss.org/ontologies/Concept")) {
+		for (String concept : concepts) {
+			if (concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
 			String cTable = Utility.getInstanceName(concept);
 			cleanConcepts.add(cTable);
 		}
-		
+
 		if (!cleanConcepts.containsAll(conceptsRequired)) {
 			return true;
 		}
-		
+
 		// check all columns
 		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
 			String tableName = tableWithColumns.getValue0();
-			String[] columnNames = tableWithColumns.getValue1().stream()
-					.map(Pair::getValue0).toArray(String[]::new);
+			String[] columnNames = tableWithColumns.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
 
 			for (String columnName : columnNames) {
 				if (columnChecks(tableName, columnName)) {
@@ -254,66 +320,65 @@ public class ModelInferenceLogsOwlCreator {
 				}
 			}
 		}
-		
+
 		// does not need to be remade
 		return false;
 	}
-	
-	
+
 	private boolean columnChecks(String tableName, String columnName) {
 		String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
-		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" 
-				+ columnName + "/" + tableName; 
+		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" + columnName + "/" + tableName;
 
-		List<String> props = modelInferenceDb.getPropertyUris4PhysicalUri(propsURI);	
-		if(!props.contains(relationURI)) {
+		List<String> props = modelInferenceDb.getPropertyUris4PhysicalUri(propsURI);
+		if (!props.contains(relationURI)) {
 			return true;
 		}
-		
+
 		return false;
 	}
-		
-	
+
 	/**
-	 * Remake the OWL 
-	 * @throws Exception 
+	 * Remake the OWL
+	 * 
+	 * @throws Exception
 	 */
 	public void remakeOwl() throws Exception {
-		try(WriteOWLEngine owlEngine = modelInferenceDb.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = modelInferenceDb.getOWLEngineFactory().getWriteOWL()) {
 			owlEngine.createEmptyOWLFile();
 			// write the new OWL
 			writeNewOwl(owlEngine);
 		}
 	}
-	
+
 	/**
 	 * Method that uses the OWLER to generate a new OWL structure
+	 * 
 	 * @param owlLocation
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
 			String tableName = columns.getValue0();
 			owler.addConcept(tableName, null, null);
-			for (Pair<String, String> x : columns.getValue1()) {	
+			for (Pair<String, String> x : columns.getValue1()) {
 				owler.addProp(tableName, x.getValue0(), x.getValue1());
 			}
 		}
-		
+
 		owler.commit();
 		owler.export();
 	}
-	
+
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
 		return this.allSchemas;
 	}
-	
+
 	public List<Pair<String, Pair<List<String>, List<String>>>> getDBPrimaryKeys() {
 		return this.primaryKeys;
 	}
-	
+
 	public List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> getDBForeignKeys() {
 		return this.foreignKeys;
 	}
-	
+
 }

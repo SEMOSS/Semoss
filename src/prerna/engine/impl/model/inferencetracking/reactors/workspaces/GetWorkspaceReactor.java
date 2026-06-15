@@ -111,6 +111,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
 		List<Map<String, String>> mcps = new ArrayList<>();
 		List<Map<String, String>> prompts = new ArrayList<>();
+		List<Map<String, String>> skills = new ArrayList<>();
 		for (Map<String, Object> r : resources) {
 			String resourceId = (String) r.get("resource_id");
 			String rType = (String) r.get("resource_type");
@@ -128,6 +129,22 @@ public class GetWorkspaceReactor extends AbstractReactor {
 					promptMap.put("name", promptTitle);
 				}
 				prompts.add(promptMap);
+			} else if (AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
+				// Skills are projects (PROJECT_TYPE.SKILL) but they are not engines and
+				// not regular projects either - they have their own bucket in the response
+				// so the UI can surface them distinctly from MCPs.
+				Map<String, String> skillMap = new HashMap<>();
+				skillMap.put("id", resourceId);
+				skillMap.put("type", rType);
+				skillMap.put("name", SecurityProjectUtils.getProjectAliasForId(resourceId));
+				Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(resourceId);
+				if (skillRow != null) {
+					Object slug = skillRow.get("slug");
+					if (slug != null) {
+						skillMap.put("slug", slug.toString());
+					}
+				}
+				skills.add(skillMap);
 			} else {
 				CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
 				Map<String, String> mcpMap = new HashMap<>();
@@ -145,6 +162,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		}
 		current.put("mcp", mcps);
 		current.put("prompts", prompts);
+		current.put("skills", skills);
 		current.put("permission", permission);
 		current.put("number_collaborators", userCount);
 

@@ -110,8 +110,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 			try {
 				this.defaultThreshold = Double.parseDouble(defaultThresholdStr);
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid default threshold value " + defaultThresholdStr + ". Revert to default value of "
-						+ this.defaultThreshold);
+				classLogger.warn("Invalid default threshold value " + defaultThresholdStr
+						+ ". Revert to default value of " + this.defaultThreshold);
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -121,8 +121,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 			try {
 				this.defaultMaxLength = Integer.parseInt(defaultMaxLengthStr);
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid default maxLength value " + defaultMaxLengthStr + ". Revert to default value of "
-						+ this.defaultMaxLength);
+				classLogger.warn("Invalid default maxLength value " + defaultMaxLengthStr
+						+ ". Revert to default value of " + this.defaultMaxLength);
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -136,7 +136,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		if (trustRemoteCodeStr != null && !(trustRemoteCodeStr = trustRemoteCodeStr.trim()).isEmpty()) {
 			this.trustRemoteCode = Boolean.parseBoolean(trustRemoteCodeStr);
 			if (this.trustRemoteCode) {
-				classLogger.warn("Prompt injection guardrail engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
+				classLogger.warn("Prompt injection guardrail engine "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
 						+ " is configured with TRUST_REMOTE_CODE=true. This executes model repository code at load time.");
 			}
 		}
@@ -150,14 +151,15 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		if (deviceStr != null && !(deviceStr = deviceStr.trim()).isEmpty()) {
 			this.device = deviceStr;
 		}
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(),
-				this.getEngineName());
+		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(),
+				this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
 
 		this.functionDescription = "Classifies a prompt for prompt-injection attempts using a HuggingFace text-classification model.";
 		this.parameters = new ArrayList<>();
-		this.parameters.add(new FunctionParameter("prompt", "String", "This is the prompt we are applying the guardrail to"));
+		this.parameters
+				.add(new FunctionParameter("prompt", "String", "This is the prompt we are applying the guardrail to"));
 		this.parameters.add(new FunctionParameter("threshold", "Double",
 				"Number between 0-1. If any label mapped to BLOCK has score >= threshold, the prompt fails. Default is "
 						+ this.defaultThreshold));
@@ -188,7 +190,7 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 
 		String script = "classifier.classify(" + PyUtils.determineStringType(prompt) + ", max_length="
 				+ PyUtils.determineStringType(maxLength) + ")";
-		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPy(script);
+		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
 
 		Map<String, Double> scoresByLabel = extractScoresByLabel(predictions);
 		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecisionAllow);
@@ -266,7 +268,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 
 	static Map<String, Boolean> parseLabelDecisionMap(String labelDecisionMapStr) {
 		if (labelDecisionMapStr == null || (labelDecisionMapStr = labelDecisionMapStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->ALLOW/BLOCK");
+			throw new IllegalArgumentException(
+					"Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->ALLOW/BLOCK");
 		}
 
 		Map<String, Object> raw = new Gson().fromJson(labelDecisionMapStr, Map.class);
@@ -400,8 +403,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		String serverDirectory = this.cacheFolder.getAbsolutePath();
 		boolean nativePyServer = true;
 		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug,
-					timeout, loggerLevel);
+			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+					debug, timeout, loggerLevel);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
@@ -414,12 +417,15 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		try {
 			String deviceLiteral = PyUtils.determineStringType(this.device);
 			String useCudaLiteral = PyUtils.determineStringType(this.useCuda);
+			// @formatter:off
 			String execCommand = "from smss_util.PromptInjection import PromptInjectionClassifier\n"
-					+ "classifier = PromptInjectionClassifier(model_id=" + PyUtils.determineStringType(this.modelName) + ", trust_remote_code="
-					+ PyUtils.determineStringType(this.trustRemoteCode) + ", use_cuda=" + useCudaLiteral + ", device="
-					+ deviceLiteral + ")";
-
-			this.pyTranslator.runScript(execCommand);
+					+ "classifier = PromptInjectionClassifier(model_id=" 
+					+ PyUtils.determineStringType(this.modelName)
+					+ ", trust_remote_code=" 
+					+ PyUtils.determineStringType(this.trustRemoteCode) + ", use_cuda=" + useCudaLiteral 
+					+ ", device=" + deviceLiteral + ")";
+			// @formatter:on 
+			this.pyTranslator.runScriptNoCancelTrace(execCommand);
 
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
 					+ " python process with commands >>> " + execCommand);
@@ -429,7 +435,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 			classLogger.error(Constants.STACKTRACE, e);
 			if (cpwToInit != null) {
 				classLogger.warn("Able to start the python process for prompt injection guardrail engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) + " but the start script failed.");
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
+						+ " but the start script failed.");
 				cpwToInit.shutdown(false);
 			}
 			throw e;

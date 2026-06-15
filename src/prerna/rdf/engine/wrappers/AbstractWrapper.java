@@ -38,7 +38,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper {
 
-	private static final Logger logger = LogManager.getLogger(AbstractWrapper.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class);
 	
 	protected transient IDatabaseEngine engine = null;
 	protected transient String query = null;
