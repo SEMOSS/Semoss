@@ -62,6 +62,7 @@ public final class AgentRunContext {
     private final String        userId;
     private final String        input;
     private final SandboxPolicy sandboxPolicy;
+    private final String        runId;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
@@ -76,6 +77,7 @@ public final class AgentRunContext {
         this.userId        = b.userId;
         this.input         = b.input;
         this.sandboxPolicy = b.sandboxPolicy;
+        this.runId         = b.runId;
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
     }
@@ -104,6 +106,11 @@ public final class AgentRunContext {
     /** Initial user message to start the agentic loop. */
     public String getInput() {
         return input;
+    }
+
+    /** Durable {@code AGENT_RUN.RUN_ID} for this invocation. May be {@code null} for legacy direct callers. */
+    public String getRunId() {
+        return runId;
     }
 
     /**
@@ -191,6 +198,7 @@ public final class AgentRunContext {
         private String        userId;
         private String        input;
         private SandboxPolicy sandboxPolicy;
+        private String        runId;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
@@ -209,6 +217,7 @@ public final class AgentRunContext {
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
+        public Builder runId(String runId)                   { this.runId = runId;                 return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 

@@ -244,6 +244,12 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
 			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
+			executeSql(conn, sql);
 		} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
@@ -287,6 +293,16 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "WORKSPACE_OWNER_INDEX", "WORKSPACE", database, schema)) {
 				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
 				executeSql(conn, sql);
 			}
 		}
