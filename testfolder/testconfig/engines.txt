@@ -1,9 +1,0 @@
-localmasterdatabase
-security
-themes
-scheduler
-usertrackingdatabase
-PromptDatabase
-Notification
-ModelInferenceLogsDatabase
-AuditLogs

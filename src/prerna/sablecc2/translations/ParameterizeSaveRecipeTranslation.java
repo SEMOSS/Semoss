@@ -66,66 +66,72 @@ import prerna.util.Utility;
 
 @Deprecated
 public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
-	
-	private static final Logger logger = LogManager.getLogger(ParameterizeSaveRecipeTranslation.class);
+
+	private static final Logger classLogger = LogManager.getLogger(ParameterizeSaveRecipeTranslation.class);
 
 	// this will store the list of pixels that were passed in
 	private List<String> pixels = new Vector<String>();
-	
-	// create a variable to keep track of the current mapping of the original expression to the encoded expression
+
+	// create a variable to keep track of the current mapping of the original
+	// expression to the encoded expression
+	@Deprecated
 	public List<String> encodingList = new Vector<String>();
+	@Deprecated
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
-	
+
 	// set the parameters we care about
+	@Deprecated
 	public List<String> inputsToParameterize;
-	
+
 	private SelectQueryStruct importQs;
 	private String sourceStr;
 	private String importStr;
 	private Map<String, Map<String, String>> paramToSource = new HashMap<>();
 	private Map<String, List<String>> colToComparators = new HashMap<>();
 
+	@Deprecated
 	public ParameterizeSaveRecipeTranslation(Insight insight) {
 		super(insight);
 	}
-	
+
+	@Deprecated
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
-		for(PRoutine e : copy) {
+		for (PRoutine e : copy) {
 			String expression = e.toString();
-			if(expression.contains("Import")) {
-        		this.resultKey = "$RESULT_" + e.hashCode();
+			if (expression.contains("Import")) {
+				this.resultKey = "$RESULT_" + e.hashCode();
 
-				logger.info("Processing " + Utility.cleanLogString(expression));
+				classLogger.info("Processing " + Utility.cleanLogString(expression));
 				e.apply(this);
 
 				// check if we have a QS to modify
-				if(this.importQs != null) {
-					
+				if (this.importQs != null) {
+
 					// first, need to see if this import requires
 					// the filtering
-					
+
 					// we will do 2 things
 					// look at the selectors
 					// and then look at the filters
-					
+
 					List<String> foundParams = new Vector<String>();
 					List<String> filterQsName = new Vector<String>();
-					
+
 					List<IQuerySelector> selectors = importQs.getSelectors();
-					for(IQuerySelector select : selectors) {
-						for(String colToParam : inputsToParameterize) {
+					for (IQuerySelector select : selectors) {
+						for (String colToParam : inputsToParameterize) {
 							String alias = select.getAlias();
 							String qsName = select.getQueryStructName();
-							
-							if(colToParam.equals(alias)) {
+
+							if (colToParam.equals(alias)) {
 								foundParams.add(alias);
 								filterQsName.add(qsName);
-								
+
 								// store the first match
 								// for the given param
-								if(!this.paramToSource.containsKey(alias)) {
+								if (!this.paramToSource.containsKey(alias)) {
 									Map<String, String> inner = new HashMap<String, String>();
 									inner.put("qs", qsName);
 									inner.put("source", this.sourceStr);
@@ -134,7 +140,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 							}
 						}
 					}
-					
+
 					List<IQueryFilter> newFilters = new Vector<>();
 					List<String> modifiedParams = new Vector<>();
 
@@ -142,21 +148,23 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 					// that is not a selector
 					// so lets look at filters as well
 					List<IQueryFilter> currentImportFilters = importQs.getExplicitFilters().getFilters();
-					for(IQueryFilter f : currentImportFilters) {
+					for (IQueryFilter f : currentImportFilters) {
 						IQueryFilter modification = f;
 						// i will want to run through EVERY column
 						// for the same filter
 						// in case it contains it
-						for(String colToParam : inputsToParameterize) {
-							if(modification.containsColumn(colToParam)) {
+						for (String colToParam : inputsToParameterize) {
+							if (modification.containsColumn(colToParam)) {
 								modifiedParams.add(colToParam);
 								// find all the smallest parts that are using this
-								modification = QsFilterParameterizeConverter.modifyFilter(modification, colToParam, colToComparators);
-								
+								modification = QsFilterParameterizeConverter.modifyFilter(modification, colToParam,
+										colToComparators);
+
 								// also add the param to source
-								if(!this.paramToSource.containsKey(colToParam)) {
+								if (!this.paramToSource.containsKey(colToParam)) {
 									List<String> qsNames = new Vector<>();
-									QsFilterParameterizeConverter.findSelectorsForAlias(modification, colToParam, qsNames);
+									QsFilterParameterizeConverter.findSelectorsForAlias(modification, colToParam,
+											qsNames);
 									Map<String, String> inner = new HashMap<String, String>();
 									inner.put("qs", qsNames.get(0));
 									inner.put("source", this.sourceStr);
@@ -164,165 +172,171 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 								}
 							}
 						}
-						
+
 						// add the modified filter if it was changed
 						newFilters.add(modification);
 					}
-					
+
 					// if no matches
 					// nothing to do
-					if(foundParams.isEmpty()) {
+					if (foundParams.isEmpty()) {
 						this.pixels.add(expression);
 						continue;
 					}
-					
+
 					// FE prefers a single AND block
 					// so adding all the current filters
 					// note - this maybe 0 or more
 					AndQueryFilter andFilter = new AndQueryFilter();
 					andFilter.addFilter(newFilters);
-					
+
 					int numParams = foundParams.size();
-					for(int paramColIndex = 0; paramColIndex < numParams; paramColIndex++) {
+					for (int paramColIndex = 0; paramColIndex < numParams; paramColIndex++) {
 						String colToParam = foundParams.get(paramColIndex);
-						if(!modifiedParams.contains(colToParam)) {
+						if (!modifiedParams.contains(colToParam)) {
 							// add new filters
 							String qsColName = filterQsName.get(paramColIndex);
 							String paramName = foundParams.get(paramColIndex);
 							SimpleQueryFilter paramF = new SimpleQueryFilter(
-									new NounMetadata(new QueryColumnSelector(qsColName), PixelDataType.COLUMN), 
-									"==", 
-									new NounMetadata("<" + paramName + "__eq>", PixelDataType.CONST_STRING)
-									);
-							
+									new NounMetadata(new QueryColumnSelector(qsColName), PixelDataType.COLUMN), "==",
+									new NounMetadata("<" + paramName + "__eq>", PixelDataType.CONST_STRING));
+
 							// add these filters into the AND
 							andFilter.addFilter(paramF);
-							
+
 							// also store this
 							List<String> colComparators = null;
-							if(colToComparators.containsKey(paramName)) {
+							if (colToComparators.containsKey(paramName)) {
 								colComparators = colToComparators.get(paramName);
 							} else {
 								colComparators = new Vector<>();
 								colToComparators.put(paramName, colComparators);
 							}
-							logger.info("Adding new filter for column = " + paramName);
+							classLogger.info("Adding new filter for column = " + paramName);
 							colComparators.add("==");
 						}
 					}
-					
+
 					// swap the filter lists
 					currentImportFilters.clear();
 					// if only 1 value in the AND block
 					// just grab it and send that filter
-					if(andFilter.getFilterList().size() == 1) {
+					if (andFilter.getFilterList().size() == 1) {
 						currentImportFilters.add(andFilter.getFilterList().get(0));
 					} else {
 						currentImportFilters.add(andFilter);
 					}
-					
-					String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs, false) + " | " + this.importStr + " ;";
+
+					String newExpr = sourceStr + "|" + QsToPixelConverter.getPixel(this.importQs, false) + " | "
+							+ this.importStr + " ;";
 					this.pixels.add(newExpr);
-					
+
 					// reset
 					this.importQs = null;
 					this.sourceStr = null;
 					this.importStr = null;
 				} else {
-					this.pixels.add(expression);	
+					this.pixels.add(expression);
 				}
 			} else {
 				// add to list of expressions
-				expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodingList, this.encodedToOriginal);
+				expression = PixelUtility.recreateOriginalPixelExpression(expression, this.encodingList,
+						this.encodedToOriginal);
 				this.pixels.add(expression);
 			}
 		}
 	}
-	
+
 	/*
-	 * The way this works is
-	 * We will go through the normal reactor
-	 * Once we have a QueryStruct reactor type
-	 * We process until we get to an import
-	 * Then I use the QueryStruct to generate the pixel
+	 * The way this works is We will go through the normal reactor Once we have a
+	 * QueryStruct reactor type We process until we get to an import Then I use the
+	 * QueryStruct to generate the pixel
 	 */
-	
+
+	@Deprecated
 	@Override
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
-		
-		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileReadReactor
+
+		if (this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileReadReactor
 				|| this.curReactor instanceof GoogleFileRetrieverReactor || this.curReactor instanceof FrameReactor) {
 			this.sourceStr = node.toString().trim();
-		}
-		else if(this.curReactor instanceof ImportReactor || this.curReactor instanceof MergeReactor) {
+		} else if (this.curReactor instanceof ImportReactor || this.curReactor instanceof MergeReactor) {
 			this.importStr = node.toString().trim();
 		}
 	}
-	
+
 	/**
 	 * Same method as in lazy with addition of addRoutine method
 	 */
+	@Deprecated
 	@Override
-    protected void deInitReactor() {
-    	if(curReactor != null) {
-    		// merge up and update the plan
-    		try {
-    			curReactor.mergeUp();
-    			curReactor.updatePlan();
-    		} catch(Exception e) {
-    			logger.error(Constants.STACKTRACE, e);
-    			throw new IllegalArgumentException(e.getMessage());
-    		}
-    		
-    		// get the parent
-    		Object parent = curReactor.Out();
-    		// set the parent as the curReactor if it is present
-    		prevReactor = curReactor;
-    		if(parent instanceof IReactor) {
-    			curReactor = (IReactor) parent;
-    		} else {
-    			curReactor = null;
-    		}
+	protected void deInitReactor() {
+		if (curReactor != null) {
+			// merge up and update the plan
+			try {
+				curReactor.mergeUp();
+				curReactor.updatePlan();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
+			}
 
-    		// account for moving qs
-    		if(curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
-    			AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
-	    		this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
-    		}
-    		
-        	// need to find imports
-        	if(prevReactor != null && (prevReactor instanceof ImportReactor || prevReactor instanceof MergeReactor)) {
-    			importQs = (SelectQueryStruct) prevReactor.getNounStore().getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
-    		}
-    	}
-    }
-	
-    /////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////
-    
+			// get the parent
+			Object parent = curReactor.Out();
+			// set the parent as the curReactor if it is present
+			prevReactor = curReactor;
+			if (parent instanceof IReactor) {
+				curReactor = (IReactor) parent;
+			} else {
+				curReactor = null;
+			}
+
+			// account for moving qs
+			if (curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+				AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+				this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+			}
+
+			// need to find imports
+			if (prevReactor != null && (prevReactor instanceof ImportReactor || prevReactor instanceof MergeReactor)) {
+				importQs = (SelectQueryStruct) prevReactor.getNounStore()
+						.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey()).get(0);
+			}
+		}
+	}
+
+	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+
 	/**
 	 * Get the new pixels
+	 * 
 	 * @return
 	 */
+	@Deprecated
 	public List<String> getPixels() {
 		return this.pixels;
 	}
-	
+
+	@Deprecated
 	public Map<String, List<String>> getColToComparators() {
 		return colToComparators;
 	}
-	
+
+	@Deprecated
 	public Map<String, Map<String, String>> getParamToSource() {
 		return this.paramToSource;
 	}
-	
+
+	@Deprecated
 	public void setInputsToParameterize(List<String> inputsToParameterize) {
 		this.inputsToParameterize = inputsToParameterize;
 	}
-	
+
 	/**
 	 * Testing method
+	 * 
 	 * @param args
 	 */
 //	public static void main(String[] args) {

@@ -1,16 +1,16 @@
-from typing import Dict, Any, List
-
-import numpy as np
-
 from abc import ABC, abstractmethod
-from keybert.backend import BaseEmbedder
 
+from typing import Dict, Any, List, TYPE_CHECKING
+import numpy as np
 from ..constants import (
     MODEL_NAME,
     AskModelEngineResponse,
     EmbeddingsModelEngineResponse,
 )
 from ..tokenizers.abstract_tokenizer import AbstractTokenizer
+
+if TYPE_CHECKING:
+    from keybert.backend import BaseEmbedder
 
 
 class AbstractEmbedder(ABC):
@@ -51,9 +51,10 @@ class AbstractEmbedder(ABC):
 
         return model_engine_response.to_dict()
 
-    def to_keybert_embedder(self) -> BaseEmbedder:
+    def to_keybert_embedder(self) -> "BaseEmbedder":
+        from keybert.backend import BaseEmbedder
 
-        class CfgEmbedderBackend(BaseEmbedder):
+        class KeyBertEmbedderBackend(BaseEmbedder):
 
             def __init__(self, embedding_model: AbstractEmbedder):
                 super().__init__()
@@ -82,4 +83,4 @@ class AbstractEmbedder(ABC):
 
                 return np.array(embeddings.response, dtype="float32")
 
-        return CfgEmbedderBackend(embedding_model=self)
+        return KeyBertEmbedderBackend(embedding_model=self)

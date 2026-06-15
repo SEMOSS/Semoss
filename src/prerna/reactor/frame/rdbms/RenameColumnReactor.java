@@ -43,7 +43,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class RenameColumnReactor extends AbstractFrameReactor {
 
@@ -78,7 +77,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 			metaData.setAliasToProperty(table + "__" + newColName, newColName);
 			frame.syncHeaders();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to rename column {} to {} on table {}", column, newColName, table, e);
 		}
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,

@@ -40,8 +40,17 @@ import prerna.util.Utility;
 public class AddColumnReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor are:
-	 * 1) the name for the new column 2) the new column type
+	 * <p>
+	 * This reactor adds an empty column to the frame
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the name for the new column</li>
+	 * <li>the new column type</li>
+	 * </ul>
 	 */
 
 	public AddColumnReactor() {

@@ -88,6 +88,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.LocalDateTimeAdapter;
+import prerna.util.gson.ZoneIdTypeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
 
@@ -109,6 +110,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
 			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
+			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
 			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
 			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
@@ -143,13 +145,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
 		// Capture realEngine in a closure - not accessible via reflection
-		this.engineInvoker = (method, args) -> {
-			try {
-				return method.invoke(realEngine, args);
-			} catch (InvocationTargetException e) {
-				throw e.getTargetException();
-			}
-		};
+		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
 		this.engineType = realEngine.getCatalogType().name();
