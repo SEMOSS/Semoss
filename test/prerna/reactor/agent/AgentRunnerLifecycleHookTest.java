@@ -152,7 +152,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			AgentHarnessResult result = AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(),
-					new HashMap<>(), insight);
+					new HashMap<>(), null, insight);
 
 			assertSame(harnessResult, result);
 			assertEquals(List.of("onRoomCreation", "beforeRun", "afterAgentInit", "harness.execute", "afterRun",
@@ -173,7 +173,8 @@ class AgentRunnerLifecycleHookTest {
 
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hookA, hookB));
 
-			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), insight);
+			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), null,
+					insight);
 
 			// Each lifecycle event fires across ALL hooks before moving to the next event.
 			assertEquals(List.of("onRoomCreation", "beforeRun", "afterAgentInit", "harness.execute", "afterRun",
@@ -199,7 +200,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			RuntimeException ex = assertThrows(RuntimeException.class, () -> AgentRunner.run(ROOM_ID, "hello", null,
-					"test_harness", 10, 0, new HashMap<>(), new HashMap<>(), insight));
+					"test_harness", 10, 0, new HashMap<>(), new HashMap<>(), null, insight));
 			assertTrue(ex.getMessage().contains("veto!"));
 
 			// onRoomCreation ran before veto; harness.execute and afterAgentInit
@@ -231,7 +232,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			AgentHarnessResult result = AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(),
-					new HashMap<>(), insight);
+					new HashMap<>(), null, insight);
 
 			assertSame(harnessResult, result);
 			// All 5 lifecycle methods still ran — exception was swallowed.
@@ -254,7 +255,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			AgentHarnessResult result = AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(),
-					new HashMap<>(), insight);
+					new HashMap<>(), null, insight);
 
 			assertSame(harnessResult, result);
 			assertTrue(hook.calls.contains("harness.execute"), "harness must still run after afterAgentInit throws");
@@ -275,7 +276,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			AgentHarnessResult result = AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(),
-					new HashMap<>(), insight);
+					new HashMap<>(), null, insight);
 
 			assertSame(harnessResult, result);
 			assertTrue(hook.calls.contains("beforeAgentDeInit"));
@@ -296,7 +297,7 @@ class AgentRunnerLifecycleHookTest {
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
 			AgentHarnessResult result = AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(),
-					new HashMap<>(), insight);
+					new HashMap<>(), null, insight);
 
 			// No exception — beforeAgentDeInit failure must not propagate.
 			assertSame(harnessResult, result);
@@ -317,7 +318,8 @@ class AgentRunnerLifecycleHookTest {
 
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
-			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), insight);
+			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), null,
+					insight);
 
 			// Verify the same ctx was handed to every lifecycle method.
 			assertEquals(5, hook.contexts.size(), "5 lifecycle methods should each receive a ctx");
@@ -342,7 +344,8 @@ class AgentRunnerLifecycleHookTest {
 
 			stubStatics(roomUtils, utility, loader, registry, skill, List.of(hook));
 
-			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), insight);
+			AgentRunner.run(ROOM_ID, "hello", null, "test_harness", 10, 0, new HashMap<>(), new HashMap<>(), null,
+					insight);
 
 			assertSame(harnessResult, hook.afterRunResult, "afterRun hook should receive harness result");
 			assertSame(harnessResult, hook.beforeDeInitResult, "beforeAgentDeInit hook should receive harness result");
