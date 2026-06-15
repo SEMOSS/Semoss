@@ -227,7 +227,7 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
-		Map<String, String> environment = new HashMap<>(System.getenv());
+		Map<String, String> environment = null;
 		String[] foutput = new String[2];
 		boolean success = true;
 
@@ -257,6 +257,7 @@ public class CmdExecUtil {
 
 		// Check if we need to use chroot
 		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+			environment = new HashMap<>();
 			environment.put("HOME", "/home/default");
 			// Validate chroot setup
 			File chrootDir = new File(this.chrootFolderPath);
@@ -287,7 +288,7 @@ public class CmdExecUtil {
 			cmdLine.addArgument("cd '" + escapedWorkingDir + "' && " + command, false);
 		} else {
 			// non-chroot execution
-			applyConfiguredPythonPath(environment);
+			environment = createEnvironmentWithConfiguredPythonPath();
 			cmdLine = new CommandLine(commandAppender);
 			if (commandAppender.equalsIgnoreCase("/bin/bash")) {
 				cmdLine.addArgument("-c");
@@ -311,10 +312,14 @@ public class CmdExecUtil {
 			executor.setWatchdog(watchdog);
 
 			int exitValue = -1;
-			try {
-				exitValue = executor.execute(cmdLine, environment);
-				classLogger.debug("Command executed successfully with exit code: " + exitValue);
-			} catch (Exception ex) {
+				try {
+					if (environment == null) {
+						exitValue = executor.execute(cmdLine);
+					} else {
+						exitValue = executor.execute(cmdLine, environment);
+					}
+					classLogger.debug("Command executed successfully with exit code: " + exitValue);
+				} catch (Exception ex) {
 				success = false;
 				classLogger.error("Command execution failed with exit code: " + exitValue, ex);
 			}
@@ -351,7 +356,7 @@ public class CmdExecUtil {
 		return foutput;
 	}
 
-	private void applyConfiguredPythonPath(Map<String, String> environment) {
+	private Map<String, String> createEnvironmentWithConfiguredPythonPath() {
 		String pythonHome = System.getenv(Settings.PYTHONHOME);
 		if (pythonHome == null || pythonHome.trim().isEmpty()) {
 			pythonHome = Utility.getDIHelperProperty(Settings.PYTHONHOME);
@@ -363,22 +368,24 @@ public class CmdExecUtil {
 			pythonHome = Utility.getDIHelperProperty(Settings.PY_HOME);
 		}
 		if (pythonHome == null || pythonHome.trim().isEmpty()) {
-			return;
+			return null;
 		}
 
+		Map<String, String> environment = new HashMap<>(System.getenv());
 		String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
 		String existingPath = environment.get("PATH");
 		if (existingPath == null || existingPath.isEmpty()) {
 			environment.put("PATH", pythonBin);
-			return;
+			return environment;
 		}
 
 		for (String entry : existingPath.split(File.pathSeparator)) {
 			if (pythonBin.equals(entry)) {
-				return;
+				return environment;
 			}
 		}
 		environment.put("PATH", pythonBin + File.pathSeparator + existingPath);
+		return environment;
 	}
 
 	/**
