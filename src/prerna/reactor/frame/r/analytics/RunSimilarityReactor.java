@@ -45,13 +45,21 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 /**
+ * <p>
  * This reactor updates determines the similarity between values in an instance
  * column based on the selected attribute columns The result is a new column
  * added to the data frame with values between 0 and 1 for each row Higher
- * values indicate stronger similarity The inputs to the reactor are: 1) the
- * instance column 2) the attribute columns
+ * values indicate stronger similarity
+ * </p>
+ *
+ * <p>
+ * The inputs to the reactor are:
+ * </p>
+ * <ul>
+ * <li>the instance column</li>
+ * <li>the attribute columns</li>
+ * </ul>
  */
-
 public class RunSimilarityReactor extends AbstractRFrameReactor {
 
 	private static final String CLASS_NAME = RunSimilarityReactor.class.getName();
@@ -145,51 +153,23 @@ public class RunSimilarityReactor extends AbstractRFrameReactor {
 
 	}
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	/*
-	 * Retrieving inputs
-	 */
-
 	private String getInstanceColumn() {
-		// check if instance column was input with the key
-		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
-		String instanceColumn = "";
-		NounMetadata instanceColumnNoun;
-		if (instanceIndexGrs != null) {
-			instanceColumnNoun = instanceIndexGrs.getNoun(0);
-			instanceColumn = (String) instanceColumnNoun.getValue();
-		} else {
-			// else assume the column is the zero index noun in the curRow
-			instanceColumnNoun = this.curRow.getNoun(0);
-			instanceColumn = (String) instanceColumnNoun.getValue();
+		String instanceColumn = getStringFromKeyOrCurRow(keysToGet[0], 0);
+		if (instanceColumn == null || instanceColumn.isEmpty()) {
+			throw new IllegalArgumentException("Please specify an instance column.");
 		}
 		return instanceColumn;
 	}
 
 	private List<String> getAttributes(String instanceColumn) {
-		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null) {
-			for (NounMetadata noun : columnGrs.vector) {
-				String attribute = noun.getValue().toString();
-				if (!(attribute.equals(instanceColumn))) {
-					retList.add(attribute);
-				}
-			}
+			retList.addAll(convertAllValuesToString(columnGrs));
 		} else {
-			int rowLength = this.curRow.size();
-			for (int i = 1; i < rowLength; i++) {
-				NounMetadata colNoun = this.curRow.getNoun(i);
-				String attribute = colNoun.getValue().toString();
-				if (!(attribute.equals(instanceColumn))) {
-					retList.add(attribute);
-				}
-			}
+			retList.addAll(getCurRowValuesAsString(1));
 		}
+		retList.removeIf(instanceColumn::equals);
 		return retList;
 	}
 }

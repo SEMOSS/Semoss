@@ -37,13 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import prerna.reactor.agent.sandbox.AgentSandboxConfig;
-import prerna.reactor.agent.sandbox.EnforcementMode;
-import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
-import prerna.reactor.agent.sandbox.SandboxLauncher;
-import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
-import prerna.reactor.agent.sandbox.SandboxPolicy;
-
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,20 +48,29 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentCliSocketRegistry;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
+import prerna.reactor.agent.sandbox.SandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * Python-sidecar GitHub Copilot manager. Mirrors {@link ClaudeCodeManager}: spawns a
- * Python process via {@link ClientProcessWrapper}, instantiates
- * {@code genai_client.GitHubCopilotClient}, and forwards user prompts through it.
+ * Python-sidecar GitHub Copilot manager. Mirrors {@link ClaudeCodeManager}:
+ * spawns a Python process via {@link ClientProcessWrapper}, instantiates
+ * {@code genai_client.GitHubCopilotClient}, and forwards user prompts through
+ * it.
  *
- * <p>Drop-in replacement for {@link GitHubCopilotManager} that avoids the in-Java
+ * <p>
+ * Drop-in replacement for {@link GitHubCopilotManager} that avoids the in-Java
  * {@code copilot-sdk-java} CLI launch (which is the path that hits chroot
- * permission errors today). Used by {@link prerna.reactor.agent.GitHubCopilotPyAgentHarness}
- * under harness name {@code "github_copilot_py"}.
+ * permission errors today). Used by
+ * {@link prerna.reactor.agent.GitHubCopilotPyAgentHarness} under harness name
+ * {@code "github_copilot_py"}.
  */
 public class GitHubCopilotPyManager {
 
@@ -116,8 +118,8 @@ public class GitHubCopilotPyManager {
 			SandboxLaunchPlan plan = launcher.plan(sandboxPolicy, targetBinary, null);
 			cliPath = plan.getCliPath();
 			sandboxEnv = plan.getEnvironmentAdditions();
-			classLogger.info("Copilot (py) sandbox applied: backend={} target={} policy-paths={}",
-					plan.getBackend(), targetBinary, sandboxPolicy.getAllowedPaths().size());
+			classLogger.info("Copilot (py) sandbox applied: backend={} target={} policy-paths={}", plan.getBackend(),
+					targetBinary, sandboxPolicy.getAllowedPaths().size());
 		}
 
 		String initScript = createInitScript(roomId, workingDir, roomFolderPath, accessKey, secretKey, allowedTools,
@@ -125,8 +127,16 @@ public class GitHubCopilotPyManager {
 		checkSocketStatus(initScript);
 
 		String queryScript = createQueryScript(prompt, systemPrompt);
-		Object output = pyTranslator.runDirectPy(insight, queryScript);
-		return String.valueOf(output);
+		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can
+		// route the interrupt opcode here
+		String jobId = ThreadStore.getJobId();
+		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
+		try {
+			Object output = pyTranslator.runDirectPyNoCancelTrace(insight, queryScript);
+			return String.valueOf(output);
+		} finally {
+			AgentCliSocketRegistry.unregister(jobId);
+		}
 	}
 
 	// Script builders
@@ -149,8 +159,7 @@ public class GitHubCopilotPyManager {
 		if (allowedTools == null || allowedTools.isEmpty()) {
 			allowedToolsLiteral = "[]";
 		} else {
-			allowedToolsLiteral = allowedTools.stream()
-					.map(PyUtils::pyQuote)
+			allowedToolsLiteral = allowedTools.stream().map(PyUtils::pyQuote)
 					.collect(Collectors.joining(",", "[", "]"));
 		}
 
@@ -170,10 +179,8 @@ public class GitHubCopilotPyManager {
 					mcpsLiteral.append(",");
 				}
 				first = false;
-				mcpsLiteral.append("{")
-						.append("'name':").append(PyUtils.pyQuote(name)).append(",")
-						.append("'url':").append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms"))
-						.append("}");
+				mcpsLiteral.append("{").append("'name':").append(PyUtils.pyQuote(name)).append(",").append("'url':")
+						.append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms")).append("}");
 			}
 		}
 		mcpsLiteral.append("]");
@@ -182,23 +189,19 @@ public class GitHubCopilotPyManager {
 		if (sandboxEnv != null && !sandboxEnv.isEmpty()) {
 			script.append("import os;");
 			for (Map.Entry<String, String> entry : sandboxEnv.entrySet()) {
-				script.append("os.environ[").append(PyUtils.pyQuote(entry.getKey()))
-						.append("]=").append(PyUtils.pyQuote(entry.getValue())).append(";");
+				script.append("os.environ[").append(PyUtils.pyQuote(entry.getKey())).append("]=")
+						.append(PyUtils.pyQuote(entry.getValue())).append(";");
 			}
 		}
-		script.append("import genai_client;github_copilot = genai_client.GitHubCopilotClient(")
-				.append("model=").append(PyUtils.pyQuote(model)).append(",")
-				.append("cwd_path=").append(PyUtils.pyQuote(cwdPath)).append(",")
-				.append("room_id=").append(PyUtils.pyQuote(roomId)).append(",")
-				.append("access_key=").append(PyUtils.pyQuote(accessKey)).append(",")
-				.append("secret_key=").append(PyUtils.pyQuote(secretKey)).append(",")
-				.append("allowed_tools=").append(allowedToolsLiteral).append(",")
-				.append("permission_mode=").append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default"))
-				.append(",")
-				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",")
-				.append("mcps=").append(mcpsLiteral).append(",")
-				.append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : "")).append(",")
-				.append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
+		script.append("import genai_client;github_copilot = genai_client.GitHubCopilotClient(").append("model=")
+				.append(PyUtils.pyQuote(model)).append(",").append("cwd_path=").append(PyUtils.pyQuote(cwdPath))
+				.append(",").append("room_id=").append(PyUtils.pyQuote(roomId)).append(",").append("access_key=")
+				.append(PyUtils.pyQuote(accessKey)).append(",").append("secret_key=").append(PyUtils.pyQuote(secretKey))
+				.append(",").append("allowed_tools=").append(allowedToolsLiteral).append(",").append("permission_mode=")
+				.append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default")).append(",")
+				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",").append("mcps=").append(mcpsLiteral)
+				.append(",").append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : ""))
+				.append(",").append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
 				.append("session_exists=").append(sessionExists ? "True" : "False");
 		if (cliPath != null) {
 			script.append(",cli_path=").append(PyUtils.pyQuote(cliPath));
@@ -213,13 +216,13 @@ public class GitHubCopilotPyManager {
 	}
 
 	/**
-	 * Mirrors {@link ClaudeCodeManager#agentHistoryExists}: check the file the
-	 * CLI itself writes, not a hand-rolled Java/Python sentinel. The CLI
-	 * persists per-room session state to
-	 * {@code <roomFolder>/session-state/<roomId>/events.jsonl}; if that file
-	 * exists the next turn must call {@code resume_session}, otherwise
-	 * {@code create_session}. This is pure pass-through — no drift between
-	 * what we tell the SDK and what the CLI is about to load.
+	 * Mirrors {@link ClaudeCodeManager#agentHistoryExists}: check the file the CLI
+	 * itself writes, not a hand-rolled Java/Python sentinel. The CLI persists
+	 * per-room session state to
+	 * {@code <roomFolder>/session-state/<roomId>/events.jsonl}; if that file exists
+	 * the next turn must call {@code resume_session}, otherwise
+	 * {@code create_session}. This is pure pass-through - no drift between what we
+	 * tell the SDK and what the CLI is about to load.
 	 */
 	private boolean sessionStateExists(String roomFolderPath, String roomId) {
 		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
@@ -234,7 +237,7 @@ public class GitHubCopilotPyManager {
 		return trimmed.isEmpty() ? null : trimmed;
 	}
 
-	// Sidecar process plumbing — copied from ClaudeCodeManager.
+	// Sidecar process plumbing - copied from ClaudeCodeManager.
 
 	protected synchronized void startServer(int port, String initScript) {
 		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
@@ -272,7 +275,7 @@ public class GitHubCopilotPyManager {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
 						timeout, "INFO");
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to create python process for GitHub Copilot Py agent", e);
 				throw new IllegalArgumentException("Unable to connect to server for python GitHub Copilot Py Agent.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -280,7 +283,7 @@ public class GitHubCopilotPyManager {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to reconnect python process for GitHub Copilot Py agent", e);
 				throw new IllegalArgumentException("Failed to start TCP Server for GitHub Copilot Py Agent: {}", e);
 			}
 		}
@@ -294,13 +297,13 @@ public class GitHubCopilotPyManager {
 			for (int i = 0; i < commands.length; i++) {
 				commands[i] = fillVars(commands[i]);
 			}
-			this.pyTranslator.runEmptyPy(commands);
-			classLogger.info("Initializing GitHub Copilot Py python process with commands >>> "
-					+ String.join("\n", commands));
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+			classLogger.info(
+					"Initializing GitHub Copilot Py python process with commands >>> " + String.join("\n", commands));
 			setPrefix(cpwToInit);
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error("Failed init for GitHub Copilot Py python process", e);
+			classLogger.error("Failed to initialize GitHub Copilot Py python process with startup commands", e);
 			if (cpwToInit != null) {
 				classLogger.warn("Started python process for GitHub Copilot Py but the init script failed");
 				cpwToInit.shutdown(false);

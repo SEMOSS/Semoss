@@ -29,6 +29,8 @@ package prerna.testing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -113,8 +115,13 @@ public class ApiPyTestUtils {
 			FileUtils.cleanDirectory(testPy.toFile());
 		}
 
-		classLogger.info("Copying source to testfolder");
-		FileUtils.copyDirectory(sourcePy.toFile(), testPy.toFile());
+		classLogger.info("Copying source to test workspace (excluding install_config)");
+		FileFilter excludeInstallConfig = pathname -> !"install_config".equals(pathname.getName());
+
+		long copyStart = System.currentTimeMillis();
+		FileUtils.copyDirectory(sourcePy.toFile(), testPy.toFile(), excludeInstallConfig);
+		long copyDurationMs = System.currentTimeMillis() - copyStart;
+		classLogger.info("Copy completed in {} ms ({} s)", copyDurationMs, copyDurationMs / 1000.0);
 
 	}
 

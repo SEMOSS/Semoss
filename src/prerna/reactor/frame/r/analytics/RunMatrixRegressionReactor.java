@@ -27,9 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -37,7 +37,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.reactor.task.constant.ConstantTaskCreationHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -69,7 +68,7 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		// figure out inputs
 		List<String> panelIds = getPanelId();
 		if (panelIds == null || panelIds.isEmpty()) {
-			panelIds = new Vector<String>();
+			panelIds = new ArrayList<>();
 			String panelId = rand.nextInt(5000) + "";
 			panelIds.add(panelId);
 			panelId = rand.nextInt(5000) + "";
@@ -107,12 +106,7 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		String resultsList = runRLinearRegression(frameName, predictionCol, retHeaders, logger);
 		logger.info("Done iterating through data to determine regression");
 
-		/////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////
-		//////////////////////// Coefficient Table Object/////////////////////////////
-		////////////////////////////////////////////////////////////////////////////
-
-		// THIS DOES NOT GET USED:
+		// Coefficient Table Object
 
 		// the length of the object will be numCols + 1 (because of the intercept)
 		// there will always be 2 rows (column header and coefficient)
@@ -137,10 +131,7 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		NounMetadata noun1 = new NounMetadata(gridTaskData, PixelDataType.FORMATTED_DATA_SET,
 				PixelOperationType.TASK_DATA);
 
-		/////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////
-		//////////////////////// Actuals vs Fitted Object/////////////////////////////
-		////////////////////////////////////////////////////////////////////////////
+		// Actuals vs Fitted Object
 
 		// we need to add a unique row id
 		String[] dataTableHeaders = new String[] { "ROW_ID", "Actual", "Predicted" };
@@ -174,20 +165,12 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 				PixelOperationType.TASK_DATA);
 		noun2.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Matrix regression ran successfully!"));
 
-		List<NounMetadata> tasks = new Vector<NounMetadata>();
+		List<NounMetadata> tasks = new ArrayList<NounMetadata>();
 		tasks.add(noun1);
 		tasks.add(noun2);
 		return new NounMetadata(tasks, PixelDataType.VECTOR, PixelOperationType.VECTOR,
 				PixelOperationType.FORCE_SAVE_DATA_TRANSFORMATION);
 	}
-
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	/*
-	 * Running regression R script
-	 */
 
 	private String runRLinearRegression(String frameName, String predictionCol, String[] retHeaders, Logger logger) {
 		StringBuilder rsb = new StringBuilder();
@@ -237,30 +220,18 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 		return resultsListName;
 	}
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	/*
-	 * Retrieving inputs
-	 */
-
 	private List<String> getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
-		if (columnGrs != null && !columnGrs.isEmpty()) {
-			return columnGrs.getAllStrValues();
+		List<String> panelIds = getListString(keysToGet[2]);
+		if (panelIds != null && !panelIds.isEmpty()) {
+			return panelIds;
 		}
 		return null;
 	}
 
 	private String getPrediction(Logger logger) {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(Y_COLUMN);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
+		String prediction = getString(Y_COLUMN);
+		if (prediction != null && !prediction.isEmpty()) {
+			return prediction;
 		}
 
 		// else, throw error
@@ -273,17 +244,9 @@ public class RunMatrixRegressionReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(X_COLUMNS);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for (Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
-			}
+		List<String> columns = getListString(X_COLUMNS);
+		if (columns != null && !columns.isEmpty()) {
+			return columns;
 		}
 		return null;
 	}

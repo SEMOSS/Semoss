@@ -97,6 +97,7 @@ public final class MCPUtility {
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
+	public static final String UI_AUTO_OPEN = "autoOpen";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -1157,6 +1158,10 @@ public final class MCPUtility {
 			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
 			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
+		}
+
+		if (uiJson.has(UI_AUTO_OPEN) && !uiJson.isNull(UI_AUTO_OPEN)) {
+			validUiJson.put(UI_AUTO_OPEN, uiJson.getBoolean(UI_AUTO_OPEN));
 		}
 
 		return validUiJson;

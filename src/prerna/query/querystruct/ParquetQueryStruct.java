@@ -28,11 +28,11 @@
 package prerna.query.querystruct;
 
 public class ParquetQueryStruct extends AbstractFileQueryStruct {
-	
+
 	public ParquetQueryStruct() {
-		this.setQsType(QUERY_STRUCT_TYPE.PARQUET_FILE);
+		this.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.PARQUET_FILE);
 	}
-	
+
 	@Override
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		ParquetQueryStruct newQs = new ParquetQueryStruct();

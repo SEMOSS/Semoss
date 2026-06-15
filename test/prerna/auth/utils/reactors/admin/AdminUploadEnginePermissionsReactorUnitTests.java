@@ -305,14 +305,14 @@ public class AdminUploadEnginePermissionsReactorUnitTests {
 
 			NounMetadata result = reactor.execute();
 
-			// Commit failure is logged but not rethrown — result is still returned
+			// Commit failure is logged but not rethrown - result is still returned
 			assertTrue(((String) result.getValue()).startsWith("Time to finish = "));
 			verify(conn).commit();
 		}
 	}
 
 	// ===================================================================
-	// getExcelIterator() test — real Excel file via reflection
+	// getExcelIterator() test - real Excel file via reflection
 	// ===================================================================
 
 	@Test
@@ -333,7 +333,7 @@ public class AdminUploadEnginePermissionsReactorUnitTests {
 	}
 
 	// ===================================================================
-	// loadExcelFile() logic tests — no real files, minimal static mocking
+	// loadExcelFile() logic tests - no real files, minimal static mocking
 	// ===================================================================
 
 	@Test

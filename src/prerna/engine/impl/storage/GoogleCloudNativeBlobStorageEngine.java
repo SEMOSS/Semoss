@@ -38,7 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -108,7 +108,6 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		classLogger.info("Successfully connected to GCS Bucket: {}", this.BUCKET);
-
 	}
 
 	public void createServiceClient() throws FileNotFoundException, IOException {
@@ -223,8 +222,9 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			} else {
 				details.put("Size", blob.getSize());
 				details.put("MimeType", blob.getContentType());
-				Long updateTime = blob.getUpdateTime();
-				details.put("ModTime", updateTime == null ? null : Instant.ofEpochMilli(updateTime).toString());
+				OffsetDateTime updateTime = blob.getUpdateTimeOffsetDateTime();
+				details.put("ModTime",
+						updateTime == null ? null : String.valueOf(updateTime.toInstant().toEpochMilli()));
 
 				Map<String, String> rawMetadata = blob.getMetadata();
 				if (rawMetadata != null && !rawMetadata.isEmpty()) {
@@ -269,14 +269,16 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Delete extra blobs from azure storage
 			syncStorageDeletion(storage, storagePath, localBasePath);
 
-			Files.walk(localFilePath).filter(Files::isRegularFile).forEach(file -> {
-				try {
-					uploadedFiles.add(uploadingFileToGCS(file, localBasePath, storagePath, metadata));
-				} catch (Exception e) {
-					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: {}", file, e);
-				}
-			});
+			try (Stream<Path> stream = Files.walk(localFilePath)) {
+				stream.filter(Files::isRegularFile).forEach(file -> {
+					try {
+						uploadedFiles.add(uploadingFileToGCS(file, localBasePath, storagePath, metadata));
+					} catch (Exception e) {
+						failedFiles.add(file.toString());
+						classLogger.error("Failed to upload file: {}", file, e);
+					}
+				});
+			}
 			found = true;
 		} catch (Exception e) {
 			classLogger.error("Sync operation failed. Rolling back failed uploads.", e);
@@ -346,16 +348,17 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Delete local files not present in GCS
-		Files.walk(localDirectory).filter(Files::isRegularFile)
-				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
-					try {
-						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: {}", localFile);
-					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: {}", localFile, e);
-					}
-				});
-
+		try (Stream<Path> stream = Files.walk(localDirectory)) {
+			stream.filter(Files::isRegularFile).filter(localFile -> !cloudFiles.contains(localFile.toString()))
+					.forEach(localFile -> {
+						try {
+							Files.delete(localFile);
+							classLogger.info("Deleted extra local file: {}", localFile);
+						} catch (IOException e) {
+							classLogger.error("Failed to delete extra file: {}", localFile, e);
+						}
+					});
+		}
 		// Delete Empty Directories Locally
 		deleteEmptyDirectories(localDirectory);
 
@@ -389,8 +392,8 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			deleteEmptyDirectories(filePath);
 
 			if (Files.isDirectory(filePath)) {
-				try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
-					fileStream.forEach(file -> {
+				try (Stream<Path> stream = Files.walk(filePath)) {
+					stream.filter(Files::isRegularFile).forEach(file -> {
 						try {
 							uploadedFiles.add(uploadFileToGCS(filePath, file, storageFolderPath, metadata));
 						} catch (Exception e) {
@@ -790,9 +793,8 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyDirectories(Path rootPath) {
-		try {
-
-			List<Path> directories = Files.walk(rootPath).sorted(Comparator.reverseOrder()) // Delete children first
+		try (Stream<Path> stream = Files.walk(rootPath)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
 					.filter(Files::isDirectory).collect(Collectors.toList());
 
 			for (Path dir : directories) {

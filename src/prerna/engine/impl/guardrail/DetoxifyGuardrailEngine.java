@@ -109,7 +109,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 			threshold = Double.parseDouble(keyValue.get("threshold"));
 		}
 		String script = "model.predict(\"\"\"" + prompt + "\"\"\")";
-		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPy(script);
+		Map<String, Object> value = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
 
 		boolean pass = true;
 		for (String category : value.keySet()) {
@@ -208,7 +208,7 @@ public class DetoxifyGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		try {
 			String execCommand = "from detoxify import Detoxify\n" + "model = Detoxify('original')";
 
-			this.pyTranslator.runScript(execCommand);
+			this.pyTranslator.runScriptNoCancelTrace(execCommand);
 
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)

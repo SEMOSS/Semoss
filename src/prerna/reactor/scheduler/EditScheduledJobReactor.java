@@ -51,7 +51,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class EditScheduledJobReactor extends ScheduleJobReactor {
@@ -63,16 +62,16 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 	private static final String CURRENT_JOB_GROUP = "curJobGroup";
 
 	public EditScheduledJobReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.CRON_TZ.getKey(), 
-				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), 
-				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, CURRENT_JOB_NAME, CURRENT_JOB_GROUP, 
-				ReactorKeysEnum.JOB_TAGS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_NAME.getKey(),
+				ReactorKeysEnum.JOB_GROUP.getKey(), ReactorKeysEnum.CRON_EXPRESSION.getKey(),
+				ReactorKeysEnum.CRON_TZ.getKey(), ReactorKeysEnum.RECIPE.getKey(),
+				ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, CURRENT_JOB_NAME,
+				CURRENT_JOB_GROUP, ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
 		organizeKeys();
@@ -85,16 +84,16 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		String cronExpression = this.keyValue.get(ReactorKeysEnum.CRON_EXPRESSION.getKey());
 		TimeZone cronTimeZone = null;
 		String cronTz = this.keyValue.get(ReactorKeysEnum.CRON_TZ.getKey());
-		if(cronTz == null || (cronTz=cronTz.trim()).isEmpty()) {
+		if (cronTz == null || (cronTz = cronTz.trim()).isEmpty()) {
 			cronTz = Utility.getApplicationTimeZoneId();
 		}
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to resolve cron time zone '{}': {}", cronTz, e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
-		
+
 		List<String> jobTags = getJobTags();
 
 		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
@@ -103,7 +102,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 
@@ -112,7 +111,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 		String recipeParameters = this.keyValue.get(ReactorKeysEnum.RECIPE_PARAMETERS.getKey());
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
-		if(recipeParameters == null) {
+		if (recipeParameters == null) {
 			recipeParameters = "";
 		}
 
@@ -120,18 +119,19 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String uiState = this.keyValue.get(UI_STATE);
-		if(uiState == null) {
-			throw new NullPointerException("UI State is null and needs to be passed");
-		}
+		String uiState = null;
+//		String uiState = this.keyValue.get(UI_STATE);
+//		if(uiState == null) {
+//			throw new NullPointerException("UI State is null and needs to be passed");
+//		}
 
 		// existing name/group
 		String curJobName = this.keyValue.get(CURRENT_JOB_NAME);
-		if(curJobName == null) {
+		if (curJobName == null) {
 			curJobName = jobName;
 		}
 		String curJobGroup = this.keyValue.get(CURRENT_JOB_GROUP);
-		if(curJobGroup == null) {
+		if (curJobGroup == null) {
 			curJobGroup = jobGroup;
 		}
 		try {
@@ -142,9 +142,9 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			// get user access information
 			List<AuthProvider> authProviders = user.getLogins();
-			StringBuilder providerInfo = new StringBuilder(); 
+			StringBuilder providerInfo = new StringBuilder();
 			for (int i = 0; i < authProviders.size(); i++) {
-				AuthProvider authProvider = authProviders.get(i); 
+				AuthProvider authProvider = authProviders.get(i);
 				AccessToken token = user.getAccessToken(authProvider);
 				// save user id for later insertion
 				userId = token.getId();
@@ -154,35 +154,31 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				}
 			}
 
-			
 			// the id does not change
 			// but technically the group does change at the moment
 			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
 			// if job does not exist throw error
 			if (!scheduler.checkExists(jobKey)) {
-				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
-				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
+				classLogger.error("Job {} could not be found to edit", Utility.cleanLogString(jobKey.toString()));
+				throw new IllegalArgumentException(
+						"job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 			}
-			
+
 			try {
 				JobDetail currentJobDetail = scheduler.getJobDetail(jobKey);
 				JobDataMap currentJobDataMap = currentJobDetail.getJobDataMap();
 				currentJobDataMap.clear();
-				JobDataMap newJobDataMap = getJobDataMap(jobId, jobName, jobGroup, 
-						cronExpression, cronTimeZone, recipe, recipeParameters, 
-						triggerOnLoad, uiState, providerInfo.toString());
+				JobDataMap newJobDataMap = getJobDataMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+						recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
 				// add the new job data map into the job detail
 				currentJobDataMap.putAll(newJobDataMap);
 				// add back the updated job detail
 				scheduler.addJob(currentJobDetail, true);
-				
+
 				// edit the current recipe
-				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, 
-						jobName, jobGroup, 
-						cronExpression, cronTimeZone,
-						recipe, recipeParameters, 
-						"Default", triggerOnLoad, uiState, 
-						curJobName, curJobGroup, jobTags);
+				SchedulerDatabaseUtility.updateJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
+						cronTimeZone, recipe, recipeParameters, "Default", triggerOnLoad, uiState, curJobName,
+						curJobGroup, jobTags);
 
 				// update the trigger
 				String triggerName = jobId.concat("Trigger");
@@ -190,7 +186,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				TriggerKey triggerKey = TriggerKey.triggerKey(triggerName, triggerGroup);
 				Trigger trigger = TriggerBuilder.newTrigger().withIdentity(triggerName, triggerGroup)
 						.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
-								.inTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()))).build();
+								.inTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId())))
+						.build();
 				// reschedule job
 				if (scheduler.checkExists(jobKey)) {
 					scheduler.rescheduleJob(triggerKey, trigger);
@@ -204,14 +201,13 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 				triggerJobNow(jobKey);
 			}
 
-			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, 
-					cronExpression, cronTimeZone, 
-					recipe, recipeParameters,
-					triggerOnLoad, uiState, providerInfo.toString());
-						
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to edit Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 			throw new IllegalArgumentException("Unable to schedule the job. Error message = " + se.getMessage());
 		}
 	}

@@ -26,6 +26,7 @@
  * 	GNU General Public License for more details.
  *******************************************************************************/
 package prerna.reactor.algorithms.xray;
+
 //package prerna.sablecc2.reactor.algorithms.xray;
 //
 //import java.io.File;
@@ -949,7 +950,7 @@ package prerna.reactor.algorithms.xray;
 //				funSelector.setDistinct(distinct);
 //				qs2.addSelector(funSelector);
 //			}
-//			qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+//			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 //
 //			Integer count = 0;
 //			IRawSelectWrapper it = null;

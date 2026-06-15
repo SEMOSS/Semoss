@@ -27,20 +27,29 @@
  *******************************************************************************/
 package prerna.ds.nativeframe;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -59,18 +68,15 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Utility;
 
 public class NativeFrameUnitTests {
 
@@ -84,7 +90,7 @@ public class NativeFrameUnitTests {
 		assertNotNull(frame.getQueryStruct());
 		assertNotNull(frame.getOriginalQueryStruct());
 		assertSame(frame.getQueryStruct(), frame.getOriginalQueryStruct());
-		assertEquals(QUERY_STRUCT_TYPE.ENGINE, frame.getQueryStruct().getQsType());
+		assertEquals(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, frame.getQueryStruct().getQsType());
 	}
 
 	@Test
@@ -94,7 +100,7 @@ public class NativeFrameUnitTests {
 		assertNotNull(frame.getQueryStruct());
 		assertNotNull(frame.getOriginalQueryStruct());
 		assertSame(frame.getQueryStruct(), frame.getOriginalQueryStruct());
-		assertEquals(QUERY_STRUCT_TYPE.ENGINE, frame.getQueryStruct().getQsType());
+		assertEquals(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, frame.getQueryStruct().getQsType());
 	}
 
 	@Test
@@ -409,7 +415,8 @@ public class NativeFrameUnitTests {
 			SelectQueryStruct inputQs = new SelectQueryStruct();
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -441,7 +448,8 @@ public class NativeFrameUnitTests {
 			SelectQueryStruct inputQs = new SelectQueryStruct();
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -472,7 +480,8 @@ public class NativeFrameUnitTests {
 			inputQs.addExplicitFilter(inputFilter);
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -498,7 +507,8 @@ public class NativeFrameUnitTests {
 			SelectQueryStruct inputQs = new SelectQueryStruct();
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -520,13 +530,15 @@ public class NativeFrameUnitTests {
 			OwlTemporalEngineMeta mockMeta = mock(OwlTemporalEngineMeta.class);
 			setMetaData(frame, mockMeta);
 
-			// Input QS has filter on a DIFFERENT column (Col2) -> original filter should be merged
+			// Input QS has filter on a DIFFERENT column (Col2) -> original filter should be
+			// merged
 			SelectQueryStruct inputQs = new SelectQueryStruct();
 			SimpleQueryFilter inputFilter = SimpleQueryFilter.makeColToValFilter("Table__Col2", "==", "B");
 			inputQs.addExplicitFilter(inputFilter);
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -548,7 +560,8 @@ public class NativeFrameUnitTests {
 			SelectQueryStruct inputQs = new SelectQueryStruct();
 
 			try (MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
-				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
+				convStatic.when(
+						() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 						.thenAnswer(inv -> inv.getArgument(0));
 
 				SelectQueryStruct result = frame.prepQsForExecution(inputQs);
@@ -599,7 +612,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(eq(mockEngine), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -674,7 +687,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(eq(mockEngine), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), eq(mockMeta)))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -727,14 +740,16 @@ public class NativeFrameUnitTests {
 
 			IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 			IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-			when(mockRow.getValues()).thenReturn(new Object[]{"col", 42});
+			when(mockRow.getValues()).thenReturn(new Object[] { "col", 42 });
 			when(mockWrapper.next()).thenReturn(mockRow);
 
 			WrapperManager mockWM = mock(WrapperManager.class);
-			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
+			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class)))
+					.thenReturn(mockWrapper);
 
 			try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-				 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+					MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(
+							QSAliasToPhysicalConverter.class)) {
 				wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 						.thenAnswer(inv -> inv.getArgument(0));
@@ -750,14 +765,16 @@ public class NativeFrameUnitTests {
 
 			IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 			IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-			when(mockRow.getValues()).thenReturn(new Object[]{"col", 99.9});
+			when(mockRow.getValues()).thenReturn(new Object[] { "col", 99.9 });
 			when(mockWrapper.next()).thenReturn(mockRow);
 
 			WrapperManager mockWM = mock(WrapperManager.class);
-			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
+			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class)))
+					.thenReturn(mockWrapper);
 
 			try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-				 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+					MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(
+							QSAliasToPhysicalConverter.class)) {
 				wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 						.thenAnswer(inv -> inv.getArgument(0));
@@ -773,14 +790,16 @@ public class NativeFrameUnitTests {
 
 			IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 			IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-			when(mockRow.getValues()).thenReturn(new Object[]{"col", 5});
+			when(mockRow.getValues()).thenReturn(new Object[] { "col", 5 });
 			when(mockWrapper.next()).thenReturn(mockRow);
 
 			WrapperManager mockWM = mock(WrapperManager.class);
-			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
+			when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class)))
+					.thenReturn(mockWrapper);
 
 			try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-				 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+					MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(
+							QSAliasToPhysicalConverter.class)) {
 				wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 						.thenAnswer(inv -> inv.getArgument(0));
@@ -799,7 +818,8 @@ public class NativeFrameUnitTests {
 					.thenThrow(new RuntimeException("query error"));
 
 			try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-				 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+					MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(
+							QSAliasToPhysicalConverter.class)) {
 				wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 				convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 						.thenAnswer(inv -> inv.getArgument(0));
@@ -827,8 +847,8 @@ public class NativeFrameUnitTests {
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow row1 = mock(IHeadersDataRow.class);
 		IHeadersDataRow row2 = mock(IHeadersDataRow.class);
-		when(row1.getValues()).thenReturn(new Object[]{"Alice"});
-		when(row2.getValues()).thenReturn(new Object[]{"Bob"});
+		when(row1.getValues()).thenReturn(new Object[] { "Alice" });
+		when(row2.getValues()).thenReturn(new Object[] { "Bob" });
 		when(mockWrapper.hasNext()).thenReturn(true, true, false);
 		when(mockWrapper.next()).thenReturn(row1, row2);
 
@@ -836,7 +856,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -864,8 +884,8 @@ public class NativeFrameUnitTests {
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow row1 = mock(IHeadersDataRow.class);
 		IHeadersDataRow row2 = mock(IHeadersDataRow.class);
-		when(row1.getValues()).thenReturn(new Object[]{1.0});
-		when(row2.getValues()).thenReturn(new Object[]{2.5});
+		when(row1.getValues()).thenReturn(new Object[] { 1.0 });
+		when(row2.getValues()).thenReturn(new Object[] { 2.5 });
 		when(mockWrapper.hasNext()).thenReturn(true, true, false);
 		when(mockWrapper.next()).thenReturn(row1, row2);
 
@@ -873,7 +893,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -949,7 +969,7 @@ public class NativeFrameUnitTests {
 		assertSame(frame2.getQueryStruct(), frame2.getOriginalQueryStruct());
 	}
 
-	// ── querySQL Tests ──────────────────────────────────────────────────
+	// -- querySQL Tests --------------------------------------------------
 
 	@Test
 	void testQuerySQL() throws Exception {
@@ -966,19 +986,19 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow row1 = mock(IHeadersDataRow.class);
-		when(row1.getValues()).thenReturn(new Object[]{"Alice", 30});
+		when(row1.getValues()).thenReturn(new Object[] { "Alice", 30 });
 		IHeadersDataRow row2 = mock(IHeadersDataRow.class);
-		when(row2.getValues()).thenReturn(new Object[]{"Bob", 25});
+		when(row2.getValues()).thenReturn(new Object[] { "Bob", 25 });
 		when(mockWrapper.hasNext()).thenReturn(true, true, false);
 		when(mockWrapper.next()).thenReturn(row1, row2);
-		when(mockWrapper.getHeaders()).thenReturn(new String[]{"name", "age"});
-		when(mockWrapper.getTypes()).thenReturn(new SemossDataType[]{SemossDataType.STRING, SemossDataType.INT});
+		when(mockWrapper.getHeaders()).thenReturn(new String[] { "name", "age" });
+		when(mockWrapper.getTypes()).thenReturn(new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT });
 
 		WrapperManager mockWM = mock(WrapperManager.class);
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1012,7 +1032,7 @@ public class NativeFrameUnitTests {
 				.thenThrow(new RuntimeException("db error"));
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1021,7 +1041,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── Query exception path Tests ──────────────────────────────────────
+	// -- Query exception path Tests --------------------------------------
 
 	@Test
 	void testGetMin_queryException_returnsNull() throws Exception {
@@ -1042,7 +1062,7 @@ public class NativeFrameUnitTests {
 				.thenThrow(new RuntimeException("query error"));
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1069,7 +1089,7 @@ public class NativeFrameUnitTests {
 				.thenThrow(new RuntimeException("query error"));
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1097,7 +1117,7 @@ public class NativeFrameUnitTests {
 				.thenThrow(new RuntimeException("query error"));
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1122,15 +1142,15 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		when(mockWrapper.hasNext()).thenReturn(false);
-		when(mockWrapper.getHeaders()).thenReturn(new String[]{"name"});
-		when(mockWrapper.getTypes()).thenReturn(new SemossDataType[]{SemossDataType.STRING});
+		when(mockWrapper.getHeaders()).thenReturn(new String[] { "name" });
+		when(mockWrapper.getTypes()).thenReturn(new SemossDataType[] { SemossDataType.STRING });
 		doThrow(new IOException("close error")).when(mockWrapper).close();
 
 		WrapperManager mockWM = mock(WrapperManager.class);
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1140,7 +1160,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── IOException close() path Tests ──────────────────────────────────
+	// -- IOException close() path Tests ----------------------------------
 
 	@Test
 	void testIsEmpty_closeThrowsIOException() throws Exception {
@@ -1178,7 +1198,7 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-		when(mockRow.getValues()).thenReturn(new Object[]{"col", 42});
+		when(mockRow.getValues()).thenReturn(new Object[] { "col", 42 });
 		when(mockWrapper.next()).thenReturn(mockRow);
 		doThrow(new IOException("close error")).when(mockWrapper).close();
 
@@ -1186,7 +1206,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1212,7 +1232,7 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-		when(mockRow.getValues()).thenReturn(new Object[]{"col", 3.14});
+		when(mockRow.getValues()).thenReturn(new Object[] { "col", 3.14 });
 		when(mockWrapper.next()).thenReturn(mockRow);
 		doThrow(new IOException("close error")).when(mockWrapper).close();
 
@@ -1220,7 +1240,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1244,7 +1264,7 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-		when(mockRow.getValues()).thenReturn(new Object[]{"val1"});
+		when(mockRow.getValues()).thenReturn(new Object[] { "val1" });
 		when(mockWrapper.hasNext()).thenReturn(true, false);
 		when(mockWrapper.next()).thenReturn(mockRow);
 		doThrow(new IOException("close error")).when(mockWrapper).close();
@@ -1253,7 +1273,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1279,7 +1299,7 @@ public class NativeFrameUnitTests {
 
 		IRawSelectWrapper mockWrapper = mock(IRawSelectWrapper.class);
 		IHeadersDataRow mockRow = mock(IHeadersDataRow.class);
-		when(mockRow.getValues()).thenReturn(new Object[]{7.5});
+		when(mockRow.getValues()).thenReturn(new Object[] { 7.5 });
 		when(mockWrapper.hasNext()).thenReturn(true, false);
 		when(mockWrapper.next()).thenReturn(mockRow);
 		doThrow(new IOException("close error")).when(mockWrapper).close();
@@ -1288,7 +1308,7 @@ public class NativeFrameUnitTests {
 		when(mockWM.getRawWrapper(any(IDatabaseEngine.class), any(SelectQueryStruct.class))).thenReturn(mockWrapper);
 
 		try (MockedStatic<WrapperManager> wmStatic = mockStatic(WrapperManager.class);
-			 MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
+				MockedStatic<QSAliasToPhysicalConverter> convStatic = mockStatic(QSAliasToPhysicalConverter.class)) {
 			wmStatic.when(WrapperManager::getInstance).thenReturn(mockWM);
 			convStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(any(SelectQueryStruct.class), any()))
 					.thenAnswer(inv -> inv.getArgument(0));
@@ -1299,7 +1319,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── Deprecated method Tests ─────────────────────────────────────────
+	// -- Deprecated method Tests -----------------------------------------
 
 	@Test
 	void testDeprecatedMethods_noOp() {
@@ -1307,6 +1327,6 @@ public class NativeFrameUnitTests {
 		// These should not throw
 		frame.processDataMakerComponent(mock(DataMakerComponent.class));
 		frame.removeColumn("col");
-		frame.addRow(new Object[]{"a"}, new String[]{"h"});
+		frame.addRow(new Object[] { "a" }, new String[] { "h" });
 	}
 }

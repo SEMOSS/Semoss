@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -47,42 +46,42 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class SelectQueryStruct extends AbstractQueryStruct {
-	
-	protected boolean isDistinct = true;
-	
-	protected List<IQuerySort> orderByOperations = new Vector<>();
-	protected List<IQuerySelector> groupBy = new Vector<>();
 
-	// panel specific 
-	protected transient List<IQuerySort> panelOrderByOperations = new Vector<>();
-	
+	protected boolean isDistinct = true;
+
+	protected List<IQuerySort> orderByOperations = new ArrayList<>();
+	protected List<IQuerySelector> groupBy = new ArrayList<>();
+
+	// panel specific
+	protected transient List<IQuerySort> panelOrderByOperations = new ArrayList<>();
+
 	protected long limit = -1;
 	protected long offset = -1;
-	
+
 	// query is the complete query overhall
 	public enum Query_Part {
 		SELECT, FILTER, HAVING, SORT, GROUP, AGGREGATE, QUERY;
-	} 
-	
+	}
+
 	protected transient Map queryPartHash = new HashMap();
-	
+
 	////////////////////////////////////////////////////
 	///////////////////// ORDERING /////////////////////
-	////////////////////////////////////////////////////	
-	
+	////////////////////////////////////////////////////
+
 	public void setOrderBy(List<IQuerySort> orderByOperations) {
 		this.orderByOperations = orderByOperations;
 	}
-	
+
 	public void addOrderBy(List<IQuerySort> orderByOperations) {
-		for(IQuerySort orderBy : orderByOperations) {
+		for (IQuerySort orderBy : orderByOperations) {
 			addOrderBy(orderBy);
 		}
 	}
-	
+
 	public void addOrderBy(String concept, String property, String sortDir) {
-		if(property == null) {
-			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
+		if (property == null) {
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
 		}
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector();
 		selector.setTable(concept);
@@ -90,50 +89,51 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		selector.setSortDir(sortDir);
 		this.orderByOperations.add(selector);
 	}
-	
+
 	public void addOrderBy(String qsName) {
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
 		this.orderByOperations.add(selector);
 	}
-	
+
 	public void addOrderBy(String qsName, String sortDir) {
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
 		selector.setSortDir(sortDir);
 		this.orderByOperations.add(selector);
 	}
-	
+
 	public void addOrderBy(IQuerySort selector) {
 		this.orderByOperations.add(selector);
 	}
-	
+
 	/**
-	 * Returns order bys defined in the qs
-	 * NOTE - USE COMBINED ORDER BY TO COMBINE PANEL ORDER BY ON VISUALIZATIONS
+	 * Returns order bys defined in the qs NOTE - USE COMBINED ORDER BY TO COMBINE
+	 * PANEL ORDER BY ON VISUALIZATIONS
+	 * 
 	 * @return
 	 */
 	public List<IQuerySort> getOrderBy() {
 		return this.orderByOperations;
 	}
-	
+
 	public List<IQuerySort> getCombinedOrderBy() {
 		List<IQuerySort> combinedSorts = new ArrayList<>();
 		combinedSorts.addAll(this.orderByOperations);
 		combinedSorts.addAll(this.panelOrderByOperations);
 		return combinedSorts;
 	}
-	
+
 	public void setPanelOrderBy(List<IQuerySort> panelOrderByOperations) {
 		this.panelOrderByOperations = panelOrderByOperations;
 	}
-	
+
 	public List<IQuerySort> getPanelOrderBy() {
 		return this.panelOrderByOperations;
 	}
-	
+
 	// overriding methods for ordering with panels
 	@Override
 	public void addPanel(InsightPanel panel) {
-		if(!this.panelList.contains(panel)) {
+		if (!this.panelList.contains(panel)) {
 			this.panelList.add(panel);
 			this.panelIdList.add(panel.getPanelId());
 			// also add in the current panel state
@@ -141,7 +141,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 			this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
 		}
 	}
-	
+
 	@Override
 	public void setPanelList(List<InsightPanel> panelList) {
 		// this method is same as the super
@@ -149,200 +149,204 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		this.panelList = panelList;
 		this.panelImplicitFilters.clear();
 		this.panelOrderByOperations.clear();
-		for(InsightPanel panel : panelList) {
+		for (InsightPanel panel : panelList) {
 			// also add in the current panel state
 			this.panelImplicitFilters.merge(panel.getPanelFilters());
 			this.panelOrderByOperations.addAll(panel.getPanelOrderBys());
 		}
 	}
-	
+
 	////////////////////////////////////////////////////
 	///////////////////// GROUP BY /////////////////////
 	////////////////////////////////////////////////////
-	
+
 	public void setGroupBy(List<IQuerySelector> groupBy) {
 		this.groupBy = groupBy;
 	}
-	
+
 	public void addGroupBy(IQuerySelector selector) {
 		this.groupBy.add(selector);
 	}
-	
+
 	public void addGroupBy(String concept, String property) {
-		if(property == null) {
-			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER; 
+		if (property == null) {
+			property = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
 		}
 		QueryColumnSelector selector = new QueryColumnSelector();
-		
+
 		selector.setTable(concept);
 		selector.setColumn(property);
 		this.groupBy.add(selector);
 	}
-	
+
 	public List<IQuerySelector> getGroupBy() {
 		return this.groupBy;
 	}
-	
+
 	////////////////////////////////////////////////////
 	/////////////////////// OTHER //////////////////////
 	////////////////////////////////////////////////////
-	
+
 	public void setLimit(long limit) {
 		this.limit = limit;
 	}
-	
+
 	public long getLimit() {
 		return this.limit;
 	}
-	
+
 	public void setOffSet(long offset) {
 		this.offset = offset;
 	}
-	
+
 	public long getOffset() {
 		return this.offset;
 	}
-	
+
 	public void setDistinct(boolean isDistinct) {
 		this.isDistinct = isDistinct;
 	}
-	
+
 	public boolean isDistinct() {
 		return this.isDistinct;
 	}
-	
+
 	/**
 	 * Return is this column has an existing filter in the QS
+	 * 
 	 * @param column
 	 * @return
 	 */
 	public boolean hasFiltered(String column) {
 		return this.explicitFilters.hasFilter(column);
 	}
-	
+
 	/**
 	 * Return if this column is part of the return
+	 * 
 	 * @param qsName
 	 * @return
 	 */
 	public boolean hasColumn(String qsName) {
-		for(IQuerySelector selector : this.selectors) {
-			if(selector.getQueryStructName().equals(qsName)) {
+		for (IQuerySelector selector : this.selectors) {
+			if (selector.getQueryStructName().equals(qsName)) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	public IQuerySelector findSelectorFromAlias(String alias) {
-		for(IQuerySelector selector : this.selectors) {
-			if(selector.getAlias().equals(alias)) {
+		for (IQuerySelector selector : this.selectors) {
+			if (selector.getAlias().equals(alias)) {
 				return selector;
 			}
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Returns if no information has been set into the query struct
+	 * 
 	 * @return
 	 */
 	public boolean isEmpty() {
 		// if any of the main 3 objects within the QS have info, return false
-		// even in the case that selectors are empty, if other info is set, the QS will still 
-		// return false for this method		
-		return (!this.selectors.isEmpty() || !this.relationsSet.isEmpty() || !this.explicitFilters.isEmpty()) ;
+		// even in the case that selectors are empty, if other info is set, the QS will
+		// still
+		// return false for this method
+		return (!this.selectors.isEmpty() || !this.relationsSet.isEmpty() || !this.explicitFilters.isEmpty());
 	}
-	
+
 	/**
 	 * 
 	 * @param incomingQS
 	 * 
-	 * This method is responsible for merging "incomingQS's" data with THIS querystruct
+	 *                   This method is responsible for merging "incomingQS's" data
+	 *                   with THIS querystruct
 	 */
+	@Override
 	public void merge(AbstractQueryStruct incomingQS) {
 		super.merge(incomingQS);
-		if(incomingQS instanceof SelectQueryStruct) {
+		if (incomingQS instanceof SelectQueryStruct) {
 			SelectQueryStruct selectQS = (SelectQueryStruct) incomingQS;
 			mergeGroupBy(selectQS.groupBy);
 			mergeOrderBy(selectQS.orderByOperations);
-			if(selectQS.limit > -1) {
+			if (selectQS.limit > -1) {
 				setLimit(selectQS.limit);
 			}
-			
-			if(selectQS.offset > -1) {
+
+			if (selectQS.offset > -1) {
 				setOffSet(selectQS.offset);
 			}
 		}
 	}
-	
+
 	/**
 	 * 
-	 * @param groupBys
-	 * Merge the group by selectors
+	 * @param groupBys Merge the group by selectors
 	 */
 	public void mergeGroupBy(List<IQuerySelector> groupBys) {
-		for(IQuerySelector selector : groupBys) {
-			if(!this.groupBy.contains(selector)) {
+		for (IQuerySelector selector : groupBys) {
+			if (!this.groupBy.contains(selector)) {
 				this.groupBy.add(selector);
 			}
 		}
 	}
-	
+
 	/**
 	 * 
-	 * @param orderBys
-	 * Merge the order by selectors
+	 * @param orderBys Merge the order by selectors
 	 */
 	public void mergeOrderBy(List<IQuerySort> orderBys) {
-		for(IQuerySort selector : orderBys) {
-			if(!this.orderByOperations.contains(selector)) {
+		for (IQuerySort selector : orderBys) {
+			if (!this.orderByOperations.contains(selector)) {
 				this.orderByOperations.add(selector);
 			}
 		}
 	}
-	
+
 	////////////////////////////////////////////////////
 	////////////// For Task Meta Info //////////////////
 	////////////////////////////////////////////////////
 
-	//TODO: this only handles base case of columns and math on a single column
+	// TODO: this only handles base case of columns and math on a single column
 	public List<Map<String, Object>> getHeaderInfo() {
 		// these are the only types
 		// where we have metadata for additional types
-		boolean frameQuery = qsType == QUERY_STRUCT_TYPE.FRAME;
-		boolean engineQuery = qsType == QUERY_STRUCT_TYPE.ENGINE;
-		
-		List<Map<String, Object>> headerInfo = new Vector<Map<String, Object>>();
-		for(IQuerySelector selector : this.selectors) {
+		boolean frameQuery = qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME;
+		boolean engineQuery = qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE;
+
+		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
+		for (IQuerySelector selector : this.selectors) {
 			Map<String, Object> selectorMap = new HashMap<String, Object>();
 			// get header information based on the type of column
 			IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
 			String alias = selector.getAlias();
 			selectorMap.put("alias", alias);
 			selectorMap.put("header", selector.getQueryStructName());
-			if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+			if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				selectorMap.put("derived", false);
-				
+
 				// right now, just adding in additional data type
-				// we pull the type from the iterator which is 
+				// we pull the type from the iterator which is
 				// the only place where we call this
 				addDataType((QueryColumnSelector) selector, frameQuery, engineQuery, selectorMap);
-				
+
 			} else {
 				// if we have a constant, we will have it be derived false
 				// otherwise derived is true
 				boolean derived = selectorType != IQuerySelector.SELECTOR_TYPE.CONSTANT;
 				selectorMap.put("derived", derived);
-				List<String> groupBy = new Vector<String>();
-				for(IQuerySelector groupBySelector : this.groupBy) {
+				List<String> groupBy = new ArrayList<String>();
+				for (IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
 				}
 				selectorMap.put("groupBy", groupBy);
 			}
 			// if it is a math, then there must be a group by associated with it
-			if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				QueryFunctionSelector mathSelector = (QueryFunctionSelector) selector;
 				selectorMap.put("header", alias);
 				selectorMap.put("math", QueryFunctionHelper.getPrettyName(mathSelector.getFunction()));
@@ -353,14 +357,14 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				selectorMap.put("calculatedBy", innerSelector.get(0).getQueryStructName());
 
 				// right now, just adding in additional data type
-				// we pull the type from the iterator which is 
+				// we pull the type from the iterator which is
 				// the only place where we call this
-				if(innerSelector.get(0).getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				if (innerSelector.get(0).getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 					addDataType((QueryColumnSelector) innerSelector.get(0), frameQuery, engineQuery, selectorMap);
 				}
-				
-				List<String> groupBy = new Vector<>();
-				for(IQuerySelector groupBySelector : this.groupBy) {
+
+				List<String> groupBy = new ArrayList<>();
+				for (IQuerySelector groupBySelector : this.groupBy) {
 					String groupQs = groupBySelector.getQueryStructName();
 					groupBy.add(groupQs);
 				}
@@ -371,41 +375,42 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		}
 		return headerInfo;
 	}
-	
-	private void addDataType(QueryColumnSelector selector, boolean frameQuery, boolean engineQuery, Map<String, Object> selectorMap) {
+
+	private void addDataType(QueryColumnSelector selector, boolean frameQuery, boolean engineQuery,
+			Map<String, Object> selectorMap) {
 		// add the additional data type if present
 		String additionalDataType = null;
-		if(frameQuery && this.frame != null) {
+		if (frameQuery && this.frame != null) {
 			String name = selector.getQueryStructName();
 			additionalDataType = this.frame.getMetaData().getHeaderAdtlType(name);
-			if(additionalDataType == null) {
+			if (additionalDataType == null) {
 				name = this.frame.getMetaData().getUniqueNameFromAlias(name);
-				if(name != null) {
+				if (name != null) {
 					additionalDataType = this.frame.getMetaData().getHeaderAdtlType(name);
 				}
 			}
-		} else if(engineQuery && getEngine() != null) {
+		} else if (engineQuery && getEngine() != null) {
 			String name = selector.getQueryStructName();
 			String parent = null;
-			if(name.contains("__")) {
+			if (name.contains("__")) {
 				String[] split = name.split("__");
 				parent = split[0];
 				name = split[1];
 			}
 			additionalDataType = MasterDatabaseUtility.getAdditionalDataType(additionalDataType, name, parent);
 		}
-		
-		if(additionalDataType != null) {
+
+		if (additionalDataType != null) {
 			selectorMap.put("additionalDataType", additionalDataType);
 		} else {
 			selectorMap.put("additionalDataType", "");
 		}
 	}
-	
+
 	public List<Map<String, Object>> getSortInfo() {
-		List<Map<String, Object>> orderByInfo = new Vector<Map<String, Object>>();
-		for(IQuerySort orderBy : this.orderByOperations) {
-			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+		List<Map<String, Object>> orderByInfo = new ArrayList<Map<String, Object>>();
+		for (IQuerySort orderBy : this.orderByOperations) {
+			if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector columnSort = (QueryColumnOrderBySelector) orderBy;
 				Map<String, Object> selectorMap = new HashMap<String, Object>();
 				selectorMap.put("alias", columnSort.getAlias());
@@ -413,7 +418,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				selectorMap.put("derived", false);
 				selectorMap.put("dir", columnSort.getSortDir().toString());
 				orderByInfo.add(selectorMap);
-			} else if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
+			} else if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.CUSTOM) {
 				QueryCustomOrderBy customSort = (QueryCustomOrderBy) orderBy;
 				QueryColumnSelector columnSort = customSort.getColumnToSort();
 				Map<String, Object> selectorMap = new HashMap<String, Object>();
@@ -426,20 +431,21 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		}
 		return orderByInfo;
 	}
-	
+
 	/**
-	 * Gets a new QS with the base information moved over
-	 * This is basically the qs type + enginename + csv/excel properties
-	 * Note csv/excel qs overrides this method
+	 * Gets a new QS with the base information moved over This is basically the qs
+	 * type + enginename + csv/excel properties Note csv/excel qs overrides this
+	 * method
+	 * 
 	 * @return
 	 */
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		SelectQueryStruct newQs = new SelectQueryStruct();
 		newQs.setQsType(this.qsType);
-		if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+		if (this.qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			newQs.setEngineId(this.engineId);
 			newQs.setEngine(this.engine);
-		} else if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
+		} else if (this.qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
 		}
 		newQs.setDistinct(this.isDistinct);
@@ -448,17 +454,18 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		newQs.setCustomFromAliasName(this.customFromAliasName);
 		return newQs;
 	}
-	
+
 	/**
 	 * Get an appropriate message
+	 * 
 	 * @param qs
 	 * @return
 	 */
 	public static String getExecutingQueryMessage(SelectQueryStruct qs) {
 		String message = null;
-		if(qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
-				|| qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
-			if(qs.getFrame() instanceof NativeFrame) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
+			if (qs.getFrame() instanceof NativeFrame) {
 				message = "Executing query against the database and generating the result set";
 			} else {
 				message = "Executing query against the frame and generating the result set";
@@ -466,11 +473,10 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		} else {
 			message = "Executing query against the datasource and generating the result set";
 		}
-		
+
 		return message;
 	}
-	
-	
+
 //	/**
 //	 * Logic to process the relationship
 //	 * This takes into consideration intermediary nodes that should not be added to the return hash
@@ -532,7 +538,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 //			}
 //		}
 //	}
-	
+
 //	/**
 //	 * Recursive method to find the shortest path to all the nearest concepts that are being returned as selectors
 //	 * @param endNode					The endNode that is node a selector which we are trying to find the shortest path to 
@@ -580,50 +586,49 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 //			}
 //		}
 //	}
-	
+
 	/**
-	 * This uses the selector list and relations lists to determine how everything is connected
+	 * This uses the selector list and relations lists to determine how everything
+	 * is connected
 	 *
-	 * Will return like this:
-	 * Title --> [Title__Budget, Studio]
-	 * Studio --> [StudioOwner]
-	 * etc.
+	 * Will return like this: Title --> [Title__Budget, Studio] Studio -->
+	 * [StudioOwner] etc.
 	 * 
 	 * @return
 	 */
 	public Map<String, Set<String>> getReturnConnectionsHash() {
 		// create the return edgeHash map
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
-		
+
 		/*
-		 * 1) iterate through and add concepts and properties
-		 * This step is very simple and doesn't require any special logic
-		 * Just need to consider the case when PRIM_KEY_PLACEHOLDER is not present which means
-		 * That the query return only returns the property and not the main concept
+		 * 1) iterate through and add concepts and properties This step is very simple
+		 * and doesn't require any special logic Just need to consider the case when
+		 * PRIM_KEY_PLACEHOLDER is not present which means That the query return only
+		 * returns the property and not the main concept
 		 * 
-		 * 2) iterate through and add the relationships
-		 * This needs to take into consideration intermediary nodes
-		 * e.g. i have concepts a -> b -> c -> d but I only want to return a-> d
-		 * thus, the edge hash should only contain a -> d
+		 * 2) iterate through and add the relationships This needs to take into
+		 * consideration intermediary nodes e.g. i have concepts a -> b -> c -> d but I
+		 * only want to return a-> d thus, the edge hash should only contain a -> d
 		 */
-		
+
 		// 1) iterate through all the selectors
-		for(IQuerySelector anySelector : this.selectors) {
-			if(!(anySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN)) {
+		for (IQuerySelector anySelector : this.selectors) {
+			if (!(anySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN)) {
 				continue;
 			}
 			QueryColumnSelector selector = (QueryColumnSelector) anySelector;
 			String column = selector.getColumn();
 			String table = selector.getTable();
 			edgeHash.putIfAbsent(table, new HashSet<String>());
-			
+
 			boolean isPrimKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER.equals(column);
-			if(!isPrimKey) {
-				edgeHash.put(table+"__"+column, new HashSet<String>()); //add the property as a key pointing to nothing
-				edgeHash.get(table).add(table+"__"+column);  //add the property as a child of the table				
+			if (!isPrimKey) {
+				edgeHash.put(table + "__" + column, new HashSet<String>()); // add the property as a key pointing to
+																			// nothing
+				edgeHash.get(table).add(table + "__" + column); // add the property as a child of the table
 			}
 		}
-		
+
 //		for(String selectorKey: this.selectors.keySet()) {
 //			Vector<String> props = this.selectors.get(selectorKey);
 //			Set<String> downNodeTypes = edgeHash.get(selectorKey);
@@ -651,7 +656,7 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 //			}
 //		}
 
-		// 2) need to determine and connect the appropriate connections based on the 
+		// 2) need to determine and connect the appropriate connections based on the
 //		if(this.relations != null) {
 //			// get the starting concept
 //			for(String startNode : this.relations.keySet()) {
@@ -679,34 +684,31 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 
 		return edgeHash;
 	}
-	
-	public void setPart(Query_Part part, String overrider)
-	{
+
+	public void setPart(Query_Part part, String overrider) {
 		queryPartHash.put(part, overrider);
 	}
-	
-	public Map getParts()
-	{
+
+	public Map getParts() {
 		return queryPartHash;
 	}
-	
-	public void clearParts()
-	{
+
+	public void clearParts() {
 		queryPartHash.clear();
 	}
-	
-	public void setPragmap(Map map)
-	{
+
+	@Override
+	public void setPragmap(Map map) {
 		this.pragmap = map;
 	}
-	
-	public Map getPragmap()
-	{
+
+	@Override
+	public Map getPragmap() {
 		return this.pragmap;
 	}
-	
-	public void clearPragmap()
-	{
+
+	@Override
+	public void clearPragmap() {
 		pragmap.clear();
 	}
 

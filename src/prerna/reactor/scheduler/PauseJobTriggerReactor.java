@@ -42,12 +42,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(PauseJobTriggerReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PauseJobTriggerReactor.class);
 
 	public PauseJobTriggerReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -55,15 +54,16 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
+
 		/**
-		 * PauseJobTrigger(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+		 * PauseJobTrigger(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
 		 * 
-		 * This reactor will pause the job in Quartz but keep the job stored in the database.
-		 * The jobs that are paused can be resumed in the future.
+		 * This reactor will pause the job in Quartz but keep the job stored in the
+		 * database. The jobs that are paused can be resumed in the future.
 		 */
 
 		organizeKeys();
@@ -75,10 +75,10 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
 		try {
 			String triggerName = jobId.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
@@ -95,7 +95,8 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 			}
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to pause job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 		}
 
 		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);

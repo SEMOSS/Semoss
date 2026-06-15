@@ -36,7 +36,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.CaseInsensitiveProperties;
-import prerna.util.Constants;
 
 
 public class TrinoQueryUtil extends AnsiSqlQueryUtil {
@@ -60,13 +59,13 @@ public class TrinoQueryUtil extends AnsiSqlQueryUtil {
 			stmt = con.createStatement();
 			stmt.execute("set path \""+this.schema+"\"");
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set Trino path to schema '{}'", this.schema, e);
 		} finally {
 			if(stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close Trino statement after setting schema '{}'", this.schema, e);
 				}
 			}
 		}

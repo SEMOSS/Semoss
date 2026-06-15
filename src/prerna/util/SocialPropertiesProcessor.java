@@ -70,7 +70,7 @@ public final class SocialPropertiesProcessor {
 	public static final String IMAP_USERNAME = "imap_username";
 	public static final String IMAP_PASSWORD = "imap_password";
 
-	private static final Logger logger = LogManager.getLogger(SocialPropertiesProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(SocialPropertiesProcessor.class);
 
 	private String socialPropFile = null;
 
@@ -331,8 +331,8 @@ public final class SocialPropertiesProcessor {
 		try {
 			config = builder.getConfiguration();
 		} catch (Exception e1) {
-			logger.error("Error loading PropertiesConfiguration for social properties file: {}", this.socialPropFile,
-					e1);
+			classLogger.error("Error loading PropertiesConfiguration for social properties file: {}",
+					this.socialPropFile, e1);
 			throw new IllegalArgumentException(
 					"An unexpected error happened trying to access the properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
@@ -371,7 +371,7 @@ public final class SocialPropertiesProcessor {
 			try {
 				currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 			} catch (IOException e) {
-				logger.error("Error reading social properties file: {}", this.socialPropFile, e);
+				classLogger.error("Error reading social properties file: {}", this.socialPropFile, e);
 				throw new IOException(
 						"An error occurred reading the current social properties file. Detailed message = "
 								+ e.getMessage());
@@ -385,15 +385,15 @@ public final class SocialPropertiesProcessor {
 			}
 			reloadProps();
 		} catch (Exception e) {
-			logger.error("Error writing new social properties file: {}", this.socialPropFile, e);
+			classLogger.error("Error writing new social properties file: {}", this.socialPropFile, e);
 			// reset the values
 			currentSocialProperties.delete();
 			if (currentContent != null) {
 				try (FileWriter fw = new FileWriter(currentSocialProperties, false)) {
 					fw.write(currentContent);
 				} catch (IOException e2) {
-					logger.error("Error reverting social properties file to previous content: {}", this.socialPropFile,
-							e2);
+					classLogger.error("Error reverting social properties file to previous content: {}",
+							this.socialPropFile, e2);
 					throw new IOException(
 							"A fatal error occurred and could not revert the social properties to an operational state. Detailed message = "
 									+ e2.getMessage());
@@ -421,7 +421,7 @@ public final class SocialPropertiesProcessor {
 		try {
 			currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 		} catch (IOException e) {
-			logger.error("Error reading social properties file: {}", this.socialPropFile, e);
+			classLogger.error("Error reading social properties file: {}", this.socialPropFile, e);
 			throw new IOException("An error occurred reading the current social properties file. Detailed message = "
 					+ e.getMessage());
 		}
@@ -748,7 +748,7 @@ public final class SocialPropertiesProcessor {
 
 		try {
 			if (username != null && password != null) {
-				logger.info("Making secured connection to the email server");
+				classLogger.info("Making secured connection to the email server");
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps, new jakarta.mail.Authenticator() {
 					/** {@inheritDoc} */
 					@Override
@@ -757,11 +757,11 @@ public final class SocialPropertiesProcessor {
 					}
 				});
 			} else {
-				logger.info("Making connection to the email server");
+				classLogger.info("Making connection to the email server");
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error("Error creating SMTP email session", e);
+			classLogger.error("Error creating SMTP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -823,7 +823,7 @@ public final class SocialPropertiesProcessor {
 		Session emailSession = null;
 		try {
 			if (username != null && password != null) {
-				logger.info("Making secured connection to the email server");
+				classLogger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.pop3EmailProps, new jakarta.mail.Authenticator() {
 					/** {@inheritDoc} */
 					@Override
@@ -832,11 +832,11 @@ public final class SocialPropertiesProcessor {
 					}
 				});
 			} else {
-				logger.info("Making connection to the email server");
+				classLogger.info("Making connection to the email server");
 				emailSession = Session.getInstance(this.pop3EmailProps);
 			}
 		} catch (Exception e) {
-			logger.error("Error creating POP3 email session", e);
+			classLogger.error("Error creating POP3 email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -848,7 +848,7 @@ public final class SocialPropertiesProcessor {
 			this.pop3EmailStore = emailSession.getStore(pop3StoreProtocol);
 			this.pop3EmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error("Error connecting to POP3 email store at host: {}", host, e);
+			classLogger.error("Error connecting to POP3 email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -910,7 +910,7 @@ public final class SocialPropertiesProcessor {
 		Session emailSession = null;
 		try {
 			if (username != null && password != null) {
-				logger.info("Making secured connection to the email server");
+				classLogger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.imapEmailProps, new jakarta.mail.Authenticator() {
 					/** {@inheritDoc} */
 					@Override
@@ -919,11 +919,11 @@ public final class SocialPropertiesProcessor {
 					}
 				});
 			} else {
-				logger.info("Making connection to the email server");
+				classLogger.info("Making connection to the email server");
 				emailSession = Session.getInstance(this.imapEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error("Error creating IMAP email session", e);
+			classLogger.error("Error creating IMAP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -935,7 +935,7 @@ public final class SocialPropertiesProcessor {
 			this.imapEmailStore = emailSession.getStore(imapStoreProtocol);
 			this.imapEmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error("Error connecting to IMAP email store at host: {}", host, e);
+			classLogger.error("Error connecting to IMAP email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),

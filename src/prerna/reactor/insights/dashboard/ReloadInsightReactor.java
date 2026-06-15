@@ -49,12 +49,13 @@ import prerna.util.Constants;
 @Deprecated
 public class ReloadInsightReactor extends OpenInsightReactor {
 
-	private static final Logger logger = LogManager.getLogger(ReloadInsightReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ReloadInsightReactor.class);
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		Boolean cacheable = getUserDefinedCacheable();
-		if(cacheable == null) {
+		if (cacheable == null) {
 			cacheable = this.insight.isCacheable();
 		}
 		Map<String, Object> paramValues = getInsightParamValueMap();
@@ -65,51 +66,56 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		List<String> pixelRecipe = this.insight.getPixelList().getPixelRecipe();
 		boolean isParam = cacheable && PixelUtility.isNotCacheable(pixelRecipe);
 		boolean isDashoard = cacheable && PixelUtility.isDashboard(pixelRecipe);
-		
+
 		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
 		boolean hasCache = false;
 		Insight cachedInsight = null;
-		if(cacheable && !isParam && !isDashoard) {
+		if (cacheable && !isParam && !isDashoard) {
 			try {
 				cachedInsight = getCachedInsight(this.insight, paramValues);
-				if(cachedInsight != null) {
+				if (cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightId(this.insight.getInsightId());
 					cachedInsight.setInsightName(this.insight.getInsightName());
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
+
 		// get the insight output
 		PixelRunner runner = null;
 		NounMetadata additionalMeta = null;
-		if(cacheable && hasCache && cachedInsight == null) {
+		if (cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
-			InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), paramValues, true);
-			additionalMeta = NounMetadata.getWarningNounMessage("An error occurred with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
-		} else if(cacheable && hasCache) {
+			InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(),
+					this.insight.getRdbmsId(), paramValues, true);
+			additionalMeta = NounMetadata.getWarningNounMessage(
+					"An error occurred with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
+		} else if (cacheable && hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight, paramValues);
 			} catch (IOException | RuntimeException e) {
-				InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(), this.insight.getRdbmsId(), paramValues, true);
-				additionalMeta = NounMetadata.getWarningNounMessage("An error occurred with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
-				logger.error(Constants.STACKTRACE, e);
+				InsightCacheUtility.deleteCache(this.insight.getProjectId(), this.insight.getProjectName(),
+						this.insight.getRdbmsId(), paramValues, true);
+				additionalMeta = NounMetadata.getWarningNounMessage(
+						"An error occurred with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		if(runner == null) {
+
+		if (runner == null) {
 			runner = runNewInsight(this.insight, getAdditionalPixels());
 //			now I want to cache the insight
-			if(cacheable && !isParam && !isDashoard) {
+			if (cacheable && !isParam && !isDashoard) {
 				try {
-					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner), paramValues);
+					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner),
+							paramValues);
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		} else {
@@ -125,31 +131,34 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				this.insight.setUser(this.insight.getUser());
 			}
 		}
-		
+
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<>();
 		runnerWraper.put("runner", runner);
-		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
-		if(additionalMeta != null) {
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER,
+				PixelOperationType.OPEN_SAVED_INSIGHT);
+		if (additionalMeta != null) {
 			noun.addAdditionalReturn(additionalMeta);
 		}
 		return noun;
 	}
-	
+
 	/**
 	 * Run an insight with the additional pixels
+	 * 
 	 * @param insight
 	 * @param additionalPixels
 	 * @return
 	 */
+	@Deprecated
 	protected PixelRunner runNewInsight(Insight insight, List<String> additionalPixels) {
 		// add additional pixels if necessary
-		if(additionalPixels != null && !additionalPixels.isEmpty()) {
+		if (additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
 			// and the reRunPiexelInsight will do its job
 			insight.getPixelList().addPixel(additionalPixels);
 		}
-		
+
 		// rerun the insight
 		PixelRunner runner = insight.reRunPixelInsight(false);
 		return runner;

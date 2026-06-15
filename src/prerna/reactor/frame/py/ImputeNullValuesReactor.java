@@ -32,7 +32,6 @@ import java.util.List;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -92,26 +91,10 @@ public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new ArrayList<String>();
-
-		// try its own key
-		GenRowStruct colsGrs = this.store.getGenRowStruct(ReactorKeysEnum.COLUMNS.getKey());
-		if (colsGrs != null && !colsGrs.isEmpty()) {
-			int size = colsGrs.size();
-			for (int i = 0; i < size; i++) {
-				cols.add(colsGrs.get(i).toString());
-			}
+		List<String> cols = getListStringFromKeyOrCurRow(ReactorKeysEnum.COLUMNS.getKey());
+		if (!cols.isEmpty()) {
 			return cols;
 		}
-
-		int inputSize = this.getCurRow().size();
-		if (inputSize > 0) {
-			for (int i = 0; i < inputSize; i++) {
-				cols.add(this.getCurRow().get(i).toString());
-			}
-			return cols;
-		}
-
 		throw new IllegalArgumentException("Need to define the columns to impute");
 	}
 }
