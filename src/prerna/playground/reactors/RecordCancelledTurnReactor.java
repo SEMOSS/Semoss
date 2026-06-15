@@ -109,12 +109,12 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		InputMessage hiddenUserNote = InputMessage.builder(room).withText(HIDDEN_USER_NOTE)
 				.withModelType(modelEngine.getModelType()).build();
 		hiddenUserNote.setPlatformGenerated(true);
-		hiddenUserNote.setVisibile(false);
+		hiddenUserNote.setVisible(false);
 		hiddenUserNote.setParentMessageId(hiddenParent);
 
 		ResponseMessage hiddenAck = ResponseMessage.text(HIDDEN_ASSISTANT_ACK);
 		hiddenAck.setPlatformGenerated(true);
-		hiddenAck.setVisibile(false);
+		hiddenAck.setVisible(false);
 		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
 
 		// --- Append to room history
