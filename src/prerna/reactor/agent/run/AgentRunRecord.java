@@ -25,42 +25,51 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.subagent;
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *******************************************************************************/
+package prerna.reactor.agent.run;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+public final class AgentRunRecord {
 
-/**
- * Platform reactor for non-blocking subagent status checks.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * CheckSubAgent(jobId='<id>')
- * }</pre>
- *
- * <p>Returns a JSON string {@code {jobId, status, result, error}}.
- */
-public class CheckSubAgentReactor extends AbstractReactor {
+	private final String runId;
+	private final String roomId;
+	private final AgentRunStatus status;
+	private final RunAgentRequest request;
+	private final String userId;
+	private final String jobId;
 
-    public CheckSubAgentReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey() };
-        this.keyRequired = new int[] { 1 };
-    }
+	public AgentRunRecord(String runId, String roomId, AgentRunStatus status, RunAgentRequest request, String userId,
+			String jobId) {
+		this.runId = runId;
+		this.roomId = roomId;
+		this.status = status;
+		this.request = request;
+		this.userId = userId;
+		this.jobId = jobId;
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
-        if (jobId == null || jobId.trim().isEmpty()) {
-            throw new IllegalArgumentException("jobId is required for CheckSubAgent");
-        }
-        return new NounMetadata(SubAgentDispatcher.check(jobId, this.insight), PixelDataType.CONST_STRING);
-    }
+	public String getRunId() {
+		return runId;
+	}
 
-    @Override
-    public String getReactorDescription() {
-        return "Non-blocking subagent status check; returns a JSON string with {jobId, status, result, error}.";
-    }
+	public String getRoomId() {
+		return roomId;
+	}
+
+	public AgentRunStatus getStatus() {
+		return status;
+	}
+
+	public RunAgentRequest getRequest() {
+		return request;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public String getJobId() {
+		return jobId;
+	}
 }

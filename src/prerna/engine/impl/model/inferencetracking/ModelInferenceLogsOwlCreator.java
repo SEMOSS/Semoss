@@ -48,6 +48,7 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
 	private List<Pair<String, String>> skillColumns = null;
+	private List<Pair<String, String>> agentRunColumns = null;
 
 	// pairs table name with table's primary keys
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -68,6 +69,7 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
 		conceptsRequired.add("SKILL");
+		conceptsRequired.add("AGENT_RUN");
 	}
 
 	private IRDBMSEngine modelInferenceDb;
@@ -226,6 +228,28 @@ public class ModelInferenceLogsOwlCreator {
 		// @formatter:on
 
 		// @formatter:off
+		this.agentRunColumns = Arrays.asList(
+				Pair.with("RUN_ID", "VARCHAR(50)"),
+				Pair.with("ROOM_ID", "VARCHAR(50)"),
+				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+				Pair.with("MODEL_ID", "VARCHAR(255)"),
+				Pair.with("HARNESS_TYPE", "VARCHAR(50)"),
+				Pair.with("JOB_ID", "VARCHAR(50)"),
+				Pair.with("STATUS", "VARCHAR(50)"),
+				Pair.with("INPUT", CLOB_DATATYPE_NAME),
+				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("INPUT_MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
+				Pair.with("FINAL_OUTPUT_MESSAGE_ID", "VARCHAR(50)"),
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", "VARCHAR(255)")
+			);
+		// @formatter:on
+
+		// @formatter:off
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
@@ -233,7 +257,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
 				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
-				Pair.with("SKILL", skillColumns)
+				Pair.with("SKILL", skillColumns),
+				Pair.with("AGENT_RUN", agentRunColumns)
 			);
 		// @formatter:on
 	}

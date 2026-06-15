@@ -148,7 +148,9 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("jobId",  result.getJobId());
+        out.put("runId",  result.getRunId());
         out.put("roomId", result.getRoomId());
+        out.put("status", result.getStatus() == null ? null : result.getStatus().name());
         if (result.getAlias() != null) {
             out.put("alias", result.getAlias());
         }
@@ -159,7 +161,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Spawn a subagent run as an async pixel job and return {jobId, roomId, alias} as a JSON string. "
-                + "Use jobId with WaitSubAgent / CheckSubAgent.";
+        return "Spawn a subagent AgentRun and return {runId, jobId, roomId, status, alias} as a JSON string. "
+                + "Use jobId with WaitSubAgent / CheckSubAgentStatus.";
     }
 }
