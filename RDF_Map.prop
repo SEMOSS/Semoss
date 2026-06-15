@@ -4,58 +4,58 @@ ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;SMSSStorageWatcher;SMSSModelWatcher;SMSSVectorWatcher;SMSSFunctionWatcher;SMSSGuardrailWatcher
 PROJECT_WATCHER	ProjectWatcher
 
-INSIGHT_CACHE_DIR /Users/ibrahim/Documents/SEMOSS/workspace/Semoss/InsightCache
+INSIGHT_CACHE_DIR /Users/ielnemr/Documents/SEMOSS/workspace/Semoss/InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
-SMSSWebWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/db
+SMSSWebWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/db
 SMSSWebWatcher_EXT	.smss
 SMSSWebWatcher_ETYPE	DATABASE
 
 SMSSStorageWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSStorageWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/storage
+SMSSStorageWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/storage
 SMSSStorageWatcher_EXT	.smss
 SMSSStorageWatcher_ETYPE	STORAGE
 
 SMSSModelWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSModelWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/model
+SMSSModelWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/model
 SMSSModelWatcher_EXT	.smss
 SMSSModelWatcher_ETYPE	MODEL
 
 SMSSVectorWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSVectorWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/vector
+SMSSVectorWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/vector
 SMSSVectorWatcher_EXT	.smss
 SMSSVectorWatcher_ETYPE	VECTOR
 
 SMSSFunctionWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSFunctionWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/function
+SMSSFunctionWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/function
 SMSSFunctionWatcher_EXT	.smss
 SMSSFunctionWatcher_ETYPE	FUNCTION
 
 SMSSGuardrailWatcher	prerna.util.SMSSNoInitEngineWatcher
-SMSSGuardrailWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/guardrail
+SMSSGuardrailWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/guardrail
 SMSSGuardrailWatcher_EXT	.smss
 SMSSGuardrailWatcher_ETYPE	GUARDRAIL
 
 #SMSSVenvWatcher	prerna.util.SMSSNoInitEngineWatcher
-#SMSSVenvWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/venv
+#SMSSVenvWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/venv
 #SMSSVenvWatcher_EXT	.smss
 #SMSSVenvWatcher_ETYPE	VENV
 
 ProjectWatcher	prerna.util.ProjectWatcher
-ProjectWatcher_DIR		/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/project
+ProjectWatcher_DIR		/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/project
 ProjectWatcher_EXT	.smss
 
 #JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
-#JobSchedulerWatcher_DIR /Users/ibrahim/Documents/SEMOSS/workspace/Semoss/rpa/json
+#JobSchedulerWatcher_DIR /Users/ielnemr/Documents/SEMOSS/workspace/Semoss/rpa/json
 #JobSchedulerWatcher_EXT	.json
-#rpa.config.directory /Users/ibrahim/Documents/SEMOSS/workspace/Semoss/rpa
+#rpa.config.directory /Users/ielnemr/Documents/SEMOSS/workspace/Semoss/rpa
 
-BaseFolder	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss
-ADDITIONAL_REACTORS /Users/ibrahim/Documents/SEMOSS/workspace/Semoss/reactors.json
+BaseFolder	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss
+ADDITIONAL_REACTORS /Users/ielnemr/Documents/SEMOSS/workspace/Semoss/reactors.json
 ADDITIONAL_REACTOR_PACKAGES  globalasset
-SOCIAL	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/social.properties
-EMAIL_TEMPLATES	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/emailTemplates/
+SOCIAL	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/social.properties
+EMAIL_TEMPLATES	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/emailTemplates/
 
 #Caching for tasks
 X_CACHE false
@@ -72,7 +72,7 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-PYTHONHOME /Users/ibrahim/.globalvenv
+PYTHONHOME /Users/ielnemr/.globalvenv
 
 
 USE_R false
@@ -130,7 +130,7 @@ LOG_ENCODING false
 #GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
 #SEMOSS logo used for exporting files
 
-EXPORT_SEMOSS_LOGO /Users/ibrahim/Documents/SEMOSS/workspace/Semoss/images/embed/semoss_logo.png
+EXPORT_SEMOSS_LOGO /Users/ielnemr/Documents/SEMOSS/workspace/Semoss/images/embed/semoss_logo.png
 
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
 SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
@@ -139,8 +139,8 @@ SCHEDULER_KEYSTORE_PASSWORD
 SCHEDULER_CERTIFICATE_PASSWORD
 
 #SAML CONFIG
-SAML_PROP_LOC	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/saml/mesoc/conf	
-SAML_FEDERATION_LOG_PATH	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/saml/mesoc/conf/debug/Federation
+SAML_PROP_LOC	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/saml/mesoc/conf	
+SAML_FEDERATION_LOG_PATH	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/saml/mesoc/conf/debug/Federation
 
 #SET THIS TO TRUE IF RUNNING LOCALLY ON LAPTOP
 #OTHERWISE, KEEP THIS FALSE FOR SERVER DEPLOYMENT
@@ -265,7 +265,7 @@ URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
 SOLR_BASE_URL	https://localhost:443/solr
 
 SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	/Users/ibrahim/Documents/SEMOSS/workspace/Semoss/db
+SMSSWatcher_DIR	/Users/ielnemr/Documents/SEMOSS/workspace/Semoss/db
 SMSSWatcher_EXT	.smss
 
 SHOW_GOV_WARNING	false
