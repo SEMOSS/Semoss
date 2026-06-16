@@ -60,8 +60,6 @@ public class LLMReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
-		////// SET UP //////////
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());

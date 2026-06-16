@@ -25,42 +25,13 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.subagent;
+package prerna.reactor.agent.run;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-/**
- * Platform reactor for non-blocking subagent status checks.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * CheckSubAgent(jobId='<id>')
- * }</pre>
- *
- * <p>Returns a JSON string {@code {jobId, status, result, error}}.
- */
-public class CheckSubAgentReactor extends AbstractReactor {
-
-    public CheckSubAgentReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey() };
-        this.keyRequired = new int[] { 1 };
-    }
-
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
-        if (jobId == null || jobId.trim().isEmpty()) {
-            throw new IllegalArgumentException("jobId is required for CheckSubAgent");
-        }
-        return new NounMetadata(SubAgentDispatcher.check(jobId, this.insight), PixelDataType.CONST_STRING);
-    }
-
-    @Override
-    public String getReactorDescription() {
-        return "Non-blocking subagent status check; returns a JSON string with {jobId, status, result, error}.";
-    }
+public enum AgentRunStatus {
+	SUBMITTED,
+	RUNNING,
+	INPUT_REQUIRED,
+	COMPLETED,
+	FAILED,
+	CANCELLED
 }
