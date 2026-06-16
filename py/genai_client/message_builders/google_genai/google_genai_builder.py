@@ -18,6 +18,7 @@ from ...text_generation.abstract_text_generation_client import ModelLimits
 from .google_genai_models import GoogleRoles
 from google.genai import types
 from ...utils import string_to_bool
+from ..semoss_base.reasoning import normalize_reasoning
 
 
 class GoogleGenAIMessageBuilder:
@@ -236,33 +237,43 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
+    # Canonical effort -> Gemini 3 ThinkingLevel. The SDK enum only has
+    # MINIMAL/LOW/MEDIUM/HIGH, so xhigh/max collapse to HIGH and none->MINIMAL.
+    _GEMINI_THINKING_LEVEL = {
+        "none": types.ThinkingLevel.MINIMAL,
+        "minimal": types.ThinkingLevel.MINIMAL,
+        "low": types.ThinkingLevel.LOW,
+        "medium": types.ThinkingLevel.MEDIUM,
+        "high": types.ThinkingLevel.HIGH,
+        "xhigh": types.ThinkingLevel.HIGH,
+        "max": types.ThinkingLevel.HIGH,
+    }
+
     def _resolve_thinking_config(
         self, param_map: Dict[str, Any]
     ) -> types.ThinkingConfig:
         """
-        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        Honor the thinking/effort keys passed in the param map first, then fall
+        back to SMSS. Gemini 3.x uses `thinking_level`; Gemini 2.5/2.0 uses
+        `thinking_budget` (setting both on a Gemini 3 model returns a 400).
         """
-        thinking = param_map.get("thinking")
-        if thinking and isinstance(thinking, str):
-            try:
-                thinking = string_to_bool(thinking)
-            except ValueError:
-                thinking = None
-        thinking_budget = param_map.get("thinking_budget")
+        resolved = normalize_reasoning(param_map, self.model_settings)
+        if resolved is None:
+            return types.ThinkingConfig(include_thoughts=False)
 
-        if not thinking and self.model_settings.thinking:
-            thinking = self.model_settings.thinking
-        if not thinking_budget and self.model_settings.thinking_budget:
-            thinking_budget = self.model_settings.thinking_budget
+        model_name = (self.model_settings.model_name or "").lower()
+        if "gemini-3" in model_name:
+            return types.ThinkingConfig(
+                include_thoughts=True,
+                thinking_level=self._GEMINI_THINKING_LEVEL.get(
+                    resolved.effort, types.ThinkingLevel.HIGH
+                ),
+            )
 
-        if thinking:
-            if thinking_budget is not None:
-                return types.ThinkingConfig(
-                    include_thoughts=True, thinking_budget=thinking_budget
-                )
-            else:
-                return types.ThinkingConfig(include_thoughts=True)
-        return types.ThinkingConfig(include_thoughts=False)
+        # Gemini 2.5 / 2.0 family -> explicit token budget.
+        return types.ThinkingConfig(
+            include_thoughts=True, thinking_budget=resolved.budget
+        )
 
     def _convert_args_to_provider_config(
         self, **kwargs
