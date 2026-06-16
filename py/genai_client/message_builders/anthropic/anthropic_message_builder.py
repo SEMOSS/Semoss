@@ -718,52 +718,104 @@ class AnthropicMessageBuilder:
         thinking_budget: Optional[int] = None,
         param_map: Optional[Dict[str, Any]] = {},
     ) -> Dict[str, Any] | None:
-        """
-        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
-        If I get this from Claude Code I get something like: {'budget_tokens': 31999, 'type': 'enabled'}
-        If I get this from SEMOSS I get separate keys 'thinking': True, 'thinking_budget': 1000
-        """
-        ## SMSS THINKING
-        smss_thinking = string_to_bool(thinking)
-        if smss_thinking:
-            smss_thinking = "enabled"
-        else:
-            smss_thinking = "disabled"
+        pm_thinking = param_map.get("thinking", None)
 
-        smss_thinking_budget = thinking_budget if thinking_budget else 0
-
-        ## RESOLVING PARAM MAP
-        param_map_thinking = param_map.get("thinking", "disabled")
-        # I get this from Claude Code
-        if isinstance(thinking, dict):
-            param_map_thinking = thinking.get("type", "disabled")
-            param_map_budget_tokens = thinking.get("budget_tokens", 0)
-        else:
-            param_map_thinking = string_to_bool(thinking)
-            if param_map_thinking:
-                param_map_thinking = "enabled"
-            else:
-                param_map_thinking = "disabled"
-            param_map_budget_tokens = param_map.get("thinking_budget", 0)
-
-        resolved_thinking = (
-            "enabled"
-            if param_map_thinking == "enabled" or smss_thinking == "enabled"
-            else "disabled"
-        )
-
-        if resolved_thinking == "disabled":
+        enabled = False
+        if isinstance(pm_thinking, dict):
+            t = str(pm_thinking.get("type", "")).lower()
+            enabled = t in ("enabled", "adaptive")
+        elif pm_thinking is not None:
+            try:
+                enabled = string_to_bool(pm_thinking)
+            except ValueError:
+                enabled = False
+        if not enabled:
+            try:
+                enabled = string_to_bool(thinking)
+            except ValueError:
+                enabled = bool(thinking)
+        if not enabled:
             return None
 
-        # If you set thinking as enabled but don't have a thinking budget I am going to set it for you..
-        if param_map_budget_tokens >= 1024:
-            resolved_thinking_budget = param_map_budget_tokens
-        elif smss_thinking_budget >= 1024:
-            resolved_thinking_budget = smss_thinking_budget
-        else:
-            resolved_thinking_budget = 1024
+        raw_budget = param_map.get("thinking_budget", None)
+        if raw_budget is None or raw_budget == "":
+            raw_budget = thinking_budget
+        if isinstance(pm_thinking, dict) and pm_thinking.get("budget_tokens"):
+            raw_budget = pm_thinking.get("budget_tokens")
 
-        return {"type": "enabled", "budget_tokens": resolved_thinking_budget}
+        if self._uses_adaptive_thinking(self.model_name):
+            effort = self._effort_level_string(
+                raw_budget if raw_budget is not None else "high"
+            )
+            return {
+                "thinking": {"type": "adaptive", "display": "summarized"},
+                "output_config": {"effort": effort},
+            }
+
+        budget = self._effort_to_budget_tokens(raw_budget)
+        if budget < 1024:
+            budget = 1024
+        return {"thinking": {"type": "enabled", "budget_tokens": budget}}
+
+    @staticmethod
+    def _effort_to_budget_tokens(value) -> int:
+        if value is None or isinstance(value, bool):
+            return 0
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            mapping = {
+                "none": 0,
+                "minimal": 2048,
+                "low": 4096,
+                "medium": 8192,
+                "high": 16384,
+                "xhigh": 32768,
+                "max": 32768,
+            }
+            s = value.strip().lower()
+            if s in mapping:
+                return mapping[s]
+            try:
+                return int(s)
+            except (ValueError, TypeError):
+                return 0
+        return 0
+
+    def _uses_adaptive_thinking(self, model_name) -> bool:
+        nm = (model_name or "").lower()
+        if "fable" in nm or "mythos" in nm:
+            return True
+        tier, major, minor = self._parse_claude_model_name(model_name)
+        if tier != "opus":
+            return False
+        try:
+            mj = int(major) if major else 0
+            mn = int(minor) if minor else 0
+        except (TypeError, ValueError):
+            return False
+        return (mj, mn) >= (4, 7)
+
+    @staticmethod
+    def _effort_level_string(value) -> str:
+        valid = {"low", "medium", "high", "xhigh", "max"}
+        if isinstance(value, str):
+            s = value.strip().lower()
+            if s in ("minimal", "none"):
+                return "low"
+            if s in valid:
+                return s
+        try:
+            n = int(value)
+        except (TypeError, ValueError):
+            return "high"
+        if n < 6000:
+            return "low"
+        if n < 12000:
+            return "medium"
+        if n < 24000:
+            return "high"
+        return "xhigh"
 
     def _convert_args_to_provider_config(
         self,
@@ -784,10 +836,14 @@ class AnthropicMessageBuilder:
 
         tools = kwargs.pop("tools", None)
 
-        thinking_map = self._resolve_extended_thinking(
+        thinking_result = self._resolve_extended_thinking(
             thinking=model_settings.thinking,  # SMSS SETTING
             thinking_budget=model_settings.thinking_budget,  # SMSS SETTING
             param_map=kwargs,
+        )
+        thinking_map = thinking_result["thinking"] if thinking_result else None
+        output_config = (
+            thinking_result.get("output_config") if thinking_result else None
         )
 
         max_tokens = (
@@ -804,6 +860,10 @@ class AnthropicMessageBuilder:
                 max_tokens = min(budget_tokens * 2, model_cap)
                 if max_tokens <= budget_tokens:
                     max_tokens = min(budget_tokens + 1024, model_cap)
+        elif thinking_map and thinking_map.get("type") == "adaptive":
+            model_cap = self._get_model_max_output_tokens(self.model_name)
+            if max_tokens is None or max_tokens < 16000:
+                max_tokens = min(64000, model_cap)
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
@@ -840,6 +900,7 @@ class AnthropicMessageBuilder:
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,
+            output_config=output_config,
         )
 
     def _parse_claude_model_name(

@@ -134,6 +134,7 @@ class AnthropicRequestConfig(BaseModel):
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     thinking: Optional[Dict[str, Any]] = None
+    output_config: Optional[Dict[str, Any]] = None
 
 
 class AnthropicMessageBuilderResponse(BaseModel):

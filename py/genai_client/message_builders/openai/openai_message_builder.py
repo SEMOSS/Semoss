@@ -1137,7 +1137,7 @@ class OpenAIMessageBuilder:
             return "medium"
         if isinstance(budget_tokens, str):
             s = budget_tokens.strip().lower()
-            if s in ("low", "medium", "high"):
+            if s in ("none", "minimal", "low", "medium", "high", "xhigh"):
                 return s
             try:  # Try to parse string integer
                 n = int(s)
