@@ -100,6 +100,53 @@ public final class RoomUtils {
 	}
 
 	/**
+	 * Creates/loads a room for a stateless model ask. This path is used when the
+	 * caller is not reading or writing persisted room message history.
+	 *
+	 * @param roomId      requested room id; when null/blank the insight id is used
+	 * @param insight     active insight context
+	 * @param modelEngine model engine associated with the room
+	 * @param question    initial user question used for default room naming
+	 * @return the existing or newly created Room
+	 */
+	public static Room createRoomForStatelessAsk(String roomId, Insight insight, IModelEngine modelEngine,
+			String question) {
+		return createRoomForStatelessAsk(roomId, insight, modelEngine, question, null, null, null, null, null);
+	}
+
+	/**
+	 * Creates/loads a room for a stateless model ask. Existing rooms are loaded
+	 * without acquiring the room message mutation lock or normalizing/persisting
+	 * message history. Missing rooms still lock around create-if-missing because
+	 * room row creation is a shared write.
+	 *
+	 * @param roomId       requested room id; when null/blank the insight id is used
+	 * @param insight      active insight context
+	 * @param modelEngine  model engine associated with the room (optional)
+	 * @param question     initial user question used for default room naming
+	 * @param workspaceId  optional workspace id to associate with the room
+	 * @param options      optional room options payload
+	 * @param context      optional room context/system prompt
+	 * @param projectId    optional project id override
+	 * @param parentRoomId optional parent room id for sub-conversations
+	 * @return the existing or newly created Room
+	 */
+	public static Room createRoomForStatelessAsk(String roomId, Insight insight, IModelEngine modelEngine,
+			String question, String workspaceId, Map<String, Object> options, String context, String projectId,
+			String parentRoomId) {
+		roomId = resolveRoomId(roomId, insight);
+
+		if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
+				createRoomRowIfMissing(roomId, insight, modelEngine, question, workspaceId, options, context, projectId,
+						parentRoomId);
+			}
+		}
+
+		return getOrLoadRoomForStatelessAsk(roomId, insight);
+	}
+
+	/**
 	 * Ensures a Room exists: creates it if necessary, then loads it for the given
 	 * user/insight.
 	 *
@@ -116,59 +163,71 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
 			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
-		// Use the passed roomId or fallback to the insightId if null/empty
-		if (roomId == null || roomId.trim().isEmpty()) {
-			roomId = insight.getInsightId();
-		}
+		roomId = resolveRoomId(roomId, insight);
 
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
-			boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
-			if (!roomExistsInDB) {
-				String agentType = null;
-				String engineId = null;
-				if (modelEngine != null) {
-					agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
-					engineId = modelEngine.getEngineId();
-				}
-				User user = insight.getUser();
-				AccessToken userToken = user.getPrimaryLoginToken();
-				String userName = userToken.getName();
-				String userEmail = userToken.getEmail();
-				if (projectId == null) {
-					projectId = insight.getContextProjectId();
-				}
-				if (projectId == null) {
-					projectId = insight.getProjectId();
-				}
-				String projectName = null;
-				// ignore playground project id
-				if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
-					IProject project = Utility.getProject(projectId);
-					projectName = project != null ? project.getProjectName() : null;
-				}
-				String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
-				// @formatter:off
-				ModelInferenceLogsUtils.doCreateNewConversation(
-						insight.getInsightId(),
-						roomId,
-						roomName,
-						context,
-						userToken.getId(),
-						userName,
-						userEmail,
-						agentType,
-						engineId,
-						true,
-						projectId,
-						projectName,
-						workspaceId,
-						options,
-						parentRoomId
-				);
-				// @formatter:on
-			}
+			createRoomRowIfMissing(roomId, insight, modelEngine, question, workspaceId, options, context, projectId,
+					parentRoomId);
 			return RoomUtils.getOrLoadRoom(roomId, insight);
 		}
+	}
+
+	private static String resolveRoomId(String roomId, Insight insight) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return insight.getInsightId();
+		}
+		return roomId;
+	}
+
+	private static void createRoomRowIfMissing(String roomId, Insight insight, IModelEngine modelEngine, String question,
+			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
+		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
+		if (roomExistsInDB) {
+			return;
+		}
+
+		String agentType = null;
+		String engineId = null;
+		if (modelEngine != null) {
+			agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+			engineId = modelEngine.getEngineId();
+		}
+		User user = insight.getUser();
+		AccessToken userToken = user.getPrimaryLoginToken();
+		String userName = userToken.getName();
+		String userEmail = userToken.getEmail();
+		if (projectId == null) {
+			projectId = insight.getContextProjectId();
+		}
+		if (projectId == null) {
+			projectId = insight.getProjectId();
+		}
+		String projectName = null;
+		// ignore playground project id
+		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+			IProject project = Utility.getProject(projectId);
+			projectName = project != null ? project.getProjectName() : null;
+		}
+		String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
+		// @formatter:off
+		ModelInferenceLogsUtils.doCreateNewConversation(
+				insight.getInsightId(),
+				roomId,
+				roomName,
+				context,
+				userToken.getId(),
+				userName,
+				userEmail,
+				agentType,
+				engineId,
+				true,
+				projectId,
+				projectName,
+				workspaceId,
+				options,
+				parentRoomId
+		);
+		// @formatter:on
 	}
 
 	/**
@@ -219,6 +278,34 @@ public final class RoomUtils {
 							m.getMessageType());
 				}
 			}
+		}
+
+		room.setInsight(insight);
+		insight.getUser().getRoomHash().put(roomId, room);
+		symlinkRoomFolderIfNeeded(room, insight);
+		return room;
+	}
+
+	private static Room getOrLoadRoomForStatelessAsk(String roomId, Insight insight) {
+		Room room;
+		if (insight.getUser().getRoomHash().containsKey(roomId)) {
+			try {
+				room = insight.getUser().getRoomHash().get(roomId);
+				room.setInsight(insight);
+				symlinkRoomFolderIfNeeded(room, insight);
+				return room;
+			} catch (ClassCastException e) {
+				insight.getUser().getRoomHash().remove(roomId);
+			}
+		}
+
+		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
+		if (!roomExistsInDB) {
+			throw new IllegalArgumentException("Room ID is not valid");
+		}
+		room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());
+		if (room == null) {
+			throw new IllegalArgumentException("Room is not valid for this user");
 		}
 
 		room.setInsight(insight);
