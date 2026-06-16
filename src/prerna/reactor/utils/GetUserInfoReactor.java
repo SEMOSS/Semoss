@@ -50,7 +50,6 @@ public class GetUserInfoReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		if (user != null) {
 			String userEpoch = user.getUserEpoch();
-
 			for (AuthProvider provider : user.getLogins()) {
 				String providerName = provider.name();
 				AccessToken token = user.getAccessToken(provider);
