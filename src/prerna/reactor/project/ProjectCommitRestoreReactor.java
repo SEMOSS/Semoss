@@ -108,7 +108,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 			// Step 3: Commit the staged changes (index has target state, HEAD has original)
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			String author = accessToken.getUsername();
+			String author = accessToken.getName();
 			String email = accessToken.getEmail();
 			if (author == null || author.isEmpty()) {
 				author = "SEMOSS";

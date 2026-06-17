@@ -1168,7 +1168,7 @@ public class GitRepoUtils {
 	public static void commitAddedFiles(String gitFolder, String message, User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getName();
 		commitAddedFiles(gitFolder, message, author, email);
 	}
 
@@ -1199,19 +1199,19 @@ public class GitRepoUtils {
 				return;
 			}
 
-			if (message == null || message.isEmpty()) {
-				message = GitUtils.getDateMessage("Commited on.. ");
-			}
-			if (author == null || author.isEmpty()) {
-				author = "SEMOSS";
-			}
-			if (email == null || email.isEmpty()) {
-				email = "semoss@semoss.org";
-			}
+		if (message == null || message.isEmpty()) {
+			message = GitUtils.getDateMessage("Commited on.. ");
+		}
+		if (author == null || author.isEmpty()) {
+			author = "SEMOSS";
+		}
+		if (email == null || email.isEmpty()) {
+			email = "semoss@semoss.org";
+		}
 
-			CommitCommand cc = thisGit.commit();
-			cc.setMessage(message).setAuthor(author, email).call();
-			classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
+		CommitCommand cc = thisGit.commit();
+		cc.setMessage(message).setAuthor(author, email).call();
+		classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
 		} catch (GitAPIException e) {
 			classLogger.error("Failed to commit in {}", gitFolder, e);
 		} finally {
@@ -1230,7 +1230,7 @@ public class GitRepoUtils {
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
 			User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getUsername(),
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getName(),
 				accessToken.getEmail());
 	}
 
@@ -1285,18 +1285,18 @@ public class GitRepoUtils {
 				return;
 			}
 
-			if (message == null || message.isEmpty()) {
-				message = GitUtils.getDateMessage("Commited on.. ");
-			}
-			if (author == null || author.isEmpty()) {
-				author = "SEMOSS";
-			}
-			if (email == null || email.isEmpty()) {
-				email = "semoss@semoss.org";
-			}
+		if (message == null || message.isEmpty()) {
+			message = GitUtils.getDateMessage("Commited on.. ");
+		}
+		if (author == null || author.isEmpty()) {
+			author = "SEMOSS";
+		}
+		if (email == null || email.isEmpty()) {
+			email = "semoss@semoss.org";
+		}
 
-			thisGit.commit().setMessage(message).setAuthor(author, email).call();
-			classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
+		thisGit.commit().setMessage(message).setAuthor(author, email).call();
+		classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
 		} catch (IOException | GitAPIException e) {
 			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
