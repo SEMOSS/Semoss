@@ -1839,6 +1839,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk18on</artifactId>
+			<version>1.78.1</version>
+		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
 			<groupId>org.kohsuke</groupId>
