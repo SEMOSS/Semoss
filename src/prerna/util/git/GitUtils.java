@@ -27,101 +27,63 @@
  *******************************************************************************/
 package prerna.util.git;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.NoWorkTreeException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
 import prerna.security.InstallCertNow;
-import prerna.util.AssetUtility;
-import prerna.util.Constants;
-import prerna.util.MosfetSyncHelper;
-import prerna.util.Utility;
 
+/**
+ * Static utility methods for interacting with GitHub and for small git-related
+ * helpers, including OAuth-based GitHub login (with certificate-install retry),
+ * building timestamped commit messages, and identifying file types that should
+ * be ignored.
+ */
 public class GitUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(GitUtils.class);
 
-	/**
-	 * This class is not intended to be extended or used outside of its static
-	 * method
-	 */
 	private GitUtils() {
 
 	}
 
 	/**
-	 * Determine if an app is already a Git project
-	 * 
-	 * @param localApp
-	 * @return
+	 * Logs in to GitHub using the given OAuth token, starting at attempt 1.
+	 * Convenience overload that delegates to {@link #login(String, int)}.
+	 *
+	 * @param oAuth the GitHub OAuth token used to authenticate
+	 * @return the authenticated {@link GitHub} client, or {@code null} if login did
+	 *         not succeed
+	 * @throws IllegalArgumentException if the credentials are rejected with an
+	 *                                  {@link IOException}
 	 */
-	public static boolean isGit(String localApp) {
-		File file = new File(localApp + "/version/.git");
-		return file.exists();
-	}
-
-	/**
-	 * Login using a username / password
-	 * 
-	 * @param username
-	 * @param password
-	 * @return
-	 */
-	public static GitHub login(String username, String password) {
-		return login(username, password, 1);
-	}
-
-	public static GitHub login(String username, String password, int attempt) {
-		GitHub gh = null;
-		if (attempt < 3) {
-			classLogger.info("Attempting login " + attempt);
-			try {
-				gh = GitHub.connectUsingPassword(username, password);
-				gh.getMyself();
-				return gh;
-			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				attempt = attempt + 1;
-				login(username, password, attempt);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + username + "\"");
-			}
-		}
-		return gh;
-	}
-
 	public static GitHub login(String oAuth) {
 		return login(oAuth, 1);
 	}
 
+	/**
+	 * Attempts to log in to GitHub using the given OAuth token, retrying on
+	 * {@link HttpException} up to a fixed limit of attempts (only attempts less
+	 * than 3 are tried). On an {@link HttpException} the GitHub certificate is
+	 * (re)installed via {@link InstallCertNow#please(String, String, String)}, the
+	 * attempt counter is incremented, and the login is retried recursively.
+	 *
+	 * @param oAuth   the GitHub OAuth token used to authenticate
+	 * @param attempt the current attempt number; logins are only tried while this
+	 *                is below 3
+	 * @return the authenticated {@link GitHub} client on success, or {@code null}
+	 *         if the attempt limit is reached or a retry path does not return a
+	 *         client
+	 * @throws IllegalArgumentException if authentication fails with an
+	 *                                  {@link IOException}, indicating invalid git
+	 *                                  credentials
+	 */
 	public static GitHub login(String oAuth, int attempt) {
 		GitHub gh = null;
 		if (attempt < 3) {
@@ -131,16 +93,16 @@ public class GitUtils {
 				gh.getMyself();
 				return gh;
 			} catch (HttpException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to login to github using oAuth on attempt {}", attempt, ex);
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to install certificate for github.com", e);
 				}
 				attempt = attempt + 1;
 				login(oAuth, attempt);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to login to github using oAuth", e);
 				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + oAuth + "\"");
 			}
 		}
@@ -148,9 +110,13 @@ public class GitUtils {
 	}
 
 	/**
-	 * 
-	 * @param prefixString
-	 * @return
+	 * Builds a message string by appending the current date and time to the given
+	 * prefix, formatted as {@code "yyyy/MM/dd HH:mm:ss"} (typically used as a
+	 * commit message).
+	 *
+	 * @param prefixString the text to prepend before the timestamp
+	 * @return the prefix joined to the current timestamp in the form
+	 *         {@code "<prefixString> : <yyyy/MM/dd HH:mm:ss>"}
 	 */
 	public static String getDateMessage(String prefixString) {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
@@ -158,176 +124,14 @@ public class GitUtils {
 		return prefixString + " : " + dateFormat.format(date);
 	}
 
-	public static void semossInit(String dir) {
-		String newFile = dir + "/SEMOSS.INIT";
-		File myFile = new File(newFile);
-		try {
-			myFile.createNewFile();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////// GIT IGNORE //////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-
 	/**
-	 * 
-	 * @param localRepository
-	 */
-	public static void removeAllIgnore(String localRepository) {
-		Git thisGit = null;
-		Repository thisRepo = null;
-		try {
-			thisGit = Git.open(new File(localRepository));
-			thisRepo = thisGit.getRepository();
-			// remove from checkout
-			StoredConfig config = thisRepo.getConfig();
-
-			config.setString("core", null, "sparseCheckout", "false");
-			config.save();
-			File myNewFile2 = new File(localRepository + "/.git/info/sparse-checkout");
-			myNewFile2.delete();
-
-			// remove from checkin
-			File myNewFile = new File(localRepository + "/.gitignore"); // \\sparse-checkout");
-
-			// I have to delete for now
-			myNewFile.delete();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (thisRepo != null) {
-				thisRepo.close();
-			}
-			if (thisGit != null) {
-				thisGit.close();
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param localRepository
-	 * @param files
-	 */
-	public static void checkoutIgnore(String localRepository, String[] files) {
-		Git thisGit = null;
-		Repository thisRepo = null;
-		StoredConfig config = null;
-		try {
-			thisGit = Git.open(new File(localRepository));
-			thisRepo = thisGit.getRepository();
-			config = thisRepo.getConfig();
-			config.setString("core", null, "sparseCheckout", "true");
-			config.save();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (thisRepo != null) {
-				thisRepo.close();
-			}
-			if (thisGit != null) {
-				thisGit.close();
-			}
-		}
-
-		File myFile2 = new File(localRepository + "/.git/info/sparse-checkout");
-		if (!myFile2.exists()) {
-			File myNewFile = new File(localRepository + "/.git/info");
-			if (!myNewFile.exists()) {
-				myNewFile.mkdir();
-			}
-			FileOutputStream fos = null;
-			OutputStreamWriter osw = null;
-			PrintWriter pw = null;
-			try {
-				fos = new FileOutputStream(myFile2);
-				osw = new OutputStreamWriter(fos);
-				pw = new PrintWriter(osw);
-				pw.println("/*");
-				for (int fileIndex = 0; fileIndex < files.length; fileIndex++) {
-					pw.println("!" + files[fileIndex]);
-				}
-				pw.close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (pw != null) {
-					pw.close();
-				}
-				if (osw != null) {
-					try {
-						osw.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-				if (fos != null) {
-					try {
-						fos.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param localRepository
-	 * @param files
-	 */
-	public static void writeIgnoreFile(String localRepository, String[] files) {
-		File myNewFile = new File(localRepository + "/.gitignore");
-		try {
-			myNewFile.createNewFile();
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-		FileOutputStream fos = null;
-		OutputStreamWriter osw = null;
-		PrintWriter pw = null;
-		try {
-			fos = new FileOutputStream(myNewFile);
-			osw = new OutputStreamWriter(fos);
-			pw = new PrintWriter(osw);
-			for (int fileIndex = 0; fileIndex < files.length; fileIndex++) {
-				pw.println("/" + files[fileIndex]);
-			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to write .gitignore file");
-		} finally {
-			if (pw != null) {
-				pw.close();
-			}
-			if (osw != null) {
-				try {
-					osw.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (fos != null) {
-				try {
-					fos.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Determine if a file is one to ignore
-	 * 
-	 * @param fileName
-	 * @return
+	 * Determines whether a file should be ignored based on its extension. Returns
+	 * {@code true} if the file name ends with one of the ignored suffixes
+	 * ({@code .db} or {@code .jnl}).
+	 *
+	 * @param fileName the file name (or path) to test
+	 * @return {@code true} if the name ends with an ignored extension;
+	 *         {@code false} otherwise
 	 */
 	public static boolean isIgnore(String fileName) {
 		String[] list = new String[] { ".db", ".jnl" };
@@ -338,78 +142,4 @@ public class GitUtils {
 		return ignore;
 	}
 
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////// GIT STATUS //////////////////////
-	///////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-
-	public static List<Map<String, String>> getStatus(String projectId, String ProjectName) {
-		List<Map<String, String>> output = new Vector<>();
-		String location = AssetUtility.getProjectVersionFolder(ProjectName, projectId);
-		; // DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" +
-			// SmssUtilities.getUniqueName(ProjectName, projectId) + "/version";
-		Git thisGit = null;
-		Status status = null;
-		try {
-			thisGit = Git.open(new File(location));
-			status = thisGit.status().call();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		} catch (NoWorkTreeException nwte) {
-			classLogger.error(Constants.STACKTRACE, nwte);
-		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		if (status != null) {
-			output.addAll(getFiles(projectId, ProjectName, "ADD", status.getAdded().iterator()));
-			output.addAll(getFiles(projectId, ProjectName, "MOD", status.getModified().iterator()));
-			output.addAll(getFiles(projectId, ProjectName, "DEL", status.getRemoved().iterator()));
-			output.addAll(getFiles(projectId, ProjectName, "DEL", status.getMissing().iterator()));
-			output.addAll(getFiles(projectId, ProjectName, "CON", status.getConflicting().iterator()));
-			output.addAll(getFiles(projectId, ProjectName, "NEW", status.getUntracked().iterator()));
-		}
-
-		if (thisGit != null) {
-			thisGit.close();
-		}
-
-		return output;
-	}
-
-	/**
-	 * Get the modified files
-	 * 
-	 * @param dbName
-	 * @param fileType
-	 * @param iterator
-	 * @return
-	 */
-	public static List<Map<String, String>> getFiles(String projectId, String projectName, String fileType,
-			Iterator<String> iterator) {
-		List<Map<String, String>> retFiles = new Vector<>();
-		while (iterator.hasNext()) {
-			String daFile = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/" + iterator.next();
-			if (!daFile.endsWith(".mosfet")) {
-				continue;
-			}
-			File f = new File(Utility.normalizePath(daFile));
-			String fileName = f.getParentFile().getName();
-			// f does not exist when the file type is missing or deleted
-			if (f.exists()) {
-				try {
-					fileName = MosfetSyncHelper.getInsightName(new File(daFile));
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			Map<String, String> fileData = new Hashtable<>();
-			fileData.put("fileName", fileName);
-			fileData.put("fileLoc", daFile);
-			fileData.put("fileType", fileType);
-			retFiles.add(fileData);
-		}
-		return retFiles;
-	}
 }
