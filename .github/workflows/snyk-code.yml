@@ -1,20 +1,14 @@
 name: Snyk Code Scan
 
 on:
-  push:
-    branches:
-      - dev
-      - main
-  pull_request:
-    branches:
-      - dev
-      - main
   workflow_dispatch:
 
 jobs:
   snyk-code:
     name: SAST Scan
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind
     permissions:
       contents: read
       security-events: write
