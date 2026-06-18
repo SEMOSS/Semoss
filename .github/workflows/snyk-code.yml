@@ -20,12 +20,13 @@ jobs:
         uses: snyk/actions/setup@master
 
       - name: Run Snyk Code scan
-        run: snyk code test --org=semoss --report --sarif-file-output=snyk-code.sarif
+        run: snyk code test --org=semoss --report --project-name=Semoss --sarif-file-output=snyk-code.sarif
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        if: hashFiles('snyk-code.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-code.sarif
