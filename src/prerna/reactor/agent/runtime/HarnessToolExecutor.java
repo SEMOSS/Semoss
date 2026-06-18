@@ -315,7 +315,24 @@ final class HarnessToolExecutor {
             }
         }
 
-        // 2. Normal MCP tool path. Prefer Room-enriched metadata so shortened
+        // 2. Platform default agent tools. These are not backed by room/workspace MCP
+        //    metadata, so resolve them by the default tool registry before the MCP path.
+        if (PlatformAgentTools.isDefaultTool(tc.rawToolName)) {
+            try {
+                String result = PlatformAgentTools.executeDefaultTool(tc.rawToolName, tc.toolParams, ctx);
+                boolean success = result == null || !result.startsWith("Tool execution error:");
+                return new ToolExecOutcome(result, success);
+            } catch (AgentCancelledException e) {
+                throw e;
+            } catch (Exception e) {
+                String msg = "Tool execution error: " + e.getMessage();
+                logger.warn("HarnessToolExecutor: platform default tool '{}' failed: {}",
+                        tc.rawToolName, e.getMessage(), e);
+                return new ToolExecOutcome(msg, false);
+            }
+        }
+
+        // 3. Normal MCP tool path. Prefer Room-enriched metadata so shortened
         // provider-facing names still resolve; fall back to legacy UUID prefixes.
         ResolvedMcpTool resolved = resolveMcpTool(tc);
         if (resolved == null) {
