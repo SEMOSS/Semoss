@@ -46,7 +46,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
@@ -115,7 +114,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 				try {
 					FileUtils.deleteDirectory(realFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete folder at path {}", inputFilePath, e);
 					throw new IllegalArgumentException(
 							"Error occurred trying to delete folder at path " + inputFilePath);
 				}
@@ -123,7 +122,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(realFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete file at path {}", inputFilePath, e);
 					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
 				}
 			}
