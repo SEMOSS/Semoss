@@ -44,7 +44,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -89,10 +88,10 @@ public class GitAddTagReactor extends AbstractReactor {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
 			thisGit.tag().setName(tag).setObjectId(thisGit.getRepository().parseCommit(commitObjectId)).call();
 		} catch (RefAlreadyExistsException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Tag {} already exists on commit {} in project {}", tag, commitId, projectId, e);
 			throw new SemossPixelException("Tag is already present " + tag, e);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add tag {} to commit {} in project {}", tag, commitId, projectId, e);
 			throw new SemossPixelException("Error occurred adding the tag. Detailed error = " + e.getMessage(), e);
 		}
 
