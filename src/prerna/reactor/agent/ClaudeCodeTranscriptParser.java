@@ -34,6 +34,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.AssistantText;
+import prerna.reactor.agent.ClaudeCodeTranscriptModels.AssistantThinking;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.MaxTurnsReached;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolInvocation;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolResult;
@@ -296,9 +297,11 @@ public class ClaudeCodeTranscriptParser {
 
 	/**
 	 * An "assistant" line contains message.content[] blocks that can be: -
-	 * type="text" AssistantText - type="tool_use" ToolInvocation
+	 * type="text" AssistantText - type="tool_use" ToolInvocation - type="thinking"
+	 * / type="redacted_thinking" AssistantThinking
 	 *
-	 * We return one event per line, with lists of texts and tool invocations.
+	 * We return one event per line, with lists of thinking blocks, texts and tool
+	 * invocations.
 	 */
 	private static JSONObject parseAssistantLine(JSONObject raw) {
 		JSONObject message = raw.optJSONObject("message");
@@ -318,6 +321,7 @@ public class ClaudeCodeTranscriptParser {
 				: null;
 		JSONObject usage = message.optJSONObject("usage");
 
+		List<JSONObject> thinking = new ArrayList<>();
 		List<JSONObject> texts = new ArrayList<>();
 		List<JSONObject> toolInvocations = new ArrayList<>();
 
@@ -329,6 +333,18 @@ public class ClaudeCodeTranscriptParser {
 				AssistantText at = new AssistantText(block.optString("text", ""), model, timestamp);
 				texts.add(assistantTextToJson(at));
 
+			} else if ("thinking".equals(blockType)) {
+				// Extended-thinking reasoning block. The "thinking" field holds the human-readable
+				// text; the "signature" field (opaque) is not surfaced to the frontend.
+				AssistantThinking th = new AssistantThinking(block.optString("thinking", ""), false, model, timestamp);
+				thinking.add(assistantThinkingToJson(th));
+
+			} else if ("redacted_thinking".equals(blockType)) {
+				// Encrypted reasoning the API redacted. The "data" field is not human-readable,
+				// so we emit a marker block with no text and let the frontend render a placeholder.
+				AssistantThinking th = new AssistantThinking(null, true, model, timestamp);
+				thinking.add(assistantThinkingToJson(th));
+
 			} else if ("tool_use".equals(blockType)) {
 				JSONObject input = block.optJSONObject("input");
 				ToolInvocation ti = new ToolInvocation(block.optString("id", ""), block.optString("name", ""),
@@ -339,6 +355,9 @@ public class ClaudeCodeTranscriptParser {
 		}
 
 		JSONObject data = new JSONObject();
+		if (!thinking.isEmpty()) {
+			data.put("thinking", new JSONArray(thinking));
+		}
 		if (!texts.isEmpty()) {
 			data.put("texts", new JSONArray(texts));
 		}
@@ -407,6 +426,15 @@ public class ClaudeCodeTranscriptParser {
 		j.put("text", at.text());
 		j.put("model", at.model());
 		j.put("timestamp", at.timestamp());
+		return j;
+	}
+
+	private static JSONObject assistantThinkingToJson(AssistantThinking th) {
+		JSONObject j = new JSONObject();
+		j.put("thinking", th.thinking() != null ? th.thinking() : JSONObject.NULL);
+		j.put("redacted", th.redacted());
+		j.put("model", th.model());
+		j.put("timestamp", th.timestamp());
 		return j;
 	}
 
