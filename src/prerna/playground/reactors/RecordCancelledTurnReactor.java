@@ -16,6 +16,11 @@ package prerna.playground.reactors;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -39,16 +44,17 @@ import prerna.util.Utility;
  * trip that gives the model context on the next turn that its previous
  * response was cut short.
  *
- * Called by the FE immediately after StopPixelExecution. The FE already has
- * the streamed partial in its placeholder; this reactor just commits it to
- * the room history so subsequent AskPlayground calls see the right context.
+ * Called by the FE immediately after StopPixelExecution. The FE supplies
+ * the user prompt as plain text (command) and the partial assistant response
+ * as the accumulated parts array (responseParts) — a JSON array of
+ * THINKING and TEXT chunks.
  *
  * Returns the persisted inputMessage and responseMessage so the FE can sync
  * its placeholder IDs without a separate room reload.
  */
 public class RecordCancelledTurnReactor extends AbstractReactor {
 
-	private static final String PARTIAL_RESPONSE_KEY = "partialResponse";
+	private static final String RESPONSE_PARTS_KEY = "responseParts";
 
 	private static final String HIDDEN_USER_NOTE = "[System note: I cancelled your previous response before it"
 			+ " finished streaming. The partial output above is everything you had generated."
@@ -58,7 +64,7 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 
 	public RecordCancelledTurnReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(), PARTIAL_RESPONSE_KEY };
+				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(), RESPONSE_PARTS_KEY };
 		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
 	}
 
@@ -70,10 +76,7 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
-		String partialResponse = this.keyValue.get(PARTIAL_RESPONSE_KEY);
-		if (partialResponse == null) {
-			partialResponse = "";
-		}
+		String responsePartsJson = this.keyValue.get(RESPONSE_PARTS_KEY);
 
 		User user = this.insight.getUser();
 		if (user == null) {
@@ -85,26 +88,32 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		}
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
+		if (modelEngine == null) {
+			throw new IllegalArgumentException("No model engine could be resolved for id " + engineId);
+		}
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-		// --- Build the four messages: input, visible partial response, hidden
-		// user note, hidden assistant ack. Visibility=false on the hidden pair
-		// keeps them out of the FE UI but they still ride along to the model on
-		// the next turn (see RoomMessageStore.providerMessageHistory).
+		// --- Build the visible user input from the plain-text command.
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(room.getEffectiveSystemPrompt())
 				.withText(question).withModelType(modelEngine.getModelType()).build();
 		if (parentMessageId != null && !parentMessageId.isEmpty()) {
 			inputMsg.setParentMessageId(parentMessageId);
 		}
 
-		ResponseMessage partialMsg = null;
-		if (!partialResponse.isEmpty()) {
-			partialMsg = ResponseMessage.text(partialResponse);
+		// --- Build the partial assistant response from the FE-supplied parts array.
+		// Expected shape: [{type:"THINKING",thinking:"..."},{type:"TEXT",text:"..."}].
+		// Order is preserved so the rendered output (and provider history) matches
+		// what the user saw on screen.
+		ResponseMessage partialMsg = buildPartialFromParts(responsePartsJson);
+		if (partialMsg != null) {
 			partialMsg.setModel(modelEngine);
 			partialMsg.setParentMessageId(inputMsg.getMessageId());
 		}
 
+		// --- Hidden user-note / assistant-ack pair. Visibility=false keeps them out
+		// of the FE UI but they still ride along to the model on the next turn (see
+		// RoomMessageStore.providerMessageHistory).
 		String hiddenParent = partialMsg != null ? partialMsg.getMessageId() : inputMsg.getMessageId();
 		InputMessage hiddenUserNote = InputMessage.builder(room).withText(HIDDEN_USER_NOTE)
 				.withModelType(modelEngine.getModelType()).build();
@@ -159,6 +168,54 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
+	/**
+	 * Parse the FE-supplied parts array and build a ResponseMessage with those
+	 * parts in order. Returns null if the payload is empty or yields no usable
+	 * parts (e.g. cancel fired before any token streamed).
+	 */
+	private ResponseMessage buildPartialFromParts(String responsePartsJson) {
+		if (responsePartsJson == null || responsePartsJson.trim().isEmpty()) {
+			return null;
+		}
+
+		JsonElement parsed;
+		try {
+			parsed = JsonParser.parseString(responsePartsJson);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("responseParts payload was not valid JSON", e);
+		}
+		if (!parsed.isJsonArray()) {
+			throw new IllegalArgumentException("responseParts payload must be a JSON array of part objects");
+		}
+
+		ResponseMessage.Builder builder = ResponseMessage.builder();
+		boolean hasAnyPart = false;
+		for (JsonElement element : (JsonArray) parsed) {
+			if (element == null || !element.isJsonObject()) {
+				continue;
+			}
+			JsonObject part = element.getAsJsonObject();
+			String type = part.has("type") && !part.get("type").isJsonNull() ? part.get("type").getAsString() : null;
+			if ("THINKING".equals(type)) {
+				String thinking = part.has("thinking") && !part.get("thinking").isJsonNull()
+						? part.get("thinking").getAsString() : null;
+				if (thinking != null && !thinking.isEmpty()) {
+					builder.withThinking(thinking);
+					hasAnyPart = true;
+				}
+			} else if ("TEXT".equals(type)) {
+				String text = part.has("text") && !part.get("text").isJsonNull() ? part.get("text").getAsString() : null;
+				if (text != null && !text.isEmpty()) {
+					builder.withText(text);
+					hasAnyPart = true;
+				}
+			}
+			// Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are not produced by a
+			// cancelled stream and are intentionally ignored here.
+		}
+		return hasAnyPart ? builder.build() : null;
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return "Persist the partial assistant response from a cancelled LLM stream plus a"
@@ -175,8 +232,9 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 			return "Optional parent message id";
 		} else if (ReactorKeysEnum.COMMAND.getKey().equals(key)) {
 			return "The user prompt that was sent to the model";
-		} else if (PARTIAL_RESPONSE_KEY.equals(key)) {
-			return "The partial assistant response that was streamed to the FE before cancellation";
+		} else if (RESPONSE_PARTS_KEY.equals(key)) {
+			return "JSON array of the partial response parts (THINKING + TEXT) the FE"
+					+ " accumulated before cancellation";
 		}
 		return super.getDescriptionForKey(key);
 	}
