@@ -60,7 +60,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 	private static Logger classLogger = LogManager.getLogger(BrowseAssetReactor.class);
 
 	public BrowseAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.SPACE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
@@ -70,40 +70,39 @@ public class BrowseAssetReactor extends AbstractReactor {
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 		String replacer = "";
-		
 
 		// specific folder to browse
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
-			locFolder = assetFolder + "/" + Utility.normalizePath( keyValue.get(keysToGet[0]));
+			locFolder = assetFolder + "/" + Utility.normalizePath(keyValue.get(keysToGet[0]));
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
-		
-		 // set the context here
-		if(!keyValue.containsKey(keysToGet[0]) && space != null) {
+
+		// set the context here
+		if (!keyValue.containsKey(keysToGet[0]) && space != null) {
 			try {
 				this.insight.setContext(space);
-				//if we have a chroot, mount the project for that user.
+				// if we have a chroot, mount the project for that user.
 				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-					//get the app_root folder for the project
+					// get the app_root folder for the project
 					this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
 				}
-			} catch(IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
 				// ignore
 			}
 		}
-		
+
 		File dirFile = new File(assetFolder + "/" + locFolder);
-		if(!dirFile.exists()) {
-			// if this file doesn't exist.. it has not been cloned yet. so clone and then go into it
+		if (!dirFile.exists()) {
+			// if this file doesn't exist.. it has not been cloned yet. so clone and then go
+			// into it
 			cloneRepo(locFolder, assetFolder);
 		}
 
-		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
-		
-		
+		List<Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
+
 		// add the files from repository and show it as if those files are there
-		if(locFolder.length() == 0) {
+		if (locFolder.length() == 0) {
 			FileInputStream fis = null;
 			// try to add all the repository
 			try {
@@ -111,43 +110,43 @@ public class BrowseAssetReactor extends AbstractReactor {
 				Properties prop = new Properties();
 				fis = new FileInputStream(repoFile);
 				prop.load(fis);
-				Enumeration <Object> dirs = prop.keys();
-				
-				while(dirs.hasMoreElements())
-				{
+				Enumeration<Object> dirs = prop.keys();
+
+				while (dirs.hasMoreElements()) {
 					String item = dirs.nextElement() + "";
 					// path, name, last modified, type
 					Map<String, Object> meta = new HashMap<String, Object>();
-					
+
 					meta.put("path", item + "/");
 					meta.put("name", item);
 					meta.put("type", "directory");
 					meta.put("lastModified", GitAssetUtils.getDate(System.currentTimeMillis()));
-					
+
 					output.add(meta);
 				}
 			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to find repoList file while browsing asset folder {}", assetFolder, e);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load repoList properties while browsing asset folder {}", assetFolder, e);
 			} finally {
-				if(fis != null) {
+				if (fis != null) {
 					try {
 						fis.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close repoList input stream while browsing asset folder {}",
+								assetFolder, e);
 					}
 				}
 			}
 		}
-		
+
 		// let us not show any hidden folders that start with a "."
 		Iterator<Map<String, Object>> dirIterator = output.iterator();
-		while(dirIterator.hasNext()) {
+		while (dirIterator.hasNext()) {
 			Map<String, Object> fileObj = dirIterator.next();
 			String name = fileObj.get("name") + "";
 			String type = fileObj.get("type") + "";
-			if(name.startsWith(".") && type.equalsIgnoreCase("directory")) {
+			if (name.startsWith(".") && type.equalsIgnoreCase("directory")) {
 				// we want to remove this
 				dirIterator.remove();
 			}
@@ -155,11 +154,11 @@ public class BrowseAssetReactor extends AbstractReactor {
 
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
-	
+
 	private void cloneRepo(String repoName, String workingDir) {
 		String repo = workingDir + "/version/repoList.txt";
 		File repoFile = new File(repo);
-		if(repoFile.exists() && repoFile.isFile()) {
+		if (repoFile.exists() && repoFile.isFile()) {
 			Properties prop = Utility.loadProperties(repo);
 			String url = prop.getProperty(repoName);
 			insight.getCmdUtil().executeCommand("git clone " + url);
