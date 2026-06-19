@@ -694,11 +694,15 @@ public class AccessToken implements Serializable {
 	}
 
 	/**
-	 * Get the first non null name for the access token
-	 * 
-	 * @return
+	 * Resolves a usable username for the access token, preferring the username and
+	 * falling back to the display name and then the email. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of username, name, or email; null if all are
+	 *         null
 	 */
-	public String getNonNullName() {
+	public String getResolvedUsername() {
 		return Stream.of(username, name, email).filter(Objects::nonNull).findFirst().orElse(null);
 	}
 

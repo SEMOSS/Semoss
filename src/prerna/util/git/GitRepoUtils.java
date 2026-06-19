@@ -956,7 +956,7 @@ public class GitRepoUtils {
 	public static void commitAddedFiles(String gitFolder, String message, User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getNonNullName();
+		String author = accessToken.getResolvedUsername();
 		commitAddedFiles(gitFolder, message, author, email);
 	}
 
@@ -1059,7 +1059,7 @@ public class GitRepoUtils {
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
 			User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getNonNullName(),
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getResolvedUsername(),
 				accessToken.getEmail());
 	}
 
