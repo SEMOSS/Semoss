@@ -70,7 +70,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 
 		// get asset base folder
 		String space = this.keyValue.get(this.keysToGet[1]);
