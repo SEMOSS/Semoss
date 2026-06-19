@@ -58,8 +58,9 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 	private static final String CLASS_NAME = AddWorkspaceReactor.class.getName();
 
 	public AddWorkspaceReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
+				SKILLS };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -136,6 +137,20 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 					return getError("Prompt not found or user lacks access: " + promptId);
 				}
 				workspaceResources.add(makePromptResourceEntryMap(workspaceId, promptId));
+			}
+		}
+
+
+		List<String> skillIds = getNounAsStringList(SKILLS);
+		if (!skillIds.isEmpty()) {
+			for (String skillId : skillIds) {
+				if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
+					return getError("Skill not found: " + skillId);
+				}
+				if (!SecurityProjectUtils.userCanViewProject(user, skillId)) {
+					return getError("User lacks permission to one of the given skills: " + skillId);
+				}
+				workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
 			}
 		}
 

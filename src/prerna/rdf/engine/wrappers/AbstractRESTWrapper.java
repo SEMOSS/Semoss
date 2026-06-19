@@ -63,7 +63,7 @@ import prerna.util.gson.IHeadersDataRowAdapter;
 public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWrapper, IRawSelectWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class.getName());
-	
+
 	protected transient IDatabaseEngine engine = null;
 	protected transient String query = null;
 
@@ -73,32 +73,33 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	protected String id = null;
 	protected String api = null;
 	protected boolean remote = false;
-	
+
 	/*
 	 * Engine wrapper class variables
 	 */
 	protected String[] headers = null;
 	protected String[] rawHeaders = null;
-	//TODO: move to pixel data type
+	// TODO: move to pixel data type
 	protected SemossDataType[] types = null;
 	protected int numColumns;
-	
+
 	protected long numRows;
 
 	/*
 	 * Cluster variables
 	 */
 	private static final Gson GSON = GsonUtility.getDefaultGson();
-	
+
 	private String host = null;
-	
+
 	// What keeps this object straight on the service side
 	private final String wrapperId = Utility.getRandomString(12);
-		
+
 	/*
 	 * End cluster variables
 	 */
-	// TODO >>>timb: remove this remote API stuff / interface for it if it is not needed 
+	// TODO >>>timb: remove this remote API stuff / interface for it if it is not
+	// needed
 	@Override
 	public void setRemoteId(String id) {
 		this.id = id;
@@ -118,35 +119,35 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	public String getRemoteAPI() {
 		return this.api;
 	}
-	
+
 	@Override
 	public void setRemote(boolean remote) {
 		this.remote = remote;
 	}
-	
+
 	@Override
 	public boolean isRemote() {
 		return this.remote;
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////// Code for cluster ////////////////////////////////////
-	
+	/** Code for cluster */
+
 	// Need to to pass in engine rather than using the class variable,
 	// as setEngine is often called when the id is null.
 	private boolean wrapperIsInherentlyLocal(IDatabaseEngine engine) {
 		String appId = engine.getEngineId();
-		
+
 		// TODO >>>timb: right now, only RDBMS works for remote
-		if (engine.getDatabaseType() != IDatabaseEngine.DATABASE_TYPE.RDBMS || appId.startsWith("security") || appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
+		if (engine.getDatabaseType() != IDatabaseEngine.DATABASE_TYPE.RDBMS || appId.startsWith("security")
+				|| appId.startsWith("LocalMasterDatabase") || appId.startsWith("form_builder_engine")) {
 			return true;
 		} else {
 			return false;
 		}
 	}
-	
+
 	private boolean isLocal() {
-		
+
 		// TODO >>>timb: is this a permanent fix?
 		if (engine == null) {
 			return true;
@@ -154,32 +155,30 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			return isLocal(engine);
 		}
 	}
-	
+
 	private boolean isLocal(IDatabaseEngine engine) {
-		 return wrapperIsInherentlyLocal(engine) || ClusterUtil.LOAD_ENGINES_LOCALLY;
+		return wrapperIsInherentlyLocal(engine) || ClusterUtil.LOAD_ENGINES_LOCALLY;
 	}
-	
+
 	private String getHostForDB(String appId) throws KeeperException, InterruptedException {
 		if (host == null) {
 			host = "http://" + ZKClient.getInstance().getHostForDB(appId) + "/Monolith/api/cluster/";
 		}
 		return host;
 	}
-		
+
 	private boolean resetHostForDB(String appId) throws KeeperException, InterruptedException {
 		String oldHost = host;
 		host = null;
 		host = getHostForDB(appId);
 		return !oldHost.equals(host);
 	}
-	
+
 	/*
-	 * Lazy load the host
-	 * Try to make the post request
-	 * If the post request fails, try reloading host, as it may have changed
+	 * Lazy load the host Try to make the post request If the post request fails,
+	 * try reloading host, as it may have changed
 	 */
 	private String post(String action, String appId, List<NameValuePair> params) throws Exception {
-				
 		// Setup the host
 		String host = getHostForDB(appId);
 		HttpClient httpclient = HttpClients.createDefault();
@@ -196,7 +195,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 				HttpPost newHttppost = getHttpPost(newHost, action, params);
 				response = httpclient.execute(newHttppost);
 			} else {
-				
+
 				// The host hasn't changed, nothing we can do
 				// Just unable to connect
 				// So rethrow e
@@ -207,68 +206,72 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		}
 		HttpEntity entity = response.getEntity();
 		if (entity != null) {
-		    try (InputStream instream = entity.getContent()) {
-		    	 String responseString = IOUtils.toString(instream);
-		    	 return responseString;
-		    }
+			try (InputStream instream = entity.getContent()) {
+				String responseString = IOUtils.toString(instream);
+				return responseString;
+			}
 		}
 		return null;
 	}
-	
-	private HttpPost getHttpPost(String host, String action, List<NameValuePair> params) throws UnsupportedEncodingException {
+
+	private HttpPost getHttpPost(String host, String action, List<NameValuePair> params)
+			throws UnsupportedEncodingException {
 		HttpPost httppost = new HttpPost(host + action);
 		httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 		httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
 		return httppost;
 	}
-	
+
 	private String sendAction(String action) throws Exception {
 		return sendAction(engine, action);
 	}
-	
+
 	private String sendAction(IDatabaseEngine engine, String action) throws Exception {
 		String appId = engine.getEngineId();
-		
+
 		List<NameValuePair> params = new ArrayList<NameValuePair>(1);
 		params.add(new BasicNameValuePair("wrapperId", wrapperId));
 		params.add(new BasicNameValuePair("appId", appId));
 		params.add(new BasicNameValuePair("query", query));
 		return post(action, appId, params);
 	}
-	
+
 	@Override
 	public void execute() {
 		if (isLocal()) {
 			localExecute();
-		} else  {
+		} else {
 			try {
 				String result = sendAction("execute");
-			  	classLogger.info(Utility.cleanLogString(result));
+				classLogger.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				classLogger.error("Unable to execute remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to execute remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
-	
+
 	protected abstract void localExecute();
 
 	@Override
 	public void setQuery(String query) {
-	  	this.query = query;
+		this.query = query;
 		if (!isLocal()) {
 			try {
 				String result = sendAction("setQuery");
 				classLogger.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				classLogger.error("Unable to set query for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to set query for remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
+
 	@Override
 	public String getQuery() {
 		return this.query;
 	}
-	
+
 	@Override
 	public void setEngine(IDatabaseEngine engine) {
 		this.engine = engine;
@@ -277,16 +280,17 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 				String result = sendAction(engine, "setEngine");
 				classLogger.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				classLogger.error("Unable to set engine for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to set engine for remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
-	
+
 	@Override
 	public IDatabaseEngine getEngine() {
 		return this.engine;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		if (isLocal()) {
@@ -296,11 +300,12 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 				String result = sendAction("cleanUp");
 				classLogger.info(Utility.cleanLogString(result));
 			} catch (Exception e) {
-				classLogger.error("Unable to clean up remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to clean up remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 			}
 		}
 	}
-	
+
 	protected abstract void localCleanUp();
 
 	@Override
@@ -313,14 +318,15 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 				classLogger.info(Utility.cleanLogString(result));
 				return Boolean.parseBoolean(result);
 			} catch (Exception e) {
-				classLogger.error("Unable to determine has next for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to determine has next for remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 				return false;
 			}
 		}
 	}
 
 	protected abstract boolean localHasNext();
-	
+
 	@Override
 	public IHeadersDataRow next() {
 		if (isLocal()) {
@@ -329,16 +335,17 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			try {
 				String result = sendAction("next");
 				classLogger.info(Utility.cleanLogString(result));
-			  	IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
-			  	IHeadersDataRow row = adapter.fromJson(result);
-			  	return row;
+				IHeadersDataRowAdapter adapter = new IHeadersDataRowAdapter();
+				IHeadersDataRow row = adapter.fromJson(result);
+				return row;
 			} catch (Exception e) {
-				classLogger.error("Unable to retrieve next row for remote wrapper with wrapper id = " + Utility.cleanLogString(wrapperId), e);
+				classLogger.error("Unable to retrieve next row for remote wrapper with wrapper id = {}",
+						Utility.cleanLogString(wrapperId), e);
 				return null;
 			}
 		}
 	}
-	
+
 	protected abstract IHeadersDataRow localNext();
 
 	@Override
@@ -350,7 +357,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			return null;
 		}
 	}
-	
+
 	protected abstract String[] localGetHeaders();
 
 	@Override
@@ -362,7 +369,7 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			return null;
 		}
 	}
-	
+
 	protected abstract SemossDataType[] localGetTypes();
 
 	@Override
@@ -374,9 +381,9 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			return 0;
 		}
 	}
-	
+
 	protected abstract long localGetNumRecords();
-	
+
 	@Override
 	public long getNumRows() {
 		if (isLocal()) {
@@ -388,16 +395,16 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	}
 
 	protected abstract long localGetNumRows();
-	
+
 	@Override
 	public void reset() {
 		if (isLocal()) {
 			localReset();
 		} else {
-			// TODO execute via rest	
-		}		
+			// TODO execute via rest
+		}
 	}
-	
+
 	protected abstract void localReset();
-	
+
 }
