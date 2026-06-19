@@ -104,6 +104,42 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	public static final String PGVECTOR_TABLE_NAME = "PGVECTOR_TABLE_NAME";
 	public static final String PGVECTOR_METADATA_TABLE_NAME = "PGVECTOR_METADATA_TABLE_NAME";
 
+	/** SMSS key to enable hybrid (vector + full-text) search on this engine. */
+	public static final String USE_HYBRID_SEARCH = "USE_HYBRID_SEARCH";
+
+	/**
+	 * SMSS key for the PostgreSQL text search configuration used in hybrid search
+	 * (e.g. {@code "english"}, {@code "simple"}). Defaults to {@code "simple"} if
+	 * not specified. Changing this value after data has already been indexed
+	 * requires a manual re-index of the {@code content_tsv} column.
+	 */
+	public static final String HYBRID_SEARCH_LANGUAGE = "HYBRID_SEARCH_LANGUAGE";
+
+	/**
+	 * SMSS key for the vector similarity weight used in hybrid RRF scoring (0.0–1.0).
+	 * The FTS weight is derived as {@code 1 - vectorWeight}. Defaults to {@code 0.5}.
+	 */
+	public static final String HYBRID_VECTOR_WEIGHT = "HYBRID_VECTOR_WEIGHT";
+
+	/**
+	 * SMSS key for the minimum {@code ts_rank} score required for full-text search
+	 * results to participate in RRF scoring. When the highest {@code ts_rank} across
+	 * all candidates falls below this threshold the FTS ranking is skipped entirely
+	 * and results are ordered by vector similarity alone. Defaults to {@code 0.01}.
+	 */
+	public static final String HYBRID_FTS_GATE_THRESHOLD = "HYBRID_FTS_GATE_THRESHOLD";
+
+	private static final String DEFAULT_HYBRID_SEARCH_LANGUAGE = "simple";
+	private static final double DEFAULT_HYBRID_VECTOR_WEIGHT = 0.5;
+	private static final double DEFAULT_HYBRID_FTS_GATE_THRESHOLD = 0.01;
+	private static final int RRF_K = 60;
+	private static final String VECTOR_SIM_ALIAS = "hybrid_vsim";
+	private static final String FTS_SCORE_ALIAS = "hybrid_fts";
+	private static final String ROW_IDX_ALIAS = "hybrid_ridx";
+
+	/** Canonical value for the cosine similarity distance method smss setting. */
+	private static final String DISTANCE_COSINE = "Cosine Similarity";
+
 	private int contentLength = 512;
 	private int contentOverlap = 0;
 
@@ -134,6 +170,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private boolean modelPropsLoaded = false;
 
 	private boolean removeDocsFlag = true;
+
+	private boolean useHybridSearch = false;
+	private String hybridSearchLanguage = DEFAULT_HYBRID_SEARCH_LANGUAGE;
+	private double hybridVectorWeight = DEFAULT_HYBRID_VECTOR_WEIGHT;
+	private double hybridFtsGateThreshold = DEFAULT_HYBRID_FTS_GATE_THRESHOLD;
 
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
@@ -229,6 +270,49 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				this.indexClasses.add(file.getName());
 			}
 		}
+
+		this.useHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(USE_HYBRID_SEARCH, "false"));
+		this.hybridSearchLanguage = this.smssProp.getProperty(HYBRID_SEARCH_LANGUAGE, DEFAULT_HYBRID_SEARCH_LANGUAGE)
+				.toLowerCase().trim();
+		if (!this.hybridSearchLanguage.matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+			classLogger.warn(
+					"HYBRID_SEARCH_LANGUAGE '{}' contains invalid characters; defaulting to '{}'",
+					this.hybridSearchLanguage, DEFAULT_HYBRID_SEARCH_LANGUAGE);
+			this.hybridSearchLanguage = DEFAULT_HYBRID_SEARCH_LANGUAGE;
+		}
+
+		if (this.smssProp.containsKey(HYBRID_VECTOR_WEIGHT)) {
+			try {
+				double parsedVectorWeight = Double.parseDouble(this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT));
+				if (parsedVectorWeight >= 0.0 && parsedVectorWeight <= 1.0) {
+					this.hybridVectorWeight = parsedVectorWeight;
+				} else {
+					classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' must be between 0.0 and 1.0 (inclusive); defaulting to {}",
+							parsedVectorWeight, DEFAULT_HYBRID_VECTOR_WEIGHT);
+				}
+			} catch (NumberFormatException e) {
+				classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' is not a valid number; defaulting to {}",
+						this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT), DEFAULT_HYBRID_VECTOR_WEIGHT, e);
+			}
+		}
+
+		if (this.smssProp.containsKey(HYBRID_FTS_GATE_THRESHOLD)) {
+			try {
+				double parsedGateThreshold = Double.parseDouble(this.smssProp.getProperty(HYBRID_FTS_GATE_THRESHOLD));
+				if (parsedGateThreshold >= 0.0) {
+					this.hybridFtsGateThreshold = parsedGateThreshold;
+				} else {
+					classLogger.warn(
+							"HYBRID_FTS_GATE_THRESHOLD '{}' must be >= 0; defaulting to {}",
+							parsedGateThreshold, DEFAULT_HYBRID_FTS_GATE_THRESHOLD);
+				}
+			} catch (NumberFormatException e) {
+				classLogger.warn("HYBRID_FTS_GATE_THRESHOLD '{}' is not a valid number; defaulting to {}",
+						this.smssProp.getProperty(HYBRID_FTS_GATE_THRESHOLD), DEFAULT_HYBRID_FTS_GATE_THRESHOLD, e);
+			}
+		}
+
+		ensureSchema();
 	}
 
 	/**
@@ -246,7 +330,103 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	/**
-	 * 
+	 * Maps the configured {@code DISTANCE_METHOD} to the corresponding pgvector HNSW
+	 * operator class. The operator class must match the distance operator used at
+	 * query time ({@code <=>} for cosine, {@code <->} for L2) — a mismatch causes
+	 * PostgreSQL to skip the index entirely and fall back to a sequential scan.
+	 *
+	 * @return pgvector operator class string suitable for use in a CREATE INDEX statement
+	 */
+	private String resolveHnswIndexOps() {
+		if (DISTANCE_COSINE.equalsIgnoreCase(this.distanceMethod)) {
+			return "vector_cosine_ops";
+		} else if (this.distanceMethod != null
+				&& this.distanceMethod.toLowerCase().contains("euclidean")) {
+			return "vector_l2_ops";
+		} else {
+			classLogger.warn(
+					"Unrecognized DISTANCE_METHOD '{}' for engine '{}'; defaulting HNSW operator class to vector_l2_ops",
+					this.distanceMethod, this.engineName);
+			return "vector_l2_ops";
+		}
+	}
+
+	/**
+	 * Ensures the HNSW embedding index exists and, when hybrid search is enabled,
+	 * ensures the full-text search column and GIN index are present. All DDL
+	 * statements use {@code IF NOT EXISTS} so this method is idempotent across
+	 * restarts.
+	 * <p>
+	 * When {@code USE_HYBRID_SEARCH} is {@code false}, the FTS column and GIN index
+	 * are not created or modified. Any existing hybrid-search schema left over from
+	 * a prior enabled state is left in place and simply ignored.
+	 * </p>
+	 */
+	private void ensureSchema() {
+		ensureHnswIndex();
+		if (this.useHybridSearch) {
+			ensureFtsSchema();
+		}
+	}
+
+	/**
+	 * Creates the HNSW approximate-nearest-neighbour index if it does not already
+	 * exist. A failure is non-fatal — vector search falls back to a sequential scan.
+	 */
+	private void ensureHnswIndex() {
+		String indexOps = resolveHnswIndexOps();
+		try {
+			execCreateStatement(pgVectorQueryUtil.createEmbeddingHnswIndex(this.vectorTableName, indexOps));
+		} catch (SQLException e) {
+			classLogger.warn(
+					"Could not create HNSW index on '{}'; vector search will use a sequential scan",
+					this.vectorTableName, e);
+		}
+	}
+
+	/**
+	 * Ensures the full-text search column, backfill, and GIN index are present when
+	 * hybrid search is enabled. A failure adding the column disables hybrid search
+	 * for this engine instance to avoid partial/inconsistent state.
+	 */
+	private void ensureFtsSchema() {
+		try {
+			execCreateStatement(pgVectorQueryUtil.addFtsColumn(this.vectorTableName));
+		} catch (SQLException e) {
+			classLogger.error(
+					"Failed to add full-text search column to '{}'; disabling hybrid search for this engine",
+					this.vectorTableName, e);
+			this.useHybridSearch = false;
+			return;
+		}
+
+		try {
+			execCreateStatement(pgVectorQueryUtil.backfillFtsColumn(this.vectorTableName, this.hybridSearchLanguage));
+		} catch (SQLException e) {
+			String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+			if (msg.contains("generated column")) {
+				classLogger.info(
+						"Full-text search column '{}' on '{}' is a generated column; "
+								+ "backfill skipped — values are maintained automatically by PostgreSQL",
+						PGVectorQueryUtil.CONTENT_TSV_COLUMN, this.vectorTableName);
+			} else {
+				classLogger.warn(
+						"Failed to backfill full-text search column on '{}'; "
+								+ "existing rows without a tsvector value will not participate in keyword scoring",
+						this.vectorTableName, e);
+			}
+		}
+
+		try {
+			execCreateStatement(pgVectorQueryUtil.createFtsIndex(this.vectorTableName));
+		} catch (SQLException e) {
+			classLogger.warn(
+					"Could not create GIN index on '{}'; full-text search will use a sequential scan",
+					this.vectorTableName, e);
+		}
+	}
+
+	/**
 	 * @param createQuery
 	 * @throws SQLException
 	 */
@@ -259,9 +439,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			classLogger.info("Executing create table for {} = {}",
 					SmssUtilities.getUniqueName(this.engineName, this.engineId), createQuery);
 			stmt.execute(createQuery);
-		} catch (SQLException e) {
-			classLogger.warn("Unable to create the table {}", createQuery);
-			classLogger.error("Failed to execute create-table statement: {}", createQuery, e);
 		} finally {
 			if (this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);
@@ -422,8 +599,17 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							+ e.getMessage());
 		}
 
-		String psString = "INSERT INTO " + this.vectorTableName
-				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) " + "VALUES (?,?,?,?,?,?,?)";
+		String psString;
+
+		if (this.useHybridSearch) {
+			psString = "INSERT INTO " + this.vectorTableName
+					+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT, "
+					+ PGVectorQueryUtil.CONTENT_TSV_COLUMN + ") "
+					+ "VALUES (?,?,?,?,?,?,?, to_tsvector('" + this.hybridSearchLanguage + "', ?))";
+		} else {
+			psString = "INSERT INTO " + this.vectorTableName
+					+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) VALUES (?,?,?,?,?,?,?)";
+		}
 
 		// Track insert status per file
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
@@ -451,6 +637,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				ps.setString(index++, row.getPart());
 				ps.setInt(index++, row.getTokens());
 				ps.setString(index++, row.getContent());
+				if (this.useHybridSearch) {
+					ps.setString(index++, row.getContent());
+				}
 				ps.addBatch();
 
 				fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
@@ -530,9 +719,16 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	@Override
 	public void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider,
 			String part, int tokens, String content, Map<String, Object> additionalMetadata) throws SQLException {
-		// just do the insertion
-		String psString = "INSERT INTO " + this.vectorTableName
-				+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) " + "VALUES (?,?,?,?,?,?,?)";
+		String psString;
+		if (this.useHybridSearch) {
+			psString = "INSERT INTO " + this.vectorTableName
+					+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT, "
+					+ PGVectorQueryUtil.CONTENT_TSV_COLUMN + ") "
+					+ "VALUES (?,?,?,?,?,?,?, to_tsvector('" + this.hybridSearchLanguage + "', ?))";
+		} else {
+			psString = "INSERT INTO " + this.vectorTableName
+					+ " (EMBEDDING, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT) VALUES (?,?,?,?,?,?,?)";
+		}
 
 		Connection conn = null;
 		PreparedStatement ps = null;
@@ -548,6 +744,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			ps.setString(index++, part);
 			ps.setInt(index++, tokens);
 			ps.setString(index++, content);
+			if (this.useHybridSearch) {
+				ps.setString(index++, content);
+			}
 
 			int result = ps.executeUpdate();
 			if (result == PreparedStatement.EXECUTE_FAILED) {
@@ -760,6 +959,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		EmbeddingsModelEngineResponse embeddingsResponse = engine
 				.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
 
+		if (this.useHybridSearch) {
+			return executeHybridRrfSearch(searchStatement, embeddingsResponse, limit, filters, metaFilters);
+		}
+
 		final String tablePrefix = this.vectorTableName + "__";
 //		final String metaTablePrefix = this.vectorTableMetadataName+"__";
 
@@ -775,28 +978,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
 		qs.addSelector(
 				new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
-		// Determine the distanceMethod to use for the query
-		// Store the result in the "Score" field,
-		if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
-			// '<=>' cosine similarity operator
-			// cosine distance is between -1 and 1
-			// Using 1 - cosine distance converts the distance metric into a similarity
-			// metric.
-			// 1 = identical
-			// 0 = orthogonal
-			// -1 = opposite
-			// so need to show results as desc
+		if (DISTANCE_COSINE.equalsIgnoreCase(this.distanceMethod)) {
+			// <=> cosine distance → convert to similarity so higher = better
 			qs.addSelector(new QueryOpaqueSelector(
 					"1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "')", "Score"));
-			// This allows us to sort results by similarity in descending order
-			// (from most similar to least similar).
 			qs.addOrderBy("Score", "DESC");
 		} else {
-			// '<->' Euclidean (L2) distance operator
-			// The POWER function is used to square the distance to avoid the computational
-			// cost of square roots
-			// This also ensures all distance values are non-negative, which is important
-			// for optimization
+			// <-> Squared Euclidean (L2) distance — lower = better
 			qs.addSelector(new QueryOpaqueSelector(
 					"POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'),2)", "Score"));
 			qs.addOrderBy("Score", "ASC");
@@ -815,6 +1003,161 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
 		return vectorSearchResults;
+	}
+
+	/**
+	 * Executes a hybrid vector + full-text search using Weighted Reciprocal Rank
+	 * Fusion (RRF). A single query fetches both the vector similarity score and the
+	 * {@code ts_rank} score for every candidate row. The two scores are then ranked
+	 * independently in Java and combined with the RRF formula:
+	 * <pre>
+	 *   rrfScore = vectorWeight / (k + vectorRank) + ftsWeight / (k + ftsRank)
+	 * </pre>
+	 * where {@code k = 60} is the standard RRF dampening constant. Weights are
+	 * configured via {@code HYBRID_VECTOR_WEIGHT} in the engine's
+	 * {@code .smss} file (default 0.5/0.5). If the highest {@code ts_rank} across
+	 * all candidates is below {@code HYBRID_FTS_GATE_THRESHOLD}, the FTS ranking is
+	 * skipped and results fall back to pure vector order.
+	 *
+	 * @param searchStatement    the user's query string
+	 * @param embeddingsResponse pre-computed embedding for {@code searchStatement}
+	 * @param limit              maximum number of results to return
+	 * @param filters            optional main-table column filters; may be {@code null}
+	 * @param metaFilters        optional metadata-table filters; may be {@code null}
+	 * @return results ranked by weighted RRF score, descending
+	 */
+	private List<Map<String, Object>> executeHybridRrfSearch(
+			String searchStatement,
+			EmbeddingsModelEngineResponse embeddingsResponse,
+			Number limit,
+			List<IQueryFilter> filters,
+			List<IQueryFilter> metaFilters) {
+
+		int resultLimit = limit != null ? limit.intValue() : 10;
+		int candidateLimit = Math.max(resultLimit * 10, 100);
+
+		final String tablePrefix = this.vectorTableName + "__";
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.SOURCE, VectorDatabaseCSVTable.SOURCE));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.MODALITY, VectorDatabaseCSVTable.MODALITY));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.DIVIDER, VectorDatabaseCSVTable.DIVIDER));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.PART, VectorDatabaseCSVTable.PART));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.TOKENS, VectorDatabaseCSVTable.TOKENS));
+		qs.addSelector(new QueryColumnSelector(tablePrefix + VectorDatabaseCSVTable.CONTENT, VectorDatabaseCSVTable.CONTENT));
+
+		String vectorSimExpr;
+		if (DISTANCE_COSINE.equalsIgnoreCase(this.distanceMethod)) {
+			vectorSimExpr = "(1 - (EMBEDDING <=> '" + embeddingsResponse.getResponse().get(0) + "'))";
+		} else {
+			vectorSimExpr = "(1.0 / (1.0 + POWER((EMBEDDING <-> '" + embeddingsResponse.getResponse().get(0) + "'), 2)))";
+		}
+		qs.addSelector(new QueryOpaqueSelector(vectorSimExpr, VECTOR_SIM_ALIAS));
+
+		String safeQuery = searchStatement.replace("'", "''");
+		String ftsExpr = "ts_rank(" + PGVectorQueryUtil.CONTENT_TSV_COLUMN
+				+ ", plainto_tsquery('" + this.hybridSearchLanguage + "', '" + safeQuery + "'))";
+		qs.addSelector(new QueryOpaqueSelector(ftsExpr, FTS_SCORE_ALIAS));
+
+		if (filters != null && !filters.isEmpty()) {
+			qs.addExplicitFilter(new GenRowFilters(filters), true);
+		}
+		if (metaFilters != null && !metaFilters.isEmpty()) {
+			qs.addRelation(this.vectorTableName, this.vectorTableMetadataName, "inner.join");
+			qs.addExplicitFilter(new GenRowFilters(metaFilters), true);
+		}
+		qs.addOrderBy(VECTOR_SIM_ALIAS, "DESC");
+		qs.setLimit(candidateLimit);
+
+		List<Map<String, Object>> candidates = QueryExecutionUtility.flushRsToMap(this, qs);
+		if (candidates.isEmpty()) {
+			return candidates;
+		}
+
+		if (classLogger.isDebugEnabled()) {
+			double maxVecSim = candidates.stream()
+					.mapToDouble(r -> r.get(VECTOR_SIM_ALIAS) != null
+							? ((Number) r.get(VECTOR_SIM_ALIAS)).doubleValue() : 0.0)
+					.max().orElse(0.0);
+			double maxFtsSc = candidates.stream()
+					.mapToDouble(r -> r.get(FTS_SCORE_ALIAS) != null
+							? ((Number) r.get(FTS_SCORE_ALIAS)).doubleValue() : 0.0)
+					.max().orElse(0.0);
+			classLogger.debug(
+					"Hybrid candidates for '{}': count={}, maxVectorSim={}, maxFtsScore={}",
+					searchStatement, candidates.size(), maxVecSim, maxFtsSc);
+		}
+
+		// Tag each row with its original list index so rankings can be cross-referenced
+		for (int i = 0; i < candidates.size(); i++) {
+			candidates.get(i).put(ROW_IDX_ALIAS, i);
+		}
+
+		// Sort copies to derive per-dimension ranks (position 0 = best)
+		List<Map<String, Object>> byVector = new ArrayList<>(candidates);
+		byVector.sort((a, b) -> Double.compare(
+				((Number) b.get(VECTOR_SIM_ALIAS)).doubleValue(),
+				((Number) a.get(VECTOR_SIM_ALIAS)).doubleValue()));
+
+		List<Map<String, Object>> byFts = new ArrayList<>(candidates);
+		byFts.sort((a, b) -> Double.compare(
+				((Number) b.get(FTS_SCORE_ALIAS)).doubleValue(),
+				((Number) a.get(FTS_SCORE_ALIAS)).doubleValue()));
+
+		int[] vectorRanks = new int[candidates.size()];
+		int[] ftsRanks = new int[candidates.size()];
+		for (int rank = 0; rank < byVector.size(); rank++) {
+			vectorRanks[((Number) byVector.get(rank).get(ROW_IDX_ALIAS)).intValue()] = rank;
+		}
+		for (int rank = 0; rank < byFts.size(); rank++) {
+			ftsRanks[((Number) byFts.get(rank).get(ROW_IDX_ALIAS)).intValue()] = rank;
+		}
+
+		// Gate: if no candidate has a meaningful ts_rank score, BM25 matched nothing
+		// useful — skip the FTS ranking and fall back to pure vector ordering.
+		double maxFtsScore = 0.0;
+		for (Map<String, Object> row : candidates) {
+			double score = ((Number) row.get(FTS_SCORE_ALIAS)).doubleValue();
+			if (score > maxFtsScore) {
+				maxFtsScore = score;
+			}
+		}
+		boolean useFts = maxFtsScore >= this.hybridFtsGateThreshold;
+		if (!useFts) {
+			classLogger.debug(
+					"Max ts_rank ({}) is below gate threshold ({}); FTS ranking skipped for query '{}'",
+					maxFtsScore, this.hybridFtsGateThreshold, searchStatement);
+		}
+
+		double vectorWeight = this.hybridVectorWeight;
+		double ftsWeight = 1.0 - vectorWeight;
+		classLogger.debug("Hybrid RRF for query '{}': vectorWeight={}, ftsWeight={}, useFts={}",
+				searchStatement, vectorWeight, ftsWeight, useFts);
+
+		double[] rrfScores = new double[candidates.size()];
+		for (int i = 0; i < candidates.size(); i++) {
+			rrfScores[i] = vectorWeight / (RRF_K + vectorRanks[i] + 1.0);
+			if (useFts) {
+				rrfScores[i] += ftsWeight / (RRF_K + ftsRanks[i] + 1.0);
+			}
+		}
+
+		List<Integer> sortedIndices = new ArrayList<>(candidates.size());
+		for (int i = 0; i < candidates.size(); i++) {
+			sortedIndices.add(i);
+		}
+		sortedIndices.sort((a, b) -> Double.compare(rrfScores[b], rrfScores[a]));
+
+		List<Map<String, Object>> results = new ArrayList<>(resultLimit);
+		for (int i = 0; i < Math.min(resultLimit, sortedIndices.size()); i++) {
+			Map<String, Object> row = candidates.get(sortedIndices.get(i));
+			row.put("Score", rrfScores[sortedIndices.get(i)]);
+			row.remove(ROW_IDX_ALIAS);
+			row.remove(VECTOR_SIM_ALIAS);
+			row.remove(FTS_SCORE_ALIAS);
+			results.add(row);
+		}
+		return results;
 	}
 
 	@Override
