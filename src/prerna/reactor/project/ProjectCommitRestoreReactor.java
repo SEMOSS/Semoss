@@ -85,8 +85,8 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
-				projectId, project.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
+				project.getEngineName());
 
 		try (Git thisGit = Git.open(new File(versionFolder))) {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
@@ -108,7 +108,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 			// Step 3: Commit the staged changes (index has target state, HEAD has original)
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			String author = accessToken.getName();
+			String author = accessToken.getNonNullName();
 			String email = accessToken.getEmail();
 			if (author == null || author.isEmpty()) {
 				author = "SEMOSS";
@@ -117,10 +117,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 				email = "semoss@semoss.org";
 			}
 
-			thisGit.commit()
-					.setMessage("Reverted to commit: " + commitId)
-					.setAuthor(author, email)
-					.call();
+			thisGit.commit().setMessage("Reverted to commit: " + commitId).setAuthor(author, email).call();
 
 			classLogger.info("Reverted project {} to commit {}", projectId, commitId);
 		} catch (IllegalArgumentException e) {

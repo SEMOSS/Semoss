@@ -33,7 +33,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import prerna.date.SemossDate;
 
@@ -689,6 +691,15 @@ public class AccessToken implements Serializable {
 	 */
 	public void setModelUsageRestriction(String modelUsageRestriction) {
 		this.modelUsageRestriction = modelUsageRestriction;
+	}
+
+	/**
+	 * Get the first non null name for the access token
+	 * 
+	 * @return
+	 */
+	public String getNonNullName() {
+		return Stream.of(username, name, email).filter(Objects::nonNull).findFirst().orElse(null);
 	}
 
 	/**

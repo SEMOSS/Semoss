@@ -61,7 +61,7 @@ public class CommitAssetReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getNonNullName();
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String comment = this.keyValue.get(this.keysToGet[1]);
 		String space = this.keyValue.get(this.keysToGet[2]);
