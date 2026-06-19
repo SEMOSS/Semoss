@@ -114,7 +114,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 
 		// Stage the file deletions in git
 		try (Git git = Git.open(new File(versionGitFolder))) {

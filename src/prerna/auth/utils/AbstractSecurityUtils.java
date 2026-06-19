@@ -2541,6 +2541,83 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// GITHUB_APP
+			// output of the GitHub app-manifest conversion flow (the app's own credentials)
+			colNames = new String[] { "APP_ID", "SLUG", "APP_NAME", "OWNER_LOGIN", "HTML_URL", "WEBHOOK_URL",
+					"CLIENT_ID", "CLIENT_SECRET", "WEBHOOK_SECRET", "PRIVATE_KEY", "CREATED_ON", "UPDATED_ON" };
+			types = new String[] { "BIGINT", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(500)",
+					"VARCHAR(500)", "VARCHAR(255)", CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GITHUB_APP", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "GITHUB_APP", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GITHUB_APP", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GITHUB_APP", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("GITHUB_APP", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// GITHUB_PROJECT_LINK
+			// per-project link between a project and a GitHub repo/installation
+			colNames = new String[] { "PROJECT_ID", "APP_ID", "INSTALLATION_ID", "REPO_ID", "REPO_FULL_NAME", "BRANCH",
+					"CREATED_ON", "UPDATED_ON" };
+			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "VARCHAR(511)", "VARCHAR(255)",
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("GITHUB_PROJECT_LINK", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "GITHUB_PROJECT_LINK", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("GITHUB_PROJECT_LINK", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GITHUB_PROJECT_LINK", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("GITHUB_PROJECT_LINK", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// indexes for webhook routing (resolve project by repo id / installation id)
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("IX_GHPL_REPO", "GITHUB_PROJECT_LINK", "REPO_ID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("IX_GHPL_INSTALL", "GITHUB_PROJECT_LINK", "INSTALLATION_ID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if (!queryUtil.indexExists(securityDb, "IX_GHPL_REPO", "GITHUB_PROJECT_LINK", database, schema)) {
+					String sql = queryUtil.createIndex("IX_GHPL_REPO", "GITHUB_PROJECT_LINK", "REPO_ID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "IX_GHPL_INSTALL", "GITHUB_PROJECT_LINK", database, schema)) {
+					String sql = queryUtil.createIndex("IX_GHPL_INSTALL", "GITHUB_PROJECT_LINK", "INSTALLATION_ID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
