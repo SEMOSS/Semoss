@@ -5,6 +5,7 @@ from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
 )
+from ..semoss_base.reasoning import normalize_reasoning
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
@@ -168,7 +169,7 @@ class BedrockMessageBuilder:
 
                     stream = message.param_map.get("stream", True)
 
-                    param_map = self.clean_param_map(param_map)
+                    param_map = self._apply_reasoning(inference_config, param_map)
 
             else:
                 role = self._message_type_to_role(message.type)
@@ -300,7 +301,7 @@ class BedrockMessageBuilder:
 
                     stream = message.param_map.get("stream", True)
 
-                    param_map = self.clean_param_map(param_map)
+                    param_map = self._apply_reasoning(inference_config, param_map)
 
         messages_dict = [msg.model_dump(exclude_none=True) for msg in bedrock_messages]
         system_dict = (
@@ -552,6 +553,10 @@ class BedrockMessageBuilder:
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
         param_map.pop("schema", None)
+        # reasoning keys are handled via reasoning_config; never pass them raw
+        param_map.pop("thinking", None)
+        param_map.pop("thinking_budget", None)
+        param_map.pop("effort", None)
         return param_map
 
     def _message_type_to_role(self, message_type: SEMOSSMessageType) -> str:
@@ -696,6 +701,38 @@ class BedrockMessageBuilder:
             ),
             param_map,
         )
+
+    def _resolve_reasoning_config(
+        self, param_map: Dict[str, Any]
+    ) -> Dict[str, Any] | None:
+        """Bedrock Converse reasoning (Anthropic Claude on Bedrock). Converse is
+        budget-based — it has no effort knob — so the canonical effort collapses
+        to a token budget. The builder is stateless (no model_settings), so this
+        resolves from the param map only. normalize_reasoning pops the
+        thinking/effort/thinking_budget keys so they don't leak into
+        additionalModelRequestFields.
+        """
+        resolved = normalize_reasoning(param_map)
+        if resolved is None:
+            return None
+        return {"type": "enabled", "budget_tokens": resolved.budget}
+
+    def _apply_reasoning(
+        self, inference_config: "BedrockInferenceConfig", param_map: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Resolve reasoning, clean the param map, then re-attach reasoning_config
+        and reconcile the inference config (maxTokens must exceed the budget;
+        sampling params are incompatible with reasoning)."""
+        reasoning_config = self._resolve_reasoning_config(param_map)
+        param_map = self.clean_param_map(param_map)
+        if reasoning_config:
+            param_map["reasoning_config"] = reasoning_config
+            budget = reasoning_config.get("budget_tokens", 0)
+            if inference_config.maxTokens is None or inference_config.maxTokens <= budget:
+                inference_config.maxTokens = budget + 4096
+            inference_config.temperature = None
+            inference_config.topP = None
+        return param_map
 
     def build_system_block(
         self, system_prompt: str = None

@@ -151,7 +151,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 
-	//////////////////////////////////// start adding selectors ////////////////////////////////////
+	/** start adding selectors */
 
 	public void appendSelectors(StringBuilder query) {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
@@ -236,16 +236,16 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			List<String> gbSelectors = new ArrayList<>();
 
 			// convert to string for comparison/sorting
-			for (IQuerySelector selector : selectors) {	
+			for (IQuerySelector selector : selectors) {
 				String selectorString = selector.toString();
-				qcsSelectors.add(selectorString);	
+				qcsSelectors.add(selectorString);
 			}
 
 			for (IQuerySelector groupBy : groupByList) {
-				if(groupBy.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				if (groupBy.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 					QueryColumnSelector queryColumnSelector = (QueryColumnSelector) groupBy;
-				    String gbString = queryColumnSelector.toString();
-				    gbSelectors.add(gbString);
+					String gbString = queryColumnSelector.toString();
+					gbSelectors.add(gbString);
 				} else {
 					String errorMessage = "Cannot group by non QueryColumnSelector type yet...";
 					logger.error(errorMessage);
@@ -274,7 +274,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			// convert back to Custom Object for interpretation
 			for (String selector : qcsSelectors) {
 				QueryColumnSelector typeSelector = new QueryColumnSelector(selector);
-				selectors.add((IQuerySelector) typeSelector);
+				selectors.add(typeSelector);
 			}
 
 		}
@@ -416,12 +416,12 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		String mathExpr = selector.getMathExpr();
 		return "(" + processSelector(leftSelector) + " " + mathExpr + " " + processSelector(rightSelector) + ")";
 	}
-	//////////////////////////////////// end adding selectors
-	//////////////////////////////////// ////////////////////////////////////
 
-	//////////////////////////////////// start adding filters
-	//////////////////////////////////// ////////////////////////////////////
-	public void addFilters(List<IQueryFilter> filters, StringBuilder builder, boolean useAlias, IDatabaseEngine engine) {
+	/** end adding selectors */
+
+	/** start adding filters */
+	public void addFilters(List<IQueryFilter> filters, StringBuilder builder, boolean useAlias,
+			IDatabaseEngine engine) {
 		for (IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter, useAlias, engine);
 			if (filterSyntax != null) {
@@ -643,7 +643,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 							}
 						}
 						filterBuilder.append(")");
-					} else if (thisComparator.equals("!=") | thisComparator.equals("<>")) {
+					} else if (thisComparator.equals("!=") || thisComparator.equals("<>")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
 							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" != ")
@@ -655,7 +655,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 						filterBuilder.append(")");
 					} else {
 						// this will probably break...
-						myFilterFormatted.append(RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE, null));
+						myFilterFormatted
+								.append(RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE, null));
 						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ")
 								.append(thisComparator).append(myFilterFormatted);
 					}
@@ -665,7 +666,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					if (thisComparator.equals("==")) {
 						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" IN ")
 								.append(myFilterFormatted);
-					} else if (thisComparator.equals("!=") | thisComparator.equals("<>")) {
+					} else if (thisComparator.equals("!=") || thisComparator.equals("<>")) {
 						filterBuilder.append(tempNode + ".").append("!(").append(leftSelectorExpression).append(" IN ")
 								.append(myFilterFormatted).append(")");
 					} else {
@@ -697,11 +698,10 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 		return filterBuilder;
 	}
-	//////////////////////////////////// end adding filters
-	//////////////////////////////////// ////////////////////////////////////
 
-	//////////////////////////////////// start join
-	//////////////////////////////////// ////////////////////////////////////
+	/** end adding filters */
+
+	/** start join */
 	public void appendJoin(StringBuilder query) {
 		for (Map.Entry<String, Map<String, String>> mapElement : labelMap.entrySet()) {
 			String intermediateNode = null;
@@ -729,11 +729,11 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		// add the relationships into the edge map
 		Set<IRelation> relations = qs.getRelations();
 		for (IRelation relationship : relations) {
-			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+			if (relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
 				BasicRelationship rel = (BasicRelationship) relationship;
 				String startNode = rel.getFromConcept();
 				String endNode = rel.getToConcept();
-	
+
 				Set<String> joinSet = null;
 				if (edgeMap.containsKey(startNode)) {
 					joinSet = edgeMap.get(startNode);
@@ -743,19 +743,17 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				}
 				joinSet.add(endNode);
 			} else {
-				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+				logger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 			}
 		}
 
 		return edgeMap;
 	}
-	
-	//////////////////////////////////// end join ////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////// start order by //////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////
-	
+	/** end join */
+
+	/** start order by */
+
 	private void addOrderBy() {
 		// grab the order by and get the corresponding display name for that
 		// order by column
@@ -767,7 +765,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		boolean initialized = false;
 		StringBuilder builderOrdering = null;
 		for (IQuerySort orderBy : orderByList) {
-			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+			if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
 				String tableName = orderBySelector.getTable();
 				String columnName = orderBySelector.getColumn();
@@ -776,10 +774,10 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					columnName = getNodeName(tableName);
 				}
 				ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-	
+
 				// grab temp table name
 				String intermediateNode = labelAliasMap.get(tableName);
-	
+
 				if (initialized) {
 					builderOrdering.append(", ").append(intermediateNode).append(".").append(columnName);
 				} else {
@@ -787,7 +785,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					builderOrdering.append(intermediateNode).append(".").append(columnName);
 					initialized = true;
 				}
-	
+
 				if (orderByDir == ORDER_BY_DIRECTION.DESC) {
 					builderOrdering.append(" ").append(ORDER_BY_DIRECTION.DESC);
 				}
@@ -798,8 +796,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			orderBys.append(ORDER_BY).append(" ").append(builderOrdering.toString());
 		}
 	}
-	//////////////////////////////////// end order by
-	//////////////////////////////////// ////////////////////////////////////
+
+	/** end order by */
 
 	/**
 	 * Set this boolean to true if you want the interpreter to grab nodes using the
@@ -830,8 +828,6 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		}
 		return sb.toString();
 	}
-
-	//////////////////////////////////////////////////////////
 
 	/*
 	 * Getters for the type and name of the node
