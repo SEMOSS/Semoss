@@ -97,27 +97,27 @@ public class SandboxInjector {
 			return false;
 		}
 		UnixDomainSocketAddress address = UnixDomainSocketAddress.of(controlSocketPath);
-		try (SocketChannel ch = SocketChannel.open(address)) {
-			OutputStream os = Channels.newOutputStream(ch);
+		try (SocketChannel ch = SocketChannel.open(address); OutputStream os = Channels.newOutputStream(ch);) {
 			os.write((command + "\n").getBytes(StandardCharsets.UTF_8));
 			os.flush();
 
-			InputStream is = Channels.newInputStream(ch);
-			StringBuilder sb = new StringBuilder();
-			int c;
-			while ((c = is.read()) != -1 && c != '\n') {
-				sb.append((char) c);
+			try (InputStream is = Channels.newInputStream(ch)) {
+				StringBuilder sb = new StringBuilder();
+				int c;
+				while ((c = is.read()) != -1 && c != '\n') {
+					sb.append((char) c);
+				}
+				String reply = sb.toString().trim();
+				if (reply.startsWith("OK") || "PONG".equals(reply)) {
+					return true;
+				}
+				String msg = "Sandbox control command '" + command.replace('\t', ' ') + "' failed: " + reply;
+				if (required) {
+					throw new IllegalStateException(msg);
+				}
+				classLogger.debug(msg);
+				return false;
 			}
-			String reply = sb.toString().trim();
-			if (reply.startsWith("OK") || "PONG".equals(reply)) {
-				return true;
-			}
-			String msg = "Sandbox control command '" + command.replace('\t', ' ') + "' failed: " + reply;
-			if (required) {
-				throw new IllegalStateException(msg);
-			}
-			classLogger.debug(msg);
-			return false;
 		} catch (IOException e) {
 			if (required) {
 				throw new IllegalStateException("Failed to talk to sandbox control socket " + controlSocketPath, e);
