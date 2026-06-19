@@ -472,11 +472,6 @@ public final class UploadUtilities {
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Below methods pertain to the smss file
 	 */
@@ -619,9 +614,6 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
 		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 
@@ -646,14 +638,15 @@ public final class UploadUtilities {
 					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
 
-					fileRead = new FileReader(rdfDefaultProps);
-					bufferedReader = new BufferedReader(fileRead);
-					String currentLine;
-					while ((currentLine = bufferedReader.readLine()) != null) {
-						if (currentLine.contains("@FileName@")) {
-							currentLine = currentLine.replace("@FileName@", jnlName);
+					try (FileReader fileRead = new FileReader(rdfDefaultProps);
+							BufferedReader bufferedReader = new BufferedReader(fileRead)) {
+						String currentLine;
+						while ((currentLine = bufferedReader.readLine()) != null) {
+							if (currentLine.contains("@FileName@")) {
+								currentLine = currentLine.replace("@FileName@", jnlName);
+							}
+							bufferedWriter.write(currentLine + newLine);
 						}
-						bufferedWriter.write(currentLine + newLine);
 					}
 				} else {
 					properties.put(Constants.RDF_FILE_NAME, databaseName + ".xml");
@@ -674,14 +667,15 @@ public final class UploadUtilities {
 					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
 
-					fileRead = new FileReader(rdfDefaultProps);
-					bufferedReader = new BufferedReader(fileRead);
-					String currentLine;
-					while ((currentLine = bufferedReader.readLine()) != null) {
-						if (currentLine.contains("@FileName@")) {
-							currentLine = currentLine.replace("@FileName@", jnlName);
+					try (FileReader fileRead = new FileReader(rdfDefaultProps);
+							BufferedReader bufferedReader = new BufferedReader(fileRead)) {
+						String currentLine;
+						while ((currentLine = bufferedReader.readLine()) != null) {
+							if (currentLine.contains("@FileName@")) {
+								currentLine = currentLine.replace("@FileName@", jnlName);
+							}
+							bufferedWriter.write(currentLine + newLine);
 						}
-						bufferedWriter.write(currentLine + newLine);
 					}
 				} else {
 					bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
@@ -692,18 +686,6 @@ public final class UploadUtilities {
 			classLogger.error("Failed to write RDF database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} finally {
-			try {
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close RDF default properties reader for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
 		}
 
 		return dbTempSmss;
@@ -1547,11 +1529,6 @@ public final class UploadUtilities {
 		bufferedWriter.write(Constants.OWL + tab + owlFile.getName() + newLine);
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Below methods pertain to the insights database
 	 */
@@ -2307,11 +2284,6 @@ public final class UploadUtilities {
 		return updateMap;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * Parse the file
 	 * 
@@ -2381,8 +2353,6 @@ public final class UploadUtilities {
 
 		return new Object[] { headers, types, additionalTypes };
 	}
-	//////////////////////////////////////////////
-	/////////////////////////////////////////////
 
 	/**
 	 * Save metamodel structure to json in database folder
