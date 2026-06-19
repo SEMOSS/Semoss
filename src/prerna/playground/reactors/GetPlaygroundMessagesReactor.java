@@ -48,6 +48,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
 
 public class GetPlaygroundMessagesReactor extends AbstractReactor {
@@ -137,6 +138,7 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
 
 		Map<String, JSONObject> toolCache = new HashMap<>();
+		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
 		for (AbstractMessage m : page) {
 			if (m.hasParts() && m.hasToolCallPart()) {
 				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
@@ -148,6 +150,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 						room.getToolLookupByLLMName());
 			}
 			Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
+			if (hideSystemMessages) {
+				MessageUtils.removeSystemPromptFromMessageMap(messageMap);
+			}
 //				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
 //					MessageUtils.applyLegacyInputFields((prerna.engine.impl.model.message.InputMessage) m,
 //							messageMap);

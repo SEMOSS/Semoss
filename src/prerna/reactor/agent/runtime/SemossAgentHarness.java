@@ -36,8 +36,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -50,6 +51,8 @@ import prerna.reactor.agent.exceptions.AgentBudgetException;
 import prerna.reactor.agent.exceptions.AgentBudgetException.BudgetKind;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.skill.SkillScanner;
+import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 
@@ -87,6 +90,16 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_PERMISSION_MODE_SNAKE = "permission_mode";
 	private static final String PARAM_PROJECT = "project";
 	private static final String PARAM_SUBDIR = "subdir";
+	private static final String PARAM_WORKSPACE_ID = "workspace_id";
+	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
+	private static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
+	private static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
+	private static final String RUN_ROLE_INPUT = "input";
+	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
+	private static final String RUN_ROLE_ASSISTANT = "assistant";
+	private static final String RUN_ROLE_ASSISTANT_TOOL = "assistant_tool";
+	private static final String RUN_ROLE_TOOL_RESULT = "tool_result";
+	private static final String RUN_ROLE_FINAL_OUTPUT = "final_output";
 
 	@Override
 	public String getName() {
@@ -99,6 +112,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		stripHarnessOnlyParams(paramMap);
+		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
@@ -107,13 +121,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
 		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
-		boolean isChildRun = ctx.getSpawnDepth() > AgentRunContext.ROOT_SPAWN_DEPTH;
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
 		if (canSpawn) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
-		}
-		if (isChildRun) {
-			subAgentTools.addAll(SubAgentToolSynthesizer.childTools());
 		}
 		injectSubAgentTools(paramMap, subAgentTools);
 
@@ -125,26 +135,13 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (AgentSubAgentRegistry.getManager().registerRoot(runJobId, policy)) {
 					rootJobIdRegistered = runJobId;
 				}
-					logger.info(
-					"SemossAgentHarness: root spawn policy active jobId={} maxDepth={} maxPerRun={} maxPerTurn={}",
-					runJobId, policy.getMaxSubagentDepth(), policy.getMaxSubagentsPerRun(),
-					policy.getMaxSpawnsPerTurn());
+				logger.info(
+						"SemossAgentHarness: root spawn policy active jobId={} maxDepth={} maxPerRun={} maxPerTurn={}",
+						runJobId, policy.getMaxSubagentDepth(), policy.getMaxSubagentsPerRun(),
+						policy.getMaxSpawnsPerTurn());
 			}
 		}
 
-		// Compose the final prompt as:
-		//   <harness baseline>            -- SemossHarnessPrompts.SYSTEM_PROMPT (harness-specific)
-		//   <subagent control block>      -- only when subagents are configured
-		//   <agent-side composed layers>  -- AgentConfig.getComposedAgentPrompt()
-		//                                     = agent AGENTS.md + workdir AGENTS.md + authored prompt
-		// AgentConfig is resolved once by AgentConfigLoader at the top of AgentRunner.run() --
-		// no harness re-implements room/workspace resolution.
-		//
-		// We still overlay the composed text onto room.options.instructions for the duration
-		// of this run because the synthetic tool-result InputMessage built inside
-		// Room.addToolExecutionResult re-reads getEffectiveSystemPrompt() and would otherwise
-		// drop the harness baseline + AGENTS.md after the first tool call. Restored in finally.
-		// In-memory mutation only -- no DB write.
 		String agentSidePrompt = agentConfig.getComposedAgentPrompt();
 
 		Map<String, Object> opts = room.getOptionsMap();
@@ -153,8 +150,14 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn || isChildRun) {
-			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs, canSpawn, isChildRun));
+		if (canSpawn) {
+			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
+		}
+		// Advertise skills materialized into the working dir (by SkillStager, earlier in the run) so
+		// the model knows what it can pull in via LoadSkill. Empty when no skills are present.
+		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		if (!availableSkillsBlock.isEmpty()) {
+			composed.append("\n\n").append(availableSkillsBlock);
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
@@ -176,17 +179,20 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			// Start the clock BEFORE the first model call so it counts against max_seconds.
 			AgentLoopState state = new AgentLoopState();
+			String inputMessageId = null;
+			String finalOutputMessageId = null;
+			int runMessageStartIndex = room.getMessages().size();
 
 			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
 					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+			inputMessageId = firstMsg.getMessageId();
 
 			logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
 					ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
 			ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
-
-			// Honor cancellation that arrived during the initial ask before doing any tool
-			// work.
+			tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
 			}
@@ -198,8 +204,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			while (!state.isTerminal()) {
 
 				if (Thread.currentThread().isInterrupted()) {
-					logger.info("SemossAgentHarness: cancellation detected at iteration={} room={}",
-							state.getIterations(), room.getId());
+					logger.info("SemossAgentHarness: cancelled room={} after iterations={}", room.getId(),
+							state.getIterations());
 					throw new AgentCancelledException(
 							"Agent run cancelled after " + state.getIterations() + " iterations");
 				}
@@ -223,34 +229,17 @@ public class SemossAgentHarness implements IAgentHarness {
 					break;
 				}
 
-				MessageType msgType = response.getMessageType();
-
-				if (msgType == MessageType.RESPONSE_TEXT) {
-
-					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
-						state.incrementReflections();
-						logger.info("SemossAgentHarness: reflection {}/{} room={}", state.getReflectionsUsed(),
-								ctx.getMaxReflections(), room.getId());
-
-						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
-						injectSubAgentTools(reflectionParams, subAgentTools);
-						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
-								.withParamMap(reflectionParams).build();
-						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
-
-					} else {
-						state.setFinalText(response.getContent());
-						state.setTerminal(true);
-					}
-
-				} else if (msgType == MessageType.RESPONSE_TOOL) {
-
+				// Continue the agent loop while the assistant response contains tool calls.
+				// Messages may also contain text/thinking parts; tool-call presence is the
+				// execution signal, not the legacy response-type field.
+				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
+					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
 					// Re-inject synthesized tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectSubAgentTools(paramMap, subAgentTools);
 					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 
 					if (next != null) {
@@ -263,12 +252,29 @@ public class SemossAgentHarness implements IAgentHarness {
 					}
 
 				} else {
-					logger.warn("SemossAgentHarness: unexpected MessageType {} at iteration={} - treating as terminal",
-							msgType, state.getIterations());
-					state.setFinalText(response.getContent());
-					state.setTerminal(true);
+					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
+						state.incrementReflections();
+						logger.info("SemossAgentHarness: reflection {}/{} room={}", state.getReflectionsUsed(),
+								ctx.getMaxReflections(), room.getId());
+
+						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
+						injectSubAgentTools(reflectionParams, subAgentTools);
+						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
+								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
+								.withParamMap(reflectionParams).build();
+						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
+						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+
+					} else {
+						state.setFinalText(response.getContent());
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+						state.setTerminal(true);
+					}
 				}
 			}
+			persistAgentRunTags(room, ctx);
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
@@ -277,7 +283,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
-					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed());
+					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
+					finalOutputMessageId);
 		} finally {
 			// Always restore -- we always mutated options.instructions above.
 			if (hadInstructions) {
@@ -289,11 +296,6 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (rootJobIdRegistered != null) {
 				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
 			}
-			String exitingJobId = ThreadStore.getJobId();
-			if (exitingJobId != null && !exitingJobId.isBlank()) {
-				AgentSubAgentRegistry.getManager().cleanupClarification(exitingJobId);
-				AgentSubAgentRegistry.getManager().cleanupClarificationsForParent(exitingJobId);
-			}
 		}
 	}
 
@@ -302,6 +304,71 @@ public class SemossAgentHarness implements IAgentHarness {
 			return;
 		}
 		insight.setInsightFolder(filePath.trim());
+	}
+
+	private static void tagAgentRun(AbstractMessage message, String runId, String role) {
+		if (message == null || runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		message.setOrnament(ORNAMENT_AGENT_RUN_ID, runId);
+		if (role != null && !role.trim().isEmpty()) {
+			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
+		}
+	}
+
+	private static void tagAgentRunMessagesFrom(Room room, int startIndex, String runId) {
+		if (room == null || runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		List<AbstractMessage> messages = room.getMessages();
+		int from = Math.max(0, startIndex);
+		for (int i = from; i < messages.size(); i++) {
+			AbstractMessage message = messages.get(i);
+			if (message == null) {
+				continue;
+			}
+			Object existingRole = message.getOrnament(ORNAMENT_AGENT_RUN_ROLE);
+			String role = existingRole == null ? roleForMessage(message) : String.valueOf(existingRole);
+			tagAgentRun(message, runId, role);
+		}
+	}
+
+	private static String roleForMessage(AbstractMessage message) {
+		if (message instanceof InputMessage && message.hasToolResultPart()) {
+			return RUN_ROLE_TOOL_RESULT;
+		}
+		if (message instanceof InputMessage) {
+			return RUN_ROLE_INPUT;
+		}
+		if (message instanceof ResponseMessage) {
+			return roleForAssistant((ResponseMessage) message);
+		}
+		return null;
+	}
+
+	private static String roleForAssistant(ResponseMessage message) {
+		if (hasAssistantToolCalls(message)) {
+			return RUN_ROLE_ASSISTANT_TOOL;
+		}
+		return RUN_ROLE_ASSISTANT;
+	}
+
+	private static boolean hasAssistantToolCalls(ResponseMessage message) {
+		return message != null && message.hasToolResponses();
+	}
+
+	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {
+		if (room == null || ctx == null || ctx.getRunId() == null || ctx.getRunId().trim().isEmpty()) {
+			return;
+		}
+		String userId = ctx.getUserId();
+		if (userId == null || userId.trim().isEmpty()) {
+			userId = room.getUserId();
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			return;
+		}
+		RoomMessageStore.persist(room, userId);
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
@@ -318,6 +385,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
 		paramMap.remove(PARAM_PROJECT);
 		paramMap.remove(PARAM_SUBDIR);
+		paramMap.remove(PARAM_WORKSPACE_ID);
+		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
 	}
 
 	private static int lengthOrZero(String s) {
@@ -343,17 +412,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * non-empty, the block also lists named specialist subagents the LLM can
 	 * delegate to; when empty, only the anonymous-spawn guidance is included.
 	 */
-	private static String buildSubAgentPromptBlock(List<SubAgentSpec> specs, boolean canSpawn, boolean isChildRun) {
+	private static String buildSubAgentPromptBlock(List<SubAgentSpec> specs) {
 		StringBuilder sb = new StringBuilder();
-		if (!canSpawn && isChildRun) {
-			sb.append("You can communicate with your parent agent using these tools:\n");
-			sb.append("- `NotifyParent(message, kind)` sends a progress/status event and then you keep working.\n");
-			sb.append("- `AskParent(question)` asks your parent for clarification. This tool pauses until ");
-			sb.append("the parent replies, and the reply is returned as the tool result. Use it sparingly; ");
-			sb.append("when a reasonable assumption is safe, make the assumption and optionally notify the parent.\n");
-			return sb.toString();
-		}
-
 		if (specs != null && !specs.isEmpty()) {
 			sb.append("You can delegate work to specialist subagents via these tools: ");
 			boolean first = true;
@@ -373,16 +433,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		  .append("until the subagent completes or your timeoutSec elapses.\n");
 		sb.append("- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.\n");
 		sb.append("- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.\n\n");
-		sb.append("If `WaitForSubAgent` or `CheckSubAgentStatus` returns `status: needs_input`, ");
-		sb.append("answer the child's question with `ReplyToSubAgentAsk(jobId=<handle>, requestId=<requestId>, message=<answer>)`. ");
-		sb.append("The reply becomes the child's native `AskParent` tool result. Do not try to send ");
-		sb.append("unsolicited steering messages; V1 only supports replies to explicit child questions.\n\n");
-
-		if (isChildRun) {
-			sb.append("Because this run is itself a subagent, you can also call `NotifyParent` for progress ");
-			sb.append("or `AskParent` when you truly need clarification. These are child-to-parent tools; ");
-			sb.append("they do not inject messages into either room transcript.\n\n");
-		}
+		sb.append("Subagents have separate room transcripts. They may share your workdir only when ")
+		  .append("you explicitly set `inherit_parent_workdir=true` while spawning them.\n\n");
 
 		sb.append("## Two patterns: blocking vs deferred\n\n");
 		sb.append("**Pattern A -- blocking (default for quick subagent work, <30s expected):**\n");
@@ -452,6 +504,57 @@ public class SemossAgentHarness implements IAgentHarness {
 		return sb.toString();
 	}
 
+	/**
+	 * Renders the skills discovered in {@code workingDir} as an {@code <available_skills>} block
+	 * for the system prompt, mirroring {@link #buildSubAgentPromptBlock}. Returns an empty string
+	 * when the working dir is blank or no skills are present, so the caller can skip appending an
+	 * empty block.
+	 *
+	 * <p>Discovery is delegated to {@link SkillScanner#scan(String)} -- the same logic the
+	 * {@code ListSkill} tool uses -- so the prompt and the tool agree on what's available. The
+	 * {@code <location>} of each skill is its working-dir-relative folder (e.g.
+	 * {@code .claude/skills/pdf}).
+	 */
+	private static String buildAvailableSkillsPromptBlock(String workingDir) {
+		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir);
+		logger.info("SemossAgentHarness: discovered {} skill(s) for available_skills block workingDir={}",
+				skills.size(), workingDir);
+		if (skills.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.append("<available_skills>\n");
+		for (DiscoveredSkill skill : skills) {
+			sb.append("  <skill>\n");
+			sb.append("    <name>").append(xmlEscape(skill.getName())).append("</name>\n");
+			sb.append("    <description>\n");
+			sb.append("      ").append(xmlEscape(skill.getDescription())).append("\n");
+			sb.append("    </description>\n");
+			sb.append("    <location>").append(xmlEscape(skill.getDirectory())).append("</location>\n");
+			sb.append("  </skill>\n");
+		}
+		sb.append("</available_skills>");
+		return sb.toString();
+	}
+
+	/** Minimal XML escaping for values interpolated into the {@code <available_skills>} block. */
+	private static String xmlEscape(String s) {
+		if (s == null || s.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder(s.length());
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			switch (c) {
+				case '&': sb.append("&amp;"); break;
+				case '<': sb.append("&lt;");  break;
+				case '>': sb.append("&gt;");  break;
+				default:  sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
 	private static int resolveMaxSeconds(Map<String, Object> paramMap) {
 		Object val = paramMap.get(PARAM_MAX_SECONDS);
 		if (val == null)
@@ -466,4 +569,5 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		return 0;
 	}
+
 }

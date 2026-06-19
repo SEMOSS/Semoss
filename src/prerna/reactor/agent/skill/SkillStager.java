@@ -166,8 +166,8 @@ public final class SkillStager {
 		}
 
 		long sourceFingerprint = computeFingerprint(sourceDir);
-		Path targetDir = skillsRoot.resolve(skillId);
-		if (cacheHit(targetDir, skillId, sourceFingerprint)) {
+		Path targetDir = skillsRoot.resolve(slug);
+		if (cacheHit(targetDir, slug, sourceFingerprint)) {
 			return StageOutcome.CACHED;
 		}
 

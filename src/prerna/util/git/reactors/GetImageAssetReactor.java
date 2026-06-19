@@ -33,17 +33,17 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.Base64;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class GetImageAssetReactor extends AbstractReactor {
 
@@ -68,7 +68,7 @@ public class GetImageAssetReactor extends AbstractReactor {
 
 		// relative path is used for git if the insight is saved
 		String assetDir = "";
-		if(space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
+		if (space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 			if (this.insight.isSavedInsight()) {
 				assetDir = AssetUtility.getAssetRelativePath(this.insight, space);
 			} else {
@@ -90,7 +90,7 @@ public class GetImageAssetReactor extends AbstractReactor {
 
 		// I need a better way than output
 		// probably write the file and volley the file ?
-		byte [] output = GitRepoUtils.getBinary(version, assetDir + "/" + asset, assetFolder);
+		byte[] output = GitRepoUtils.getBinary(version, assetDir + "/" + asset, assetFolder);
 		// try to see if I can convert to a string data URI and give it
 		StringWriter sw = new StringWriter();
 		String encodedString = Base64.getEncoder().encodeToString(output);
@@ -99,13 +99,10 @@ public class GetImageAssetReactor extends AbstractReactor {
 			mimeType = Files.probeContentType(new File(assetFolder + "/" + assetDir + "/" + asset).toPath());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to probe content type for image asset {}", asset, e);
 		}
-		
-		//sw.write("<html><body>");
+
 		sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
-		//pw.write("<img src='data:image/svg+xml;base64," + encodedString + "'>");
-		//sw.write("</body></html>");
 
 		return new NounMetadata(sw.toString(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
