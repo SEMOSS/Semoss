@@ -97,12 +97,12 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		if (engineType == CATALOG_TYPE.PROJECT) {
-			if (!SecurityProjectUtils.userCanEditProject(user, engineId)) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engineId)) {
 				throw new IllegalArgumentException(
 						"Project " + engineId + " does not exist or user does not have access");
 			}
 		} else {
-			if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 				throw new IllegalArgumentException(
 						"Engine " + engineId + " does not exist or user does not have access");
 			}

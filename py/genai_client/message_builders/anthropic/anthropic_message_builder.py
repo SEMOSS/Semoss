@@ -27,7 +27,6 @@ from ..semoss_base.semoss_models import (
 )
 from ...text_generation.abstract_text_generation_client import ModelLimits
 from ...utils import string_to_bool
-from ..semoss_base.reasoning import normalize_reasoning
 
 MODEL_MAX_OUTPUT_TOKENS = {
     # Claude 4.5 family
@@ -713,71 +712,58 @@ class AnthropicMessageBuilder:
 
         return anthropic_tools
 
-    def _supports_adaptive_effort(self, model_name: str) -> bool:
-        """Modern Claude (adaptive thinking + output_config.effort): Fable,
-        Opus 4.6+, Sonnet 4.6+. Everything else uses legacy budget_tokens."""
-        name = (model_name or "").lower()
-        if "fable" in name:
-            return True
-        tier, major, minor = self._parse_claude_model_name(model_name)
-        if tier is None or major is None:
-            return False
-        try:
-            mj, mn = int(major), int(minor) if minor else 0
-        except (TypeError, ValueError):
-            return False
-        if tier in ("opus", "sonnet"):
-            return (mj, mn) >= (4, 6)
-        return False  # haiku / older -> legacy
-
-    def _supports_xhigh(self, model_name: str) -> bool:
-        """`xhigh` effort: Fable and Opus 4.7+ only."""
-        name = (model_name or "").lower()
-        if "fable" in name:
-            return True
-        tier, major, minor = self._parse_claude_model_name(model_name)
-        if tier != "opus" or major is None:
-            return False
-        try:
-            mj, mn = int(major), int(minor) if minor else 0
-        except (TypeError, ValueError):
-            return False
-        return (mj, mn) >= (4, 7)
-
-    def _clamp_effort(self, effort: str) -> str:
-        """Map a canonical effort onto Anthropic's accepted set
-        (low|medium|high|xhigh|max). none/minimal -> low; xhigh -> high on
-        models that don't support it."""
-        if effort in ("none", "minimal"):
-            effort = "low"
-        if effort not in ("low", "medium", "high", "xhigh", "max"):
-            effort = "medium"
-        if effort == "xhigh" and not self._supports_xhigh(self.model_name):
-            effort = "high"
-        return effort
-
     def _resolve_extended_thinking(
         self,
+        thinking: Optional[str | bool] = None,
+        thinking_budget: Optional[int] = None,
         param_map: Optional[Dict[str, Any]] = {},
-    ) -> tuple[Dict[str, Any] | None, Dict[str, Any] | None]:
-        """Resolve (thinking, output_config) for the request, honoring the param
-        map first then SMSS.
-
-        Modern Claude uses adaptive thinking + ``output_config.effort``; legacy
-        models use ``{"type": "enabled", "budget_tokens": N}``. NOTE: emitting
-        budget_tokens against Opus 4.7/4.8/Fable is a 400 — hence the branch.
-        Claude Code passthrough ({"type": "enabled", "budget_tokens": N}) and the
-        separate SEMOSS keys ('thinking', 'thinking_budget', 'effort') are both
-        handled by normalize_reasoning.
+    ) -> Dict[str, Any] | None:
         """
-        resolved = normalize_reasoning(param_map, self.model_settings)
-        if resolved is None:
-            return None, None
+        Honor the thinking keys passed in the param map first and then use anything passed from the SMSS.
+        If I get this from Claude Code I get something like: {'budget_tokens': 31999, 'type': 'enabled'}
+        If I get this from SEMOSS I get separate keys 'thinking': True, 'thinking_budget': 1000
+        """
+        ## SMSS THINKING
+        smss_thinking = string_to_bool(thinking)
+        if smss_thinking:
+            smss_thinking = "enabled"
+        else:
+            smss_thinking = "disabled"
 
-        if self._supports_adaptive_effort(self.model_name):
-            return {"type": "adaptive"}, {"effort": self._clamp_effort(resolved.effort)}
+        smss_thinking_budget = thinking_budget if thinking_budget else 0
 
-        return {"type": "enabled", "budget_tokens": resolved.budget}, None
+        ## RESOLVING PARAM MAP
+        param_map_thinking = param_map.get("thinking", "disabled")
+        # I get this from Claude Code
+        if isinstance(thinking, dict):
+            param_map_thinking = thinking.get("type", "disabled")
+            param_map_budget_tokens = thinking.get("budget_tokens", 0)
+        else:
+            param_map_thinking = string_to_bool(thinking)
+            if param_map_thinking:
+                param_map_thinking = "enabled"
+            else:
+                param_map_thinking = "disabled"
+            param_map_budget_tokens = param_map.get("thinking_budget", 0)
+
+        resolved_thinking = (
+            "enabled"
+            if param_map_thinking == "enabled" or smss_thinking == "enabled"
+            else "disabled"
+        )
+
+        if resolved_thinking == "disabled":
+            return None
+
+        # If you set thinking as enabled but don't have a thinking budget I am going to set it for you..
+        if param_map_budget_tokens >= 1024:
+            resolved_thinking_budget = param_map_budget_tokens
+        elif smss_thinking_budget >= 1024:
+            resolved_thinking_budget = smss_thinking_budget
+        else:
+            resolved_thinking_budget = 1024
+
+        return {"type": "enabled", "budget_tokens": resolved_thinking_budget}
 
     def _convert_args_to_provider_config(
         self,
@@ -798,7 +784,11 @@ class AnthropicMessageBuilder:
 
         tools = kwargs.pop("tools", None)
 
-        thinking_map, output_config = self._resolve_extended_thinking(kwargs)
+        thinking_map = self._resolve_extended_thinking(
+            thinking=model_settings.thinking,  # SMSS SETTING
+            thinking_budget=model_settings.thinking_budget,  # SMSS SETTING
+            param_map=kwargs,
+        )
 
         max_tokens = (
             kwargs.pop("max_tokens", None)
@@ -806,7 +796,7 @@ class AnthropicMessageBuilder:
             or self.model_limits.max_completion_tokens
         )
 
-        # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET (legacy only)
+        # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET
         if thinking_map and thinking_map.get("type") == "enabled":
             budget_tokens = thinking_map.get("budget_tokens", 0)
             if max_tokens is None or max_tokens <= budget_tokens:
@@ -817,15 +807,14 @@ class AnthropicMessageBuilder:
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
-        top_k = kwargs.pop("top_k", None)
-        if thinking_map and thinking_map.get("type") == "adaptive":
-            temperature = top_p = top_k = None
-        elif thinking_map:
+        if thinking_map:
+            # top_p between 0.95 to 1 when thinking
             if top_p is not None:
                 if top_p < 0.95:
                     top_p = 0.95
                 elif top_p > 1:
                     top_p = 1
+            # temperature can only be 1 when thinking
             if temperature is not None:
                 temperature = 1
 
@@ -846,12 +835,11 @@ class AnthropicMessageBuilder:
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
             temperature=temperature,
-            top_k=top_k,
+            top_k=kwargs.pop("top_k", None),
             top_p=top_p,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,
-            output_config=output_config,
         )
 
     def _parse_claude_model_name(

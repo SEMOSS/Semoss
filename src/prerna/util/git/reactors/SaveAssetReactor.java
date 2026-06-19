@@ -129,7 +129,7 @@ public class SaveAssetReactor extends AbstractReactor {
 			try {
 				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));
 			} catch (IOException e) {
-				classLogger.error("Failed to save file {}", fileName, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
 				SemossPixelException exception = new SemossPixelException(error);
 				exception.setContinueThreadOfExecution(false);

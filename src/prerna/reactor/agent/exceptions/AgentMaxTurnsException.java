@@ -29,7 +29,7 @@ package prerna.reactor.agent.exceptions;
 
 /**
  * Thrown when the SEMOSS agent loop reaches the maximum turn cap without
- * the model producing a final assistant response.
+ * the model producing a {@code RESPONSE_TEXT}.
  *
  * <p>Callers are responsible for recording the failure and surfacing a clear error message.
  */
@@ -39,7 +39,7 @@ public class AgentMaxTurnsException extends RuntimeException {
 
     public AgentMaxTurnsException(int maxTurns) {
         super("Agent loop exceeded max turns (" + maxTurns
-                + ") without producing a final assistant response");
+                + ") without producing a final RESPONSE_TEXT");
         this.maxTurns = maxTurns;
     }
 

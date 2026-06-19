@@ -125,10 +125,10 @@ public class TCPChromeDriverUtility {
 		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
 		if (TCPChromeDriverUtility.contextPath != null) {
-			classLogger.info("##CHROME DRIVER: starting url = {}", url);
+			classLogger.info("##CHROME DRIVER: starting url = " + url);
 
-			classLogger.info("##CHROME DRIVER: context path not null = {}", TCPChromeDriverUtility.contextPath);
-			classLogger.info("##CHROME DRIVER: starting feUrl = {}", feUrl);
+			classLogger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
+			classLogger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -137,14 +137,14 @@ public class TCPChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ TCPChromeDriverUtility.contextPath;
 
-			classLogger.info("##CHROME DRIVER: ending baseUrl = {}", baseUrl);
+			classLogger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
 			// classLogger.info("##CHROME DRIVER: don't care using feURL " + feUrl);
 
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
 			classLogger.info("##CHROME DRIVER: contextPath is null");
-			classLogger.info("##CHROME DRIVER: url to get = {}", url);
+			classLogger.info("##CHROME DRIVER: url to get = " + url);
 
 		}
 
@@ -189,7 +189,7 @@ public class TCPChromeDriverUtility {
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			classLogger.error("Interrupted while waiting for the page to render before capturing the image", e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		// take image
 		File srcFile = driver.getScreenshotAs(OutputType.FILE);
@@ -206,34 +206,49 @@ public class TCPChromeDriverUtility {
 			}
 			return srcFile.getAbsolutePath();
 		} catch (Exception e) {
-			classLogger.error("Failed to copy the captured screenshot to the target image path", e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
 
 	private static void copyFile(File srcFile, File targetFile) throws Exception {
-		try (FileInputStream input = new FileInputStream(srcFile);
-				FileOutputStream output = new FileOutputStream(targetFile);) {
+
+		FileInputStream input = null;
+		FileOutputStream output = null;
+		try {
+			input = new FileInputStream(srcFile);
+			output = new FileOutputStream(targetFile);
+
 			byte[] buf = new byte[1024];
 			int bytesRead;
 
 			while ((bytesRead = input.read(buf)) > 0) {
 				output.write(buf, 0, bytesRead);
 			}
+		} finally {
+
+			if (input != null) {
+				input.close();
+			}
+
+			if (output != null) {
+				output.close();
+			}
+
 		}
 	}
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
-		classLogger.info("##CHROME DRIVER: driver is looking at {}", driver.getCurrentUrl());
-		classLogger.info("##CHROME DRIVER: driver is looking page source at {}", driver.getPageSource());
+		classLogger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
+		classLogger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
 
-		classLogger.info("##CHROME DRIVER: looking cookie with Name = {}", cookieName);
+		classLogger.info("##CHROME DRIVER: looking cookie with Name = " + cookieName);
 
 		Iterator<Cookie> cooki2 = driver.manage().getCookies().iterator();
 		while (cooki2.hasNext()) {
 			Cookie cook3 = cooki2.next();
 			String name2 = cook3.getName();
-			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie{}", cook3.toJson());
+			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie" + cook3.toJson());
 		}
 
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
@@ -244,7 +259,7 @@ public class TCPChromeDriverUtility {
 			cook = cooki.next();
 			String name = cook.getName();
 			if (name.equalsIgnoreCase(cookieName)) {
-				classLogger.info("##CHROME DRIVER: found cookie with Name = {}", cookieName);
+				classLogger.info("##CHROME DRIVER: found cookie with Name = " + cookieName);
 
 				// driver.manage().deleteCookie(cook);
 
@@ -255,22 +270,20 @@ public class TCPChromeDriverUtility {
 		}
 
 		if (cookieFound) {
-			classLogger.info(
-					"##CHROME DRIVER: found cookie - Name {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
-					cook.getName(), cook.getDomain(), cook.getPath(), cook.isHttpOnly(), cook.isSecure(),
-					cook.getValue());
+			classLogger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
+					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: " + cook.isSecure()
+					+ " value: " + cook.getValue());
 			driver.manage().deleteCookie(cook);
-			classLogger.info("##CHROME DRIVER: deleted cookie with Name = {}", cookieName);
+			classLogger.info("##CHROME DRIVER: deleted cookie with Name = " + cookieName);
 			Cookie name = new Cookie(cook.getName(), cookieValue, cook.getDomain(), cook.getPath(), cook.getExpiry(),
 					cook.isSecure(), cook.isHttpOnly());
-			classLogger.info(
-					"##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
-					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
-					name.getValue());
+			classLogger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName() + " domain: "
+					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
+					+ " isSecure: " + name.isSecure() + " value: " + name.getValue());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		} else {
-			classLogger.info("##CHROME DRIVER: cookie not found {}", cookieName);
+			classLogger.info("##CHROME DRIVER: cookie not found " + cookieName);
 
 			// Date expiresDate = new Date(new Date().getTime() + 36000*1000);
 
@@ -287,10 +300,10 @@ public class TCPChromeDriverUtility {
 			// null,
 			// true,
 			// true);
-			classLogger.info(
-					"##CHROME DRIVER: BASE ADD Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {} age: {} json: {}",
-					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
-					name.getValue(), name.getExpiry(), name.toJson());
+			classLogger.info("##CHROME DRIVER: BASE ADD Adding cookie  - name: " + name.getName() + " domain: "
+					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
+					+ " isSecure: " + name.isSecure() + " value: " + name.getValue() + " age: " + name.getExpiry()
+					+ " json: " + name.toJson());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		}
@@ -303,10 +316,10 @@ public class TCPChromeDriverUtility {
 		// driver.manage().timeouts().implicitlyWait(10,TimeUnit.SECONDS) ;
 
 		if (TCPChromeDriverUtility.contextPath != null) {
-			classLogger.info("##CHROME DRIVER: starting url = {}", url);
+			classLogger.info("##CHROME DRIVER: starting url = " + url);
 
-			classLogger.info("##CHROME DRIVER: context path not null = {}", TCPChromeDriverUtility.contextPath);
-			classLogger.info("##CHROME DRIVER: starting feUrl = {}", feUrl);
+			classLogger.info("##CHROME DRIVER: context path not null = " + TCPChromeDriverUtility.contextPath);
+			classLogger.info("##CHROME DRIVER: starting feUrl = " + feUrl);
 
 			String startingUrl = feUrl;
 			if (startingUrl.endsWith("/")) {
@@ -315,13 +328,13 @@ public class TCPChromeDriverUtility {
 			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/") + 1)
 					+ TCPChromeDriverUtility.contextPath;
 
-			classLogger.info("##CHROME DRIVER: ending baseUrl = {}", baseUrl);
+			classLogger.info("##CHROME DRIVER: ending baseUrl = " + baseUrl);
 
 			TCPChromeDriverUtility.driver.get(baseUrl);
 		} else {
 			TCPChromeDriverUtility.driver.get(url);
 			classLogger.info("##CHROME DRIVER: contextPath is null");
-			classLogger.info("##CHROME DRIVER: url to get = {}", url);
+			classLogger.info("##CHROME DRIVER: url to get = " + url);
 		}
 		TCPChromeDriverUtility.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
 
@@ -346,14 +359,14 @@ public class TCPChromeDriverUtility {
 			// driver.manage().addCookie(name);
 		}
 
-		classLogger.info("Chrome -- Navingating to URL  {}", url);
+		classLogger.info("Chrome -- Navingating to URL  " + url);
 		TCPChromeDriverUtility.driver.navigate().to(url);
 
 		// add a sleep
 		try {
 			Thread.sleep(waitTime);
 		} catch (InterruptedException e) {
-			classLogger.error("Interrupted while waiting after navigating to the URL to capture data", e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		// trying the wait
@@ -364,7 +377,7 @@ public class TCPChromeDriverUtility {
 																										// but..
 		WebElement we1 = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//html/body//table")));
 
-		classLogger.info(" The element output I got is {}", we1.getText());
+		classLogger.info(" The element output I got is " + we1.getText());
 
 		// String html2 = getHTML(TCPChromeDriverUtility.driver, "//html/body//table");
 		return we1.getText();

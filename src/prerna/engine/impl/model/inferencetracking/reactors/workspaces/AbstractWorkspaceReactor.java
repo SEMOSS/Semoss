@@ -61,8 +61,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String SYSTEM_PROMPT = "systemPrompt";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
-	/** Request key for skill collection input. */
-	static final String SKILLS = "skills";
 	/** Request key for active/inactive workspace state. */
 	static final String IS_ACTIVE = "isActive";
 
@@ -115,29 +113,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		resource.put("workspace_id", workspaceId);
 		resource.put("resource_id", promptId);
 		resource.put("resource_type", PROMPT_RESOURCE_TYPE);
-		resource.put("resource_subtype", null);
-		return resource;
-	}
-
-	/**
-	 * Builds a workspace resource row for a skill.
-	 * <p>
-	 * The {@code resource_subtype} carries the optional pinned skill version
-	 * ({@code AgentConfigLoader.resolveSkills} reads it back as {@code pinned_version}).
-	 * It is left {@code null} here because the workspace edit/add inputs only carry
-	 * skill ids - matching {@link prerna.reactor.agent.skill.AttachSkillToWorkspaceReactor},
-	 * which also attaches with no pinned version.
-	 *
-	 * @param workspaceId workspace identifier that owns the resource
-	 * @param skillId skill identifier being linked to the workspace
-	 * @return map representing a row for workspace resource persistence
-	 */
-	Map<String, String> makeSkillResourceEntryMap(String workspaceId, String skillId) {
-		Map<String, String> resource = new HashMap<>();
-		resource.put("workspace_resource_id", UUID.randomUUID().toString());
-		resource.put("workspace_id", workspaceId);
-		resource.put("resource_id", skillId);
-		resource.put("resource_type", SKILL_RESOURCE_TYPE);
 		resource.put("resource_subtype", null);
 		return resource;
 	}

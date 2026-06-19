@@ -87,7 +87,7 @@ public class PropertySpecData {
 	 */
 	public void addPredicate(String predicate) {
 		// String className = Utility.getQualifiedClassName(predicate);
-		classLogger.debug("Adding predicate {}", predicate);
+		classLogger.debug("Adding predicate " + predicate);
 		if (!predicateAvailableHash.containsKey(predicate)) {
 			predicateAvailableHash.put(predicate, predicate);
 		}
@@ -133,7 +133,7 @@ public class PropertySpecData {
 	 * @param predicate Predicate to be added, in string form.
 	 */
 	public void addPredicateAvailable(String predicate) {
-		classLogger.debug("Adding predicate {}", predicate);
+		classLogger.debug("Adding predicate " + predicate);
 		// addPredicate2(predicate, predicate);
 		if (!predicateAvailableHash.containsKey(predicate)) {
 			predicateAvailableHash.put(predicate, predicate);
@@ -148,7 +148,7 @@ public class PropertySpecData {
 	 * @param predicate Predicate to be added, in string form.
 	 */
 	public void addPropertyAvailable(String predicate) {
-		classLogger.debug("Adding predicate {}", predicate);
+		classLogger.debug("Adding predicate " + predicate);
 		if (!propertyAvailableHash.containsKey(predicate)) {
 			propertyAvailableHash.put(predicate, predicate);
 		}
@@ -220,7 +220,7 @@ public class PropertySpecData {
 			dataList[conceptIndex][3] = new Boolean(false); // not a predicate
 			dataList[conceptIndex][4] = new Boolean(false); // not a property
 			if (conceptAvailableHash.containsKey(key)) {
-				classLogger.debug("Found the key {}", key);
+				classLogger.debug("Found the key " + key);
 				dataList[conceptIndex][2] = new Boolean(true);
 			}
 			dataList[conceptIndex][0] = key;
@@ -244,9 +244,9 @@ public class PropertySpecData {
 				// predicate
 				dataList[conceptIndex][4] = new Boolean(propertyAvailableHash.containsKey(child)); // not a
 																									// property
-				concept = concept && conceptAvailableHash.containsKey(child);
-				predicate = predicate && predicateAvailableHash.containsKey(child);
-				property = property && propertyAvailableHash.containsKey(child);
+				concept = concept & conceptAvailableHash.containsKey(child);
+				predicate = predicate & predicateAvailableHash.containsKey(child);
+				property = property & propertyAvailableHash.containsKey(child);
 			}
 			dataList[parentIndex][2] = new Boolean(concept);
 			dataList[parentIndex][3] = new Boolean(predicate);
@@ -506,8 +506,8 @@ public class PropertySpecData {
 		}
 
 		// printing what I have so far
-		classLogger.warn("Additions {}<>{}<>{}", subject2bAdded, pred2bAdded, prop2bAdded);
-		classLogger.warn("Deletions {}<>{}<>{}", subject2bRemoved, pred2bRemoved, prop2bRemoved);
+		classLogger.warn("Additions " + subject2bAdded + "<>" + pred2bAdded + "<>" + prop2bAdded);
+		classLogger.warn("Deletions " + subject2bRemoved + "<>" + pred2bRemoved + "<>" + prop2bRemoved);
 
 	}
 }

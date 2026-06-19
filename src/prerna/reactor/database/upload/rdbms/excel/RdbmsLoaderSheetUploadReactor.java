@@ -96,41 +96,41 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			throw e;
 		}
 		int stepCounter = 1;
-		logger.info("{}. Create metadata for database...", stepCounter);
+		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info("{}. Complete", stepCounter);
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info("{}. Create properties file for database...", stepCounter);
+		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info("{}. Complete", stepCounter);
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info("{}. Create database store...", stepCounter);
+		logger.info(stepCounter + ". Create database store...");
 		this.database = new RDBMSNativeEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		Properties smssProps = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		smssProps.put("TEMP", true);
 		this.database.open(smssProps);
-		logger.info("{}. Complete", stepCounter);
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		/*
 		 * Load Data
 		 */
-		logger.info("{}. Parsing file metadata...", stepCounter);
+		logger.info(stepCounter + ". Parsing file metadata...");
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		importFileRDBMS((RDBMSNativeEngine) this.database, owlEngine, filePath);
-		logger.info("{}. Complete", stepCounter);
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		/*
 		 * Back to normal database flow
 		 */
-		logger.info("{}. Commit database metadata...", stepCounter);
+		logger.info(stepCounter + ". Commit database metadata...");
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
@@ -139,7 +139,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		// scriptFile.close();
 		// }
 		// and rename .temp to .smss
-		logger.info("{}. Complete...", stepCounter);
+		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 	}
 
@@ -154,6 +154,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 	}
 
+	//////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the
 	 * Loader tab
@@ -165,8 +167,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	 */
 	public void importFileRDBMS(IRDBMSEngine database, WriteOWLEngine owlEngine, String fileName)
 			throws FileNotFoundException, IOException {
-		try (FileInputStream poiReader = new FileInputStream(fileName);
-				Workbook workbook = WorkbookFactory.create(poiReader)) {
+		Workbook workbook = null;
+		FileInputStream poiReader = null;
+		try {
+			poiReader = new FileInputStream(fileName);
+			workbook = WorkbookFactory.create(poiReader);
 			// load the Loader tab to determine which sheets to load
 			Sheet lSheet = workbook.getSheet("Loader");
 			if (lSheet == null) {
@@ -238,16 +243,43 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				// createRelations(thisConcept, allRels.get(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
-			classLogger.error("Could not find Excel file at path '{}'", fileName, e);
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+				classLogger.error(e.getMessage());
+			}
+			classLogger.error("Could not find Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
-			classLogger.error("Error reading Excel file at path '{}'", fileName, e);
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+				classLogger.error(e.getMessage());
+			}
+			classLogger.error("Error reading Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
-			classLogger.error("Invalid or unreadable Excel file at path '{}'", fileName, e);
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+				classLogger.error(e.getMessage());
+			}
+			classLogger.error("Invalid or unreadable Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			owlEngine.close();
+
+			if (poiReader != null) {
+				try {
+					poiReader.close();
+				} catch (IOException e) {
+					classLogger.error("Error closing Excel file input stream for '{}': {}", fileName, e.getMessage(),
+							e);
+					throw new IOException("Could not close Excel file stream");
+				}
+			}
+			if (workbook != null) {
+				try {
+					workbook.close();
+				} catch (IOException e) {
+					classLogger.error("Error closing Excel workbook for '{}': {}", fileName, e.getMessage(), e);
+					// throw new IOException("Could not close Excel workbook");
+				}
+			}
 		}
 	}
 
@@ -259,7 +291,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		// if the row is present
 		Sheet lSheet = workbook.getSheet(sheetName);
 
-		this.logger.info("Processing Sheet..  {}", sheetName);
+		this.logger.info("Processing Sheet..  " + sheetName);
 
 		// we need to convert from the generic data types from the FE to the sql
 		// specific types
@@ -750,7 +782,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		String[] types = new String[numCells];
 
 		ExcelRange r = new ExcelRange(startCol, numCells, startRow, numRows);
-		this.logger.info("Predicting datatypes for sheet = {}", lSheet.getSheetName());
+		this.logger.info("Predicting datatypes for sheet = " + lSheet.getSheetName());
 		Object[][] prediction = ExcelParsing.predictTypes(lSheet, r.getRangeSyntax());
 
 		// we will keep types[i] to be null

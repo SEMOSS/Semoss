@@ -167,14 +167,14 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 					"\n\nRespond with the correct sql and ensure that the output starts and ends with ``` markdown.");
 
 //			classLogger.info(finalDbString + "");
-			classLogger.info("prompt2: {}", finalDbString2);
+			classLogger.info("prompt2: " + finalDbString2 + "");
 
 			Object output = null;
 			Map params = new HashMap();
 			params.put("temperature", 0.3);
 			Map<String, Object> modelOutput = engine.ask(finalDbString2 + "", null, this.insight, params).toMap();
 			String response = modelOutput.get("response") + "";
-			classLogger.info("Response: {}", response);
+			classLogger.info("Response: " + response);
 
 			// if it comes in with finalDBString take it out
 			response = response.replace(finalDbString2, "");
@@ -200,17 +200,18 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			}
 			classLogger.info(response);
 			output = response;
+//			}
 			// get the string
 			// make a frame
 			// load the frame into insight
-			classLogger.info("SQL query is {}", output);
+			classLogger.info("SQL query is " + output);
 
 			// Create a new SQL Data Frame
 			String sqlDFQuery = output.toString().trim();
 			// remove the new line
 			sqlDFQuery = sqlDFQuery.replace("\n", " ");
 			sqlDFQuery = sqlDFQuery.replaceAll("[\\t\\n\\r]+", " ");
-			classLogger.info("sql df query: {}", sqlDFQuery);
+			classLogger.info("sql df query: " + sqlDFQuery);
 
 			// execute sqlDF to create a frame
 			// need to check if the query is right and then feed this into sqldf
@@ -231,12 +232,13 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				sqlDFQuery = sqlDFQuery.replace("\"", "\\\"");
 
 				// do we need a way to check the library is installed?
+
 				PandasFrame pFrame = (PandasFrame) thisFrame;
 				String sqliteName = pFrame.getSQLite();
 
 				// pd.read_sql("select * from diab1 where age > 60", conn)
 				String frameMaker = frameName + " = pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ")";
-				classLogger.info("Creating frame with query..  {} <<>> {}", sqlDFQuery, frameMaker);
+				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				insight.getPyTranslator().runEmptyPy(frameMaker);
 				String sampleOut = insight.getPyTranslator().runDirectPy(frameName + ".head(20)") + "";
 
@@ -284,7 +286,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				rt.checkPackages(new String[] { "sqldf" });
 
 				String frameMaker = frameName + " <- sqldf(\"" + sqlDFQuery + "\")";
-				classLogger.info("Creating frame with query..  {} <<>> {}", sqlDFQuery, frameMaker);
+				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				rt.runRAndReturnOutput("library(sqldf)");
 				rt.runR(frameMaker); // load the sql df
 
@@ -431,8 +433,15 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				// we are good
 			}
 			if (!allColumns) {
-				// going to run a dual for loop here
-				for (int selectorIndex = 0; selectorIndex < columnHeaders.length && sameColumns; selectorIndex++) {
+				for (int selectorIndex = 0; selectorIndex < columnHeaders.length && sameColumns; selectorIndex++) // going
+																													// to
+																													// run
+																													// a
+																													// dual
+																													// for
+																													// loop
+																													// here
+				{
 					String thisColumn = columnHeaders[selectorIndex];
 					boolean foundThisColumn = false;
 					for (int newColumnIndex = 0; newColumnIndex < selects.size(); newColumnIndex++) {
@@ -445,11 +454,13 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 							foundThisColumn = true;
 						}
 					}
-					sameColumns = sameColumns && foundThisColumn;
+					sameColumns = sameColumns & foundThisColumn;
 				}
 			}
 		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			classLogger.info(e.getMessage());
+			;
 			sameColumns = false;
 		}
 		return sameColumns;

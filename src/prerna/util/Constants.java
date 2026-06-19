@@ -780,9 +780,6 @@ public class Constants {
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
 
-	// name of the FE webapp
-	public static final String FE_WEB_APP_NAME = "FE_WEB_APP_NAME";
-
 	// Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
 	public static final String NAME_MAP = "NAME_MAP";

@@ -113,7 +113,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getResolvedUsername();
+		String author = accessToken.getUsername();
 
 		// Stage the file deletions in git
 		// Using git add --update (setUpdate=true) to detect all deletions on disk

@@ -25,6 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
+
 package prerna.reactor.qs.source;
 
 import java.io.BufferedReader;
@@ -33,9 +34,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -51,8 +52,6 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(OneDriveFileRetrieverReactor.class);
 
 	private static final String CLASS_NAME = OneDriveFileRetrieverReactor.class.getName();
 
@@ -91,20 +90,23 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor {
 			throwLoginError(retMap);
 		}
 
-		Map<String, Object> params = new HashMap<>();
-		String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/" + msID + "/content";
-		// create a file
-		String filePath = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-				+ Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		filePath += "\\" + Utility.getRandomString(10) + ".csv";
-		filePath = filePath.replace("\\", "/");
-		File outputFile = new File(filePath);
-
+		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
-		try (BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
-				BufferedWriter target = new BufferedWriter(new FileWriter(outputFile))) {
+		BufferedWriter target = null;
+		try {
+			String url_str = "https://graph.microsoft.com/v1.0/me/drive/items/" + msID + "/content";
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
 
+			// create a file
+			String filePath = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+					+ Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+			filePath += "\\" + Utility.getRandomString(10) + ".csv";
+			filePath = filePath.replace("\\", "/");
+			File outputFile = new File(filePath);
+
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
+
 			while ((data = br.readLine()) != null) {
 				target.write(data);
 				target.write("\n");
@@ -129,7 +131,16 @@ public class OneDriveFileRetrieverReactor extends AbstractQueryStructReactor {
 			qs.setColumnTypes(dataTypes);
 			qs.setAdditionalTypes(additionalDataTypes);
 		} catch (IOException e) {
-			classLogger.error("Error occurred downloading and parsing the OneDrive file", e);
+			logger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 		return qs;
 	}

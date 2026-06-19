@@ -43,7 +43,7 @@ import java.util.List;
  */
 public final class AgentHarnessResult {
 
-    /** Final assistant text produced by the model. Never null; may be empty. */
+    /** Final {@code RESPONSE_TEXT} content produced by the model. Never null; may be empty. */
     private final String finalText;
 
     /** Total number of tool-call rounds completed (0 if the model responded without calling tools). */
@@ -81,7 +81,7 @@ public final class AgentHarnessResult {
         this.finalOutputMessageId = finalOutputMessageId;
     }
 
-    /** Final text content of the model's assistant response. */
+    /** Final text content of the model's {@code RESPONSE_TEXT} message. */
     public String getFinalText() {
         return finalText;
     }

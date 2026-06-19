@@ -46,6 +46,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
@@ -70,7 +71,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getResolvedUsername();
+		String author = accessToken.getUsername();
 
 		// get asset base folder
 		String space = this.keyValue.get(this.keysToGet[1]);
@@ -114,7 +115,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 				try {
 					FileUtils.deleteDirectory(realFile);
 				} catch (IOException e) {
-					classLogger.error("Failed to delete folder at path {}", inputFilePath, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException(
 							"Error occurred trying to delete folder at path " + inputFilePath);
 				}
@@ -122,7 +123,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(realFile);
 				} catch (IOException e) {
-					classLogger.error("Failed to delete file at path {}", inputFilePath, e);
+					classLogger.error(Constants.STACKTRACE, e);
 					throw new IllegalArgumentException("Error occurred trying to delete file at path " + inputFilePath);
 				}
 			}

@@ -39,6 +39,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -229,29 +230,10 @@ public class SemossAgentHarness implements IAgentHarness {
 					break;
 				}
 
-				// Continue the agent loop while the assistant response contains tool calls.
-				// Messages may also contain text/thinking parts; tool-call presence is the
-				// execution signal, not the legacy response-type field.
-				if (hasAssistantToolCalls(response)) {
-					room.updateToolResponseMeta(response);
-					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
-					// Re-inject synthesized tools so the tool-result follow-up call sees a fresh
-					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
-					injectSubAgentTools(paramMap, subAgentTools);
-					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
-					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
-					state.incrementIterations();
+				MessageType msgType = response.getMessageType();
 
-					if (next != null) {
-						response = next;
-					} else {
-						logger.warn(
-								"SemossAgentHarness: no model response after tool batch at iteration={} - treating as terminal",
-								state.getIterations());
-						state.setTerminal(true);
-					}
+				if (msgType == MessageType.RESPONSE_TEXT) {
 
-				} else {
 					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
 						state.incrementReflections();
 						logger.info("SemossAgentHarness: reflection {}/{} room={}", state.getReflectionsUsed(),
@@ -272,6 +254,34 @@ public class SemossAgentHarness implements IAgentHarness {
 						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
 						state.setTerminal(true);
 					}
+
+				} else if (msgType == MessageType.RESPONSE_TOOL) {
+
+					room.updateToolResponseMeta(response);
+					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
+					// Re-inject synthesized tools so the tool-result follow-up call sees a fresh
+					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
+					injectSubAgentTools(paramMap, subAgentTools);
+					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
+					state.incrementIterations();
+
+					if (next != null) {
+						response = next;
+					} else {
+						logger.warn(
+								"SemossAgentHarness: no model response after tool batch at iteration={} - treating as terminal",
+								state.getIterations());
+						state.setTerminal(true);
+					}
+
+				} else {
+					logger.warn("SemossAgentHarness: unexpected MessageType {} at iteration={} - treating as terminal",
+							msgType, state.getIterations());
+					state.setFinalText(response.getContent());
+					finalOutputMessageId = response.getMessageId();
+					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+					state.setTerminal(true);
 				}
 			}
 			persistAgentRunTags(room, ctx);
@@ -347,14 +357,10 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	private static String roleForAssistant(ResponseMessage message) {
-		if (hasAssistantToolCalls(message)) {
+		if (message != null && message.getMessageType() == MessageType.RESPONSE_TOOL) {
 			return RUN_ROLE_ASSISTANT_TOOL;
 		}
 		return RUN_ROLE_ASSISTANT;
-	}
-
-	private static boolean hasAssistantToolCalls(ResponseMessage message) {
-		return message != null && message.hasToolResponses();
 	}
 
 	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {

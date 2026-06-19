@@ -94,10 +94,6 @@ public class SecurityOwlCreator {
 
 		// room token limits
 		conceptsRequired.add("ROOMTOKENLIMIT");
-
-		// github app integration
-		conceptsRequired.add("GITHUB_APP");
-		conceptsRequired.add("GITHUB_PROJECT_LINK");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -110,8 +106,6 @@ public class SecurityOwlCreator {
 				"INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID" });
 		relationshipsRequired.add(new String[] { "INSIGHT", "GROUPINSIGHTPERMISSION",
 				"INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID" });
-		relationshipsRequired.add(
-				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
 	}
 
 	private IDatabaseEngine securityDb;

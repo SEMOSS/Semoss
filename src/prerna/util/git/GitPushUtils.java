@@ -29,21 +29,27 @@ package prerna.util.git;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CloneCommand;
+import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.PushCommand;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import prerna.auth.AuthProvider;
@@ -53,40 +59,233 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/**
- * Static utility methods for interacting with a local jgit {@link Git}
- * repository: pushing, pulling, checking out branches, listing branches and
- * cloning. Each operation opens the repository on demand, builds a
- * {@link CredentialsProvider} appropriate to the supplied {@link AuthProvider}
- * (GitLab uses an {@code oauth2}/token pair while all other providers use a
- * token/empty-secret pair) and logs failures rather than propagating most
- * exceptions.
- */
 public class GitPushUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(GitPushUtils.class);
 
-	private static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	protected static final String FILE_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	/**
+	 * This class is not intended to be extended or used outside of its static
+	 * method
+	 */
 	private GitPushUtils() {
 
 	}
 
+	@Deprecated
+	// this is moved to git repo utils
+	public static void addAllFiles(String gitFolder, boolean ignoreTheIgnoreFiles) {
+		Git thisGit = null;
+		Status status = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+			status = thisGit.status().call();
+		} catch (IOException | NoWorkTreeException | GitAPIException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
+		}
+
+		AddCommand ac = thisGit.add();
+		boolean added = false;
+
+		// get new files
+		Iterator<String> upFiles = status.getUntracked().iterator();
+		while (upFiles.hasNext()) {
+			String daFile = upFiles.next();
+			if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				added = true;
+				ac.addFilepattern(daFile);
+			}
+		}
+
+		// get the modified files
+		Iterator<String> modFiles = status.getModified().iterator();
+		while (modFiles.hasNext()) {
+			String daFile = modFiles.next();
+			if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				added = true;
+				ac.addFilepattern(daFile);
+			}
+		}
+
+		if (added) {
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
+			}
+		}
+
+		thisGit.close();
+	}
+
 	/**
-	 * Pushes the given branch of a local repository to a remote, selecting the
-	 * {@link AuthProvider} from the {@link Constants#GIT_PROVIDER} configuration
-	 * property. If that property equals {@code gitlab} (case-insensitive) the push
-	 * uses {@link AuthProvider#GITLAB}, otherwise it defaults to
-	 * {@link AuthProvider#GITHUB}. Delegates to
-	 * {@link #push(String, String, String, String, AuthProvider, int)} with the
-	 * attempt counter initialized to {@code 1}.
-	 *
-	 * @param repository   path to the local Git repository to push from
-	 * @param remoteToPush name of the remote to push to
-	 * @param branch       branch to push; may be {@code null} or empty to use the
-	 *                     command default
-	 * @param token        credential token used to authenticate with the remote
+	 * Add specific files to a given git
+	 * 
+	 * @param thisGit
+	 * @param files
 	 */
+	@Deprecated
+	// this is moved to git repo utils
+	public static void addSpecificFiles(String localRepository, List<String> files) {
+		if (files == null || files.isEmpty()) {
+			return;
+		}
+		Git thisGit = null;
+		AddCommand ac = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
+		}
+		if (thisGit != null) {
+			ac = thisGit.add();
+		}
+
+		if (ac != null) {
+			for (String daFile : files) {
+				if (daFile.contains("version")) {
+					daFile = daFile.substring(daFile.indexOf("version") + 8);
+				}
+				daFile = daFile.replace("\\", "/");
+				ac.addFilepattern(daFile);
+			}
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		if (thisGit != null) {
+			thisGit.close();
+		}
+	}
+
+	/**
+	 * Add specific files to a given git
+	 * 
+	 * @param thisGit
+	 * @param files
+	 */
+	@Deprecated
+	// this is moved to git repo utils
+	public static void addSpecificFiles(String localRepository, File[] files) {
+		if (files == null || files.length == 0) {
+			return;
+		}
+		Git thisGit = null;
+		AddCommand ac = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		if (thisGit != null) {
+			ac = thisGit.add();
+		}
+
+		if (ac != null) {
+			for (File f : files) {
+				String daFile = f.getAbsolutePath();
+				if (daFile.contains("version")) {
+					daFile = daFile.substring(daFile.indexOf("version") + 8);
+				}
+				daFile = daFile.replace("\\", "/");
+				ac.addFilepattern(daFile);
+			}
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+
+		if (thisGit != null) {
+			thisGit.close();
+		}
+	}
+
+	@Deprecated
+	// this is moved to git repo utils
+	public static void commitAddedFiles(String gitFolder) {
+		commitAddedFiles(gitFolder, null);
+	}
+
+	@Deprecated
+	// this is moved to git repo utils
+	public static void commitAddedFiles(String gitFolder, String message) {
+		commitAddedFiles(gitFolder, message, null, null);
+	}
+
+	@Deprecated
+	// this is moved to git repo utils
+	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
+		}
+
+		CommitCommand cc = thisGit.commit();
+		try {
+			if (message == null) {
+				message = GitUtils.getDateMessage("Commited on.. ");
+			}
+			if (author == null) {
+				author = "SEMOSS";
+			}
+			if (email == null) {
+				email = "semoss@semoss.org";
+			}
+			cc.setMessage(message).setAuthor(author, email).call();
+		} catch (GitAPIException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		thisGit.close();
+	}
+
+	public static void push(String repository, String remoteToPush, String branch, String userName, String password) {
+		int attempt = 1;
+		push(repository, remoteToPush, branch, userName, password, attempt);
+	}
+
+	public static void push(String repository, String remoteToPush, String branch, String userName, String password,
+			int attempt) {
+		if (attempt < 3) {
+			File dirFile = new File(repository);
+			Git thisGit = null;
+			try {
+				thisGit = Git.open(dirFile);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			CredentialsProvider cp = new UsernamePasswordCredentialsProvider(userName, password);
+			RefSpec spec = new RefSpec("+refs/heads/master:refs/heads/master");
+
+			if (thisGit != null) {
+				PushCommand pc = thisGit.push();
+				pc.setRefSpecs(spec);
+				pc.setRemote(remoteToPush);
+				pc.setCredentialsProvider(cp);
+				try {
+					pc.call();
+				} catch (GitAPIException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+				thisGit.close();
+			}
+		}
+	}
+
+	/*************** OAUTH Overloads Go Here ***********************/
+	/***************************************************************/
+
 	public static void push(String repository, String remoteToPush, String branch, String token) {
 		int attempt = 1;
 
@@ -99,33 +298,15 @@ public class GitPushUtils {
 		}
 	}
 
-	/**
-	 * Opens the local repository and pushes the given branch to the named remote
-	 * using credentials derived from the supplied provider. For
-	 * {@link AuthProvider#GITLAB} an {@code oauth2}/token credential pair is used;
-	 * any other provider uses a token/empty-secret pair. The push is only performed
-	 * while {@code attempt} is less than {@code 3}, so the method is a no-op once
-	 * the attempt counter reaches that limit. Failures opening the repository or
-	 * calling the push are logged; no exception is propagated. The opened
-	 * {@link Git} handle is closed automatically via try-with-resources.
-	 *
-	 * @param repository   path to the local Git repository to push from
-	 * @param remoteToPush name of the remote to push to
-	 * @param branch       branch to push; added to the push command only when
-	 *                     non-{@code null} and non-empty
-	 * @param token        credential token used to authenticate with the remote
-	 * @param prov         authentication provider that determines how credentials
-	 *                     are constructed
-	 * @param attempt      current attempt number; the push runs only when this is
-	 *                     less than {@code 3}
-	 */
 	public static void push(String repository, String remoteToPush, String branch, String token, AuthProvider prov,
 			int attempt) {
 		if (attempt < 3) {
 			Boolean isGitlab = (prov == AuthProvider.GITLAB);
 
 			File dirFile = new File(Utility.normalizePath(repository));
-			try (Git thisGit = Git.open(dirFile)) {
+			Git thisGit = null;
+			try {
+				thisGit = Git.open(dirFile);
 
 				CredentialsProvider cp = null;
 				if (isGitlab) {
@@ -143,33 +324,20 @@ public class GitPushUtils {
 				try {
 					pc.call();
 				} catch (GitAPIException e) {
-					classLogger.error("Failed to push to remote {} for repo {}", remoteToPush, repository, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			} catch (IOException e) {
-				classLogger.error("Failed to open Git directory at {}", repository, e);
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (thisGit != null) {
+					thisGit.close();
+				}
 			}
 		}
 	}
 
-	/**
-	 * Opens the local repository and performs a {@code git pull} using credentials
-	 * derived from the supplied provider ({@code oauth2}/token for
-	 * {@link AuthProvider#GITLAB}, otherwise token/empty-secret). Failures opening
-	 * the repository are logged and result in the "Git is empty" error response.
-	 * The opened {@link Git} handle is closed in a {@code finally} block once the
-	 * pull has been attempted.
-	 *
-	 * @param repository path to the local Git repository to pull into
-	 * @param token      credential token used to authenticate with the remote
-	 * @param prov       authentication provider that determines how credentials are
-	 *                   constructed
-	 * @return a {@link NounMetadata} describing the outcome: a success/non-success
-	 *         message when the pull completes, an {@link PixelDataType#ERROR} noun
-	 *         carrying the exception text if the pull throws, or an
-	 *         {@link PixelDataType#ERROR} "Git is empty" noun if the repository
-	 *         could not be opened
-	 */
 	public static NounMetadata pull(String repository, String token, AuthProvider prov) {
+
 		Boolean isGitlab = null;
 		if (prov.toString().equals(AuthProvider.GITLAB.toString())) {
 			isGitlab = true;
@@ -182,7 +350,7 @@ public class GitPushUtils {
 		try {
 			thisGit = Git.open(dirFile);
 		} catch (IOException e) {
-			classLogger.error("Failed to open Git directory at {}", repository, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		CredentialsProvider cp = null;
 		if (isGitlab) {
@@ -203,7 +371,7 @@ public class GitPushUtils {
 					return new NounMetadata("Git pull error", PixelDataType.CONST_STRING, PixelOperationType.HELP);
 				}
 			} catch (GitAPIException e) {
-				classLogger.error("Failed to pull from remote for repo {}", repository, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				return new NounMetadata("Git Pull Error: " + e, PixelDataType.ERROR, PixelOperationType.HELP);
 			} finally {
 				thisGit.close();
@@ -214,29 +382,8 @@ public class GitPushUtils {
 
 	}
 
-	/**
-	 * Opens the local repository and checks out the given branch. If the branch
-	 * does not already exist locally (determined via
-	 * {@link #branchNameExist(Git, String)}) it is created as a new tracking branch
-	 * with its start point set to {@code origin/<branch>} and upstream mode
-	 * {@link CreateBranchCommand.SetupUpstreamMode#TRACK}; otherwise the existing
-	 * branch is simply checked out. Credentials are derived from the supplied
-	 * provider but the local checkout itself does not use them. Failures opening
-	 * the repository or listing branches are logged; the {@link Git} handle is
-	 * closed in a {@code finally} block after the checkout is attempted.
-	 *
-	 * @param repository path to the local Git repository to operate on
-	 * @param branch     name of the branch to check out or create
-	 * @param token      credential token associated with the provider
-	 * @param prov       authentication provider that determines how credentials are
-	 *                   constructed
-	 * @return a {@link NounMetadata} describing the outcome: a success message
-	 *         naming the branch, an {@link PixelDataType#ERROR} noun carrying the
-	 *         exception text if the checkout throws, or an
-	 *         {@link PixelDataType#ERROR} "Git is empty" noun if the repository
-	 *         could not be opened
-	 */
 	public static NounMetadata checkout(String repository, String branch, String token, AuthProvider prov) {
+
 		Boolean isGitlab = null;
 		if (prov.toString().equals(AuthProvider.GITLAB.toString())) {
 			isGitlab = true;
@@ -251,7 +398,7 @@ public class GitPushUtils {
 			thisGit = Git.open(dirFile);
 			exists = branchNameExist(thisGit, branch);
 		} catch (IOException | GitAPIException e) {
-			classLogger.error("Failed to open Git directory or list branches for repo {}", repository, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		CredentialsProvider cp = null;
 		if (isGitlab) {
@@ -276,7 +423,7 @@ public class GitPushUtils {
 				checkout.call();
 				return new NounMetadata("Git checkout: " + branch, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 			} catch (GitAPIException e) {
-				classLogger.error("Failed to checkout branch {} for repo {}", branch, repository, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				return new NounMetadata("Git Checkout Error: " + e, PixelDataType.ERROR, PixelOperationType.HELP);
 			} finally {
 				thisGit.close();
@@ -287,18 +434,18 @@ public class GitPushUtils {
 	}
 
 	/**
-	 * Determines whether a local branch matching the given name exists by listing
-	 * the repository branches and returning {@code true} as soon as any ref name
-	 * contains {@code branchName} as a substring.
 	 *
-	 * @param git        the open repository whose branches are listed
-	 * @param branchName branch name to search for; matched against each ref name
-	 *                   via {@link String#contains(CharSequence)}
-	 * @return {@code true} if a branch ref name contains {@code branchName},
-	 *         {@code false} otherwise
-	 * @throws GitAPIException if listing the branches fails
+	 * <p>
+	 * Description: Determine whether the local branch name exists
+	 * </p>
+	 *
+	 * @param git
+	 * @param branchName
+	 * @return
+	 * @throws GitAPIException
 	 * @author wgs
 	 * @date July 20, 2019 2:49:46 PM
+	 *
 	 */
 	public static boolean branchNameExist(Git git, String branchName) throws GitAPIException {
 		List<Ref> refs = git.branchList().call();
@@ -310,53 +457,10 @@ public class GitPushUtils {
 		return false;
 	}
 
-	/**
-	 * Clones a remote repository into {@code workingDir}, appending the derived
-	 * repository folder name to the destination. Delegates to
-	 * {@link #clone(String, String, String, AuthProvider, boolean)} with
-	 * {@code appendFolderName} set to {@code true}.
-	 *
-	 * @param workingDir base directory into which the repository is cloned
-	 * @param repo       URI of the remote repository to clone
-	 * @param token      credential token used to authenticate; may be {@code null}
-	 *                   to clone without credentials
-	 * @param prov       authentication provider that determines how credentials are
-	 *                   constructed
-	 * @return a {@link NounMetadata} describing the clone outcome (success or
-	 *         error)
-	 */
 	public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov) {
 		return clone(workingDir, repo, token, prov, true);
 	}
 
-	/**
-	 * Clones a remote repository into the given working directory. When
-	 * {@code appendFolderName} is {@code true} the destination is
-	 * {@code workingDir/<instanceName>} where the instance name is derived from
-	 * {@code repo} (the portion before the first {@code .}); otherwise the
-	 * repository is cloned directly into {@code workingDir}. If the
-	 * {@link Constants#GIT_TRUSTED_REPO} property is configured, the clone is
-	 * rejected with an error noun unless {@code repo} starts with that trusted
-	 * prefix, and the {@link Constants#GIT_DEFAULT_BRANCH} property (when set) is
-	 * used as the branch to clone. Credentials are applied only when {@code token}
-	 * is non-{@code null} ({@code oauth2}/token for {@link AuthProvider#GITLAB},
-	 * otherwise token/empty-secret). Clone failures are logged and returned as an
-	 * error noun.
-	 *
-	 * @param workingDir       base directory into which the repository is cloned
-	 * @param repo             URI of the remote repository to clone
-	 * @param token            credential token used to authenticate; may be
-	 *                         {@code null} to clone without credentials
-	 * @param prov             authentication provider that determines how
-	 *                         credentials are constructed
-	 * @param appendFolderName when {@code true}, append the derived repository
-	 *                         folder name to {@code workingDir}; when
-	 *                         {@code false}, clone directly into {@code workingDir}
-	 * @return a {@link NounMetadata} describing the outcome: a success message
-	 *         naming the repo, an {@link PixelDataType#ERROR} noun if cloning from
-	 *         an unapproved registry, or an {@link PixelDataType#ERROR} noun
-	 *         carrying the exception text if the clone throws
-	 */
 	public static NounMetadata clone(String workingDir, String repo, String token, AuthProvider prov,
 			boolean appendFolderName) {
 		Boolean isGitlab = (prov == AuthProvider.GITLAB);
@@ -387,9 +491,9 @@ public class GitPushUtils {
 			} else {
 				cp = new UsernamePasswordCredentialsProvider(token, "");
 			}
-			classLogger.info("Cloning project {} with {} credentials", repo, prov);
+			classLogger.info("Cloning project " + repo + " with " + prov + " credentials");
 		} else {
-			classLogger.info("Cloning project {} without any credentials", repo);
+			classLogger.info("Cloning project " + repo + " without any credentials");
 		}
 
 		CloneCommand clone = Git.cloneRepository();
@@ -408,7 +512,7 @@ public class GitPushUtils {
 			clone.call();
 			return new NounMetadata("Git clone success: " + repo, PixelDataType.CONST_STRING, PixelOperationType.HELP);
 		} catch (GitAPIException e) {
-			classLogger.error("Failed to clone repo {} to {}", repo, dirFile, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			return new NounMetadata("Git clone error: " + e, PixelDataType.ERROR, PixelOperationType.HELP);
 		}
 

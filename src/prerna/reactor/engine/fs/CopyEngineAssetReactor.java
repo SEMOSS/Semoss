@@ -105,7 +105,7 @@ public class CopyEngineAssetReactor extends AbstractReactor {
         // Get the user's email
         AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
         String email = accessToken.getEmail();
-        String author = accessToken.getResolvedUsername();
+        String author = accessToken.getUsername();
 
         // commit it
         GitRepoUtils.commitAddedFiles(gitFolder, comment, author, email);

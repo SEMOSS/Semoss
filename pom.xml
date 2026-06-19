@@ -626,7 +626,7 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.133.Final</version>
+				<version>4.1.132.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -1838,12 +1838,6 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
-		<dependency>
-			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcpkix-jdk18on</artifactId>
-			<version>1.78.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>

@@ -100,7 +100,7 @@ public class UnzipEngineAssetFileReactor extends AbstractReactor {
 				engine.getEngineName());
 		GitRepoUtils.addAllFiles(gitFolder, false);
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String author = accessToken.getResolvedUsername();
+		String author = accessToken.getUsername();
 		String email = accessToken.getEmail();
 		GitRepoUtils.commitAddedFiles(gitFolder, "add: unzipped " + fileRelativePath, author, email);
 

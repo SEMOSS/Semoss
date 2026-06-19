@@ -98,7 +98,7 @@ public final class AgentLoopState {
     }
 
     // Final text
-    /** Set when the loop exits normally with a final assistant response. */
+    /** Set when the loop exits normally via a RESPONSE_TEXT. */
     public String getFinalText() {
         return finalText;
     }

@@ -90,8 +90,7 @@ public class LLM2Reactor extends AbstractReactor {
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
 
-		Room room = useHistoryParam ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question)
-				: RoomUtils.createRoomForStatelessAsk(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)

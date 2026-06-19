@@ -518,9 +518,10 @@ public class ToPdfReactor extends AbstractReactor {
 	 * Capture screenshot using Playwright
 	 */
 	private void captureScreenshot(String url, String outputPath, Integer waitTime) {
-		try (Playwright pw = Playwright.create();
-				Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				Page page = browser.newPage()) {
+		try (Playwright pw = Playwright.create()) {
+			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+			Page page = browser.newPage();
+
 			page.navigate(url);
 			page.waitForLoadState();
 
@@ -532,6 +533,8 @@ public class ToPdfReactor extends AbstractReactor {
 					.setFullPage(true);
 
 			page.screenshot(options);
+			browser.close();
+
 			classLogger.info("Screenshot captured: {}", outputPath);
 		}
 	}

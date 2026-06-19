@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -61,6 +62,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 
 	@Override
 	protected SelectQueryStruct createQueryStruct() {
+
 		// get keys
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
@@ -94,7 +96,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 		}
 
 		// Initialize variables
-		Map<String, Object> params = new HashMap<>();
+		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
 
 		// filepath for the download/export
@@ -105,19 +107,26 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 		String url_str = null;
 		if (type.contains("google-apps.spreadsheet")) {
 			url_str = "https://www.googleapis.com/drive/v3/files/" + fileID + "/export";
-			params = new HashMap<>();
+			params = new Hashtable();
 			params.put("mimeType", "text/csv");
 		} else if (type.contains("text/csv")) {
 			url_str = "https://www.googleapis.com/drive/v3/files/" + fileID;
-			params = new HashMap<>();
+			params = new Hashtable();
 			params.put("alt", "media");
 		} else {
 			throw new IllegalArgumentException("Illegal file type");
 		}
-		File outputFile = new File(filePath);
-		try (BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
-				BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));) {
+		BufferedWriter target = null;
+		try {
+			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
+
+			// create a file
+
+			File outputFile = new File(filePath);
+
+			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
+
 			while ((data = br.readLine()) != null) {
 				target.write(data);
 				target.write("\n");
@@ -142,7 +151,16 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 			qs.setAdditionalTypes(additionalDataTypes);
 			return qs;
 		} catch (IOException e) {
-			classLogger.error("Error occurred downloading and parsing the Google file", e);
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return qs;

@@ -33,9 +33,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import prerna.date.SemossDate;
 
@@ -691,19 +689,6 @@ public class AccessToken implements Serializable {
 	 */
 	public void setModelUsageRestriction(String modelUsageRestriction) {
 		this.modelUsageRestriction = modelUsageRestriction;
-	}
-
-	/**
-	 * Resolves a usable username for the access token, preferring the username and
-	 * falling back to the display name and then the email. Useful when a single
-	 * identifying label is required (e.g. as a git commit author) but logins vary
-	 * in which of these fields they populate.
-	 *
-	 * @return the first non-null value of username, name, or email; null if all are
-	 *         null
-	 */
-	public String getResolvedUsername() {
-		return Stream.of(username, name, email).filter(Objects::nonNull).findFirst().orElse(null);
 	}
 
 	/**
