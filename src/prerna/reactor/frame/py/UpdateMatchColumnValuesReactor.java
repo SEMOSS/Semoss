@@ -34,7 +34,6 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,7 +53,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		if (column == null | column.isEmpty()) {
+		if (column == null || column.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the column to run the update on");
 		}
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);
@@ -70,7 +69,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 		scripts.add(col1 + "= " + frameName + "['" + column + "']");
 
 		// iterate matches and create the link frame
-		List<String> allMatches = getInputList(MATCHES);
+		List<String> allMatches = getListStringFromKeyOrCurRow(MATCHES);
 		if (allMatches == null || allMatches.isEmpty()) {
 			throw new IllegalArgumentException(
 					"Must pass in matches to connect the 'current value' to the 'replacement value'");
@@ -127,17 +126,4 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 		return retNoun;
 	}
 
-	private List<String> getInputList(String key) {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(key);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<String> values = columnGrs.getAllStrValues();
-				return values;
-			}
-		}
-		// else, we assume it is values in the curRow
-		List<String> values = this.curRow.getAllStrValues();
-		return values;
-	}
 }

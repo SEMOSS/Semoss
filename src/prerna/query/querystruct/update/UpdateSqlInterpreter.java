@@ -37,132 +37,139 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 @Deprecated
 public class UpdateSqlInterpreter extends SqlInterpreter {
-	
+
 	private StringBuilder sets = new StringBuilder();
 	private String updateFrom = null;
 	private String userId = null;
-	
+
+	@Deprecated
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
-		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE 
-				|| this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		if (this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+				|| this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			this.engine = qs.retrieveQueryStructEngine();
-			if(this.engine != null) {
+			if (this.engine != null) {
 				this.queryUtil = ((IRDBMSEngine) this.engine).getQueryUtil();
 			}
 		} else {
 			this.frame = qs.getFrame();
-			if(this.frame != null) {
+			if (this.frame != null) {
 				this.queryUtil = ((AbstractRdbmsFrame) this.frame).getQueryUtil();
 			}
 		}
 	}
-	
-	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
 
+	//////////////////////////////////////////// Compose Query
+	//////////////////////////////////////////// //////////////////////////////////////////////
+
+	@Deprecated
+	@Override
 	public String composeQuery() {
 		addSets();
 		addFilters();
-		
+
 		// Initiate String
 		StringBuilder query = new StringBuilder("UPDATE ");
 		// Add sets depending on...
 		query.append(this.updateFrom);
 		query.append(" SET ").append(this.sets);
-		
+
 		int numFilters = this.filterStatements.size();
-		for(int i = 0; i < numFilters; i++) {
-			if(i == 0) {
+		for (int i = 0; i < numFilters; i++) {
+			if (i == 0) {
 				query.append(" WHERE ");
 			} else {
 				query.append(" AND ");
 			}
 			query.append(this.filterStatements.get(i).toString());
 		}
-						
+
 		return query.toString();
 	}
-	
-	//////////////////////////////////////////// End Compose Query //////////////////////////////////////////
-	
+
+	//////////////////////////////////////////// End Compose Query
+	//////////////////////////////////////////// //////////////////////////////////////////
+
 	private void addSets() {
 		Set<String> tableList = new HashSet<String>();
 
 		// determine if we can insert booleans as true/false
 		boolean allowBooleanType = queryUtil.allowBooleanDataType();
-				
+
 		List<IQuerySelector> selectors = qs.getSelectors();
 		List<Object> values = ((UpdateQueryStruct) qs).getValues();
 		int numSelectors = selectors.size();
-		for(int i = 0; i < numSelectors; i++) {
-			if(i != 0) {
+		for (int i = 0; i < numSelectors; i++) {
+			if (i != 0) {
 				sets.append(", ");
 			}
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
 			String table = s.getTable();
 			String column = s.getColumn();
-			if(column.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			if (column.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				column = getPrimKey4Table(table);
 			}
 			Object v = values.get(i);
-			if(v == null) {
+			if (v == null) {
 				sets.append(column + "= NULL");
-			} else if(v instanceof String) {
-				if(v.equals("<UUID>")) {
-					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
-				} else if(v.equals("<USER_ID>") && this.userId != null) {
+			} else if (v instanceof String) {
+				if (v.equals("<UUID>")) {
+					sets.append(column + "=" + "'"
+							+ AbstractSqlQueryUtil.escapeForSQLStatement(UUID.randomUUID().toString()) + "'");
+				} else if (v.equals("<USER_ID>") && this.userId != null) {
 					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(userId) + "'");
 				} else {
 					sets.append(column + "=" + "'" + AbstractSqlQueryUtil.escapeForSQLStatement(v + "") + "'");
 				}
-			} else if(v instanceof SemossDate) {
-				String dateValue = ((SemossDate) v).getFormattedDate() ;
-				if(dateValue == null || dateValue.isEmpty() || dateValue.equals("null")) {
+			} else if (v instanceof SemossDate) {
+				String dateValue = ((SemossDate) v).getFormattedDate();
+				if (dateValue == null || dateValue.isEmpty() || dateValue.equals("null")) {
 					sets.append(column + "= NULL");
 				} else {
 					sets.append(column + "=" + "'" + dateValue + "'");
 				}
-			} else if(v instanceof Boolean) {
-				if(allowBooleanType) {
+			} else if (v instanceof Boolean) {
+				if (allowBooleanType) {
 					sets.append(column + "=" + v);
 				} else {
 					// append 1 or 0 based on true/false
-					if(Boolean.parseBoolean(v + "")) {
+					if (Boolean.parseBoolean(v + "")) {
 						sets.append(column + "=1");
 					} else {
 						sets.append(column + "=0");
 					}
 				}
+			} else {
+				sets.append(column + "=" + v);
 			}
-			else {
-				sets.append(column + "=" + v );
-			}
-			
+
 			tableList.add(table);
 		}
-		
-		if(tableList.size() > 1) {
+
+		if (tableList.size() > 1) {
 			throw new IllegalArgumentException("Cannot update multiple tables in the same statement");
 		}
 		this.updateFrom = tableList.iterator().next();
 	}
-	
+
+	@Deprecated
 	public String getUserId() {
 		return userId;
 	}
 
+	@Deprecated
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
-	
-	//////////////////////////////////////////// Main function to test //////////////////////////////////////
+
+	//////////////////////////////////////////// Main function to test
+	//////////////////////////////////////////// //////////////////////////////////////
 
 //	public static void main(String[] args) {
 //		// load engine
@@ -237,5 +244,5 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 ////		}
 //	}
 //	
-	
+
 }

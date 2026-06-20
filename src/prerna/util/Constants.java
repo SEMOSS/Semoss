@@ -727,11 +727,17 @@ public class Constants {
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
+	public static final String PY_LOG_CAPTURE_ENABLED = "PY_LOG_CAPTURE_ENABLED";
+	public static final String PY_LOGGER_NAME = "py.native";
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
+
+	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -773,6 +779,9 @@ public class Constants {
 	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
+
+	// name of the FE webapp
+	public static final String FE_WEB_APP_NAME = "FE_WEB_APP_NAME";
 
 	// Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
@@ -841,7 +850,6 @@ public class Constants {
 
 	public static final String SEMOSS_EXTENSION = ".smss";
 	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
-	public static final String ENCRYPT_SMSS = "ENCRYPT_SMSS";
 
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";

@@ -29,10 +29,8 @@ package prerna.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -44,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -91,7 +90,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -113,7 +111,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -138,9 +135,7 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 
-import com.google.common.base.Strings;
 import com.google.common.net.InternetDomainName;
-import com.google.gson.GsonBuilder;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfoList;
@@ -199,10 +194,9 @@ import prerna.util.git.GitAssetUtils;
  */
 public final class Utility {
 
-	public static int id = 0;
-
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
 
+	public static int id = 0;
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 
 	/**
@@ -829,8 +823,7 @@ public final class Utility {
 	 * @return double
 	 */
 	public static double round(double valueToRound, int numberOfDecimalPlaces) {
-		BigDecimal bigD = new BigDecimal(valueToRound);
-		return bigD.setScale(numberOfDecimalPlaces, BigDecimal.ROUND_HALF_UP).doubleValue();
+		return BigDecimal.valueOf(valueToRound).setScale(numberOfDecimalPlaces, RoundingMode.HALF_EVEN).doubleValue();
 	}
 
 	/**
@@ -913,7 +906,7 @@ public final class Utility {
 				content.add(line);
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 
@@ -978,7 +971,7 @@ public final class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 	}
@@ -1040,7 +1033,7 @@ public final class Utility {
 				}
 			}
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
 			throw ioe;
 		}
 	}
@@ -1182,14 +1175,14 @@ public final class Utility {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (newExcelFile != null) {
 					newExcelFile.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
 			}
 		}
 	}
@@ -1237,17 +1230,17 @@ public final class Utility {
 				}
 			}
 		} catch (RuntimeException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to retrieve HTTP response body: {}", ex.getMessage(), ex);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to retrieve HTTP response body: {}", ioe.getMessage(), ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error(Constants.STACKTRACE, nsae);
+			classLogger.error("Failed to retrieve HTTP response body: {}", nsae.getMessage(), nsae);
 		} catch (KeyStoreException kse) {
-			classLogger.error(Constants.STACKTRACE, kse);
+			classLogger.error("Failed to retrieve HTTP response body: {}", kse.getMessage(), kse);
 		} catch (URISyntaxException use) {
-			classLogger.error(Constants.STACKTRACE, use);
+			classLogger.error("Failed to retrieve HTTP response body: {}", use.getMessage(), use);
 		} catch (KeyManagementException kme) {
-			classLogger.error(Constants.STACKTRACE, kme);
+			classLogger.error("Failed to retrieve HTTP response body: {}", kme.getMessage(), kme);
 		} finally {
 			try {
 				if (inputStream != null) {
@@ -1257,7 +1250,7 @@ public final class Utility {
 					stream.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Error closing input stream for image");
+				classLogger.error("Failed to close image response stream", e);
 			}
 			try {
 				if (httpclient != null) {
@@ -1267,7 +1260,7 @@ public final class Utility {
 					stream.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Error closing socket for httpclient");
+				classLogger.error("Failed to close HTTP client while retrieving response body", e);
 			}
 		}
 		if (output.length() == 0) {
@@ -1311,17 +1304,17 @@ public final class Utility {
 			return entity.getContent();
 
 		} catch (RuntimeException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", ex.getMessage(), ex);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", ioe.getMessage(), ioe);
 		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error(Constants.STACKTRACE, nsae);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", nsae.getMessage(), nsae);
 		} catch (KeyStoreException kse) {
-			classLogger.error(Constants.STACKTRACE, kse);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", kse.getMessage(), kse);
 		} catch (URISyntaxException use) {
-			classLogger.error(Constants.STACKTRACE, use);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", use.getMessage(), use);
 		} catch (KeyManagementException kme) {
-			classLogger.error(Constants.STACKTRACE, kme);
+			classLogger.error("Failed to retrieve HTTP response stream: {}", kme.getMessage(), kme);
 		}
 		return null;
 	}
@@ -1421,13 +1414,13 @@ public final class Utility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1465,13 +1458,13 @@ public final class Utility {
 				retArray.add(valArray);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1583,25 +1576,25 @@ public final class Utility {
 			classLogger.debug("Dataframe name is " + Utility.cleanLogString(className));
 			obj = Class.forName(className).getConstructor(null).newInstance(null);
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
 			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
 		} catch (InstantiationException ie) {
-			classLogger.error(Constants.STACKTRACE, ie);
+			classLogger.error("Failed to instantiate class from name: {}", ie.getMessage(), ie);
 			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
 		} catch (IllegalAccessException iae) {
-			classLogger.error(Constants.STACKTRACE, iae);
+			classLogger.error("Failed to instantiate class from name: {}", iae.getMessage(), iae);
 			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
 		} catch (IllegalArgumentException iare) {
-			classLogger.error(Constants.STACKTRACE, iare);
+			classLogger.error("Failed to instantiate class from name: {}", iare.getMessage(), iare);
 			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
 		} catch (InvocationTargetException ite) {
-			classLogger.error(Constants.STACKTRACE, ite);
+			classLogger.error("Failed to instantiate class from name: {}", ite.getMessage(), ite);
 			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
 		} catch (NoSuchMethodException nsme) {
-			classLogger.error(Constants.STACKTRACE, nsme);
+			classLogger.error("Failed to instantiate class from name: {}", nsme.getMessage(), nsme);
 			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
 		} catch (SecurityException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to instantiate class from name: {}", se.getMessage(), se);
 			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
 		}
 		return obj;
@@ -2005,11 +1998,8 @@ public final class Utility {
 				syncToLocalMaster = true;
 			}
 		} catch (Exception e) {
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
-			classLogger.error("Unknown class name = " + rawType + " in smss file " + smssFilePath);
+			classLogger.error("Unknown class name '{}' in smss file '{}': {}", rawType, smssFilePath, e.getMessage(),
+					e);
 		}
 		if (engineType == null) {
 			return;
@@ -2132,7 +2122,7 @@ public final class Utility {
 		} catch (Exception e) {
 			// null out the engine
 			engine = null;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2149,7 +2139,7 @@ public final class Utility {
 		try {
 			engine = (IDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load database engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2166,7 +2156,7 @@ public final class Utility {
 		try {
 			engine = (IStorageEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load storage engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2183,7 +2173,7 @@ public final class Utility {
 		try {
 			engine = (IModelEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load model engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2200,7 +2190,7 @@ public final class Utility {
 		try {
 			engine = (IVectorDatabaseEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load vector engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2217,7 +2207,7 @@ public final class Utility {
 		try {
 			engine = (IFunctionEngine) loadEngine(smssFilePath, smssProp);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load function engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
 	}
@@ -2269,7 +2259,7 @@ public final class Utility {
 						ClusterUtil.pushProjectSmss(projectId);
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
 					// ignore
 				}
 			}
@@ -2297,13 +2287,13 @@ public final class Utility {
 				SecurityProjectUtils.addProject(projectId, null);
 			}
 		} catch (InstantiationException ie) {
-			classLogger.error(Constants.STACKTRACE, ie);
+			classLogger.error("Failed to load project from SMSS metadata: {}", ie.getMessage(), ie);
 		} catch (IllegalAccessException iae) {
-			classLogger.error(Constants.STACKTRACE, iae);
+			classLogger.error("Failed to load project from SMSS metadata: {}", iae.getMessage(), iae);
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to load project from SMSS metadata: {}", cnfe.getMessage(), cnfe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
 		}
 
 		return project;
@@ -2991,7 +2981,7 @@ public final class Utility {
 //				fw.close();
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to read engine metadata from SMSS file: {}", ex.getMessage(), ex);
 		}
 
 		return prop;
@@ -3124,7 +3114,7 @@ public final class Utility {
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3273,28 +3263,28 @@ public final class Utility {
 			}
 
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 			}
 		}
 
@@ -3336,7 +3326,7 @@ public final class Utility {
 		try {
 			f.createNewFile();
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		}
 
 		FileOutputStream fos = null;
@@ -3462,28 +3452,28 @@ public final class Utility {
 			bufferedWriter.flush();
 
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (osw != null) {
 					osw.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 			try {
 				if (fos != null) {
 					fos.close();
 				}
 			} catch (IOException ioe) {
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 			}
 		}
 
@@ -3763,7 +3753,7 @@ public final class Utility {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
@@ -3788,7 +3778,7 @@ public final class Utility {
 				retProp.load(fis);
 			} catch (IOException ioe) {
 				classLogger.info("Unable to read properties file: " + Utility.normalizePath(file.getAbsolutePath()));
-				classLogger.error(Constants.STACKTRACE, ioe);
+				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
 		for (String name : retProp.stringPropertyNames()) {
@@ -3811,7 +3801,7 @@ public final class Utility {
 			try {
 				retProp.load(is);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load properties from string input: {}", e.getMessage(), e);
 			}
 		}
 		return retProp;
@@ -4482,8 +4472,8 @@ public final class Utility {
 		cacheSetting = cacheSetting.trim();
 
 		if (!CronExpression.isValidExpression(cacheSetting)) {
-			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value of '" + cacheSetting
-					+ "' is not a valid cron expression");
+			classLogger.error("Application DEFAULT_INSIGHT_CACHE_CRON value '{}' is not a valid cron expression",
+					cacheSetting);
 			return null;
 		}
 
@@ -4751,8 +4741,7 @@ public final class Utility {
 				return protocol + "://" + host;
 			}
 		} catch (URISyntaxException | MalformedURLException e) {
-			classLogger.warn("Invalid redirect URL in social.properties for redirect");
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to resolve application base URL: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -4825,6 +4814,22 @@ public final class Utility {
 	}
 
 	/**
+	 * Get the name of the FE webapp. Default to SemossWeb
+	 * 
+	 * @return
+	 */
+	public static String getFEWebAppName() {
+		String feWebAppName = "SemossWeb";
+		if (Utility.getDIHelperProperty(Constants.FE_WEB_APP_NAME) != null) {
+			String candidate = Utility.getDIHelperProperty(Constants.FE_WEB_APP_NAME);
+			if (candidate != null && !(candidate = candidate.trim()).isEmpty()) {
+				feWebAppName = candidate;
+			}
+		}
+		return feWebAppName;
+	}
+
+	/**
 	 * Default value is public_home
 	 * 
 	 * @return
@@ -4863,9 +4868,9 @@ public final class Utility {
 			out.close();
 			in.close();
 		} catch (MalformedURLException mue) {
-			classLogger.error(Constants.STACKTRACE, mue);
+			classLogger.error("Failed to copy URL content to file: {}", mue.getMessage(), mue);
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to copy URL content to file: {}", ioe.getMessage(), ioe);
 		}
 	}
 
@@ -4899,7 +4904,7 @@ public final class Utility {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				classLogger.error("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from {}", classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -4953,9 +4958,11 @@ public final class Utility {
 									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 								}
 							} catch (NotFoundException nfe) {
-								classLogger.error(Constants.STACKTRACE, nfe);
+								classLogger.error("Failed to load configured reactor classes: {}", nfe.getMessage(),
+										nfe);
 							} catch (CannotCompileException cce) {
-								classLogger.error(Constants.STACKTRACE, cce);
+								classLogger.error("Failed to load configured reactor classes: {}", cce.getMessage(),
+										cce);
 							}
 
 							// once the new instance has been done.. it has been injected into heap.. after
@@ -4967,7 +4974,7 @@ public final class Utility {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load configured reactor classes: {}", ex.getMessage(), ex);
 		}
 
 		return thisMap;
@@ -5050,661 +5057,10 @@ public final class Utility {
 
 			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
 		} catch (ClassNotFoundException cnfe) {
-			classLogger.error(Constants.STACKTRACE, cnfe);
+			classLogger.error("Failed to build runtime classpath: {}", cnfe.getMessage(), cnfe);
 		}
 
 		return envClassPath.toString();
-	}
-
-	/**
-	 * 
-	 * @param cp
-	 * @param insightFolder
-	 * @param port
-	 * @return
-	 */
-	public static Process startTCPServer(String cp, String insightFolder, String port) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		Process thisProcess = null;
-		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
-		}
-		String specificPath = getCP(cp, insightFolder);
-		try {
-			String java = System.getenv(Constants.JAVA_HOME);
-			if (java == null) {
-				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
-			}
-			java = java.trim();
-			if (!java.endsWith("bin")) {
-				// seems like for graal
-				java = java + "/bin/java";
-			} else {
-				java = java + "/java";
-			}
-			// account for spaces in the path to java
-			if (java.contains(" ")) {
-				java = "\"" + java + "\"";
-			}
-			// change the \\
-			java = java.replace("\\", "/");
-
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
-			String[] commands = null;
-			if (port == null) {
-				commands = new String[6];
-			} else {
-				commands = new String[7];
-				commands[6] = port;
-			}
-			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
-
-			// compose for memory
-			String xms = Utility.getDIHelperProperty("Xms");
-			String xmx = Utility.getDIHelperProperty("Xmx");
-			String memory = "";
-			if (xms != null && xmx != null) {
-				memory = "-Xms" + xms + " -Xmx" + xmx;
-			}
-			commands[1] = memory + " -cp";
-			commands[2] = specificPath;
-			commands[3] = tcpWorker;
-			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
-			// java = "c:/zulu/zulu-8/bin/java";
-			// StringBuilder argList = new StringBuilder(args[0]);
-			// for(int argIndex = 0;argIndex < args.length;argList.append("
-			// ").append(args[argIndex]), argIndex++);
-			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*
-			 * commands[3] =
-			 * "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-			 * + "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;" +
-			 * "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;" +
-			 * "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-			 * +
-			 * "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			 */
-			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			// commands[6] = ">";
-			// commands[7] = finalDir + "/.log";
-
-			classLogger.debug("Trying to create file in .. " + finalDir);
-			File file = new File(finalDir + "/init");
-			file.createNewFile();
-			classLogger.debug("Python start commands ... ");
-			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-
-			// run it as a process
-			// ProcessBuilder pb = new ProcessBuilder(commands);
-			// ProcessBuilder pb = new
-			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			// pb.command(commands);
-
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
-			}
-
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
-			String[] starterFile = writeStarterFile(commands, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
-			Process p = pb.start();
-			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return thisProcess;
-	}
-
-	/**
-	 * 
-	 * @param cp
-	 * @param chrootDir
-	 * @param insightFolder
-	 * @param port
-	 * @return
-	 */
-	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		Process thisProcess = null;
-		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
-		}
-		String specificPath = getCP(cp, insightFolder);
-		try {
-			String java = System.getenv(Constants.JAVA_HOME);
-			if (java == null) {
-				java = Utility.getDIHelperProperty(Constants.JAVA_HOME);
-			}
-			java = java.trim();
-			if (!java.endsWith("bin")) {
-				// seems like for graal
-				java = java + "/bin/java";
-			} else {
-				java = java + "/java";
-			}
-			// account for spaces in the path to java
-			if (java.contains(" ")) {
-				java = "\"" + java + "\"";
-			}
-			// change the \\
-			java = java.replace("\\", "/");
-
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
-			String[] commands = null;
-			if (port == null) {
-				commands = new String[6];
-			} else {
-				commands = new String[7];
-				commands[6] = port;
-			}
-			String finalDir = insightFolder.replace("\\", "/");
-			commands[0] = java;
-			// compose for memory
-			String xms = Utility.getDIHelperProperty("Xms");
-			String xmx = Utility.getDIHelperProperty("Xmx");
-
-			String memory = "";
-			if (xms != null && xmx != null) {
-				memory = "-Xms" + xms + " -Xmx" + xmx;
-			}
-
-			commands[1] = memory + " -cp";
-			commands[2] = specificPath;
-			commands[3] = tcpWorker;
-			commands[4] = finalDir;
-			commands[5] = DIHelper.getInstance().getRDFMapFileLocation();
-			// java = "c:/zulu/zulu-8/bin/java";
-			// StringBuilder argList = new StringBuilder(args[0]);
-			// for(int argIndex = 0;argIndex < args.length;argList.append("
-			// ").append(args[argIndex]), argIndex++);
-			// commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
-			/*
-			 * commands[3] =
-			 * "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
-			 * + "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;" +
-			 * "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;" +
-			 * "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
-			 * +
-			 * "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
-			 */
-			// commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			// commands[6] = ">";
-			// commands[7] = finalDir + "/.log";
-
-			classLogger.debug("Trying to create file in .. " + finalDir);
-			File file = new File(chrootDir + finalDir + "/init");
-			file.createNewFile();
-			classLogger.debug("Python start commands ... ");
-			classLogger.debug(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
-
-			// run it as a process
-			// ProcessBuilder pb = new ProcessBuilder(commands);
-			// ProcessBuilder pb = new
-			// ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
-			// pb.command(commands);
-
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
-			}
-
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
-			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
-			classLogger.info("came out of the waiting for process");
-			Process p = pb.start();
-
-			try {
-				// p.waitFor();
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return thisProcess;
-	}
-
-	/**
-	 * 
-	 * @param insightFolder
-	 * @param port
-	 * @param py
-	 * @param timeout
-	 * @param loggerLevel
-	 * @return
-	 */
-	public static Object[] startTCPServerNativePy(String insightFolder, String port, String py, String timeout,
-			String loggerLevel) {
-		// this basically starts a java process
-		// the string is an identifier for this process
-		// do I need this insight folder anymore ?
-
-		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
-		// C:/Python/Python310/python.exe
-		// C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py
-		// 9999 1 . c:/temp
-		String prefix = "";
-		Process thisProcess = null;
-		String finalDir = insightFolder.replace("\\", "/");
-
-		try {
-			// only try to find the base python if one was not passed in
-			if (py == null || py.isEmpty()) {
-				py = getPythonExecutable();
-			} else {
-				classLogger.info("The python executable being used is: \"" + py + "\"");
-			}
-			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
-			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
-
-			prefix = Utility.getRandomString(5);
-			prefix = "p_" + prefix;
-
-			String outputFile = finalDir + "/console.txt";
-
-			String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
-			String[] baseCommand = new String[] { py, gaasServer, "--port", port, "--max_count", "1", "--py_folder",
-					pyBase, "--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
-					loggerLevel };
-
-			String[] commands;
-			if (pythonUser != null && !pythonUser.trim().isEmpty()) {
-				commands = new String[baseCommand.length + 3];
-				commands[0] = "sudo";
-				commands[1] = "-u";
-				commands[2] = pythonUser;
-				System.arraycopy(baseCommand, 0, commands, 3, baseCommand.length);
-
-				File pythonProcessFolder = new File(finalDir);
-				if (pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-					pythonProcessFolder.setReadable(true, false);
-					pythonProcessFolder.setWritable(true, false);
-					pythonProcessFolder.setExecutable(true, false);
-				}
-			} else {
-				commands = baseCommand;
-			}
-
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
-			}
-
-			classLogger.info("Starting user/engine process with ::: " + Arrays.toString(commands));
-			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
-			Process p = pb.start();
-			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("Finished waiting for user/engine process");
-			if (!p.isAlive()) {
-				// if it crashed here, then the outputFile will contain the error. Read file and
-				// send error back
-				// it should not contain anything else since we are trying to start the server
-				// here
-				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
-				StringBuilder errorMsg = new StringBuilder();
-				String line;
-				while ((line = reader.readLine()) != null) {
-					// get the runtime error
-					if (line.startsWith("Traceback")) {
-						errorMsg.append(line).append("\n");
-						while ((line = reader.readLine()) != null) {
-							errorMsg.append(line).append("\n");
-						}
-					}
-				}
-				reader.close();
-				if (!errorMsg.toString().isEmpty()) {
-					throw new IllegalStateException(errorMsg.toString());
-				}
-			}
-			thisProcess = p;
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return new Object[] { thisProcess, prefix };
-	}
-
-	/**
-	 * 
-	 * @param chrootDir
-	 * @param insightFolder
-	 * @param port
-	 * @param timeout
-	 * @param loggerLevel
-	 * @return
-	 */
-	public static Object[] startTCPServerNativePyChroot(String chrootDir, String insightFolder, String port,
-			String timeout, String loggerLevel) {
-		// chroot dir is usually at /opt/kunal__abc123123 - after which is the full os
-		// this basically starts a java process
-		// the string is an identifier for this process
-		// do I need this insight folder anymore ?
-
-		// py gaas_tcp_socket_server.py 86 1 py_base_directory insight_folder_dir
-		// C:/Python/Python310/python.exe
-		// C:/Users/pkapaleeswaran/workspacej3/SemossDev/py/gaas_tcp_socket_server.py
-		// 9999 1 . c:/temp
-		String prefix = "";
-		Process thisProcess = null;
-		String finalDir = insightFolder.replace("\\", "/");
-
-		try {
-			String py = getPythonExecutable();
-			String pyBase = Utility.getBaseFolder().replace("\\", "/") + "/" + Constants.PY_BASE_FOLDER;
-			String gaasServer = pyBase + "/gaas_tcp_socket_server.py";
-
-			prefix = Utility.getRandomString(5);
-			prefix = "p_" + prefix;
-
-			String outputFile = chrootDir + finalDir + "/console.txt";
-
-			// String[] commands = new String[] {"fakechroot", "fakeroot",
-			// "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, port, "1",
-			// pyBase, finalDir, prefix, timeout};
-			// 01.03.2025 - below are old chroot commands that utilized full mount + bindfs
-			// + debootstrap
-			// String[] commands = new String[] {"fakechroot", "fakeroot",
-			// "chroot","--userspec=1001:1001" , chrootDir, py, gaasServer, "--port", port,
-			// "--max_count", "1", "--py_folder", pyBase, "--insight_folder", finalDir,
-			// "--prefix", prefix, "--timeout", timeout, "--logger_level" , loggerLevel};
-			String[] commands = new String[] { "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env",
-					"-i", py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder",
-					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
-					"--userChrootFolder", chrootDir };
-
-			// need to make sure we are not windows cause ulimit will not work
-			if (!SystemUtils.IS_OS_WINDOWS
-					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
-				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
-				StringBuilder sb = new StringBuilder();
-				for (String str : commands) {
-					sb.append(str).append(" ");
-				}
-				sb.substring(0, sb.length() - 1);
-				commands = new String[] { "/bin/bash", "-c", "\"ulimit -v " + ulimit + " && " + sb.toString() + "\"" };
-			}
-
-			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
-			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
-			Process p = pb.start();
-			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException ie) {
-				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
-			}
-			classLogger.info("came out of the waiting for process");
-			thisProcess = p;
-
-			// System.out.println("Process started with .. " + p.exitValue());
-			// thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className
-			// + " " + argList);
-			// thisProcess = Runtime.getRuntime().exec(java + " " + className + " " +
-			// argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
-			// thisProcess = pb.start();
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return new Object[] { thisProcess, prefix };
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private static String getPythonExecutable() {
-		String py = System.getenv(Settings.PYTHONHOME);
-		if (py == null) {
-			py = Utility.getDIHelperProperty(Settings.PYTHONHOME);
-		}
-		if (py == null) {
-			System.getenv(Settings.PY_HOME);
-		}
-		if (py == null) {
-			py = Utility.getDIHelperProperty(Settings.PY_HOME);
-		}
-		if (py == null) {
-			throw new NullPointerException("Must define python home");
-		}
-		py = py.trim();
-		if (SystemUtils.IS_OS_WINDOWS) {
-			py = py + "/python.exe";
-		} else {
-			py = py + "/bin/python3";
-		}
-		py = py.replace("\\", "/");
-		classLogger.info("The python executable being used is: \"" + py + "\"");
-		return py;
-	}
-
-	/**
-	 * 
-	 * @param commands
-	 * @param dir
-	 * @return
-	 */
-	public static String[] writeStarterFile(String[] commands, String dir) {
-		// check if the os is unix and if so make it .sh
-		String osName = System.getProperty("os.name").toLowerCase();
-
-		String starter = "";
-		String[] commandsStarter = null;
-
-		if (osName.indexOf("win") >= 0) {
-			commandsStarter = new String[1];
-			commandsStarter[0] = dir + "/starter.bat";
-			starter = dir + "/starter.bat";
-		}
-		if (osName.indexOf("win") < 0) {
-			commandsStarter = new String[2];
-			commandsStarter[0] = "/bin/bash";
-			starter = dir + "/starter.sh";
-			commandsStarter[1] = starter;
-		}
-		try {
-			File starterFile = new File(starter);
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
-				baos.write(commands[cmdIndex].getBytes());
-				baos.write("  ".getBytes());
-			}
-			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());
-
-			// chmod in case.. who knows
-			if (osName.indexOf("win") < 0) {
-				ProcessBuilder p = new ProcessBuilder("/bin/chmod", "777", starter);
-				p.start();
-			}
-		} catch (FileNotFoundException fnfe) {
-			classLogger.error(Constants.STACKTRACE, fnfe);
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty("ENABLE_BINDFS")) && osName.indexOf("win") < 0) {
-			commandsStarter = new String[5];
-			starter = dir + "/starter.sh";
-			commandsStarter[0] = "fakechroot";
-			commandsStarter[1] = "fakeroot";
-			commandsStarter[2] = "chroot";
-			commandsStarter[3] = "/bin/bash";
-			commandsStarter[4] = starter;
-		}
-
-		return commandsStarter;
-	}
-
-	public static String[] writeStarterFile(String[] commands, String chrootDir, String dir) {
-		// check if the os is unix and if so make it .sh
-		String osName = System.getProperty("os.name").toLowerCase();
-
-		String starter = "";
-		String[] commandsStarter = null;
-
-		if (osName.indexOf("win") >= 0) {
-			commandsStarter = new String[1];
-			commandsStarter[0] = dir + "/starter.bat";
-			starter = dir + "/starter.bat";
-		}
-		if (osName.indexOf("win") < 0) {
-			commandsStarter = new String[2];
-			commandsStarter[0] = "/bin/bash";
-			starter = dir + "/starter.sh";
-			commandsStarter[1] = starter;
-		}
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) && osName.indexOf("win") < 0) {
-			commandsStarter = new String[6];
-			starter = dir + "/starter.sh";
-			commandsStarter[0] = "fakechroot";
-			commandsStarter[1] = "fakeroot";
-			commandsStarter[2] = "chroot";
-			commandsStarter[3] = chrootDir;
-			commandsStarter[4] = "/bin/bash";
-			commandsStarter[5] = starter;
-
-			starter = chrootDir + dir + "/starter.sh";
-
-		}
-
-		try {
-			File starterFile = new File(starter);
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for (int cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
-				baos.write(commands[cmdIndex].getBytes());
-				baos.write("  ".getBytes());
-			}
-			FileUtils.writeByteArrayToFile(starterFile, baos.toByteArray());
-
-			// chmod in case.. who knows
-			if (osName.indexOf("win") < 0) {
-				ProcessBuilder p = new ProcessBuilder("/bin/chmod", "777", starter);
-				p.start();
-			}
-		} catch (FileNotFoundException fnfe) {
-			classLogger.error(Constants.STACKTRACE, fnfe);
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
-		}
-
-		return commandsStarter;
-	}
-
-	/**
-	 * Write the log4j2.properties file for the Socket Server
-	 * 
-	 * @param dir
-	 */
-	public static void writeLogConfigurationFile(String dir) {
-		try {
-			// read the file first
-			dir = dir.replace("\\", "/");
-			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
-			String logConfig = FileUtils.readFileToString(logFile);
-			// property.filename = target/rolling/rollingtest.log
-			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
-			File newLogFile = new File(dir + "/log4j2.properties");
-			FileUtils.writeStringToFile(newLogFile, logConfig);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-	}
-
-	/**
-	 * Write the log4j2.properties file for the Socket Server when chroot is enabled
-	 * 
-	 * @param dir
-	 * @param paramDir
-	 */
-	public static void writeLogConfigurationFile(String dir, String paramDir) {
-		try {
-			// read the file first
-			dir = dir.replace("\\", "/");
-			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
-			String logConfig = FileUtils.readFileToString(logFile);
-			// property.filename = target/rolling/rollingtest.log
-			logConfig = logConfig.replace("FILE_LOCATION", paramDir + "/output.log");
-			File newLogFile = new File(dir + "/log4j2.properties");
-			FileUtils.writeStringToFile(newLogFile, logConfig);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
 	}
 
 	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
@@ -5747,7 +5103,7 @@ public final class Utility {
 					status = compileJava(files, folder, classpath);
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to compile Java source files: {}", e.getMessage(), e);
 			}
 			classLogger.info("Done compiling Java in Folder " + javaFolder);
 		}
@@ -5856,7 +5212,7 @@ public final class Utility {
 				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
 			}
 		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to validate domain URL: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
 		}
 	}
@@ -5989,9 +5345,9 @@ public final class Utility {
 						.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
 		} catch (InterruptedException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
 		}
 
 	}
@@ -6147,7 +5503,7 @@ public final class Utility {
 	}
 
 	/**
-	 * Returns true if the folder exists and contains any entries — files,
+	 * Returns true if the folder exists and contains any entries - files,
 	 * sub-directories, hidden files, dot files, etc. Use this when you just need to
 	 * know the folder is non-empty regardless of whether its contents are files or
 	 * directories (e.g., before syncing a room folder to cloud storage where the

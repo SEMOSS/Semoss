@@ -46,7 +46,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class QsFilterParameterizeConverter2 {
 	
-	private static final Logger logger = LogManager.getLogger(QsFilterParameterizeConverter2.class);
+	private static final Logger classLogger = LogManager.getLogger(QsFilterParameterizeConverter2.class);
 	
 	private QsFilterParameterizeConverter2() {
 

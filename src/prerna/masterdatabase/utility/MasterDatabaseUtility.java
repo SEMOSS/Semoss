@@ -74,9 +74,6 @@ public class MasterDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MasterDatabaseUtility.class);
 
-	// ----------------------------------------- RDBMS CALLS
-	// ---------------------------------------
-
 	public static void initLocalMaster() throws Exception {
 		IRDBMSEngine database = SystemEngineRegistry.getLocalMasterDb();
 		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
@@ -93,7 +90,7 @@ public class MasterDatabaseUtility {
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error initializing local master database schema.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, null, null);
@@ -122,27 +119,27 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(255)", "varchar(255)", TIMESTAMP_DATATYPE, "varchar(255)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("ENGINE", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if (!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", database, schema)) {
 				String sql = queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -156,14 +153,14 @@ public class MasterDatabaseUtility {
 				"varchar(255)", "varchar(255)", "varchar(255)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("ENGINECONCEPT", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -172,13 +169,13 @@ public class MasterDatabaseUtility {
 			// 2021-08-11
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			} else {
 				if (queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", database,
 						schema)) {
 					String sql = queryUtil.dropIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
-					classLogger.info("Running sql " + sql);
+					classLogger.info("Running sql {}", sql);
 					executeSql(conn, sql);
 				}
 			}
@@ -190,11 +187,11 @@ public class MasterDatabaseUtility {
 
 			String sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT",
 					iCols);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 			sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
 					"PHYSICALNAMEID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
@@ -205,14 +202,14 @@ public class MasterDatabaseUtility {
 				iCols.add("LOCALCONCEPTID");
 
 				String sql = queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", database,
 					schema)) {
 				String sql = queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
 						"PHYSICALNAMEID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -222,27 +219,27 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("CONCEPT", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("CONCEPT", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if (!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", database, schema)) {
 				String sql = queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -252,36 +249,36 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("RELATION", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "RELATION", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("RELATION", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if (!queryUtil.indexExists(engine, "RELATION_TARGETID_INDEX", "RELATION", database, schema)) {
 				String sql = queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (!queryUtil.indexExists(engine, "RELATION_SOURCEID_INDEX", "RELATION", database, schema)) {
 				String sql = queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -293,51 +290,51 @@ public class MasterDatabaseUtility {
 				"varchar(255)", "varchar(255)", "varchar(255)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("ENGINERELATION", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
 					"TARGETCONCEPTID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
 					"SOURCECONCEPTID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
 			if (!queryUtil.indexExists(engine, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", database, schema)) {
 				String sql = queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (!queryUtil.indexExists(engine, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", database,
 					schema)) {
 				String sql = queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
 						"TARGETCONCEPTID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (!queryUtil.indexExists(engine, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", database,
 					schema)) {
 				String sql = queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
 						"SOURCECONCEPTID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -347,14 +344,14 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(800)", "varchar(800)" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("KVSTORE", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("KVSTORE", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -365,14 +362,14 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(255)", "varchar(800)", CLOB_DATATYPE };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -380,12 +377,12 @@ public class MasterDatabaseUtility {
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
 					Constants.LM_META_KEY);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
 					Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if index exists
@@ -393,14 +390,14 @@ public class MasterDatabaseUtility {
 					schema)) {
 				String sql = queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
 						Constants.LM_META_KEY);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,
 					database, schema)) {
 				String sql = queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
 						Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -410,31 +407,14 @@ public class MasterDatabaseUtility {
 		types = new String[] { "varchar(800)", CLOB_DATATYPE };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// bitly
-		colNames = new String[] { "FANCY", "EMBED" };
-		types = new String[] { "varchar(255)", "varchar(8000)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("BITLY", colNames, types);
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "BITLY", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("BITLY", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -444,14 +424,14 @@ public class MasterDatabaseUtility {
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "FLOAT", "FLOAT" };
 		if (allowIfExistsTable) {
 			String sql = queryUtil.createTableIfNotExists("METAMODELPOSITION", colNames, types);
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
 			// see if table exists
 			if (!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
 				// make the table
 				String sql = queryUtil.createTable("METAMODELPOSITION", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -523,16 +503,16 @@ public class MasterDatabaseUtility {
 			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
 			if (allCols.contains(Constants.KEY) || allCols.contains(Constants.KEY.toLowerCase())) {
 				String sql = queryUtil.modColumnName(tableName, Constants.KEY, Constants.LM_META_KEY);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 			if (allCols.contains(Constants.VALUE) || allCols.contains(Constants.VALUE.toLowerCase())) {
 				String sql = queryUtil.modColumnName(tableName, Constants.VALUE, Constants.LM_META_VALUE);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 
 				sql = queryUtil.modColumnType(tableName, Constants.LM_META_VALUE, queryUtil.getClobDataTypeName());
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 
@@ -540,13 +520,13 @@ public class MasterDatabaseUtility {
 			if (queryUtil.allowDropColumn()) {
 				if (allowIfExists) {
 					String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
-					classLogger.info("Running sql " + sql);
+					classLogger.info("Running sql {}", sql);
 					executeSql(conn, sql);
 				} else {
 					// check column exists in table
 					if (allCols.contains("LOCALCONCEPTID") || allCols.contains("LOCALCONCEPTID".toLowerCase())) {
 						String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
-						classLogger.info("Running sql " + sql);
+						classLogger.info("Running sql {}", sql);
 						executeSql(conn, sql);
 					}
 				}
@@ -559,7 +539,7 @@ public class MasterDatabaseUtility {
 					// check column exists in table
 					if (!allCols.contains("PHYSICALNAMEID") && !allCols.contains("PHYSICALNAMEID".toLowerCase())) {
 						String sql = queryUtil.alterTableAddColumn(tableName, "PHYSICALNAMEID", "varchar(255)");
-						classLogger.info("Running sql " + sql);
+						classLogger.info("Running sql {}", sql);
 						executeSql(conn, sql);
 					}
 				}
@@ -688,9 +668,7 @@ public class MasterDatabaseUtility {
 
 		List<Object[]> ret = new ArrayList<>();
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				boolean isPk = (boolean) data[3];
@@ -704,15 +682,7 @@ public class MasterDatabaseUtility {
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving tables and columns for database {}.", databaseId, e);
 		}
 
 		return ret;
@@ -742,9 +712,7 @@ public class MasterDatabaseUtility {
 
 		List<Object[]> ret = new ArrayList<>();
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				boolean isPk = (boolean) data[4];
@@ -758,15 +726,7 @@ public class MasterDatabaseUtility {
 				ret.add(data);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving tables and columns for database ids {}.", databaseIds, e);
 		}
 
 		return ret;
@@ -875,13 +835,15 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Error retrieving candidate table/column mappings for local concept ids {} and database filter {}.",
+					localConceptIds, databaseFilter, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving candidate table/column mappings.", e);
 				}
 			}
 		}
@@ -940,13 +902,13 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error retrieving parent concept connections for database filter {}.", databaseFilter, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving parent concept connections.", e);
 				}
 			}
 		}
@@ -1014,13 +976,13 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error retrieving property connections for database filter {}.", databaseFilter, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving property connections.", e);
 				}
 			}
 		}
@@ -1095,13 +1057,14 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error retrieving downstream relationship connections for database filter {}.",
+					databaseFilter, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving downstream relationship connections.", e);
 				}
 			}
 		}
@@ -1153,7 +1116,7 @@ public class MasterDatabaseUtility {
 //					returnData.add(mapRow);
 //				}
 //			} catch (Exception e) {
-//				logger.error(Constants.STACKTRACE, e);
+// logger.error("{}", e.getMessage(), e);
 //			} finally {
 //				if(wrapper != null) {
 //					wrapper.cleanUp();
@@ -1230,13 +1193,14 @@ public class MasterDatabaseUtility {
 				returnData.add(mapRow);
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Error retrieving upstream relationship connections for database filter {}.",
+					databaseFilter, e1);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving upstream relationship connections.", e);
 				}
 			}
 		}
@@ -1288,7 +1252,7 @@ public class MasterDatabaseUtility {
 //					returnData.add(mapRow);
 //				}
 //			} catch (Exception e) {
-//				logger.error(Constants.STACKTRACE, e);
+// logger.error("{}", e.getMessage(), e);
 //			} finally {
 //				if(wrapper != null) {
 //					wrapper.cleanUp();
@@ -1388,13 +1352,14 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Error retrieving metamodel nodes for database {}.", databaseId, e1);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving metamodel nodes for database {}.",
+							databaseId, e);
 				}
 			}
 		}
@@ -1441,13 +1406,14 @@ public class MasterDatabaseUtility {
 				edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error retrieving metamodel edges for database {}.", databaseId, e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing wrapper while retrieving metamodel edges for database {}.",
+							databaseId, e);
 				}
 			}
 		}
@@ -1505,9 +1471,7 @@ public class MasterDatabaseUtility {
 
 		Map<String, List<String>> queryData = new HashMap<>();
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow data = wrapper.next();
 				// keeps the id to the concept name
@@ -1533,15 +1497,8 @@ public class MasterDatabaseUtility {
 				propList.add(columnName);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving concept properties for logical names {} and database filter {}.",
+					logicalNames, databaseFilter, e);
 		}
 
 		return queryData;
@@ -1602,9 +1559,7 @@ public class MasterDatabaseUtility {
 			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
 			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 				while (wrapper.hasNext()) {
 					IHeadersDataRow data = wrapper.next();
 					// keeps the id to the concept name
@@ -1639,15 +1594,9 @@ public class MasterDatabaseUtility {
 					vert.addProperty(columnName);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error(
+						"Error retrieving tabular concept properties for logical names {} and database filter {}.",
+						logicalNames, databaseFilter, e);
 			}
 		}
 		{
@@ -1689,9 +1638,7 @@ public class MasterDatabaseUtility {
 			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
 			qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 				while (wrapper.hasNext()) {
 					IHeadersDataRow data = wrapper.next();
 					// keeps the id to the concept name
@@ -1726,15 +1673,9 @@ public class MasterDatabaseUtility {
 					vert.addProperty(columnName);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error(
+						"Error retrieving graph concept properties for logical names {} and database filter {}.",
+						logicalNames, databaseFilter, e);
 			}
 		}
 
@@ -1795,9 +1736,7 @@ public class MasterDatabaseUtility {
 					SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", conceptLogicalNames));
 			qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 				while (wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 
@@ -1825,15 +1764,9 @@ public class MasterDatabaseUtility {
 					retMap.put(engineId, conceptSpecific);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error(
+						"Error retrieving base concept mappings for logical names {} and database filters {}.",
+						conceptLogicalNames, databaseFilters, e);
 			}
 		}
 
@@ -1889,9 +1822,7 @@ public class MasterDatabaseUtility {
 			downQs.addRelation("ENGINECONCEPT__PHYSICALNAMEID", "ENGINERELATION__TARGETCONCEPTID", "inner.join");
 			downQs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, downQs);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, downQs)) {
 				while (wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 
@@ -1925,15 +1856,9 @@ public class MasterDatabaseUtility {
 					retMap.put(databaseId, databaseSpecific);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error(
+						"Error retrieving upstream concept connections for logical names {} and database filters {}.",
+						conceptLogicalNames, databaseFilters, e);
 			}
 		}
 
@@ -1980,9 +1905,7 @@ public class MasterDatabaseUtility {
 			upQs.addRelation("ENGINECONCEPT__PHYSICALNAMEID", "ENGINERELATION__SOURCECONCEPTID", "inner.join");
 			upQs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-			IRawSelectWrapper wrapper = null;
-			try {
-				wrapper = WrapperManager.getInstance().getRawWrapper(engine, upQs);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, upQs)) {
 				while (wrapper.hasNext()) {
 					Object[] row = wrapper.next().getValues();
 
@@ -2016,15 +1939,9 @@ public class MasterDatabaseUtility {
 					retMap.put(databaseId, databaseSpecific);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (wrapper != null) {
-					try {
-						wrapper.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error(
+						"Error retrieving downstream concept connections for logical names {} and database filters {}.",
+						conceptLogicalNames, databaseFilters, e);
 			}
 		}
 
@@ -2071,23 +1988,13 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 
 		Map<String, String> retMap = new HashMap<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				retMap.put(row[0] + "", row[1] + "");
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving database id to alias map.", e);
 		}
 
 		return retMap;
@@ -2130,9 +2037,7 @@ public class MasterDatabaseUtility {
 		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK", "desc"));
 
 		Set<String> selectors = new TreeSet<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				if (row[0] == null) {
@@ -2142,15 +2047,7 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving selectors for database {}.", databaseId, e);
 		}
 
 		return selectors;
@@ -2224,9 +2121,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__METAKEY", "==", "logical"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				String parentName = (String) row[0];
@@ -2251,15 +2146,7 @@ public class MasterDatabaseUtility {
 				logicalNames.add(logicalName);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving logical names for database {}.", databaseId, e);
 		}
 
 		return engineLogicalNames;
@@ -2279,9 +2166,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__METAKEY", "==", "description"));
 		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				String parentName = (String) row[0];
@@ -2296,15 +2181,7 @@ public class MasterDatabaseUtility {
 				engineDescriptions.put(uniqueName, description);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving descriptions for database {}.", databaseId, e);
 		}
 
 		return engineDescriptions;
@@ -2372,9 +2249,7 @@ public class MasterDatabaseUtility {
 
 		List<String> retArr = new ArrayList<>();
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] row = wrapper.next().getValues();
 				if (row[0] != null) {
@@ -2384,15 +2259,8 @@ public class MasterDatabaseUtility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving pixel selectors for parent {} in database {}.", parentName, databaseId,
+					e);
 		}
 
 		return retArr;
@@ -2633,9 +2501,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 
@@ -2650,15 +2516,9 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error(
+					"Error retrieving conceptual connections for conceptual names {} and database filters {}.",
+					conceptualNames, dbFilters, e);
 		}
 
 		return results;
@@ -2691,9 +2551,7 @@ public class MasterDatabaseUtility {
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 		qs.addRelation("ENGINECONCEPT__ENGINE", "ENGINE__ID", "inner.join");
 
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 
@@ -2710,15 +2568,8 @@ public class MasterDatabaseUtility {
 				results.add(row);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error retrieving CLP model for conceptual names {} and database filters {}.",
+					conceptualNames, databaseFilters, e);
 		}
 
 		return results;
@@ -2736,9 +2587,10 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.getConnection();
 		} catch (SQLException e) {
-			classLogger.error(e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not make conneciton to " + engine.getEngineName());
+			classLogger.error("Error connecting to local master engine {} for database translation from {} to {}.",
+					engine.getEngineName(), sourceDB, targetDB, e);
+			throw new IllegalArgumentException("Unable to connect to local master engine '" + engine.getEngineName()
+					+ "' for database translation.");
 		}
 		// select logicalname from concept where conceptualname='MovieBudget'
 		// and conceptualname != logicalname
@@ -2747,18 +2599,20 @@ public class MasterDatabaseUtility {
 		// and ec.physicalname in ('Title', 'Actor');
 		Map<String, List<String>> map = new HashMap<>();
 		ResultSet rs = null;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		try {
 			String query = "SELECT e.engineName as sourceEngine, c.conceptualName as sourceConceptual, ec.physicalName as sourcePhysical, c.logicalName, "
 					+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
 					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
 					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
-					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '"
-					+ targetDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
-					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '" + sourceDB
-					+ "' and c.conceptualName != c.logicalName";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
+					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+					+ " and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
+					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+					+ " and c.conceptualName != c.logicalName";
+			stmt = conn.prepareStatement(query);
+			stmt.setString(1, targetDB);
+			stmt.setString(2, sourceDB);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				String sourceEngine = rs.getString(1);
 				String sourceConceptual = rs.getString(2);
@@ -2777,7 +2631,7 @@ public class MasterDatabaseUtility {
 				map.put(sourcePhysical, targetPhysicals);
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error translating database schema mappings from {} to {}.", sourceDB, targetDB, ex);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
@@ -2824,7 +2678,7 @@ public class MasterDatabaseUtility {
 	// deleted = true;
 	// }
 	// } catch (Exception ex) {
-	// classLogger.error(Constants.STACKTRACE, ex);
+	// logException(ex);
 	// } finally {
 	// closeStreams(stmt, null);
 	// }
@@ -2854,14 +2708,14 @@ public class MasterDatabaseUtility {
 	// deleted = true;
 	// }
 	// } catch (Exception ex) {
-	// classLogger.error(Constants.STACKTRACE, ex);
+	// logException(ex);
 	// } finally {
 	// try {
 	// if (stmt != null) {
 	// stmt.close();
 	// }
 	// } catch (SQLException e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// }
 	// }
 	//
@@ -2901,7 +2755,7 @@ public class MasterDatabaseUtility {
 	// size = rs.getRow();
 	// }
 	// } catch (SQLException e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// } finally {
 	// closeStreams(stmt, rs);
 	// }
@@ -2936,7 +2790,7 @@ public class MasterDatabaseUtility {
 	// engine.commitRDBMS();
 	// return true;
 	// } catch (Exception e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// }
 	// }
 	// }
@@ -2945,7 +2799,7 @@ public class MasterDatabaseUtility {
 	// return true;
 	// }
 	// } catch (SQLException e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// } finally {
 	// closeStreams(stmt, rs);
 	// }
@@ -2979,7 +2833,7 @@ public class MasterDatabaseUtility {
 	// return true;
 	// }
 	// } catch (SQLException e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// } finally {
 	// closeStreams(stmt, null);
 	// }
@@ -3015,7 +2869,7 @@ public class MasterDatabaseUtility {
 	// logicalNames.add(logicalName);
 	// }
 	// } catch (SQLException e) {
-	// classLogger.error(Constants.STACKTRACE, e);
+	// logException(e);
 	// } finally {
 	// closeStreams(stmt, rs);
 	// }
@@ -3042,9 +2896,10 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.getConnection();
 		} catch (SQLException e) {
-			classLogger.error(e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not make conneciton to " + engine.getEngineName());
+			classLogger.error("Error connecting to local master engine {} while listing xray configs.",
+					engine.getEngineName(), e);
+			throw new IllegalArgumentException("Unable to connect to local master engine '" + engine.getEngineName()
+					+ "' while listing xray configs.");
 		}
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -3083,22 +2938,24 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.getConnection();
 		} catch (SQLException e) {
-			classLogger.error(e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not make connection. See logs for details.");
+			classLogger.error("Error connecting to local master engine {} while reading xray config {}.",
+					engine.getEngineName(), filename, e);
+			throw new IllegalArgumentException("Unable to connect to local master database while reading xray config '"
+					+ filename + "'. See logs for details.");
 		}
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		String configFile = "";
 		try {
-			String query = "select config from xrayconfigs where filename = \'" + filename + "\';";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
+			String query = "select config from xrayconfigs where filename = ?";
+			stmt = conn.prepareStatement(query);
+			stmt.setString(1, filename);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				configFile = rs.getString(1);
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error retrieving xray config file {}.", filename, ex);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
@@ -3127,9 +2984,11 @@ public class MasterDatabaseUtility {
 		try {
 			conn = engine.getConnection();
 		} catch (SQLException e) {
-			classLogger.error(e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not make connection. See logs for details");
+			classLogger.error("Error connecting to local master engine {} while loading xray metamodel for {}.",
+					engine.getEngineName(), engineName, e);
+			throw new IllegalArgumentException(
+					"Unable to connect to local master database while loading xray metamodel for engine '" + engineName
+							+ "'. See logs for details.");
 		}
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -3186,7 +3045,7 @@ public class MasterDatabaseUtility {
 				// }
 			}
 		} catch (SQLException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error retrieving xray metamodel nodes for engine {}.", engineName, ex);
 		} finally {
 			// do not close the stmt
 			// reuse it below
@@ -3226,11 +3085,11 @@ public class MasterDatabaseUtility {
 				boolean foundNode = true;
 				if (!nodeHash.containsKey(engineName + delim + sourceName)) {
 					foundNode = false;
-					classLogger.debug("Unable to find node " + sourceName);
+					classLogger.debug("Unable to find node {}", sourceName);
 				}
 				if (!nodeHash.containsKey(engineName + delim + targetName)) {
 					foundNode = false;
-					classLogger.debug("Unable to find node " + targetName);
+					classLogger.debug("Unable to find node {}", targetName);
 				}
 
 				if (foundNode) {
@@ -3242,7 +3101,7 @@ public class MasterDatabaseUtility {
 			finalHash.put("edges", edgeHash);
 
 		} catch (SQLException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error retrieving xray metamodel edges for engine {}.", engineName, ex);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
@@ -3264,15 +3123,16 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 		try {
 			conn = engine.getConnection();
-			String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
+			String query = "select modifieddate from engine e where e.id = ?";
 			stmt = conn.prepareStatement(query);
+			stmt.setString(1, engineId);
 			rs = stmt.executeQuery();
 			while (rs.next()) {
 				java.sql.Timestamp modDate = rs.getTimestamp(1);
 				retDate = new java.util.Date(modDate.getTime());
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error retrieving engine modified date for engine id {}.", engineId, ex);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
@@ -3299,20 +3159,21 @@ public class MasterDatabaseUtility {
 				conn.commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error saving metamodel positions for database {}.", databaseId, e);
 			try {
 				if (savepoint != null) {
 					conn.rollback(savepoint);
 				}
 			} catch (SQLException e1) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error rolling back metamodel position save for database {}.", databaseId, e1);
 			}
 		} finally {
 			if (savepoint != null && !queryUtil.savePointAutoRelease()) {
 				try {
 					conn.releaseSavepoint(savepoint);
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error releasing savepoint while saving metamodel positions for database {}.",
+							databaseId, e);
 				}
 			}
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null);
@@ -3355,8 +3216,7 @@ public class MasterDatabaseUtility {
 
 			add.executeBatch();
 		} catch (Exception e) {
-			classLogger.warn("Could save metamodel positions for database " + databaseId);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not save metamodel positions for database {}.", databaseId, e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeStatement(remove);
@@ -3395,31 +3255,5 @@ public class MasterDatabaseUtility {
 			return Float.valueOf(object.toString());
 		}
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-
-//	public static void main(String[] args) throws Exception {
-//		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-//
-//		List<String> pixelNames = new Vector<>();
-//		pixelNames.add("Studio");
-//		List<String> ids = getLocalConceptIdsFromPixelName(pixelNames);
-//		
-//		Gson gson = new GsonBuilder()
-//				.disableHtmlEscaping()
-//				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
-//				.setPrettyPrinting()
-//				.create();
-//
-//		List<String> values = null;
-//		logger.debug(gson.toJson(getDatabaseConnections(ids, values)));
-//		
-////		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
-////		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
-////		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
-//		
-//	}
 
 }

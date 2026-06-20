@@ -10,11 +10,6 @@ if TYPE_CHECKING:
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
-from ...clients.google_clients import (
-    GoogleClient,
-    GoogleClientConfig,
-    GoogleClientType,
-)
 from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
 from ...constants import (
     AskModelEngineResponse2,
@@ -26,7 +21,6 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -81,7 +75,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
+        # Provider-specific SDKs are imported lazily so a client only pays for
+        # the backend it actually uses. In particular the Google clients pull in
+        # google / google.auth / google.genai (~0.85s) that direct-Anthropic,
+        # Bedrock and Azure providers never need.
         if self.provider == "google":
+            from ...clients.google_clients import (
+                GoogleClient,
+                GoogleClientConfig,
+                GoogleClientType,
+            )
+
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
                 service_account_credentials=kwargs.pop(
@@ -94,17 +98,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
+            from anthropic import AnthropicBedrock
+
             return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
             )
         elif self.provider == "azure":
+            from anthropic import AnthropicFoundry
+
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
                 api_key=kwargs.pop("api_key", None),
             )
         elif self.provider == "anthropic":
+            from anthropic import Anthropic
+
             return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
@@ -117,7 +127,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
         """
         Add cache_control to the last tool definition. Tools are evaluated
-        first in Anthropic's cache breakpoint order (tools → system → messages),
+        first in Anthropic's cache breakpoint order (tools -> system -> messages),
         so caching them saves tokens whenever the tool list is large and static.
         """
         tools = request_config.tools
@@ -143,7 +153,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
             ]
         elif isinstance(system, list):
-            # Already a list — attach to the last text block.
+            # Already a list - attach to the last text block.
             for block in reversed(system):
                 if isinstance(block, dict) and block.get("type") == "text":
                     block["cache_control"] = {"type": "ephemeral"}
@@ -162,7 +172,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         On each turn the last message is the newest one, so the marker
         naturally moves forward through the conversation as history grows.
 
-        Supports text, tool_result, image, and document blocks — not just text —
+        Supports text, tool_result, image, and document blocks - not just text -
         so that tool execution turns (whose last message contains tool_result
         blocks) are also cached correctly.
         """
@@ -351,6 +361,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         cache_creation_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
+        # preamble text blocks the model emitted alongside the tool_use blocks
+        preamble_text = ""
         for content in response.content:
             if content.type == "tool_use":
                 tool_use = {
@@ -360,6 +372,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "type": "function",
                 }
                 tools_result.append(tool_use)
+            elif content.type == "text":
+                preamble_text += getattr(content, "text", "") or ""
 
         if self.has_schema:
             is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
@@ -377,6 +391,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     messageType="CHAT",
                 )
 
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+
         return AskModelEngineResponse2(
             response=tools_result,
             response_tokens=response_tokens,
@@ -385,7 +401,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
             messageType="TOOL",
         )
 
@@ -427,7 +444,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
             # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
-            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            # the Bedrock SDK converts anthropic-beta header -> anthropic_beta body field
             stream_kwargs.pop("betas", None)
             stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
 

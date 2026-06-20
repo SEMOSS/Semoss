@@ -43,7 +43,6 @@ import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class EncodeColumnReactor extends AbstractFrameReactor {
 
@@ -76,7 +75,7 @@ public class EncodeColumnReactor extends AbstractFrameReactor {
 			}
 			statement.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to encode columns {} on frame {}", columns, frameName, e);
 		}
 
 		// upon successful execution

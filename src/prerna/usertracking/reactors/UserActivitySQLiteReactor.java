@@ -37,16 +37,19 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
 
 	// UserActivity example
-	// UserActivity ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ "FRAME961184" ] ) ] ) ;
-	// Frame ( frame = [ FRAME961184 ] ) | UserActivity ( ) | AutoTaskOptions ( panel = [ "0" ] , layout = [ "Grid" ] ) | Collect ( 2000 ) ;
-	
+	// UserActivity ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] ,
+	// override = [ true ] ) .as ( [ "FRAME961184" ] ) ] ) ;
+	// Frame ( frame = [ FRAME961184 ] ) | UserActivity ( ) | AutoTaskOptions (
+	// panel = [ "0" ] , layout = [ "Grid" ] ) | Collect ( 2000 ) ;
+
 	// date format function example
-	// Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( "%Y-%m-%d" , DATE_CREATED ) ) | CollectAll ( ) ;
-	
+	// Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( "%Y-%m-%d" ,
+	// DATE_CREATED ) ) | CollectAll ( ) ;
+
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		this.qs.setEngineId("UserTrackingDatabase");
-		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+		this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
 		SelectQueryStruct sQs = new SelectQueryStruct();
 		// selectors
@@ -60,7 +63,8 @@ public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
 //		// group by
 		sQs.addGroupBy(new QueryColumnSelector("USER_TRACKING" + "__" + "CREATED_ON"));
 		// order by
-		sQs.addOrderBy("USER_TRACKING" + "__" + "CREATED_ON", "DESC");;
+		sQs.addOrderBy("USER_TRACKING" + "__" + "CREATED_ON", "DESC");
+		;
 		this.qs.merge(sQs);
 		return this.qs;
 	}

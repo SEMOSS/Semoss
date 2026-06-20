@@ -43,7 +43,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RenameColumnReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor renames a column 1) the original column 2) the new column name
+	 * <p>
+	 * This reactor renames a column
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the original column</li>
+	 * <li>the new column name</li>
+	 * </ul>
 	 */
 
 	public RenameColumnReactor() {
