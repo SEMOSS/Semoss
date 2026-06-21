@@ -2626,7 +2626,24 @@
 			<artifactId>jasypt</artifactId>
 			<version>1.9.3</version>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
+		<dependency>
+			<groupId>org.jobrunr</groupId>
+			<artifactId>jobrunr</artifactId>
+			<version>8.5.2</version>
+			<exclusions>
+				<!-- Exclude asm to use SEMOSS version (avoid conflicts) -->
+				<exclusion>
+					<groupId>org.ow2.asm</groupId>
+					<artifactId>asm</artifactId>
+				</exclusion>
+				<!-- Exclude slf4j - SEMOSS uses Log4j2 -->
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-exec</artifactId>

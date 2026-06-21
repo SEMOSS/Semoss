@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.scheduler;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +55,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.rpa.config.JobConfigKeys;
+import prerna.rpa.jobrunr.jobs.JobRunrPixelExecutionJobRequest;
 import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -61,6 +63,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
@@ -90,7 +93,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		organizeKeys();
 
-		String userId = null;
 		// Get inputs
 		String jobId = UUID.randomUUID().toString();
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
@@ -108,8 +110,10 @@ public class ScheduleJobReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 		List<String> jobTags = getJobTags();
-
-		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
+		
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression, isJobRunrJob);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -135,24 +139,104 @@ public class ScheduleJobReactor extends AbstractReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String uiState = null;
-//		String uiState = this.keyValue.get(UI_STATE);
-//		if(uiState == null) {
-//			throw new NullPointerException("UI State is null and needs to be passed");
-//		}
+		String uiState = this.keyValue.get(UI_STATE);
+		if (uiState == null) {
+			throw new NullPointerException("UI State is null and needs to be passed");
+		}
+
+		if (isJobRunrJob) {
+			// Use JobRunr for scheduling
+			return scheduleWithJobRunr(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
+					triggerOnLoad, triggerNow, uiState, jobTags);
+		} else {
+			// Use Quartz for scheduling
+			return scheduleWithQuartz(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
+					triggerOnLoad, triggerNow, uiState, jobTags);
+		}
+	}
+
+	private NounMetadata scheduleWithJobRunr(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, List<String> jobTags) {
 
 		try {
+			// Get user access information
+			String userId = null;
+			User user = this.insight.getUser();
+			List<AuthProvider> authProviders = user.getLogins();
+			StringBuilder providerInfo = new StringBuilder();
+			for (int i = 0; i < authProviders.size(); i++) {
+				AuthProvider authProvider = authProviders.get(i);
+				AccessToken token = user.getAccessToken(authProvider);
+				userId = token.getId();
+				providerInfo.append(authProvider.name()).append(":").append(token.getId());
+				if (i != authProviders.size() - 1) {
+					providerInfo.append(",");
+				}
+			}
+
+			// Get JobRunr service
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// inside the JobRequestHandler with a new execId each time
+			JobRunrPixelExecutionJobRequest recurringJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
+					providerInfo.toString(), null, // execId will be generated per execution
+					jobId, jobGroup, jobName);
+
+			// Schedule as recurring job with proper timezone
+			String zoneId = cronTimeZone != null ? cronTimeZone.getID() : ZoneId.systemDefault().getId();
+			jobRunrService.scheduleRecurring(jobId, cronExpression, zoneId, recurringJobRequest);
+
+			classLogger.info("Scheduled recurring job with JobRunr: {} (Cron: {}, Timezone: {})", jobId, cronExpression,
+					zoneId);
+
+			// Insert into database
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
+					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, providerInfo.toString(), jobTags);
+
+			// Trigger immediately if requested (with unique execId)
+			if (triggerNow || triggerOnLoad) {
+				String immediateExecId = UUID.randomUUID().toString();
+				JobRunrPixelExecutionJobRequest immediateJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
+						providerInfo.toString(), immediateExecId, jobId, jobGroup, jobName);
+
+				jobRunrService.enqueue(immediateJobRequest);
+
+				String triggerReason = triggerNow ? "immediately" : "on load";
+				classLogger.info("Triggered JobRunr job {}: {} (execId: {})", triggerReason, jobId, immediateExecId);
+			}
+
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
+
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to schedule job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Schedule job using Quartz scheduler (existing implementation).
+	 */
+	private NounMetadata scheduleWithQuartz(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, List<String> jobTags) {
+
+		try {
+			String userId = null;
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
 			// start up scheduler
 			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			// get user access information
-			List<AuthProvider> authProviders = user.getLogins();
+			List<AuthProvider> authProviders = this.insight.getUser().getLogins();
 			StringBuilder providerInfo = new StringBuilder();
 			for (int i = 0; i < authProviders.size(); i++) {
 				AuthProvider authProvider = authProviders.get(i);
-				AccessToken token = user.getAccessToken(authProvider);
+				AccessToken token = this.insight.getUser().getAccessToken(authProvider);
 				// save user id for later insertion
 				userId = token.getId();
 				providerInfo.append(authProvider.name()).append(":").append(token.getId());
@@ -181,9 +265,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// insert into SMOSS_JOB_RECIPES table
-			classLogger.info("Saving JobId to database: {}", jobId);
+			classLogger.info("Saving JobId to database: " + jobId);
 			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
-					cronTimeZone, recipe, recipeParameters, "Default", triggerOnLoad, uiState, jobTags);
+					cronTimeZone, recipe, recipeParameters, "QUARTZ", triggerOnLoad, uiState, providerInfo.toString(), jobTags);
 
 			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
 					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());

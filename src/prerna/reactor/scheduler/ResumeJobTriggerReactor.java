@@ -46,6 +46,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
@@ -81,6 +82,44 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 
+		// Check if JobRunr is enabled
+		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+
+		if (useJobRunr) {
+			return resumeWithJobRunr(jobId, jobGroup);
+		} else {
+			return resumeWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Resume job using JobRunr
+	 */
+	private NounMetadata resumeWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Resume the recurring job
+			jobRunrService.resumeRecurringJob(jobId);
+
+			logger.info("Resumed JobRunr recurring job: {}", jobId);
+
+			// Save metadata into a map and return
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to resume job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Resume job using Quartz (existing implementation)
+	 */
+	private NounMetadata resumeWithQuartz(String jobId, String jobGroup) {
 		// resume the job in quartz
 		// later grab cron expression and add functionality to resume specific trigger
 		// under job
@@ -98,6 +137,17 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.resumeTrigger(triggerKey);
+
+				// Update JOB_STATUS in SMSS_JOB_RECIPES
+				try {
+					SchedulerDatabaseUtility.resumeJob(jobId);
+					logger.info("Updated JOB_STATUS to ACTIVE for Quartz job: {}", jobId);
+					// Also reset execution guard when resuming
+					SchedulerDatabaseUtility.updateJobRunningFlag(jobId, false);
+					logger.info("Reset IS_RUNNING flag for resumed Quartz job: {}", jobId);
+				} catch (Exception metadataEx) {
+					logger.error("Failed to update job metadata for Quartz job: {}", jobId, metadataEx);
+				}
 			}
 		} catch (SchedulerException se) {
 			classLogger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,

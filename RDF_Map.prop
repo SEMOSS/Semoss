@@ -131,6 +131,11 @@ LOG_ENCODING false
 EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
 PLAYWRIGHT_EXPORT true
 
+# JobRunr Scheduler Configuration
+SCHEDULER_USE_JOBRUNR
+JOBRUNR_DASHBOARD_PORT
+JOBRUNR_WORKER_COUNT
+
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
 SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
 SCHEDULER_KEYSTORE

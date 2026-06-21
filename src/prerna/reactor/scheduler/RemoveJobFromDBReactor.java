@@ -50,6 +50,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class RemoveJobFromDBReactor extends AbstractReactor {
 
@@ -97,6 +98,81 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		Set<String> permissionErrorIds = new HashSet<>();
 		User user = this.insight.getUser();
 
+		// Check if JobRunr is enabled
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
+
+		if (isJobRunrJob) {
+			// Use JobRunr for deletion
+			return removeJobsWithJobRunr(jobIdsList, jobGroupList, user, retNoun, permissionErrorIds,
+					jobDeletionResult);
+		} else {
+			// Use Quartz for deletion
+			return removeJobsWithQuartz(jobIdsList, jobGroupList, user, retNoun, permissionErrorIds, jobDeletionResult);
+		}
+	}
+
+	/**
+	 * Remove jobs using JobRunr
+	 */
+	private NounMetadata removeJobsWithJobRunr(List<String> jobIdsList, List<String> jobGroupList, User user,
+			NounMetadata retNoun, Set<String> permissionErrorIds, Map<String, List<String>> jobDeletionResult) {
+
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			for (int i = 0; i < jobIdsList.size(); i++) {
+				String jobId = jobIdsList.get(i).trim();
+				String jobGroup = jobGroupList.get(i).trim();
+				boolean jobDeleted = false;
+
+				// Permission check: must be admin or app editor
+				if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+					jobDeletionResult.get("failed").add(jobId);
+					permissionErrorIds.add(jobId);
+					continue;
+				}
+
+				// Delete from JobRunr
+				try {
+					jobRunrService.deleteRecurringJob(jobId);
+					jobDeleted = true;
+					classLogger.info("Deleted JobRunr recurring job: {}", jobId);
+				} catch (Exception e) {
+					classLogger.error("Failed to delete JobRunr job: {}", jobId, e);
+					jobDeleted = false;
+				}
+
+				// Remove from SMSS_JOB_RECIPES table if it exists
+				if (SchedulerDatabaseUtility.existsInJobRecipesTable(jobId, jobGroup)) {
+					SchedulerDatabaseUtility.removeFromJobRecipesTable(jobId, jobGroup);
+				}
+
+				// Add jobId in the map based on deletion outcome
+				if (jobDeleted) {
+					jobDeletionResult.get("success").add(jobId);
+				} else {
+					jobDeletionResult.get("failed").add(jobId);
+				}
+			}
+
+			// Add any permission errors so user can investigate
+			for (String error : permissionErrorIds) {
+				retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage(
+						"User does not have the necesssary permission to remove jobs from group " + error));
+			}
+
+			return retNoun;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to remove jobs with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Remove jobs using Quartz (existing implementation)
+	 */
+	private NounMetadata removeJobsWithQuartz(List<String> jobIdsList, List<String> jobGroupList, User user,
+			NounMetadata retNoun, Set<String> permissionErrorIds, Map<String, List<String>> jobDeletionResult) {
 		// Get the Scheduler instance and start only once
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		SchedulerDatabaseUtility.startScheduler(scheduler);

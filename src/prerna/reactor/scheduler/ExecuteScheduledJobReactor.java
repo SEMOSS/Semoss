@@ -41,6 +41,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ExecuteScheduledJobReactor extends AbstractReactor {
 
@@ -70,6 +71,39 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 
+		// Check if JobRunr is enabled
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
+
+		if (isJobRunrJob) {
+			return executeWithJobRunr(jobId, jobGroup);
+		} else {
+			return executeWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Execute job immediately using JobRunr
+	 */
+	private NounMetadata executeWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Trigger the job to run immediately
+			jobRunrService.triggerRecurringJobNow(jobId);
+
+			logger.info("Triggered JobRunr job: {} to execute immediately", jobId);
+
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to execute job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Execute job immediately using Quartz (existing implementation)
+	 */
+	private NounMetadata executeWithQuartz(String jobId, String jobGroup) {
 		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		try {

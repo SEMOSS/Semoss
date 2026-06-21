@@ -47,11 +47,13 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.rpa.jobrunr.jobs.JobRunrPixelExecutionJobRequest;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class EditScheduledJobReactor extends ScheduleJobReactor {
 
@@ -76,7 +78,6 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 		organizeKeys();
 
-		String userId = null;
 		// Get inputs
 		String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
@@ -95,8 +96,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 
 		List<String> jobTags = getJobTags();
+		// Check if JobRunr is enabled
+	    boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
 
-		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression, isJobRunrJob);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -134,6 +137,87 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		if (curJobGroup == null) {
 			curJobGroup = jobGroup;
 		}
+
+
+		if (isJobRunrJob) {
+			return editWithJobRunr(user, jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, triggerNow, uiState, curJobName, curJobGroup, jobTags);
+		} else {
+			return editWithQuartz(user, jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, triggerNow, uiState, curJobName, curJobGroup, jobTags);
+		}
+	}
+
+	/**
+	 * Edit job using JobRunr
+	 */
+	private NounMetadata editWithJobRunr(User user, String jobId, String jobName, String jobGroup,
+			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad,
+			boolean triggerNow, String uiState, String curJobName, String curJobGroup, List<String> jobTags) {
+
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Get user access information
+			List<AuthProvider> authProviders = user.getLogins();
+			StringBuilder providerInfo = new StringBuilder();
+			for (int i = 0; i < authProviders.size(); i++) {
+				AuthProvider authProvider = authProviders.get(i);
+				AccessToken token = user.getAccessToken(authProvider);
+				providerInfo.append(authProvider.name()).append(":").append(token.getId());
+				if (i != authProviders.size() - 1) {
+					providerInfo.append(",");
+				}
+			}
+
+			// Delete the old recurring job
+			jobRunrService.deleteRecurringJob(jobId);
+
+			// Create new job request with updated details
+			JobRunrPixelExecutionJobRequest updatedJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
+					providerInfo.toString(), null,
+					jobId, jobGroup, jobName);
+
+			// Schedule as new recurring job with updated cron
+			String zoneId = cronTimeZone != null ? cronTimeZone.getID() : Utility.getApplicationTimeZoneId();
+			jobRunrService.scheduleRecurring(jobId, cronExpression, zoneId, updatedJobRequest);
+
+			// Update database with new job details
+			SchedulerDatabaseUtility.updateJobRecipesTable(user.getAccessToken(authProviders.get(0)).getId(), jobId,
+					jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters, "Default", triggerOnLoad,
+					uiState, curJobName, curJobGroup, jobTags);
+
+			classLogger.info("Edited JobRunr recurring job: {} with new cron: {}", jobId, cronExpression);
+
+			if (triggerNow) {
+				// Create a new request for immediate execution
+				JobRunrPixelExecutionJobRequest immediateRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
+						providerInfo.toString(), null, 
+						jobId, jobGroup, jobName);
+
+				jobRunrService.enqueue(immediateRequest);
+				classLogger.info("Enqueued job {} for immediate execution", jobId);
+			}
+
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to edit job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Edit job using Quartz (existing implementation)
+	 */
+	private NounMetadata editWithQuartz(User user, String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, String curJobName, String curJobGroup, List<String> jobTags) {
+
+		String userId = null;
+
 		try {
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 

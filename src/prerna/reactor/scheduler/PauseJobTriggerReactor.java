@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.scheduler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.JobKey;
@@ -43,6 +46,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
@@ -79,6 +83,43 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
 
+		// Check if JobRunr is enabled
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
+
+		if (isJobRunrJob) {
+			return pauseWithJobRunr(jobId, jobGroup);
+		} else {
+			return pauseWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Pause job using JobRunr
+	 */
+	private NounMetadata pauseWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Pause the recurring job
+			jobRunrService.pauseRecurringJob(jobId);
+
+			logger.info("Paused JobRunr recurring job: {}", jobId);
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+			jobMetadata.put("status", "PAUSED");
+
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to pause job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Pause job using Quartz (existing implementation)
+	 */
+	private NounMetadata pauseWithQuartz(String jobId, String jobGroup) {
 		try {
 			String triggerName = jobId.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
@@ -92,13 +133,29 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.pauseTrigger(triggerKey);
-				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+				
+			//Update JOB_STATUS in SMSS_JOB_RECIPES
+			try {
+				SchedulerDatabaseUtility.pauseJob(jobId);
+				logger.info("Updated JOB_STATUS to PAUSED for Quartz job: {}", jobId);
+			} catch (Exception metadataEx) {
+				logger.error("Failed to update JOB_STATUS for Quartz job: {}", jobId, metadataEx);
 			}
+			
+			// Return job metadata to confirm successful pause
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+			jobMetadata.put("status", "PAUSED");
+
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
+		  }
+			
 		} catch (SchedulerException se) {
 			classLogger.error("Failed to pause job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
 					se.getMessage(), se);
 		}
 
-		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+	    throw new IllegalArgumentException("Job not found: " + jobId);
 	}
 }

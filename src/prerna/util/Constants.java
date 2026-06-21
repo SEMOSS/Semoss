@@ -646,7 +646,12 @@ public class Constants {
 	public static final String SCHEDULER_KEYSTORE_PASSWORD = "SCHEDULER_KEYSTORE_PASSWORD";
 	public static final String SCHEDULER_CERTIFICATE_PASSWORD = "SCHEDULER_CERTIFICATE_PASSWORD";
 	public static final String SCHEDULER_FORCE_DISABLE = "SCHEDULER_FORCE_DISABLE";
-
+	
+	// Jobrunr scheduler
+	public static final String SCHEDULER_USE_JOBRUNR = "SCHEDULER_USE_JOBRUNR";
+	public static final String JOBRUNR_DASHBOARD_PORT = "JOBRUNR_DASHBOARD_PORT";
+	public static final String JOBRUNR_WORKER_COUNT = "JOBRUNR_WORKER_COUNT";
+	
 	// RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of
 																	// inner joins
