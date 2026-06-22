@@ -610,6 +610,7 @@ public class SecurityOwlCreator {
 		owler.addProp("GITHUB_PROJECT_LINK", "REPO_ID", "BIGINT");
 		owler.addProp("GITHUB_PROJECT_LINK", "REPO_FULL_NAME", "VARCHAR(511)");
 		owler.addProp("GITHUB_PROJECT_LINK", "BRANCH", "VARCHAR(255)");
+		owler.addProp("GITHUB_PROJECT_LINK", "SUBDIR", "VARCHAR(1024)");
 		owler.addProp("GITHUB_PROJECT_LINK", "CREATED_ON", "TIMESTAMP");
 		owler.addProp("GITHUB_PROJECT_LINK", "UPDATED_ON", "TIMESTAMP");
 

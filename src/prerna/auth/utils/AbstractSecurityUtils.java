@@ -2368,9 +2368,9 @@ public abstract class AbstractSecurityUtils {
 			// GITHUB_PROJECT_LINK
 			// per-project link between a project and a GitHub repo/installation
 			colNames = new String[] { "PROJECT_ID", "APP_ID", "INSTALLATION_ID", "REPO_ID", "REPO_FULL_NAME", "BRANCH",
-					"CREATED_ON", "UPDATED_ON" };
+					"SUBDIR", "CREATED_ON", "UPDATED_ON" };
 			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "VARCHAR(511)", "VARCHAR(255)",
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+					"VARCHAR(1024)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			if (allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GITHUB_PROJECT_LINK", colNames, types));
 			} else {

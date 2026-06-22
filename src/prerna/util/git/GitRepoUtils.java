@@ -357,6 +357,38 @@ public class GitRepoUtils {
 	}
 
 	/**
+	 * Shallow-clones a remote repository into {@code targetDir} at the tip of
+	 * {@code branch} and returns the resolved {@code HEAD} SHA. Used by the
+	 * monorepo subdir sync path to stage the full repo in a temporary directory
+	 * before copying only the relevant subtree into the project's assets folder.
+	 * <p>
+	 * The caller is responsible for deleting {@code targetDir} afterwards (in a
+	 * {@code finally} block) to avoid leaving stale staging directories on disk.
+	 *
+	 * @param targetDir the directory to clone into (created by the clone)
+	 * @param remoteUrl HTTPS URL of the remote repository
+	 * @param branch    the branch to check out
+	 * @param cp        credentials provider carrying the installation token
+	 * @return the {@code HEAD} commit SHA of the cloned repository
+	 * @throws GitAPIException if the clone fails
+	 * @throws IOException     if {@code HEAD} cannot be resolved after the clone
+	 */
+	public static String cloneToDir(File targetDir, String remoteUrl, String branch, CredentialsProvider cp)
+			throws GitAPIException, IOException {
+		try (Git cloned = Git.cloneRepository()
+				.setURI(remoteUrl)
+				.setDirectory(targetDir)
+				.setBranch(branch)
+				.setCloneAllBranches(false)
+				.setDepth(1)
+				.setCredentialsProvider(cp)
+				.call()) {
+			ObjectId head = cloned.getRepository().resolve("HEAD");
+			return head == null ? null : head.getName();
+		}
+	}
+
+	/**
 	 * Returns the name of the branch currently checked out in the local repository.
 	 *
 	 * @param localRepository local git working directory

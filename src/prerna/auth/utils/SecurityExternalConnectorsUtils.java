@@ -262,13 +262,15 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	 * @param repoFullName   owner/repo full name (human-readable)
 	 */
 	public static void upsertGitHubProjectLink(String projectId, long appId, long installationId, long repoId,
-			String repoFullName, String branch) {
+			String repoFullName, String branch, String subdir) {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Project id must not be empty.");
 		}
 		if (branch == null || (branch = branch.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Branch must not be empty.");
 		}
+		// normalize subdir: blank/null becomes null (full-repo sync)
+		String normalizedSubdir = (subdir != null && !subdir.trim().isEmpty()) ? subdir.trim() : null;
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = getGitHubProjectLink(projectId) != null;
@@ -279,7 +281,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			Timestamp now = Utility.getCurrentSqlTimestampUTC();
 			if (exists) {
 				String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET APP_ID = ?, INSTALLATION_ID = ?, "
-						+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
+						+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, SUBDIR = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					int i = 1;
 					ps.setLong(i++, appId);
@@ -287,6 +289,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
+					ps.setString(i++, normalizedSubdir);
 					ps.setTimestamp(i++, now);
 					ps.setString(i++, projectId);
 					ps.executeUpdate();
@@ -296,7 +299,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 				}
 			} else {
 				String sql = "INSERT INTO " + GITHUB_PROJECT_LINK_TABLE + " (PROJECT_ID, APP_ID, INSTALLATION_ID, "
-						+ "REPO_ID, REPO_FULL_NAME, BRANCH, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+						+ "REPO_ID, REPO_FULL_NAME, BRANCH, SUBDIR, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					int i = 1;
 					ps.setString(i++, projectId);
@@ -305,6 +308,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
+					ps.setString(i++, normalizedSubdir);
 					ps.setTimestamp(i++, now);
 					ps.setTimestamp(i++, now);
 					ps.execute();
@@ -501,6 +505,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__REPO_ID", "repoId"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__REPO_FULL_NAME", "repoFullName"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__BRANCH", "branch"));
+		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__SUBDIR", "subdir"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__CREATED_ON", "createdOn"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__UPDATED_ON", "updatedOn"));
 		return qs;

@@ -27,8 +27,12 @@
  *******************************************************************************/
 package prerna.io.connector.github;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -52,6 +56,10 @@ import prerna.util.git.GitRepoUtils;
 public class GitHubProjectSync {
 
 	private static final Logger classLogger = LogManager.getLogger(GitHubProjectSync.class);
+
+	private static final String GIT_REMOTE_NAME = "origin";
+	private static final String STAGING_DIR_PREFIX = "semoss-github-sync-";
+	private static final String GITHUB_TOKEN_USERNAME = "x-access-token";
 
 	private GitHubProjectSync() {
 
@@ -115,12 +123,49 @@ public class GitHubProjectSync {
 		String targetBranch = trackedBranch;
 
 		String token = GitHubAppClient.getInstallationToken(installationId);
-		CredentialsProvider cp = new UsernamePasswordCredentialsProvider("x-access-token", token);
+		CredentialsProvider cp = new UsernamePasswordCredentialsProvider(GITHUB_TOKEN_USERNAME, token);
 		String remoteUrl = "https://github.com/" + repoFullName + ".git";
 
-		String newHead = GitRepoUtils.resetToRemote(localFolder, "origin", remoteUrl, targetBranch, cp);
-		classLogger.info("Synced project {} to {} from repo {} branch {}", projectId, newHead, repoFullName,
-				targetBranch);
+		String subdir = (String) link.get("subdir");
+		boolean isSubdirSync = subdir != null && !subdir.trim().isEmpty();
+
+		String newHead;
+		if (!isSubdirSync) {
+			// full-repo sync: existing path unchanged
+			newHead = GitRepoUtils.resetToRemote(localFolder, GIT_REMOTE_NAME, remoteUrl, targetBranch, cp);
+			classLogger.info("Synced project {} to {} from repo {} branch {}", projectId, newHead, repoFullName,
+					targetBranch);
+		} else {
+			// monorepo subdir sync: clone the full repo to a temp directory, copy only the
+			// requested subdir into the project's assets folder, then commit the result
+			// into the version/ local repo so each sync is recorded in local git history
+			// with a traceable link back to the remote monorepo commit. The temp directory
+			// is always cleaned up — app_root/ is not pushed to cloud on a normal sync so
+			// a persistent staging clone would be lost and require a full re-clone anyway.
+			File stagingDir = Files.createTempDirectory(STAGING_DIR_PREFIX).toFile();
+			try {
+				newHead = GitRepoUtils.cloneToDir(stagingDir, remoteUrl, targetBranch, cp);
+
+				File subdirSource = new File(stagingDir, subdir.trim());
+				if (!subdirSource.exists() || !subdirSource.isDirectory()) {
+					throw new IllegalArgumentException(
+							"Subdirectory '" + subdir.trim() + "' not found in repo " + repoFullName);
+				}
+
+				File assetsFolder = new File(AssetUtility.getProjectAssetsFolder(projectName, projectId));
+				FileUtils.deleteDirectory(assetsFolder);
+				FileUtils.copyDirectory(subdirSource, assetsFolder);
+
+				String commitMsg = "sync: " + repoFullName + "/" + targetBranch + "/" + subdir.trim() + " @ " + newHead;
+				GitRepoUtils.addAllChangesAndCommit(localFolder, true, commitMsg);
+			} catch (IOException e) {
+				throw new IOException("Subdir sync failed for project " + projectId + ": " + e.getMessage(), e);
+			} finally {
+				FileUtils.deleteDirectory(stagingDir);
+			}
+			classLogger.info("Synced project {} subdir '{}' to {} from repo {} branch {}", projectId, subdir.trim(),
+					newHead, repoFullName, targetBranch);
+		}
 
 		// propagate the pulled changes to central cloud storage (and, on a ZK cluster,
 		// notify other nodes to pull). No-op when not running in cluster/cloud mode.
