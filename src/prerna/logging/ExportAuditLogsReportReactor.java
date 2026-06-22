@@ -7,8 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -42,12 +40,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ExportAuditLogReportReactor extends AbstractReactor {
+public class ExportAuditLogsReportReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ExportAuditLogReportReactor.class);
-	private final ZoneId utcZone = ZoneId.of("UTC");
+	private static final Logger classLogger = LogManager.getLogger(ExportAuditLogsReportReactor.class);
 
-	public ExportAuditLogReportReactor() {
+	public ExportAuditLogsReportReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0 };
@@ -69,6 +66,11 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		String roomId = getString(map, SemossLogUtils.ROOM_ID);
 		String sessionId = getString(map, SemossLogUtils.SESSION_ID);
 
+		// the "null" sentinel ("only logs with no room") is not a real room, so it is
+		// excluded from room validation and from bounding the query
+		boolean nullRoomFilter = AuditLogsDbUtils.NULL_ROOM_ID.equalsIgnoreCase(roomId);
+		String realRoomId = nullRoomFilter ? "" : roomId;
+
 		// throw error if user is anonymous
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 			throwAnonymousUserError();
@@ -77,31 +79,27 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		// validate access to the project/engine/room and resolve which user's logs
 		// the caller is allowed to see (non-owners are restricted to their own)
 		AuditLogReportSecurityUtils.AuditLogAccess access = AuditLogReportSecurityUtils.authorize(this.insight,
-				projectId, engineId, roomId, getString(map, SemossLogUtils.FILTER_USER_ID));
+				projectId, engineId, realRoomId, getString(map, SemossLogUtils.FILTER_USER_ID));
 		String filterUserId = access.getFilterUserId();
 
-		// limit and offset are passed as their own top-level reactor keys, not inside
-		// the param values map
 		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, 0);
 
-		// dateRangeType: "day"|"week"|"month"|"custom"
+		// dateRangeType: "day"|"week"|"month"|"custom". When the query is not bounded
+		// by a roomId and no date range is supplied, this defaults to a single day so
+		// we never scan the full audit logs table.
 		String dateRangeType = getString(map, SemossLogUtils.DATE_RANGE_TYPE);
-		AuditLogsDateRangeMode mode = AuditLogsDateRangeMode.from(dateRangeType);
-
 		// number value for dateRangeType (ignored for custom). If null -> default 1
 		int dateRangeValue = parseIntWithDefault(getString(map, SemossLogUtils.DATE_RANGE_VALUE), 1);
-		if (mode == AuditLogsDateRangeMode.CUSTOM && dateRangeValue < 1) {
-			throw new IllegalArgumentException("dateRangeValue must be > 1");
-		}
 		// used only when dateRangeType is custom
 		String startDateCustom = getString(map, SemossLogUtils.START_DATE);
 		String endDateCustom = getString(map, SemossLogUtils.END_DATE);
 
-		Map<String, SemossDate> dateTimeMap = determineDateRangeFilter(mode, dateRangeValue, startDateCustom,
-				endDateCustom);
+		boolean queryIsBounded = realRoomId != null && !realRoomId.isBlank();
+		Map<String, SemossDate> dateTimeMap = AuditLogsDateRangeMode.resolveDateRange(dateRangeType, dateRangeValue,
+				startDateCustom, endDateCustom, queryIsBounded);
 		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
 		Map<String, Object> searchMap = null;
@@ -180,8 +178,8 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 			for (LogActivityRecord record : records) {
 				StringBuilder builder = new StringBuilder();
 				builder.append(escapeCsv(record.requestId())).append(",");
-				builder.append(escapeCsv(record.startTime() != null ? record.startTime().toString() : "")).append(",");
-				builder.append(escapeCsv(record.endTime() != null ? record.endTime().toString() : "")).append(",");
+				builder.append(escapeCsv(record.startTime())).append(",");
+				builder.append(escapeCsv(record.endTime())).append(",");
 				builder.append(escapeCsv(record.request())).append(",");
 				builder.append(escapeCsv(record.response())).append(",");
 				builder.append(record.tokens()).append(",");
@@ -194,7 +192,7 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 				builder.append(escapeCsv(record.userId())).append(",");
 				builder.append(escapeCsv(record.sessionId())).append(",");
 				builder.append(escapeCsv(record.spanId())).append(",");
-				builder.append(escapeCsv(record.logTimestamp() != null ? record.logTimestamp().toString() : ""));
+				builder.append(escapeCsv(record.logTimestamp()));
 				builder.append("\n");
 
 				bufferedWriter.write(builder.toString());
@@ -205,54 +203,61 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 	private void writePdf(List<LogActivityRecord> records, String filePath) throws Exception {
 		StringBuilder htmlBuilder = new StringBuilder();
 		htmlBuilder.append("<html><head><style>");
-		htmlBuilder.append("body { font-family: Arial, Helvetica, sans-serif; margin: 15px; } ");
 		htmlBuilder.append(
-				".header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd; margin-bottom: 20px; } ");
+				"body { font-family: Arial, Helvetica, sans-serif; margin: 20px; font-size: 11px; color: #222; } ");
+		htmlBuilder.append(
+				".header { text-align: center; padding-bottom: 12px; border-bottom: 2px solid #4CAF50; margin-bottom: 16px; } ");
 		htmlBuilder.append(".header h1 { margin: 0; font-size: 20px; } ");
+		htmlBuilder.append(".header .sub { color: #666; font-size: 10px; margin-top: 4px; } ");
+		htmlBuilder.append(".record { border: 1px solid #ddd; margin-bottom: 16px; padding: 10px 12px; } ");
 		htmlBuilder.append(
-				"table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; font-size: 8px; } ");
+				".record .title { font-size: 13px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 8px; } ");
+		htmlBuilder.append(".status-ok { color: #2e7d32; } ");
+		htmlBuilder.append(".status-fail { color: #c62828; } ");
+		htmlBuilder.append(".meta { width: 100%; border-collapse: collapse; margin-bottom: 4px; } ");
+		htmlBuilder
+				.append(".meta td { padding: 2px 6px; vertical-align: top; font-size: 10px; word-wrap: break-word; } ");
+		htmlBuilder.append(".meta td.k { color: #666; width: 90px; white-space: nowrap; } ");
+		htmlBuilder.append(".io-label { font-weight: bold; font-size: 10px; color: #444; margin-top: 8px; } ");
 		htmlBuilder.append(
-				"th, td { padding: 4px; text-align: left; border: 1px solid #ddd; word-wrap: break-word; line-height: 1.1; overflow: hidden; } ");
-		htmlBuilder.append("thead th { background-color: #4CAF50; color: white; font-weight: bold; } ");
-		htmlBuilder.append("tbody tr:nth-child(even) { background-color: #f2f2f2; } ");
+				".io-block { white-space: pre-wrap; word-wrap: break-word; background: #f7f7f7; border: 1px solid #eee; padding: 6px; font-family: 'Courier New', monospace; font-size: 9px; margin-top: 2px; } ");
 		htmlBuilder.append("</style></head><body>");
 
-		htmlBuilder.append("<div class='header'><h1>Audit Log Report</h1></div>");
-
-		htmlBuilder.append("<table>");
-		htmlBuilder.append("<thead><tr>");
-		htmlBuilder.append(
-				"<th>Request ID</th><th>Start Time</th><th>End Time</th><th>Request</th><th>Response</th><th>Tokens</th><th>Latency</th>");
-		htmlBuilder.append(
-				"<th>Status</th><th>Engine Name</th><th>Engine Type</th><th>Method Name</th><th>User Name</th><th>User ID</th><th>Session ID</th><th>Span ID</th><th>Log Timestamp</th>");
-		htmlBuilder.append("</tr></thead><tbody>");
+		htmlBuilder.append("<div class='header'><h1>Audit Log Report</h1>");
+		htmlBuilder.append("<div class='sub'>").append(records.size()).append(" record(s)</div></div>");
 
 		for (LogActivityRecord record : records) {
-			htmlBuilder.append("<tr>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.requestId())).append("</td>");
-			htmlBuilder.append("<td>")
-					.append(escapeHtml(record.startTime() != null ? record.startTime().toString() : ""))
-					.append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.endTime() != null ? record.endTime().toString() : ""))
-					.append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.request())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.response())).append("</td>");
-			htmlBuilder.append("<td>").append(record.tokens()).append("</td>");
-			htmlBuilder.append("<td>").append(record.latency()).append("</td>");
-			htmlBuilder.append("<td>").append(record.status()).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.engineName())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.engineType())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.methodName())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.userName())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.userId())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.sessionId())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.spanId())).append("</td>");
-			htmlBuilder.append("<td>")
-					.append(escapeHtml(record.logTimestamp() != null ? record.logTimestamp().toString() : ""))
-					.append("</td>");
-			htmlBuilder.append("</tr>");
+			htmlBuilder.append("<div class='record'>");
+
+			// title line: method name + success/failure badge
+			String statusClass = record.status() ? "status-ok" : "status-fail";
+			String statusText = record.status() ? "Success" : "Failed";
+			htmlBuilder.append("<div class='title'>")
+					.append(escapeXml(defaultIfEmpty(record.methodName(), "(method name n/a)")))
+					.append(" <span class='").append(statusClass).append("'>[").append(statusText).append("]</span>")
+					.append("</div>");
+
+			// scalar fields as a compact two-pair-per-row key/value grid
+			htmlBuilder.append("<table class='meta'>");
+			appendMetaRow(htmlBuilder, "Request ID", record.requestId(), "Log Timestamp", record.logTimestamp());
+			appendMetaRow(htmlBuilder, "Engine Name", record.engineName(), "Engine Type", record.engineType());
+			appendMetaRow(htmlBuilder, "User Name", record.userName(), "User ID", record.userId());
+			appendMetaRow(htmlBuilder, "Start Time", record.startTime(), "End Time", record.endTime());
+			appendMetaRow(htmlBuilder, "Latency (s)", String.valueOf(record.latency()), "Tokens",
+					String.valueOf(record.tokens()));
+			appendMetaRow(htmlBuilder, "Session ID", record.sessionId(), "Span ID", record.spanId());
+			htmlBuilder.append("</table>");
+
+			// request / response as full-width, wrapped, newline-preserving blocks
+			htmlBuilder.append("<div class='io-label'>Request</div>");
+			htmlBuilder.append("<div class='io-block'>").append(escapeXml(record.request())).append("</div>");
+			htmlBuilder.append("<div class='io-label'>Response</div>");
+			htmlBuilder.append("<div class='io-block'>").append(escapeXml(record.response())).append("</div>");
+
+			htmlBuilder.append("</div>");
 		}
-		htmlBuilder.append("</tbody></table></body></html>");
+
+		htmlBuilder.append("</body></html>");
 
 		String insightFolder = this.insight.getInsightFolder();
 		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID().toString() + ".html";
@@ -278,11 +283,34 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		}
 	}
 
-	private String escapeHtml(String value) {
+	/**
+	 * Append a metadata row holding two key/value pairs to the record card grid.
+	 */
+	private void appendMetaRow(StringBuilder sb, String key1, String value1, String key2, String value2) {
+		sb.append("<tr>");
+		sb.append("<td class='k'>").append(escapeXml(key1)).append("</td><td>").append(escapeXml(value1))
+				.append("</td>");
+		sb.append("<td class='k'>").append(escapeXml(key2)).append("</td><td>").append(escapeXml(value2))
+				.append("</td>");
+		sb.append("</tr>");
+	}
+
+	private String defaultIfEmpty(String value, String fallback) {
+		return (value == null || value.trim().isEmpty()) ? fallback : value;
+	}
+
+	/**
+	 * Escape for XML (not HTML): the PDF html is parsed as XML by the renderer, so
+	 * we may only emit the five built-in XML entities. HTML-named entities like
+	 * {@code &mdash;}/{@code &nbsp;} (which escapeHtml4 produces for chars such as
+	 * an em-dash) are undeclared in XML and would fail parsing - escapeXml10 leaves
+	 * those characters as literal UTF-8 instead.
+	 */
+	private String escapeXml(String value) {
 		if (value == null) {
 			return "";
 		}
-		return StringEscapeUtils.escapeHtml4(value);
+		return StringEscapeUtils.escapeXml10(value);
 	}
 
 	private String escapeCsv(String value) {
@@ -290,44 +318,6 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 			return "";
 		}
 		return "\"" + value.replace("\"", "\"\"") + "\"";
-	}
-
-	private Map<String, SemossDate> determineDateRangeFilter(AuditLogsDateRangeMode mode, int dateRangeValue,
-			String startDateCustom, String endDateCustom) {
-
-		if (mode == AuditLogsDateRangeMode.CUSTOM) {
-			if (startDateCustom == null || endDateCustom == null) {
-				throw new IllegalArgumentException("For custom mode, startDate and endDate are required.");
-			}
-			Instant startInstant = Instant.parse(startDateCustom);
-			Instant endInstant = Instant.parse(endDateCustom);
-
-			if (!startInstant.isBefore(endInstant)) {
-				throw new IllegalArgumentException("Start date must be before End date");
-			}
-
-			return Map.of(SemossLogUtils.START_DATE, new SemossDate(startInstant, utcZone), SemossLogUtils.END_DATE,
-					new SemossDate(endInstant, utcZone));
-		}
-
-		dateRangeValue = (dateRangeValue <= 0) ? 1 : dateRangeValue;
-		ZonedDateTime currentDateTime = ZonedDateTime.now(utcZone);
-		ZonedDateTime targetDateTime = null;
-
-		switch (mode) {
-		case DAY:
-			targetDateTime = currentDateTime.minusDays(dateRangeValue);
-			break;
-		case WEEK:
-			targetDateTime = currentDateTime.minusWeeks(dateRangeValue);
-			break;
-		case MONTH:
-		default:
-			targetDateTime = currentDateTime.minusMonths(dateRangeValue);
-			break;
-		}
-
-		return Map.of(SemossLogUtils.START_DATE, new SemossDate(targetDateTime));
 	}
 
 	private Map<String, Object> getMap() {
