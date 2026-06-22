@@ -4,6 +4,7 @@ import re
 import time
 import warnings
 
+import genai_client
 from pydantic import BaseModel, Field
 
 from ...constants import (
@@ -23,13 +24,11 @@ DIFFICULTY_LABELS = ("trivial", "easy", "medium", "hard")
 
 class RouterCandidate(BaseModel):
     engine_id: str
-    provider: str
-    model_name: str
-    api_key: Optional[str] = None
+    client_class: str
+    client_kwargs: Dict[str, Any] = Field(default_factory=dict)
     tier: Optional[str] = Field(default=None)
     input_cost_per_million: Optional[float] = None
     output_cost_per_million: Optional[float] = None
-    extra_params: Optional[Dict[str, Any]] = None
 
 
 class RouterTextClient(AbstractTextGenerationClient):
@@ -78,7 +77,9 @@ class RouterTextClient(AbstractTextGenerationClient):
             )
 
         self._tier_index = self._build_tier_index()
-        self._router = self._build_litellm_router()
+        self._clients: Dict[str, Any] = {}
+        for c in self.candidates:
+            self._clients[c.engine_id] = self._instantiate_client(c)
 
         if isinstance(pin_to_first_choice, str):
             try:
@@ -105,6 +106,21 @@ class RouterTextClient(AbstractTextGenerationClient):
             raw = json.loads(raw)
         return [RouterCandidate(**c) for c in raw]
 
+    @staticmethod
+    def _instantiate_client(c: RouterCandidate):
+        try:
+            client_cls = getattr(genai_client, c.client_class)
+        except AttributeError as exc:
+            raise ValueError(
+                f"Router candidate '{c.engine_id}' references unknown client_class "
+                f"'{c.client_class}'. Must be a class exported from genai_client."
+            ) from exc
+        if client_cls is RouterTextClient or c.client_class == "RouterClient":
+            raise ValueError(
+                f"Router candidate '{c.engine_id}' cannot itself be a RouterClient."
+            )
+        return client_cls(**c.client_kwargs)
+
     def _build_tier_index(self) -> Dict[str, List[str]]:
         buckets = {"small": [], "mid": [], "large": []}
         for c in self.candidates:
@@ -119,33 +135,6 @@ class RouterTextClient(AbstractTextGenerationClient):
             "medium": buckets["mid"] or buckets["large"] or buckets["small"],
             "hard": buckets["large"] or buckets["mid"] or buckets["small"],
         }
-
-    def _build_litellm_router(self):
-        from litellm import Router
-
-        model_list = []
-        for c in self.candidates:
-            params: Dict[str, Any] = {
-                "model": self._litellm_model_string(c),
-            }
-            if c.api_key:
-                params["api_key"] = c.api_key
-            if c.extra_params:
-                params.update(c.extra_params)
-            model_list.append(
-                {
-                    "model_name": c.engine_id,
-                    "litellm_params": params,
-                }
-            )
-        return Router(model_list=model_list)
-
-    @staticmethod
-    def _litellm_model_string(c: RouterCandidate) -> str:
-        provider = c.provider.lower()
-        if provider == "openai":
-            return c.model_name
-        return f"{provider}/{c.model_name}"
 
     def _filter_accessible(
         self, candidate_ids: List[str], accessible: Optional[List[str]]
@@ -163,47 +152,79 @@ class RouterTextClient(AbstractTextGenerationClient):
             return None
         return self.default_engine_id
 
-    def _classify_difficulty(self, prompt: str) -> Dict[str, Any]:
-        from litellm import completion
-
-        classifier = self._candidate_by_id[self.classifier_engine_id]
+    @staticmethod
+    def _build_classifier_message_json(prompt: str) -> str:
         instruction = (
             "Classify the difficulty of this request as exactly one word from: "
             "trivial, easy, medium, hard. Consider how much code, state, and "
             "edge-case handling it needs. Respond with ONLY the one word.\n\n"
             f"Request:\n{prompt}"
         )
+        return json.dumps([
+            {
+                "type": "INPUT_TEXT",
+                "schemaVersion": 2,
+                "io": "INPUT",
+                "parts": [
+                    {"type": "SYSTEM", "prompt": "You are a fast request triage classifier."},
+                    {"type": "TEXT", "text": instruction, "uiText": instruction},
+                ],
+            },
+        ])
+
+    @staticmethod
+    def _response_text(ask_result: Any) -> str:
+        if isinstance(ask_result, dict):
+            resp = ask_result.get("response")
+            return resp if isinstance(resp, str) else ""
+        return str(ask_result or "")
+
+    @staticmethod
+    def _response_tokens(ask_result: Any) -> Dict[str, int]:
+        if not isinstance(ask_result, dict):
+            return {"prompt_tokens": 0, "completion_tokens": 0}
+        return {
+            "prompt_tokens": int(
+                ask_result.get("numberOfTokensInPrompt")
+                or ask_result.get("prompt_tokens")
+                or 0
+            ),
+            "completion_tokens": int(
+                ask_result.get("numberOfTokensInResponse")
+                or ask_result.get("response_tokens")
+                or 0
+            ),
+        }
+
+    def _classify_difficulty(self, prompt: str) -> Dict[str, Any]:
+        classifier = self._candidate_by_id[self.classifier_engine_id]
+        client = self._clients[self.classifier_engine_id]
+        msg_json = self._build_classifier_message_json(prompt)
         t0 = time.perf_counter()
         try:
-            response = completion(
-                model=self._litellm_model_string(classifier),
-                api_key=classifier.api_key,
-                messages=[
-                    {"role": "system", "content": "You are a fast request triage classifier."},
-                    {"role": "user", "content": instruction},
-                ],
-                max_tokens=16,
-            )
+            result = client.ask(message_json=msg_json, max_tokens=16)
             elapsed = time.perf_counter() - t0
-            text = (response.choices[0].message.content or "").strip().lower()
+            text = self._response_text(result).strip().lower()
             label = re.sub(r"[^a-z]", "", text)
             if label not in DIFFICULTY_LABELS:
                 label = next(
                     (w for w in DIFFICULTY_LABELS if w in text),
                     "medium",
                 )
-            usage = response.usage
+            tokens = self._response_tokens(result)
             return {
                 "label": label,
                 "classifier_engine_id": classifier.engine_id,
+                "classifier_client_class": classifier.client_class,
                 "classifier_latency_s": round(elapsed, 3),
-                "classifier_input_tokens": getattr(usage, "prompt_tokens", None),
-                "classifier_output_tokens": getattr(usage, "completion_tokens", None),
+                "classifier_input_tokens": tokens["prompt_tokens"],
+                "classifier_output_tokens": tokens["completion_tokens"],
             }
         except Exception as exc:
             return {
                 "label": "medium",
                 "classifier_engine_id": classifier.engine_id,
+                "classifier_client_class": classifier.client_class,
                 "classifier_error": repr(exc)[:200],
             }
 
@@ -240,58 +261,23 @@ class RouterTextClient(AbstractTextGenerationClient):
         return self._pick_by_complexity(prompt, accessible)
 
     @staticmethod
-    def _extract_user_prompt(messages: List[Dict[str, Any]]) -> str:
-        for msg in reversed(messages):
-            if msg.get("role") == "user":
-                content = msg.get("content", "")
-                if isinstance(content, list):
-                    parts = [
-                        part.get("text", "")
-                        for part in content
-                        if isinstance(part, dict) and part.get("type") == "text"
-                    ]
-                    return "\n".join(p for p in parts if p)
-                return str(content) if content else ""
-        return ""
-
-    def _build_messages(self, **kwargs) -> List[Dict[str, Any]]:
-        if isinstance(kwargs.get("messages"), list):
-            return kwargs["messages"]
-        if kwargs.get("message_json"):
-            semoss_messages = self.build_semoss_messages(
-                model_settings=self.model_settings, **kwargs
-            )
-            return self._semoss_to_litellm(semoss_messages)
-        question = kwargs.get("question") or kwargs.get("prompt") or ""
-        system = kwargs.get("system") or kwargs.get("context")
-        messages: List[Dict[str, Any]] = []
-        if system:
-            messages.append({"role": "system", "content": str(system)})
-        if question:
-            messages.append({"role": "user", "content": str(question)})
-        return messages
-
-    @staticmethod
-    def _semoss_to_litellm(semoss_messages) -> List[Dict[str, Any]]:
-        out: List[Dict[str, Any]] = []
-        for m in semoss_messages:
-            role = "assistant" if getattr(m, "io", "") == "OUTPUT" else "user"
-            text_chunks: List[str] = []
-            system_chunks: List[str] = []
-            for part in (m.parts or []):
-                ptype = getattr(part, "type", None)
-                ptype_value = getattr(ptype, "value", ptype)
-                if ptype_value == "TEXT" and getattr(part, "text", None):
-                    text_chunks.append(part.text)
-                elif ptype_value == "SYSTEM" and getattr(part, "prompt", None):
-                    system_chunks.append(part.prompt)
-            if not text_chunks and getattr(m, "content", None):
-                text_chunks.append(m.content)
-            if system_chunks:
-                out.append({"role": "system", "content": "\n\n".join(system_chunks)})
-            if text_chunks:
-                out.append({"role": role, "content": "\n\n".join(text_chunks)})
-        return out
+    def _extract_user_prompt_from_message_json(message_json_raw: Union[str, list]) -> str:
+        try:
+            data = json.loads(message_json_raw) if isinstance(message_json_raw, str) else message_json_raw
+        except Exception:
+            return ""
+        if not isinstance(data, list):
+            return ""
+        chunks: List[str] = []
+        for msg in data:
+            if not isinstance(msg, dict) or msg.get("io") != "INPUT":
+                continue
+            for part in msg.get("parts") or []:
+                if not isinstance(part, dict):
+                    continue
+                if part.get("type") == "TEXT" and part.get("text"):
+                    chunks.append(part["text"])
+        return "\n".join(chunks)
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse2:
         accessible_raw = kwargs.pop("accessible_engine_ids", None)
@@ -303,11 +289,14 @@ class RouterTextClient(AbstractTextGenerationClient):
                 else list(accessible_raw)
             )
 
-        messages = self._build_messages(**kwargs)
-        if not messages:
-            raise ValueError("RouterClient.ask requires messages, message_json, or question.")
+        message_json = kwargs.get("message_json")
+        if message_json:
+            user_prompt = self._extract_user_prompt_from_message_json(message_json)
+        else:
+            user_prompt = str(kwargs.get("question") or kwargs.get("prompt") or "")
+        if not user_prompt.strip():
+            raise ValueError("RouterClient.ask requires a user prompt (message_json or question).")
 
-        user_prompt = self._extract_user_prompt(messages)
         served_by_pin = False
         if (
             self._pin_to_first_choice
@@ -330,23 +319,16 @@ class RouterTextClient(AbstractTextGenerationClient):
             picked_id = fallback_id
 
         candidate = self._candidate_by_id[picked_id]
-        forward_kwargs = self._extract_forward_kwargs(kwargs)
+        client = self._clients[picked_id]
 
         t0 = time.perf_counter()
-        from litellm import completion
-
-        response = completion(
-            model=self._litellm_model_string(candidate),
-            api_key=candidate.api_key,
-            messages=messages,
-            **forward_kwargs,
-        )
+        result = client.ask(**kwargs)
         elapsed = time.perf_counter() - t0
 
-        text = response.choices[0].message.content or ""
-        usage = response.usage
-        prompt_tokens = getattr(usage, "prompt_tokens", 0) or 0
-        completion_tokens = getattr(usage, "completion_tokens", 0) or 0
+        text = self._response_text(result)
+        tokens = self._response_tokens(result)
+        prompt_tokens = tokens["prompt_tokens"]
+        completion_tokens = tokens["completion_tokens"]
 
         if self._pin_to_first_choice and self._pinned_engine_id is None:
             self._pinned_engine_id = candidate.engine_id
@@ -355,9 +337,8 @@ class RouterTextClient(AbstractTextGenerationClient):
             "type": "router_trace",
             "strategy": self.strategy,
             "served_by_engine_id": candidate.engine_id,
-            "served_by_provider": candidate.provider,
-            "served_by_model": candidate.model_name,
-            "underlying_model": getattr(response, "model", candidate.model_name),
+            "served_by_client_class": candidate.client_class,
+            "served_by_model": candidate.client_kwargs.get("model_name"),
             "latency_s": round(elapsed, 3),
             "acl_fallback": acl_fallback,
             "pin_to_first_choice": self._pin_to_first_choice,
@@ -367,6 +348,7 @@ class RouterTextClient(AbstractTextGenerationClient):
                 k: v for k, v in pick.items()
                 if k in (
                     "label", "reason", "classifier_engine_id",
+                    "classifier_client_class",
                     "classifier_latency_s", "classifier_input_tokens",
                     "classifier_output_tokens", "classifier_error",
                 )
@@ -383,17 +365,3 @@ class RouterTextClient(AbstractTextGenerationClient):
             response_tokens=completion_tokens,
             parts=[route_record],
         )
-
-    @staticmethod
-    def _extract_forward_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-        allowed = (
-            "max_tokens", "max_completion_tokens", "temperature",
-            "top_p", "top_k", "stop", "stop_sequences",
-            "stream", "user", "metadata", "response_format",
-            "tools", "tool_choice",
-        )
-        forward: Dict[str, Any] = {}
-        for key in allowed:
-            if key in kwargs and kwargs[key] is not None:
-                forward[key] = kwargs[key]
-        return forward
