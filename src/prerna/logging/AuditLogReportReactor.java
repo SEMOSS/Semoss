@@ -42,14 +42,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessPermissionEnum;
-import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.date.SemossDate;
-import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -80,7 +74,6 @@ public class AuditLogReportReactor extends AbstractReactor {
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
-		User user = this.insight.getUser();
 
 		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
 		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
@@ -92,65 +85,16 @@ public class AuditLogReportReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		// validate we have values
-		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
-				&& (roomId == null || roomId.isBlank())) {
-			throw new IllegalArgumentException("Must provide engine, project, or a room id");
-		}
+		// validate access to the project/engine/room and resolve which user's logs
+		// the caller is allowed to see (non-owners are restricted to their own)
+		AuditLogReportSecurityUtils.AuditLogAccess access = AuditLogReportSecurityUtils.authorize(this.insight,
+				projectId, engineId, roomId, getString(map, SemossLogUtils.FILTER_USER_ID));
+		String filterUserId = access.getFilterUserId();
 
-		// if not project or engine but a room
-		// then we need to validate you have access to the room
-		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
-				&& (roomId != null && !roomId.isBlank())) {
-			// this will throw an error if the room does not exist for this user
-			RoomUtils.getOrLoadRoom(roomId, this.insight);
-		}
-
-		if (roomId != null && !roomId.isBlank()) {
-			if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
-				throw new IllegalArgumentException("Room ID is not valid");
-			}
-		}
-
-		// if you are using a project or an engine
-		// let us check if you are the owner of either of these
-		boolean userIsOwner = false;
-		if (projectId != null && !projectId.isEmpty()) {
-			Integer userPermissionLvl = SecurityProjectUtils
-					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
-			if (userPermissionLvl == null && !SecurityProjectUtils.projectIsGlobal(projectId)) {
-				throw new IllegalArgumentException(
-						"Project id '" + projectId + "' does not exist or user does not have access");
-			}
-			if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
-				userIsOwner = true;
-			}
-		}
-		// only need to check if not already owner of the project
-		if (!userIsOwner) {
-			if (engineId != null && !engineId.isEmpty()) {
-				Integer userPermissionLvl = SecurityEngineUtils
-						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
-				if (userPermissionLvl == null && !SecurityEngineUtils.engineIsGlobal(engineId)) {
-					throw new IllegalArgumentException(
-							"Engine id '" + engineId + "' does not exist or user does not have access");
-				}
-				if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
-					userIsOwner = true;
-				}
-			}
-		}
-
-		String filterUserId = null;
-		if (userIsOwner) {
-			// If Author selected a specific user in the filter
-			filterUserId = getString(map, SemossLogUtils.FILTER_USER_ID);
-		} else {
-			filterUserId = user.getPrimaryLoginToken().getId();
-		}
-
-		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
-		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+		// limit and offset are passed as their own top-level reactor keys, not inside
+		// the param values map
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, 0);
 
@@ -178,18 +122,17 @@ public class AuditLogReportReactor extends AbstractReactor {
 		}
 
 		List<String> methodNames = getListFromSearchParam(searchMap, SemossLogUtils.METHOD_NAME);
-		List<String> args = getListFromSearchParam(searchMap, "requestMessage");
 		List<String> engineTypes = getListFromSearchParam(searchMap, SemossLogUtils.ENGINE_TYPE);
-		String others = getString(map, "others");
+		String searchTerm = getString(map, "searchTerm");
 
 		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset, methodNames, args, engineTypes, others);
+					roomId, sessionId, limit, offset, methodNames, engineTypes, searchTerm);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, methodNames, args, engineTypes, others);
+					roomId, sessionId, methodNames, engineTypes, searchTerm);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
@@ -305,10 +248,6 @@ public class AuditLogReportReactor extends AbstractReactor {
 			classLogger.warn("Invalid number '{}', using default {}", val, defaultValue);
 			return defaultValue;
 		}
-	}
-
-	private boolean isBlank(String val) {
-		return val == null || val.trim().isEmpty();
 	}
 
 	private List<String> getListFromSearchParam(Map<String, Object> searchMap, String key) {

@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 
@@ -24,6 +25,10 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			throw new IllegalArgumentException("Audit logs have not been enabled on this instance");
+		}
+
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
@@ -33,23 +38,29 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String engineType = getString(map, SemossLogUtils.ENGINE_TYPE);
-		String methodName = getString(map, SemossLogUtils.METHOD_NAME);
-		String request = getString(map, SemossLogUtils.REQUEST);
+		// which dropdown to populate (methodName, engineType, user) and an optional
+		// type-ahead term to narrow it
+		String filterName = getString(map, SemossLogUtils.FILTER_NAME);
+		String search = getString(map, "search");
 
+		// scope the values to a specific project/engine/engine type when provided
 		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
 		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
-		String filterUserId = getString(map, SemossLogUtils.FILTER_USER_ID);
-		String filterName = getString(map, SemossLogUtils.FILTER_NAME);
+		String engineType = getString(map, SemossLogUtils.ENGINE_TYPE);
 
-		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
-		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+		// validate access to the project/engine and resolve which user's logs the
+		// caller is allowed to see (non-owners are restricted to their own)
+		AuditLogReportSecurityUtils.AuditLogAccess access = AuditLogReportSecurityUtils.authorize(this.insight,
+				projectId, engineId, null, getString(map, SemossLogUtils.FILTER_USER_ID));
+		String filterUserId = access.getFilterUserId();
+
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
-		int offset = parseIntWithDefault(offsetStr, 0);
+		int offset = parseIntWithDefault(offsetStr, -1);
 
-
-		List<String[]> resultList = AuditLogsDbUtils.getAuditLogMethodNameAndRequest(filterUserId, projectId, engineId,
-			 engineType, filterName, methodName, request, limit, offset);
+		List<String[]> resultList = AuditLogsDbUtils.getAuditLogFilterOptionList(filterUserId, projectId, engineId,
+				engineType, filterName, search, limit, offset);
 
 		return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
 	}
@@ -80,10 +91,10 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getString(Map<String, Object> map, String key) {
-		Object val = map.get(key);
 		if (map == null || key == null) {
 			return "";
 		}
+		Object val = map.get(key);
 		return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
 	}
 

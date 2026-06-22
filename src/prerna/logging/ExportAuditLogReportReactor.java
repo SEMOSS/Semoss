@@ -2,8 +2,10 @@ package prerna.logging;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -16,27 +18,20 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
-
-import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.date.SemossDate;
-import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
@@ -45,7 +40,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExportAuditLogReportReactor extends AbstractReactor {
@@ -80,51 +74,16 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		// validate we have values
-		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
-				&& (roomId == null || roomId.isBlank())) {
-			throw new IllegalArgumentException("Must provide engine, project, or a room id");
-		}
+		// validate access to the project/engine/room and resolve which user's logs
+		// the caller is allowed to see (non-owners are restricted to their own)
+		AuditLogReportSecurityUtils.AuditLogAccess access = AuditLogReportSecurityUtils.authorize(this.insight,
+				projectId, engineId, roomId, getString(map, SemossLogUtils.FILTER_USER_ID));
+		String filterUserId = access.getFilterUserId();
 
-		// if not project or engine but a room
-		// then we need to validate you have access to the room
-		if ((projectId == null || projectId.isBlank()) && (engineId == null || engineId.isBlank())
-				&& (roomId != null && !roomId.isBlank())) {
-			// this will throw an error if the room does not exist for this user
-			RoomUtils.getOrLoadRoom(roomId, this.insight);
-		}
-
-		// if you are using a project or an engine
-		// let us check if you are the owner of either of these
-		boolean userIsOwner = false;
-		if (projectId != null && !projectId.isEmpty()) {
-			Integer userPermissionLvl = SecurityProjectUtils
-					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
-			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
-				userIsOwner = true;
-			}
-		}
-		// only need to check if not already owner of the project
-		if (!userIsOwner) {
-			if (engineId != null && !engineId.isEmpty()) {
-				Integer userPermissionLvl = SecurityEngineUtils
-						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
-				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
-					userIsOwner = true;
-				}
-			}
-		}
-
-		String filterUserId = null;
-		if (userIsOwner) {
-			// If Author selected a specific user in the filter
-			filterUserId = getString(map, SemossLogUtils.FILTER_USER_ID);
-		} else {
-			filterUserId = user.getPrimaryLoginToken().getId();
-		}
-
-		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
-		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
+		// limit and offset are passed as their own top-level reactor keys, not inside
+		// the param values map
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, 0);
 
@@ -152,15 +111,14 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		}
 
 		List<String> methodNames = getListFromSearch(searchMap, SemossLogUtils.METHOD_NAME);
-		List<String> args = getListFromSearch(searchMap, SemossLogUtils.REQUEST);
 		List<String> engineTypes = getListFromSearch(searchMap, SemossLogUtils.ENGINE_TYPE);
 
-		String others = getString(map, "others");
+		String searchTerm = getString(map, "searchTerm");
 
 		List<LogActivityRecord> result = Collections.emptyList();
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset, methodNames, args, engineTypes, others);
+					roomId, sessionId, limit, offset, methodNames, engineTypes, searchTerm);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error executing audit log fetch: " + e.getMessage());
@@ -175,10 +133,9 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-Z");
 		String dateFormatted = currentDateTime.format(formatter);
 		boolean pdfFormat = false;
-		
+
 		String isPdfFormat = getString(map, "pdfFormat");
 		pdfFormat = Boolean.parseBoolean(isPdfFormat);
-		
 
 		String exportExtension = pdfFormat ? ".pdf" : ".csv";
 		String exportName = Utility.normalizePath("AuditLogReport_" + dateFormatted) + exportExtension;
@@ -216,7 +173,8 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 
 		try (FileWriter writer = new FileWriter(f); BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			// Write Headers
-			bufferedWriter.write("\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\"\n");
+			bufferedWriter.write(
+					"\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\"\n");
 
 			// Write Data
 			for (LogActivityRecord record : records) {
@@ -248,10 +206,13 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 		StringBuilder htmlBuilder = new StringBuilder();
 		htmlBuilder.append("<html><head><style>");
 		htmlBuilder.append("body { font-family: Arial, Helvetica, sans-serif; margin: 15px; } ");
-		htmlBuilder.append(".header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd; margin-bottom: 20px; } ");
+		htmlBuilder.append(
+				".header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd; margin-bottom: 20px; } ");
 		htmlBuilder.append(".header h1 { margin: 0; font-size: 20px; } ");
-		htmlBuilder.append("table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; font-size: 8px; } ");
-		htmlBuilder.append("th, td { padding: 4px; text-align: left; border: 1px solid #ddd; word-wrap: break-word; line-height: 1.1; overflow: hidden; } ");
+		htmlBuilder.append(
+				"table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; font-size: 8px; } ");
+		htmlBuilder.append(
+				"th, td { padding: 4px; text-align: left; border: 1px solid #ddd; word-wrap: break-word; line-height: 1.1; overflow: hidden; } ");
 		htmlBuilder.append("thead th { background-color: #4CAF50; color: white; font-weight: bold; } ");
 		htmlBuilder.append("tbody tr:nth-child(even) { background-color: #f2f2f2; } ");
 		htmlBuilder.append("</style></head><body>");
@@ -260,15 +221,20 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 
 		htmlBuilder.append("<table>");
 		htmlBuilder.append("<thead><tr>");
-		htmlBuilder.append("<th>Request ID</th><th>Start Time</th><th>End Time</th><th>Request</th><th>Response</th><th>Tokens</th><th>Latency</th>");
-		htmlBuilder.append("<th>Status</th><th>Engine Name</th><th>Engine Type</th><th>Method Name</th><th>User Name</th><th>User ID</th><th>Session ID</th><th>Span ID</th><th>Log Timestamp</th>");
+		htmlBuilder.append(
+				"<th>Request ID</th><th>Start Time</th><th>End Time</th><th>Request</th><th>Response</th><th>Tokens</th><th>Latency</th>");
+		htmlBuilder.append(
+				"<th>Status</th><th>Engine Name</th><th>Engine Type</th><th>Method Name</th><th>User Name</th><th>User ID</th><th>Session ID</th><th>Span ID</th><th>Log Timestamp</th>");
 		htmlBuilder.append("</tr></thead><tbody>");
 
 		for (LogActivityRecord record : records) {
 			htmlBuilder.append("<tr>");
 			htmlBuilder.append("<td>").append(escapeHtml(record.requestId())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.startTime() != null ? record.startTime().toString() : "")).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.endTime() != null ? record.endTime().toString() : "")).append("</td>");
+			htmlBuilder.append("<td>")
+					.append(escapeHtml(record.startTime() != null ? record.startTime().toString() : ""))
+					.append("</td>");
+			htmlBuilder.append("<td>").append(escapeHtml(record.endTime() != null ? record.endTime().toString() : ""))
+					.append("</td>");
 			htmlBuilder.append("<td>").append(escapeHtml(record.request())).append("</td>");
 			htmlBuilder.append("<td>").append(escapeHtml(record.response())).append("</td>");
 			htmlBuilder.append("<td>").append(record.tokens()).append("</td>");
@@ -281,7 +247,9 @@ public class ExportAuditLogReportReactor extends AbstractReactor {
 			htmlBuilder.append("<td>").append(escapeHtml(record.userId())).append("</td>");
 			htmlBuilder.append("<td>").append(escapeHtml(record.sessionId())).append("</td>");
 			htmlBuilder.append("<td>").append(escapeHtml(record.spanId())).append("</td>");
-			htmlBuilder.append("<td>").append(escapeHtml(record.logTimestamp() != null ? record.logTimestamp().toString() : "")).append("</td>");
+			htmlBuilder.append("<td>")
+					.append(escapeHtml(record.logTimestamp() != null ? record.logTimestamp().toString() : ""))
+					.append("</td>");
 			htmlBuilder.append("</tr>");
 		}
 		htmlBuilder.append("</tbody></table></body></html>");
