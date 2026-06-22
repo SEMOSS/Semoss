@@ -47,7 +47,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
@@ -105,7 +104,7 @@ public class RenameAssetReactor extends AbstractReactor {
 		try {
 			FileUtils.forceMkdirParent(newFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create parent directory for {}", newFileName, e);
 			throw new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + newFileName));
 		}
@@ -118,7 +117,7 @@ public class RenameAssetReactor extends AbstractReactor {
 				FileUtils.moveFile(oldFile, newFile);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to rename {} to {}", currentFileName, newFileName, e);
 			SemossPixelException ex = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName));
 			ex.setContinueThreadOfExecution(false);

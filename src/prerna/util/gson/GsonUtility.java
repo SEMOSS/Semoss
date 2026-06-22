@@ -36,6 +36,7 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import org.apache.logging.log4j.LogManager;
@@ -174,6 +175,7 @@ public class GsonUtility {
 				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
 
 				// dates
+				.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
 				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter());
 
