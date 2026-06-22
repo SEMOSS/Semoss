@@ -49,6 +49,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.LogActivityRecord;
 import prerna.logging.RequestDurationRecord;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -62,6 +63,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class AuditLogsDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AuditLogsDbUtils.class);
+
 	static boolean initialized = false;
 
 	private AuditLogsDbUtils() {
@@ -80,14 +82,13 @@ public class AuditLogsDbUtils {
 	 * @param columnNamesAndTypes
 	 * @throws SQLException
 	 */
-	private static void executeInitDatabaseSchema(IRDBMSEngine engine, Connection conn,
+	private static void executeInitDatabaseSchema(IRDBMSEngine auditLogsDb, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
+		String database = auditLogsDb.getDatabase();
+		String schema = auditLogsDb.getSchema();
 
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
@@ -99,7 +100,7 @@ public class AuditLogsDbUtils {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				executeSql(conn, sql);
 			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
+				if (!queryUtil.tableExists(auditLogsDb, tableName, database, schema)) {
 					String sql = queryUtil.createTable(tableName, colNames, types);
 					executeSql(conn, sql);
 				}
@@ -116,57 +117,69 @@ public class AuditLogsDbUtils {
 		}
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
 					List.of("PROJECT_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
 					List.of("USER_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
 					List.of("ENGINE_ID", "LOG_TIMESTAMP"));
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
+			classLogger.info("Running sql " + sql);
 			executeSql(conn, sql);
 		} else {
 			// REQUEST_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX PROJECT_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
 						List.of("PROJECT_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX USER_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
 						List.of("USER_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// COMPOSITE INDEX ENGINE_ID + LOG_TIMESTAMP
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
 						List.of("ENGINE_ID", "LOG_TIMESTAMP"));
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// SESSION_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 			// ROOM_ID
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
+				classLogger.info("Running sql " + sql);
 				executeSql(conn, sql);
 			}
 		}
@@ -230,13 +243,13 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityRecord> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
-			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
-			throws SQLException {
+			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset,
+			List<String> methodNames, List<String> engineTypes, String searchTerm) throws SQLException {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
 
-		// Step 1: fetch the page of rows. No subquery join - aggregation is deferred
-		// to
-		// step 2 so it only runs over the REQUEST_IDs we actually return.
+		// step 1: fetch the page of rows. No subquery join - aggregation is deferred
+		// to step 2 so it only runs over the REQUEST_IDs we actually return.
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ENGINE_NAME"));
@@ -247,6 +260,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_RESPONSE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__IS_SUCCESS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SPAN_ID"));
@@ -258,8 +272,12 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
-		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
+		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
+		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
+		addGlobalSearchFilter(queryUtil, qs, searchTerm);
 
+		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
+		// pagination
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -299,14 +317,15 @@ public class AuditLogsDbUtils {
 			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
 			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
+			String userNameFromRow = getOrDefault(map.get("USER_NAME"), null);
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			Timestamp logTimestamp = extractTimestamp(map.get("LOG_TIMESTAMP"));
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
-					status, engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow,
-					logTimestamp));
+					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
+					spanIdFromRow, logTimestamp));
 
 		}
 		return activityList;
@@ -385,6 +404,38 @@ public class AuditLogsDbUtils {
 
 	/**
 	 * 
+	 * @param qs
+	 * @param column
+	 * @param values
+	 */
+	private static void addMultiValueFilter(SelectQueryStruct qs, String column, List<String> values) {
+		if (values == null || values.isEmpty()) {
+			return;
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, "==", values));
+	}
+
+	/**
+	 *
+	 * @param qs
+	 * @param value
+	 */
+	private static void addGlobalSearchFilter(AbstractSqlQueryUtil queryUtil, SelectQueryStruct qs, String value) {
+		if (value == null || (value = value.trim()).isEmpty()) {
+			return;
+		}
+		// NOTE: REQUEST and RESPONSE are CLOB columns and are intentionally excluded -
+		// searching/filtering on CLOB columns is not portable across databases and
+		// cannot use an index.
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__METHOD_NAME", value));
+		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__ENGINE_TYPE", value));
+
+		qs.addExplicitFilter(orFilter);
+	}
+
+	/**
+	 * 
 	 * @param dateObj
 	 * @return
 	 */
@@ -427,8 +478,11 @@ public class AuditLogsDbUtils {
 	 * @return
 	 */
 	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
-			SemossDate endDate, String roomId, String sessionId) {
+			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> engineTypes,
+			String searchTerm) {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// COUNT(AUDIT_LOGS__LOG_ID) selector
@@ -437,7 +491,6 @@ public class AuditLogsDbUtils {
 		fSelector.setFunction(QueryFunctionHelper.COUNT);
 		fSelector.addInnerSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_ID"));
 		qs.addSelector(fSelector);
-
 		// Apply filters dynamically
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -445,8 +498,87 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
+		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
+		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
+		addGlobalSearchFilter(queryUtil, qs, searchTerm);
 
 		return QueryExecutionUtility.flushToLong(auditLogsDb, qs);
 	}
 
+	/**
+	 * Allowlist mapping a front-end filter name to the audit log column(s) whose
+	 * distinct values populate that filter's dropdown. The first column is the
+	 * human-readable value and is also the one matched by the type-ahead search.
+	 *
+	 * Acts as the injection guard for {@link #getAuditLogFilterOptionList} - the
+	 * caller's filterName never reaches the query directly, only a column resolved
+	 * here does. CLOB columns (e.g. REQUEST/RESPONSE) are intentionally excluded:
+	 * distinct/search on a CLOB is neither portable across databases nor indexable.
+	 *
+	 * @param filterName the requested filter
+	 * @return the physical column(s) backing that filter
+	 * @throws IllegalArgumentException if the filter is not supported
+	 */
+	private static String[] resolveFilterOptionColumns(String filterName) {
+		switch (filterName == null ? "" : filterName.trim().toLowerCase()) {
+		case "methodname":
+			return new String[] { "AUDIT_LOGS__METHOD_NAME" };
+		case "enginetype":
+			return new String[] { "AUDIT_LOGS__ENGINE_TYPE" };
+		case "user":
+			return new String[] { "AUDIT_LOGS__USER_NAME", "AUDIT_LOGS__USER_ID", "AUDIT_LOGS__USER_TYPE" };
+		default:
+			throw new IllegalArgumentException(
+					"Unsupported filterName '" + filterName + "'. Supported values: methodName, engineType, user");
+		}
+	}
+
+	/**
+	 * Return the distinct values that populate a single audit log report filter
+	 * dropdown. Distinct combinations of the filter's column(s) are returned
+	 * directly from the audit logs database - a user (or method/engine type) with
+	 * no audit log activity simply will not appear.
+	 *
+	 * @param userId     scope the values to this user's logs (empty for no scoping)
+	 * @param projectId  scope the values to this project (empty for no scoping)
+	 * @param engineId   scope the values to this engine (empty for no scoping)
+	 * @param engineType scope the values to this engine type (empty for no scoping)
+	 * @param filterName the dropdown to populate (methodName, engineType, user)
+	 * @param search     optional type-ahead term matched against the display column
+	 * @param limit      max rows (<= 0 for no limit)
+	 * @param offset     row offset (<= 0 for none)
+	 * @return distinct rows of the filter's column(s)
+	 */
+	public static List<String[]> getAuditLogFilterOptionList(String userId, String projectId, String engineId,
+			String engineType, String filterName, String search, int limit, int offset) {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+
+		String[] columns = resolveFilterOptionColumns(filterName);
+
+		// SelectQueryStruct is distinct by default, so selecting the column(s) yields
+		// the unique values for the dropdown without an explicit group by
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String column : columns) {
+			qs.addSelector(new QueryColumnSelector(column));
+		}
+
+		// type-ahead search on the display column (always the first, non-CLOB column)
+		if (search != null && !search.trim().isEmpty()) {
+			qs.addExplicitFilter(auditLogsDb.getQueryUtil().getSearchRegexFilter(columns[0], search.trim()));
+		}
+
+		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", "==", engineType);
+
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+
+		return QueryExecutionUtility.flushRsToListOfStrArray(auditLogsDb, qs);
+	}
 }
