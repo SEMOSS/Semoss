@@ -255,11 +255,13 @@ class RouterTextClient(AbstractTextGenerationClient):
         return ""
 
     def _build_messages(self, **kwargs) -> List[Dict[str, Any]]:
-        if "messages" in kwargs and isinstance(kwargs["messages"], list):
+        if isinstance(kwargs.get("messages"), list):
             return kwargs["messages"]
-        if "message_json" in kwargs:
-            raw = kwargs["message_json"]
-            return json.loads(raw) if isinstance(raw, str) else raw
+        if kwargs.get("message_json"):
+            semoss_messages = self.build_semoss_messages(
+                model_settings=self.model_settings, **kwargs
+            )
+            return self._semoss_to_litellm(semoss_messages)
         question = kwargs.get("question") or kwargs.get("prompt") or ""
         system = kwargs.get("system") or kwargs.get("context")
         messages: List[Dict[str, Any]] = []
@@ -268,6 +270,28 @@ class RouterTextClient(AbstractTextGenerationClient):
         if question:
             messages.append({"role": "user", "content": str(question)})
         return messages
+
+    @staticmethod
+    def _semoss_to_litellm(semoss_messages) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for m in semoss_messages:
+            role = "assistant" if getattr(m, "io", "") == "OUTPUT" else "user"
+            text_chunks: List[str] = []
+            system_chunks: List[str] = []
+            for part in (m.parts or []):
+                ptype = getattr(part, "type", None)
+                ptype_value = getattr(ptype, "value", ptype)
+                if ptype_value == "TEXT" and getattr(part, "text", None):
+                    text_chunks.append(part.text)
+                elif ptype_value == "SYSTEM" and getattr(part, "prompt", None):
+                    system_chunks.append(part.prompt)
+            if not text_chunks and getattr(m, "content", None):
+                text_chunks.append(m.content)
+            if system_chunks:
+                out.append({"role": "system", "content": "\n\n".join(system_chunks)})
+            if text_chunks:
+                out.append({"role": role, "content": "\n\n".join(text_chunks)})
+        return out
 
     def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse2:
         accessible_raw = kwargs.pop("accessible_engine_ids", None)
