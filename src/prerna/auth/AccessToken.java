@@ -707,6 +707,19 @@ public class AccessToken implements Serializable {
 	}
 
 	/**
+	 * Resolves a usable display name for the access token, preferring the name and
+	 * falling back to the email and then the username. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of name, email, or username; null if all are
+	 *         null
+	 */
+	public String getResolvedDisplayName() {
+		return Stream.of(name, email, username).filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	/**
 	 * Copies all scalar (non-collection) field values from {@code source} into this
 	 * instance.
 	 * <p>
