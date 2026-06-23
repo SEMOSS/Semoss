@@ -50,6 +50,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -80,11 +81,12 @@ public final class FileSystemUtil {
 		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
 				.withZone(user.getZoneId());
 
+		boolean isAdmin = Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user));
+
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
 		for (File f : allFiles) {
-			if (f.getName().startsWith(".") && f.isDirectory()) {
-				// we dont want to show this
+			if (isHiddenAsset(f, isAdmin)) {
 				continue;
 			}
 			Map<String, Object> fileMap = new HashMap<>();
@@ -126,12 +128,15 @@ public final class FileSystemUtil {
 	 * @param pattern           The pattern to match file/directory names against.
 	 * @param baseLen           The base length for calculating relative paths.
 	 * @param dateTimeFormatter The date time formatter for last modified dates.
+	 * @param user              The user performing the search, used to determine
+	 *                          access to admin-only assets.
 	 * @return A sorted list of maps, where each map represents a file or directory.
 	 */
 	public static List<Map<String, Object>> search(File dir, Pattern pattern, int baseLen,
-			DateTimeFormatter dateTimeFormatter) {
+			DateTimeFormatter dateTimeFormatter, User user) {
+		boolean isAdmin = Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user));
 		List<Map<String, Object>> results = new ArrayList<>();
-		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
+		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter, isAdmin);
 
 		// Sort directories first, then files, each group sorted by name
 		// case-insensitively
@@ -156,9 +161,11 @@ public final class FileSystemUtil {
 	 * @param baseLen
 	 * @param results
 	 * @param dateTimeFormatter
+	 * @param isAdmin           whether the requesting user is an admin (controls
+	 *                          visibility of the .admin directory)
 	 */
 	public static void searchRecursive(File dir, Pattern pattern, int baseLen, List<Map<String, Object>> results,
-			DateTimeFormatter dateTimeFormatter) {
+			DateTimeFormatter dateTimeFormatter, boolean isAdmin) {
 		File[] entries = dir.listFiles();
 		if (entries == null) {
 			return;
@@ -166,8 +173,8 @@ public final class FileSystemUtil {
 
 		for (File f : entries) {
 			String name = f.getName();
-			// skip hidden directory
-			if (f.isDirectory() && name.startsWith(".")) {
+			// hide .properties files and the .admin directory (unless admin)
+			if (isHiddenAsset(f, isAdmin)) {
 				continue;
 			}
 			// build relative path
@@ -179,7 +186,7 @@ public final class FileSystemUtil {
 			}
 			// recurse
 			if (f.isDirectory()) {
-				searchRecursive(f, pattern, baseLen, results, dateTimeFormatter);
+				searchRecursive(f, pattern, baseLen, results, dateTimeFormatter, isAdmin);
 			}
 		}
 	}
@@ -200,6 +207,29 @@ public final class FileSystemUtil {
 		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
 		map.put("type", isDir ? "directory" : FilenameUtils.getExtension(f.getName()));
 		return map;
+	}
+
+	/**
+	 * Determine whether an asset should be hidden from file explorer listings.
+	 * Hides the ".git" directory and any *.properties file from everyone, and
+	 * hides the ".admin" directory from non-admin users.
+	 *
+	 * @param f       the file or directory being considered
+	 * @param isAdmin whether the requesting user is an admin
+	 * @return true if the entry should be excluded from the results
+	 */
+	private static boolean isHiddenAsset(File f, boolean isAdmin) {
+		String name = f.getName();
+		if (f.isDirectory()) {
+			// never expose the .git directory
+			if (name.equals(".git")) {
+				return true;
+			}
+			// only admins can see the .admin directory
+			return name.equals(".admin") && !isAdmin;
+		}
+		// never expose .properties files
+		return name.endsWith(".properties");
 	}
 
 	/**
