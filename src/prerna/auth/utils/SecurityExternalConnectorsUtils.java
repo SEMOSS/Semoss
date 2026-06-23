@@ -53,6 +53,9 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityExternalConnectorsUtils.class);
 
+	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
+	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
+
 	/**
 	 * Retrieves the ID and alias for each configured Salesforce connection.
 	 *
@@ -100,9 +103,6 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		Map<String, Object> result = resultList.get(0);
 		return new Pair<String, String>((String) result.get("clientid"), (String) result.get("clientsecret"));
 	}
-
-	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
-	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
 
 	/**
 	 * Inserts or updates the single GitHub App record produced by the GitHub
@@ -243,6 +243,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__PRIVATE_KEY", "privateKey"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__CREATED_ON", "createdOn"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__UPDATED_ON", "updatedOn"));
+		qs.addOrderBy("GITHUB_APP__APP_ID");
 		return qs;
 	}
 
@@ -386,6 +387,22 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GITHUB_PROJECT_LINK__REPO_ID", "==", repoId));
 		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		return resultList.isEmpty() ? null : resultList.get(0);
+	}
+
+	/**
+	 * Retrieves every project link for a repository. A repository can feed more
+	 * than one project (each tracking the same or a different branch), so push
+	 * webhooks must fan out to all of them - prefer this over
+	 * {@link #getGitHubProjectLinkByRepoId(long)} when routing repo events.
+	 *
+	 * @param repoId GitHub numeric repo id
+	 * @return a list of link maps; empty if no project is linked to the repo
+	 */
+	public static List<Map<String, Object>> getGitHubProjectLinksByRepoId(long repoId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildGitHubProjectLinkSelect();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GITHUB_PROJECT_LINK__REPO_ID", "==", repoId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**

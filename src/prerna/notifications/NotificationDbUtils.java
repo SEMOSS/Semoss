@@ -56,7 +56,6 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -75,9 +74,9 @@ public class NotificationDbUtils {
 
 	public static void loadNotificationDatabase() throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		NotificationOwlCreator owlCreator = new NotificationOwlCreator(notificationDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		NotificationOwlCreator owlCreator = new NotificationOwlCreator(notificationDb.getQueryUtil());
+		if (owlCreator.needsRemake(notificationDb)) {
+			owlCreator.remakeOwl(notificationDb);
 		}
 		initialize();
 		initialized = true;
@@ -110,21 +109,21 @@ public class NotificationDbUtils {
 					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("NOTIFICATION", colNames, types);
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				notificationDb.insertData(sql);
 			} else {
 				// see if table exists
 				if (!queryUtil.tableExists(conn, "NOTIFICATION", database, schema)) {
 					// make the table
 					String sql = queryUtil.createTable("NOTIFICATION", colNames, types);
-					classLogger.info("Running sql " + sql);
+					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
 				}
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
 						"NOTIFICATIONID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				notificationDb.insertData(sql);
 			} else {
 				// see if index exists
@@ -132,7 +131,7 @@ public class NotificationDbUtils {
 						database, schema)) {
 					String sql = queryUtil.createIndex("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
 							"NOTIFICATIONID");
-					classLogger.info("Running sql " + sql);
+					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
 				}
 			}
@@ -143,10 +142,10 @@ public class NotificationDbUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '" + col + "' is not present in current list of columns: "
-								+ allCols.toString());
+						classLogger.info("Column {} missing from NOTIFICATION table; adding it. Existing columns: {}",
+								col, allCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("NOTIFICATION", col, types[i]);
-						classLogger.info("Running sql " + addColumnSql);
+						classLogger.info("Running sql {}", addColumnSql);
 						notificationDb.insertData(addColumnSql);
 					}
 				}
@@ -258,7 +257,8 @@ public class NotificationDbUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to insert notification for recipient {} (type {}) on catalog {}", recipientId,
+						recipientType, catalogId, e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 			}
@@ -416,7 +416,8 @@ public class NotificationDbUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete notification(s) [notificationId={}, recipientId={}, recipientType={}]",
+					notificationId, recipientId, recipientType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -452,7 +453,8 @@ public class NotificationDbUtils {
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to reset notification action type from NEW to NONE for user id/type pairs {}",
+					userIdAndTypeList, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -478,7 +480,7 @@ public class NotificationDbUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to mark notification {} as read (readDate={})", notificationId, readDate, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -507,7 +509,8 @@ public class NotificationDbUtils {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to fetch new notification count for recipient {} (type {})", recipientId,
+					recipientType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}

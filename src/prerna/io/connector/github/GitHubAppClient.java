@@ -29,20 +29,19 @@ package prerna.io.connector.github;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hc.core5.http.ContentType;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -54,6 +53,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Utility;
 
 /**
@@ -74,7 +74,6 @@ import prerna.util.Utility;
  */
 public class GitHubAppClient {
 
-	private static final HttpClient HTTP = HttpClient.newHttpClient();
 	private static final String API = "https://api.github.com";
 
 	/**
@@ -84,9 +83,9 @@ public class GitHubAppClient {
 	 */
 
 	/**
-	 * // example localhost value: //
+	 * example localhost value:
 	 * "https://aqmil-2600-4040-10db-5b00-646e-8fd-4ebc-cebf.run.pinggy-free.link";
-	 * // or // "https://elm-uselessly-laurel.ngrok-free.dev"; ///
+	 * or "https://elm-uselessly-laurel.ngrok-free.dev";
 	 */
 	private static final String GH_PUBLIC_ORIGIN_OVERRIDE = "GH_PUBLIC_ORIGIN_OVERRIDE";
 
@@ -155,6 +154,37 @@ public class GitHubAppClient {
 	}
 
 	/**
+	 * An installation of the app on an account (user or org). An installation is
+	 * the unit a project links to; it knows an account, not a repository.
+	 *
+	 * @param id                  the installation id used to mint tokens / list
+	 *                            repos
+	 * @param accountLogin        the org/user login the app is installed on
+	 * @param accountType         {@code "User"} or {@code "Organization"}
+	 * @param repositorySelection {@code "all"} or {@code "selected"}
+	 * @param suspended           whether the account owner has suspended it (cannot
+	 *                            mint tokens while suspended)
+	 */
+	public record Installation(long id, String accountLogin, String accountType, String repositorySelection,
+			boolean suspended) {
+	}
+
+	/**
+	 * Signals that a user-to-server call failed because the user token is missing,
+	 * expired, or revoked (GitHub returned {@code 401}). The web layer maps this to
+	 * a {@code needsAuth} response so the user is sent back through the GitHub
+	 * authorization redirect; we deliberately do not persist or refresh user
+	 * tokens.
+	 */
+	public static class UserAuthRequiredException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		public UserAuthRequiredException(String message) {
+			super(message);
+		}
+	}
+
+	/**
 	 * Loads the single configured GitHub App row, or fails if none is set up yet.
 	 *
 	 * @return the app config map keyed by the aliases from
@@ -168,6 +198,21 @@ public class GitHubAppClient {
 		return app;
 	}
 
+	/** The standard GitHub REST headers (Accept + API version), unauthenticated. */
+	private static Map<String, String> githubHeaders() {
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Accept", "application/vnd.github+json");
+		headers.put("X-GitHub-Api-Version", "2022-11-28");
+		return headers;
+	}
+
+	/** The standard GitHub REST headers plus a {@code Bearer} authorization. */
+	private static Map<String, String> githubHeaders(String bearer) {
+		Map<String, String> headers = githubHeaders();
+		headers.put("Authorization", "Bearer " + bearer);
+		return headers;
+	}
+
 	/**
 	 * Exchanges a one-time app-manifest code for the newly created app's full
 	 * config (id, slug, pem, client/webhook secrets, ...). This call is
@@ -175,15 +220,9 @@ public class GitHubAppClient {
 	 * hour after GitHub issues it.
 	 */
 	public static JsonObject convertManifest(String code) throws Exception {
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(API + "/app-manifests/" + code + "/conversions"))
-				.header("Accept", "application/vnd.github+json").header("X-GitHub-Api-Version", "2022-11-28")
-				.POST(HttpRequest.BodyPublishers.noBody()).build();
-
-		HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-		if (resp.statusCode() != 201) {
-			throw new IOException("GitHub manifest conversion failed: " + resp.statusCode() + " " + resp.body());
-		}
-		return JsonParser.parseString(resp.body()).getAsJsonObject();
+		String body = HttpHelperUtility.postRequestStringBody(API + "/app-manifests/" + code + "/conversions",
+				githubHeaders(), null, null, null, null, null);
+		return JsonParser.parseString(body).getAsJsonObject();
 	}
 
 	/**
@@ -198,16 +237,10 @@ public class GitHubAppClient {
 	public static String getInstallationToken(String installationId) throws Exception {
 		String jwt = createJwt();
 
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(API + "/app/installations/" + installationId + "/access_tokens"))
-				.header("Authorization", "Bearer " + jwt).header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2022-11-28").POST(HttpRequest.BodyPublishers.noBody()).build();
-
-		HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-		if (resp.statusCode() != 201) {
-			throw new IOException("GitHub installation-token failed: " + resp.statusCode() + " " + resp.body());
-		}
-		return JsonParser.parseString(resp.body()).getAsJsonObject().get("token").getAsString();
+		String body = HttpHelperUtility.postRequestStringBody(
+				API + "/app/installations/" + installationId + "/access_tokens", githubHeaders(jwt), null, null, null,
+				null, null);
+		return JsonParser.parseString(body).getAsJsonObject().get("token").getAsString();
 	}
 
 	/**
@@ -222,20 +255,14 @@ public class GitHubAppClient {
 
 		// Page through; an "all repositories" install on a large org can return
 		// more than one page. Stop on the first short or empty page.
+		Map<String, String> headers = githubHeaders(token);
 		List<Repo> out = new ArrayList<>();
 		int page = 1;
 		while (true) {
-			HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(API + "/installation/repositories?per_page=100&page=" + page))
-					.header("Authorization", "Bearer " + token).header("Accept", "application/vnd.github+json")
-					.header("X-GitHub-Api-Version", "2022-11-28").GET().build();
+			String body = HttpHelperUtility.getRequest(API + "/installation/repositories?per_page=100&page=" + page,
+					headers, null, null, null);
 
-			HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-			if (resp.statusCode() != 200) {
-				throw new IOException("GitHub list-repositories failed: " + resp.statusCode() + " " + resp.body());
-			}
-
-			JsonArray repos = JsonParser.parseString(resp.body()).getAsJsonObject().getAsJsonArray("repositories");
+			JsonArray repos = JsonParser.parseString(body).getAsJsonObject().getAsJsonArray("repositories");
 			if (repos == null || repos.size() == 0) {
 				break;
 			}
@@ -263,20 +290,14 @@ public class GitHubAppClient {
 	public static List<String> listRepositoryBranches(String installationId, String repoFullName) throws Exception {
 		String token = getInstallationToken(installationId);
 
+		Map<String, String> headers = githubHeaders(token);
 		List<String> out = new ArrayList<>();
 		int page = 1;
 		while (true) {
-			HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(API + "/repos/" + repoFullName + "/branches?per_page=100&page=" + page))
-					.header("Authorization", "Bearer " + token).header("Accept", "application/vnd.github+json")
-					.header("X-GitHub-Api-Version", "2022-11-28").GET().build();
+			String body = HttpHelperUtility.getRequest(
+					API + "/repos/" + repoFullName + "/branches?per_page=100&page=" + page, headers, null, null, null);
 
-			HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-			if (resp.statusCode() != 200) {
-				throw new IOException("GitHub list-branches failed: " + resp.statusCode() + " " + resp.body());
-			}
-
-			JsonArray branches = JsonParser.parseString(resp.body()).getAsJsonArray();
+			JsonArray branches = JsonParser.parseString(body).getAsJsonArray();
 			if (branches == null || branches.size() == 0) {
 				break;
 			}
@@ -308,21 +329,71 @@ public class GitHubAppClient {
 	public static boolean isInstallationValid(String installationId) throws Exception {
 		String jwt = createJwt();
 
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(API + "/app/installations/" + installationId))
-				.header("Authorization", "Bearer " + jwt).header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2022-11-28").GET().build();
-
-		HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-		if (resp.statusCode() == 404) {
-			return false;
+		String body;
+		try {
+			body = HttpHelperUtility.getRequest(API + "/app/installations/" + installationId, githubHeaders(jwt), null,
+					null, null);
+		} catch (IllegalArgumentException e) {
+			// a deleted/uninstalled installation returns 404 - that is a valid
+			// "not usable" answer here, not an error
+			if (e.getMessage() != null && e.getMessage().contains("returned HTTP 404")) {
+				return false;
+			}
+			throw e;
 		}
-		if (resp.statusCode() != 200) {
-			throw new IOException("GitHub get-installation failed: " + resp.statusCode() + " " + resp.body());
-		}
-		JsonObject obj = JsonParser.parseString(resp.body()).getAsJsonObject();
+		JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
 		JsonElement suspendedAt = obj.get("suspended_at");
 		boolean suspended = suspendedAt != null && !suspendedAt.isJsonNull();
 		return !suspended;
+	}
+
+	/**
+	 * Lists every installation of the app, across all accounts that have installed
+	 * it. This lets the user pick which existing installation to link a project to,
+	 * instead of depending on the single installation_id GitHub hands back on the
+	 * install/setup redirect - so an app already installed on GitHub (out of band,
+	 * or for a previous project) can still be connected.
+	 * <p>
+	 * Calls {@code GET /app/installations} as the app. Suspended installations are
+	 * returned but flagged so the UI can disable them (a suspended installation
+	 * cannot mint tokens).
+	 *
+	 * @return the app's installations (id + account + repository selection),
+	 *         GitHub's page order
+	 * @throws Exception if the JWT cannot be built or GitHub rejects the request
+	 */
+	public static List<Installation> listInstallations() throws Exception {
+		String jwt = createJwt();
+
+		// Page through; an app installed on many accounts can span pages. Stop on
+		// the first short or empty page.
+		Map<String, String> headers = githubHeaders(jwt);
+		List<Installation> out = new ArrayList<>();
+		int page = 1;
+		while (true) {
+			String body = HttpHelperUtility.getRequest(API + "/app/installations?per_page=100&page=" + page, headers,
+					null, null, null);
+
+			JsonArray installations = JsonParser.parseString(body).getAsJsonArray();
+			if (installations == null || installations.size() == 0) {
+				break;
+			}
+			for (JsonElement el : installations) {
+				JsonObject obj = el.getAsJsonObject();
+				JsonObject account = obj.getAsJsonObject("account");
+				String accountLogin = account == null ? null : asStringOrNull(account, "login");
+				String accountType = account == null ? null : asStringOrNull(account, "type");
+				JsonElement suspendedAt = obj.get("suspended_at");
+				boolean suspended = suspendedAt != null && !suspendedAt.isJsonNull();
+				out.add(new Installation(obj.get("id").getAsLong(), accountLogin, accountType,
+						asStringOrNull(obj, "repository_selection"), suspended));
+			}
+			if (installations.size() < 100) {
+				break;
+			}
+			page++;
+		}
+		return out;
 	}
 
 	/**
@@ -345,17 +416,11 @@ public class GitHubAppClient {
 		String jwt = createJwt();
 		int limit = (perPage <= 0) ? 30 : Math.min(perPage, 100);
 
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(API + "/app/hook/deliveries?per_page=" + limit))
-				.header("Authorization", "Bearer " + jwt).header("Accept", "application/vnd.github+json")
-				.header("X-GitHub-Api-Version", "2022-11-28").GET().build();
-
-		HttpResponse<String> resp = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-		if (resp.statusCode() != 200) {
-			throw new IOException("GitHub list-webhook-deliveries failed: " + resp.statusCode() + " " + resp.body());
-		}
+		String body = HttpHelperUtility.getRequest(API + "/app/hook/deliveries?per_page=" + limit, githubHeaders(jwt),
+				null, null, null);
 
 		List<Map<String, Object>> out = new ArrayList<>();
-		JsonArray deliveries = JsonParser.parseString(resp.body()).getAsJsonArray();
+		JsonArray deliveries = JsonParser.parseString(body).getAsJsonArray();
 		for (JsonElement el : deliveries) {
 			JsonObject d = el.getAsJsonObject();
 			Map<String, Object> row = new LinkedHashMap<>();
@@ -373,6 +438,161 @@ public class GitHubAppClient {
 			out.add(row);
 		}
 		return out;
+	}
+
+	// ---------------------------------------------------------------------
+	// User-to-server (per-user scoping). These use a short-lived user access
+	// token, never the app JWT, so a user only sees the installations and repos
+	// GitHub says THEY can access. The token is used immediately and not
+	// persisted; a 401 surfaces as UserAuthRequiredException so the caller
+	// re-runs the authorization redirect rather than failing hard.
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Exchanges a GitHub user-authorization code for a user access token
+	 * ({@code ghu_...}). Posts to github.com (not the API host) with the app's
+	 * OAuth client credentials. The token is meant to be used once for scoping
+	 * reads and then discarded - do not persist it.
+	 *
+	 * @param code the one-time code from the authorize redirect
+	 * @return a user-to-server access token
+	 * @throws Exception if the app has no client credentials or GitHub rejects the
+	 *                   exchange
+	 */
+	public static String exchangeUserCode(String code) throws Exception {
+		Map<String, Object> app = appConfig();
+		String clientId = (String) app.get("clientId");
+		String clientSecret = (String) app.get("clientSecret");
+		if (clientId == null || clientId.isEmpty() || clientSecret == null || clientSecret.isEmpty()) {
+			throw new IllegalStateException("Configured GitHub App has no OAuth client credentials");
+		}
+
+		String form = "client_id=" + enc(clientId) + "&client_secret=" + enc(clientSecret) + "&code=" + enc(code);
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Accept", "application/json");
+
+		String body = HttpHelperUtility.postRequestStringBody("https://github.com/login/oauth/access_token", headers,
+				form, ContentType.APPLICATION_FORM_URLENCODED, null, null, null);
+
+		JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+		// GitHub returns 200 with an {error,...} body for a bad or expired code
+		if (obj.has("error")) {
+			throw new IllegalStateException("GitHub user code exchange failed: " + asStringOrNull(obj, "error"));
+		}
+		JsonElement token = obj.get("access_token");
+		if (token == null || token.isJsonNull()) {
+			throw new IllegalStateException("GitHub user code exchange returned no access token");
+		}
+		return token.getAsString();
+	}
+
+	/**
+	 * Lists the installations of THIS app that the given user can access, using
+	 * their user token. Unlike {@link #listInstallations()} (app-wide, app JWT),
+	 * this returns only accounts the user belongs to, so one tenant never sees
+	 * another's installations.
+	 *
+	 * @param userToken a user-to-server access token (see
+	 *                  {@link #exchangeUserCode})
+	 * @return the installations the user can access, limited to this app
+	 * @throws UserAuthRequiredException if the token is missing/expired/revoked
+	 *                                   (401)
+	 * @throws Exception                 if GitHub otherwise rejects the request
+	 */
+	public static List<Installation> listUserInstallations(String userToken) throws Exception {
+		long appId = ((Number) appConfig().get("appId")).longValue();
+
+		Map<String, String> headers = githubHeaders(userToken);
+		List<Installation> out = new ArrayList<>();
+		int page = 1;
+		while (true) {
+			JsonObject obj = getUserJson(API + "/user/installations?per_page=100&page=" + page, headers);
+			JsonArray installations = obj.getAsJsonArray("installations");
+			if (installations == null || installations.size() == 0) {
+				break;
+			}
+			for (JsonElement el : installations) {
+				JsonObject inst = el.getAsJsonObject();
+				// /user/installations spans every app the user can access; keep only ours
+				Long instAppId = asLongOrNull(inst, "app_id");
+				if (instAppId == null || instAppId.longValue() != appId) {
+					continue;
+				}
+				JsonObject account = inst.getAsJsonObject("account");
+				String accountLogin = account == null ? null : asStringOrNull(account, "login");
+				String accountType = account == null ? null : asStringOrNull(account, "type");
+				JsonElement suspendedAt = inst.get("suspended_at");
+				boolean suspended = suspendedAt != null && !suspendedAt.isJsonNull();
+				out.add(new Installation(inst.get("id").getAsLong(), accountLogin, accountType,
+						asStringOrNull(inst, "repository_selection"), suspended));
+			}
+			if (installations.size() < 100) {
+				break;
+			}
+			page++;
+		}
+		return out;
+	}
+
+	/**
+	 * Lists the repositories the given user can access within one installation,
+	 * using their user token. The user-scoped counterpart of
+	 * {@link #getInstallationRepositories(String)}; the repo picker and
+	 * {@code /install/select} validate against this so a user cannot select a repo
+	 * they cannot see.
+	 *
+	 * @param userToken      a user-to-server access token
+	 * @param installationId the installation to enumerate
+	 * @return the repositories the user can access in that installation
+	 * @throws UserAuthRequiredException if the token is missing/expired/revoked
+	 *                                   (401)
+	 * @throws Exception                 if GitHub otherwise rejects the request
+	 */
+	public static List<Repo> listUserInstallationRepositories(String userToken, String installationId)
+			throws Exception {
+		Map<String, String> headers = githubHeaders(userToken);
+		List<Repo> out = new ArrayList<>();
+		int page = 1;
+		while (true) {
+			JsonObject obj = getUserJson(
+					API + "/user/installations/" + installationId + "/repositories?per_page=100&page=" + page, headers);
+			JsonArray repos = obj.getAsJsonArray("repositories");
+			if (repos == null || repos.size() == 0) {
+				break;
+			}
+			for (JsonElement el : repos) {
+				JsonObject r = el.getAsJsonObject();
+				out.add(new Repo(r.get("id").getAsLong(), r.get("full_name").getAsString(),
+						asStringOrNull(r, "default_branch")));
+			}
+			if (repos.size() < 100) {
+				break;
+			}
+			page++;
+		}
+		return out;
+	}
+
+	/**
+	 * GETs a user-scoped endpoint, translating a 401 into
+	 * {@link UserAuthRequiredException} so the web layer can prompt
+	 * re-authorization instead of treating it as a hard failure.
+	 */
+	private static JsonObject getUserJson(String url, Map<String, String> headers) {
+		try {
+			return JsonParser.parseString(HttpHelperUtility.getRequest(url, headers, null, null, null))
+					.getAsJsonObject();
+		} catch (IllegalArgumentException e) {
+			if (e.getMessage() != null && e.getMessage().contains("returned HTTP 401")) {
+				throw new UserAuthRequiredException("GitHub user token is missing, expired, or revoked");
+			}
+			throw e;
+		}
+	}
+
+	/** URL-encodes a form value (UTF-8). */
+	private static String enc(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8);
 	}
 
 	private static String asStringOrNull(JsonObject o, String key) {

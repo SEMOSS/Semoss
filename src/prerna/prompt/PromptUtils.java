@@ -80,9 +80,9 @@ public final class PromptUtils {
 	 */
 	public static void loadPromptDatabase() throws Exception {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb.getQueryUtil());
+		if (owlCreator.needsRemake(promptDb)) {
+			owlCreator.remakeOwl(promptDb);
 		}
 		initialize();
 		initialized = true;
