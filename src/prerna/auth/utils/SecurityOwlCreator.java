@@ -432,6 +432,29 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		// feature gate
+		addTable("APP_FEATURE_FLAG", Arrays.asList(
+				Pair.with("FLAG_ID", VARCHAR_255),
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("FLAG_KEY", VARCHAR_255),
+				Pair.with("DESCRIPTION", "VARCHAR(2000)"),
+				Pair.with("MIN_VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DEFAULT_VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_USER_VERSION", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("FLAG_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("VERSION", INTEGER_DATATYPE_NAME)));
+
+		addTable("APP_VERSION_BUCKET", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("FLAG_ID", VARCHAR_255),
+				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DESCRIPTION", "VARCHAR(2000)")));
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		// all have the same columns and default values
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
