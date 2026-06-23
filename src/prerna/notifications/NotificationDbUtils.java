@@ -78,48 +78,51 @@ public class NotificationDbUtils {
 		if (owlCreator.needsRemake(notificationDb)) {
 			owlCreator.remakeOwl(notificationDb);
 		}
-		initialize();
+		initialize(owlCreator.getDBSchema());
 		initialized = true;
 	}
 
-	private static void initialize() throws Exception {
+	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String database = notificationDb.getDatabase();
 		String schema = notificationDb.getSchema();
 		Connection conn = notificationDb.getConnection();
 		try {
-			String[] colNames = null;
-			String[] types = null;
-
 			AbstractSqlQueryUtil queryUtil = notificationDb.getQueryUtil();
 			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 			boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-			final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
-			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
-			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 
-			// notification
-			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE",
-					"ACTIONTYPE", "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "CATALOGID", "CREATEDBY",
-					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USERTYPE", "USEREXISTINGROLE",
-					"USERNEWROLE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
-					"VARCHAR(50)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("NOTIFICATION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				notificationDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "NOTIFICATION", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("NOTIFICATION", colNames, types);
+			// create the tables and columns from the OWL creator schema
+			for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
+				String tableName = tableSchema.getValue0();
+				String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+				String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+				if (allowIfExistsTable) {
+					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
+				} else {
+					if (!queryUtil.tableExists(conn, tableName, database, schema)) {
+						String sql = queryUtil.createTable(tableName, colNames, types);
+						classLogger.info("Running sql {}", sql);
+						notificationDb.insertData(sql);
+					}
+				}
+
+				List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column {} missing from {} table; adding it. Existing columns: {}", col,
+								tableName, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						notificationDb.insertData(addColumnSql);
+					}
 				}
 			}
+
+			// NOTIFICATION index (kept)
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
 						"NOTIFICATIONID");
@@ -133,21 +136,6 @@ public class NotificationDbUtils {
 							"NOTIFICATIONID");
 					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
-				}
-			}
-
-			// check all the columns we want are there
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "NOTIFICATION", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column {} missing from NOTIFICATION table; adding it. Existing columns: {}",
-								col, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("NOTIFICATION", col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						notificationDb.insertData(addColumnSql);
-					}
 				}
 			}
 
