@@ -39,6 +39,7 @@ public class SemossLogUtils {
 
 	public static final String USER_ID = "userId";
 	public static final String USER_TYPE = "userType";
+	public static final String USER_NAME = "userName";
 	public static final String SESSION_ID = "sessionId";
 	public static final String CLIENT_IP = "clientIP";
 
@@ -48,6 +49,7 @@ public class SemossLogUtils {
 	public static final String HOST = "host";
 
 	public static final String IS_SUCCESS = "isSuccess";
+	public static final String FILTER_NAME = "filterName";
 	public static final String ENGINE_ID = "engineId";
 	public static final String ENGINE_NAME = "engineName";
 	public static final String ENGINE_TYPE = "engineType";
