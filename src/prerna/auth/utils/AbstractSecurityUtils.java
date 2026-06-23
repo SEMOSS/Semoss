@@ -2337,6 +2337,210 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// ENTITYDEFAULTTOKENLIMIT
+			colNames = new String[] { "ENTITY_TYPE", "ENTITY_ID", "USAGE_RESTRICTION", "USAGE_FREQUENCY",
+					"MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME", "IS_ACTIVE",
+					"CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED", "DATE_MODIFIED", "RESTRICT_PER_MODEL" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BIGINT",
+					"BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "TIMESTAMP",
+					"TIMESTAMP", "BOOLEAN" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENTITYDEFAULTTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENTITYDEFAULTTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENTITYDEFAULTTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENTITYDEFAULTTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENTITYDEFAULTTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ENTITYDEFAULTTEAMTOKENLIMIT
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENTITYDEFAULTTEAMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENTITYDEFAULTTEAMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENTITYDEFAULTTEAMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENTITYDEFAULTTEAMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENTITYDEFAULTTEAMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// MODELTOKENLIMIT
+			colNames = new String[] { "ENGINE_ID", "USAGE_FREQUENCY", "MAX_TOKENS", "MAX_INPUT_TOKENS",
+					"MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME", "IS_ACTIVE", "CREATED_BY", "DATE_CREATED",
+					"DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "DOUBLE",
+					"BOOLEAN", "VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MODELTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "MODELTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("MODELTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ENGINEUSERTOKENLIMIT
+			colNames = new String[] { "USER_ID", "ENGINE_ID", "USAGE_RESTRICTION", "USAGE_FREQUENCY",
+					"MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME", "IS_ACTIVE",
+					"CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED", "DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BIGINT",
+					"BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "TIMESTAMP",
+					"TIMESTAMP" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEUSERTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENGINEUSERTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENGINEUSERTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINEUSERTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEUSERTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ENGINETEAMTOKENLIMIT
+			colNames = new String[] { "GROUP_ID", "GROUP_TYPE", "ENGINE_ID", "USAGE_RESTRICTION",
+					"USAGE_FREQUENCY", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME",
+					"IS_ACTIVE", "CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED", "DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"BIGINT", "BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)",
+					"TIMESTAMP", "TIMESTAMP" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENGINETEAMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENGINETEAMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENGINETEAMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENGINETEAMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENGINETEAMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// PROJECTUSERTOKENLIMIT
+			colNames = new String[] { "USER_ID", "PROJECT_ID", "ENGINE_ID", "USAGE_RESTRICTION",
+					"USAGE_FREQUENCY", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME",
+					"RESTRICT_PER_MODEL", "IS_ACTIVE", "CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED",
+					"DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"BIGINT", "BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)",
+					"TIMESTAMP", "TIMESTAMP" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTUSERTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "PROJECTUSERTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("PROJECTUSERTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTUSERTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTUSERTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// PROJECTTEAMTOKENLIMIT
+			colNames = new String[] { "GROUP_ID", "GROUP_TYPE", "PROJECT_ID", "ENGINE_ID", "USAGE_RESTRICTION",
+					"USAGE_FREQUENCY", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME",
+					"RESTRICT_PER_MODEL", "IS_ACTIVE", "CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED",
+					"DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "BOOLEAN", "VARCHAR(255)",
+					"VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("PROJECTTEAMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "PROJECTTEAMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("PROJECTTEAMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PROJECTTEAMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTTEAMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ROOMTOKENLIMIT
+			colNames = new String[] { "USERID", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS",
+					"IS_ACTIVE", "CREATED_BY", "DATE_CREATED", "DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT",
+					"BOOLEAN", "VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ROOMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ROOMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ROOMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ROOMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ROOMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			// GITHUB_APP
 			// output of the GitHub app-manifest conversion flow (the app's own credentials)
 			colNames = new String[] { "APP_ID", "SLUG", "APP_NAME", "OWNER_LOGIN", "HTML_URL", "WEBHOOK_URL",

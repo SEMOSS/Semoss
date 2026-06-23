@@ -1881,6 +1881,23 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
 			ZonedDateTime currentDateTime, String frequency) {
+		return getTotalTokensOrTotalResponseTime(restrictionMode, user, engineId, currentDateTime, frequency, null);
+	}
+
+	/**
+	 * Calculate total token usage or response time for a user on a specific engine,
+	 * optionally filtered by message type (INPUT or RESPONSE).
+	 *
+	 * @param restrictionMode usage mode
+	 * @param user            user to evaluate
+	 * @param engineId        engine id
+	 * @param currentDateTime reference date/time
+	 * @param frequency       window frequency
+	 * @param messageType     optional filter: "INPUT" or "RESPONSE"; null for combined
+	 * @return aggregate usage value, or {@code null} if unavailable
+	 */
+	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
+			ZonedDateTime currentDateTime, String frequency, String messageType) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
@@ -1896,15 +1913,23 @@ public class ModelInferenceLogsUtils {
 		ZonedDateTime endDate = dates.get("end");
 
 		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_INPUT_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_OUTPUT_TOKEN_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
 
+		String messageTypeFilter = "";
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			messageTypeFilter = " AND MESSAGE_TYPE=?";
+		}
+
 		// SQL query to fetch the total tokens or response time
 		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
+				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?"
+				+ messageTypeFilter;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -1914,6 +1939,9 @@ public class ModelInferenceLogsUtils {
 			ps.setString(psIndex++, engineId);
 			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
 			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
 
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
@@ -1932,6 +1960,161 @@ public class ModelInferenceLogsUtils {
 			classLogger.error(
 					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
 					user.getAccessToken(user.getLogins().get(0)).getId(), engineId, restrictionMode, frequency, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return null;
+	}
+
+	/**
+	 * Calculate total usage for an engine across the entire platform, optionally
+	 * filtered by message type.
+	 *
+	 * @param restrictionMode usage mode
+	 * @param engineId        engine id
+	 * @param currentDateTime reference date/time
+	 * @param frequency       window frequency
+	 * @param messageType     optional filter: "INPUT" or "RESPONSE"; null for combined
+	 * @return aggregate usage value, or {@code null} if unavailable
+	 */
+	public static Number getTotalTokensForEngine(String restrictionMode, String engineId,
+			ZonedDateTime currentDateTime, String frequency, String messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		String sumColumn = null;
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_INPUT_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_OUTPUT_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+
+		StringBuilder queryBuilder = new StringBuilder();
+		queryBuilder.append("SELECT ").append(sumColumn)
+				.append(" AS \"current_usage\" FROM MESSAGE WHERE AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?");
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			queryBuilder.append(" AND MESSAGE_TYPE=?");
+		}
+
+		String query = queryBuilder.toString();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, engineId);
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				if (retNum == null) {
+					return 0;
+				}
+				return retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate platform usage for engineId '{}', restrictionMode '{}', frequency '{}'.",
+					engineId, restrictionMode, frequency, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return null;
+	}
+
+	/**
+	 * Calculate total token usage for a user within a project, optionally scoped
+	 * to a specific engine (per-model mode) and filtered by message type.
+	 *
+	 * @param restrictionMode usage mode
+	 * @param user            user to evaluate
+	 * @param projectId       project id to scope usage
+	 * @param engineId        optional engine id for per-model mode; null for all models
+	 * @param currentDateTime reference date/time
+	 * @param frequency       window frequency
+	 * @param messageType     optional filter: "INPUT" or "RESPONSE"; null for combined
+	 * @return aggregate usage value, or {@code null} if unavailable
+	 */
+	public static Number getTotalTokensForProject(String restrictionMode, User user, String projectId,
+			String engineId, ZonedDateTime currentDateTime, String frequency, String messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		String sumColumn = null;
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_INPUT_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_OUTPUT_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(m.MESSAGE_TOKENS) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(m.RESPONSE_TIME) ";
+		}
+
+		StringBuilder queryBuilder = new StringBuilder();
+		queryBuilder.append("SELECT ").append(sumColumn)
+				.append(" AS \"current_usage\" FROM MESSAGE m INNER JOIN ROOM r ON m.ROOM_ID = r.ROOM_ID")
+				.append(" WHERE m.USER_ID=? AND r.PROJECT_ID=? AND m.DATE_CREATED BETWEEN ? AND ?");
+
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			queryBuilder.append(" AND m.AGENT_ID=?");
+		}
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			queryBuilder.append(" AND m.MESSAGE_TYPE=?");
+		}
+
+		String query = queryBuilder.toString();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setString(psIndex++, projectId);
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
+			if (engineId != null && !engineId.trim().isEmpty()) {
+				ps.setString(psIndex++, engineId);
+			}
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				if (retNum == null) {
+					return 0;
+				}
+				return retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate project usage for userId '"
+					+ user.getAccessToken(user.getLogins().get(0)).getId() + "', projectId '" + projectId
+					+ "', engineId '" + engineId + "', restrictionMode '" + restrictionMode + "', frequency '"
+					+ frequency + "'.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
@@ -3585,6 +3768,34 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(andFilters);
 	}
 
+	/**
+	 * Reset (zero out) token usage for a specific user on a specific engine.
+	 * This sets MESSAGE_TOKENS = 0 for all matching MESSAGE rows.
+	 *
+	 * @param userId   the user's id
+	 * @param engineId the engine id
+	 */
+	public static void resetUserTokenUsageForEngine(String userId, String engineId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE MESSAGE SET MESSAGE_TOKENS = 0, RESPONSE_TIME = 0 WHERE USER_ID = ? AND AGENT_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, engineId);
+			int updated = ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			classLogger.info("Reset token usage for user '{}' on engine '{}': {} rows updated.", userId, engineId, updated);
+		} catch (Exception e) {
+			classLogger.error("Failed to reset token usage for user '" + userId + "' on engine '" + engineId + "'.", e);
+			throw new IllegalArgumentException("Failed to reset token usage: " + e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
+	}
+
 	// ============================================================
 	// SKILL registry
 	//
@@ -3644,6 +3855,82 @@ public class ModelInferenceLogsUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
+	}
+
+	/**
+	 * Reset (zero out) token usage for a specific user within a specific project.
+	 * This sets MESSAGE_TOKENS = 0 for all MESSAGE rows linked to rooms in the project.
+	 *
+	 * @param userId    the user's id
+	 * @param projectId the project id
+	 */
+	public static void resetUserTokenUsageForProject(String userId, String projectId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE MESSAGE SET MESSAGE_TOKENS = 0, RESPONSE_TIME = 0 WHERE USER_ID = ? AND ROOM_ID IN (SELECT ROOM_ID FROM ROOM WHERE PROJECT_ID = ?)";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, projectId);
+			int updated = ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			classLogger.info("Reset token usage for user '{}' on project '{}': {} rows updated.", userId, projectId, updated);
+		} catch (Exception e) {
+			classLogger.error("Failed to reset token usage for user '" + userId + "' on project '" + projectId + "'.", e);
+			throw new IllegalArgumentException("Failed to reset token usage: " + e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
+	}
+
+	/**
+	 * Get total token usage for a specific room, optionally filtered by message type.
+	 * This is used for per-room token limit enforcement.
+	 *
+	 * @param roomId      the room id
+	 * @param messageType optional: "INPUT" or "RESPONSE"; null for combined
+	 * @return total tokens used in this room
+	 */
+	public static Number getTotalTokensForRoom(String roomId, String messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return 0;
+		}
+
+		String messageTypeFilter = "";
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			messageTypeFilter = " AND MESSAGE_TYPE=?";
+		}
+
+		String query = "SELECT SUM(MESSAGE_TOKENS) AS \"current_usage\" FROM MESSAGE WHERE ROOM_ID=?" + messageTypeFilter;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, roomId);
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				if (retNum == null) {
+					return 0;
+				}
+				return retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate room token usage for roomId '" + roomId + "'.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return 0;
 	}
 
 	/**

@@ -48,7 +48,13 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
 	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
-
+	public static final String USAGE_RESTRICTION_INPUT_CURRENT = "inputCurrentValue";
+	public static final String USAGE_RESTRICTION_INPUT_MAX = "inputMaxValue";
+	public static final String USAGE_RESTRICTION_OUTPUT_CURRENT = "outputCurrentValue";
+	public static final String USAGE_RESTRICTION_OUTPUT_MAX = "outputMaxValue";
+	public static final String USAGE_RESTRICTION_PROJECT_CURRENT = "projectCurrentValue";
+	public static final String USAGE_RESTRICTION_PROJECT_MAX = "projectMaxValue";
+    
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
 	protected Integer numberOfTokensInResponse;

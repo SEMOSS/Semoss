@@ -996,12 +996,24 @@ public class Constants {
 	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
 	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
 	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
+	public static final String ENGINE_MAX_INPUT_TOKEN_KEY = "engine_max_input_token";
+	public static final String ENGINE_MAX_OUTPUT_TOKEN_KEY = "engine_max_output_token";
 	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
 	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
 	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
 	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
+	// project-level restriction keys
+	public static final String PROJECT_USAGE_RESTRICTION_KEY = "project_usage_restriction";
+	public static final String PROJECT_USAGE_FREQUENCY_KEY = "project_usage_frequency";
+	public static final String PROJECT_MAX_TOKEN_KEY = "project_max_token";
+	public static final String PROJECT_MAX_INPUT_TOKEN_KEY = "project_max_input_token";
+	public static final String PROJECT_MAX_OUTPUT_TOKEN_KEY = "project_max_output_token";
+	public static final String PROJECT_MAX_RESPONSE_TIME_KEY = "project_max_response_time";
+	public static final String PROJECT_RESTRICT_PER_MODEL_KEY = "project_restrict_per_model";
 	// model restriction types
 	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
+	public static final String MODEL_INPUT_TOKEN_RESTRICTION_VALUE = "input_token";
+	public static final String MODEL_OUTPUT_TOKEN_RESTRICTION_VALUE = "output_token";
 	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
 
 	// External Permission Management
