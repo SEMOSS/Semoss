@@ -38,7 +38,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Creates a new feature flag for an app.
  *
  * Pixel: CreateAppFeatureFlag(app="myApp", key="new-dashboard",
- * description="Redesigned UI", default=false)
+ * description="Redesigned UI")
  *
  * Requires app owner or admin.
  */

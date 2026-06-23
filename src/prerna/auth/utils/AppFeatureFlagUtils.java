@@ -162,9 +162,11 @@ public class AppFeatureFlagUtils {
 		return flagId;
 	}
 
-	public static void updateFlag(String appId, String flagId, Integer minVersion, Integer defaultVersion) {
-		if (minVersion == null && defaultVersion == null) {
-			throw new IllegalArgumentException("At least one of 'minVersion' or 'defaultVersion' is required");
+	public static void updateFlag(String appId, String flagId, Integer minVersion, Integer defaultVersion,
+			String description) {
+		if (minVersion == null && defaultVersion == null && description == null) {
+			throw new IllegalArgumentException(
+					"At least one of 'minVersion', 'defaultVersion', or 'description' is required");
 		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		StringBuilder sql = new StringBuilder("UPDATE APP_FEATURE_FLAG SET ");
@@ -178,6 +180,12 @@ public class AppFeatureFlagUtils {
 				sql.append(", ");
 			sql.append("DEFAULT_VERSION=?");
 			params.add(defaultVersion);
+		}
+		if (description != null) {
+			if (!params.isEmpty())
+				sql.append(", ");
+			sql.append("DESCRIPTION=?");
+			params.add(description);
 		}
 		sql.append(" WHERE APP_ID=? AND FLAG_ID=?");
 		params.add(appId);

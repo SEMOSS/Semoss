@@ -74,7 +74,7 @@ App owners use these to create and manage flags. All live under `prerna/reactor/
 | Reactor | Pixel Call | Description |
 |---|---|---|
 | `CreateAppFeatureFlagReactor` | `CreateAppFeatureFlag(app, key, description)` | Define a new flag for an app (returns flagId) |
-| `UpdateAppFeatureFlagReactor` | `UpdateAppFeatureFlag(app, flagId, minVersion, defaultVersion)` | Set which version enables the flag and default for unassigned users |
+| `UpdateAppFeatureFlagReactor` | `UpdateAppFeatureFlag(app, flagId, minVersion?, defaultVersion?, description?)` | Update one or more flag properties: minVersion threshold, defaultVersion fallback, and description |
 | `DeleteAppFeatureFlagReactor` | `DeleteAppFeatureFlag(app, flagId)` | Remove a flag and cascade to version buckets and user assignments |
 | `GetAppVersionBucketsReactor` | `GetAppVersionBuckets(app, flagId)` | List all version buckets for a flag with descriptions and user lists |
 
@@ -185,7 +185,8 @@ UpdateAppFeatureFlag(
   app            = "myApp",
   flagId         = "550e8400-e29b-41d4-a716-446655440000",
   minVersion     = 2,              // flag enabled for v2 and above
-  defaultVersion = 0               // unassigned users see v0 (disabled)
+  defaultVersion = 0,              // unassigned users see v0 (disabled)
+  description    = "Rollout after beta validation"
 );
 
 
