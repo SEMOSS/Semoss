@@ -118,11 +118,10 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		// Build the partial assistant response from the FE-supplied parts (this is
-		// the substitute for room.ask's modelEngine.askRoom call).
+		// the substitute for room.ask's modelEngine.askRoom call). Always returns
+		// a message — empty if no tokens streamed before the cancel.
 		ResponseMessage partialMsg = buildPartialFromParts(responseParts);
-		if (partialMsg != null) {
-			partialMsg.setModel(modelEngine);
-		}
+		partialMsg.setModel(modelEngine);
 
 		String userId = user.getPrimaryLoginToken().getId();
 		synchronized (room) {
@@ -148,22 +147,17 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 					inputMsg.setParentMessageId(null);
 				}
 
-				// Wire the partial response (if any) under the input we just built.
-				if (partialMsg != null) {
-					partialMsg.setParentMessageId(inputMsg.getMessageId());
-				}
+				// Wire the partial response under the input we just built.
+				partialMsg.setParentMessageId(inputMsg.getMessageId());
 
 				// Append in conversation order.
 				room.getMessages().add(inputMsg);
-				if (partialMsg != null) {
-					room.getMessages().add(partialMsg);
-				}
+				room.getMessages().add(partialMsg);
 
 				// Hidden user-note / assistant-ack pair — disabled for now, will be
 				// re-enabled once we want the model explicitly told its previous turn
 				// was cut short. See appendHiddenCancelContextPair below.
-				// appendHiddenCancelContextPair(room, modelEngine,
-				//         partialMsg != null ? partialMsg.getMessageId() : inputMsg.getMessageId());
+				// appendHiddenCancelContextPair(room, modelEngine, partialMsg.getMessageId());
 
 				// Room-name inference + 4-arg/2-arg persist switch — copied from
 				// Room.ask's tail so first-message rooms actually get created.
@@ -191,51 +185,45 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		// Return the visible pair so FE can sync placeholder IDs without reloading.
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 		pixelReturn.put("inputMessage", MessageUtils.jsonToMapForPixelReturn(MessageUtils.toJson(inputMsg)));
-		if (partialMsg != null) {
-			pixelReturn.put("responseMessage", MessageUtils.jsonToMapForPixelReturn(MessageUtils.toJson(partialMsg)));
-		}
+		pixelReturn.put("responseMessage", MessageUtils.jsonToMapForPixelReturn(MessageUtils.toJson(partialMsg)));
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	/**
 	 * Build a ResponseMessage from the FE-supplied parts list, in order. Each
 	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
-	 * and the matching payload field. Returns null if the list is empty or
-	 * yields no usable parts (e.g. cancel fired before any token streamed).
+	 * and the matching payload field. Always returns a message — when no usable
+	 * parts come through (cancel fired before any token streamed) we still
+	 * persist an empty response so the input/response pair stays balanced.
 	 */
 	private ResponseMessage buildPartialFromParts(List<?> responseParts) {
-		if (responseParts == null || responseParts.isEmpty()) {
-			return null;
-		}
-
 		ResponseMessage.Builder builder = ResponseMessage.builder();
-		boolean hasAnyPart = false;
-		for (Object element : responseParts) {
-			if (!(element instanceof Map)) {
-				continue;
-			}
-			Map<?, ?> part = (Map<?, ?>) element;
-			Object typeObj = part.get("type");
-			String type = typeObj != null ? typeObj.toString() : null;
-			if ("THINKING".equals(type)) {
-				Object thinkingObj = part.get("thinking");
-				String thinking = thinkingObj != null ? thinkingObj.toString() : null;
-				if (thinking != null && !thinking.isEmpty()) {
-					builder.withThinking(thinking);
-					hasAnyPart = true;
+		if (responseParts != null) {
+			for (Object element : responseParts) {
+				if (!(element instanceof Map)) {
+					continue;
 				}
-			} else if ("TEXT".equals(type)) {
-				Object textObj = part.get("text");
-				String text = textObj != null ? textObj.toString() : null;
-				if (text != null && !text.isEmpty()) {
-					builder.withText(text);
-					hasAnyPart = true;
+				Map<?, ?> part = (Map<?, ?>) element;
+				Object typeObj = part.get("type");
+				String type = typeObj != null ? typeObj.toString() : null;
+				if ("THINKING".equals(type)) {
+					Object thinkingObj = part.get("thinking");
+					String thinking = thinkingObj != null ? thinkingObj.toString() : null;
+					if (thinking != null && !thinking.isEmpty()) {
+						builder.withThinking(thinking);
+					}
+				} else if ("TEXT".equals(type)) {
+					Object textObj = part.get("text");
+					String text = textObj != null ? textObj.toString() : null;
+					if (text != null && !text.isEmpty()) {
+						builder.withText(text);
+					}
 				}
+				// Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are not produced by a
+				// cancelled stream and are intentionally ignored here.
 			}
-			// Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are not produced by a
-			// cancelled stream and are intentionally ignored here.
 		}
-		return hasAnyPart ? builder.build() : null;
+		return builder.build();
 	}
 
 	/**
