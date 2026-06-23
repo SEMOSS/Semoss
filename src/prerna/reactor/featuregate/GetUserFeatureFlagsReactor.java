@@ -36,8 +36,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns all feature flag keys and their evaluated boolean state for the current user.
- * The app can handle flag checks client-side using this response.
+ * Returns all feature flag keys and their evaluated state details for the
+ * current user.
+ * Each flag includes whether it is enabled and the version data used to
+ * evaluate it.
  *
  * Pixel: GetUserFeatureFlags(app="myApp")
  *
@@ -65,7 +67,7 @@ public class GetUserFeatureFlagsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have access to this app");
 		}
 
-		Map<String, Boolean> flags = AppFeatureFlagUtils.getUserFeatureFlags(appId, user);
+		Map<String, Map<String, Object>> flags = AppFeatureFlagUtils.getUserFeatureFlagDetails(appId, user);
 		return new NounMetadata(flags, PixelDataType.MAP);
 	}
 }

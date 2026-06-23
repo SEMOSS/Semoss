@@ -389,6 +389,43 @@ public class AppFeatureFlagUtils {
 		return result;
 	}
 
+	public static Map<String, Map<String, Object>> getUserFeatureFlagDetails(String appId, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Map<String, Map<String, Object>> result = new HashMap<>();
+		String userId = getUserId(user);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("APP_FEATURE_FLAG__FLAG_ID"));
+		qs.addSelector(new QueryColumnSelector("APP_FEATURE_FLAG__FLAG_KEY"));
+		qs.addSelector(new QueryColumnSelector("APP_FEATURE_FLAG__MIN_VERSION"));
+		qs.addSelector(new QueryColumnSelector("APP_FEATURE_FLAG__DEFAULT_VERSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_FEATURE_FLAG__APP_ID", "==", appId));
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] row = wrapper.next().getValues();
+				String flagId = (String) row[0];
+				String flagKey = (String) row[1];
+				int minVersion = row[2] != null ? ((Number) row[2]).intValue() : 0;
+				int defaultVersion = row[3] != null ? ((Number) row[3]).intValue() : 0;
+				int userVersion = getUserVersion(appId, flagId, userId);
+				int effectiveVersion = userVersion >= 0 ? userVersion : defaultVersion;
+
+				Map<String, Object> detail = new HashMap<>();
+				detail.put("flagId", flagId);
+				detail.put("enabled", effectiveVersion >= minVersion);
+				detail.put("userVersion", userVersion);
+				detail.put("defaultVersion", defaultVersion);
+				detail.put("effectiveVersion", effectiveVersion);
+				detail.put("minVersion", minVersion);
+				result.put(flagKey, detail);
+			}
+		} catch (Exception e) {
+			classLogger.error("Error fetching flag details for bulk evaluation, app={}", appId, e);
+		}
+		return result;
+	}
+
 	public static Map<Integer, Map<String, Object>> getVersionBucketsWithDetails(String appId, String flagId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<Integer, Map<String, Object>> buckets = new HashMap<>();

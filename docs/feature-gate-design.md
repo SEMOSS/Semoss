@@ -99,7 +99,24 @@ App owners use these to create and manage flags. All live under `prerna/reactor/
 | Reactor | Pixel Call | Description |
 |---|---|---|
 | `CheckFeatureFlagReactor` | `CheckFeatureFlag(app, flagId)` | Evaluate: does current user have flag enabled? Returns boolean |
-| `GetUserFeatureFlagsReactor` | `GetUserFeatureFlags(app)` | Returns all flags (by flagKey) and their evaluated state for the current user — app can handle checks client-side |
+| `GetUserFeatureFlagsReactor` | `GetUserFeatureFlags(app)` | Returns all flags (by flagKey) with evaluation details for the current user, including `enabled`, `userVersion`, `defaultVersion`, `effectiveVersion`, and `minVersion` |
+
+Example response shape:
+
+```json
+{
+  "new-dashboard": {
+    "flagId": "uuid",
+    "enabled": true,
+    "userVersion": 5,
+    "defaultVersion": 0,
+    "effectiveVersion": 5,
+    "minVersion": 3
+  }
+}
+```
+
+`effectiveVersion` is the version actually used for evaluation. If the user has an explicit version assignment for the flag, it matches `userVersion`. Otherwise it falls back to `defaultVersion`.
 
 ### Evaluation Logic — `AppFeatureFlagUtils.java`
 
