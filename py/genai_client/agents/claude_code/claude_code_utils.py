@@ -7,6 +7,7 @@ from claude_agent_sdk import (
     AssistantMessage,
     ResultMessage,
     TextBlock,
+    ThinkingBlock,
     ToolResultBlock,
     ToolUseBlock,
     UserMessage,
@@ -76,10 +77,13 @@ def make_user_prompt_event(
 
 
 def make_assistant_event(msg: AssistantMessage) -> Optional[dict]:
-    """One envelope per AssistantMessage, bundling all TextBlock and
-    ToolUseBlock content just like the Java parser does."""
+    """One envelope per AssistantMessage, bundling all ThinkingBlock, TextBlock
+    and ToolUseBlock content just like the Java parser (ClaudeCodeTranscriptParser)
+    does. The thinking shape mirrors assistantThinkingToJson so live streaming and
+    history replay produce the same envelope for the frontend."""
     timestamp = _iso_now()
     model = msg.model or ""
+    thinking: list[dict] = []
     texts: list[dict] = []
     tool_invocations: list[dict] = []
 
@@ -88,6 +92,15 @@ def make_assistant_event(msg: AssistantMessage) -> Optional[dict]:
             texts.append(
                 {
                     "text": block.text,
+                    "model": model,
+                    "timestamp": timestamp,
+                }
+            )
+        elif isinstance(block, ThinkingBlock):
+            thinking.append(
+                {
+                    "thinking": block.thinking,
+                    "redacted": False,
                     "model": model,
                     "timestamp": timestamp,
                 }
@@ -104,10 +117,12 @@ def make_assistant_event(msg: AssistantMessage) -> Optional[dict]:
                 }
             )
 
-    if not texts and not tool_invocations:
+    if not thinking and not texts and not tool_invocations:
         return None
 
     data: dict = {"model": model}
+    if thinking:
+        data["thinking"] = thinking
     if texts:
         data["texts"] = texts
     if tool_invocations:

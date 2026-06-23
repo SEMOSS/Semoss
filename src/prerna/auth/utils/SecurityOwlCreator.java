@@ -84,18 +84,16 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("JIRA_CONNECTIONS");
 		conceptsRequired.add("SALESFORCE_CONNECTIONS");
 		conceptsRequired.add("SERVICENOW_CONNECTIONS");
+
+		// github app integration
+		conceptsRequired.add("GITHUB_APP");
+		conceptsRequired.add("GITHUB_PROJECT_LINK");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
 	static {
 		relationshipsRequired.add(
-				new String[] { "ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID" });
-		relationshipsRequired.add(new String[] { "PROJECT", "GROUPPROJECTPERMISSION",
-				"PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID" });
-		relationshipsRequired.add(new String[] { "INSIGHT", "GROUPINSIGHTPERMISSION",
-				"INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID" });
-		relationshipsRequired.add(new String[] { "INSIGHT", "GROUPINSIGHTPERMISSION",
-				"INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID" });
+				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
 	}
 
 	private IDatabaseEngine securityDb;
@@ -135,8 +133,9 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINEDISPLAYNAME")) {
+			List<String> props = securityDb
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/GITHUB_PROJECT_LINK");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/GITHUB_PROJECT_LINK/BRANCH")) {
 				return true;
 			}
 		}
@@ -564,13 +563,13 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 
 		// JIRA_CONNECTIONS
-        owler.addConcept("JIRA_CONNECTIONS", null, null);
-        owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addConcept("JIRA_CONNECTIONS", null, null);
+		owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
 		owler.addProp("JIRA_CONNECTIONS", "ALIAS", "VARCHAR(255)");
-        owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
-        owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
 		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
-        owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// SALESFORCE_CONNECTIONS
 		owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
@@ -587,6 +586,32 @@ public class SecurityOwlCreator {
 		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
 		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
 		owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
+
+		// GITHUB_APP
+		owler.addConcept("GITHUB_APP", null, null);
+		owler.addProp("GITHUB_APP", "APP_ID", "BIGINT");
+		owler.addProp("GITHUB_APP", "SLUG", "VARCHAR(255)");
+		owler.addProp("GITHUB_APP", "APP_NAME", "VARCHAR(255)");
+		owler.addProp("GITHUB_APP", "OWNER_LOGIN", "VARCHAR(255)");
+		owler.addProp("GITHUB_APP", "HTML_URL", "VARCHAR(500)");
+		owler.addProp("GITHUB_APP", "WEBHOOK_URL", "VARCHAR(500)");
+		owler.addProp("GITHUB_APP", "CLIENT_ID", "VARCHAR(255)");
+		owler.addProp("GITHUB_APP", "CLIENT_SECRET", "CLOB");
+		owler.addProp("GITHUB_APP", "WEBHOOK_SECRET", "CLOB");
+		owler.addProp("GITHUB_APP", "PRIVATE_KEY", "CLOB");
+		owler.addProp("GITHUB_APP", "CREATED_ON", "TIMESTAMP");
+		owler.addProp("GITHUB_APP", "UPDATED_ON", "TIMESTAMP");
+
+		// GITHUB_PROJECT_LINK
+		owler.addConcept("GITHUB_PROJECT_LINK", null, null);
+		owler.addProp("GITHUB_PROJECT_LINK", "PROJECT_ID", "VARCHAR(255)");
+		owler.addProp("GITHUB_PROJECT_LINK", "APP_ID", "BIGINT");
+		owler.addProp("GITHUB_PROJECT_LINK", "INSTALLATION_ID", "BIGINT");
+		owler.addProp("GITHUB_PROJECT_LINK", "REPO_ID", "BIGINT");
+		owler.addProp("GITHUB_PROJECT_LINK", "REPO_FULL_NAME", "VARCHAR(511)");
+		owler.addProp("GITHUB_PROJECT_LINK", "BRANCH", "VARCHAR(255)");
+		owler.addProp("GITHUB_PROJECT_LINK", "CREATED_ON", "TIMESTAMP");
+		owler.addProp("GITHUB_PROJECT_LINK", "UPDATED_ON", "TIMESTAMP");
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
@@ -616,6 +641,10 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
+
+		// github app integration joins
+		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
+		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
 
 		owler.commit();
 		owler.export();

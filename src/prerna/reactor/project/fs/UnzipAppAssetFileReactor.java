@@ -95,7 +95,7 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 		GitRepoUtils.addAllFiles(gitFolder, false);
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 		String email = accessToken.getEmail();
 		GitRepoUtils.commitAddedFiles(gitFolder, "add: unzipped " + fileRelativePath, author, email);
 
