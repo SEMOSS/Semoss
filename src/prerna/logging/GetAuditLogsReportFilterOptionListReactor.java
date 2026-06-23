@@ -48,11 +48,12 @@ public class GetAuditLogsReportFilterOptionListReactor extends AbstractReactor {
 		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
 		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
 		String engineType = getString(map, SemossLogUtils.ENGINE_TYPE);
+		String roomId = getString(map, SemossLogUtils.ROOM_ID);
 
 		// validate access to the project/engine and resolve which user's logs the
 		// caller is allowed to see (non-owners are restricted to their own)
 		AuditLogReportSecurityUtils.AuditLogAccess access = AuditLogReportSecurityUtils.authorize(this.insight,
-				projectId, engineId, null, getString(map, SemossLogUtils.FILTER_USER_ID));
+				projectId, engineId, roomId, getString(map, SemossLogUtils.FILTER_USER_ID));
 		String filterUserId = access.getFilterUserId();
 
 		// resolve the same date range as the table so the dropdown only offers values
