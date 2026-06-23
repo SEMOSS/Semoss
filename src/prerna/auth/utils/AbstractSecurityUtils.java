@@ -142,9 +142,9 @@ public abstract class AbstractSecurityUtils {
 
 	public static void loadSecurityDatabase() throws Exception {
 		IRDBMSEngine loadedSecurityDb = SystemEngineRegistry.getSecurityDb();
-		SecurityOwlCreator owlCreator = new SecurityOwlCreator(loadedSecurityDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		SecurityOwlCreator owlCreator = new SecurityOwlCreator(loadedSecurityDb.getQueryUtil());
+		if (owlCreator.needsRemake(loadedSecurityDb)) {
+			owlCreator.remakeOwl(loadedSecurityDb);
 		}
 		initialize();
 		// this is to update the bad naming in the security db for type values
