@@ -88,6 +88,11 @@ public class SecurityOwlCreator {
 		// github app integration
 		conceptsRequired.add("GITHUB_APP");
 		conceptsRequired.add("GITHUB_PROJECT_LINK");
+
+		// feature gate
+		conceptsRequired.add("APP_FEATURE_FLAG");
+		conceptsRequired.add("APP_VERSION_BUCKET");
+		conceptsRequired.add("APP_USER_VERSION");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -645,6 +650,31 @@ public class SecurityOwlCreator {
 		// github app integration joins
 		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
 		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
+
+		// APP_FEATURE_FLAG
+		owler.addConcept("APP_FEATURE_FLAG", null, null);
+		owler.addProp("APP_FEATURE_FLAG", "FLAG_ID", "VARCHAR(255)");
+		owler.addProp("APP_FEATURE_FLAG", "APP_ID", "VARCHAR(255)");
+		owler.addProp("APP_FEATURE_FLAG", "FLAG_KEY", "VARCHAR(255)");
+		owler.addProp("APP_FEATURE_FLAG", "DESCRIPTION", "VARCHAR(2000)");
+		owler.addProp("APP_FEATURE_FLAG", "MIN_VERSION", "INT");
+		owler.addProp("APP_FEATURE_FLAG", "DEFAULT_VERSION", "INT");
+		owler.addProp("APP_FEATURE_FLAG", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("APP_FEATURE_FLAG", "CREATED_AT", "TIMESTAMP");
+
+		// APP_USER_VERSION
+		owler.addConcept("APP_USER_VERSION", null, null);
+		owler.addProp("APP_USER_VERSION", "APP_ID", "VARCHAR(255)");
+		owler.addProp("APP_USER_VERSION", "FLAG_ID", "VARCHAR(255)");
+		owler.addProp("APP_USER_VERSION", "USER_ID", "VARCHAR(255)");
+		owler.addProp("APP_USER_VERSION", "VERSION", "INT");
+
+		// APP_VERSION_BUCKET
+		owler.addConcept("APP_VERSION_BUCKET", null, null);
+		owler.addProp("APP_VERSION_BUCKET", "APP_ID", "VARCHAR(255)");
+		owler.addProp("APP_VERSION_BUCKET", "FLAG_ID", "VARCHAR(255)");
+		owler.addProp("APP_VERSION_BUCKET", "VERSION", "INT");
+		owler.addProp("APP_VERSION_BUCKET", "DESCRIPTION", "VARCHAR(2000)");
 
 		owler.commit();
 		owler.export();
