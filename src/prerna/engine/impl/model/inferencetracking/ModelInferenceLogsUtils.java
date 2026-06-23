@@ -2301,14 +2301,24 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Updates a workspace record and replaces its resource associations.
+	 * Updates a workspace record and replaces <b>all</b> of its resource
+	 * associations - MCP engines/projects, prompts, and skills alike.
+	 * <p>
+	 * The supplied {@code resources} list is treated as the complete desired set:
+	 * every existing {@code WORKSPACE_RESOURCE} row for the workspace is deleted and
+	 * replaced with the rows derived from {@code resources}. Callers must therefore
+	 * pass the full resource set (including any skills to keep); a resource omitted
+	 * from the list is detached. (Incremental skill attach/detach without a full
+	 * rewrite is available via {@code AttachSkillToWorkspaceReactor} /
+	 * {@code DetachSkillFromWorkspaceReactor}.)
 	 *
 	 * @param workspaceId          workspace identifier
 	 * @param workspaceName        workspace display name
 	 * @param workspaceDescription workspace description payload
 	 * @param systemPrompt         workspace system prompt payload
 	 * @param isActive             active state
-	 * @param resources            replacement resource list
+	 * @param resources            complete replacement resource list (engines,
+	 *                             projects, prompts, and skills)
 	 * @throws Exception if update fails
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
@@ -2334,8 +2344,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 
-			try (PreparedStatement ps = con.prepareStatement(
-					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_TYPE != 'SKILL'")) {
+			try (PreparedStatement ps = con
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.execute();
