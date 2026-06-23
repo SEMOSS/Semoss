@@ -48,6 +48,7 @@ import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
@@ -76,15 +77,15 @@ public class MasterDatabaseUtility {
 
 	public static void initLocalMaster() throws Exception {
 		IRDBMSEngine database = SystemEngineRegistry.getLocalMasterDb();
-		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database.getQueryUtil());
+		if (owlCreator.needsRemake(database)) {
+			owlCreator.remakeOwl(database);
 		}
 
 		Connection conn = null;
 		try {
 			conn = database.getConnection();
-			executeInitLocalMaster(database, conn);
+			executeInitLocalMaster(database, conn, owlCreator.getDBSchema());
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -97,39 +98,61 @@ public class MasterDatabaseUtility {
 		}
 	}
 
-	private static void executeInitLocalMaster(IRDBMSEngine engine, Connection conn) throws SQLException {
-		String[] colNames = null;
-		String[] types = null;
-
+	private static void executeInitLocalMaster(IRDBMSEngine engine, Connection conn,
+			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
 		String database = engine.getDatabase();
 		String schema = engine.getSchema();
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
-		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
-		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
+		// create the tables and columns from the OWL creator schema
+		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
+			String tableName = tableSchema.getValue0();
+			String[] schemaCols = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] schemaTypes = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists(tableName, schemaCols, schemaTypes);
+				classLogger.info("Running sql {}", sql);
+				executeSql(conn, sql);
+			} else {
+				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
+					String sql = queryUtil.createTable(tableName, schemaCols, schemaTypes);
+					classLogger.info("Running sql {}", sql);
+					executeSql(conn, sql);
+				}
+			}
+
+			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+			for (int i = 0; i < schemaCols.length; i++) {
+				String col = schemaCols[i];
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, schemaTypes[i]);
+					classLogger.info("Running sql {}", addColumnSql);
+					executeSql(conn, addColumnSql);
+				}
+			}
+		}
+
+		// XRAYCONFIGS is not described in the OWL schema - create it explicitly
 		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
-
-		// since i have major changes
-		requireRemakeAndAlter(engine, conn, queryUtil, database, schema, allowIfExistsTable);
-
-		// engine table
-		colNames = new String[] { "ID", "ENGINENAME", "MODIFIEDDATE", "TYPE" };
-		types = new String[] { "varchar(255)", "varchar(255)", TIMESTAMP_DATATYPE, "varchar(255)" };
+		String[] colNames = new String[] { "FILENAME", "CONFIG" };
+		String[] types = new String[] { "varchar(800)", CLOB_DATATYPE };
 		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
+			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
 			classLogger.info("Running sql {}", sql);
 			executeSql(conn, sql);
 		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "ENGINE", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINE", colNames, types);
+			if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
+				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
 				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			}
 		}
+
+		// ----- indexes (kept) -----
+
+		// engine table
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID");
@@ -145,25 +168,6 @@ public class MasterDatabaseUtility {
 		}
 
 		// engine concept table
-		colNames = new String[] { "ENGINE", "PARENTSEMOSSNAME", "SEMOSSNAME", "PARENTPHYSICALNAME",
-				"PARENTPHYSICALNAMEID", "PHYSICALNAME", "PHYSICALNAMEID", "PARENTLOCALCONCEPTID", "LOCALCONCEPTID",
-				"IGNORE_DATA", "PK", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)",
-				"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE,
-				"varchar(255)", "varchar(255)", "varchar(255)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINECONCEPT", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
 		// add index
 		{
 			// 2021-08-11
@@ -215,21 +219,6 @@ public class MasterDatabaseUtility {
 		}
 
 		// concept table
-		colNames = new String[] { "LOCALCONCEPTID", "CONCEPTUALNAME", "LOGICALNAME", "DOMAINNAME", "GLOBALID" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("CONCEPT", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("CONCEPT", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
@@ -245,21 +234,6 @@ public class MasterDatabaseUtility {
 		}
 
 		// relation table
-		colNames = new String[] { "ID", "SOURCEID", "TARGETID", "GLOBALID" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("RELATION", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "RELATION", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("RELATION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
@@ -284,23 +258,6 @@ public class MasterDatabaseUtility {
 		}
 
 		// engine relation table
-		colNames = new String[] { "ENGINE", "RELATIONID", "INSTANCERELATIONID", "SOURCECONCEPTID", "TARGETCONCEPTID",
-				"SOURCEPROPERTY", "TARGETPROPERTY", "RELATIONNAME" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)",
-				"varchar(255)", "varchar(255)", "varchar(255)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("ENGINERELATION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
@@ -339,40 +296,7 @@ public class MasterDatabaseUtility {
 			}
 		}
 
-		// kv store
-		colNames = new String[] { "K", "V" };
-		types = new String[] { "varchar(800)", "varchar(800)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("KVSTORE", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("KVSTORE", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// concept metadata
-		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, database, schema);
-		colNames = new String[] { Constants.LM_PHYSICAL_NAME_ID, Constants.LM_META_KEY, Constants.LM_META_VALUE };
-		types = new String[] { "varchar(255)", "varchar(800)", CLOB_DATATYPE };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, Constants.CONCEPT_METADATA_TABLE, database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
+		// concept metadata table
 		// add index
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
@@ -399,150 +323,6 @@ public class MasterDatabaseUtility {
 						Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
 				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
-			}
-		}
-
-		// x-ray config
-		colNames = new String[] { "FILENAME", "CONFIG" };
-		types = new String[] { "varchar(800)", CLOB_DATATYPE };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// metamodel position
-		colNames = new String[] { "ENGINEID", "TABLENAME", "XPOS", "YPOS" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "FLOAT", "FLOAT" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("METAMODELPOSITION", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("METAMODELPOSITION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// this is just because of previous errors
-		// TODO: remove this after a few builds when its no longer needed
-		// added on 2020-06-04
-		executeSql(conn, "update concept set LOGICALNAME = lower (LOGICALNAME)");
-	}
-
-	@Deprecated
-	private static void requireRemakeAndAlter(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil,
-			String database, String schema, boolean allowIfExistsTable) throws SQLException {
-		boolean require = false;
-		if (!queryUtil.tableExists(conn, "ENGINECONCEPT", database, schema)) {
-			require = true;
-		} else {
-			List<String> allColumns = queryUtil.getTableColumns(conn, "ENGINECONCEPT", database, schema);
-			if (!(allColumns.contains("PARENTSEMOSSNAME") || allColumns.contains("parentsemossname"))) {
-				require = true;
-			}
-		}
-
-		// just delete and let the other methods remake the tables
-		if (require) {
-			if (allowIfExistsTable) {
-				executeSql(conn, queryUtil.dropTableIfExists("ENGINE"));
-				executeSql(conn, queryUtil.dropTableIfExists("ENGINECONCEPT"));
-				executeSql(conn, queryUtil.dropTableIfExists("CONCEPT"));
-				executeSql(conn, queryUtil.dropTableIfExists("CONCEPTMETADATA"));
-				executeSql(conn, queryUtil.dropTableIfExists("ENGINERELATION"));
-				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
-				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
-				executeSql(conn, queryUtil.dropTableIfExists("METAMODELPOSITION"));
-			} else {
-				if (queryUtil.tableExists(engine, "ENGINE", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("ENGINE"));
-				}
-				if (queryUtil.tableExists(engine, "ENGINECONCEPT", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
-				}
-				if (queryUtil.tableExists(engine, "CONCEPT", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("CONCEPT"));
-				}
-				if (queryUtil.tableExists(engine, "CONCEPTMETADATA", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
-				}
-				if (queryUtil.tableExists(engine, "ENGINERELATION", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
-				}
-				if (queryUtil.tableExists(engine, "RELATION", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("RELATION"));
-				}
-				if (queryUtil.tableExists(engine, "KVSTORE", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("KVSTORE"));
-				}
-				if (queryUtil.tableExists(engine, "METAMODELPOSITION", database, schema)) {
-					executeSql(conn, queryUtil.dropTable("METAMODELPOSITION"));
-				}
-			}
-		}
-	}
-
-	@Deprecated
-	private static void updateMetadataTable(IRDBMSEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil,
-			String tableName, String database, String schema) throws SQLException {
-		if (queryUtil.tableExists(engine, tableName, database, schema)) {
-			// rename key to metakey and value to metavalue
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			if (allCols.contains(Constants.KEY) || allCols.contains(Constants.KEY.toLowerCase())) {
-				String sql = queryUtil.modColumnName(tableName, Constants.KEY, Constants.LM_META_KEY);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (allCols.contains(Constants.VALUE) || allCols.contains(Constants.VALUE.toLowerCase())) {
-				String sql = queryUtil.modColumnName(tableName, Constants.VALUE, Constants.LM_META_VALUE);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-
-				sql = queryUtil.modColumnType(tableName, Constants.LM_META_VALUE, queryUtil.getClobDataTypeName());
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-
-			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
-			if (queryUtil.allowDropColumn()) {
-				if (allowIfExists) {
-					String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
-					classLogger.info("Running sql {}", sql);
-					executeSql(conn, sql);
-				} else {
-					// check column exists in table
-					if (allCols.contains("LOCALCONCEPTID") || allCols.contains("LOCALCONCEPTID".toLowerCase())) {
-						String sql = queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID");
-						classLogger.info("Running sql {}", sql);
-						executeSql(conn, sql);
-					}
-				}
-			}
-			if (queryUtil.allowAddColumn()) {
-				if (allowIfExists) {
-					executeSql(conn,
-							queryUtil.alterTableAddColumnIfNotExists(tableName, "PHYSICALNAMEID", "varchar(255)"));
-				} else {
-					// check column exists in table
-					if (!allCols.contains("PHYSICALNAMEID") && !allCols.contains("PHYSICALNAMEID".toLowerCase())) {
-						String sql = queryUtil.alterTableAddColumn(tableName, "PHYSICALNAMEID", "varchar(255)");
-						classLogger.info("Running sql {}", sql);
-						executeSql(conn, sql);
-					}
-				}
 			}
 		}
 	}
@@ -2637,249 +2417,6 @@ public class MasterDatabaseUtility {
 		}
 		return map;
 	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-
-	// /*
-	// * LEGACY LOGIC NAME ALTERATIONS
-	// * NOW ALTERATIONS GO THROUGH THE OWL AND THEN ARE RELOADED INTO THE LOCAL
-	// MASTER
-	// */
-	//
-	//
-	//
-	// public static boolean deleteMetaValue(String engineName, String concept,
-	// String key) {
-	// boolean deleted = false;
-	// String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName,
-	// concept);
-	// IRDBMSEngine engine = (IRDBMSEngine)
-	// SystemEngineRegistry.getLocalMasterDb();
-	// Connection conn = engine.getConnection();
-	// Statement stmt = null;
-	// int count = 0;
-	// try {
-	// String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + "
-	// WHERE "
-	// + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and " +
-	// Constants.KEY + " = \'" + key
-	// + "\';";
-	// stmt = conn.createStatement();
-	// count = stmt.executeUpdate(deleteQuery);
-	// if (count > 0) {
-	// deleted = true;
-	// }
-	// } catch (Exception ex) {
-	// logException(ex);
-	// } finally {
-	// closeStreams(stmt, null);
-	// }
-	//
-	// return deleted;
-	// }
-	//
-	// public static boolean deleteMetaValue(String engineName, String concept,
-	// String key, String value) {
-	// boolean deleted = false;
-	// String localConceptID =
-	// MasterDatabaseUtility.getPhysicalConceptId(engineName, concept);
-	// IRDBMSEngine engine = (IRDBMSEngine)
-	// SystemEngineRegistry.getLocalMasterDb();
-	// Connection conn = engine.getConnection();
-	// Statement stmt = null;
-	// int count = 0;
-	// try {
-	// String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + "
-	// WHERE "
-	// + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and " +
-	// Constants.KEY + " = \'" + key
-	// + "\' and " + Constants.VALUE + " = \'" + value + "\';";
-	// stmt = conn.createStatement();
-	// count = stmt.executeUpdate(deleteQuery);
-	// if (count > 0) {
-	// deleted = true;
-	// }
-	// } catch (Exception ex) {
-	// logException(ex);
-	// } finally {
-	// try {
-	// if (stmt != null) {
-	// stmt.close();
-	// }
-	// } catch (SQLException e) {
-	// logException(e);
-	// }
-	// }
-	//
-	// return deleted;
-	// }
-	//
-	//
-	// /**
-	// * Adds logical name to concept from engine
-	// *
-	// * @param engineId
-	// * @param concept
-	// * @param logicalName
-	// * @return
-	// */
-	// public static boolean addLogicalName(String engineId, String concept, String
-	// logicalName) {
-	// IRDBMSEngine engine = (IRDBMSEngine)
-	// SystemEngineRegistry.getLocalMasterDb();
-	// Connection masterConn = engine.getConnection();
-	// Statement stmt = null;
-	// ResultSet rs = null;
-	// int size = 0;
-	// try {
-	// String duplicateQueryCheck = "select localconceptid, conceptualname,
-	// logicalname, "
-	// + "domainname, globalid from concept "
-	// + "where localconceptid in (select localconceptid from engineconcept "
-	// + "where engine='" + engineId + "') "
-	// + "and conceptualname='" + concept + "' and logicalname='" + logicalName +
-	// "';";
-	// stmt = masterConn.createStatement();
-	// rs = stmt.executeQuery(duplicateQueryCheck);
-	// if (rs != null) {
-	// rs.beforeFirst();
-	// rs.last();
-	// size = rs.getRow();
-	// }
-	// } catch (SQLException e) {
-	// logException(e);
-	// } finally {
-	// closeStreams(stmt, rs);
-	// }
-	//
-	// try {
-	// if (size == 0) {
-	// String sourceLogicalInfo = "select localconceptid, conceptualname,
-	// logicalname, "
-	// + "domainname, globalid from concept "
-	// + "where localconceptid in (select localconceptid from engineconcept "
-	// + "where engine='" + engineId + "') "
-	// + "and conceptualname='" + concept + "'";
-	// if (stmt == null || stmt.isClosed()) {
-	// stmt = masterConn.createStatement();
-	// }
-	// rs = stmt.executeQuery(sourceLogicalInfo);
-	// while (rs.next()) {
-	// String localConceptID = rs.getString(1);
-	// String conceptualName = rs.getString(2);
-	// String oldLogicalName = rs.getString(3);
-	// String domainName = rs.getString(4);
-	// String globalID = rs.getString(5);
-	// if (conceptualName.equals(concept)) {
-	// // insert target CN as logical name
-	// String insertString = "insert into concept " + "values('" + localConceptID +
-	// "', '"
-	// + conceptualName + "', '" + logicalName + "\', \'" + domainName + "', '"
-	// + globalID.toString() + "');";
-	// int validInsert = masterConn.createStatement().executeUpdate(insertString);
-	// if (validInsert > 0) {
-	// try {
-	// engine.commitRDBMS();
-	// return true;
-	// } catch (Exception e) {
-	// logException(e);
-	// }
-	// }
-	// }
-	// }
-	// } else {
-	// return true;
-	// }
-	// } catch (SQLException e) {
-	// logException(e);
-	// } finally {
-	// closeStreams(stmt, rs);
-	// }
-	// return false;
-	// }
-	//
-	// /**
-	// * Removes logical name for a concept from an engine
-	// *
-	// * @param engineName
-	// * @param concept
-	// * @param logicalName
-	// * @return success
-	// */
-	// public static boolean removeLogicalName(String engineName, String concept,
-	// String logicalName) {
-	// IRDBMSEngine engine = (IRDBMSEngine)
-	// SystemEngineRegistry.getLocalMasterDb();
-	// Connection masterConn = engine.getConnection();
-	// Statement stmt = null;
-	//
-	// try {
-	// String deleteQuery = "delete from concept "
-	// + "where localconceptid in (select localconceptid from engineconcept "
-	// + "where engine='" + engineName + "')"
-	// + "and conceptualname='" + concept + "' and logicalname='" + logicalName +
-	// "'";
-	// stmt = masterConn.createStatement();
-	// int updateCount = stmt.executeUpdate(deleteQuery);
-	// if (updateCount == 1) {
-	// return true;
-	// }
-	// } catch (SQLException e) {
-	// logException(e);
-	// } finally {
-	// closeStreams(stmt, null);
-	// }
-	// return false;
-	// }
-	//
-	// /**
-	// * Get logical names for a specific engine and concept
-	// *
-	// * @param engineId
-	// * @param concept
-	// * @return logicalNames
-	// */
-	// public static List<String> getLogicalNames(String engineId, String concept) {
-	// List<String> logicalNames = new ArrayList<String>();
-	//
-	// IRDBMSEngine engine = (IRDBMSEngine)
-	// SystemEngineRegistry.getLocalMasterDb();
-	// Connection masterConn = engine.getConnection();
-	// Statement stmt = null;
-	// ResultSet rs = null;
-	//
-	// try {
-	// String query = "select logicalname from concept "
-	// + "where localconceptid in (select localconceptid from engineconcept "
-	// + "where engine='" + engineId + "')"
-	// + "and conceptualname='" + concept + "'";
-	//
-	// stmt = masterConn.createStatement();
-	// rs = stmt.executeQuery(query);
-	// while (rs.next()) {
-	// String logicalName = rs.getString(1);
-	// logicalNames.add(logicalName);
-	// }
-	// } catch (SQLException e) {
-	// logException(e);
-	// } finally {
-	// closeStreams(stmt, rs);
-	// }
-	// return logicalNames;
-	// }
-	//
-
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * X-RAY Stuff
