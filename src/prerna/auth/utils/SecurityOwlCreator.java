@@ -31,64 +31,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.javatuples.Pair;
+
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class SecurityOwlCreator {
-
-	private static List<String> conceptsRequired = new ArrayList<String>();
-	static {
-		conceptsRequired.add("ENGINE");
-		conceptsRequired.add("ENGINEMETA");
-		conceptsRequired.add("ENGINEMETAKEYS");
-		conceptsRequired.add("ENGINEPERMISSION");
-		conceptsRequired.add("WORKSPACEENGINE");
-		conceptsRequired.add("ASSETENGINE");
-		conceptsRequired.add("INSIGHT");
-		conceptsRequired.add("INSIGHTMETA");
-		conceptsRequired.add("INSIGHTMETAKEYS");
-		conceptsRequired.add("INSIGHTFRAMES");
-		conceptsRequired.add("USERINSIGHTPERMISSION");
-		conceptsRequired.add("SMSS_USER");
-		conceptsRequired.add("SMSS_USER_ACCESS_KEYS");
-		conceptsRequired.add("PERMISSION");
-		conceptsRequired.add("PROJECT");
-		conceptsRequired.add("PROJECTPERMISSION");
-		conceptsRequired.add("PROJECTMETA");
-		conceptsRequired.add("PROJECTMETAKEYS");
-		conceptsRequired.add("PROJECTDEPENDENCIES");
-		conceptsRequired.add("PASSWORD_RULES");
-		conceptsRequired.add("PASSWORD_HISTORY");
-		conceptsRequired.add("PASSWORD_RESET");
-		conceptsRequired.add("SESSION_SHARE");
-		conceptsRequired.add("USERMETA");
-		conceptsRequired.add("USERMETAKEYS");
-
-		conceptsRequired.add("ENGINEACCESSREQUEST");
-		conceptsRequired.add("PROJECTACCESSREQUEST");
-		conceptsRequired.add("INSIGHTACCESSREQUEST");
-
-		// new group tables
-		conceptsRequired.add("SMSS_GROUP");
-		conceptsRequired.add("CUSTOMGROUPASSIGNMENT");
-		conceptsRequired.add("GROUPENGINEPERMISSION");
-		conceptsRequired.add("GROUPPROJECTPERMISSION");
-		conceptsRequired.add("GROUPINSIGHTPERMISSION");
-
-		// trusted token security
-		conceptsRequired.add("TOKEN");
-
-		// connectors
-		conceptsRequired.add("JIRA_CONNECTIONS");
-		conceptsRequired.add("SALESFORCE_CONNECTIONS");
-		conceptsRequired.add("SERVICENOW_CONNECTIONS");
-
-		// github app integration
-		conceptsRequired.add("GITHUB_APP");
-		conceptsRequired.add("GITHUB_PROJECT_LINK");
-	}
+public class SecurityOwlCreator extends AbstractOwlCreator {
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
 	static {
@@ -96,389 +48,408 @@ public class SecurityOwlCreator {
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
 	}
 
-	private IDatabaseEngine securityDb;
-
-	public SecurityOwlCreator(IDatabaseEngine securityDb) {
-		this.securityDb = securityDb;
+	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
+		createColumnsAndTypes(queryUtil);
 	}
 
-	/**
-	 * Determine if we need to remake the OWL
-	 * 
-	 * @return
-	 */
-	public boolean needsRemake() {
-		/*
-		 * This is a very simple check Just looking at the tables Not doing anything
-		 * with columns but should eventually do that
-		 */
+	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
+		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
+		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
+		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
+		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		final String VARCHAR_255 = "VARCHAR(255)";
+		final String VARCHAR_500 = "VARCHAR(500)";
 
-		List<String> cleanConcepts = new ArrayList<>();
-		List<String> concepts = securityDb.getPhysicalConcepts();
-		if (concepts.isEmpty()) {
-			return true;
+		this.allSchemas = new ArrayList<>();
+
+		// @formatter:off
+		addTable("ENGINE", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("ENGINENAME", VARCHAR_255),
+				Pair.with("ENGINEDISPLAYNAME", VARCHAR_255),
+				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DISCOVERABLE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("ENGINETYPE", VARCHAR_255),
+				Pair.with("ENGINESUBTYPE", VARCHAR_255),
+				Pair.with("COST", VARCHAR_255),
+				Pair.with("CREATEDBY", VARCHAR_255),
+				Pair.with("CREATEDBYTYPE", VARCHAR_255),
+				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("TOOL_APP", VARCHAR_255)));
+
+		addTable("ENGINEMETA", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
+				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("ENGINEPERMISSION", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USAGERESTRICTION", VARCHAR_255),
+				Pair.with("USAGEFREQUENCY", VARCHAR_255),
+				Pair.with("MAXTOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("MAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
+
+		addTable("PROJECT", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("PROJECTNAME", VARCHAR_255),
+				Pair.with("PROJECTDISPLAYNAME", VARCHAR_255),
+				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DISCOVERABLE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("COST", VARCHAR_255),
+				Pair.with("CATALOGNAME", VARCHAR_255),
+				Pair.with("HASPORTAL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PORTALNAME", VARCHAR_255),
+				Pair.with("PORTALPUBLISHED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PORTALPUBLISHEDUSER", VARCHAR_255),
+				Pair.with("PORTALPUBLISHEDTYPE", VARCHAR_255),
+				Pair.with("REACTORSCOMPILED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("REACTORSCOMPILEDUSER", VARCHAR_255),
+				Pair.with("REACTORSCOMPILEDTYPE", VARCHAR_255),
+				Pair.with("CREATEDBY", VARCHAR_255),
+				Pair.with("CREATEDBYTYPE", VARCHAR_255),
+				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATELASTEDITED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("PROJECTPERMISSION", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("PROJECTMETA", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
+				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("PROJECTDEPENDENCIES", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("ENGINETYPE", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("WORKSPACEENGINE", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255)));
+
+		addTable("ASSETENGINE", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255)));
+
+		addTable("INSIGHT", Arrays.asList(
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("INSIGHTNAME", VARCHAR_255),
+				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("EXECUTIONCOUNT", "BIGINT"),
+				Pair.with("CREATEDON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LASTMODIFIEDON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LAYOUT", VARCHAR_255),
+				Pair.with("CACHEABLE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CACHEMINUTES", INTEGER_DATATYPE_NAME),
+				Pair.with("CACHECRON", "VARCHAR(25)"),
+				Pair.with("CACHEDON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CACHEENCRYPT", BOOLEAN_DATATYPE_NAME),
+				Pair.with("RECIPE", CLOB_DATATYPE_NAME),
+				Pair.with("SCHEMANAME", VARCHAR_255)));
+
+		addTable("USERINSIGHTPERMISSION", Arrays.asList(
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("INSIGHTMETA", Arrays.asList(
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
+				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("INSIGHTFRAMES", Arrays.asList(
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("TABLENAME", VARCHAR_255),
+				Pair.with("TABLETYPE", VARCHAR_255),
+				Pair.with("COLUMNNAME", VARCHAR_255),
+				Pair.with("COLUMNTYPE", VARCHAR_255),
+				Pair.with("ADDITIONALTYPE", VARCHAR_255)));
+
+		addTable("SMSS_USER", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("EMAIL", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("PASSWORD", VARCHAR_255),
+				Pair.with("SALT", VARCHAR_255),
+				Pair.with("USERNAME", VARCHAR_255),
+				Pair.with("ADMIN", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PUBLISHER", BOOLEAN_DATATYPE_NAME),
+				Pair.with("EXPORTER", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LASTLOGIN", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LASTPASSWORDRESET", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LOCKED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PHONE", VARCHAR_255),
+				Pair.with("PHONEEXTENSION", VARCHAR_255),
+				Pair.with("COUNTRYCODE", VARCHAR_255),
+				Pair.with("MODELUSAGERESTRICTION", VARCHAR_255),
+				Pair.with("MODELUSAGEFREQUENCY", VARCHAR_255),
+				Pair.with("MODELMAXTOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("MODELMAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
+
+		addTable("SMSS_USER_ACCESS_KEYS", Arrays.asList(
+				// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("ACCESSKEY", VARCHAR_255),
+				Pair.with("SECRETKEY", VARCHAR_255),
+				Pair.with("SECRETSALT", VARCHAR_255),
+				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LASTUSED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("TOKENNAME", VARCHAR_255),
+				Pair.with("TOKENDESCRIPTION", VARCHAR_500)));
+
+		addTable("TOKEN", Arrays.asList(
+				Pair.with("IPADDR", VARCHAR_255),
+				Pair.with("VAL", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CLIENTID", VARCHAR_255)));
+
+		addTable("PERMISSION", Arrays.asList(
+				Pair.with("ID", INTEGER_DATATYPE_NAME),
+				Pair.with("NAME", VARCHAR_255)));
+
+		addTable("PASSWORD_RULES", Arrays.asList(
+				Pair.with("PASS_LENGTH", INTEGER_DATATYPE_NAME),
+				Pair.with("REQUIRE_UPPER", BOOLEAN_DATATYPE_NAME),
+				Pair.with("REQUIRE_LOWER", BOOLEAN_DATATYPE_NAME),
+				Pair.with("REQUIRE_NUMERIC", BOOLEAN_DATATYPE_NAME),
+				Pair.with("REQUIRE_SPECIAL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("EXPIRATION_DAYS", INTEGER_DATATYPE_NAME),
+				Pair.with("ADMIN_RESET_EXPIRATION", BOOLEAN_DATATYPE_NAME),
+				Pair.with("ALLOW_USER_PASS_CHANGE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PASS_REUSE_COUNT", INTEGER_DATATYPE_NAME),
+				Pair.with("DAYS_TO_LOCK", INTEGER_DATATYPE_NAME),
+				Pair.with("DAYS_TO_LOCK_WARNING", INTEGER_DATATYPE_NAME)));
+
+		addTable("PASSWORD_HISTORY", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("PASSWORD", VARCHAR_255),
+				Pair.with("SALT", VARCHAR_255),
+				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("PASSWORD_RESET", Arrays.asList(
+				Pair.with("EMAIL", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("TOKEN", VARCHAR_255),
+				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("SESSION_SHARE", Arrays.asList(
+				Pair.with("SHARE_VAL", VARCHAR_255),
+				Pair.with("SESSION_VAL", VARCHAR_255),
+				Pair.with("ROUTE_VAL", VARCHAR_255),
+				Pair.with("DATE_ADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("IS_SESSION_SHARE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_AUTH_SHARE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATE_USED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USE_VALID", BOOLEAN_DATATYPE_NAME),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255)));
+
+		addTable("ENGINEACCESSREQUEST", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("REQUEST_USERID", VARCHAR_255),
+				Pair.with("REQUEST_TYPE", VARCHAR_255),
+				Pair.with("REQUEST_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("REQUEST_REASON", CLOB_DATATYPE_NAME),
+				Pair.with("APPROVER_USERID", VARCHAR_255),
+				Pair.with("APPROVER_TYPE", VARCHAR_255),
+				Pair.with("APPROVER_DECISION", VARCHAR_255),
+				Pair.with("APPROVER_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("SUBMITTED_BY_USERID", VARCHAR_255),
+				Pair.with("SUBMITTED_BY_TYPE", VARCHAR_255)));
+
+		addTable("PROJECTACCESSREQUEST", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("REQUEST_USERID", VARCHAR_255),
+				Pair.with("REQUEST_TYPE", VARCHAR_255),
+				Pair.with("REQUEST_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("REQUEST_REASON", CLOB_DATATYPE_NAME),
+				Pair.with("APPROVER_USERID", VARCHAR_255),
+				Pair.with("APPROVER_TYPE", VARCHAR_255),
+				Pair.with("APPROVER_DECISION", VARCHAR_255),
+				Pair.with("APPROVER_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("SUBMITTED_BY_USERID", VARCHAR_255),
+				Pair.with("SUBMITTED_BY_TYPE", VARCHAR_255)));
+
+		addTable("INSIGHTACCESSREQUEST", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("REQUEST_USERID", VARCHAR_255),
+				Pair.with("REQUEST_TYPE", VARCHAR_255),
+				Pair.with("REQUEST_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("REQUEST_REASON", CLOB_DATATYPE_NAME),
+				Pair.with("APPROVER_USERID", VARCHAR_255),
+				Pair.with("APPROVER_TYPE", VARCHAR_255),
+				Pair.with("APPROVER_DECISION", VARCHAR_255),
+				Pair.with("APPROVER_TIMESTAMP", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("SUBMITTED_BY_USERID", VARCHAR_255),
+				Pair.with("SUBMITTED_BY_TYPE", VARCHAR_255)));
+
+		addTable("USERMETA", Arrays.asList(
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
+				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("SMSS_GROUP", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("USERIDTYPE", VARCHAR_255)));
+
+		addTable("CUSTOMGROUPASSIGNMENT", Arrays.asList(
+				Pair.with("GROUPID", VARCHAR_255),
+				Pair.with("USERID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
+		addTable("GROUPENGINEPERMISSION", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
+		addTable("GROUPPROJECTPERMISSION", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
+		addTable("GROUPINSIGHTPERMISSION", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("TYPE", VARCHAR_255),
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("INSIGHTID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
+		addTable("JIRA_CONNECTIONS", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("ALIAS", VARCHAR_255),
+				Pair.with("CLIENTID", VARCHAR_255),
+				Pair.with("CLIENTSECRET", VARCHAR_255),
+				Pair.with("SCOPE", "VARCHAR(1000)"),
+				Pair.with("USERPROFILEURL", VARCHAR_255)));
+
+		addTable("SALESFORCE_CONNECTIONS", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("ALIAS", VARCHAR_255),
+				Pair.with("CLIENTID", VARCHAR_255),
+				Pair.with("CLIENTSECRET", VARCHAR_255)));
+
+		addTable("SERVICENOW_CONNECTIONS", Arrays.asList(
+				Pair.with("ID", VARCHAR_255),
+				Pair.with("INSTANCEURL", VARCHAR_255),
+				Pair.with("ALIAS", VARCHAR_255),
+				Pair.with("CLIENTID", VARCHAR_255),
+				Pair.with("CLIENTSECRET", VARCHAR_255),
+				Pair.with("USERPROFILEURL", VARCHAR_255)));
+
+		addTable("GITHUB_APP", Arrays.asList(
+				Pair.with("APP_ID", "BIGINT"),
+				Pair.with("SLUG", VARCHAR_255),
+				Pair.with("APP_NAME", VARCHAR_255),
+				Pair.with("OWNER_LOGIN", VARCHAR_255),
+				Pair.with("HTML_URL", VARCHAR_500),
+				Pair.with("WEBHOOK_URL", VARCHAR_500),
+				Pair.with("CLIENT_ID", VARCHAR_255),
+				Pair.with("CLIENT_SECRET", CLOB_DATATYPE_NAME),
+				Pair.with("WEBHOOK_SECRET", CLOB_DATATYPE_NAME),
+				Pair.with("PRIVATE_KEY", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("GITHUB_PROJECT_LINK", Arrays.asList(
+				Pair.with("PROJECT_ID", VARCHAR_255),
+				Pair.with("APP_ID", "BIGINT"),
+				Pair.with("INSTALLATION_ID", "BIGINT"),
+				Pair.with("REPO_ID", "BIGINT"),
+				Pair.with("REPO_FULL_NAME", "VARCHAR(511)"),
+				Pair.with("BRANCH", VARCHAR_255),
+				Pair.with("SUBDIR", "VARCHAR(1024)"),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
+		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
+		// all have the same columns and default values
+		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
+				Constants.INSIGHT_METAKEYS, Constants.USER_METAKEYS);
+		for (String tableName : metaKeyTableNames) { 
+			addTable(tableName, Arrays.asList(
+					Pair.with("METAKEY", VARCHAR_255),
+					Pair.with("SINGLEMULTI", VARCHAR_255),
+					Pair.with("DISPLAYORDER", INTEGER_DATATYPE_NAME),
+					Pair.with("DISPLAYOPTIONS", VARCHAR_255),
+					Pair.with("DEFAULTVALUES", VARCHAR_500)));
 		}
-		for (String concept : concepts) {
-			if (concept.equals("http://semoss.org/ontologies/Concept")) {
-				continue;
-			}
-			String cTable = Utility.getInstanceName(concept);
-			cleanConcepts.add(cTable);
-		}
-
-		if (!cleanConcepts.containsAll(conceptsRequired)) {
-			return true;
-		}
-
-		{
-			// dont need to keep adding a million things to this list
-			// just need the latest change ...
-			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/GITHUB_PROJECT_LINK");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/GITHUB_PROJECT_LINK/BRANCH")) {
-				return true;
-			}
-		}
-
-		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
-		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
-			for (String[] existingRel : allRelationships) {
-				String c1 = Utility.getInstanceName(existingRel[0]);
-				String c2 = Utility.getInstanceName(existingRel[1]);
-				String relName = Utility.getInstanceName(existingRel[2]);
-
-				if (c1.equals(requiredRel[0]) && c2.equals(requiredRel[1]) && relName.equals(requiredRel[2])) {
-					continue HAS_REQUIRED_REL_LOOP;
-				}
-			}
-
-			// if we got here, the above didn't continue the loop so we dont have this rel
-			// need to remake
-			return true;
-		}
-
-		return false;
+		// @formatter:on
 	}
 
-	/**
-	 * Remake the OWL
-	 * 
-	 * @throws Exception
-	 */
-	public void remakeOwl() throws Exception {
-		try (WriteOWLEngine owlEngine = securityDb.getOWLEngineFactory().getWriteOWL()) {
-			owlEngine.createEmptyOWLFile();
-			// write the new OWL
-			writeNewOwl(owlEngine);
-		}
-	}
-
-	/**
-	 * Method that uses the OWLER to generate a new OWL structure
-	 * 
-	 * @param owlLocation
-	 * @throws Exception
-	 */
-	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
-		// ENGINE
-		owler.addConcept("ENGINE", null, null);
-		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
-		owler.addProp("ENGINE", "ENGINEDISPLAYNAME", "VARCHAR(255)");
-		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
-		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
-		owler.addProp("ENGINE", "ENGINETYPE", "VARCHAR(255)");
-		owler.addProp("ENGINE", "ENGINESUBTYPE", "VARCHAR(255)");
-		owler.addProp("ENGINE", "COST", "VARCHAR(255)");
-		owler.addProp("ENGINE", "CREATEDBY", "VARCHAR(255)");
-		owler.addProp("ENGINE", "CREATEDBYTYPE", "VARCHAR(255)");
-		owler.addProp("ENGINE", "DATECREATED", "TIMESTAMP");
-		owler.addProp("ENGINE", "TOOL_APP", "VARCHAR(255)");
-
-		// ENGINEMETA
-		owler.addConcept("ENGINEMETA", null, null);
-		owler.addProp("ENGINEMETA", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEMETA", "METAKEY", "VARCHAR(255)");
-		owler.addProp("ENGINEMETA", "METAVALUE", "CLOB");
-		owler.addProp("ENGINEMETA", "METAORDER", "INT");
-
-		// ENGINEPERMISSION
-		owler.addConcept("ENGINEPERMISSION", null, null);
-		owler.addProp("ENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "USERID", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "PERMISSION", "INT");
-		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
-		owler.addProp("ENGINEPERMISSION", "FAVORITE", "BOOLEAN");
-		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("ENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
-		owler.addProp("ENGINEPERMISSION", "USAGERESTRICTION", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
-		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
-
-		// PROJECT
-		owler.addConcept("PROJECT", null, null);
-		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
-		owler.addProp("PROJECT", "PROJECTDISPLAYNAME", "VARCHAR(255)");
-		owler.addProp("PROJECT", "GLOBAL", "BOOLEAN");
-		owler.addProp("PROJECT", "DISCOVERABLE", "BOOLEAN");
-		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
-		owler.addProp("PROJECT", "COST", "VARCHAR(255)");
-		owler.addProp("PROJECT", "CATALOGNAME", "VARCHAR(255)");
-		owler.addProp("PROJECT", "HASPORTAL", "BOOLEAN");
-		owler.addProp("PROJECT", "PORTALNAME", "VARCHAR(255)");
-		owler.addProp("PROJECT", "PORTALPUBLISHED", "TIMESTAMP");
-		owler.addProp("PROJECT", "PORTALPUBLISHEDUSER", "VARCHAR(255)");
-		owler.addProp("PROJECT", "PORTALPUBLISHEDTYPE", "VARCHAR(255)");
-		owler.addProp("PROJECT", "REACTORSCOMPILED", "TIMESTAMP");
-		owler.addProp("PROJECT", "REACTORSCOMPILEDUSER", "VARCHAR(255)");
-		owler.addProp("PROJECT", "REACTORSCOMPILEDTYPE", "VARCHAR(255)");
-		owler.addProp("PROJECT", "CREATEDBY", "VARCHAR(255)");
-		owler.addProp("PROJECT", "CREATEDBYTYPE", "VARCHAR(255)");
-		owler.addProp("PROJECT", "DATECREATED", "TIMESTAMP");
-		owler.addProp("PROJECT", "DATELASTEDITED", "TIMESTAMP");
-
-		// PROJECTPERMISSION
-		owler.addConcept("PROJECTPERMISSION", null, null);
-		owler.addProp("PROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECTPERMISSION", "USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTPERMISSION", "PERMISSION", "INT");
-		owler.addProp("PROJECTPERMISSION", "VISIBILITY", "BOOLEAN");
-		owler.addProp("PROJECTPERMISSION", "FAVORITE", "BOOLEAN");
-		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
-
-		// PROJECTMETA
-		owler.addConcept("PROJECTMETA", null, null);
-		owler.addProp("PROJECTMETA", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECTMETA", "METAKEY", "VARCHAR(255)");
-		owler.addProp("PROJECTMETA", "METAVALUE", "CLOB");
-		owler.addProp("PROJECTMETA", "METAORDER", "INT");
-
-		// PROJECTDEPENDENCIES
-		owler.addConcept("PROJECTDEPENDENCIES", null, null);
-		owler.addProp("PROJECTDEPENDENCIES", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "ENGINETYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "TYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTDEPENDENCIES", "DATEADDED", "TIMESTAMP");
-
-		// WORKSPACEENGINE
-		owler.addConcept("WORKSPACEENGINE", null, null);
-		owler.addProp("WORKSPACEENGINE", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("WORKSPACEENGINE", "USERID", "VARCHAR(255)");
-		owler.addProp("WORKSPACEENGINE", "TYPE", "VARCHAR(255)");
-
-		// ASSETENGINE
-		owler.addConcept("ASSETENGINE", null, null);
-		owler.addProp("ASSETENGINE", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("ASSETENGINE", "USERID", "VARCHAR(255)");
-		owler.addProp("ASSETENGINE", "TYPE", "VARCHAR(255)");
-
-		// INSIGHT
-		owler.addConcept("INSIGHT", null, null);
-		owler.addProp("INSIGHT", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "INSIGHTNAME", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "GLOBAL", "BOOLEAN");
-		owler.addProp("INSIGHT", "EXECUTIONCOUNT", "BIGINT");
-		owler.addProp("INSIGHT", "CREATEDON", "TIMESTAMP");
-		owler.addProp("INSIGHT", "LASTMODIFIEDON", "TIMESTAMP");
-		owler.addProp("INSIGHT", "LAYOUT", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "CACHEABLE", "BOOLEAN");
-		owler.addProp("INSIGHT", "CACHEMINUTES", "INT");
-		owler.addProp("INSIGHT", "CACHECRON", "VARCHAR(25)");
-		owler.addProp("INSIGHT", "CACHEDON", "TIMESTAMP");
-		owler.addProp("INSIGHT", "CACHEENCRYPT", "BOOLEAN");
-		owler.addProp("INSIGHT", "RECIPE", "CLOB");
-		owler.addProp("INSIGHT", "SCHEMANAME", "VARCHAR(255)");
-
-		// USERINSIGHTPERMISSION
-		owler.addConcept("USERINSIGHTPERMISSION", null, null);
-		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "USERID", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
-		owler.addProp("USERINSIGHTPERMISSION", "FAVORITE", "BOOLEAN");
-		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("USERINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
-
-		// INSIGHTMETA
-		owler.addConcept("INSIGHTMETA", null, null);
-		owler.addProp("INSIGHTMETA", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTMETA", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTMETA", "METAKEY", "VARCHAR(255)");
-		owler.addProp("INSIGHTMETA", "METAVALUE", "CLOB");
-		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
-
-		// INSIGHTFRAMES
-		owler.addConcept("INSIGHTFRAMES", null, null);
-		owler.addProp("INSIGHTFRAMES", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "TABLENAME", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "TABLETYPE", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "COLUMNNAME", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "COLUMNTYPE", "VARCHAR(255)");
-		owler.addProp("INSIGHTFRAMES", "ADDITIONALTYPE", "VARCHAR(255)");
-
-		// SMSS_USER
-		owler.addConcept("SMSS_USER", null, null);
-		owler.addProp("SMSS_USER", "ID", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "NAME", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "EMAIL", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "TYPE", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "PASSWORD", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "SALT", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "USERNAME", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "ADMIN", "BOOLEAN");
-		owler.addProp("SMSS_USER", "PUBLISHER", "BOOLEAN");
-		owler.addProp("SMSS_USER", "EXPORTER", "BOOLEAN");
-		owler.addProp("SMSS_USER", "DATECREATED", "TIMESTAMP");
-		owler.addProp("SMSS_USER", "LASTLOGIN", "TIMESTAMP");
-		owler.addProp("SMSS_USER", "LASTPASSWORDRESET", "TIMESTAMP");
-		owler.addProp("SMSS_USER", "LOCKED", "BOOLEAN");
-		owler.addProp("SMSS_USER", "PHONE", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "PHONEEXTENSION", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "COUNTRYCODE", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "MODELUSAGERESTRICTION", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "MODELUSAGEFREQUENCY", "VARCHAR(255)");
-		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
-		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
-
-		// SMSS_USER_ACCESS_KEYS
-		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
-		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "ID", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "USERID", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "TYPE", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "ACCESSKEY", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETKEY", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "SECRETSALT", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "DATECREATED", "TIMESTAMP");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "LASTUSED", "TIMESTAMP");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "TOKENNAME", "VARCHAR(255)");
-		owler.addProp("SMSS_USER_ACCESS_KEYS", "TOKENDESCRIPTION", "VARCHAR(500)");
-
-		// TOKEN
-		owler.addConcept("TOKEN", null, null);
-		owler.addProp("TOKEN", "IPADDR", "VARCHAR(255)");
-		owler.addProp("TOKEN", "VAL", "VARCHAR(255)");
-		owler.addProp("TOKEN", "DATEADDED", "TIMESTAMP");
-		owler.addProp("TOKEN", "CLIENTID", "VARCHAR(255)");
-
-		// PERMISSION
-		owler.addConcept("PERMISSION", null, null);
-		owler.addProp("PERMISSION", "ID", "INT");
-		owler.addProp("PERMISSION", "NAME", "VARCHAR(255)");
-
-		// PASSWORD_RULES
-		owler.addConcept("PASSWORD_RULES", null, null);
-		owler.addProp("PASSWORD_RULES", "PASS_LENGTH", "INT");
-		owler.addProp("PASSWORD_RULES", "REQUIRE_UPPER", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "REQUIRE_LOWER", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "REQUIRE_NUMERIC", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "REQUIRE_SPECIAL", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "EXPIRATION_DAYS", "INT");
-		owler.addProp("PASSWORD_RULES", "ADMIN_RESET_EXPIRATION", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "ALLOW_USER_PASS_CHANGE", "BOOLEAN");
-		owler.addProp("PASSWORD_RULES", "PASS_REUSE_COUNT", "INT");
-		owler.addProp("PASSWORD_RULES", "DAYS_TO_LOCK", "INT");
-		owler.addProp("PASSWORD_RULES", "DAYS_TO_LOCK_WARNING", "INT");
-
-		// PASSWORD_HISTORY
-		owler.addConcept("PASSWORD_HISTORY", null, null);
-		owler.addProp("PASSWORD_HISTORY", "ID", "VARCHAR(255)");
-		owler.addProp("PASSWORD_HISTORY", "USERID", "VARCHAR(255)");
-		owler.addProp("PASSWORD_HISTORY", "TYPE", "VARCHAR(255)");
-		owler.addProp("PASSWORD_HISTORY", "PASSWORD", "VARCHAR(255)");
-		owler.addProp("PASSWORD_HISTORY", "SALT", "VARCHAR(255)");
-		owler.addProp("PASSWORD_HISTORY", "DATE_ADDED", "TIMESTAMP");
-
-		// PASSWORD_RESET
-		owler.addConcept("PASSWORD_RESET", null, null);
-		owler.addProp("PASSWORD_RESET", "EMAIL", "VARCHAR(255)");
-		owler.addProp("PASSWORD_RESET", "TYPE", "VARCHAR(255)");
-		owler.addProp("PASSWORD_RESET", "TOKEN", "VARCHAR(255)");
-		owler.addProp("PASSWORD_RESET", "DATE_ADDED", "TIMESTAMP");
-
-		// SESSION_SHARE
-		owler.addConcept("SESSION_SHARE", null, null);
-		owler.addProp("SESSION_SHARE", "SHARE_VAL", "VARCHAR(255)");
-		owler.addProp("SESSION_SHARE", "SESSION_VAL", "VARCHAR(255)");
-		owler.addProp("SESSION_SHARE", "ROUTE_VAL", "VARCHAR(255)");
-		owler.addProp("SESSION_SHARE", "DATE_ADDED", "TIMESTAMP");
-		owler.addProp("SESSION_SHARE", "IS_SESSION_SHARE", "BOOLEAN");
-		owler.addProp("SESSION_SHARE", "IS_AUTH_SHARE", "BOOLEAN");
-		owler.addProp("SESSION_SHARE", "DATE_USED", "TIMESTAMP");
-		owler.addProp("SESSION_SHARE", "USE_VALID", "BOOLEAN");
-		owler.addProp("SESSION_SHARE", "USERID", "VARCHAR(255)");
-		owler.addProp("SESSION_SHARE", "TYPE", "VARCHAR(255)");
-
-		// ENGINEACCESSREQUEST
-		owler.addConcept("ENGINEACCESSREQUEST", null, null);
-		owler.addProp("ENGINEACCESSREQUEST", "ID", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("ENGINEACCESSREQUEST", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "PERMISSION", "INT");
-		owler.addProp("ENGINEACCESSREQUEST", "REQUEST_REASON", "CLOB");
-		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
-		owler.addProp("ENGINEACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-
-		// PROJECTACCESSREQUEST
-		owler.addConcept("PROJECTACCESSREQUEST", null, null);
-		owler.addProp("PROJECTACCESSREQUEST", "ID", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("PROJECTACCESSREQUEST", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "PERMISSION", "INT");
-		owler.addProp("PROJECTACCESSREQUEST", "REQUEST_REASON", "CLOB");
-		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
-		owler.addProp("PROJECTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-
-		// INSIGHTACCESSREQUEST
-		owler.addConcept("INSIGHTACCESSREQUEST", null, null);
-		owler.addProp("INSIGHTACCESSREQUEST", "ID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_USERID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_TYPE", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("INSIGHTACCESSREQUEST", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "PERMISSION", "INT");
-		owler.addProp("INSIGHTACCESSREQUEST", "REQUEST_REASON", "CLOB");
-		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_USERID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_TYPE", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_DECISION", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "APPROVER_TIMESTAMP", "TIMESTAMP");
-		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_USERID", "VARCHAR(255)");
-		owler.addProp("INSIGHTACCESSREQUEST", "SUBMITTED_BY_TYPE", "VARCHAR(255)");
-
-		// USERMETA
-		owler.addConcept("USERMETA", null, null);
-		owler.addProp("USERMETA", "USERID", "VARCHAR(255)");
-		owler.addProp("USERMETA", "TYPE", "VARCHAR(255)");
-		owler.addProp("USERMETA", "METAKEY", "VARCHAR(255)");
-		owler.addProp("USERMETA", "METAVALUE", "CLOB");
-		owler.addProp("USERMETA", "METAORDER", "INT");
-
+	@Override
+	protected void writeRelations(WriteOWLEngine owler) throws Exception {
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
@@ -508,125 +479,6 @@ public class SecurityOwlCreator {
 		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.INSIGHTID.INSIGHTFRAMES.INSIGHTID");
 		owler.addRelation("INSIGHT", "INSIGHTFRAMES", "INSIGHT.PROJECTID.INSIGHTFRAMES.PROJECTID");
 
-		// new group details
-		// SMSS_GROUP
-		owler.addConcept("SMSS_GROUP", null, null);
-		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
-		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
-		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
-		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
-		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
-
-		// CUSTOMGROUPASSIGNMENT
-		owler.addConcept("CUSTOMGROUPASSIGNMENT", null, null);
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "GROUPID", "VARCHAR(255)");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "USERID", "VARCHAR(255)");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "TYPE", "VARCHAR(255)");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "DATEADDED", "TIMESTAMP");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "ENDDATE", "TIMESTAMP");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("CUSTOMGROUPASSIGNMENT", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-
-		// GROUPENGINEPERMISSION
-		owler.addConcept("GROUPENGINEPERMISSION", null, null);
-		owler.addProp("GROUPENGINEPERMISSION", "ID", "VARCHAR(255)");
-		owler.addProp("GROUPENGINEPERMISSION", "TYPE", "VARCHAR(255)");
-		owler.addProp("GROUPENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("GROUPENGINEPERMISSION", "PERMISSION", "INT");
-		owler.addProp("GROUPENGINEPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("GROUPENGINEPERMISSION", "ENDDATE", "TIMESTAMP");
-		owler.addProp("GROUPENGINEPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("GROUPENGINEPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-
-		// GROUPPROJECTPERMISSION
-		owler.addConcept("GROUPPROJECTPERMISSION", null, null);
-		owler.addProp("GROUPPROJECTPERMISSION", "ID", "VARCHAR(255)");
-		owler.addProp("GROUPPROJECTPERMISSION", "TYPE", "VARCHAR(255)");
-		owler.addProp("GROUPPROJECTPERMISSION", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSION", "INT");
-		owler.addProp("GROUPPROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("GROUPPROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
-		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("GROUPPROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-
-		// GROUPPROJECTPERMISSION
-		owler.addConcept("GROUPINSIGHTPERMISSION", null, null);
-		owler.addProp("GROUPINSIGHTPERMISSION", "ID", "VARCHAR(255)");
-		owler.addProp("GROUPINSIGHTPERMISSION", "TYPE", "VARCHAR(255)");
-		owler.addProp("GROUPINSIGHTPERMISSION", "PROJECTID", "VARCHAR(255)");
-		owler.addProp("GROUPINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSION", "INT");
-		owler.addProp("GROUPINSIGHTPERMISSION", "DATEADDED", "TIMESTAMP");
-		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
-		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
-		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
-
-		// JIRA_CONNECTIONS
-		owler.addConcept("JIRA_CONNECTIONS", null, null);
-		owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
-		owler.addProp("JIRA_CONNECTIONS", "ALIAS", "VARCHAR(255)");
-		owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
-		owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
-		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
-		owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
-
-		// SALESFORCE_CONNECTIONS
-		owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
-		owler.addProp("SALESFORCE_CONNECTIONS", "ID", "VARCHAR(255)");
-		owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
-		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
-		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
-
-		// SERVICENOW_CONNECTIONS
-		owler.addConcept("SERVICENOW_CONNECTIONS", null, null);
-		owler.addProp("SERVICENOW_CONNECTIONS", "ID", "VARCHAR(255)");
-		owler.addProp("SERVICENOW_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
-		owler.addProp("SERVICENOW_CONNECTIONS", "ALIAS", "VARCHAR(255)");
-		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
-		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
-		owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
-
-		// GITHUB_APP
-		owler.addConcept("GITHUB_APP", null, null);
-		owler.addProp("GITHUB_APP", "APP_ID", "BIGINT");
-		owler.addProp("GITHUB_APP", "SLUG", "VARCHAR(255)");
-		owler.addProp("GITHUB_APP", "APP_NAME", "VARCHAR(255)");
-		owler.addProp("GITHUB_APP", "OWNER_LOGIN", "VARCHAR(255)");
-		owler.addProp("GITHUB_APP", "HTML_URL", "VARCHAR(500)");
-		owler.addProp("GITHUB_APP", "WEBHOOK_URL", "VARCHAR(500)");
-		owler.addProp("GITHUB_APP", "CLIENT_ID", "VARCHAR(255)");
-		owler.addProp("GITHUB_APP", "CLIENT_SECRET", "CLOB");
-		owler.addProp("GITHUB_APP", "WEBHOOK_SECRET", "CLOB");
-		owler.addProp("GITHUB_APP", "PRIVATE_KEY", "CLOB");
-		owler.addProp("GITHUB_APP", "CREATED_ON", "TIMESTAMP");
-		owler.addProp("GITHUB_APP", "UPDATED_ON", "TIMESTAMP");
-
-		// GITHUB_PROJECT_LINK
-		owler.addConcept("GITHUB_PROJECT_LINK", null, null);
-		owler.addProp("GITHUB_PROJECT_LINK", "PROJECT_ID", "VARCHAR(255)");
-		owler.addProp("GITHUB_PROJECT_LINK", "APP_ID", "BIGINT");
-		owler.addProp("GITHUB_PROJECT_LINK", "INSTALLATION_ID", "BIGINT");
-		owler.addProp("GITHUB_PROJECT_LINK", "REPO_ID", "BIGINT");
-		owler.addProp("GITHUB_PROJECT_LINK", "REPO_FULL_NAME", "VARCHAR(511)");
-		owler.addProp("GITHUB_PROJECT_LINK", "BRANCH", "VARCHAR(255)");
-		owler.addProp("GITHUB_PROJECT_LINK", "SUBDIR", "VARCHAR(1024)");
-		owler.addProp("GITHUB_PROJECT_LINK", "CREATED_ON", "TIMESTAMP");
-		owler.addProp("GITHUB_PROJECT_LINK", "UPDATED_ON", "TIMESTAMP");
-
-		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
-		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
-				Constants.INSIGHT_METAKEYS, Constants.USER_METAKEYS);
-		for (String tableName : metaKeyTableNames) {
-			// all have the same columns and default values
-			owler.addConcept(tableName, null, null);
-			owler.addProp(tableName, "METAKEY", "VARCHAR(255)");
-			owler.addProp(tableName, "SINGLEMULTI", "VARCHAR(255)");
-			owler.addProp(tableName, "DISPLAYORDER", "INT");
-			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
-			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
-		}
-
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
 		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");
 
@@ -646,9 +498,28 @@ public class SecurityOwlCreator {
 		// github app integration joins
 		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
 		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
+	}
 
-		owler.commit();
-		owler.export();
+	@Override
+	protected boolean additionalRemakeChecks(IDatabaseEngine engine) {
+		List<String[]> allRelationships = engine.getPhysicalRelationships();
+		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
+			for (String[] existingRel : allRelationships) {
+				String c1 = Utility.getInstanceName(existingRel[0]);
+				String c2 = Utility.getInstanceName(existingRel[1]);
+				String relName = Utility.getInstanceName(existingRel[2]);
+
+				if (c1.equals(requiredRel[0]) && c2.equals(requiredRel[1]) && relName.equals(requiredRel[2])) {
+					continue HAS_REQUIRED_REL_LOOP;
+				}
+			}
+
+			// if we got here, the above didn't continue the loop so we dont have this rel
+			// need to remake
+			return true;
+		}
+
+		return false;
 	}
 
 }
