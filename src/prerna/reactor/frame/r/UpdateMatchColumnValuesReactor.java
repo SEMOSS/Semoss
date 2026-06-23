@@ -54,7 +54,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		if (column == null | column.isEmpty()) {
+		if (column == null || column.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the column to run the update on");
 		}
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);

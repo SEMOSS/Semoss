@@ -48,30 +48,22 @@ public class GoogleFileRetriever implements IConnectorIOp {
 	@Override
 	public Object execute(User user, Map<String, Object> params) {
 		String fileName = (String) params.remove("target");
-		BufferedWriter target = null;
-		try {
-			String url = "https://docs.google.com/spreadsheets/export";
-			BufferedReader br = HttpHelperUtility.getHttpStream(url, null, params, false);
+		String url = "https://docs.google.com/spreadsheets/export";
+		try (BufferedReader br = HttpHelperUtility.getHttpStream(url, null, params, false)) {
 			// create a file
 			File outputFile = new File(fileName);
-			target = new BufferedWriter(new FileWriter(outputFile));
-			String data = null;
-			while ((data = br.readLine()) != null) {
-				target.write(data);
-				target.write("\n");
-				target.flush();
+			try (BufferedWriter target = new BufferedWriter(new FileWriter(outputFile))) {
+				String data = null;
+				while ((data = br.readLine()) != null) {
+					target.write(data);
+					target.write("\n");
+					target.flush();
+				}
+			} catch (IOException e) {
+				classLogger.error("Failed to retrieve/write Google spreadsheet content to {}", fileName, e);
 			}
 		} catch (IOException e) {
-			classLogger.error("Failed to retrieve and write Google spreadsheet content to {}", fileName, e);
-		} finally {
-			if (target != null) {
-				try {
-					target.flush();
-					target.close();
-				} catch (IOException e) {
-					// ignore
-				}
-			}
+			classLogger.error("Failed to retrieve Google spreadsheet content", e);
 		}
 
 		return fileName;

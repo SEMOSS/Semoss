@@ -59,7 +59,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
-import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
 import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
@@ -112,9 +111,6 @@ public class User implements Serializable {
 	private AuthProvider primaryLogin;
 
 	private transient Object assetSyncObject = null;
-	private transient Object workspaceSyncObject = null;
-
-	public transient CopyObject cp = null;
 
 	private int rPort = -1;
 	private int pyPort = -1;
@@ -136,7 +132,6 @@ public class User implements Serializable {
 		// since if this is serialized we dont want these values to be null
 		this.openInsights = new HashMap<>();
 		this.assetSyncObject = new Object();
-		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
@@ -406,27 +401,6 @@ public class User implements Serializable {
 
 	public void setRconRemote(RRemoteRserve rconRemote) {
 		this.rconRemote = rconRemote;
-	}
-
-	public void ctrlC(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-	}
-
-	public CopyObject getCtrlC() {
-		return cp;
-	}
-
-	public void ctrlX(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-		cp.delete = true;
-	}
-
-	public void escapeCopy() {
-		this.cp = null;
 	}
 
 	/**

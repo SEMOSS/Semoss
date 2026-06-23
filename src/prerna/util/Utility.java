@@ -4814,6 +4814,22 @@ public final class Utility {
 	}
 
 	/**
+	 * Get the name of the FE webapp. Default to SemossWeb
+	 * 
+	 * @return
+	 */
+	public static String getFEWebAppName() {
+		String feWebAppName = "SemossWeb";
+		if (Utility.getDIHelperProperty(Constants.FE_WEB_APP_NAME) != null) {
+			String candidate = Utility.getDIHelperProperty(Constants.FE_WEB_APP_NAME);
+			if (candidate != null && !(candidate = candidate.trim()).isEmpty()) {
+				feWebAppName = candidate;
+			}
+		}
+		return feWebAppName;
+	}
+
+	/**
 	 * Default value is public_home
 	 * 
 	 * @return
