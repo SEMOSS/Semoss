@@ -18,11 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -88,7 +83,7 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
-		String responsePartsJson = this.keyValue.get(RESPONSE_PARTS_KEY);
+		List<?> responseParts = getList(RESPONSE_PARTS_KEY);
 
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
@@ -124,7 +119,7 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 
 		// Build the partial assistant response from the FE-supplied parts (this is
 		// the substitute for room.ask's modelEngine.askRoom call).
-		ResponseMessage partialMsg = buildPartialFromParts(responsePartsJson);
+		ResponseMessage partialMsg = buildPartialFromParts(responseParts);
 		if (partialMsg != null) {
 			partialMsg.setModel(modelEngine);
 		}
@@ -203,42 +198,35 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Parse the FE-supplied parts array and build a ResponseMessage with those
-	 * parts in order. Returns null if the payload is empty or yields no usable
-	 * parts (e.g. cancel fired before any token streamed).
+	 * Build a ResponseMessage from the FE-supplied parts list, in order. Each
+	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
+	 * and the matching payload field. Returns null if the list is empty or
+	 * yields no usable parts (e.g. cancel fired before any token streamed).
 	 */
-	private ResponseMessage buildPartialFromParts(String responsePartsJson) {
-		if (responsePartsJson == null || responsePartsJson.trim().isEmpty()) {
+	private ResponseMessage buildPartialFromParts(List<?> responseParts) {
+		if (responseParts == null || responseParts.isEmpty()) {
 			return null;
-		}
-
-		JsonElement parsed;
-		try {
-			parsed = JsonParser.parseString(responsePartsJson);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("responseParts payload was not valid JSON", e);
-		}
-		if (!parsed.isJsonArray()) {
-			throw new IllegalArgumentException("responseParts payload must be a JSON array of part objects");
 		}
 
 		ResponseMessage.Builder builder = ResponseMessage.builder();
 		boolean hasAnyPart = false;
-		for (JsonElement element : (JsonArray) parsed) {
-			if (element == null || !element.isJsonObject()) {
+		for (Object element : responseParts) {
+			if (!(element instanceof Map)) {
 				continue;
 			}
-			JsonObject part = element.getAsJsonObject();
-			String type = part.has("type") && !part.get("type").isJsonNull() ? part.get("type").getAsString() : null;
+			Map<?, ?> part = (Map<?, ?>) element;
+			Object typeObj = part.get("type");
+			String type = typeObj != null ? typeObj.toString() : null;
 			if ("THINKING".equals(type)) {
-				String thinking = part.has("thinking") && !part.get("thinking").isJsonNull()
-						? part.get("thinking").getAsString() : null;
+				Object thinkingObj = part.get("thinking");
+				String thinking = thinkingObj != null ? thinkingObj.toString() : null;
 				if (thinking != null && !thinking.isEmpty()) {
 					builder.withThinking(thinking);
 					hasAnyPart = true;
 				}
 			} else if ("TEXT".equals(type)) {
-				String text = part.has("text") && !part.get("text").isJsonNull() ? part.get("text").getAsString() : null;
+				Object textObj = part.get("text");
+				String text = textObj != null ? textObj.toString() : null;
 				if (text != null && !text.isEmpty()) {
 					builder.withText(text);
 					hasAnyPart = true;
