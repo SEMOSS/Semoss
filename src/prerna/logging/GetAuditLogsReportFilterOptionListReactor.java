@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.date.SemossDate;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,9 +16,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
+public class GetAuditLogsReportFilterOptionListReactor extends AbstractReactor {
 
-	public GetAuditLogReportFilterOptionListReactor() {
+	public GetAuditLogsReportFilterOptionListReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0 };
@@ -54,19 +55,30 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 				projectId, engineId, null, getString(map, SemossLogUtils.FILTER_USER_ID));
 		String filterUserId = access.getFilterUserId();
 
+		// resolve the same date range as the table so the dropdown only offers values
+		// that actually appear in the currently visible rows. This endpoint is never
+		// room-scoped, so with no date range supplied it defaults to a single day
+		// rather than scanning the full audit logs table.
+		int dateRangeValue = parseIntWithDefault(getString(map, SemossLogUtils.DATE_RANGE_VALUE), 1);
+		Map<String, SemossDate> dateTimeMap = AuditLogsDateRangeMode.resolveDateRange(
+				getString(map, SemossLogUtils.DATE_RANGE_TYPE), dateRangeValue,
+				getString(map, SemossLogUtils.START_DATE), getString(map, SemossLogUtils.END_DATE), false);
+		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
+		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
+
 		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, -1);
 
 		List<String[]> resultList = AuditLogsDbUtils.getAuditLogFilterOptionList(filterUserId, projectId, engineId,
-				engineType, filterName, search, limit, offset);
+				engineType, filterName, search, startDate, endDate, limit, offset);
 
 		return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
 	}
 
 	/**
-	 *
+	 * 
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
@@ -85,7 +97,7 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param map
 	 * @param key
 	 * @return
@@ -100,7 +112,7 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 
 	/**
 	 * Safely parse integer with default fallback.
-	 * 
+	 *
 	 * @param val
 	 * @param defaultValue
 	 * @return

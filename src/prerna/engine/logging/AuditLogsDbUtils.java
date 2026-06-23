@@ -31,14 +31,12 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,7 +45,6 @@ import org.javatuples.Pair;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.LogActivityRecord;
-import prerna.logging.RequestDurationRecord;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -63,6 +60,12 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class AuditLogsDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AuditLogsDbUtils.class);
+
+	/**
+	 * Sentinel roomId value meaning "only logs where ROOM_ID IS NULL" (activity not
+	 * tied to any room)
+	 */
+	public static final String NULL_ROOM_ID = "null";
 
 	static boolean initialized = false;
 
@@ -265,12 +268,14 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SPAN_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_START_TIME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE_END_TIME"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
-		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addRoomIdFilter(qs, roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
@@ -290,24 +295,15 @@ public class AuditLogsDbUtils {
 			return Collections.emptyList();
 		}
 
-		Set<String> requestIds = new LinkedHashSet<>();
-		for (Map<String, Object> row : pageRows) {
-			String reqId = getOrDefault(row.get("REQUEST_ID"), "");
-			if (!reqId.isEmpty()) {
-				requestIds.add(reqId);
-			}
-		}
-
-		// Step 2: aggregate MIN/MAX/DURATION only for the REQUEST_IDs in this page
-		Map<String, RequestDurationRecord> durationsByRequestId = fetchDurationsForRequestIds(auditLogsDb, requestIds);
-
 		List<LogActivityRecord> activityList = new ArrayList<>(pageRows.size());
 		for (Map<String, Object> map : pageRows) {
 			String requestId = getOrDefault(map.get("REQUEST_ID"), "");
-			RequestDurationRecord duration = durationsByRequestId.get(requestId);
-			Timestamp startTime = duration != null ? duration.startTime() : null;
-			Timestamp endTime = duration != null ? duration.endTime() : null;
-			long latency = duration != null ? duration.durationSeconds() : 0L;
+			// each row carries its own operation timing - do NOT aggregate across the
+			// request, otherwise every row (input guardrail, model call, output
+			// guardrail) would show the same request-wide start/end/latency
+			String startTime = toUtcIso(map.get("REQUEST_START_TIME"));
+			String endTime = toUtcIso(map.get("RESPONSE_END_TIME"));
+			long latency = latencyMillis(map.get("REQUEST_START_TIME"), map.get("RESPONSE_END_TIME"));
 
 			String request = getOrDefault(map.get("REQUEST"), "");
 			String response = getOrDefault(map.get("RESPONSE"), "");
@@ -321,7 +317,7 @@ public class AuditLogsDbUtils {
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
-			Timestamp logTimestamp = extractTimestamp(map.get("LOG_TIMESTAMP"));
+			String logTimestamp = toUtcIso(map.get("LOG_TIMESTAMP"));
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
@@ -332,44 +328,24 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
-	 * 
-	 * @param auditLogsDb
-	 * @param requestIds
-	 * @return
+	 * Latency in milliseconds for a single row, computed from its own raw
+	 * REQUEST_START_TIME and RESPONSE_END_TIME. Returns 0 if either is missing or
+	 * the end precedes the start.
+	 *
+	 * @param startObj the row's REQUEST_START_TIME value
+	 * @param endObj   the row's RESPONSE_END_TIME value
+	 * @return latency in milliseconds (>= 0)
 	 */
-	private static Map<String, RequestDurationRecord> fetchDurationsForRequestIds(IRDBMSEngine auditLogsDb,
-			Set<String> requestIds) {
-		if (requestIds.isEmpty()) {
-			return Collections.emptyMap();
-		}
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID", "REQUEST_ID"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
-				"AUDIT_LOGS__REQUEST_START_TIME", "START_TIME"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-				"AUDIT_LOGS__RESPONSE_END_TIME", "END_TIME"));
-		qs.addSelector(QueryFunctionSelector.makeDateDiffFunctionSelector(QueryFunctionHelper.SECOND,
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN, "AUDIT_LOGS__REQUEST_START_TIME",
-						"START_TIME"),
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, "AUDIT_LOGS__RESPONSE_END_TIME",
-						"END_TIME"),
-				"DURATION"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__REQUEST_ID", "==", new ArrayList<>(requestIds)));
-		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
-
-		Map<String, RequestDurationRecord> result = new HashMap<>(requestIds.size());
-		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(auditLogsDb, qs)) {
-			String reqId = getOrDefault(row.get("REQUEST_ID"), "");
-			if (reqId.isEmpty()) {
-				continue;
+	private static long latencyMillis(Object startObj, Object endObj) {
+		if (startObj instanceof SemossDate && endObj instanceof SemossDate) {
+			Timestamp start = Utility.getSqlTimestampUTC((SemossDate) startObj);
+			Timestamp end = Utility.getSqlTimestampUTC((SemossDate) endObj);
+			if (start != null && end != null) {
+				long millis = end.getTime() - start.getTime();
+				return millis > 0 ? millis : 0L;
 			}
-			Timestamp startTime = extractTimestamp(row.get("START_TIME"));
-			Timestamp endTime = extractTimestamp(row.get("END_TIME"));
-			long durationSeconds = row.get("DURATION") instanceof Long ? (Long) row.get("DURATION") : 0L;
-			result.put(reqId, new RequestDurationRecord(startTime, endTime, durationSeconds));
 		}
-		return result;
+		return 0L;
 	}
 
 	// Helper Methods
@@ -403,6 +379,26 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
+	 * Filter on ROOM_ID. The sentinel {@link #NULL_ROOM_ID} ("null") means "only
+	 * rows where ROOM_ID IS NULL" - i.e. activity not tied to any room. A real id
+	 * filters by equality; a blank/absent value applies no room filter (all rows).
+	 *
+	 * @param qs     the query struct to add the filter to
+	 * @param roomId the requested room scope (real id, the "null" sentinel, or
+	 *               blank)
+	 */
+	private static void addRoomIdFilter(SelectQueryStruct qs, String roomId) {
+		if (roomId == null || (roomId = roomId.trim()).isEmpty()) {
+			return;
+		}
+		if (NULL_ROOM_ID.equalsIgnoreCase(roomId)) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ROOM_ID", "==", null));
+		} else {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ROOM_ID", "==", roomId));
+		}
+	}
+
+	/**
 	 * 
 	 * @param qs
 	 * @param column
@@ -424,25 +420,31 @@ public class AuditLogsDbUtils {
 		if (value == null || (value = value.trim()).isEmpty()) {
 			return;
 		}
-		// NOTE: REQUEST and RESPONSE are CLOB columns and are intentionally excluded -
-		// searching/filtering on CLOB columns is not portable across databases and
-		// cannot use an index.
+		// Search across the human-readable VARCHAR columns. REQUEST and RESPONSE are
+		// CLOB columns and are intentionally excluded - searching/filtering on CLOB
+		// columns is not portable across databases and cannot use an index.
 		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__USER_NAME", value));
 		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__METHOD_NAME", value));
-		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__ENGINE_TYPE", value));
+		orFilter.addFilter(queryUtil.getSearchRegexFilter("AUDIT_LOGS__ENGINE_NAME", value));
 
 		qs.addExplicitFilter(orFilter);
 	}
 
 	/**
-	 * 
-	 * @param dateObj
-	 * @return
+	 * Format an audit log timestamp value as an ISO-8601 UTC instant string with
+	 * millisecond precision (e.g. {@code 2026-06-22T17:48:07.123Z}) - unambiguous,
+	 * sortable and parseable by clients, unlike a locale-formatted Timestamp.
+	 *
+	 * @param dateObj the raw column value (a {@link SemossDate})
+	 * @return the ISO-8601 UTC string, or null if not a date
 	 */
-	private static Timestamp extractTimestamp(Object dateObj) {
+	private static String toUtcIso(Object dateObj) {
 		if (dateObj instanceof SemossDate) {
 			Timestamp ts = Utility.getSqlTimestampUTC((SemossDate) dateObj);
-			return Timestamp.valueOf(ts.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
+			if (ts != null) {
+				return DateTimeFormatter.ISO_INSTANT.format(ts.toInstant().truncatedTo(ChronoUnit.MILLIS));
+			}
 		}
 		return null;
 	}
@@ -496,7 +498,7 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
-		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
+		addRoomIdFilter(qs, roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
@@ -527,9 +529,11 @@ public class AuditLogsDbUtils {
 			return new String[] { "AUDIT_LOGS__ENGINE_TYPE" };
 		case "user":
 			return new String[] { "AUDIT_LOGS__USER_NAME", "AUDIT_LOGS__USER_ID", "AUDIT_LOGS__USER_TYPE" };
+		case "roomid":
+			return new String[] { "AUDIT_LOGS__ROOM_ID" };
 		default:
-			throw new IllegalArgumentException(
-					"Unsupported filterName '" + filterName + "'. Supported values: methodName, engineType, user");
+			throw new IllegalArgumentException("Unsupported filterName '" + filterName
+					+ "'. Supported values: methodName, engineType, user, roomId");
 		}
 	}
 
@@ -545,12 +549,17 @@ public class AuditLogsDbUtils {
 	 * @param engineType scope the values to this engine type (empty for no scoping)
 	 * @param filterName the dropdown to populate (methodName, engineType, user)
 	 * @param search     optional type-ahead term matched against the display column
+	 * @param startDate  lower bound on LOG_TIMESTAMP (null for none) - must match
+	 *                   the table's date range so the options reflect the visible
+	 *                   rows
+	 * @param endDate    upper bound on LOG_TIMESTAMP (null for none)
 	 * @param limit      max rows (<= 0 for no limit)
 	 * @param offset     row offset (<= 0 for none)
 	 * @return distinct rows of the filter's column(s)
 	 */
 	public static List<String[]> getAuditLogFilterOptionList(String userId, String projectId, String engineId,
-			String engineType, String filterName, String search, int limit, int offset) {
+			String engineType, String filterName, String search, SemossDate startDate, SemossDate endDate, int limit,
+			int offset) {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
 		String[] columns = resolveFilterOptionColumns(filterName);
@@ -567,6 +576,8 @@ public class AuditLogsDbUtils {
 			qs.addExplicitFilter(auditLogsDb.getQueryUtil().getSearchRegexFilter(columns[0], search.trim()));
 		}
 
+		// scope to the same date range as the table so options match the visible rows
+		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
