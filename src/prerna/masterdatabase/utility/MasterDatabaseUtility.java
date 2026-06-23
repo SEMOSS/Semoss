@@ -150,8 +150,6 @@ public class MasterDatabaseUtility {
 			}
 		}
 
-		// ----- indexes (kept) -----
-
 		// engine table
 		// add index
 		if (allowIfExistsIndexs) {
@@ -169,21 +167,6 @@ public class MasterDatabaseUtility {
 
 		// engine concept table
 		// add index
-		{
-			// 2021-08-11
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.dropIndexIfExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			} else {
-				if (queryUtil.indexExists(engine, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", database,
-						schema)) {
-					String sql = queryUtil.dropIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT");
-					classLogger.info("Running sql {}", sql);
-					executeSql(conn, sql);
-				}
-			}
-		}
 		if (allowIfExistsIndexs) {
 			List<String> iCols = new ArrayList<>();
 			iCols.add("ENGINE");

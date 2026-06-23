@@ -71,9 +71,9 @@ public class PromptOwlCreator extends AbstractOwlCreator {
 		addTable("PROMPTMETAKEYS", Arrays.asList(
 				Pair.with("METAKEY", VARCHAR_255),
 				Pair.with("SINGLEMULTI", VARCHAR_255),
-				Pair.with("DISPLAYORDER", VARCHAR_255),
-				Pair.with("DISPLAYOPTIONS", INTEGER_DATATYPE_NAMEA), 
-				Pair.with("DEFAULTVALUES", VARCHAR_255)));
+				Pair.with("DISPLAYORDER", INTEGER_DATATYPE_NAMEA),
+				Pair.with("DISPLAYOPTIONS", VARCHAR_255),
+				Pair.with("DEFAULTVALUES", "VARCHAR(500)")));
 		// @formatter:on
 	}
 }
