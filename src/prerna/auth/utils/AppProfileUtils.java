@@ -220,30 +220,30 @@ public class AppProfileUtils {
 	public static List<Map<String, Object>> getProfiles(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> profiles = new ArrayList<>();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__DESCRIPTION"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_DEFAULT"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__CREATED_BY"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__CREATED_AT"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__APP_ID", "==", appId));
-		qs.addOrderBy("APP_PROFILE__PROFILE_NAME", "ASC");
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
+		String sql = "SELECT PROFILE_ID, PROFILE_NAME, DESCRIPTION, IS_DEFAULT, CREATED_BY, CREATED_AT "
+				+ "FROM APP_PROFILE WHERE APP_ID=? ORDER BY PROFILE_NAME ASC";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = securityDb.getPreparedStatement(sql);
+			ps.setString(1, appId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				String profileId = rs.getString("PROFILE_ID");
 				Map<String, Object> profile = new HashMap<>();
-				profile.put("profileId", row[0]);
-				profile.put("profileName", row[1]);
-				profile.put("description", row[2]);
-				profile.put("isDefault", row[3]);
-				profile.put("createdBy", row[4]);
-				profile.put("createdAt", row[5]);
-				profile.put("userCount", getAssignedUserCount(securityDb, appId, (String) row[0]));
+				profile.put("profileId", profileId);
+				profile.put("profileName", rs.getString("PROFILE_NAME"));
+				profile.put("description", rs.getString("DESCRIPTION"));
+				profile.put("isDefault", rs.getBoolean("IS_DEFAULT"));
+				profile.put("createdBy", rs.getString("CREATED_BY"));
+				profile.put("createdAt", rs.getTimestamp("CREATED_AT"));
+				profile.put("userCount", getAssignedUserCount(securityDb, appId, profileId));
 				profiles.add(profile);
 			}
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			classLogger.error("Failed to get app profiles", e);
+		} finally {
+			ConnectionUtils.closeAllConnections(ps, rs);
 		}
 		return profiles;
 	}
@@ -342,27 +342,27 @@ public class AppProfileUtils {
 	public static List<Map<String, Object>> getFeatures(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> features = new ArrayList<>();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_ID"));
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY"));
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__DESCRIPTION"));
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__CREATED_BY"));
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__CREATED_AT"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_FEATURE__APP_ID", "==", appId));
-		qs.addOrderBy("APP_FEATURE__FEATURE_KEY", "ASC");
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
+		String sql = "SELECT FEATURE_ID, FEATURE_KEY, DESCRIPTION, CREATED_BY, CREATED_AT "
+				+ "FROM APP_FEATURE WHERE APP_ID=? ORDER BY FEATURE_KEY ASC";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = securityDb.getPreparedStatement(sql);
+			ps.setString(1, appId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
 				Map<String, Object> feature = new HashMap<>();
-				feature.put("featureId", row[0]);
-				feature.put("featureKey", row[1]);
-				feature.put("description", row[2]);
-				feature.put("createdBy", row[3]);
-				feature.put("createdAt", row[4]);
+				feature.put("featureId", rs.getString("FEATURE_ID"));
+				feature.put("featureKey", rs.getString("FEATURE_KEY"));
+				feature.put("description", rs.getString("DESCRIPTION"));
+				feature.put("createdBy", rs.getString("CREATED_BY"));
+				feature.put("createdAt", rs.getTimestamp("CREATED_AT"));
 				features.add(feature);
 			}
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			classLogger.error("Failed to get app features", e);
+		} finally {
+			ConnectionUtils.closeAllConnections(ps, rs);
 		}
 		return features;
 	}
