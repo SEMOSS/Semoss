@@ -25,44 +25,22 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.playwright;
+package prerna.remoteviewer.service;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Playwright;
-
-final class PlaywrightBrowserProvider {
-
-	private static volatile Playwright playwright;
-	private static volatile Browser browser;
-
-	private PlaywrightBrowserProvider() {
-
-	}
-
-	static Browser getBrowser() {
-		Browser localBrowser = browser;
-		if (localBrowser == null) {
-			synchronized (PlaywrightBrowserProvider.class) {
-				if (browser == null) {
-					playwright = Playwright.create();
-					browser = playwright.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				}
-				localBrowser = browser;
-			}
-		}
-		return localBrowser;
-	}
-
-	static void shutdown() {
-		try {
-			if (browser != null) {
-				browser.close();
-			}
-		} finally {
-			if (playwright != null) {
-				playwright.close();
-			}
-		}
-	}
+/**
+ * Callback used by the session loop to push JSON messages to the connected
+ * WebSocket client without creating a hard dependency on javax.websocket.
+ *
+ * The Monolith WebSocket endpoint implements this by wrapping
+ * {@code Session.getBasicRemote().sendText(json)}.
+ */
+@FunctionalInterface
+public interface FrameSender {
+	/**
+	 * Send a JSON string to the connected WebSocket client.
+	 * Implementations must be thread-safe.
+	 *
+	 * @param json the JSON message to send
+	 */
+	void send(String json);
 }

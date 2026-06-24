@@ -287,7 +287,7 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 			Files.writeString(tempHtml, html, java.nio.charset.StandardCharsets.UTF_8);
 
 			try (Playwright pw = Playwright.create();
-					Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+					Browser browser = pw.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
 					Page page = browser.newPage()) {
 				page.navigate("file:///" + tempHtml.toAbsolutePath());
 				page.waitForLoadState();

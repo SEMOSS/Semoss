@@ -25,44 +25,47 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.playwright;
+package prerna.remoteviewer.model;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Playwright;
+public class BrowserSessionCreateResponse {
 
-final class PlaywrightBrowserProvider {
+	private String sessionId;
+	private String webSocketUrl;
+	private ViewportInfo viewport;
 
-	private static volatile Playwright playwright;
-	private static volatile Browser browser;
+	public static class ViewportInfo {
+		private int width;
+		private int height;
 
-	private PlaywrightBrowserProvider() {
+		public ViewportInfo(int width, int height) {
+			this.width = width;
+			this.height = height;
+		}
 
+		public int getWidth() {
+			return width;
+		}
+
+		public int getHeight() {
+			return height;
+		}
 	}
 
-	static Browser getBrowser() {
-		Browser localBrowser = browser;
-		if (localBrowser == null) {
-			synchronized (PlaywrightBrowserProvider.class) {
-				if (browser == null) {
-					playwright = Playwright.create();
-					browser = playwright.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				}
-				localBrowser = browser;
-			}
-		}
-		return localBrowser;
+	public BrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
+		this.sessionId = sessionId;
+		this.webSocketUrl = webSocketUrl;
+		this.viewport = new ViewportInfo(vpWidth, vpHeight);
 	}
 
-	static void shutdown() {
-		try {
-			if (browser != null) {
-				browser.close();
-			}
-		} finally {
-			if (playwright != null) {
-				playwright.close();
-			}
-		}
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public String getWebSocketUrl() {
+		return webSocketUrl;
+	}
+
+	public ViewportInfo getViewport() {
+		return viewport;
 	}
 }

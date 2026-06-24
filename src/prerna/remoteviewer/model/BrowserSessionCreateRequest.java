@@ -25,44 +25,35 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.playwright;
+package prerna.remoteviewer.model;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Playwright;
+public class BrowserSessionCreateRequest {
 
-final class PlaywrightBrowserProvider {
+	private String url;
+	private Integer viewportWidth;
+	private Integer viewportHeight;
 
-	private static volatile Playwright playwright;
-	private static volatile Browser browser;
-
-	private PlaywrightBrowserProvider() {
-
+	public String getUrl() {
+		return url;
 	}
 
-	static Browser getBrowser() {
-		Browser localBrowser = browser;
-		if (localBrowser == null) {
-			synchronized (PlaywrightBrowserProvider.class) {
-				if (browser == null) {
-					playwright = Playwright.create();
-					browser = playwright.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				}
-				localBrowser = browser;
-			}
-		}
-		return localBrowser;
+	public void setUrl(String url) {
+		this.url = url;
 	}
 
-	static void shutdown() {
-		try {
-			if (browser != null) {
-				browser.close();
-			}
-		} finally {
-			if (playwright != null) {
-				playwright.close();
-			}
-		}
+	public Integer getViewportWidth() {
+		return viewportWidth;
+	}
+
+	public void setViewportWidth(Integer viewportWidth) {
+		this.viewportWidth = viewportWidth;
+	}
+
+	public Integer getViewportHeight() {
+		return viewportHeight;
+	}
+
+	public void setViewportHeight(Integer viewportHeight) {
+		this.viewportHeight = viewportHeight;
 	}
 }

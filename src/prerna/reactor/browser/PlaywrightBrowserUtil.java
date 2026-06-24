@@ -178,7 +178,7 @@ public class PlaywrightBrowserUtil {
 		if(this.playwright == null)
 			this.playwright = Playwright.create();
 	     
-	     BrowserType firefox = playwright.chromium();
+	     BrowserType firefox = playwright.webkit();
 	     //BrowserType firefox = playwright.webkit();
 	     Browser browser = firefox.launch();
 	     ctx = browser.newContext();
