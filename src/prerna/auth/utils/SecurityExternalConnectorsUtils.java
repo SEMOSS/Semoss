@@ -271,6 +271,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 		// normalize subdir: blank/null becomes null (full-repo sync)
 		String normalizedSubdir = (subdir != null && !subdir.trim().isEmpty()) ? subdir.trim() : null;
+		normalizedSubdir = Utility.normalizePath(normalizedSubdir);
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = getGitHubProjectLink(projectId) != null;
@@ -289,7 +290,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
-					ps.setString(i++, normalizedSubdir);
+					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
+						ps.setNull(i++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(i++, normalizedSubdir);
+					}
 					ps.setTimestamp(i++, now);
 					ps.setString(i++, projectId);
 					ps.executeUpdate();
@@ -308,7 +313,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
-					ps.setString(i++, normalizedSubdir);
+					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
+						ps.setNull(i++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(i++, normalizedSubdir);
+					}
 					ps.setTimestamp(i++, now);
 					ps.setTimestamp(i++, now);
 					ps.execute();

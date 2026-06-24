@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -42,6 +43,7 @@ import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.util.AssetUtility;
+import prerna.util.ProjectSyncUtility;
 import prerna.util.git.GitRepoUtils;
 
 /**
@@ -91,6 +93,20 @@ public class GitHubProjectSync {
 	 *                   git operation fails
 	 */
 	public static String syncProjectFromGitHub(String projectId, String pushedBranch) throws Exception {
+		// serialize syncs per project: GitHub can deliver overlapping or duplicate push
+		// webhooks, and concurrent syncs would race on the project's assets folder and
+		// local git repo. Reuse the shared project lock so we also serialize against
+		// other project sync operations (cloud push/pull, asset edits).
+		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
+		projectLock.lock();
+		try {
+			return doSyncProjectFromGitHub(projectId, pushedBranch);
+		} finally {
+			projectLock.unlock();
+		}
+	}
+
+	private static String doSyncProjectFromGitHub(String projectId, String pushedBranch) throws Exception {
 		Map<String, Object> link = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (link == null) {
 			throw new IllegalArgumentException("Project " + projectId + " is not linked to a GitHub repository");
@@ -140,7 +156,7 @@ public class GitHubProjectSync {
 			// requested subdir into the project's assets folder, then commit the result
 			// into the version/ local repo so each sync is recorded in local git history
 			// with a traceable link back to the remote monorepo commit. The temp directory
-			// is always cleaned up — app_root/ is not pushed to cloud on a normal sync so
+			// is always cleaned up - app_root/ is not pushed to cloud on a normal sync so
 			// a persistent staging clone would be lost and require a full re-clone anyway.
 			File stagingDir = Files.createTempDirectory(STAGING_DIR_PREFIX).toFile();
 			try {
@@ -153,8 +169,31 @@ public class GitHubProjectSync {
 				}
 
 				File assetsFolder = new File(AssetUtility.getProjectAssetsFolder(projectName, projectId));
-				FileUtils.deleteDirectory(assetsFolder);
-				FileUtils.copyDirectory(subdirSource, assetsFolder);
+				File assetsParent = assetsFolder.getParentFile();
+				File stagedAssets = new File(assetsParent, assetsFolder.getName() + ".sync-tmp");
+				File backupAssets = new File(assetsParent, assetsFolder.getName() + ".sync-bak");
+
+				// build the new assets out-of-place, then swap atomically, so a failure
+				// (or crash) mid-copy can never leave the project with an empty assets
+				// folder. Clean any leftovers from a previously interrupted sync first.
+				FileUtils.deleteDirectory(stagedAssets);
+				FileUtils.deleteDirectory(backupAssets);
+				FileUtils.copyDirectory(subdirSource, stagedAssets);
+
+				boolean hadExisting = assetsFolder.exists();
+				if (hadExisting) {
+					FileUtils.moveDirectory(assetsFolder, backupAssets);
+				}
+				try {
+					FileUtils.moveDirectory(stagedAssets, assetsFolder);
+				} catch (IOException swapEx) {
+					// restore the previous assets so the project is never left empty
+					if (hadExisting && !assetsFolder.exists()) {
+						FileUtils.moveDirectory(backupAssets, assetsFolder);
+					}
+					throw swapEx;
+				}
+				FileUtils.deleteDirectory(backupAssets);
 
 				String commitMsg = "sync: " + repoFullName + "/" + targetBranch + "/" + subdir.trim() + " @ " + newHead;
 				GitRepoUtils.addAllChangesAndCommit(localFolder, true, commitMsg);
