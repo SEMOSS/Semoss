@@ -1,0 +1,36 @@
+# Copy this file to terraform.tfvars and adjust values for your environment.
+
+aws_region   = "us-gov-west-1"
+cluster_name = "semoss-dev-eks"
+
+# Existing network inputs
+vpc_id = "vpc-xxxxxxxxxxxxxxxxx"
+subnet_ids = [
+  "subnet-xxxxxxxxxxxxxxxxx",
+  "subnet-yyyyyyyyyyyyyyyyy",
+]
+
+# Optional: IAM principals that should receive cluster-admin access
+cluster_admin_principal_arns = [
+  "arn:aws-us-gov:iam::123456789012:role/PlatformAdminRole",
+]
+
+# Endpoint exposure
+cluster_endpoint_private_access = true
+cluster_endpoint_public_access  = false
+cluster_endpoint_public_access_cidrs = [
+  "10.0.0.0/8",
+]
+
+# Node group sizing
+node_instance_types = ["m6i.large"]
+node_desired_size   = 2
+node_min_size       = 2
+node_max_size       = 4
+
+# Common tags
+tags = {
+  application = "semoss"
+  environment = "dev"
+  owner       = "platform-team"
+}

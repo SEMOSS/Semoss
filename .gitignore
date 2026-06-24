@@ -99,3 +99,16 @@ py/.env
 out/
 .idea/
 semoss.iml
+
+# Terraform local inputs for the basic EKS example
+terraform/examples/basic/terraform.tfvars
+
+# Terraform local working directories and lock files
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json

@@ -40,6 +40,9 @@ To achieve these goals, the SEMOSS backend incorporates several key components a
     *   This package contains various helper classes that support clustered operations, including `CentralCloudStorage` and `ClusterUtilZkSynchronizer`.
     *   Other utilities might assist with tasks like inter-instance communication (if any direct communication is used beyond ZooKeeper) or managing cluster-wide configurations.
 
+4.  **Terraform EKS Module**:
+    *   Reusable baseline module for deploying a basic EKS cluster from Terraform: [terraform/modules/eks-basic/README.md](../../terraform/modules/eks-basic/README.md)
+
 These components work together to allow multiple SEMOSS instances to operate as a cohesive unit, providing a scalable, resilient, and consistent user experience.
 
 ## Detailed Documentation
