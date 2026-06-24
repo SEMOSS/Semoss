@@ -275,9 +275,9 @@ public class SchedulerDatabaseUtility {
 		try {
 			queryUtil = schedulerDb.getQueryUtil();
 
-			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(schedulerDb);
-			if (owlCreator.needsRemake()) {
-				owlCreator.remakeOwl();
+			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator();
+			if (owlCreator.needsRemake(schedulerDb)) {
+				owlCreator.remakeOwl(schedulerDb);
 			}
 
 			initialize();
@@ -1657,7 +1657,6 @@ public class SchedulerDatabaseUtility {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowBlobDataType = queryUtil.allowBlobDataType();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		String dateTimeType = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
@@ -1692,82 +1691,6 @@ public class SchedulerDatabaseUtility {
 				}
 			}
 
-			// ADDED 2021-02-19
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// since we added the pixel recipe parameters at a later point...
-				if (!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(UI_STATE)) {
-					// alter table to add the column
-					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, UI_STATE, BLOB_DATATYPE);
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-					// set it to the value of the previous name "PARAMETER"
-					sql = "UPDATE " + SMSS_JOB_RECIPES + " SET " + UI_STATE + "=PARAMETERS";
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-					// now delete
-					sql = queryUtil.alterTableDropColumn(SMSS_JOB_RECIPES, "PARAMETERS");
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.removeData(sql);
-				}
-			}
-
-			// ADDED 2020-08-21
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// since we added the pixel recipe parameters at a later point...
-				if (!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema)
-						.contains(PIXEL_RECIPE_PARAMETERS)) {
-					// alter table to add the column
-					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, PIXEL_RECIPE_PARAMETERS,
-							BLOB_DATATYPE);
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-				}
-			}
-
-			// ADDED 2020-11-30
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// need to add new JobId
-				if (!queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema).contains(JOB_ID)) {
-					// alter table to add the column
-					String sql = queryUtil.alterTableAddColumnWithDefault("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(200)",
-							"PLACEHOLDER");
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-					// make the JOB_ID the JOB_NAME for LEGACY recipes
-					sql = "UPDATE SMSS_JOB_RECIPES SET JOB_ID=JOB_NAME";
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-					// make column not null
-					sql = queryUtil.modColumnNotNull("SMSS_JOB_RECIPES", "JOB_ID", "VARCHAR(2000)");
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-					// add PK constraints on job id column
-					sql = "ALTER TABLE SMSS_JOB_RECIPES ADD CONSTRAINT SMSS_JOB_RECIPES_PK PRIMARY KEY (JOB_ID)";
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-				}
-			}
-
-			// 2023-04-01 just check all the columns we defined are actually there
-			{
-				// just check all the columns are there
-				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, col, types[i]);
-						classLogger.info("Running sql: {}", addColumnSql);
-						schedulerDb.insertData(addColumnSql);
-					}
-				}
-			}
-
 			// SMSS_JOB_TAGS
 			colNames = new String[] { JOB_ID, JOB_TAG };
 			types = new String[] { VARCHAR_200, VARCHAR_200 };
@@ -1785,20 +1708,6 @@ public class SchedulerDatabaseUtility {
 							constraints);
 					classLogger.info("Running sql: {}", sql);
 					schedulerDb.insertData(sql);
-				}
-			}
-
-			// 2023-04-01 just check all the columns we defined are actually there
-			{
-				// just check all the columns are there
-				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_TAGS, database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_JOB_TAGS, col, types[i]);
-						classLogger.info("Running sql: {}", addColumnSql);
-						schedulerDb.insertData(addColumnSql);
-					}
 				}
 			}
 
@@ -1828,78 +1737,6 @@ public class SchedulerDatabaseUtility {
 				}
 			}
 
-			// ADDED 2020-11-30
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// need to add new JobId
-				if (!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema).contains(JOB_ID)) {
-					// change JOB_NAME to JOB_ID
-					String sql = queryUtil.modColumnName("SMSS_AUDIT_TRAIL", "JOB_NAME", "JOB_ID");
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-				}
-			}
-			// ADDED 2021-02-11
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// adding the column is_latest
-				if (!queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema).contains(IS_LATEST)) {
-					schedulerDb
-							.insertData(queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, IS_LATEST, BOOLEAN_DATATYPE));
-					// being lazy - just update all the existing ones to be is_latest false
-					// in theory should go and find the last instance of each job id and update...
-					try (PreparedStatement updateAuditTrailStatement = connection
-							.prepareStatement("UPDATE SMSS_AUDIT_TRAIL SET IS_LATEST=?")) {
-
-						updateAuditTrailStatement.setBoolean(1, false);
-						updateAuditTrailStatement.executeUpdate();
-					} catch (SQLException e) {
-						classLogger.error("Failed to back-fill IS_LATEST=false in SMSS_AUDIT_TRAIL: {}", e.getMessage(),
-								e);
-					}
-				}
-			}
-
-			// 2023-04-01 just check all the columns we defined are actually there
-			{
-				// just check all the columns are there
-				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_AUDIT_TRAIL, database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						String addColumnSql = queryUtil.alterTableAddColumn(SMSS_AUDIT_TRAIL, col, types[i]);
-						classLogger.info("Running sql: {}", addColumnSql);
-						schedulerDb.insertData(addColumnSql);
-					}
-				}
-			}
-			// 2023-04-03 changing from BLOB to CLOB
-			{
-				// just check all the columns are there
-				try {
-					String[] nameAndType = queryUtil.getColumnDetails(connection, SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT,
-							database, schema);
-					if (nameAndType != null) {
-						String name = nameAndType[0];
-						String type = nameAndType[1];
-						if (!CLOB_DATATYPE.equalsIgnoreCase(type)) {
-							// add one more check
-							if (!(CLOB_DATATYPE.matches("(?i)varchar\\(.*\\)") && type.equalsIgnoreCase("varchar"))) {
-								// we alter
-								String sql = queryUtil.modColumnType(SMSS_AUDIT_TRAIL, SCHEDULER_OUTPUT, CLOB_DATATYPE);
-								classLogger.info("Running sql: {}", sql);
-								schedulerDb.insertData(sql);
-							}
-						}
-					}
-				} catch (SQLException e) {
-					classLogger.error("Failed to migrate SMSS_AUDIT_TRAIL.SCHEDULER_OUTPUT column to CLOB: {}",
-							e.getMessage(), e);
-				}
-			}
-
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP };
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200 };
@@ -1913,19 +1750,6 @@ public class SchedulerDatabaseUtility {
 				if (!queryUtil.tableExists(connection, SMSS_EXECUTION, database, schema)) {
 					// make the table
 					String sql = queryUtil.createTable(SMSS_EXECUTION, colNames, types);
-					classLogger.info("Running sql: {}", sql);
-					schedulerDb.insertData(sql);
-				}
-			}
-
-			// ADDED 2020-11-30
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			// TODO: CAN DELETE THIS AFTER A FEW VERSIONS
-			{
-				// need to add new JobId
-				if (!queryUtil.getTableColumns(connection, SMSS_EXECUTION, database, schema).contains(JOB_ID)) {
-					// change JOB_NAME to JOB_ID
-					String sql = queryUtil.modColumnName("SMSS_EXECUTION", "JOB_NAME", "JOB_ID");
 					classLogger.info("Running sql: {}", sql);
 					schedulerDb.insertData(sql);
 				}
