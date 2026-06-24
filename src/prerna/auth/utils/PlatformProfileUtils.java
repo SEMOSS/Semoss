@@ -333,6 +333,31 @@ public class PlatformProfileUtils {
 		return getProfileFeatures(profileId);
 	}
 
+	public static List<Map<String, Object>> getPlatformProfileUsers(String profileId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		List<Map<String, Object>> users = new ArrayList<>();
+		String sql = "SELECT USER_ID, ASSIGNED_BY, ASSIGNED_AT FROM PLATFORM_USER_PROFILE WHERE PROFILE_ID=?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = securityDb.getPreparedStatement(sql);
+			ps.setString(1, profileId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> row = new HashMap<>();
+				row.put("userId", rs.getString("USER_ID"));
+				row.put("assignedBy", rs.getString("ASSIGNED_BY"));
+				row.put("assignedAt", rs.getTimestamp("ASSIGNED_AT"));
+				users.add(row);
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to get platform profile users", e);
+		} finally {
+			ConnectionUtils.closeAllConnections(ps, rs);
+		}
+		return users;
+	}
+
 	// ─── Private helpers ─────────────────────────────────────────────────────
 
 	private static int getAssignedUserCount(IRDBMSEngine securityDb, String profileId) {
