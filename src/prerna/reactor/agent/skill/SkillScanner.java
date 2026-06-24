@@ -47,14 +47,15 @@ import java.util.Map;
  * {@code .claude/skill/} for a {@code <name>/SKILL.md}. Skills are deduplicated by folder
  * name with the same first-match-wins precedence as the {@code LoadSkill} tool.
  *
- * <p>Two consumers render the same catalog differently: {@code ListSkillReactor} emits a
- * markdown tool result, while {@link prerna.reactor.agent.runtime.SemossAgentHarness}
- * emits an {@code <available_skills>} system-prompt block. Registry skills are materialized
- * into the working directory by {@link SkillStager} before this scan runs, so both paths
- * agree on what is available.
+ * <p>Two consumers render the same catalog differently: the SEMOSS harness
+ * default {@code ListSkill} tool emits a markdown tool result, while
+ * {@link prerna.reactor.agent.runtime.SemossAgentHarness} emits an
+ * {@code <available_skills>} system-prompt block. Registry skills are
+ * materialized into the working directory by {@link SkillStager} before this
+ * scan runs, so both paths agree on what is available.
  *
- * <p>Path handling mirrors {@code AbstractAgentToolReactor}: paths are canonicalized with
- * forward slashes and reported relative to the working directory.
+ * <p>Paths are canonicalized with forward slashes and reported relative to the
+ * working directory.
  */
 public final class SkillScanner {
 
@@ -144,7 +145,7 @@ public final class SkillScanner {
 		return paths;
 	}
 
-	// ---- path helpers (mirror AbstractAgentToolReactor semantics) ----
+	// ---- path helpers ----
 
 	/** Normalizes a filesystem path: canonical, forward slashes, no trailing slash. */
 	private static String normalizePath(String path) {

@@ -111,8 +111,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		Room room = ctx.getRoom();
 		Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
 		int maxSeconds = resolveMaxSeconds(paramMap);
-		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
-				ctx.getInsight());
+		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());

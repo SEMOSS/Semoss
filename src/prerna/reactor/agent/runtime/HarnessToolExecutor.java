@@ -104,7 +104,7 @@ final class HarnessToolExecutor {
 		String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 
-		// Per-turn spawn cap — shared across the batch. Only spawn-kind calls
+		// Per-turn spawn cap - shared across the batch. Only spawn-kind calls
 		// decrement.
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);

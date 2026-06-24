@@ -36,9 +36,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
-import prerna.om.Insight;
-import prerna.reactor.IReactor;
-import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -56,19 +53,20 @@ final class PlatformAgentTools {
 	private static final String PROP_DEFAULT_TOOLS_MCP_ID = "AGENT_DEFAULT_TOOLS_MCP_ID";
 	private static final String PROP_DEFAULT_TOOLS_MCP_PROJECT_ID = "AGENT_DEFAULT_TOOLS_MCP_PROJECT_ID";
 
-	private static final Map<String, String> PLATFORM_TOOL_TO_REACTOR = createPlatformToolMap();
+	private static final Map<String, PlatformAgentToolHandlers.ToolHandler> PLATFORM_TOOLS =
+			PlatformAgentToolHandlers.handlersByName();
 
 	private PlatformAgentTools() {
 	}
 
-	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap, Insight insight) {
+	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap) {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (useDefaultAgentTools(paramMap)) {
 			String overrideMcpId = getDefaultToolsMcpId();
 			if (overrideMcpId != null) {
 				tools.addAll(getMcpToolDefinitions(overrideMcpId));
 			} else {
-				tools.addAll(getPlatformToolDefinitions(insight));
+				tools.addAll(getPlatformToolDefinitions());
 			}
 		}
 		tools.addAll(getExplicitTools(paramMap));
@@ -82,10 +80,10 @@ final class PlatformAgentTools {
 		if (getDefaultToolsMcpId() != null) {
 			return findMcpTool(getDefaultToolsMcpId(), toolName) != null;
 		}
-		return PLATFORM_TOOL_TO_REACTOR.containsKey(toolName);
+		return PLATFORM_TOOLS.containsKey(toolName);
 	}
 
-	static String executeDefaultTool(String toolName, Map<String, Object> params, AgentRunContext ctx) {
+	static String executeDefaultTool(String toolName, Map<String, Object> params, AgentRunContext ctx) throws Exception {
 		String overrideMcpId = getDefaultToolsMcpId();
 		if (overrideMcpId != null) {
 			JSONObject tool = findMcpTool(overrideMcpId, toolName);
@@ -97,30 +95,11 @@ final class PlatformAgentTools {
 			return callMcpTool(overrideMcpId, functionName, params, ctx);
 		}
 
-		String reactorName = PLATFORM_TOOL_TO_REACTOR.get(toolName);
-		if (reactorName == null) {
+		PlatformAgentToolHandlers.ToolHandler handler = PLATFORM_TOOLS.get(toolName);
+		if (handler == null) {
 			throw new IllegalArgumentException("Unknown platform agent tool: " + toolName);
 		}
-		return executeReactor(reactorName, params, ctx);
-	}
-
-	private static Map<String, String> createPlatformToolMap() {
-		Map<String, String> tools = new LinkedHashMap<>();
-		tools.put("ReadFile", "ReadFile");
-		tools.put("WriteFile", "SaveInsightAssets");
-		tools.put("EditFile", "EditFile");
-		tools.put("MultiEdit", "MultiEdit");
-		tools.put("MoveFile", "RenameInsightAsset");
-		tools.put("DeleteFile", "DeleteInsightAssets");
-		tools.put("GlobFiles", "GlobFiles");
-		tools.put("GrepFiles", "GrepFiles");
-		tools.put("ListDirectory", "ListDirectory");
-		tools.put("BashCommand", "BashCommand");
-		tools.put("TodoWrite", "TodoWrite");
-		tools.put("TodoRead", "TodoRead");
-		tools.put("ListSkill", "ListSkill");
-		tools.put("LoadSkill", "LoadSkill");
-		return tools;
+		return handler.execute(params, ctx);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -152,24 +131,10 @@ final class PlatformAgentTools {
 		return id != null && !id.trim().isEmpty() ? id.trim() : null;
 	}
 
-	private static List<Map<String, Object>> getPlatformToolDefinitions(Insight insight) {
+	private static List<Map<String, Object>> getPlatformToolDefinitions() {
 		List<Map<String, Object>> tools = new ArrayList<>();
-		for (Map.Entry<String, String> entry : PLATFORM_TOOL_TO_REACTOR.entrySet()) {
-			String toolName = entry.getKey();
-			String reactorName = entry.getValue();
-			IReactor reactor = ReactorFactory.getReactor(insight, reactorName, null,
-					insight != null ? insight.getCurFrame() : null);
-			JSONObject tool = reactor.asMcpTool();
-			tool.put("name", toolName);
-			tool.put("title", MCPUtility.formatToTitleCase(toolName));
-			JSONObject meta = tool.optJSONObject("_meta");
-			if (meta == null) {
-				meta = new JSONObject();
-				tool.put("_meta", meta);
-			}
-			meta.put(MCPUtility.SMSS_FUNCTION_NAME, reactorName);
-			meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
-			tools.add(tool.toMap());
+		for (PlatformAgentToolHandlers.ToolHandler handler : PLATFORM_TOOLS.values()) {
+			tools.add(handler.asToolDefinition().toMap());
 		}
 		return tools;
 	}
@@ -242,16 +207,6 @@ final class PlatformAgentTools {
 		return new ArrayList<>(byName.values());
 	}
 
-	private static String executeReactor(String reactorName, Map<String, Object> params, AgentRunContext ctx) {
-		IReactor reactor = ReactorFactory.getReactor(ctx.getInsight(), reactorName, null,
-				ctx.getInsight() != null ? ctx.getInsight().getCurFrame() : null);
-		reactor.In();
-		reactor.setInsight(ctx.getInsight());
-		addParams(reactor, params);
-		NounMetadata result = reactor.execute();
-		return result != null && result.getValue() != null ? result.getValue().toString() : "";
-	}
-
 	private static String callMcpTool(String mcpId, String toolName, Map<String, Object> params, AgentRunContext ctx) {
 		RunMCPToolReactor reactor = new RunMCPToolReactor();
 		reactor.In();
@@ -271,30 +226,5 @@ final class PlatformAgentTools {
 
 		NounMetadata result = reactor.execute();
 		return result != null && result.getValue() != null ? result.getValue().toString() : "";
-	}
-
-	private static void addParams(IReactor reactor, Map<String, Object> params) {
-		if (params == null || params.isEmpty()) {
-			return;
-		}
-		for (Map.Entry<String, Object> entry : params.entrySet()) {
-			GenRowStruct grs = new GenRowStruct();
-			addValue(grs, entry.getValue());
-			reactor.getNounStore().addNoun(entry.getKey(), grs);
-		}
-	}
-
-	private static void addValue(GenRowStruct grs, Object value) {
-		if (value instanceof Iterable<?>) {
-			for (Object item : (Iterable<?>) value) {
-				addValue(grs, item);
-			}
-			return;
-		}
-		if (value instanceof Map<?, ?>) {
-			grs.add(new NounMetadata(value, PixelDataType.MAP));
-		} else {
-			grs.add(new NounMetadata(value != null ? value.toString() : "", PixelDataType.CONST_STRING));
-		}
 	}
 }
