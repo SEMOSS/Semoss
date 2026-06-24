@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,12 +117,6 @@ public class AppBuilderHarnessConfiguration {
     }
 
     private static JSONObject buildDefaultConfig() {
-        // Selected engines are no longer persisted in AGENT_CONFIG.json. The
-        // canonical store is the project-dependency table in the security DB
-        // (see SetProjectDependenciesReactor + getProjectDependencyDetails).
-        // The .claude/skills/selected-engines/SKILL.md file is regenerated
-        // from that dep list whenever dependencies change. AGENT_CONFIG.json
-        // is reserved for other agent-side config going forward.
         return new JSONObject();
     }
 
@@ -152,7 +145,6 @@ public class AppBuilderHarnessConfiguration {
         return getConfig(resolveProjectClientPath(projectId));
     }
 
-    // Skill regeneration (driven by project-dependency changes)
     /**
      * Regenerates {@code .claude/skills/selected-engines/SKILL.md} from the
      * project's current dependency list. Call this from any reactor that
@@ -180,12 +172,6 @@ public class AppBuilderHarnessConfiguration {
             return;
         }
 
-        // Only Agent 47-managed projects carry a `.claude/` directory. For any
-        // other project, writing a selected-engines skill file would scatter
-        // Claude Code state into projects that have no use for it (and would
-        // create a `.claude/` tree from nothing on the first dep write). The
-        // skill exists to be consumed by Claude Code; if Claude Code can't run
-        // here, there's nothing to consume it. No-op.
         Path clientPath;
         try {
             clientPath = Paths.get(resolveProjectClientPath(projectId));
@@ -229,9 +215,6 @@ public class AppBuilderHarnessConfiguration {
     // Internals
     private static void writeConfig(Path configFile, JSONObject root) throws IOException {
         Files.write(configFile, root.toString(4).getBytes(StandardCharsets.UTF_8));
-        // Note: AGENT_CONFIG.json writes no longer drive skill regeneration.
-        // The selected-engines skill is regenerated whenever project
-        // dependencies change (see regenerateSelectedEnginesSkillFromDependencies).
     }
 
     /**
