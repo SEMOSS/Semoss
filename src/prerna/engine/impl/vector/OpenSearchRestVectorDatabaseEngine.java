@@ -116,6 +116,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String NEAREST_NEIGHBOR_QUERY = "NEAREST_NEIGHBOR_QUERY";
 	private static final String NEAREST_NEIGHBOR_RESULTS_PATH = "NEAREST_NEIGHBOR_RESULTS_PATH";
 
+	public static final String USE_HYBRID_SEARCH = "USE_HYBRID_SEARCH";
+	private static final String HYBRID_SEARCH_PIPELINE_NAME = "semoss-hybrid-pipeline";
+	private static final String PIPELINES_ENDPOINT = "/_search/pipeline";
+
 	private static final String DEFAULT_LIST_DOCUMENTS_QUERY = """
 				{
 				  "size": 0,
@@ -179,6 +183,50 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				  }
 				}
 			""";
+	private static final String HYBRID_PIPELINE_BODY = """
+				{
+				  "phase_results_processors": [
+				    {
+				      "normalization-processor": {
+				        "normalization": {
+				          "technique": "min_max"
+				        },
+				        "combination": {
+				          "technique": "arithmetic_mean"
+				        }
+				      }
+				    }
+				  ]
+				}
+				""";
+	private static final String DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY = """
+				{
+				  "from": ${FROM},
+				  "size": ${SIZE},
+				  "query": {
+				    "hybrid": {
+				      "queries": [
+				        {
+				          "match": {
+				            "%s": {
+				              "query": ${QUERY}
+				            }
+				          }
+				        },
+				        {
+				          "knn": {
+				            "${EMBEDDINGS}": {
+				              "vector": ${VECTOR},
+				              "k": ${K},
+				              "filter": ${FILTER}
+				            }
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+			""".formatted(VectorDatabaseCSVTable.CONTENT);
 	private static final String DEFAULT_NEAREST_NEIGHBOR_RESULTS_PATH = "$.hits.hits[*]";
 
 	private String clusterUrl = null;
@@ -197,6 +245,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private boolean externallyManagedIndex = false;
 	private int queryLimit = 9999;
 	private int batchLimit = 9999;
+	private boolean useHybridSearch = false;
 
 	private String listDocumentsQuery = null;
 	private String listDocumentsResultsPath = null;
@@ -275,6 +324,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				classLogger.warn("Invalid string value for batch_limit value '{}'. Must be an integer value",
 						batchLimitInput, e);
 			}
+		}
+
+		this.useHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(USE_HYBRID_SEARCH, "false"));
+		if (this.useHybridSearch) {
+			ensureHybridPipeline();
 		}
 
 		if (!externallyManagedIndex) {
@@ -534,8 +588,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
+		String activeQuery = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY : nearestNeighborQuery;
+		String activeSearchEndpoint = this.useHybridSearch
+				? SEARCH_ENDPOINT + "?search_pipeline=" + HYBRID_SEARCH_PIPELINE_NAME
+				: SEARCH_ENDPOINT;
+
 		String vectorString = "";
-		if (nearestNeighborQuery.contains("${VECTOR}")) {
+		if (activeQuery.contains("${VECTOR}")) {
 			if (!this.modelPropsLoaded) {
 				verifyModelProps();
 			}
@@ -619,9 +678,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 			StringSubstitutor substitutor = new StringSubstitutor(replacements);
 			substitutor.setEnableSubstitutionInVariables(true);
-			String searchString = substitutor.replace(nearestNeighborQuery);
+			String searchString = substitutor.replace(activeQuery);
 
-			String searchResponse = getSearchResponse(searchString);
+			String searchResponse = getSearchResponse(searchString, activeSearchEndpoint);
 			DocumentContext jsonContext = JsonPath.using(configuration).parse(searchResponse);
 
 			Set<String> hitKeys = new HashSet<>();
@@ -1028,12 +1087,34 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	/**
-	 * 
-	 * @param searchBody
-	 * @return
+	 * Creates the OpenSearch search pipeline used for hybrid (vector + BM25) search.
+	 * Applies min-max score normalization and arithmetic mean combination, which is
+	 * the standard approach for OpenSearch hybrid search (GA since 2.10).
+	 *
+	 * Safe to call on every engine startup — PUT is idempotent.
 	 */
+	private void ensureHybridPipeline() {
+		String url = this.clusterUrl + PIPELINES_ENDPOINT + "/" + HYBRID_SEARCH_PIPELINE_NAME;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		String response = HttpHelperUtility.putRequestStringBody(url, headersMap, HYBRID_PIPELINE_BODY,
+				ContentType.APPLICATION_JSON, null, null, null);
+		if (!parseResponseForAcknowledged(response)) {
+			classLogger.warn("Did not receive acknowledgement when creating hybrid search pipeline '{}'; "
+					+ "hybrid search queries may fail", HYBRID_SEARCH_PIPELINE_NAME);
+		} else {
+			classLogger.info("Hybrid search pipeline '{}' is ready", HYBRID_SEARCH_PIPELINE_NAME);
+		}
+	}
+
 	protected String getSearchResponse(String searchBody) {
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		return getSearchResponse(searchBody, SEARCH_ENDPOINT);
+	}
+
+	protected String getSearchResponse(String searchBody, String searchEndpoint) {
+		String url = this.clusterUrl + "/" + this.indexName + searchEndpoint;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
