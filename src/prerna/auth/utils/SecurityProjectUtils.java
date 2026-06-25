@@ -94,6 +94,7 @@ import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.reactor.appprofile.AppProfileUtils;
 
 public class SecurityProjectUtils extends AbstractSecurityUtils {
 

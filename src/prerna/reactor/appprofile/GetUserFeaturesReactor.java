@@ -32,7 +32,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -43,6 +43,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
  */
 @Deprecated
+/**
+ * Get all enabled features for the calling user in an app.
+ *
+ * <p>Pixel: {@code GetUserFeatures(app=["appId"]);}</p>
+ */
 public class GetUserFeaturesReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);

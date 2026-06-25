@@ -33,11 +33,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Revoke a user's delegated profile manager permission.
+ *
+ * <p>Pixel: {@code RemoveAppProfileManager(app=["appId"], userId=["userId"]);}</p>
+ */
 public class RemoveAppProfileManagerReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoveAppProfileManagerReactor.class);

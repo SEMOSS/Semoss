@@ -28,15 +28,21 @@
 package prerna.reactor.platformprofile;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Assigns a user to a platform profile, replacing any existing profile assignment for that user.
+ *
+ * <p>Pixel: {@code AssignUserPlatformProfile(userId=["<userId>"], profileId=["<profileId>"]);}</p>
+ */
 public class AssignUserPlatformProfileReactor extends AbstractReactor {
 
 	public AssignUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { "userId", "profileId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey(), ReactorKeysEnum.PROFILE_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -47,10 +53,10 @@ public class AssignUserPlatformProfileReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String userId = this.keyValue.get("userId");
-		String profileId = this.keyValue.get("profileId");
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 		PlatformProfileUtils.assignUserProfile(userId, profileId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User assigned to platform profile."));
 		return noun;
 	}

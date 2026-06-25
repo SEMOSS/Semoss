@@ -32,13 +32,18 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Create a named profile for an app.
+ *
+ * <p>Pixel: {@code CreateAppProfile(app=["appId"], name=["profileName"]);}</p>
+ */
 public class CreateAppProfileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateAppProfileReactor.class);

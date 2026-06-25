@@ -30,13 +30,18 @@ package prerna.reactor.appprofile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Delete a named profile from an app.
+ *
+ * <p>Pixel: {@code DeleteAppProfile(app=["appId"], profile=["profileId"]);}</p>
+ */
 public class DeleteAppProfileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteAppProfileReactor.class);

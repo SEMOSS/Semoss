@@ -36,11 +36,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Get all users assigned to a profile in an app.
+ *
+ * <p>Pixel: {@code GetAppProfileUsers(app=["appId"], profile=["profileId"]);}</p>
+ */
 public class GetAppProfileUsersReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetAppProfileUsersReactor.class);

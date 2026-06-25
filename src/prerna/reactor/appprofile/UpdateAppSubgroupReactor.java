@@ -30,13 +30,18 @@ package prerna.reactor.appprofile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Update a sub-group's name or description.
+ *
+ * <p>Pixel: {@code UpdateAppSubgroup(app=["appId"], subgroup=["subgroupId"], name=["newName"]);}</p>
+ */
 public class UpdateAppSubgroupReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(UpdateAppSubgroupReactor.class);

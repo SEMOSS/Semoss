@@ -30,15 +30,21 @@ package prerna.reactor.platformprofile;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Creates a new platform profile with the given name and optional description.
+ *
+ * <p>Pixel: {@code CreatePlatformProfile(name=["My Profile"], description=["Optional description"]);}</p>
+ */
 public class CreatePlatformProfileReactor extends AbstractReactor {
 
 	public CreatePlatformProfileReactor() {
-		this.keysToGet = new String[] { "name", "description" };
+		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -49,10 +55,10 @@ public class CreatePlatformProfileReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String name = this.keyValue.get("name");
-		String description = this.keyValue.get("description");
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 		Map<String, Object> result = PlatformProfileUtils.createProfile(name, description, user);
-		NounMetadata noun = new NounMetadata(result, PixelDataType.MAP);
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Platform profile created."));
 		return noun;
 	}

@@ -31,15 +31,21 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Gets all users assigned to a given platform profile, including their name, email, and assignment metadata.
+ *
+ * <p>Pixel: {@code GetPlatformProfileUsers(profileId=["<profileId>"]);}</p>
+ */
 public class GetPlatformProfileUsersReactor extends AbstractReactor {
 
 	public GetPlatformProfileUsersReactor() {
-		this.keysToGet = new String[] { "profileId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROFILE_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -50,9 +56,9 @@ public class GetPlatformProfileUsersReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String profileId = this.keyValue.get("profileId");
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 		List<Map<String, Object>> users = PlatformProfileUtils.getPlatformProfileUsers(profileId);
-		return new NounMetadata(users, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(users, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override

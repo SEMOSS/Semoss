@@ -28,15 +28,21 @@
 package prerna.reactor.platformprofile;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
+ *
+ * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ */
 public class RemoveUserPlatformProfileReactor extends AbstractReactor {
 
 	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { "userId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -47,9 +53,9 @@ public class RemoveUserPlatformProfileReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String userId = this.keyValue.get("userId");
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 		PlatformProfileUtils.removeUserProfile(userId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
 		return noun;
 	}

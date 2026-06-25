@@ -30,13 +30,18 @@ package prerna.reactor.appprofile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Check whether a feature is enabled for the calling user in an app, across all assigned profiles and subgroups.
+ *
+ * <p>Pixel: {@code CheckAppFeature(app=["appId"], feature=["featureKey"]);}</p>
+ */
 public class CheckAppFeatureReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CheckAppFeatureReactor.class);

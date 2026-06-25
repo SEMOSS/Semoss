@@ -36,11 +36,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Get all features with their enabled status for a profile.
+ *
+ * <p>Pixel: {@code GetAppProfileFeatures(app=["appId"], profile=["profileId"]);}</p>
+ */
 public class GetAppProfileFeaturesReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetAppProfileFeaturesReactor.class);

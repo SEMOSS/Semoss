@@ -30,7 +30,7 @@ package prerna.reactor.appprofile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -42,6 +42,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Kept for backwards compatibility.
  */
 @Deprecated
+/**
+ * Assign a user to a profile for an app. A user can be in multiple profiles simultaneously.
+ *
+ * <p>Pixel: {@code AssignUserProfile(app=["appId"], userId=["userId"], profile=["profileId"]);}</p>
+ */
 public class AssignUserProfileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AssignUserProfileReactor.class);

@@ -36,11 +36,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Get all users with delegated profile manager permission for an app.
+ *
+ * <p>Pixel: {@code GetAppProfileManagers(app=["appId"]);}</p>
+ */
 public class GetAppProfileManagersReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetAppProfileManagersReactor.class);

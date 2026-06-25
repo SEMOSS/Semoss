@@ -32,13 +32,18 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Create a feature key for an app.
+ *
+ * <p>Pixel: {@code CreateAppFeature(app=["appId"], feature=["featureKey"], description=["desc"]);}</p>
+ */
 public class CreateAppFeatureReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateAppFeatureReactor.class);

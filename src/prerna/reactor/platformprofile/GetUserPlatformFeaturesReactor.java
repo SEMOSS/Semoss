@@ -30,11 +30,16 @@ package prerna.reactor.platformprofile;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Gets platform nav feature visibility for the calling user; users with no assigned profile receive all features enabled (fail-open).
+ *
+ * <p>Pixel: {@code GetUserPlatformFeatures();}</p>
+ */
 public class GetUserPlatformFeaturesReactor extends AbstractReactor {
 
 	public GetUserPlatformFeaturesReactor() {
@@ -48,7 +53,7 @@ public class GetUserPlatformFeaturesReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		// Returns all predefined keys → true for unassigned users (fail-open at platform level)
 		Map<String, Boolean> features = PlatformProfileUtils.getUserFeatures(user);
-		return new NounMetadata(features, PixelDataType.MAP);
+		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override

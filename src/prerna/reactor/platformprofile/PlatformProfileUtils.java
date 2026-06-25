@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils;
+package prerna.reactor.platformprofile;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -73,18 +73,20 @@ public class PlatformProfileUtils {
 
 	// ─── Permission check ────────────────────────────────────────────────────
 
+	/** Returns {@code true} if the given user has admin privileges to manage platform profiles. */
 	public static boolean canManage(User user) {
-		return SecurityAdminUtils.userIsAdmin(user);
+		return prerna.auth.utils.SecurityAdminUtils.userIsAdmin(user);
 	}
 
 	// ─── Profile CRUD ────────────────────────────────────────────────────────
 
+	/** Creates a new platform profile with the given name and description and returns its id, name, and description. */
 	public static Map<String, Object> createProfile(String name, String description, User user) {
 		if (name == null || name.trim().isEmpty()) {
 			throw new IllegalArgumentException("Profile name cannot be blank.");
 		}
 		String profileId = UUID.randomUUID().toString();
-		String actorId = AppProfileUtils.getUserId(user);
+		String actorId = prerna.reactor.appprofile.AppProfileUtils.getUserId(user);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
@@ -111,6 +113,7 @@ public class PlatformProfileUtils {
 		return result;
 	}
 
+	/** Updates the name and/or description of an existing platform profile identified by {@code profileId}. */
 	public static void updateProfile(String profileId, String name, String description, User user) {
 		if (name != null && name.trim().isEmpty()) {
 			throw new IllegalArgumentException("Profile name cannot be blank.");
@@ -140,6 +143,7 @@ public class PlatformProfileUtils {
 		}
 	}
 
+	/** Deletes a platform profile and its feature rows; throws if any users are still assigned to it. */
 	public static void deleteProfile(String profileId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int count = getAssignedUserCount(securityDb, profileId);
@@ -172,6 +176,7 @@ public class PlatformProfileUtils {
 		}
 	}
 
+	/** Returns all platform profiles ordered by name, each with id, name, description, createdBy, createdAt, and userCount. */
 	public static List<Map<String, Object>> getProfiles(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> profiles = new ArrayList<>();
@@ -205,6 +210,7 @@ public class PlatformProfileUtils {
 
 	// ─── Profile-Feature Assignment ──────────────────────────────────────────
 
+	/** Sets the enabled state of a predefined platform nav feature for the specified profile; replaces any existing row. */
 	public static void setProfileFeature(String profileId, String featureKey, boolean enabled, User user) {
 		if (!PREDEFINED_FEATURE_KEYS.contains(featureKey)) {
 			throw new IllegalArgumentException(
@@ -242,6 +248,7 @@ public class PlatformProfileUtils {
 		}
 	}
 
+	/** Returns all predefined platform feature keys with their enabled status for the given profile; unknown keys default to {@code false}. */
 	public static Map<String, Boolean> getProfileFeatures(String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, Boolean> result = new LinkedHashMap<>();
@@ -273,9 +280,10 @@ public class PlatformProfileUtils {
 
 	// ─── User-Profile Assignment ─────────────────────────────────────────────
 
+	/** Assigns a user to a platform profile, replacing any existing assignment for that user. */
 	public static void assignUserProfile(String userId, String profileId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String actorId = AppProfileUtils.getUserId(actor);
+		String actorId = prerna.reactor.appprofile.AppProfileUtils.getUserId(actor);
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("DELETE FROM PLATFORM_USER_PROFILE WHERE USER_ID=?");
@@ -305,6 +313,7 @@ public class PlatformProfileUtils {
 		}
 	}
 
+	/** Removes the platform profile assignment for the specified user. */
 	public static void removeUserProfile(String userId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
@@ -329,7 +338,7 @@ public class PlatformProfileUtils {
 	 */
 	public static Map<String, Boolean> getUserFeatures(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String userId = AppProfileUtils.getUserId(user);
+		String userId = prerna.reactor.appprofile.AppProfileUtils.getUserId(user);
 		String profileId = getAssignedProfileId(securityDb, userId);
 		if (profileId == null) {
 			Map<String, Boolean> all = new LinkedHashMap<>();
@@ -341,6 +350,7 @@ public class PlatformProfileUtils {
 		return getProfileFeatures(profileId);
 	}
 
+	/** Returns the list of users assigned to the given platform profile with their name, email, and assignment metadata. */
 	public static List<Map<String, Object>> getPlatformProfileUsers(String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> users = new ArrayList<>();

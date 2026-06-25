@@ -28,15 +28,21 @@
 package prerna.reactor.platformprofile;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Updates the name and/or description of an existing platform profile.
+ *
+ * <p>Pixel: {@code UpdatePlatformProfile(profileId=["<profileId>"], name=["New Name"], description=["New description"]);}</p>
+ */
 public class UpdatePlatformProfileReactor extends AbstractReactor {
 
 	public UpdatePlatformProfileReactor() {
-		this.keysToGet = new String[] { "profileId", "name", "description" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
@@ -47,11 +53,11 @@ public class UpdatePlatformProfileReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String profileId = this.keyValue.get("profileId");
-		String name = this.keyValue.get("name");
-		String description = this.keyValue.get("description");
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 		PlatformProfileUtils.updateProfile(profileId, name, description, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Platform profile updated."));
 		return noun;
 	}

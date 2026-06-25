@@ -30,7 +30,7 @@ package prerna.reactor.appprofile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -41,6 +41,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * @deprecated Use {@link CheckAppFeatureReactor} (Pixel: CheckAppFeature).
  */
 @Deprecated
+/**
+ * Check whether a feature is enabled for the calling user in an app.
+ *
+ * <p>Pixel: {@code CheckFeature(app=["appId"], feature=["featureKey"]);}</p>
+ */
 public class CheckFeatureReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CheckFeatureReactor.class);

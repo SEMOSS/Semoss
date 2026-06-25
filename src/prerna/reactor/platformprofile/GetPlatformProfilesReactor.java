@@ -31,11 +31,16 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Gets all platform profiles, each with its id, name, description, creator, creation time, and assigned user count.
+ *
+ * <p>Pixel: {@code GetPlatformProfiles();}</p>
+ */
 public class GetPlatformProfilesReactor extends AbstractReactor {
 
 	public GetPlatformProfilesReactor() {
@@ -51,7 +56,7 @@ public class GetPlatformProfilesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
 		List<Map<String, Object>> profiles = PlatformProfileUtils.getProfiles(user);
-		return new NounMetadata(profiles, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(profiles, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override

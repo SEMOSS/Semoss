@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils;
+package prerna.reactor.appprofile;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,6 +42,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -63,6 +65,10 @@ public class AppProfileUtils {
 
 	// ─── Permission checks ──────────────────────────────────────────────────
 
+	/**
+	 * Returns true if the user has permission to manage profiles for the given app
+	 * (admin, owner, or editor).
+	 */
 	public static boolean canManageProfiles(User user, String appId) {
 		if (SecurityAdminUtils.userIsAdmin(user)) return true;
 		if (!appExists(appId)) {
@@ -99,6 +105,10 @@ public class AppProfileUtils {
 		return false;
 	}
 
+	/**
+	 * Returns true if the user can evaluate features for the given app (admin,
+	 * profile manager, or any project viewer).
+	 */
 	public static boolean canEvaluateFeatures(User user, String appId) {
 		if (SecurityAdminUtils.userIsAdmin(user)) return true;
 		if (canAssignProfiles(user, appId)) return true;
@@ -120,6 +130,9 @@ public class AppProfileUtils {
 
 	// ─── Profile CRUD ───────────────────────────────────────────────────────
 
+	/**
+	 * Creates a new named profile for an app and returns its metadata map.
+	 */
 	public static Map<String, Object> createProfile(String appId, String name, String description,
 			boolean isDefault, boolean isGroup, User user) {
 		if (name == null || name.trim().isEmpty()) {
@@ -170,6 +183,10 @@ public class AppProfileUtils {
 		return result;
 	}
 
+	/**
+	 * Updates mutable fields on an existing app profile (name, description,
+	 * isDefault, isGroup). Null parameters are ignored.
+	 */
 	public static void updateProfile(String appId, String profileId, String name, String description,
 			Boolean isDefault, Boolean isGroup, User user) {
 		if (name != null) {
@@ -215,6 +232,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Deletes a profile and cascades to its feature mappings, subgroups, and
+	 * subgroup assignments. Throws if any users are still assigned.
+	 */
 	public static void deleteProfile(String appId, String profileId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int count = getAssignedUserCount(securityDb, appId, profileId);
@@ -230,7 +251,7 @@ public class AppProfileUtils {
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
 		} catch (SQLException e) {
-			classLogger.error("Failed to delete app profile", e);
+			classLogger.error("Failed to delete app profile {}", profileId, e);
 			throw new IllegalArgumentException("An error occurred deleting the app profile.");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -243,7 +264,7 @@ public class AppProfileUtils {
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
 		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete app profile features", e);
+			classLogger.error("Failed to cascade delete app profile features for profile {}", profileId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -260,12 +281,17 @@ public class AppProfileUtils {
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
 		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete subgroups for profile", e);
+			classLogger.error("Failed to cascade delete subgroups for profile {}", profileId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
+	/**
+	 * Returns all profiles for an app, each with a live USER_COUNT from
+	 * APP_USER_PROFILE. Uses a correlated subquery and must remain as
+	 * PreparedStatement.
+	 */
 	public static List<Map<String, Object>> getProfiles(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> profiles = new ArrayList<>();
@@ -300,6 +326,9 @@ public class AppProfileUtils {
 
 	// ─── Feature CRUD ───────────────────────────────────────────────────────
 
+	/**
+	 * Creates a new app-level feature definition and returns its metadata map.
+	 */
 	public static Map<String, Object> createFeature(String appId, String featureKey,
 			String description, User user) {
 		validateFeatureKey(featureKey);
@@ -332,6 +361,10 @@ public class AppProfileUtils {
 		return result;
 	}
 
+	/**
+	 * Updates the key and/or description of an existing app feature. Null
+	 * parameters are ignored.
+	 */
 	public static void updateFeature(String appId, String featureId, String featureKey,
 			String description, User user) {
 		if (featureKey != null) validateFeatureKey(featureKey);
@@ -361,6 +394,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Deletes an app feature and cascades removal from profile and subgroup feature
+	 * mapping tables.
+	 */
 	public static void deleteFeature(String appId, String featureId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
@@ -401,36 +438,44 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Returns all feature definitions for an app, ordered by FEATURE_KEY ascending.
+	 */
 	public static List<Map<String, Object>> getFeatures(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> features = new ArrayList<>();
-		String sql = "SELECT FEATURE_ID, FEATURE_KEY, DESCRIPTION, CREATED_BY, CREATED_AT "
-				+ "FROM APP_FEATURE WHERE APP_ID=? ORDER BY FEATURE_KEY ASC";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			ps = securityDb.getPreparedStatement(sql);
-			ps.setString(1, appId);
-			rs = ps.executeQuery();
-			while (rs.next()) {
+
+		SelectQueryStruct sqs = new SelectQueryStruct();
+		sqs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_ID"));
+		sqs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY"));
+		sqs.addSelector(new QueryColumnSelector("APP_FEATURE__DESCRIPTION"));
+		sqs.addSelector(new QueryColumnSelector("APP_FEATURE__CREATED_BY"));
+		sqs.addSelector(new QueryColumnSelector("APP_FEATURE__CREATED_AT"));
+		sqs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_FEATURE__APP_ID", "==", appId));
+		sqs.addOrderBy("APP_FEATURE__FEATURE_KEY", "ASC");
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, sqs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
 				Map<String, Object> feature = new HashMap<>();
-				feature.put("featureId", rs.getString("FEATURE_ID"));
-				feature.put("featureKey", rs.getString("FEATURE_KEY"));
-				feature.put("description", rs.getString("DESCRIPTION"));
-				feature.put("createdBy", rs.getString("CREATED_BY"));
-				feature.put("createdAt", rs.getTimestamp("CREATED_AT"));
+				feature.put("featureId", values[0]);
+				feature.put("featureKey", values[1]);
+				feature.put("description", values[2]);
+				feature.put("createdBy", values[3]);
+				feature.put("createdAt", values[4]);
 				features.add(feature);
 			}
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error("Failed to get app features", e);
-		} finally {
-			ConnectionUtils.closeAllConnections(ps, rs);
 		}
 		return features;
 	}
 
 	// ─── Profile-Feature Assignment ─────────────────────────────────────────
 
+	/**
+	 * Sets the enabled state of a feature for a profile (upsert via delete+insert).
+	 */
 	public static void setProfileFeature(String appId, String profileId, String featureId,
 			boolean enabled, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -466,6 +511,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Returns all features for an app merged with their enabled state for the given
+	 * profile. Uses two sequential queries joined in code; kept as PreparedStatement.
+	 */
 	public static List<Map<String, Object>> getProfileFeatures(String appId, String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> results = new ArrayList<>();
@@ -675,6 +724,10 @@ public class AppProfileUtils {
 		return result;
 	}
 
+	/**
+	 * Returns all users assigned to a profile, including display name and email via
+	 * JOIN with SMSS_USER. Kept as PreparedStatement due to the LEFT JOIN.
+	 */
 	public static List<Map<String, Object>> getProfileUsers(String appId, String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> users = new ArrayList<>();
@@ -708,6 +761,10 @@ public class AppProfileUtils {
 
 	// ─── Subgroup CRUD ───────────────────────────────────────────────────────
 
+	/**
+	 * Creates a new named sub-group within a group-style profile and returns its
+	 * metadata map.
+	 */
 	public static Map<String, Object> createSubgroup(String appId, String profileId, String name,
 			String description, User user) {
 		if (name == null || name.trim().isEmpty()) {
@@ -751,6 +808,10 @@ public class AppProfileUtils {
 		return result;
 	}
 
+	/**
+	 * Updates the name and/or description of an existing sub-group. Null parameters
+	 * are ignored.
+	 */
 	public static void updateSubgroup(String appId, String subgroupId, String name,
 			String description, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -782,6 +843,9 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Deletes a sub-group and its user and feature assignments.
+	 */
 	public static void deleteSubgroup(String appId, String subgroupId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		deleteSubgroupInternal(securityDb, appId, subgroupId);
@@ -800,6 +864,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Returns all sub-groups for a profile, each with a live USER_COUNT from
+	 * APP_USER_SUBGROUP. Uses a correlated subquery; kept as PreparedStatement.
+	 */
 	public static List<Map<String, Object>> getSubgroups(String appId, String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> result = new ArrayList<>();
@@ -831,6 +899,10 @@ public class AppProfileUtils {
 		return result;
 	}
 
+	/**
+	 * Returns all users assigned to a sub-group, including display name and email
+	 * via JOIN with SMSS_USER. Kept as PreparedStatement due to the LEFT JOIN.
+	 */
 	public static List<Map<String, Object>> getSubgroupUsers(String appId, String subgroupId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> users = new ArrayList<>();
@@ -864,6 +936,10 @@ public class AppProfileUtils {
 
 	// ─── Subgroup-Feature Assignment ────────────────────────────────────────
 
+	/**
+	 * Sets the enabled state of a feature for a sub-group (upsert via
+	 * delete+insert).
+	 */
 	public static void setSubgroupFeature(String appId, String subgroupId, String featureId,
 			boolean enabled, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -899,6 +975,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Returns all features for an app merged with their enabled state for the given
+	 * sub-group. Uses two sequential queries joined in code; kept as PreparedStatement.
+	 */
 	public static List<Map<String, Object>> getSubgroupFeatures(String appId, String subgroupId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> results = new ArrayList<>();
@@ -946,6 +1026,9 @@ public class AppProfileUtils {
 
 	// ─── User-Subgroup Assignment ────────────────────────────────────────────
 
+	/**
+	 * Assigns a user to a sub-group. If already assigned, this is a no-op.
+	 */
 	public static void assignUserSubgroup(String appId, String userId, String subgroupId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// check for existing assignment
@@ -985,6 +1068,9 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Removes a user from a specific sub-group assignment.
+	 */
 	public static void removeUserSubgroup(String appId, String userId, String subgroupId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
@@ -1005,6 +1091,10 @@ public class AppProfileUtils {
 
 	// ─── Profile Manager (delegated BU admin) ────────────────────────────────
 
+	/**
+	 * Grants a user delegated 'assign' permission to manage profile assignments for
+	 * an app. If already a manager, this is a no-op.
+	 */
 	public static void addProfileManager(String appId, String userId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// check for existing
@@ -1039,6 +1129,9 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Revokes delegated profile manager permission from a user for an app.
+	 */
 	public static void removeProfileManager(String appId, String userId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
@@ -1055,6 +1148,10 @@ public class AppProfileUtils {
 		}
 	}
 
+	/**
+	 * Returns all users with delegated profile manager permission for an app, with
+	 * display name and email via JOIN. Kept as PreparedStatement due to LEFT JOIN.
+	 */
 	public static List<Map<String, Object>> getProfileManagers(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> result = new ArrayList<>();
@@ -1086,6 +1183,11 @@ public class AppProfileUtils {
 
 	// ─── Feature evaluation ──────────────────────────────────────────────────
 
+	/**
+	 * Returns true if the given feature key is enabled for the calling user in the
+	 * app, evaluated across all assigned profiles, subgroups, and the default
+	 * profile fallback.
+	 */
 	public static boolean checkFeature(String appId, String featureKey, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String featureId = resolveFeatureId(securityDb, appId, featureKey);
@@ -1227,23 +1329,6 @@ public class AppProfileUtils {
 		return 0;
 	}
 
-	private static int getSubgroupUserCount(IRDBMSEngine securityDb, String appId, String subgroupId) {
-		String sql = "SELECT COUNT(*) FROM APP_USER_SUBGROUP WHERE APP_ID=? AND SUBGROUP_ID=?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
-		try {
-			ps = securityDb.getPreparedStatement(sql);
-			ps.setString(1, appId);
-			ps.setString(2, subgroupId);
-			rs = ps.executeQuery();
-			if (rs.next()) return rs.getInt(1);
-		} catch (SQLException e) {
-			classLogger.error("Failed to count subgroup users", e);
-		} finally {
-			ConnectionUtils.closeAllConnections(ps, rs);
-		}
-		return 0;
-	}
 
 	private static Map<String, Object> getDefaultProfile(IRDBMSEngine securityDb, String appId) {
 		String sql = "SELECT PROFILE_ID, PROFILE_NAME, IS_GROUP FROM APP_PROFILE WHERE APP_ID=? AND IS_DEFAULT=TRUE";
@@ -1521,23 +1606,7 @@ public class AppProfileUtils {
 		}
 	}
 
-	/**
-	 * Internal-only single-profile lookup, used for backwards compat with old admin reactor.
-	 */
-	public static Map<String, Object> getUserProfile(String appId, String userId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		List<Map<String, Object>> profiles = getExplicitUserProfiles(securityDb, appId, userId);
-		if (!profiles.isEmpty()) {
-			Map<String, Object> first = profiles.get(0);
-			Map<String, Object> result = new HashMap<>();
-			result.put("profileId", first.get("profileId"));
-			result.put("profileName", first.get("profileName"));
-			result.put("isExplicitAssignment", true);
-			return result;
-		}
-		return getDefaultProfile(securityDb, appId);
-	}
-
+	/** Returns the primary user ID from the user's active access token. */
 	public static String getUserId(User user) {
 		if (user == null) return null;
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());

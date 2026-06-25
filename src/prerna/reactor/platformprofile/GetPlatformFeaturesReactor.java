@@ -30,15 +30,21 @@ package prerna.reactor.platformprofile;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Gets all predefined platform nav features with their enabled status for a given profile.
+ *
+ * <p>Pixel: {@code GetPlatformFeatures(profileId=["<profileId>"]);}</p>
+ */
 public class GetPlatformFeaturesReactor extends AbstractReactor {
 
 	public GetPlatformFeaturesReactor() {
-		this.keysToGet = new String[] { "profileId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROFILE_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -49,9 +55,9 @@ public class GetPlatformFeaturesReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String profileId = this.keyValue.get("profileId");
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 		Map<String, Boolean> features = PlatformProfileUtils.getProfileFeatures(profileId);
-		return new NounMetadata(features, PixelDataType.MAP);
+		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override

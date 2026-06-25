@@ -28,15 +28,21 @@
 package prerna.reactor.platformprofile;
 
 import prerna.auth.User;
-import prerna.auth.utils.PlatformProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Enables or disables a predefined platform nav feature for a given profile.
+ *
+ * <p>Pixel: {@code SetPlatformFeature(profileId=["<profileId>"], featureKey=["nav.app-catalog"], enabled=["true"]);}</p>
+ */
 public class SetPlatformFeatureReactor extends AbstractReactor {
 
 	public SetPlatformFeatureReactor() {
-		this.keysToGet = new String[] { "profileId", "featureKey", "enabled" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.FEATURE_KEY.getKey(), ReactorKeysEnum.ENABLED.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -47,11 +53,11 @@ public class SetPlatformFeatureReactor extends AbstractReactor {
 		if (!PlatformProfileUtils.canManage(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String profileId = this.keyValue.get("profileId");
-		String featureKey = this.keyValue.get("featureKey");
-		boolean enabled = Boolean.parseBoolean(this.keyValue.get("enabled"));
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
+		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
+		boolean enabled = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ENABLED.getKey()));
 		PlatformProfileUtils.setProfileFeature(profileId, featureKey, enabled, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Platform feature updated."));
 		return noun;
 	}

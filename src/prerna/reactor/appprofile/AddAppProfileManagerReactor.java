@@ -33,11 +33,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 import prerna.auth.User;
-import prerna.auth.utils.AppProfileUtils;
+import prerna.reactor.appprofile.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Grant a user delegated 'assign' permission to add/remove users from profiles.
+ *
+ * <p>Pixel: {@code AddAppProfileManager(app=["appId"], userId=["userId"]);}</p>
+ */
 public class AddAppProfileManagerReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AddAppProfileManagerReactor.class);
