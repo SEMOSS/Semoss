@@ -1111,10 +1111,15 @@ public class AppProfileUtils {
 			}
 		}
 
-		// Check across all subgroup memberships
+		// Check across all subgroup memberships, plus the parent group profile's base features
 		List<Map<String, Object>> subgroups = getExplicitUserSubgroups(securityDb, appId, userId);
 		for (Map<String, Object> sg : subgroups) {
 			if (querySubgroupFeatureEnabled(securityDb, appId, (String) sg.get("subgroupId"), featureId)) {
+				return true;
+			}
+			// Group profile base features apply to all subgroup members
+			String parentProfileId = (String) sg.get("profileId");
+			if (parentProfileId != null && queryFeatureEnabled(securityDb, appId, parentProfileId, featureId)) {
 				return true;
 			}
 		}
@@ -1152,7 +1157,7 @@ public class AppProfileUtils {
 			}
 		}
 
-		// Subgroup features
+		// Subgroup features + parent group profile base features
 		List<Map<String, Object>> subgroups = getExplicitUserSubgroups(securityDb, appId, userId);
 		for (Map<String, Object> sg : subgroups) {
 			addSubgroupFeaturesToResult(securityDb, appId,
@@ -1160,6 +1165,14 @@ public class AppProfileUtils {
 					(String) sg.get("subgroupName"),
 					(String) sg.get("profileName"),
 					result);
+			// Group profile base features apply to all subgroup members
+			String parentProfileId = (String) sg.get("profileId");
+			if (parentProfileId != null) {
+				addProfileFeaturesToResult(securityDb, appId,
+						parentProfileId,
+						(String) sg.get("profileName"),
+						false, result);
+			}
 		}
 
 		return result;
@@ -1294,7 +1307,7 @@ public class AppProfileUtils {
 	private static List<Map<String, Object>> getExplicitUserSubgroups(IRDBMSEngine securityDb,
 			String appId, String userId) {
 		List<Map<String, Object>> subgroups = new ArrayList<>();
-		String sql = "SELECT us.SUBGROUP_ID, sg.SUBGROUP_NAME, p.PROFILE_NAME "
+		String sql = "SELECT us.SUBGROUP_ID, sg.SUBGROUP_NAME, p.PROFILE_ID, p.PROFILE_NAME "
 				+ "FROM APP_USER_SUBGROUP us "
 				+ "JOIN APP_PROFILE_SUBGROUP sg ON us.SUBGROUP_ID = sg.SUBGROUP_ID "
 				+ "JOIN APP_PROFILE p ON sg.PROFILE_ID = p.PROFILE_ID "
@@ -1310,6 +1323,7 @@ public class AppProfileUtils {
 				Map<String, Object> row = new HashMap<>();
 				row.put("subgroupId", rs.getString("SUBGROUP_ID"));
 				row.put("subgroupName", rs.getString("SUBGROUP_NAME"));
+				row.put("profileId", rs.getString("PROFILE_ID"));
 				row.put("profileName", rs.getString("PROFILE_NAME"));
 				subgroups.add(row);
 			}

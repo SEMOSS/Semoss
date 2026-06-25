@@ -56,7 +56,7 @@ public class GetUserProfileReactor extends AbstractReactor {
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		List<Map<String, Object>> profiles = AppProfileUtils.getUserProfiles(appId, userId);

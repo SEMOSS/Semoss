@@ -55,7 +55,7 @@ public class GetAppFeaturesReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		List<Map<String, Object>> features = AppProfileUtils.getFeatures(appId);

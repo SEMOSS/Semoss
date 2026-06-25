@@ -57,7 +57,7 @@ public class GetAppSubgroupFeaturesReactor extends AbstractReactor {
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 		String subgroupId = this.keyValue.get(ReactorKeysEnum.SUBGROUP_ID.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		List<Map<String, Object>> result = AppProfileUtils.getSubgroupFeatures(appId, subgroupId);
