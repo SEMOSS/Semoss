@@ -143,6 +143,10 @@ public class GetWorkspaceReactor extends AbstractReactor {
 					if (slug != null) {
 						skillMap.put("slug", slug.toString());
 					}
+					Object description = skillRow.get("description");
+					if (description != null) {
+						skillMap.put("description", description.toString());
+					}
 				}
 				skills.add(skillMap);
 			} else {
