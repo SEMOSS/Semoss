@@ -55,7 +55,7 @@ public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 
-		creator = new SecurityOwlCreator(securityDb);
+		creator = new SecurityOwlCreator(securityDb.getQueryUtil());
 	}
 
 	@AfterEach
@@ -73,7 +73,7 @@ public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsS
 	// This method always remakes?
 	@Test
 	void testNeedsRemake() {
-		assertTrue(creator.needsRemake());
+		assertTrue(creator.needsRemake(securityDb));
 	}
 
 	///
@@ -85,7 +85,7 @@ public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsS
 			Files.delete(securityOwlFile);
 		}
 
-		creator.remakeOwl();
+		creator.remakeOwl(securityDb);
 
 //        assertTrue(Files.exists(securityOwlFile));
 //        try (Stream<String> lines = Files.lines(securityOwlFile)) {

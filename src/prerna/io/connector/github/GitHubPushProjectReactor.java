@@ -84,6 +84,13 @@ public class GitHubPushProjectReactor extends AbstractReactor {
 		if (link == null) {
 			throw new SemossPixelException("Project " + projectId + " is not linked to a GitHub repository.");
 		}
+		// subdir-linked projects are read-only from the monorepo; push is not supported
+		String subdir = (String) link.get("subdir");
+		if (subdir != null && !subdir.trim().isEmpty()) {
+			throw new SemossPixelException("Project " + projectId + " is linked to a subdirectory ('" + subdir.trim()
+					+ "') of a monorepo. Push is not supported for subdirectory-linked projects - "
+					+ "commit changes directly to the monorepo.");
+		}
 		Object installObj = link.get("installationId");
 		String repoFullName = (String) link.get("repoFullName");
 		if (installObj == null || repoFullName == null || repoFullName.trim().isEmpty()) {
