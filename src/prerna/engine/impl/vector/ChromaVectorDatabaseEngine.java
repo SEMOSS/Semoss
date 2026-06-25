@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -47,7 +48,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
@@ -118,7 +118,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final double BM25_K1 = 1.2;
 	private static final double BM25_B = 0.75;
 	// transient per-candidate key used to carry the Chroma vector distance through ranking; stripped before return
-	private static final String HYBRID_DISTANCE_KEY = "_hybrid_distance";
+	private static final String DISTANCE_KEY = "_distance";
 
 	private boolean useHybridSearch = false;
 	private double hybridVectorWeight = DEFAULT_HYBRID_VECTOR_WEIGHT;
@@ -198,6 +198,22 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
+	 * Build the request headers for a Chroma call. Returns {@code null} (i.e. no headers) when no
+	 * API key is configured, which is the common case for a local/open Chroma instance.
+	 *
+	 * @return the header map, or {@code null} when no API key is set
+	 */
+	private Map<String, String> buildHeaders() {
+		if (this.apiKey == null || this.apiKey.isEmpty()) {
+			return null;
+		}
+		Map<String, String> headers = new HashMap<>();
+		headers.put(API_TOKEN_KEY, this.apiKey);
+		headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		return headers;
+	}
+
+	/**
 	 *
 	 * @param collectionName
 	 */
@@ -206,15 +222,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// if available, get the ID
 		// if not create a collection and get the ID
 		collectionName = collectionName.replaceAll(" ", "_");
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		Gson gson = new Gson();
 		String collectionsUrl = collections(this.url, this.tenant, this.dbName);
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
-		}
+		Map<String, String> headersMap = buildHeaders();
 
 		String nearestNeigborResponse = null;
 		try {
@@ -302,17 +312,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String body = new Gson().toJson(vectors);
 
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
-		}
-
 		String response = HttpHelperUtility.postRequestStringBody(
 				collection(this.url, this.tenant, this.dbName, this.collectionID, API_ADD),
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+				buildHeaders(), body, ContentType.APPLICATION_JSON, null, null, null);
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		//TODO: let us add validation by looking at the response
 		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
@@ -381,17 +383,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			String body = new Gson().toJson(fileNamesForDelete);
 
-			Map<String, String> headersMap = new HashMap<>();
-			if (this.apiKey != null && !this.apiKey.isEmpty()) {
-				headersMap.put(API_TOKEN_KEY, this.apiKey);
-				headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-			} else {
-				headersMap = null;
-			}
-
 			String response = HttpHelperUtility.postRequestStringBody(
 					collection(this.url, this.tenant, this.dbName, this.collectionID, API_DELETE),
-					headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+					buildHeaders(), body, ContentType.APPLICATION_JSON, null, null, null);
 
 			//TODO: let us add validation by looking at the response			
 			
@@ -417,7 +411,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
 		if (insight == null) {
@@ -430,8 +423,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			limit = 3;
 		}
 
-		Gson gson = new Gson();
-
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
 		Map<String, Object> where = buildWhere(parameters);
 
@@ -439,51 +430,19 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			return executeHybridRrfSearch(searchStatement, vector, limit.intValue(), where);
 		}
 
-		Map<String, Object> query = new HashMap<>();
-		List<List<Double>> queryEmbeddings = new ArrayList<>();
-		// nest the embedding inside a list as the API expects
-		queryEmbeddings.add(vector);
-		query.put("n_results", limit);
-		query.put("query_embeddings", queryEmbeddings);
-		if (where != null) {
-			query.put("where", where);
-		}
-		String body = gson.toJson(query);
-
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
-		}
-
-		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(
-				collection(this.url, this.tenant, this.dbName, this.collectionID, API_QUERY),
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
-
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
-		if (responseMap == null) {
-			throw new SemossPixelException("Failed to query Chroma collection.");
-		}
-
-		// v2 returns parallel metadatas/distances lists; flatten into rows with Score + Distance
-		List<Map<String, Object>> results = new ArrayList<>();
-		List<List<Map<String, Object>>> metadatas = (List<List<Map<String, Object>>>) responseMap.get("metadatas");
-		List<List<Double>> distances = (List<List<Double>>) responseMap.get("distances");
-		if (metadatas != null && !metadatas.isEmpty() && metadatas.get(0) != null) {
-			List<Map<String, Object>> metadata = metadatas.get(0);
-			List<Double> distance = (distances != null && !distances.isEmpty()) ? distances.get(0) : null;
-			for (int i = 0; i < metadata.size(); i++) {
-				Map<String, Object> row = new LinkedHashMap<>();
-				if (distance != null && i < distance.size() && distance.get(i) != null) {
-					double d = distance.get(i);
-					row.put("Score", toScore(d));
-					row.put("Distance", d);
-				}
-				row.putAll(metadata.get(i));
-				results.add(row);
+		// vector-only: return each candidate with its vector Score + raw Distance, metadata after
+		List<Map<String, Object>> candidates = queryVectors(vector, limit.intValue(), where);
+		List<Map<String, Object>> results = new ArrayList<>(candidates.size());
+		for (Map<String, Object> candidate : candidates) {
+			Object distance = candidate.remove(DISTANCE_KEY);
+			Map<String, Object> row = new LinkedHashMap<>();
+			if (distance instanceof Number) {
+				double d = ((Number) distance).doubleValue();
+				row.put("Score", toScore(d));
+				row.put("Distance", d);
 			}
+			row.putAll(candidate);
+			results.add(row);
 		}
 		return results;
 	}
@@ -511,21 +470,32 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param parameters the reactor parameter map (may be {@code null})
 	 * @return a Chroma {@code where} map, or {@code null}
 	 */
-	@SuppressWarnings("unchecked")
 	private Map<String, Object> buildWhere(Map<String, Object> parameters) {
 		if (parameters == null) {
 			return null;
 		}
 		List<IQueryFilter> allFilters = new ArrayList<>();
-		Object filters = parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY);
-		Object metaFilters = parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY);
-		if (filters instanceof List) {
-			allFilters.addAll((List<IQueryFilter>) filters);
-		}
-		if (metaFilters instanceof List) {
-			allFilters.addAll((List<IQueryFilter>) metaFilters);
-		}
+		collectFilters(parameters.get(AbstractVectorDatabaseEngine.FILTERS_KEY), allFilters);
+		collectFilters(parameters.get(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY), allFilters);
 		return ChromaVectorQueryFilterTranslationHelper.toWhere(allFilters);
+	}
+
+	/**
+	 * Append any {@link IQueryFilter}s found in {@code value} (expected to be a list) to
+	 * {@code target}, checking each element's type so no unchecked cast is needed.
+	 *
+	 * @param value  the raw parameter value (may be {@code null} or a non-list)
+	 * @param target the list to append matched filters to
+	 */
+	private void collectFilters(Object value, List<IQueryFilter> target) {
+		if (!(value instanceof List)) {
+			return;
+		}
+		for (Object element : (List<?>) value) {
+			if (element instanceof IQueryFilter) {
+				target.add((IQueryFilter) element);
+			}
+		}
 	}
 
 	/**
@@ -556,40 +526,24 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			Map<String, Object> where) {
 		int candidateLimit = Math.max(limit * 10, 100);
 
-		List<Map<String, Object>> candidates = queryChromaCandidates(vector, candidateLimit, where);
+		List<Map<String, Object>> candidates = queryVectors(vector, candidateLimit, where);
 		if (candidates.isEmpty()) {
 			return candidates;
 		}
 		int n = candidates.size();
 
-		// 1. BM25 keyword score per candidate, index-aligned with candidates
 		double[] keywordScores = bm25Scores(searchStatement, candidates);
 
-		// 2. derive per-dimension ranks (position 0 = best): vector by ascending distance,
-		// keyword by descending BM25 score
-		List<Integer> byVector = new ArrayList<>(n);
-		List<Integer> byKeyword = new ArrayList<>(n);
-		for (int i = 0; i < n; i++) {
-			byVector.add(i);
-			byKeyword.add(i);
-		}
-		byVector.sort((a, b) -> Double.compare(distanceOf(candidates.get(a)), distanceOf(candidates.get(b))));
-		byKeyword.sort((a, b) -> Double.compare(keywordScores[b], keywordScores[a]));
+		// Rank candidates independently by vector similarity (ascending distance) and keyword score
+		// (descending BM25); rank 0 = best on each dimension.
+		List<Integer> byVector = sortedIndices(n,
+				(a, b) -> Double.compare(distanceOf(candidates.get(a)), distanceOf(candidates.get(b))));
+		List<Integer> byKeyword = sortedIndices(n, (a, b) -> Double.compare(keywordScores[b], keywordScores[a]));
+		int[] vectorRank = toRanks(byVector);
+		int[] keywordRank = toRanks(byKeyword);
 
-		int[] vectorRank = new int[n];
-		int[] keywordRank = new int[n];
-		for (int rank = 0; rank < n; rank++) {
-			vectorRank[byVector.get(rank)] = rank;
-			keywordRank[byKeyword.get(rank)] = rank;
-		}
-
-		// 3. gate: if the query matched no candidate text, skip keyword ranking
-		double maxKeywordScore = 0.0;
-		for (double score : keywordScores) {
-			if (score > maxKeywordScore) {
-				maxKeywordScore = score;
-			}
-		}
+		// Drop the keyword signal when the query matched no candidate text.
+		double maxKeywordScore = keywordScores[byKeyword.get(0)];
 		boolean useKeyword = maxKeywordScore > this.hybridKeywordGateThreshold;
 
 		double vectorWeight = this.hybridVectorWeight;
@@ -597,7 +551,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		classLogger.debug("Chroma hybrid RRF for query '{}': candidates={}, vectorWeight={}, keywordWeight={}, useKeyword={}, maxKeywordScore={}",
 				searchStatement, n, vectorWeight, keywordWeight, useKeyword, maxKeywordScore);
 
-		// 4. weighted RRF score per candidate
 		double[] rrfScores = new double[n];
 		for (int i = 0; i < n; i++) {
 			rrfScores[i] = vectorWeight / (RRF_K + vectorRank[i] + 1.0);
@@ -606,86 +559,93 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 
-		// 5. return top-N by RRF score, attaching Score and stripping the transient distance
-		List<Integer> sortedIndices = new ArrayList<>(n);
-		for (int i = 0; i < n; i++) {
-			sortedIndices.add(i);
-		}
-		sortedIndices.sort((a, b) -> Double.compare(rrfScores[b], rrfScores[a]));
-
-		List<Map<String, Object>> results = new ArrayList<>(Math.min(limit, n));
-		for (int i = 0; i < Math.min(limit, n); i++) {
-			int idx = sortedIndices.get(i);
-			Map<String, Object> row = candidates.get(idx);
-			row.put("Score", rrfScores[idx]);
-			row.remove(HYBRID_DISTANCE_KEY);
+		// Return the top-N by RRF score, attaching the fused Score and stripping the transient distance.
+		List<Integer> ranked = sortedIndices(n, (a, b) -> Double.compare(rrfScores[b], rrfScores[a]));
+		int resultCount = Math.min(limit, n);
+		List<Map<String, Object>> results = new ArrayList<>(resultCount);
+		for (int i = 0; i < resultCount; i++) {
+			Map<String, Object> row = candidates.get(ranked.get(i));
+			row.put("Score", rrfScores[ranked.get(i)]);
+			row.remove(DISTANCE_KEY);
 			results.add(row);
 		}
 		return results;
 	}
 
 	/**
-	 * Fetches a candidate pool from Chroma ordered by vector similarity. Unlike the
-	 * standard {@code nearestNeighborCall} this also captures the {@code distances} the
-	 * Chroma response returns (carried on each row under {@link #HYBRID_DISTANCE_KEY}) so
-	 * the candidates can be ranked by vector similarity during fusion.
-	 *
-	 * @param vector    the query embedding
-	 * @param nResults  the candidate pool size to request
-	 * @param where     optional Chroma {@code where} filter; may be {@code null}
-	 * @return candidate rows (metadata maps), each tagged with its vector distance; empty if none
+	 * Returns the indices {@code [0, n)} sorted by {@code order} (position 0 = best).
 	 */
-	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> queryChromaCandidates(List<Double> vector, int nResults, Map<String, Object> where) {
+	private static List<Integer> sortedIndices(int n, Comparator<Integer> order) {
+		List<Integer> indices = new ArrayList<>(n);
+		for (int i = 0; i < n; i++) {
+			indices.add(i);
+		}
+		indices.sort(order);
+		return indices;
+	}
+
+	/**
+	 * Inverts a best-first index ordering into a per-index rank array (rank 0 = best).
+	 */
+	private static int[] toRanks(List<Integer> ordered) {
+		int[] rank = new int[ordered.size()];
+		for (int position = 0; position < ordered.size(); position++) {
+			rank[ordered.get(position)] = position;
+		}
+		return rank;
+	}
+
+	/**
+	 * Runs a vector query against the collection and returns the first query's candidate rows.
+	 * Each row is the chunk's metadata map, additionally tagged with its raw vector distance under
+	 * {@link #DISTANCE_KEY} (read back via {@link #distanceOf}). Shared by the vector-only and
+	 * hybrid search paths.
+	 *
+	 * @param vector   the query embedding
+	 * @param nResults the number of results to request
+	 * @param where    optional Chroma {@code where} filter; may be {@code null}
+	 * @return candidate rows, each tagged with its vector distance; empty if the query had no hits
+	 */
+	private List<Map<String, Object>> queryVectors(List<Double> vector, int nResults, Map<String, Object> where) {
 		Gson gson = new Gson();
 		Map<String, Object> query = new HashMap<>();
 		List<List<Double>> queryEmbeddings = new ArrayList<>();
+		// nest the embedding inside a list as the API expects
 		queryEmbeddings.add(vector);
 		query.put("n_results", nResults);
 		query.put("query_embeddings", queryEmbeddings);
 		if (where != null) {
 			query.put("where", where);
 		}
-		String body = gson.toJson(query);
 
-		Map<String, String> headersMap = new HashMap<>();
-		if (this.apiKey != null && !this.apiKey.isEmpty()) {
-			headersMap.put(API_TOKEN_KEY, this.apiKey);
-			headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		} else {
-			headersMap = null;
-		}
-
-		String response = HttpHelperUtility.postRequestStringBody(
+		String responseBody = HttpHelperUtility.postRequestStringBody(
 				collection(this.url, this.tenant, this.dbName, this.collectionID, API_QUERY),
-				headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
+				buildHeaders(), gson.toJson(query), ContentType.APPLICATION_JSON, null, null, null);
 
-		Map<String, Object> responseMap = gson.fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
-
-		List<List<Map<String, Object>>> metadatas = (List<List<Map<String, Object>>>) responseMap.get("metadatas");
-		if (metadatas == null || metadatas.isEmpty() || metadatas.get(0) == null) {
+		ChromaQueryResponse parsed = gson.fromJson(responseBody, ChromaQueryResponse.class);
+		if (parsed == null) {
+			throw new SemossPixelException("Failed to query Chroma collection.");
+		}
+		if (parsed.metadatas == null || parsed.metadatas.isEmpty() || parsed.metadatas.get(0) == null) {
 			return new ArrayList<>();
 		}
-		List<Map<String, Object>> rows = metadatas.get(0);
 
-		// distances are returned parallel to metadatas; tag each row so vector ranking can use it
-		List<List<Double>> distances = (List<List<Double>>) responseMap.get("distances");
-		List<Double> rowDistances = (distances != null && !distances.isEmpty()) ? distances.get(0) : null;
+		List<Map<String, Object>> rows = parsed.metadatas.get(0);
+		List<Double> distances = (parsed.distances != null && !parsed.distances.isEmpty()) ? parsed.distances.get(0)
+				: null;
 		for (int i = 0; i < rows.size(); i++) {
-			double distance = (rowDistances != null && i < rowDistances.size() && rowDistances.get(i) != null)
-					? rowDistances.get(i)
-					: Double.MAX_VALUE;
-			rows.get(i).put(HYBRID_DISTANCE_KEY, distance);
+			Double distance = (distances != null && i < distances.size()) ? distances.get(i) : null;
+			rows.get(i).put(DISTANCE_KEY, distance);
 		}
 		return rows;
 	}
 
 	/**
-	 * @param row a candidate row tagged by {@link #queryChromaCandidates}
-	 * @return the vector distance for the row, or {@link Double#MAX_VALUE} if missing
+	 * @param row a candidate row tagged by {@link #queryVectors}
+	 * @return the vector distance for the row, or {@link Double#MAX_VALUE} if missing (sorts last)
 	 */
 	private double distanceOf(Map<String, Object> row) {
-		Object distance = row.get(HYBRID_DISTANCE_KEY);
+		Object distance = row.get(DISTANCE_KEY);
 		return (distance instanceof Number) ? ((Number) distance).doubleValue() : Double.MAX_VALUE;
 	}
 
@@ -828,6 +788,16 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public VectorDatabaseTypeEnum getVectorDatabaseType() {
 		return VectorDatabaseTypeEnum.CHROMA;
+	}
+
+	/**
+	 * Typed view of a Chroma query response. Gson resolves the nested generics from these
+	 * declared fields, so the response can be deserialized without unchecked casts. Both
+	 * {@code metadatas} and {@code distances} are lists-of-lists (one inner list per query).
+	 */
+	private static class ChromaQueryResponse {
+		private List<List<Map<String, Object>>> metadatas;
+		private List<List<Double>> distances;
 	}
 
 }
