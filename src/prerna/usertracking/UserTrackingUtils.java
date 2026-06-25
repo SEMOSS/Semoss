@@ -47,10 +47,9 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.SystemEngineRegistry;
 
 public class UserTrackingUtils {
 
@@ -177,7 +176,8 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to track insight open for insight {} by user {} (origin {})", insightId, userId,
+					origin, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -288,7 +288,8 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to track email from {} (subject {}, successful={})", from, subject, successful,
+					e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -325,7 +326,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete user-tracking rows for engine {} [query: {}]", engineId, query, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -350,7 +351,7 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete user-tracking engine usage for project {}", projectId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -377,7 +378,8 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete user-tracking engine usage for project {} insight {}", projectId,
+					insightId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -447,7 +449,8 @@ public class UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to track query execution against database {} for user {} (failed={})", databaseId,
+					userId, failed, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
@@ -471,12 +474,12 @@ public class UserTrackingUtils {
 				try {
 					ut.registerLogin(sessionId, ip, user, ap);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to register login user tracking for session {}", sessionId, e);
 				}
 			}
 
 			long end = System.currentTimeMillis();
-			classLogger.info("User Tracking took: {} ms", (end - start));
+			classLogger.info("registerLogin user tracking took {} ms", (end - start));
 		}
 	}
 
@@ -504,9 +507,9 @@ public class UserTrackingUtils {
 	 */
 	public static void initUserTrackerDatabase() throws Exception {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		UserTrackingOwlCreator utoc = new UserTrackingOwlCreator(userTrackingDb);
-		if (utoc.needsRemake()) {
-			utoc.remakeOwl();
+		UserTrackingOwlCreator utoc = new UserTrackingOwlCreator(userTrackingDb.getQueryUtil());
+		if (utoc.needsRemake(userTrackingDb)) {
+			utoc.remakeOwl(userTrackingDb);
 		}
 
 		Connection conn = null;
@@ -570,7 +573,7 @@ public class UserTrackingUtils {
 	 */
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			stmt.execute(sql);
 		}
 	}
