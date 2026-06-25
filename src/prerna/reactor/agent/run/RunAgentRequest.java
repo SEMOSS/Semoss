@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.om.Insight;
@@ -45,11 +48,13 @@ public final class RunAgentRequest {
 	private final int maxReflections;
 	private final Map<String, Object> paramMap;
 	private final Map<String, Object> agentParamMap;
+	private final List<String> mediaInputPaths;
+	private final List<String> mediaUrls;
 	private final Insight insight;
 
 	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
-			Map<String, Object> agentParamMap, Insight insight) {
+			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this.roomId = roomId;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -59,10 +64,19 @@ public final class RunAgentRequest {
 		this.maxReflections = maxReflections;
 		this.paramMap = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 		this.agentParamMap = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
+		this.mediaInputPaths = immutableStringList(mediaInputPaths);
+		this.mediaUrls = immutableStringList(mediaUrls);
 		if (workspaceId != null && !workspaceId.trim().isEmpty()) {
 			this.paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, workspaceId);
 		}
 		this.insight = insight;
+	}
+
+	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
+			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
+			Map<String, Object> agentParamMap, Insight insight) {
+		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
+				agentParamMap, null, null, insight);
 	}
 
 	public String getRoomId() {
@@ -101,6 +115,14 @@ public final class RunAgentRequest {
 		return new HashMap<>(agentParamMap);
 	}
 
+	public List<String> getMediaInputPaths() {
+		return mediaInputPaths;
+	}
+
+	public List<String> getMediaUrls() {
+		return mediaUrls;
+	}
+
 	public Insight getInsight() {
 		return insight;
 	}
@@ -116,6 +138,8 @@ public final class RunAgentRequest {
 		map.put("maxReflections", maxReflections);
 		map.put("paramMap", getParamMap());
 		map.put("agentParamMap", getAgentParamMap());
+		map.put("mediaInputPaths", getMediaInputPaths());
+		map.put("mediaUrls", getMediaUrls());
 		return map;
 	}
 
@@ -134,7 +158,38 @@ public final class RunAgentRequest {
 				intValue(map.get("maxReflections"), AgentRunContext.DEFAULT_MAX_REFLECTIONS),
 				map.get("paramMap") instanceof Map ? (Map<String, Object>) map.get("paramMap") : null,
 				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
+				listValue(map.get("mediaInputPaths")),
+				listValue(map.get("mediaUrls")),
 				insight);
+	}
+
+	private static List<String> immutableStringList(List<String> values) {
+		if (values == null || values.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<String> copy = new ArrayList<>();
+		for (String value : values) {
+			if (value != null && !value.trim().isEmpty()) {
+				copy.add(value);
+			}
+		}
+		return copy.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copy);
+	}
+
+	private static List<String> listValue(Object value) {
+		if (!(value instanceof List<?>)) {
+			return Collections.emptyList();
+		}
+		List<String> result = new ArrayList<>();
+		for (Object item : (List<?>) value) {
+			if (item != null) {
+				String str = String.valueOf(item);
+				if (!str.trim().isEmpty()) {
+					result.add(str);
+				}
+			}
+		}
+		return result;
 	}
 
 	private static String stringValue(Object value) {
