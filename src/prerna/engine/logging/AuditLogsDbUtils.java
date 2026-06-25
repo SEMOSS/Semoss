@@ -215,9 +215,9 @@ public class AuditLogsDbUtils {
 	 * @throws Exception
 	 */
 	public static synchronized void initEngineAsAuditDatabase(IRDBMSEngine auditLogsDb) throws Exception {
-		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb.getQueryUtil());
+		if (owlCreator.needsRemake(auditLogsDb)) {
+			owlCreator.remakeOwl(auditLogsDb);
 		}
 
 		Connection conn = null;

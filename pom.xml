@@ -102,7 +102,6 @@
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
 									<include>com.amazon.athena:athena-jdbc-uber</include>
-									<include>org.neo4j:neo4j-jdbc-bolt</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -120,22 +119,16 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
-										<!-- Exclude any Jackson bundled by shaded artifacts (neo4j, parquet, etc.)
+										<!-- Exclude any Jackson bundled by shaded artifacts (athena, parquet, etc.)
 										     so the declared jackson-core/databind 2.21.1 JARs are the sole source -->
 										<exclude>com/fasterxml/jackson/**</exclude>
-									</excludes>
+									</excludes> 
 								</filter>
 								<filter>
 									<artifact>com.amazon.athena:athena-jdbc-uber</artifact>
 									<excludes>
 										<exclude>org/**</exclude>
 										<exclude>javax/**</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.neo4j:neo4j-jdbc-bolt</artifact>
-									<excludes>
-										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -163,13 +156,6 @@
 									<artifact>org.apache.parquet:parquet-hadoop</artifact>
 									<excludes>
 										<exclude>shaded/parquet/it/unimi/dsi/fastutil/**</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.neo4j:*</artifact>
-									<excludes>
-										<exclude>com/fasterxml/**</exclude>
-										<exclude>org/slf4j/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
@@ -1126,10 +1112,22 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-jdbc</artifactId>
+			<version>6.13.1</version>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
+		<dependency>
+			<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>neo4j-gremlin</artifactId>
+			<version>3.7.6</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1140,7 +1138,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1152,7 +1150,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1163,7 +1161,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1174,7 +1172,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1804,12 +1802,6 @@
 					<artifactId>postgresql</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
-		<dependency>
-			<groupId>org.apache.tinkerpop</groupId>
-			<artifactId>neo4j-gremlin</artifactId>
-			<version>3.7.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
@@ -3385,18 +3377,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>5.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
