@@ -93,6 +93,19 @@ public final class SkillScanner {
 	 *                   stages into)
 	 */
 	public static List<DiscoveredSkill> scan(String workingDir) {
+		return scan(workingDir, false);
+	}
+
+	/**
+	 * Variant of {@link #scan(String)} that optionally also reads each skill's body content
+	 * (everything after the YAML frontmatter; the whole file when there is no frontmatter) into
+	 * {@link DiscoveredSkill#getContent()}. When {@code includeContent} is {@code false} no
+	 * full-file read is performed and the content is left {@code null}.
+	 *
+	 * @param workingDir     the agent's working directory (the same path {@link SkillStager} stages into)
+	 * @param includeContent whether to also read each skill's body content
+	 */
+	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent) {
 		List<DiscoveredSkill> result = new ArrayList<>();
 		if (workingDir == null || workingDir.trim().isEmpty()) {
 			return result;
@@ -122,7 +135,8 @@ public final class SkillScanner {
 					String relPath = toRelative(root, skillMd.getAbsolutePath());
 					String relDir  = toRelative(root, child.getAbsolutePath());
 					String description = readDescription(skillMd);
-					found.put(name, new DiscoveredSkill(name, relPath, relDir, description));
+					String content = includeContent ? readBody(skillMd) : null;
+					found.put(name, new DiscoveredSkill(name, relPath, relDir, description, content));
 				}
 			}
 		}
@@ -241,7 +255,50 @@ public final class SkillScanner {
 	private static String clip(String s) {
 		if (s == null) return "";
 		if (s.length() <= DESCRIPTION_MAX_CHARS) return s;
-		return s.substring(0, DESCRIPTION_MAX_CHARS - 1) + "…";
+		return s.substring(0, DESCRIPTION_MAX_CHARS - 1) + "...";
+	}
+
+	/**
+	 * Reads the full body of SKILL.md - everything after the closing {@code ---} of the YAML
+	 * frontmatter, or the entire file when there is no frontmatter. Leading blank lines after the
+	 * frontmatter are dropped and trailing whitespace trimmed. Returns {@code ""} on read failure
+	 * or when the frontmatter is opened but never closed.
+	 */
+	private static String readBody(File skillMd) {
+		try {
+			String text = new String(Files.readAllBytes(skillMd.toPath()), StandardCharsets.UTF_8);
+			String[] lines = text.split("\\r?\\n", -1);
+
+			int bodyStart = 0;
+			if (lines.length > 0 && "---".equals(lines[0].trim())) {
+				int close = -1;
+				for (int i = 1; i < lines.length; i++) {
+					if ("---".equals(lines[i].trim())) {
+						close = i;
+						break;
+					}
+				}
+				if (close < 0) {
+					return "";
+				}
+				bodyStart = close + 1;
+			}
+
+			while (bodyStart < lines.length && lines[bodyStart].trim().isEmpty()) {
+				bodyStart++;
+			}
+
+			StringBuilder body = new StringBuilder();
+			for (int i = bodyStart; i < lines.length; i++) {
+				if (i > bodyStart) {
+					body.append('\n');
+				}
+				body.append(lines[i]);
+			}
+			return body.toString().stripTrailing();
+		} catch (Exception e) {
+			return "";
+		}
 	}
 
 	/**
@@ -254,17 +311,25 @@ public final class SkillScanner {
 		private final String path;
 		private final String directory;
 		private final String description;
+		private final String content;
 
 		DiscoveredSkill(String name, String path, String directory, String description) {
+			this(name, path, directory, description, null);
+		}
+
+		DiscoveredSkill(String name, String path, String directory, String description, String content) {
 			this.name = name;
 			this.path = path;
 			this.directory = directory;
 			this.description = description;
+			this.content = content;
 		}
 
 		public String getName()        { return name; }
 		public String getPath()        { return path; }
 		public String getDirectory()   { return directory; }
 		public String getDescription() { return description; }
+		/** Body content - everything after the frontmatter; {@code null} when not requested. */
+		public String getContent()     { return content; }
 	}
 }
