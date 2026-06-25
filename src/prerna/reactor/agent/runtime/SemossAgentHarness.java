@@ -107,6 +107,11 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	@Override
+	public boolean supportsMediaInput() {
+		return true;
+	}
+
+	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
@@ -186,6 +191,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			int runMessageStartIndex = room.getMessages().size();
 
 			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
+					.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
 			inputMessageId = firstMsg.getMessageId();
