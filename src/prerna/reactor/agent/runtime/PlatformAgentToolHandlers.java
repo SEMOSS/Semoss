@@ -86,18 +86,16 @@ final class PlatformAgentToolHandlers {
 	private static final int DEFAULT_SKILL_MAX_BYTES = 8 * 1024;
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
+	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
 
 	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
-			"ls", "dir", "pwd", "cat", "head", "tail", "wc", "find", "stat", "touch",
-			"mkdir", "rm", "cp", "mv", "chmod",
-			"grep", "rg", "awk", "sed", "cut", "sort", "uniq", "diff", "patch",
-			"zip", "unzip", "tar", "gzip", "gunzip",
+			"pwd", "ls", "dir", "find", "cat", "head", "tail", "wc", "stat",
+			"grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff",
+			"python", "python3",
+			"mkdir", "touch", "cp", "mv",
 			"curl", "wget",
-			"git",
-			"mvn", "make", "gradle",
-			"python3", "python", "node", "npm", "npx", "pnpm", "yarn", "java", "javac",
-			"echo", "printf", "xargs", "tee", "tr", "date", "env", "which",
-			"jq", "xmllint", "csvtool"));
+			"zip", "unzip",
+			"jq", "which"));
 
 	private PlatformAgentToolHandlers() {
 	}
@@ -183,13 +181,15 @@ final class PlatformAgentToolHandlers {
 				objectSchema(props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
 						Collections.emptyList()),
 				PlatformAgentToolHandlers::listDirectory));
-		add(tools, handler("BashCommand",
-				"Executes an allowlisted shell command in the working directory.",
-				objectSchema(props(
-						prop("command", stringProp("Command to execute.")),
-						prop("description", stringProp("Short reason for running the command."))),
-						List.of("command")),
-				PlatformAgentToolHandlers::bashCommand));
+		if (isBashEnabled()) {
+			add(tools, handler("BashCommand",
+					"Executes one allowlisted shell command in the working directory.",
+					objectSchema(props(
+							prop("command", stringProp("Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
+							prop("description", stringProp("Short reason for running the command."))),
+							List.of("command")),
+					PlatformAgentToolHandlers::bashCommand));
+		}
 		add(tools, handler("TodoWrite",
 				"Replaces the current todo list with a validated full-state JSON array.",
 				objectSchema(props(prop("items_json", stringProp(
@@ -573,6 +573,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String bashCommand(Map<String, Object> params, ToolContext tc) {
+		if (!isBashEnabled()) {
+			return "Error: BashCommand is disabled. Enable CHROOT_ENABLE or "
+					+ PROP_ENABLE_BASH + " to use it.";
+		}
 		String command = stringParam(params, "command");
 		String description = stringParam(params, "description");
 		if (command == null || command.trim().isEmpty()) {
@@ -860,6 +864,10 @@ final class PlatformAgentToolHandlers {
 		if (containsUnquoted(command, '>') || containsUnquoted(command, '<')) {
 			return "Redirects (>, <, >>) are not allowed. Use curl/wget -o to write files.";
 		}
+		if (containsUnquoted(command, '|') || containsUnquoted(command, ';')
+				|| containsUnquotedSequence(command, "&&") || containsUnquotedSequence(command, "||")) {
+			return "Command chaining and pipes are not allowed. Run one command per BashCommand call.";
+		}
 		if (command.contains("`")) {
 			return "Backtick command substitution is not allowed.";
 		}
@@ -875,17 +883,38 @@ final class PlatformAgentToolHandlers {
 				return "Parent directory traversal (..) is not allowed: " + clean;
 			}
 		}
-		for (String segment : command.split("\\|\\||&&|\\|")) {
-			String[] parts = segment.trim().split("\\s+");
-			if (parts.length == 0 || parts[0].isEmpty()) {
-				continue;
-			}
+		String[] parts = command.trim().split("\\s+");
+		if (parts.length > 0) {
 			String cmd = stripQuotes(parts[0]);
-			if (!ALLOWED_COMMANDS.contains(cmd)) {
+			if (!cmd.isEmpty() && !ALLOWED_COMMANDS.contains(cmd)) {
 				return "Command not allowed: " + cmd;
 			}
 		}
 		return null;
+	}
+
+	private static boolean isBashEnabled() {
+		if (isTrue(Constants.DISABLE_TERMINAL)) {
+			return false;
+		}
+		String explicit = getTrimmedProperty(PROP_ENABLE_BASH);
+		if (explicit != null) {
+			return Boolean.parseBoolean(explicit);
+		}
+		return isTrue(Constants.CHROOT_ENABLE);
+	}
+
+	private static boolean isTrue(String property) {
+		String value = getTrimmedProperty(property);
+		return value != null && Boolean.parseBoolean(value);
+	}
+
+	private static String getTrimmedProperty(String property) {
+		String value = Utility.getDIHelperProperty(property);
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		return value.trim();
 	}
 
 	private static boolean containsUnquoted(String s, char ch) {
@@ -898,6 +927,22 @@ final class PlatformAgentToolHandlers {
 			} else if (c == '"' && !inSingle) {
 				inDouble = !inDouble;
 			} else if (c == ch && !inSingle && !inDouble) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean containsUnquotedSequence(String s, String sequence) {
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (c == '\'' && !inDouble) {
+				inSingle = !inSingle;
+			} else if (c == '"' && !inSingle) {
+				inDouble = !inDouble;
+			} else if (!inSingle && !inDouble && s.startsWith(sequence, i)) {
 				return true;
 			}
 		}
