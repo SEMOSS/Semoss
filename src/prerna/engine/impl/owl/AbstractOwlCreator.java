@@ -28,6 +28,7 @@
 package prerna.engine.impl.owl;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.javatuples.Pair;
@@ -112,6 +113,7 @@ public abstract class AbstractOwlCreator {
 				columns.add(new OwlColumn(tableName, column.getValue0(), column.getValue1()));
 			}
 		}
+		columns.sort(Comparator.comparing(OwlColumn::tableName).thenComparing(OwlColumn::columnName));
 		return columns;
 	}
 

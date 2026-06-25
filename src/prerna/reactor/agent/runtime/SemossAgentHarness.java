@@ -109,7 +109,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
-		Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
+		Map<String, Object> runtimeParamMap = ctx.getParamMap();
+		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
@@ -162,6 +163,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
+		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		opts.put("instructions", composed.toString());
 		room.setOptionsMap(opts);
 
@@ -387,6 +389,56 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_SUBDIR);
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
+	}
+
+	private static String buildRuntimeContextPromptBlock(AgentRunContext ctx, Room room, Map<String, Object> paramMap) {
+		String roomId = room != null ? trimToNull(room.getId()) : null;
+		String workingDir = ctx != null && ctx.getAgentConfig() != null
+				? trimToNull(ctx.getAgentConfig().getWorkingDir())
+				: null;
+		String projectParam = trimToNull(paramMap != null ? paramMap.get(PARAM_PROJECT) : null);
+		String targetProjectId = firstNonBlank(projectParam,
+				room != null && room.getOptionsMap() != null ? room.getOptionsMap().get("targetProjectId") : null);
+
+		StringBuilder sb = new StringBuilder("## Runtime context");
+		if (roomId != null) {
+			sb.append("\n- Room id: ").append(roomId);
+		}
+		if (workingDir != null) {
+			sb.append("\n- Working directory: ").append(workingDir);
+		}
+		if (projectParam != null) {
+			sb.append("\n- Working directory source: target project ").append(projectParam);
+		} else if (roomId != null) {
+			sb.append("\n- Working directory source: room ").append(roomId);
+		}
+		if (targetProjectId != null) {
+			sb.append("\n- Target SEMOSS project id: ").append(targetProjectId);
+			sb.append("\n- Use this exact id for project-scoped Pixel or tool calls that act on the target project.");
+			sb.append("\n- Do not substitute the room id or another project id for the target project id.");
+		}
+		return sb.toString();
+	}
+
+	private static String firstNonBlank(Object... values) {
+		if (values == null) {
+			return null;
+		}
+		for (Object value : values) {
+			String s = trimToNull(value);
+			if (s != null) {
+				return s;
+			}
+		}
+		return null;
+	}
+
+	private static String trimToNull(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String s = String.valueOf(value).trim();
+		return s.isEmpty() ? null : s;
 	}
 
 	private static int lengthOrZero(String s) {
