@@ -41,6 +41,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.reactor.agent.skill.SkillScanner.SkillFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -76,6 +77,11 @@ import prerna.util.AssetUtility;
  * skill folder), and {@code description} (a one-liner from YAML frontmatter {@code description:}
  * when present, else the first non-blank line after the H1). When {@code includeContent} is true,
  * each map also carries {@code content} - the SKILL.md body (everything after the frontmatter).
+ * When {@code includeAll} is true, each map also carries {@code files} - an array of the other
+ * files under the skill directory, each {@code {path, directory, content}} with {@code path} and
+ * {@code directory} relative to the working directory (same shape as the top-level skill, so the
+ * tree can be recreated; empty directories are not represented). {@code includeAll} implies
+ * {@code includeContent}.
  * Empty list when no skills are found. Mirrors the row shape of {@link GetSkillsReactor}.
  */
 public class ListSkillsReactor extends AbstractReactor {
@@ -86,9 +92,12 @@ public class ListSkillsReactor extends AbstractReactor {
 	/** Optional flag - when true, each skill map includes a {@code content} entry (body after frontmatter). */
 	private static final String INCLUDE_CONTENT = "includeContent";
 
+	/** Optional flag - when true, also crawl the rest of each skill folder into a {@code files} array (implies includeContent). */
+	private static final String INCLUDE_ALL = "includeAll";
+
 	public ListSkillsReactor() {
-		this.keysToGet   = new String[] { PROJECT, ReactorKeysEnum.ROOM_ID.getKey(), INCLUDE_CONTENT };
-		this.keyRequired = new int[]    { 0, 0, 0 };
+		this.keysToGet   = new String[] { PROJECT, ReactorKeysEnum.ROOM_ID.getKey(), INCLUDE_CONTENT, INCLUDE_ALL };
+		this.keyRequired = new int[]    { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -102,11 +111,16 @@ public class ListSkillsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Specify only one of project or roomId, not both.");
 		}
 		boolean includeContent = Boolean.parseBoolean(this.keyValue.get(INCLUDE_CONTENT));
+		boolean includeAll = Boolean.parseBoolean(this.keyValue.get(INCLUDE_ALL));
+		if (includeAll) {
+			// includeAll implies content - the SKILL.md body is part of "everything".
+			includeContent = true;
+		}
 
 		String workingDir = resolveWorkingDir(projectId, roomId);
-		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir, includeContent);
-		logger.info("ListSkillsReactor: discovered {} skill(s) projectId={} roomId={} includeContent={} workingDir={}",
-				skills.size(), projectId, roomId, includeContent, workingDir);
+		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir, includeContent, includeAll);
+		logger.info("ListSkillsReactor: discovered {} skill(s) projectId={} roomId={} includeContent={} includeAll={} workingDir={}",
+				skills.size(), projectId, roomId, includeContent, includeAll, workingDir);
 
 		List<Map<String, Object>> rows = new ArrayList<>(skills.size());
 		for (DiscoveredSkill s : skills) {
@@ -117,6 +131,9 @@ public class ListSkillsReactor extends AbstractReactor {
 			row.put("description", s.getDescription());
 			if (includeContent) {
 				row.put("content", s.getContent());
+			}
+			if (includeAll) {
+				row.put("files", toFileMaps(s.getFiles()));
 			}
 			rows.add(row);
 		}
@@ -152,6 +169,22 @@ public class ListSkillsReactor extends AbstractReactor {
 		return this.insight == null ? null : this.insight.getInsightFolder();
 	}
 
+	/** Converts crawled {@link SkillFile}s into response maps: {@code {path, directory, content}}. */
+	private static List<Map<String, Object>> toFileMaps(List<SkillFile> files) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		if (files == null) {
+			return out;
+		}
+		for (SkillFile f : files) {
+			Map<String, Object> fm = new LinkedHashMap<>();
+			fm.put("path", f.getPath());
+			fm.put("directory", f.getDirectory());
+			fm.put("content", f.getContent());
+			out.add(fm);
+		}
+		return out;
+	}
+
 	private static String trimToNull(String s) {
 		if (s == null) {
 			return null;
@@ -175,8 +208,9 @@ public class ListSkillsReactor extends AbstractReactor {
 		     + "(first-match-wins, matching LoadSkill precedence). Scans the given project's assets folder "
 		     + "(project) or room folder (roomId); defaults to the current insight when neither is given. "
 		     + "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
-		     + "to add a 'content' entry with each SKILL.md body (everything after the frontmatter). "
-		     + "Reads the filesystem, not the DB (see GetSkills for the skill-project listing).";
+		     + "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
+		     + "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
+		     + "(implies includeContent). Reads the filesystem, not the DB (see GetSkills for the skill-project listing).";
 	}
 
 	@Override
@@ -192,6 +226,11 @@ public class ListSkillsReactor extends AbstractReactor {
 		if (INCLUDE_CONTENT.equals(key)) {
 			return "Optional (default false). When true, each skill map includes a 'content' entry "
 					+ "with the SKILL.md body - everything after the YAML frontmatter.";
+		}
+		if (INCLUDE_ALL.equals(key)) {
+			return "Optional (default false). When true, also crawl every other file in each skill's "
+					+ "directory into a 'files' array, each {path, directory, content} relative to the "
+					+ "working directory (same shape as the skill itself). Implies includeContent=true.";
 		}
 		return super.getDescriptionForKey(key);
 	}

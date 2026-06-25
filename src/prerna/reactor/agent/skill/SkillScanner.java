@@ -31,10 +31,12 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Scans a working directory for Anthropic-style skills and returns a deduplicated
@@ -106,6 +108,21 @@ public final class SkillScanner {
 	 * @param includeContent whether to also read each skill's body content
 	 */
 	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent) {
+		return scan(workingDir, includeContent, false);
+	}
+
+	/**
+	 * Variant of {@link #scan(String, boolean)} that, when {@code includeAll} is {@code true}, also
+	 * crawls every other file under each skill's directory into {@link DiscoveredSkill#getFiles()}
+	 * (each file's path/directory relative to the working directory, with full content).
+	 * {@code includeAll} implies content: each {@link DiscoveredSkill#getContent()} is populated
+	 * regardless of {@code includeContent}.
+	 *
+	 * @param workingDir     the agent's working directory
+	 * @param includeContent whether to read each skill's SKILL.md body
+	 * @param includeAll     whether to also crawl the rest of each skill folder
+	 */
+	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent, boolean includeAll) {
 		List<DiscoveredSkill> result = new ArrayList<>();
 		if (workingDir == null || workingDir.trim().isEmpty()) {
 			return result;
@@ -135,8 +152,10 @@ public final class SkillScanner {
 					String relPath = toRelative(root, skillMd.getAbsolutePath());
 					String relDir  = toRelative(root, child.getAbsolutePath());
 					String description = readDescription(skillMd);
-					String content = includeContent ? readBody(skillMd) : null;
-					found.put(name, new DiscoveredSkill(name, relPath, relDir, description, content));
+					boolean readContent = includeContent || includeAll;
+					String content = readContent ? readBody(skillMd) : null;
+					List<SkillFile> files = includeAll ? crawlFiles(child, root) : null;
+					found.put(name, new DiscoveredSkill(name, relPath, relDir, description, content, files));
 				}
 			}
 		}
@@ -302,6 +321,47 @@ public final class SkillScanner {
 	}
 
 	/**
+	 * Crawls every file under {@code skillDir} (recursively, excluding the top-level {@code SKILL.md},
+	 * which is already exposed via {@link DiscoveredSkill#getContent()}) into a list of
+	 * {@link SkillFile}s. Each file's {@link SkillFile#getPath()} and {@link SkillFile#getDirectory()}
+	 * are relative to the working directory {@code root} (forward slashes), mirroring the top-level
+	 * skill fields; content is the full UTF-8 file. Directories are not emitted on their own, so a
+	 * genuinely empty directory is not represented. Best-effort; symlinks are not followed.
+	 */
+	private static List<SkillFile> crawlFiles(File skillDir, String root) {
+		List<SkillFile> files = new ArrayList<>();
+		Path skillRoot = skillDir.toPath();
+		try (Stream<Path> walk = Files.walk(skillRoot)) {
+			walk.sorted().forEach(p -> {
+				if (p.equals(skillRoot) || Files.isDirectory(p)) {
+					return;
+				}
+				// skip the main SKILL.md at the skill-folder root - it is already in getContent()
+				if (Skill.SKILL_FILE.equals(p.getFileName().toString())
+						&& skillRoot.equals(p.getParent())) {
+					return;
+				}
+				File f = p.toFile();
+				String filePath = toRelative(root, f.getAbsolutePath());
+				String fileDir  = toRelative(root, f.getParentFile().getAbsolutePath());
+				files.add(new SkillFile(filePath, fileDir, readFile(f)));
+			});
+		} catch (Exception e) {
+			// best-effort; return whatever was gathered
+		}
+		return files;
+	}
+
+	/** Reads a file's full content as UTF-8. Returns {@code ""} on failure. */
+	private static String readFile(File file) {
+		try {
+			return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	/**
 	 * A skill discovered on disk. {@link #getPath()} is the working-dir-relative path to the
 	 * skill's {@code SKILL.md}; {@link #getDirectory()} is the relative path to its containing
 	 * folder (e.g. {@code .claude/skills/pdf}).
@@ -312,17 +372,24 @@ public final class SkillScanner {
 		private final String directory;
 		private final String description;
 		private final String content;
+		private final List<SkillFile> files;
 
 		DiscoveredSkill(String name, String path, String directory, String description) {
-			this(name, path, directory, description, null);
+			this(name, path, directory, description, null, null);
 		}
 
 		DiscoveredSkill(String name, String path, String directory, String description, String content) {
+			this(name, path, directory, description, content, null);
+		}
+
+		DiscoveredSkill(String name, String path, String directory, String description, String content,
+				List<SkillFile> files) {
 			this.name = name;
 			this.path = path;
 			this.directory = directory;
 			this.description = description;
 			this.content = content;
+			this.files = files;
 		}
 
 		public String getName()        { return name; }
@@ -331,5 +398,28 @@ public final class SkillScanner {
 		public String getDescription() { return description; }
 		/** Body content - everything after the frontmatter; {@code null} when not requested. */
 		public String getContent()     { return content; }
+		/** Other files under the skill directory; {@code null} when not requested (includeAll). */
+		public List<SkillFile> getFiles() { return files; }
+	}
+
+	/**
+	 * A file discovered under a skill directory by {@code includeAll}. {@link #getPath()} and
+	 * {@link #getDirectory()} are relative to the working directory (forward slashes), mirroring the
+	 * top-level skill fields.
+	 */
+	public static final class SkillFile {
+		private final String path;
+		private final String directory;
+		private final String content;
+
+		SkillFile(String path, String directory, String content) {
+			this.path = path;
+			this.directory = directory;
+			this.content = content;
+		}
+
+		public String getPath()      { return path; }
+		public String getDirectory() { return directory; }
+		public String getContent()   { return content; }
 	}
 }
