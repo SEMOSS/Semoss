@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -555,7 +555,7 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
 		classLogger.debug("Original signature value = " + this.signature);
-		this.signature = StringUtils.replaceOnce(this.signature, stringToFind, stringReplacement);
+		this.signature = Strings.CS.replaceOnce(this.signature, stringToFind, stringReplacement);
 		classLogger.debug("New signature value = " + this.signature);
 	}
 

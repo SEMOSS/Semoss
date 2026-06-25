@@ -28,15 +28,16 @@
 package prerna.util;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +57,26 @@ import prerna.algorithm.api.SemossDataType;
 public class GraphUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(GraphUtility.class);
+	private static final Pattern CYPHER_IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z0-9_\\-]+$");
+
+	private static String requireNonBlank(String value, String inputName) {
+		if (value == null || (value = value.trim()).isEmpty()) {
+			throw new IllegalArgumentException(inputName + " cannot be null or empty");
+		}
+		return value;
+	}
+
+	/**
+	 * Cypher doesn't support binding labels/property identifiers via JDBC
+	 * placeholders, so we validate against a strict allowlist and then quote.
+	 */
+	private static String quoteValidatedCypherIdentifier(String identifier, String inputName) {
+		String cleanedIdentifier = requireNonBlank(identifier, inputName);
+		if (!CYPHER_IDENTIFIER_PATTERN.matcher(cleanedIdentifier).matches()) {
+			throw new IllegalArgumentException("Invalid " + inputName + ": " + cleanedIdentifier);
+		}
+		return "`" + cleanedIdentifier + "`";
+	}
 
 	/**
 	 * Get metamodel from a type property
@@ -65,6 +86,7 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getMetamodel(GraphTraversalSource gts, String graphTypeId) {
+		graphTypeId = requireNonBlank(graphTypeId, "graphTypeId");
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
 		Map<String, ArrayList<String>> edges = new HashMap<>();
 		Map<String, Map<String, String>> nodes = new HashMap<>();
@@ -275,17 +297,17 @@ public class GraphUtility {
 	public static List<String> getAllNodeProperties(Connection conn) {
 		String query = "MATCH (n) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key ORDER BY key";
 		List<String> properties = new ArrayList<String>();
-		Statement statement = null;
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				String property = resultSet.getString(1);
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve all node properties from remote Neo4j", e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -301,18 +323,18 @@ public class GraphUtility {
 	public static List<String> getNodeLabels(Connection conn) {
 		String query = "MATCH (n) RETURN DISTINCT LABELS(n)";
 		List<String> labels = new ArrayList<String>();
-		Statement statement = null;
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				List<String> resultSetList = (ArrayList<String>) resultSet.getObject(1);
 				String label = resultSetList.get(0);
 				labels.add(label);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve node labels from remote Neo4j", e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -327,31 +349,21 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static List<String> getProperties(Connection conn, String label) {
-//		String query = "MATCH (n:?) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
-//		List<String> properties = new ArrayList<>();
-//		try(PreparedStatement statement = conn.prepareStatement(query)){
-//			statement.setString(1, label);
-//			ResultSet resultSet = statement.executeQuery();
-//			while(resultSet.next()){
-//				properties.add(resultSet.getString(1));
-//			}
-//		}catch (SQLException e){
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//		return properties;
-		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+		label = requireNonBlank(label, "label");
+		String query = "MATCH (n) WHERE ? IN LABELS(n) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
 		List<String> properties = new ArrayList<String>();
-		Statement statement = null;
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			statement.setString(1, label);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				String property = resultSet.getString(1);
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve node properties for label '{}'", Utility.cleanLogString(label), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -368,23 +380,22 @@ public class GraphUtility {
 	 */
 	public static List<String> getProperties(Connection conn, String typeId, String typeName) {
 		List<String> properties = new ArrayList<String>();
-		if (typeId == null || !typeId.matches("[\\w\\-]+")) { // only [A-Za-z0-9_-]
-			throw new IllegalArgumentException("Invalid typeId: " + typeId);
-		}
-		typeName = typeName.replaceAll("`", "");
-		String query = "Match (n) WHERE n." + typeId + "=`" + typeName
-				+ "` WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
-		Statement statement = null;
+		String safeTypeId = quoteValidatedCypherIdentifier(typeId, "typeId");
+		typeName = requireNonBlank(typeName, "typeName");
+		String query = "MATCH (n) WHERE n." + safeTypeId
+				+ " = ? WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			statement.setString(1, typeName);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				String property = resultSet.getString(1);
 				properties.add(property);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve node properties for typeId '{}'", Utility.cleanLogString(typeId), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -400,11 +411,11 @@ public class GraphUtility {
 	public static Map<String, Object> getEdges(Connection conn) {
 		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
 		Map<String, Object> edgeMap = new HashMap<>();
-		Statement statement = null;
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				ArrayList<String> startNodeList = (ArrayList<String>) resultSet.getObject(1);
 				String startNode = startNodeList.get(0);
@@ -417,7 +428,7 @@ public class GraphUtility {
 				edgeMap.put(relationship, nodes);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve graph edges from remote Neo4j", e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -432,14 +443,15 @@ public class GraphUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getEdges(Connection conn, String typeId) {
-		String query = "MATCH (n)-[r]->(p) UNWIND n." + typeId + " as StartNode UNWIND p." + typeId
-				+ " as EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName , EndNode";
+		String safeTypeId = quoteValidatedCypherIdentifier(typeId, "typeId");
+		String query = "MATCH (n)-[r]->(p) UNWIND n." + safeTypeId + " AS StartNode UNWIND p." + safeTypeId
+				+ " AS EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName, EndNode";
 		Map<String, Object> edgeMap = new HashMap<>();
-		Statement statement = null;
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				String startNode = resultSet.getString(1);
 				String relationship = resultSet.getString(2);
@@ -450,7 +462,7 @@ public class GraphUtility {
 				edgeMap.put(relationship, nodes);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve graph edges for typeId '{}'", Utility.cleanLogString(typeId), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
@@ -500,14 +512,15 @@ public class GraphUtility {
 		// get edges
 		Map<String, Object> edges = GraphUtility.getEdges(conn, typeId);
 		// get nodes and properties
-		String query = "MATCH (n) RETURN DISTINCT n." + typeId + " AS " + typeId;
-		Statement statement = null;
+		String safeTypeId = quoteValidatedCypherIdentifier(typeId, "typeId");
+		String query = "MATCH (n) RETURN DISTINCT n." + safeTypeId + " AS node_type";
+		PreparedStatement statement = null;
 		ResultSet resultSet = null;
 		try {
-			statement = conn.createStatement();
-			resultSet = statement.executeQuery(query);
+			statement = conn.prepareStatement(query);
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
-				String node = resultSet.getString(1);
+				String node = resultSet.getString("node_type");
 				Map<String, String> propMap = new HashMap<>();
 				List<String> properties = GraphUtility.getProperties(conn, typeId, node);
 				// neo4j does not enforce types so we will assume strings
@@ -517,16 +530,9 @@ public class GraphUtility {
 				nodeMap.put(node, propMap);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve metamodel for typeId '{}'", Utility.cleanLogString(typeId), e);
 		} finally {
-			try {
-				if (statement != null) {
-					statement.close();
-				}
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-
+			ConnectionUtils.closeAllConnections(null, statement, resultSet);
 		}
 		if (!nodeMap.isEmpty()) {
 			metamodel.put("nodes", nodeMap);
@@ -537,207 +543,4 @@ public class GraphUtility {
 		return metamodel;
 	}
 
-	////////////////////////////////////////////////////////////////////
-	//////////// Graph Utility Methods for Embedded Neo4j //////////////
-	////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Since neo4j-tinkerpop-api-impl is no longer supported Removing logic around
-	 * interacting with neo4j through gremlin
-	 */
-
-//	/**
-//	 * Get the metamodel from a neo4j graph using the labels
-//	 * 
-//	 * @param dbService
-//	 * @return
-//	 */
-//	public static Map<String, Object> getMetamodel(GraphDatabaseService dbService) {
-//		Map<String, Object> metamodel = new HashMap<>();
-//		Map<String, Object> nodeMap = new HashMap<>();
-//		// get edges
-//		Map<String, Object> edges = GraphUtility.getEdges(dbService);
-//		// get nodes and properties
-//		List<String> nodes = GraphUtility.getNodeLabels(dbService);
-//		for (String label : nodes) {
-//			Map<String, String> propMap = new HashMap<>();
-//			List<String> properties = GraphUtility.getProperties(dbService, label);
-//			// neo4j does not enforce types so we will assume strings
-//			for(String prop: properties) {
-//				propMap.put(prop, SemossDataType.STRING.toString());
-//			}
-//			nodeMap.put(label, propMap);
-//		}
-//		if (!nodeMap.isEmpty()) {
-//			metamodel.put("nodes", nodeMap);
-//			if (!edges.isEmpty()) {
-//				metamodel.put("edges", edges);
-//			}
-//		}
-//		return metamodel;
-//	}
-//	
-//	/**
-//	 * Get the metamodel from a neo4j graph using a property to identify the type
-//	 * 
-//	 * @param dbService
-//	 * @return
-//	 */
-//	public static Map<String, Object> getMetamodel(GraphDatabaseService dbService, String typeId) {
-//		Map<String, Object> metamodel = new HashMap<>();
-//		Map<String, Object> nodeMap = new HashMap<>();
-//		// get edges
-//		Map<String, Object> edges = GraphUtility.getEdges(dbService, typeId);
-//		// get the list of nodes
-//		Transaction tx = dbService.beginTx();
-//		String query = "MATCH (n) RETURN DISTINCT n."+ typeId +" AS " + typeId;
-//		Result result = dbService.execute(query);
-//		while (result.hasNext()) {
-//			String node = (String) result.next().get(typeId);
-//			Map<String, String> propMap = new HashMap<>();
-//			List<String> nodeProperties = GraphUtility.getProperties(dbService, typeId, node);
-//			for(String prop: nodeProperties) {
-//				propMap.put(prop, SemossDataType.STRING.toString());
-//			}
-//			nodeMap.put(node, propMap);
-//		}
-//		tx.close();
-//		if (!nodeMap.isEmpty()) {
-//			metamodel.put("nodes", nodeMap);
-//			if (!edges.isEmpty()) {
-//				metamodel.put("edges", edges);
-//			}
-//		}
-//		return metamodel;
-//	}
-//	
-//	/**
-//	 * Get the node properties by querying the node using the type property
-//	 * 
-//	 * @param dbService
-//	 * @param typeId
-//	 * @return
-//	 */
-//	private static List<String> getProperties(GraphDatabaseService dbService, String typeId, String typeName) {
-//		List<String> properties = new ArrayList<>();
-//		Transaction tx = dbService.beginTx();
-//		String query = "Match (n) WHERE n." + typeId + "='" + typeName
-//				+ "' WITH KEYS (n) AS keys UNWIND keys AS key return distinct key";
-//		Result result = dbService.execute(query);
-//		while (result.hasNext()) {
-//			String node = (String) result.next().get("key");
-//			properties.add(node);
-//		}
-//		tx.success();
-//		return properties;
-//	}
-//
-//	/**
-//	 * Get all the labels for a graph
-//	 * 
-//	 * @param dbService
-//	 * @return
-//	 */
-//	public static List<String> getNodeLabels(GraphDatabaseService dbService) {
-//		Transaction tx = dbService.beginTx();
-//		ResourceIterator<Label> labelsIt = dbService.getAllLabels().iterator();
-//		List<String> labels = new ArrayList<String>();
-//		while (labelsIt.hasNext()) {
-//			Label l = labelsIt.next();
-//			String name = l.name();
-//			labels.add(name);
-//		}
-//		tx.close();
-//		return labels;
-//	}
-//
-//	/**
-//	 * Get all the graph properties for a label
-//	 * 
-//	 * @param dbService
-//	 * @param label
-//	 * @return
-//	 */
-//	public static List<String> getProperties(GraphDatabaseService dbService, String label) {
-//		List<String> properties = new ArrayList<String>();
-//		Transaction tx = dbService.beginTx();
-//		String query = "MATCH (a:" + label + ") UNWIND keys(a) AS key RETURN distinct key as property";
-//		Result result = dbService.execute(query);
-//		while (result.hasNext()) {
-//			String prop = (String) result.next().get("property");
-//			properties.add(prop);
-//		}
-//		tx.close();
-//		return properties;
-//	}
-//	
-//	/**
-//	 * Get all the graph properties for all labels
-//	 * 
-//	 * @param dbService
-//	 * @param label
-//	 * @return
-//	 */
-//	public static List<String> getAllNodeProperties(GraphDatabaseService dbService) {
-//		List<String> properties = new ArrayList<String>();
-//		Transaction tx = dbService.beginTx();
-//		String query = "MATCH (a) UNWIND keys(a) AS key RETURN distinct key as property";
-//		Result result = dbService.execute(query);
-//		while (result.hasNext()) {
-//			String prop = (String) result.next().get("property");
-//			properties.add(prop);
-//		}
-//		tx.close();
-//		return properties;
-//	}
-//
-//	/**
-//	 * Get map of edges: {edgeLabel:[startNode, endNode]}
-//	 * 
-//	 * @param dbService
-//	 * @return
-//	 */
-//	public static Map<String, Object> getEdges(GraphDatabaseService dbService) {
-//		Transaction tx = dbService.beginTx();
-//		String query = "MATCH (n)-[r]->(p) UNWIND labels(n) as StartNode UNWIND labels(p) as EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName , EndNode";
-//		Result result = dbService.execute(query);
-//		Map<String, Object> edgeMap = new HashMap<>();
-//		while (result.hasNext()) {
-//			Map<String, Object> map = result.next();
-//			String startNode = (String) map.get("StartNode");
-//			String rel = (String) map.get("RelationshipName");
-//			String endNode = (String) map.get("EndNode");
-//			ArrayList<String> nodes = new ArrayList<>();
-//			nodes.add(startNode);
-//			nodes.add(endNode);
-//			edgeMap.put(rel, nodes);
-//		}
-//		tx.close();
-//		return edgeMap;
-//	}
-//	
-//	/**
-//	 * Get map of edges: {edgeLabel:[startNode, endNode]}
-//	 * 
-//	 * @param dbService
-//	 * @return
-//	 */
-//	public static Map<String, Object> getEdges(GraphDatabaseService dbService, String typeId) {
-//		Transaction tx = dbService.beginTx();
-//		String query = "MATCH (n)-[r]->(p) UNWIND n." + typeId + " as StartNode UNWIND p." + typeId + " as EndNode RETURN DISTINCT StartNode, TYPE(r) AS RelationshipName , EndNode";
-//		Result result = dbService.execute(query);
-//		Map<String, Object> edgeMap = new HashMap<>();
-//		while (result.hasNext()) {
-//			Map<String, Object> map = result.next();
-//			String startNode = (String) map.get("StartNode");
-//			String rel = (String) map.get("RelationshipName");
-//			String endNode = (String) map.get("EndNode");
-//			ArrayList<String> nodes = new ArrayList<>();
-//			nodes.add(startNode);
-//			nodes.add(endNode);
-//			edgeMap.put(rel, nodes);
-//		}
-//		tx.close();
-//		return edgeMap;
-//	}
 }

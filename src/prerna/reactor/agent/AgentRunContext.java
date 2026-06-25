@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
@@ -63,6 +66,8 @@ public final class AgentRunContext {
     private final String        input;
     private final SandboxPolicy sandboxPolicy;
     private final String        runId;
+    private final List<String>  mediaInputPaths;
+    private final List<String>  mediaUrls;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
@@ -78,6 +83,8 @@ public final class AgentRunContext {
         this.input         = b.input;
         this.sandboxPolicy = b.sandboxPolicy;
         this.runId         = b.runId;
+        this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
+        this.mediaUrls       = immutableStringList(b.mediaUrls);
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
     }
@@ -111,6 +118,16 @@ public final class AgentRunContext {
     /** Durable {@code AGENT_RUN.RUN_ID} for this invocation. May be {@code null} for legacy direct callers. */
     public String getRunId() {
         return runId;
+    }
+
+    /** Room-local media filenames copied for the initial user turn. */
+    public List<String> getMediaInputPaths() {
+        return mediaInputPaths;
+    }
+
+    /** Direct media URLs to attach to the initial user turn. */
+    public List<String> getMediaUrls() {
+        return mediaUrls;
     }
 
     /**
@@ -199,6 +216,8 @@ public final class AgentRunContext {
         private String        input;
         private SandboxPolicy sandboxPolicy;
         private String        runId;
+        private List<String>  mediaInputPaths;
+        private List<String>  mediaUrls;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
@@ -218,6 +237,8 @@ public final class AgentRunContext {
         public Builder input(String input)                   { this.input = input;                 return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
+        public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
+        public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 
@@ -261,5 +282,18 @@ public final class AgentRunContext {
             }
             return new AgentRunContext(this);
         }
+    }
+
+    private static List<String> immutableStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> copy = new ArrayList<>();
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                copy.add(value);
+            }
+        }
+        return copy.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copy);
     }
 }
