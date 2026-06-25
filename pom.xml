@@ -317,14 +317,14 @@
 							<target>
 								<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
 								<tstamp>
-									<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+									<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC"/>
 								</tstamp>
 								<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
-									<entry key="groupId" value="${project.groupId}" />
-									<entry key="artifactId" value="${project.artifactId}" />
-									<entry key="version" value="${project.version}" />
-									<entry key="ci.version" value="${project.version}" />
-									<entry key="build.date" value="${build.timestamp.utc}" />
+									<entry key="groupId" value="${project.groupId}"/>
+									<entry key="artifactId" value="${project.artifactId}"/>
+									<entry key="version" value="${project.version}"/>
+									<entry key="ci.version" value="${project.version}"/>
+									<entry key="build.date" value="${build.timestamp.utc}"/>
 								</propertyfile>
 							</target>
 						</configuration>
@@ -338,10 +338,7 @@
 						<configuration>
 							<target>
 								<mkdir dir="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins"/>
-								<copy file="${project.build.outputDirectory}/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat"
-									tofile="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat"
-									overwrite="true"
-									failonerror="false"/>
+								<copy file="${project.build.outputDirectory}/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat" tofile="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat" overwrite="true" failonerror="false"/>
 							</target>
 						</configuration>
 					</execution>
@@ -636,7 +633,7 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.21.1</version>
+				<version>2.21.4</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
@@ -667,7 +664,7 @@
 		<dependency>
 			<groupId>com.github</groupId>
 			<artifactId>copilot-sdk-java</artifactId>
-			<version>0.2.2-java.1</version>
+			<version>1.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.semoss</groupId>
@@ -1878,7 +1875,7 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.21.1</version>
+			<version>2.21.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
@@ -1890,7 +1887,7 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.21.1</version>
+			<version>2.21.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
 		<dependency>
