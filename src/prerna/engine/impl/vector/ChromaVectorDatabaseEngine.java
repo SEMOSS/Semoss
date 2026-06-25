@@ -92,32 +92,20 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private String className = null;
 	private String collectionID = null;
 
-	/** SMSS key to enable hybrid (vector + keyword) search on this engine. */
+	/** SMSS key: enable hybrid (vector + keyword) search. */
 	public static final String USE_HYBRID_SEARCH = "USE_HYBRID_SEARCH";
-
-	/**
-	 * SMSS key for the vector similarity weight used in hybrid RRF scoring (0.0-1.0).
-	 * The keyword weight is derived as {@code 1 - vectorWeight}. Defaults to {@code 0.5}.
-	 */
+	/** SMSS key: vector weight in RRF (0.0-1.0); keyword weight is {@code 1 - this}. Default 0.5. */
 	public static final String HYBRID_VECTOR_WEIGHT = "HYBRID_VECTOR_WEIGHT";
-
-	/**
-	 * SMSS key for the minimum BM25 keyword score required for the keyword ranking to
-	 * participate in RRF scoring. When the highest BM25 score across all candidates
-	 * falls at or below this threshold (i.e. the query matched no candidate text), the
-	 * keyword ranking is skipped and results are ordered by vector similarity alone.
-	 * Defaults to {@code 0.0}.
-	 */
+	/** SMSS key: min BM25 score for keyword ranking to apply; below it, results are vector-only. Default 0.0. */
 	public static final String HYBRID_KEYWORD_GATE_THRESHOLD = "HYBRID_KEYWORD_GATE_THRESHOLD";
 
 	private static final double DEFAULT_HYBRID_VECTOR_WEIGHT = 0.5;
 	private static final double DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD = 0.0;
-	// standard RRF dampening constant
 	private static final int RRF_K = 60;
 	// BM25 tuning constants (Lucene defaults)
 	private static final double BM25_K1 = 1.2;
 	private static final double BM25_B = 0.75;
-	// transient per-candidate key used to carry the Chroma vector distance through ranking; stripped before return
+	// transient key holding each candidate's vector distance during ranking; stripped before return
 	private static final String DISTANCE_KEY = "_distance";
 
 	private boolean useHybridSearch = false;
@@ -173,11 +161,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.collectionID = createCollection(this.className);
 	}
 
-	/**
-	 * Build the Chroma v2 collections endpoint:
-	 * {@code {url}api/v2/tenants/{tenant}/databases/{database}/collections}. Falls back to
-	 * the default tenant/database when not configured.
-	 */
+	/** Chroma v2 collections endpoint: {@code {url}api/v2/tenants/{tenant}/databases/{db}/collections}. */
 	public static String collections(String url, String tenant, String database) {
 		if (tenant == null || tenant.isEmpty()) {
 			tenant = DEFAULT_TENANT;
@@ -189,20 +173,13 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(database).append(COLLECTIONS).toString();
 	}
 
-	/**
-	 * Build a Chroma v2 collection action endpoint, e.g. {@code .../collections/{id}/query}.
-	 */
+	/** Chroma v2 collection action endpoint, e.g. {@code .../collections/{id}/query}. */
 	public static String collection(String url, String tenant, String database, String collectionId, String action) {
 		return new StringBuilder(collections(url, tenant, database)).append("/").append(collectionId).append(action)
 				.toString();
 	}
 
-	/**
-	 * Build the request headers for a Chroma call. Returns {@code null} (i.e. no headers) when no
-	 * API key is configured, which is the common case for a local/open Chroma instance.
-	 *
-	 * @return the header map, or {@code null} when no API key is set
-	 */
+	/** Request headers for a Chroma call, or {@code null} when no API key is configured. */
 	private Map<String, String> buildHeaders() {
 		if (this.apiKey == null || this.apiKey.isEmpty()) {
 			return null;
@@ -213,14 +190,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return headers;
 	}
 
-	/**
-	 *
-	 * @param collectionName
-	 */
+	/** Return the id of the named collection, creating it if it does not exist. */
 	private String createCollection(String collectionName) {
-		// check to see if the collection is available
-		// if available, get the ID
-		// if not create a collection and get the ID
 		collectionName = collectionName.replaceAll(" ", "_");
 		Gson gson = new Gson();
 		String collectionsUrl = collections(this.url, this.tenant, this.dbName);
@@ -369,9 +340,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
 			String fileName = fileNames.get(fileIndex);
 
-			// Delete document in ChromaDB by matching the Source metadata via the v2 delete API:
-			// {url}api/v2/tenants/{tenant}/databases/{db}/collections/{id}/delete
-
+			// delete chunks matching the Source metadata (v2 delete API)
 			Map<String, Object> fileNamesForDelete = new HashMap<>();
 			Map<String, String> sourceProperty = new HashMap<>();
 
@@ -381,14 +350,25 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 																			
 			fileNamesForDelete.put("where", sourceProperty);
 
-			String body = new Gson().toJson(fileNamesForDelete);
+			Gson gson = new Gson();
+			String body = gson.toJson(fileNamesForDelete);
 
 			String response = HttpHelperUtility.postRequestStringBody(
 					collection(this.url, this.tenant, this.dbName, this.collectionID, API_DELETE),
 					buildHeaders(), body, ContentType.APPLICATION_JSON, null, null, null);
 
-			//TODO: let us add validation by looking at the response			
-			
+			// Chroma returns {"deleted": N}; log it and warn when nothing matched
+			String source = sourceProperty.get("Source");
+			ChromaDeleteResponse deleteResponse = gson.fromJson(response, ChromaDeleteResponse.class);
+			int deleted = (deleteResponse != null && deleteResponse.deleted != null) ? deleteResponse.deleted : 0;
+			if (deleted > 0) {
+				classLogger.info("Removed {} record(s) from Chroma collection '{}' for source '{}'", deleted,
+						this.className, source);
+			} else {
+				classLogger.warn("No records matched source '{}' in Chroma collection '{}' during delete", source,
+						this.className);
+			}
+
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
 			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
@@ -447,14 +427,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return results;
 	}
 
-	/**
-	 * Convert a Chroma distance to a higher-is-better similarity score. For cosine distance
-	 * this is {@code 1 - distance}; for other metrics (e.g. L2) a monotonic {@code 1/(1+distance)}
-	 * keeps higher = more similar.
-	 *
-	 * @param distance the raw Chroma distance
-	 * @return a similarity score where higher is better
-	 */
+	/** Higher-is-better similarity score from a Chroma distance: {@code 1 - d} for cosine, else {@code 1/(1+d)}. */
 	private double toScore(double distance) {
 		if (this.distanceMethod != null && this.distanceMethod.toLowerCase().contains("cosine")) {
 			return 1.0 - distance;
@@ -462,14 +435,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return 1.0 / (1.0 + distance);
 	}
 
-	/**
-	 * Build a Chroma {@code where} clause from the SEMOSS {@code filters}/{@code metaFilters}
-	 * parameters. Both lists are combined with AND. Returns {@code null} when there is nothing
-	 * to filter on.
-	 *
-	 * @param parameters the reactor parameter map (may be {@code null})
-	 * @return a Chroma {@code where} map, or {@code null}
-	 */
+	/** Build a Chroma {@code where} clause from the {@code filters}/{@code metaFilters} params (AND-combined), or {@code null}. */
 	private Map<String, Object> buildWhere(Map<String, Object> parameters) {
 		if (parameters == null) {
 			return null;
@@ -480,13 +446,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return ChromaVectorQueryFilterTranslationHelper.toWhere(allFilters);
 	}
 
-	/**
-	 * Append any {@link IQueryFilter}s found in {@code value} (expected to be a list) to
-	 * {@code target}, checking each element's type so no unchecked cast is needed.
-	 *
-	 * @param value  the raw parameter value (may be {@code null} or a non-list)
-	 * @param target the list to append matched filters to
-	 */
+	/** Append any {@link IQueryFilter}s in {@code value} (if it is a list) to {@code target}. */
 	private void collectFilters(Object value, List<IQueryFilter> target) {
 		if (!(value instanceof List)) {
 			return;
@@ -499,28 +459,10 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
-	 * Executes a hybrid vector + keyword search using Weighted Reciprocal Rank Fusion
-	 * (RRF). Chroma has no native keyword/full-text scoring, so a candidate pool is
-	 * fetched by vector similarity and each candidate's stored {@code Content} is scored
-	 * with BM25 in Java. The two rankings are combined with:
-	 * <pre>
-	 *   rrfScore = vectorWeight / (k + vectorRank) + keywordWeight / (k + keywordRank)
-	 * </pre>
-	 * where {@code k = 60}. The vector weight is configured via {@code HYBRID_VECTOR_WEIGHT}
-	 * (default 0.5) and the keyword weight is {@code 1 - vectorWeight}. If the highest BM25
-	 * score across all candidates is at or below {@code HYBRID_KEYWORD_GATE_THRESHOLD}, the
-	 * keyword ranking is skipped and results fall back to pure vector order.
-	 * <p>
-	 * This re-ranks the vector candidate pool; a document that is a strong keyword match
-	 * but outside the top vector candidates is not surfaced. This mirrors the vector-first
-	 * behavior of the PGVector hybrid implementation.
-	 * </p>
-	 *
-	 * @param searchStatement the user's query string
-	 * @param vector          pre-computed embedding for {@code searchStatement}
-	 * @param limit           maximum number of results to return
-	 * @param where           optional Chroma {@code where} filter applied to the candidate pool; may be {@code null}
-	 * @return results ranked by weighted RRF score, descending
+	 * Re-rank a vector candidate pool by fusing vector similarity with an in-app BM25 keyword score
+	 * via weighted RRF: {@code score = vw/(k+vRank) + kw/(k+kRank)}, k=60. Keyword ranking is skipped
+	 * when no candidate matches the query. Vector-first: a keyword-only match outside the pool is not
+	 * surfaced (same trade-off as the PGVector hybrid).
 	 */
 	private List<Map<String, Object>> executeHybridRrfSearch(String searchStatement, List<Double> vector, int limit,
 			Map<String, Object> where) {
@@ -534,15 +476,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		double[] keywordScores = bm25Scores(searchStatement, candidates);
 
-		// Rank candidates independently by vector similarity (ascending distance) and keyword score
-		// (descending BM25); rank 0 = best on each dimension.
+		// rank by vector distance (asc) and keyword score (desc); rank 0 = best
 		List<Integer> byVector = sortedIndices(n,
 				(a, b) -> Double.compare(distanceOf(candidates.get(a)), distanceOf(candidates.get(b))));
 		List<Integer> byKeyword = sortedIndices(n, (a, b) -> Double.compare(keywordScores[b], keywordScores[a]));
 		int[] vectorRank = toRanks(byVector);
 		int[] keywordRank = toRanks(byKeyword);
 
-		// Drop the keyword signal when the query matched no candidate text.
+		// skip keyword signal when nothing matched the query text
 		double maxKeywordScore = keywordScores[byKeyword.get(0)];
 		boolean useKeyword = maxKeywordScore > this.hybridKeywordGateThreshold;
 
@@ -559,7 +500,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 
-		// Return the top-N by RRF score, attaching the fused Score and stripping the transient distance.
+		// top-N by fused RRF score
 		List<Integer> ranked = sortedIndices(n, (a, b) -> Double.compare(rrfScores[b], rrfScores[a]));
 		int resultCount = Math.min(limit, n);
 		List<Map<String, Object>> results = new ArrayList<>(resultCount);
@@ -572,9 +513,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return results;
 	}
 
-	/**
-	 * Returns the indices {@code [0, n)} sorted by {@code order} (position 0 = best).
-	 */
+	/** Indices {@code [0, n)} sorted by {@code order} (position 0 = best). */
 	private static List<Integer> sortedIndices(int n, Comparator<Integer> order) {
 		List<Integer> indices = new ArrayList<>(n);
 		for (int i = 0; i < n; i++) {
@@ -584,9 +523,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return indices;
 	}
 
-	/**
-	 * Inverts a best-first index ordering into a per-index rank array (rank 0 = best).
-	 */
+	/** Invert a best-first index ordering into a per-index rank array (rank 0 = best). */
 	private static int[] toRanks(List<Integer> ordered) {
 		int[] rank = new int[ordered.size()];
 		for (int position = 0; position < ordered.size(); position++) {
@@ -596,15 +533,8 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
-	 * Runs a vector query against the collection and returns the first query's candidate rows.
-	 * Each row is the chunk's metadata map, additionally tagged with its raw vector distance under
-	 * {@link #DISTANCE_KEY} (read back via {@link #distanceOf}). Shared by the vector-only and
-	 * hybrid search paths.
-	 *
-	 * @param vector   the query embedding
-	 * @param nResults the number of results to request
-	 * @param where    optional Chroma {@code where} filter; may be {@code null}
-	 * @return candidate rows, each tagged with its vector distance; empty if the query had no hits
+	 * Run a vector query and return the first result set's rows, each tagged with its vector distance
+	 * under {@link #DISTANCE_KEY}. Shared by the vector-only and hybrid paths. Empty if no hits.
 	 */
 	private List<Map<String, Object>> queryVectors(List<Double> vector, int nResults, Map<String, Object> where) {
 		Gson gson = new Gson();
@@ -640,24 +570,15 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return rows;
 	}
 
-	/**
-	 * @param row a candidate row tagged by {@link #queryVectors}
-	 * @return the vector distance for the row, or {@link Double#MAX_VALUE} if missing (sorts last)
-	 */
+	/** Vector distance tagged on a candidate row, or {@link Double#MAX_VALUE} if missing (sorts last). */
 	private double distanceOf(Map<String, Object> row) {
 		Object distance = row.get(DISTANCE_KEY);
 		return (distance instanceof Number) ? ((Number) distance).doubleValue() : Double.MAX_VALUE;
 	}
 
 	/**
-	 * Computes a BM25 keyword relevance score for each candidate against the query. The
-	 * corpus statistics (document frequency, average document length) are derived from the
-	 * candidate pool itself, which is sufficient for re-ranking. Returns an array of scores
-	 * index-aligned with {@code candidates}; a candidate that matches no query term scores 0.
-	 *
-	 * @param query      the user's query string
-	 * @param candidates the candidate rows whose {@code Content} is scored
-	 * @return BM25 scores aligned with {@code candidates}
+	 * BM25 keyword score per candidate (index-aligned), using corpus statistics from the candidate
+	 * pool itself. A candidate matching no query term scores 0.
 	 */
 	private double[] bm25Scores(String query, List<Map<String, Object>> candidates) {
 		int n = candidates.size();
@@ -688,7 +609,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			return scores;
 		}
 
-		// document frequency for each unique query term, over the candidate pool
+		// document frequency per query term
 		Map<String, Integer> docFreq = new HashMap<>();
 		for (String term : queryTerms) {
 			if (docFreq.containsKey(term)) {
@@ -703,7 +624,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			docFreq.put(term, df);
 		}
 
-		// BM25 score per document (only unique query terms contribute)
+		// BM25 score per document
 		for (int i = 0; i < n; i++) {
 			Map<String, Integer> termFreq = docTermFreqs.get(i);
 			double score = 0.0;
@@ -722,13 +643,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return scores;
 	}
 
-	/**
-	 * Lower-cases and splits text into alphanumeric tokens. No external tokenizer/stemmer
-	 * is used so this introduces no new dependencies.
-	 *
-	 * @param text the text to tokenize
-	 * @return the list of tokens (possibly empty)
-	 */
+	/** Lower-case and split into alphanumeric tokens (no external tokenizer/stemmer). */
 	private List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
 		if (text == null || text.isEmpty()) {
@@ -790,14 +705,15 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return VectorDatabaseTypeEnum.CHROMA;
 	}
 
-	/**
-	 * Typed view of a Chroma query response. Gson resolves the nested generics from these
-	 * declared fields, so the response can be deserialized without unchecked casts. Both
-	 * {@code metadatas} and {@code distances} are lists-of-lists (one inner list per query).
-	 */
+	/** Typed Chroma query response — lets Gson resolve the nested generics without unchecked casts. */
 	private static class ChromaQueryResponse {
 		private List<List<Map<String, Object>>> metadatas;
 		private List<List<Double>> distances;
+	}
+
+	/** Typed Chroma delete response: {@code {"deleted": N}}. */
+	private static class ChromaDeleteResponse {
+		private Integer deleted;
 	}
 
 }

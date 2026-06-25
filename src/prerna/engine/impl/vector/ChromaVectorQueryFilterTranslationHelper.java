@@ -41,23 +41,11 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Translates SEMOSS {@link IQueryFilter}s into a Chroma {@code where} clause.
- * <p>
- * Chroma expects a nested JSON-style structure, which this helper produces as a
- * {@link Map}:
- * </p>
- * <pre>
- *   {"Source": {"$in": ["a.txt","b.txt"]}}
- *   {"Modality": {"$eq": "text"}}
- *   {"$and": [ {"Source": {"$eq":"a.txt"}}, {"Modality": {"$eq":"text"}} ]}
- *   {"$or":  [ {"Modality": {"$eq":"text"}}, {"Modality": {"$eq":"image"}} ]}
- * </pre>
- * <p>
- * Supports SIMPLE column-to-values filters (mapped to {@code $eq}/{@code $in},
- * {@code $ne}/{@code $nin}, {@code $gt}/{@code $gte}/{@code $lt}/{@code $lte}) and
- * arbitrarily nested {@code AND}/{@code OR} groups via recursion. Unsupported filter
- * shapes are skipped rather than throwing.
- * </p>
+ * Translates SEMOSS {@link IQueryFilter}s into a Chroma {@code where} clause — e.g.
+ * {@code Filter(Source == ["a","b"])} becomes {@code {"Source": {"$in": ["a","b"]}}}, with nested
+ * {@code $and}/{@code $or} groups. Supports column-to-values filters
+ * ({@code $eq}/{@code $in}/{@code $ne}/{@code $nin}/{@code $gt}/{@code $gte}/{@code $lt}/{@code $lte});
+ * unsupported filter shapes are skipped rather than throwing.
  */
 public final class ChromaVectorQueryFilterTranslationHelper {
 
@@ -67,13 +55,7 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 	private ChromaVectorQueryFilterTranslationHelper() {
 	}
 
-	/**
-	 * Combine a list of top-level filters (e.g. {@code filters} + {@code metaFilters}) into a
-	 * single Chroma {@code where} clause, AND-ing them together.
-	 *
-	 * @param filters the SEMOSS filters to translate; may be {@code null}/empty
-	 * @return the Chroma {@code where} map, or {@code null} when there is nothing to filter on
-	 */
+	/** Combine top-level filters into a single AND-ed Chroma {@code where} clause, or {@code null} if none. */
 	public static Map<String, Object> toWhere(List<IQueryFilter> filters) {
 		if (filters == null || filters.isEmpty()) {
 			return null;
@@ -118,10 +100,7 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 		return combine(operator, clauses);
 	}
 
-	/**
-	 * Collapse a set of clauses under a boolean operator. A single clause is returned as-is
-	 * (Chroma rejects a one-element {@code $and}/{@code $or}); an empty set yields {@code null}.
-	 */
+	/** Collapse clauses under a boolean operator; one clause is returned as-is, none yields {@code null}. */
 	private static Map<String, Object> combine(String operator, List<Map<String, Object>> clauses) {
 		if (clauses.isEmpty()) {
 			return null;
@@ -135,7 +114,7 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 	}
 
 	private static Map<String, Object> translateSimple(SimpleQueryFilter filter) {
-		// Only column-to-values filters (e.g. Source == "a.txt") map cleanly to a Chroma where clause
+		// only column-to-values filters map to a Chroma where clause
 		if (filter.getSimpleFilterType() != FILTER_TYPE.COL_TO_VALUES) {
 			return null;
 		}
@@ -186,9 +165,7 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 		return condition;
 	}
 
-	/**
-	 * Resolve the column name from the left comparison of a simple filter.
-	 */
+	/** Column name from a simple filter's left comparison. */
 	private static String extractColumn(NounMetadata leftComparison) {
 		if (leftComparison == null) {
 			return null;
@@ -200,10 +177,7 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 		return value == null ? null : value.toString();
 	}
 
-	/**
-	 * Normalize a right-comparison value to a flat list, handling both single values and
-	 * collections (e.g. a {@code Vector} of values for an {@code IN} filter).
-	 */
+	/** Flatten a right-comparison value to a list (handles a single value or a collection). */
 	private static List<Object> normalizeToList(Object value) {
 		List<Object> values = new ArrayList<>();
 		if (value == null) {
