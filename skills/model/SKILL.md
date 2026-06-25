@@ -204,6 +204,6 @@ const textParts = parts.filter((p) => p.type === "TEXT").map((p) => p.text);
 const { numberOfTokensInPrompt, numberOfTokensInResponse } =
   pixelReturn[0].output;
 
-// Conversation Threading
+// Conversation threading
 const { messageId, roomId } = pixelReturn[0].output;
 ```
