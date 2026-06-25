@@ -33,6 +33,11 @@ output "cluster_oidc_provider_arn" {
   value       = try(aws_iam_openid_connect_provider.this[0].arn, null)
 }
 
+output "cluster_role_arn" {
+  description = "IAM role ARN used by the EKS cluster."
+  value       = local.effective_cluster_role_arn
+}
+
 output "node_group_arn" {
   description = "Managed node group ARN."
   value       = aws_eks_node_group.this.arn
@@ -45,5 +50,20 @@ output "node_group_status" {
 
 output "node_role_arn" {
   description = "IAM role ARN used by worker nodes."
-  value       = aws_iam_role.node.arn
+  value       = local.effective_node_role_arn
+}
+
+output "cluster_encryption_key_arn" {
+  description = "KMS key ARN used for EKS Kubernetes secrets encryption at rest."
+  value       = local.effective_encryption_key_arn
+}
+
+output "bucket_name" {
+  description = "Name of the S3 bucket used for application file storage."
+  value       = try(aws_s3_bucket.platform_files[0].bucket, null)
+}
+
+output "bucket_arn" {
+  description = "ARN of the S3 bucket used for application file storage."
+  value       = try(aws_s3_bucket.platform_files[0].arn, null)
 }

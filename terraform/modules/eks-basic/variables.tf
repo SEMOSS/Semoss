@@ -50,9 +50,9 @@ variable "cluster_admin_principal_arns" {
 }
 
 variable "cluster_addon_names" {
-  description = "Managed EKS add-ons to install."
+  description = "Managed EKS add-ons to install (CoreDNS is intentionally excluded by this module)."
   type        = set(string)
-  default     = ["coredns", "kube-proxy", "vpc-cni", "eks-pod-identity-agent"]
+  default     = ["kube-proxy", "vpc-cni", "eks-pod-identity-agent"]
 }
 
 variable "enable_cluster_addons" {
@@ -61,10 +61,45 @@ variable "enable_cluster_addons" {
   default     = true
 }
 
+variable "create_cluster_encryption_key" {
+  description = "Whether to create a customer-managed KMS key for Kubernetes secrets encryption at rest."
+  type        = bool
+  default     = false
+}
+
 variable "cluster_encryption_key_arn" {
-  description = "Optional KMS key ARN used to encrypt Kubernetes secrets at rest."
+  description = "Optional existing KMS key ARN used to encrypt Kubernetes secrets at rest."
   type        = string
   default     = null
+
+  validation {
+    condition     = !(var.create_cluster_encryption_key && var.cluster_encryption_key_arn != null)
+    error_message = "Set either create_cluster_encryption_key=true or cluster_encryption_key_arn, but not both."
+  }
+}
+
+variable "create_bucket" {
+  description = "Whether to create an S3 bucket for application file storage."
+  type        = bool
+  default     = true
+}
+
+variable "bucket_name" {
+  description = "Optional name for the application files S3 bucket. If null, a name is generated from cluster name, account ID, and region."
+  type        = string
+  default     = null
+}
+
+variable "bucket_kms_key_arn" {
+  description = "Optional KMS key ARN for S3 bucket server-side encryption. When null, SSE-S3 (AES256) is used."
+  type        = string
+  default     = null
+}
+
+variable "bucket_force_destroy" {
+  description = "Whether to allow deleting the application files bucket even when it contains objects."
+  type        = bool
+  default     = false
 }
 
 variable "node_group_name" {
@@ -94,6 +129,17 @@ variable "node_ami_type" {
   description = "AMI type for the managed node group."
   type        = string
   default     = "AL2_x86_64"
+}
+
+variable "node_ami_image_id" {
+  description = "Optional custom AMI ID for managed node group instances. When set, the node group uses a launch template with this AMI and ignores node_ami_type."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.node_ami_image_id == null || can(regex("^ami-[0-9a-fA-F]+$", var.node_ami_image_id))
+    error_message = "node_ami_image_id must be a valid AMI ID (for example, ami-0123456789abcdef0) or null."
+  }
 }
 
 variable "node_disk_size" {
@@ -147,8 +193,20 @@ variable "node_group_tags" {
   default     = {}
 }
 
+variable "cluster_iam_role_arn" {
+  description = "ARN of an existing IAM role for the EKS cluster. When set, the module will not create a cluster IAM role. The provided role must already have the AmazonEKSClusterPolicy and AmazonEKSVPCResourceController policies attached."
+  type        = string
+  default     = null
+}
+
+variable "node_iam_role_arn" {
+  description = "ARN of an existing IAM role to attach to worker nodes. When set, the module will not create a node IAM role and will not attach any managed policies to it. The provided role must already have the permissions required by your workloads."
+  type        = string
+  default     = null
+}
+
 variable "attach_ssm_policy_to_nodes" {
-  description = "Whether to attach the SSM managed instance policy to worker nodes."
+  description = "Whether to attach the SSM managed instance policy to worker nodes. Has no effect when node_iam_role_arn is provided."
   type        = bool
   default     = false
 }

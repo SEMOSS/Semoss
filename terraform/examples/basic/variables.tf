@@ -48,6 +48,18 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "create_cluster_encryption_key" {
+  description = "Whether to create a customer-managed KMS key for EKS secrets encryption."
+  type        = bool
+  default     = false
+}
+
+variable "cluster_encryption_key_arn" {
+  description = "Optional existing KMS key ARN for EKS secrets encryption."
+  type        = string
+  default     = null
+}
+
 variable "node_instance_types" {
   description = "Instance types for the managed node group."
   type        = list(string)
