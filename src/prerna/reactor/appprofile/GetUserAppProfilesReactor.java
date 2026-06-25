@@ -39,15 +39,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
- */
-@Deprecated
-public class GetUserFeaturesReactor extends AbstractReactor {
+public class GetUserAppProfilesReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetUserAppProfilesReactor.class);
 
-	public GetUserFeaturesReactor() {
+	public GetUserAppProfilesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -61,13 +57,12 @@ public class GetUserFeaturesReactor extends AbstractReactor {
 		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
 			throw new IllegalArgumentException("User does not have access to this app.");
 		}
-		// Returns only enabled features — callers cannot infer what features exist but are hidden
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		Map<String, Object> result = AppProfileUtils.getUserAppProfiles(appId, user);
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all enabled features for the calling user in an app.";
+		return "Get all profile and subgroup memberships for the calling user in an app.";
 	}
 }

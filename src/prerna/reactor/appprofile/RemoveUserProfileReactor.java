@@ -27,16 +27,29 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * @deprecated Use {@link RemoveAppUserProfileReactor} (Pixel: RemoveAppUserProfile) to remove a user from a specific profile.
+ * WARNING: This reactor removes the user from ALL profiles for the app, not just one.
+ * The new RemoveAppUserProfile reactor requires a profileId and removes only that assignment.
+ * Kept for backwards compatibility.
+ */
+@Deprecated
 public class RemoveUserProfileReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(RemoveUserProfileReactor.class);
+
 	public RemoveUserProfileReactor() {
-		this.keysToGet = new String[] { "app", "userId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USER_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -44,20 +57,20 @@ public class RemoveUserProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String userId = this.keyValue.get("userId");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		AppProfileUtils.removeUserProfile(appId, userId);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from profile."));
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from all profiles."));
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's profile assignment for an app.";
+		return "Remove a user from all profile assignments for an app.";
 	}
 }

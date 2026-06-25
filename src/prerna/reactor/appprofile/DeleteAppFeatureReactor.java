@@ -27,16 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DeleteAppFeatureReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(DeleteAppFeatureReactor.class);
+
 	public DeleteAppFeatureReactor() {
-		this.keysToGet = new String[] { "app", "featureId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FEATURE_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -44,14 +50,14 @@ public class DeleteAppFeatureReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String featureId = this.keyValue.get("featureId");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String featureId = this.keyValue.get(ReactorKeysEnum.FEATURE_ID.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		AppProfileUtils.deleteFeature(appId, featureId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Feature deleted."));
 		return noun;
 	}

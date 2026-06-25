@@ -27,16 +27,27 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * @deprecated Use {@link AssignAppUserProfileReactor} (Pixel: AssignAppUserProfile).
+ * Kept for backwards compatibility.
+ */
+@Deprecated
 public class AssignUserProfileReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(AssignUserProfileReactor.class);
+
 	public AssignUserProfileReactor() {
-		this.keysToGet = new String[] { "app", "userId", "profileId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USER_ID.getKey(), ReactorKeysEnum.PROFILE_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -44,21 +55,21 @@ public class AssignUserProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String userId = this.keyValue.get("userId");
-		String profileId = this.keyValue.get("profileId");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
-			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to assign profiles for this app.");
 		}
 		AppProfileUtils.assignUserProfile(appId, userId, profileId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User assigned to profile."));
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Assign a user to a profile for an app.";
+		return "Assign a user to a profile for an app. A user can be in multiple profiles simultaneously.";
 	}
 }

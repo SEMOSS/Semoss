@@ -27,35 +27,43 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateAppProfileReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(UpdateAppProfileReactor.class);
+
 	public UpdateAppProfileReactor() {
-		this.keysToGet = new String[] { "app", "profileId", "name", "description", "isDefault" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.IS_DEFAULT.getKey(), ReactorKeysEnum.IS_GROUP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String profileId = this.keyValue.get("profileId");
-		String name = this.keyValue.get("name");
-		String description = this.keyValue.get("description");
-		String isDefaultStr = this.keyValue.get("isDefault");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		String isDefaultStr = this.keyValue.get(ReactorKeysEnum.IS_DEFAULT.getKey());
 		Boolean isDefault = isDefaultStr != null ? Boolean.parseBoolean(isDefaultStr) : null;
+		String isGroupStr = this.keyValue.get(ReactorKeysEnum.IS_GROUP.getKey());
+		Boolean isGroup = isGroupStr != null ? Boolean.parseBoolean(isGroupStr) : null;
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		AppProfileUtils.updateProfile(appId, profileId, name, description, isDefault, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		AppProfileUtils.updateProfile(appId, profileId, name, description, isDefault, isGroup, user);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile updated."));
 		return noun;
 	}

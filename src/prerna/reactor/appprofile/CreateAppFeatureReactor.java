@@ -29,16 +29,22 @@ package prerna.reactor.appprofile;
 
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CreateAppFeatureReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(CreateAppFeatureReactor.class);
+
 	public CreateAppFeatureReactor() {
-		this.keysToGet = new String[] { "app", "key", "description" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FEATURE_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
@@ -46,15 +52,15 @@ public class CreateAppFeatureReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String featureKey = this.keyValue.get("key");
-		String description = this.keyValue.get("description");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		Map<String, Object> result = AppProfileUtils.createFeature(appId, featureKey, description, user);
-		NounMetadata noun = new NounMetadata(result, PixelDataType.MAP);
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Feature created."));
 		return noun;
 	}

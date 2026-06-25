@@ -27,29 +27,27 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
- */
-@Deprecated
-public class GetUserFeaturesReactor extends AbstractReactor {
+public class GetAppProfileUsersReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetAppProfileUsersReactor.class);
 
-	public GetUserFeaturesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public GetAppProfileUsersReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -57,17 +55,17 @@ public class GetUserFeaturesReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
+		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		// Returns only enabled features — callers cannot infer what features exist but are hidden
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		List<Map<String, Object>> users = AppProfileUtils.getProfileUsers(appId, profileId);
+		return new NounMetadata(users, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all enabled features for the calling user in an app.";
+		return "Get all users assigned to a profile in an app.";
 	}
 }

@@ -27,38 +27,42 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
-import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetProfileFeaturesReactor extends AbstractReactor {
+public class GetAppUserFeaturesReactor extends AbstractReactor {
 
-	public GetProfileFeaturesReactor() {
-		this.keysToGet = new String[] { "app", "profileId" };
-		this.keyRequired = new int[] { 1, 1 };
+	private static final Logger classLogger = LogManager.getLogger(GetAppUserFeaturesReactor.class);
+
+	public GetAppUserFeaturesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String profileId = this.keyValue.get("profileId");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 
-		if (!AppProfileUtils.canManageProfiles(user, appId)) {
-			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
+		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
+			throw new IllegalArgumentException("User does not have access to this app.");
 		}
-		List<Map<String, Object>> features = AppProfileUtils.getProfileFeatures(appId, profileId);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
+		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all features with their enabled status for a profile.";
+		return "Get all enabled features for the calling user in an app, unioned across all assigned profiles and subgroups.";
 	}
 }

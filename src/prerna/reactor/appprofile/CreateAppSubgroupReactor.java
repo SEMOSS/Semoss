@@ -39,17 +39,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
- */
-@Deprecated
-public class GetUserFeaturesReactor extends AbstractReactor {
+public class CreateAppSubgroupReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CreateAppSubgroupReactor.class);
 
-	public GetUserFeaturesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public CreateAppSubgroupReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -57,17 +53,21 @@ public class GetUserFeaturesReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
+		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		// Returns only enabled features — callers cannot infer what features exist but are hidden
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		Map<String, Object> result = AppProfileUtils.createSubgroup(appId, profileId, name, description, user);
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Subgroup created."));
+		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all enabled features for the calling user in an app.";
+		return "Create a named sub-group within a group-style profile.";
 	}
 }

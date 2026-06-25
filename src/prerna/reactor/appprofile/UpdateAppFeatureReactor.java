@@ -27,16 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateAppFeatureReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(UpdateAppFeatureReactor.class);
+
 	public UpdateAppFeatureReactor() {
-		this.keysToGet = new String[] { "app", "featureId", "key", "description" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FEATURE_ID.getKey(), ReactorKeysEnum.FEATURE_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
@@ -44,16 +50,16 @@ public class UpdateAppFeatureReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String featureId = this.keyValue.get("featureId");
-		String featureKey = this.keyValue.get("key");
-		String description = this.keyValue.get("description");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String featureId = this.keyValue.get(ReactorKeysEnum.FEATURE_ID.getKey());
+		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		AppProfileUtils.updateFeature(appId, featureId, featureKey, description, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Feature updated."));
 		return noun;
 	}

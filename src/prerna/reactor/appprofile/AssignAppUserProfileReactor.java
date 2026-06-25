@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
@@ -39,17 +37,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
- */
-@Deprecated
-public class GetUserFeaturesReactor extends AbstractReactor {
+public class AssignAppUserProfileReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AssignAppUserProfileReactor.class);
 
-	public GetUserFeaturesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public AssignAppUserProfileReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USER_ID.getKey(), ReactorKeysEnum.PROFILE_ID.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
@@ -57,17 +51,20 @@ public class GetUserFeaturesReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to assign profiles for this app.");
 		}
-		// Returns only enabled features — callers cannot infer what features exist but are hidden
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		AppProfileUtils.assignUserProfile(appId, userId, profileId, user);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User assigned to profile."));
+		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all enabled features for the calling user in an app.";
+		return "Assign a user to a profile for an app. A user can be in multiple profiles simultaneously.";
 	}
 }

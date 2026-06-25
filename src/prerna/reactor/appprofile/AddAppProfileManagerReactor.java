@@ -27,39 +27,44 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SetProfileFeatureReactor extends AbstractReactor {
+public class AddAppProfileManagerReactor extends AbstractReactor {
 
-	public SetProfileFeatureReactor() {
-		this.keysToGet = new String[] { "app", "profileId", "featureId", "enabled" };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+	private static final Logger classLogger = LogManager.getLogger(AddAppProfileManagerReactor.class);
+
+	public AddAppProfileManagerReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.USER_ID.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String profileId = this.keyValue.get("profileId");
-		String featureId = this.keyValue.get("featureId");
-		boolean enabled = Boolean.parseBoolean(this.keyValue.get("enabled"));
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
-			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
+			throw new IllegalArgumentException("Only app owners/editors can grant profile manager permissions.");
 		}
-		AppProfileUtils.setProfileFeature(appId, profileId, featureId, enabled, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile feature updated."));
+		AppProfileUtils.addProfileManager(appId, userId, user);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile manager added."));
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Enable or disable a feature for a profile.";
+		return "Grant a user delegated 'assign' permission to add/remove users from profiles.";
 	}
 }

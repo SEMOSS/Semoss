@@ -27,19 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
-import java.util.List;
-import java.util.Map;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetProfileUsersReactor extends AbstractReactor {
+public class DeleteAppSubgroupReactor extends AbstractReactor {
 
-	public GetProfileUsersReactor() {
-		this.keysToGet = new String[] { "app", "profileId" };
+	private static final Logger classLogger = LogManager.getLogger(DeleteAppSubgroupReactor.class);
+
+	public DeleteAppSubgroupReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.SUBGROUP_ID.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -47,18 +50,20 @@ public class GetProfileUsersReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String profileId = this.keyValue.get("profileId");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String subgroupId = this.keyValue.get(ReactorKeysEnum.SUBGROUP_ID.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		List<Map<String, Object>> users = AppProfileUtils.getProfileUsers(appId, profileId);
-		return new NounMetadata(users, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		AppProfileUtils.deleteSubgroup(appId, subgroupId, user);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Subgroup deleted."));
+		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all users assigned to a profile in an app.";
+		return "Delete a sub-group and its user/feature assignments.";
 	}
 }

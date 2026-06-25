@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.appprofile;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
@@ -39,17 +37,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * @deprecated Use {@link GetAppUserFeaturesReactor} (Pixel: GetAppUserFeatures).
- */
-@Deprecated
-public class GetUserFeaturesReactor extends AbstractReactor {
+public class CheckAppFeatureReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetUserFeaturesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(CheckAppFeatureReactor.class);
 
-	public GetUserFeaturesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public CheckAppFeatureReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FEATURE_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -57,17 +51,17 @@ public class GetUserFeaturesReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
 
 		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
 			throw new IllegalArgumentException("User does not have access to this app.");
 		}
-		// Returns only enabled features — callers cannot infer what features exist but are hidden
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
-		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		boolean enabled = AppProfileUtils.checkFeature(appId, featureKey, user);
+		return new NounMetadata(enabled, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get all enabled features for the calling user in an app.";
+		return "Check whether a feature is enabled for the calling user in an app, across all assigned profiles and subgroups.";
 	}
 }

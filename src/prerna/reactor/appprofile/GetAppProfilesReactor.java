@@ -30,16 +30,22 @@ package prerna.reactor.appprofile;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAppProfilesReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(GetAppProfilesReactor.class);
+
 	public GetAppProfilesReactor() {
-		this.keysToGet = new String[] { "app" };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -47,13 +53,13 @@ public class GetAppProfilesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
 		List<Map<String, Object>> profiles = AppProfileUtils.getProfiles(appId);
-		return new NounMetadata(profiles, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(profiles, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override

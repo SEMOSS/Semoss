@@ -46,6 +46,13 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 	static {
 		relationshipsRequired.add(
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
+		// Profile system — presence of this relation signals a rebuilt OWL is needed
+		relationshipsRequired.add(
+				new String[] { "APP_PROFILE", "APP_USER_PROFILE", "APP_PROFILE.PROFILE_ID.APP_USER_PROFILE.PROFILE_ID" });
+		relationshipsRequired.add(
+				new String[] { "PLATFORM_PROFILE", "PLATFORM_USER_PROFILE", "PLATFORM_PROFILE.PROFILE_ID.PLATFORM_USER_PROFILE.PROFILE_ID" });
+		relationshipsRequired.add(
+				new String[] { "APP_PROFILE", "APP_PROFILE_SUBGROUP", "APP_PROFILE.PROFILE_ID.APP_PROFILE_SUBGROUP.PROFILE_ID" });
 	}
 
 	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
@@ -433,6 +440,84 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		// ─── App Profile system ───────────────────────────────────────────────────
+		addTable("APP_PROFILE", Arrays.asList(
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("PROFILE_NAME", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("IS_DEFAULT", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_GROUP", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_FEATURE", Arrays.asList(
+				Pair.with("FEATURE_ID", VARCHAR_255),
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("FEATURE_KEY", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_PROFILE_FEATURE", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("FEATURE_ID", VARCHAR_255),
+				Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME)));
+
+		addTable("APP_USER_PROFILE", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("ASSIGNED_BY", VARCHAR_255),
+				Pair.with("ASSIGNED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_PROFILE_SUBGROUP", Arrays.asList(
+				Pair.with("SUBGROUP_ID", VARCHAR_255),
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("SUBGROUP_NAME", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_SUBGROUP_FEATURE", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("SUBGROUP_ID", VARCHAR_255),
+				Pair.with("FEATURE_ID", VARCHAR_255),
+				Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME)));
+
+		addTable("APP_USER_SUBGROUP", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("SUBGROUP_ID", VARCHAR_255),
+				Pair.with("ASSIGNED_BY", VARCHAR_255),
+				Pair.with("ASSIGNED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("APP_PROFILE_MANAGER", Arrays.asList(
+				Pair.with("APP_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("PERMISSION", "VARCHAR(50)")));
+
+		// ─── Platform Profile system ─────────────────────────────────────────────
+		addTable("PLATFORM_PROFILE", Arrays.asList(
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("PROFILE_NAME", VARCHAR_255),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("PLATFORM_PROFILE_FEATURE", Arrays.asList(
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("FEATURE_KEY", "VARCHAR(100)"),
+				Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME)));
+
+		addTable("PLATFORM_USER_PROFILE", Arrays.asList(
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("PROFILE_ID", VARCHAR_255),
+				Pair.with("ASSIGNED_BY", VARCHAR_255),
+				Pair.with("ASSIGNED_AT", TIMESTAMP_DATATYPE_NAME)));
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		// all have the same columns and default values
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
@@ -498,6 +583,24 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		// github app integration joins
 		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
 		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
+
+		// app profile joins
+		owler.addRelation("PROJECT", "APP_PROFILE", "PROJECT.PROJECTID.APP_PROFILE.APP_ID");
+		owler.addRelation("APP_PROFILE", "APP_USER_PROFILE", "APP_PROFILE.PROFILE_ID.APP_USER_PROFILE.PROFILE_ID");
+		owler.addRelation("APP_PROFILE", "APP_PROFILE_FEATURE", "APP_PROFILE.PROFILE_ID.APP_PROFILE_FEATURE.PROFILE_ID");
+		owler.addRelation("APP_FEATURE", "APP_PROFILE_FEATURE", "APP_FEATURE.FEATURE_ID.APP_PROFILE_FEATURE.FEATURE_ID");
+		owler.addRelation("SMSS_USER", "APP_USER_PROFILE", "SMSS_USER.ID.APP_USER_PROFILE.USER_ID");
+		owler.addRelation("APP_PROFILE", "APP_PROFILE_SUBGROUP", "APP_PROFILE.PROFILE_ID.APP_PROFILE_SUBGROUP.PROFILE_ID");
+		owler.addRelation("APP_PROFILE_SUBGROUP", "APP_USER_SUBGROUP", "APP_PROFILE_SUBGROUP.SUBGROUP_ID.APP_USER_SUBGROUP.SUBGROUP_ID");
+		owler.addRelation("APP_PROFILE_SUBGROUP", "APP_SUBGROUP_FEATURE", "APP_PROFILE_SUBGROUP.SUBGROUP_ID.APP_SUBGROUP_FEATURE.SUBGROUP_ID");
+		owler.addRelation("APP_FEATURE", "APP_SUBGROUP_FEATURE", "APP_FEATURE.FEATURE_ID.APP_SUBGROUP_FEATURE.FEATURE_ID");
+		owler.addRelation("SMSS_USER", "APP_USER_SUBGROUP", "SMSS_USER.ID.APP_USER_SUBGROUP.USER_ID");
+		owler.addRelation("SMSS_USER", "APP_PROFILE_MANAGER", "SMSS_USER.ID.APP_PROFILE_MANAGER.USER_ID");
+
+		// platform profile joins
+		owler.addRelation("PLATFORM_PROFILE", "PLATFORM_USER_PROFILE", "PLATFORM_PROFILE.PROFILE_ID.PLATFORM_USER_PROFILE.PROFILE_ID");
+		owler.addRelation("PLATFORM_PROFILE", "PLATFORM_PROFILE_FEATURE", "PLATFORM_PROFILE.PROFILE_ID.PLATFORM_PROFILE_FEATURE.PROFILE_ID");
+		owler.addRelation("SMSS_USER", "PLATFORM_USER_PROFILE", "SMSS_USER.ID.PLATFORM_USER_PROFILE.USER_ID");
 	}
 
 	@Override

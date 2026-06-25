@@ -29,33 +29,40 @@ package prerna.reactor.appprofile;
 
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AppProfileUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CreateAppProfileReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(CreateAppProfileReactor.class);
+
 	public CreateAppProfileReactor() {
-		this.keysToGet = new String[] { "app", "name", "description", "isDefault" };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.IS_DEFAULT.getKey(), ReactorKeysEnum.IS_GROUP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String appId = this.keyValue.get("app");
-		String name = this.keyValue.get("name");
-		String description = this.keyValue.get("description");
-		boolean isDefault = Boolean.parseBoolean(this.keyValue.get("isDefault"));
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		boolean isDefault = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.IS_DEFAULT.getKey()));
+		boolean isGroup = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.IS_GROUP.getKey()));
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		Map<String, Object> result = AppProfileUtils.createProfile(appId, name, description, isDefault, user);
-		NounMetadata noun = new NounMetadata(result, PixelDataType.MAP);
+		Map<String, Object> result = AppProfileUtils.createProfile(appId, name, description, isDefault, isGroup, user);
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile created."));
 		return noun;
 	}
