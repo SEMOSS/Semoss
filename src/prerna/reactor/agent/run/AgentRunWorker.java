@@ -173,8 +173,8 @@ final class AgentRunWorker {
 			RunAgentRequest request = record.getRequest();
 			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
 					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
-					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(), runId,
-					insightHandle.insight);
+					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
+					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
