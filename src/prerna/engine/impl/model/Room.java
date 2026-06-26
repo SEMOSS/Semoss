@@ -385,19 +385,6 @@ public class Room implements Serializable {
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
-		return addToolExecutionResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, paramValuesMap,
-				parentMessageId, modelEngine, insight, toolStatus, null);
-	}
-
-	/**
-	 * Adds a tool execution result and optionally uses a caller-supplied system
-	 * prompt for the follow-up model call. A {@code null} override uses the
-	 * system prompt this room should send to the model.
-	 */
-	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
-			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
-			String systemPromptOverride) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
@@ -479,13 +466,11 @@ public class Room implements Serializable {
 				}
 			}
 
-				if (toolResultsMessage == null) {
-					isToolResultsInputMessage = true;
-					String systemPrompt = systemPromptOverride != null ? systemPromptOverride
-							: this.getSystemPromptForModel();
-					toolResultsMessage = InputMessage
-							.builder(this).withSystemPrompt(systemPrompt).withToolResult(toolCallId,
-								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
+			if (toolResultsMessage == null) {
+				isToolResultsInputMessage = true;
+				toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getSystemPromptForModel())
+						.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus,
+								false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);

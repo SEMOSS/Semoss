@@ -247,8 +247,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
-						ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx,
-								systemPrompt);
+					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 
