@@ -41,7 +41,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityUserAccessKeyUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -55,7 +54,7 @@ import prerna.util.git.GitRepoUtils;
 
 /**
  * Saves a recording from Chrome Extension to project recordings folder and auto-updates MCP.
- * Supports dual authentication: API keys (for extension) or session-based (for UI).
+ * Uses session-based authentication (Google OAuth from extension).
  * 
  * <p>Pixel Syntax:</p>
  * <pre>SaveRecordingFromExtension(project=[string], name=[string], jsonPayload=[string], 
@@ -69,8 +68,6 @@ import prerna.util.git.GitRepoUtils;
  *   <li><b>title</b> - Recording title (optional)</li>
  *   <li><b>description</b> - Recording description (optional)</li>
  *   <li><b>intent</b> - Purpose of the recording (optional)</li>
- *   <li><b>clientKey</b> - API client key for extension authentication (optional, via request params)</li>
- *   <li><b>secretKey</b> - API secret key for extension authentication (optional, via request params)</li>
  * </ul>
  * 
  * <p>Returns:</p>
@@ -109,38 +106,12 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		User user = null;
-
-		// Try API key authentication first (for extension usage without session)
-		String clientKey = getRequestParameter("clientKey");
-		String secretKey = getRequestParameter("secretKey");
-
-		if (clientKey != null && secretKey != null && !clientKey.isEmpty() && !secretKey.isEmpty()) {
-			// Authenticate using API keys
-			AccessToken token = null;
-			try {
-				token = SecurityUserAccessKeyUtils.validateKeysAndReturnToken(clientKey, secretKey);
-				classLogger.info("User authenticated via API keys: {}", token.getId());
-			} catch (IllegalAccessException e) {
-				classLogger.error("API key authentication failed: {}", e.getMessage(), e);
-				throw new IllegalArgumentException("Invalid API credentials: " + e.getMessage());
-			}
-
-			if (token == null) {
-				throw new IllegalArgumentException("Invalid API credentials");
-			}
-
-			// Convert token to user
-			user = new User();
-			user.setAccessToken(token);
-		} else {
-			// Fall back to session-based authentication
-			user = this.insight.getUser();
-			
-			// Check if user is logged in
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
+		// Get user from session (Google OAuth)
+		User user = this.insight.getUser();
+		
+		// Check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
@@ -270,20 +241,5 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			return "The intention or purpose of the recording";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * Gets a parameter from the request (supports both form data and query parameters)
-	 * 
-	 * @param paramName the parameter name
-	 * @return the parameter value or null if not found
-	 */
-	private String getRequestParameter(String paramName) {
-		// Try to get from keyValue first (URL encoded form data)
-		if (this.keyValue.containsKey(paramName)) {
-			return this.keyValue.get(paramName);
-		}
-		
-		return null;
 	}
 }
