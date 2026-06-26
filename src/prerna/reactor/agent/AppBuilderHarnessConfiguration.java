@@ -28,25 +28,20 @@
 package prerna.reactor.agent;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
-import prerna.auth.User;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -122,12 +117,6 @@ public class AppBuilderHarnessConfiguration {
     }
 
     private static JSONObject buildDefaultConfig() {
-        // Selected engines are no longer persisted in AGENT_CONFIG.json. The
-        // canonical store is the project-dependency table in the security DB
-        // (see SetProjectDependenciesReactor + getProjectDependencyDetails).
-        // The .claude/skills/selected-engines/SKILL.md file is regenerated
-        // from that dep list whenever dependencies change. AGENT_CONFIG.json
-        // is reserved for other agent-side config going forward.
         return new JSONObject();
     }
 
@@ -156,7 +145,6 @@ public class AppBuilderHarnessConfiguration {
         return getConfig(resolveProjectClientPath(projectId));
     }
 
-    // Skill regeneration (driven by project-dependency changes)
     /**
      * Regenerates {@code .claude/skills/selected-engines/SKILL.md} from the
      * project's current dependency list. Call this from any reactor that
@@ -184,12 +172,6 @@ public class AppBuilderHarnessConfiguration {
             return;
         }
 
-        // Only Agent 47-managed projects carry a `.claude/` directory. For any
-        // other project, writing a selected-engines skill file would scatter
-        // Claude Code state into projects that have no use for it (and would
-        // create a `.claude/` tree from nothing on the first dep write). The
-        // skill exists to be consumed by Claude Code; if Claude Code can't run
-        // here, there's nothing to consume it. No-op.
         Path clientPath;
         try {
             clientPath = Paths.get(resolveProjectClientPath(projectId));
@@ -233,9 +215,6 @@ public class AppBuilderHarnessConfiguration {
     // Internals
     private static void writeConfig(Path configFile, JSONObject root) throws IOException {
         Files.write(configFile, root.toString(4).getBytes(StandardCharsets.UTF_8));
-        // Note: AGENT_CONFIG.json writes no longer drive skill regeneration.
-        // The selected-engines skill is regenerated whenever project
-        // dependencies change (see regenerateSelectedEnginesSkillFromDependencies).
     }
 
     /**
@@ -315,101 +294,4 @@ public class AppBuilderHarnessConfiguration {
         return Paths.get(projectPath, CLIENT_DIR).toString();
     }
 
-    // Skill CRUD used by the SemossWeb agent skill editor.
-
-    public static Boolean createSkill(User user, String projectId, String skillName, String skillContent) {
-        String clientPath = resolveProjectClientPath(projectId);
-        String slugifiedName = slugify(skillName);
-        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, slugifiedName, SKILL_FILE);
-
-        try {
-            Files.createDirectories(skillPath.getParent());
-            if (!Files.exists(skillPath)) {
-                Files.createFile(skillPath);
-            }
-            Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-            return true;
-        } catch (IOException e) {
-            logger.error("Failed to write skill file: {}", skillPath, e);
-            return false;
-        }
-    }
-
-    public static Boolean updateSkill(User user, String projectId, String skillName, String skillContent) {
-        String clientPath = resolveProjectClientPath(projectId);
-        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, skillName, SKILL_FILE);
-
-        try {
-            Files.createDirectories(skillPath.getParent());
-            Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-            return true;
-        } catch (IOException e) {
-            logger.error("Failed to write skill file: {}", skillPath, e);
-            return false;
-        }
-    }
-
-    public static Boolean deleteSkill(User user, String projectId, String skillName) {
-        String clientPath = resolveProjectClientPath(projectId);
-        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, skillName);
-
-        if (!Files.exists(skillPath)) {
-            return true;
-        }
-
-        try (Stream<Path> walk = Files.walk(skillPath)) {
-            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    logger.error("Failed to delete path: {}", path, e);
-                    throw new UncheckedIOException(e);
-                }
-            });
-            return true;
-        } catch (IOException | UncheckedIOException e) {
-            logger.error("Failed to delete skill directory: {}", skillPath, e);
-            return false;
-        }
-    }
-
-    public static Map<String, String> getSkills(User user, String projectId) {
-        String clientPath = resolveProjectClientPath(projectId);
-        Map<String, String> skillsMap = new HashMap<>();
-
-        Path claudeMd = Paths.get(clientPath, "CLAUDE.md");
-        if (Files.exists(claudeMd)) {
-            try {
-                skillsMap.put("CLAUDE.MD", new String(Files.readAllBytes(claudeMd), StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                logger.error("Failed to read CLAUDE.md", e);
-            }
-        }
-
-        Path skillsDir = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR);
-        if (!Files.exists(skillsDir)) {
-            return skillsMap;
-        }
-        try (Stream<Path> dirs = Files.list(skillsDir)) {
-            dirs.forEach(dir -> {
-                try {
-                    Path skillFile = dir.resolve(SKILL_FILE);
-                    if (Files.exists(skillFile)) {
-                        skillsMap.put(
-                                dir.getFileName().toString(),
-                                new String(Files.readAllBytes(skillFile), StandardCharsets.UTF_8));
-                    }
-                } catch (IOException e) {
-                    logger.error("Failed to read skill file under {}", dir, e);
-                }
-            });
-        } catch (IOException e) {
-            logger.error("Failed to list skills directory: {}", skillsDir, e);
-        }
-        return skillsMap;
-    }
-
-    private static String slugify(String name) {
-        return name.toLowerCase().replace(" ", "-");
-    }
 }
