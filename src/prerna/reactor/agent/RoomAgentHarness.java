@@ -113,6 +113,11 @@ public class RoomAgentHarness implements IAgentHarness {
 		return NAME;
 	}
 
+	@Override
+	public boolean supportsMediaInput() {
+		return true;
+	}
+
 	private static final String REFLECTION_PROMPT = "Review the analysis you just produced. Are there important aspects you have not yet "
 			+ "examined, or tool calls that would meaningfully improve the completeness or accuracy "
 			+ "of your answer? If yes, make those tool calls now and incorporate the new findings "
@@ -133,6 +138,7 @@ public class RoomAgentHarness implements IAgentHarness {
 		// 1. Initial ask
 		String systemPrompt = room.getRoomOrWorkspaceSystemPrompt();
 		InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
+				.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 				.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 
 		logger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}", room.getId(),

@@ -142,9 +142,9 @@ public abstract class AbstractSecurityUtils {
 
 	public static void loadSecurityDatabase() throws Exception {
 		IRDBMSEngine loadedSecurityDb = SystemEngineRegistry.getSecurityDb();
-		SecurityOwlCreator owlCreator = new SecurityOwlCreator(loadedSecurityDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		SecurityOwlCreator owlCreator = new SecurityOwlCreator(loadedSecurityDb.getQueryUtil());
+		if (owlCreator.needsRemake(loadedSecurityDb)) {
+			owlCreator.remakeOwl(loadedSecurityDb);
 		}
 		initialize();
 		// this is to update the bad naming in the security db for type values
@@ -2572,9 +2572,9 @@ public abstract class AbstractSecurityUtils {
 			// GITHUB_PROJECT_LINK
 			// per-project link between a project and a GitHub repo/installation
 			colNames = new String[] { "PROJECT_ID", "APP_ID", "INSTALLATION_ID", "REPO_ID", "REPO_FULL_NAME", "BRANCH",
-					"CREATED_ON", "UPDATED_ON" };
+					"SUBDIR", "CREATED_ON", "UPDATED_ON" };
 			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "VARCHAR(511)", "VARCHAR(255)",
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+					"VARCHAR(1024)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
 			if (allowIfExistsTable) {
 				securityDb.insertData(queryUtil.createTableIfNotExists("GITHUB_PROJECT_LINK", colNames, types));
 			} else {
