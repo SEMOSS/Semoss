@@ -31,10 +31,13 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -101,16 +104,6 @@ public class AppProfileUtils {
 		return count != null && count > 0;
 	}
 
-	/**
-	 * Returns true if the user can evaluate features for the given app (admin,
-	 * profile manager, or any project viewer).
-	 */
-	public static boolean canEvaluateFeatures(User user, String appId) {
-		if (SecurityAdminUtils.userIsAdmin(user)) return true;
-		if (canAssignProfiles(user, appId)) return true;
-		return SecurityProjectUtils.userCanViewProject(user, appId);
-	}
-
 	private static boolean appExists(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -125,7 +118,7 @@ public class AppProfileUtils {
 	 * Creates a new named profile for an app and returns its metadata map.
 	 */
 	public static Map<String, Object> createProfile(String appId, String name, String description,
-			boolean isDefault, boolean isGroup, User user) {
+			boolean isDefault, User user) {
 		if (name == null || name.trim().isEmpty()) {
 			throw new IllegalArgumentException("Profile name cannot be blank.");
 		}
@@ -136,6 +129,14 @@ public class AppProfileUtils {
 		String profileId = UUID.randomUUID().toString();
 		String actorId = getUserId(user);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+
+		SelectQueryStruct dupQs = new SelectQueryStruct();
+		dupQs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID", "profileId"));
+		dupQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__APP_ID", "==", appId));
+		dupQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__PROFILE_NAME", "==", profileName));
+		if (QueryExecutionUtility.flushToString(securityDb, dupQs) != null) {
+			throw new IllegalArgumentException("A profile named '" + profileName + "' already exists for this app.");
+		}
 
 		if (isDefault) {
 			clearDefaultProfile(securityDb, appId);
@@ -151,7 +152,7 @@ public class AppProfileUtils {
 			ps.setString(i++, profileName);
 			ps.setString(i++, description);
 			ps.setBoolean(i++, isDefault);
-			ps.setBoolean(i++, isGroup);
+			ps.setBoolean(i++, false);
 			ps.setString(i++, actorId);
 			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 			ps.execute();
@@ -170,16 +171,15 @@ public class AppProfileUtils {
 		result.put("profileName", profileName);
 		result.put("description", description);
 		result.put("isDefault", isDefault);
-		result.put("isGroup", isGroup);
 		return result;
 	}
 
 	/**
 	 * Updates mutable fields on an existing app profile (name, description,
-	 * isDefault, isGroup). Null parameters are ignored.
+	 * isDefault). Null parameters are ignored.
 	 */
 	public static void updateProfile(String appId, String profileId, String name, String description,
-			Boolean isDefault, Boolean isGroup, User user) {
+			Boolean isDefault, User user) {
 		if (name != null) {
 			if (name.trim().isEmpty()) throw new IllegalArgumentException("Profile name cannot be blank.");
 			if (name.trim().length() > 100) throw new IllegalArgumentException("Profile name cannot exceed 100 characters.");
@@ -193,7 +193,6 @@ public class AppProfileUtils {
 		if (name != null) { sb.append(" PROFILE_NAME=?,"); params.add(name.trim()); }
 		if (description != null) { sb.append(" DESCRIPTION=?,"); params.add(description); }
 		if (isDefault != null) { sb.append(" IS_DEFAULT=?,"); params.add(isDefault); }
-		if (isGroup != null) { sb.append(" IS_GROUP=?,"); params.add(isGroup); }
 		if (params.isEmpty()) return;
 		sb.setLength(sb.length() - 1);
 		sb.append(" WHERE PROFILE_ID=? AND APP_ID=?");
@@ -224,8 +223,8 @@ public class AppProfileUtils {
 	}
 
 	/**
-	 * Deletes a profile and cascades to its feature mappings, subgroups, and
-	 * subgroup assignments. Throws if any users are still assigned.
+	 * Deletes a profile and cascades to its feature mappings.
+	 * Throws if any users are still assigned.
 	 */
 	public static void deleteProfile(String appId, String profileId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -259,23 +258,6 @@ public class AppProfileUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
-		// cascade delete subgroups
-		List<String> subgroupIds = getSubgroupIdsForProfile(securityDb, appId, profileId);
-		for (String subgroupId : subgroupIds) {
-			deleteSubgroupInternal(securityDb, appId, subgroupId);
-		}
-		ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_PROFILE_SUBGROUP WHERE PROFILE_ID=? AND APP_ID=?");
-			ps.setString(1, profileId);
-			ps.setString(2, appId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete subgroups for profile {}", profileId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
 	}
 
 	/**
@@ -289,7 +271,6 @@ public class AppProfileUtils {
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME", "profileName"));
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_DEFAULT", "isDefault"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_GROUP", "isGroup"));
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__CREATED_BY", "createdBy"));
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__CREATED_AT", "createdAt"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "APP_USER_PROFILE__USER_ID", "userCount"));
@@ -299,15 +280,11 @@ public class AppProfileUtils {
 		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME"));
 		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__DESCRIPTION"));
 		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__IS_DEFAULT"));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__IS_GROUP"));
 		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__CREATED_BY"));
 		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE__CREATED_AT"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("APP_PROFILE__PROFILE_NAME"));
 		List<Map<String, Object>> profiles = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		profiles.forEach(p -> {
-			p.put("isDefault", Boolean.TRUE.equals(p.get("isDefault")));
-			p.put("isGroup", Boolean.TRUE.equals(p.get("isGroup")));
-		});
+		profiles.forEach(p -> p.put("isDefault", Boolean.TRUE.equals(p.get("isDefault"))));
 		return profiles;
 	}
 
@@ -382,8 +359,7 @@ public class AppProfileUtils {
 	}
 
 	/**
-	 * Deletes an app feature and cascades removal from profile and subgroup feature
-	 * mapping tables.
+	 * Deletes an app feature and cascades removal from the profile feature mapping table.
 	 */
 	public static void deleteFeature(String appId, String featureId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -408,18 +384,6 @@ public class AppProfileUtils {
 			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
 		} catch (SQLException e) {
 			classLogger.error("Failed to cascade delete feature from profile mappings", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-		ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_SUBGROUP_FEATURE WHERE FEATURE_ID=? AND APP_ID=?");
-			ps.setString(1, featureId);
-			ps.setString(2, appId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete feature from subgroup mappings", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -507,7 +471,7 @@ public class AppProfileUtils {
 		return results;
 	}
 
-	// ─── User-Profile Assignment (multi-profile) ────────────────────────────
+	// ─── User-Profile Assignment ────────────────────────────────────────────
 
 	/**
 	 * Returns {@code true} if the given userId exists as a row in {@code SMSS_USER}.
@@ -524,12 +488,10 @@ public class AppProfileUtils {
 	}
 
 	/**
-	 * Assigns a user to a profile. A user can be in multiple profiles simultaneously.
-	 * If already assigned to this specific profile, this is a no-op.
+	 * Assigns a user to a profile. If already assigned to this specific profile, this is a no-op.
 	 */
 	public static void assignUserProfile(String appId, String userId, String profileId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// check for existing assignment to avoid duplicates
 		SelectQueryStruct checkQs = new SelectQueryStruct();
 		QueryFunctionSelector countFn = new QueryFunctionSelector();
 		countFn.addInnerSelector(new QueryColumnSelector("APP_USER_PROFILE__USER_ID"));
@@ -564,14 +526,9 @@ public class AppProfileUtils {
 	/**
 	 * Bulk-assigns a list of users to a profile for an app. Each user is processed independently:
 	 * users already in the profile are silently skipped, users not found in {@code SMSS_USER} are
-	 * recorded in the errors bucket. A user may be in multiple profiles simultaneously.
+	 * recorded in the errors bucket.
 	 *
-	 * @param appId     the app ID
-	 * @param userIds   non-empty list of {@code SMSS_USER.ID} values to assign
-	 * @param profileId the profile to assign users to
-	 * @param actor     the user performing the assignment
-	 * @return a map with keys: {@code assigned} ({@code List<String>}), {@code skipped}
-	 *         ({@code List<String>}), {@code errors} ({@code Map<String,String>})
+	 * @return a map with keys: {@code assigned}, {@code skipped}, {@code errors}
 	 */
 	public static Map<String, Object> assignUsersToProfile(String appId, List<String> userIds, String profileId, User actor) {
 		List<String> assigned = new ArrayList<>();
@@ -630,7 +587,7 @@ public class AppProfileUtils {
 	}
 
 	/**
-	 * Removes ALL profile assignments for a user from an app (used when removing user from app entirely).
+	 * Removes ALL profile assignments for a user from an app.
 	 */
 	public static void removeUserProfile(String appId, String userId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -643,19 +600,6 @@ public class AppProfileUtils {
 			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
 		} catch (SQLException e) {
 			classLogger.error("Failed to remove all user profile assignments", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-		// Also remove all subgroup assignments
-		ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_USER_SUBGROUP WHERE APP_ID=? AND USER_ID=?");
-			ps.setString(1, appId);
-			ps.setString(2, userId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to remove user subgroup assignments", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -684,64 +628,10 @@ public class AppProfileUtils {
 
 	/**
 	 * Returns all explicit profile assignments for a user in an app.
-	 * Each entry includes profileId, profileName, isGroup.
 	 */
 	public static List<Map<String, Object>> getUserProfiles(String appId, String userId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		return getExplicitUserProfiles(securityDb, appId, userId);
-	}
-
-	/**
-	 * Returns a structured summary of the calling user's profile memberships:
-	 * - "profiles": list of directly-assigned standard profiles
-	 * - "groups": map of parent profile name -> list of subgroup names the user is in
-	 */
-	public static Map<String, Object> getUserAppProfiles(String appId, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String userId = getUserId(user);
-
-		Map<String, Object> result = new LinkedHashMap<>();
-		List<Map<String, Object>> directProfiles = new ArrayList<>();
-		Map<String, List<String>> groupMemberships = new LinkedHashMap<>();
-
-		// Standard profile assignments
-		List<Map<String, Object>> explicitProfiles = getExplicitUserProfiles(securityDb, appId, userId);
-		boolean hasExplicit = !explicitProfiles.isEmpty();
-
-		for (Map<String, Object> p : explicitProfiles) {
-			boolean isGroup = (Boolean) p.getOrDefault("isGroup", Boolean.FALSE);
-			if (!isGroup) {
-				Map<String, Object> entry = new LinkedHashMap<>();
-				entry.put("profileId", p.get("profileId"));
-				entry.put("profileName", p.get("profileName"));
-				entry.put("isDefault", false);
-				directProfiles.add(entry);
-			}
-		}
-
-		// Fall back to default standard profile if no explicit assignment
-		if (!hasExplicit) {
-			Map<String, Object> defaultProfile = getDefaultProfile(securityDb, appId);
-			if (defaultProfile != null && !(Boolean) defaultProfile.getOrDefault("isGroup", Boolean.FALSE)) {
-				Map<String, Object> entry = new LinkedHashMap<>();
-				entry.put("profileId", defaultProfile.get("profileId"));
-				entry.put("profileName", defaultProfile.get("profileName"));
-				entry.put("isDefault", true);
-				directProfiles.add(entry);
-			}
-		}
-
-		// Subgroup memberships
-		List<Map<String, Object>> subgroups = getExplicitUserSubgroups(securityDb, appId, userId);
-		for (Map<String, Object> sg : subgroups) {
-			String parentProfileName = (String) sg.get("profileName");
-			String subgroupName = (String) sg.get("subgroupName");
-			groupMemberships.computeIfAbsent(parentProfileName, k -> new ArrayList<>()).add(subgroupName);
-		}
-
-		result.put("profiles", directProfiles);
-		result.put("groups", groupMemberships);
-		return result;
 	}
 
 	/**
@@ -762,349 +652,6 @@ public class AppProfileUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
-	// ─── Subgroup CRUD ───────────────────────────────────────────────────────
-
-	/**
-	 * Creates a new named sub-group within a group-style profile and returns its
-	 * metadata map.
-	 */
-	public static Map<String, Object> createSubgroup(String appId, String profileId, String name,
-			String description, User user) {
-		if (name == null || name.trim().isEmpty()) {
-			throw new IllegalArgumentException("Subgroup name cannot be blank.");
-		}
-		if (name.trim().length() > 100) {
-			throw new IllegalArgumentException("Subgroup name cannot exceed 100 characters.");
-		}
-		// Verify parent profile is group-style
-		if (!isGroupProfile(appId, profileId)) {
-			throw new IllegalArgumentException("Sub-groups can only be added to group-style profiles.");
-		}
-		String subgroupId = UUID.randomUUID().toString();
-		String actorId = getUserId(user);
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO APP_PROFILE_SUBGROUP (SUBGROUP_ID, PROFILE_ID, APP_ID, SUBGROUP_NAME, DESCRIPTION, CREATED_BY, CREATED_AT) VALUES (?,?,?,?,?,?,?)");
-			int i = 1;
-			ps.setString(i++, subgroupId);
-			ps.setString(i++, profileId);
-			ps.setString(i++, appId);
-			ps.setString(i++, name.trim());
-			ps.setString(i++, description);
-			ps.setString(i++, actorId);
-			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to create subgroup", e);
-			throw new IllegalArgumentException("An error occurred creating the subgroup.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-		Map<String, Object> result = new HashMap<>();
-		result.put("subgroupId", subgroupId);
-		result.put("profileId", profileId);
-		result.put("subgroupName", name.trim());
-		result.put("description", description);
-		return result;
-	}
-
-	/**
-	 * Updates the name and/or description of an existing sub-group. Null parameters
-	 * are ignored.
-	 */
-	public static void updateSubgroup(String appId, String subgroupId, String name,
-			String description, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		StringBuilder sb = new StringBuilder("UPDATE APP_PROFILE_SUBGROUP SET");
-		List<String> params = new ArrayList<>();
-		if (name != null) {
-			if (name.trim().isEmpty()) throw new IllegalArgumentException("Subgroup name cannot be blank.");
-			sb.append(" SUBGROUP_NAME=?,"); params.add(name.trim());
-		}
-		if (description != null) { sb.append(" DESCRIPTION=?,"); params.add(description); }
-		if (params.isEmpty()) return;
-		sb.setLength(sb.length() - 1);
-		sb.append(" WHERE SUBGROUP_ID=? AND APP_ID=?");
-		params.add(subgroupId);
-		params.add(appId);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(sb.toString());
-			for (int i = 0; i < params.size(); i++) {
-				ps.setString(i + 1, params.get(i));
-			}
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to update subgroup", e);
-			throw new IllegalArgumentException("An error occurred updating the subgroup.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * Deletes a sub-group and its user and feature assignments.
-	 */
-	public static void deleteSubgroup(String appId, String subgroupId, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		deleteSubgroupInternal(securityDb, appId, subgroupId);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_PROFILE_SUBGROUP WHERE SUBGROUP_ID=? AND APP_ID=?");
-			ps.setString(1, subgroupId);
-			ps.setString(2, appId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to delete subgroup", e);
-			throw new IllegalArgumentException("An error occurred deleting the subgroup.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * Returns all sub-groups for a profile, each with a live USER_COUNT from
-	 * APP_USER_SUBGROUP via LEFT JOIN + GROUP BY.
-	 */
-	public static List<Map<String, Object>> getSubgroups(String appId, String profileId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_ID", "subgroupId"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_NAME", "subgroupName"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__DESCRIPTION", "description"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__CREATED_BY", "createdBy"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__CREATED_AT", "createdAt"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "APP_USER_SUBGROUP__USER_ID", "userCount"));
-		qs.addRelation("APP_PROFILE_SUBGROUP__SUBGROUP_ID", "APP_USER_SUBGROUP__SUBGROUP_ID", "left.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_SUBGROUP__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_SUBGROUP__PROFILE_ID", "==", profileId));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_ID"));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_NAME"));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE_SUBGROUP__DESCRIPTION"));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE_SUBGROUP__CREATED_BY"));
-		qs.addGroupBy(new QueryColumnSelector("APP_PROFILE_SUBGROUP__CREATED_AT"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("APP_PROFILE_SUBGROUP__SUBGROUP_NAME"));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-
-	/**
-	 * Returns all users assigned to a sub-group, including display name and email
-	 * via JOIN with SMSS_USER.
-	 */
-	public static List<Map<String, Object>> getSubgroupUsers(String appId, String subgroupId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_USER_SUBGROUP__USER_ID", "userId"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
-		qs.addSelector(new QueryColumnSelector("APP_USER_SUBGROUP__ASSIGNED_BY", "assignedBy"));
-		qs.addSelector(new QueryColumnSelector("APP_USER_SUBGROUP__ASSIGNED_AT", "assignedAt"));
-		qs.addRelation("APP_USER_SUBGROUP__USER_ID", "SMSS_USER__ID", "left.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__SUBGROUP_ID", "==", subgroupId));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-
-	// ─── Subgroup-Feature Assignment ────────────────────────────────────────
-
-	/**
-	 * Sets the enabled state of a feature for a sub-group (upsert via
-	 * delete+insert).
-	 */
-	public static void setSubgroupFeature(String appId, String subgroupId, String featureId,
-			boolean enabled, User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"DELETE FROM APP_SUBGROUP_FEATURE WHERE APP_ID=? AND SUBGROUP_ID=? AND FEATURE_ID=?");
-			ps.setString(1, appId);
-			ps.setString(2, subgroupId);
-			ps.setString(3, featureId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to delete existing subgroup feature row", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-		ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO APP_SUBGROUP_FEATURE (APP_ID, SUBGROUP_ID, FEATURE_ID, ENABLED) VALUES (?,?,?,?)");
-			ps.setString(1, appId);
-			ps.setString(2, subgroupId);
-			ps.setString(3, featureId);
-			ps.setBoolean(4, enabled);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to insert subgroup feature", e);
-			throw new IllegalArgumentException("An error occurred setting the subgroup feature.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * Returns all features for an app merged with their enabled state for the given
-	 * sub-group. Defaults to false for features without an explicit assignment.
-	 */
-	public static List<Map<String, Object>> getSubgroupFeatures(String appId, String subgroupId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs1 = new SelectQueryStruct();
-		qs1.addSelector(new QueryColumnSelector("APP_SUBGROUP_FEATURE__FEATURE_ID", "featureId"));
-		qs1.addSelector(new QueryColumnSelector("APP_SUBGROUP_FEATURE__ENABLED", "enabled"));
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__APP_ID", "==", appId));
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__SUBGROUP_ID", "==", subgroupId));
-		Map<String, Boolean> enabledMap = new HashMap<>();
-		for (Map<String, Object> r : QueryExecutionUtility.flushRsToMap(securityDb, qs1)) {
-			enabledMap.put((String) r.get("featureId"), Boolean.TRUE.equals(r.get("enabled")));
-		}
-		SelectQueryStruct qs2 = new SelectQueryStruct();
-		qs2.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_ID", "featureId"));
-		qs2.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY", "featureKey"));
-		qs2.addSelector(new QueryColumnSelector("APP_FEATURE__DESCRIPTION", "description"));
-		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_FEATURE__APP_ID", "==", appId));
-		qs2.addOrderBy(new QueryColumnOrderBySelector("APP_FEATURE__FEATURE_KEY"));
-		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs2);
-		results.forEach(r -> r.put("enabled", enabledMap.getOrDefault((String) r.get("featureId"), Boolean.FALSE)));
-		return results;
-	}
-
-	// ─── User-Subgroup Assignment ────────────────────────────────────────────
-
-	/**
-	 * Assigns a user to a sub-group. If already assigned, this is a no-op.
-	 */
-	public static void assignUserSubgroup(String appId, String userId, String subgroupId, User actor) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// check for existing assignment
-		SelectQueryStruct checkQs = new SelectQueryStruct();
-		QueryFunctionSelector countFn = new QueryFunctionSelector();
-		countFn.addInnerSelector(new QueryColumnSelector("APP_USER_SUBGROUP__USER_ID"));
-		countFn.setFunction(QueryFunctionHelper.COUNT);
-		checkQs.addSelector(countFn);
-		checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__APP_ID", "==", appId));
-		checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__USER_ID", "==", userId));
-		checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__SUBGROUP_ID", "==", subgroupId));
-		Integer existingCount = QueryExecutionUtility.flushToInteger(securityDb, checkQs);
-		if (existingCount != null && existingCount > 0) return;
-
-		String actorId = getUserId(actor);
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO APP_USER_SUBGROUP (APP_ID, USER_ID, SUBGROUP_ID, ASSIGNED_BY, ASSIGNED_AT) VALUES (?,?,?,?,?)");
-			ps.setString(1, appId);
-			ps.setString(2, userId);
-			ps.setString(3, subgroupId);
-			ps.setString(4, actorId);
-			ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to assign user to subgroup", e);
-			throw new IllegalArgumentException("An error occurred assigning the user to the subgroup.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * Bulk-assigns a list of users to a sub-group. Each user is processed independently:
-	 * users already in the sub-group are silently skipped, users not found in {@code SMSS_USER}
-	 * are recorded in the errors bucket.
-	 *
-	 * @param appId      the app ID
-	 * @param userIds    non-empty list of {@code SMSS_USER.ID} values to assign
-	 * @param subgroupId the sub-group to assign users to
-	 * @param actor      the user performing the assignment
-	 * @return a map with keys: {@code assigned} ({@code List<String>}), {@code skipped}
-	 *         ({@code List<String>}), {@code errors} ({@code Map<String,String>})
-	 */
-	public static Map<String, Object> assignUsersToSubgroup(String appId, List<String> userIds, String subgroupId, User actor) {
-		List<String> assigned = new ArrayList<>();
-		List<String> skipped = new ArrayList<>();
-		Map<String, String> errors = new LinkedHashMap<>();
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String actorId = getUserId(actor);
-
-		for (String userId : userIds) {
-			if (!userExists(securityDb, userId)) {
-				classLogger.warn("assignUsersToSubgroup: user '{}' not found in SMSS_USER — adding to errors", userId);
-				errors.put(userId, "User not found.");
-				continue;
-			}
-
-			SelectQueryStruct checkQs = new SelectQueryStruct();
-			QueryFunctionSelector countFn = new QueryFunctionSelector();
-			countFn.addInnerSelector(new QueryColumnSelector("APP_USER_SUBGROUP__USER_ID"));
-			countFn.setFunction(QueryFunctionHelper.COUNT);
-			checkQs.addSelector(countFn);
-			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__APP_ID", "==", appId));
-			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__USER_ID", "==", userId));
-			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__SUBGROUP_ID", "==", subgroupId));
-			Integer existingCount = QueryExecutionUtility.flushToInteger(securityDb, checkQs);
-			if (existingCount != null && existingCount > 0) {
-				classLogger.debug("assignUsersToSubgroup: user '{}' already in subgroup '{}' for app '{}' — skipping", userId, subgroupId, appId);
-				skipped.add(userId);
-				continue;
-			}
-
-			PreparedStatement ps = null;
-			try {
-				ps = securityDb.getPreparedStatement(
-						"INSERT INTO APP_USER_SUBGROUP (APP_ID, USER_ID, SUBGROUP_ID, ASSIGNED_BY, ASSIGNED_AT) VALUES (?,?,?,?,?)");
-				ps.setString(1, appId);
-				ps.setString(2, userId);
-				ps.setString(3, subgroupId);
-				ps.setString(4, actorId);
-				ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-				assigned.add(userId);
-			} catch (SQLException e) {
-				classLogger.error("assignUsersToSubgroup: DB error assigning user '{}'", userId, e);
-				errors.put(userId, "Database error during assignment.");
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-			}
-		}
-
-		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("assigned", assigned);
-		result.put("skipped", skipped);
-		result.put("errors", errors);
-		return result;
-	}
-
-	/**
-	 * Removes a user from a specific sub-group assignment.
-	 */
-	public static void removeUserSubgroup(String appId, String userId, String subgroupId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(
-					"DELETE FROM APP_USER_SUBGROUP WHERE APP_ID=? AND USER_ID=? AND SUBGROUP_ID=?");
-			ps.setString(1, appId);
-			ps.setString(2, userId);
-			ps.setString(3, subgroupId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to remove user from subgroup", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
 	// ─── Profile Manager (delegated BU admin) ────────────────────────────────
 
 	/**
@@ -1113,7 +660,6 @@ public class AppProfileUtils {
 	 */
 	public static void addProfileManager(String appId, String userId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// check for existing
 		SelectQueryStruct checkQs = new SelectQueryStruct();
 		QueryFunctionSelector countFn = new QueryFunctionSelector();
 		countFn.addInnerSelector(new QueryColumnSelector("APP_PROFILE_MANAGER__USER_ID"));
@@ -1160,8 +706,7 @@ public class AppProfileUtils {
 	}
 
 	/**
-	 * Returns all users with delegated profile manager permission for an app, with
-	 * display name and email via JOIN with SMSS_USER.
+	 * Returns all users with delegated profile manager permission for an app.
 	 */
 	public static List<Map<String, Object>> getProfileManagers(String appId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -1179,8 +724,7 @@ public class AppProfileUtils {
 
 	/**
 	 * Returns true if the given feature key is enabled for the calling user in the
-	 * app, evaluated across all assigned profiles, subgroups, and the default
-	 * profile fallback.
+	 * app, evaluated across all assigned profiles with default profile fallback.
 	 */
 	public static boolean checkFeature(String appId, String featureKey, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -1188,89 +732,77 @@ public class AppProfileUtils {
 		if (featureId == null) return false;
 		String userId = getUserId(user);
 
-		// Check across all standard profiles
 		List<Map<String, Object>> profiles = getExplicitUserProfiles(securityDb, appId, userId);
 		if (profiles.isEmpty()) {
 			Map<String, Object> defaultProfile = getDefaultProfile(securityDb, appId);
-			if (defaultProfile != null && !(Boolean) defaultProfile.getOrDefault("isGroup", Boolean.FALSE)) {
-				if (queryFeatureEnabled(securityDb, appId, (String) defaultProfile.get("profileId"), featureId)) {
-					return true;
-				}
+			if (defaultProfile != null) {
+				return queryFeatureEnabled(securityDb, appId, (String) defaultProfile.get("profileId"), featureId);
 			}
-		} else {
-			for (Map<String, Object> p : profiles) {
-				if (!(Boolean) p.getOrDefault("isGroup", Boolean.FALSE)) {
-					if (queryFeatureEnabled(securityDb, appId, (String) p.get("profileId"), featureId)) {
-						return true;
-					}
-				}
-			}
+			return false;
 		}
-
-		// Check across all subgroup memberships, plus the parent group profile's base features
-		List<Map<String, Object>> subgroups = getExplicitUserSubgroups(securityDb, appId, userId);
-		for (Map<String, Object> sg : subgroups) {
-			if (querySubgroupFeatureEnabled(securityDb, appId, (String) sg.get("subgroupId"), featureId)) {
-				return true;
-			}
-			// Group profile base features apply to all subgroup members
-			String parentProfileId = (String) sg.get("profileId");
-			if (parentProfileId != null && queryFeatureEnabled(securityDb, appId, parentProfileId, featureId)) {
+		for (Map<String, Object> p : profiles) {
+			if (queryFeatureEnabled(securityDb, appId, (String) p.get("profileId"), featureId)) {
 				return true;
 			}
 		}
-
 		return false;
 	}
 
 	/**
-	 * Returns all enabled features for the calling user, across all profiles and
-	 * subgroup memberships (union). Falls back to the default profile if unassigned.
+	 * Returns a boolean feature map for the calling user — all app features keyed
+	 * by featureKey, true if enabled for this user across any assigned profile.
+	 * Falls back to the default profile if the user has no explicit assignment.
 	 */
-	public static Map<String, Object> getUserFeatures(String appId, User user) {
+	public static Map<String, Boolean> getUserFeatures(String appId, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String userId = getUserId(user);
-		Map<String, Object> result = new HashMap<>();
+		Map<String, String> catalog = getFeatureCatalog(securityDb, appId);
+		Set<String> enabledIds = new HashSet<>();
 
-		// Standard profile features
 		List<Map<String, Object>> explicitProfiles = getExplicitUserProfiles(securityDb, appId, userId);
 		if (explicitProfiles.isEmpty()) {
 			Map<String, Object> defaultProfile = getDefaultProfile(securityDb, appId);
-			if (defaultProfile != null && !(Boolean) defaultProfile.getOrDefault("isGroup", Boolean.FALSE)) {
-				addProfileFeaturesToResult(securityDb, appId,
-						(String) defaultProfile.get("profileId"),
-						(String) defaultProfile.get("profileName"),
-						true, result);
+			if (defaultProfile != null) {
+				enabledIds.addAll(getEnabledProfileFeatureIds(securityDb, appId, (String) defaultProfile.get("profileId")));
 			}
 		} else {
+			explicitProfiles.forEach(p -> enabledIds.addAll(getEnabledProfileFeatureIds(securityDb, appId, (String) p.get("profileId"))));
+		}
+
+		return buildFeatureMap(catalog, enabledIds);
+	}
+
+	/**
+	 * Returns the calling user's profile(s) for this app, each with a full feature map.
+	 * Falls back to the default profile if the user has no explicit assignment.
+	 */
+	public static List<Map<String, Object>> getUserAppProfiles(String appId, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String userId = getUserId(user);
+		Map<String, String> catalog = getFeatureCatalog(securityDb, appId);
+		List<Map<String, Object>> result = new ArrayList<>();
+
+		List<Map<String, Object>> explicitProfiles = getExplicitUserProfiles(securityDb, appId, userId);
+		if (!explicitProfiles.isEmpty()) {
 			for (Map<String, Object> p : explicitProfiles) {
-				if (!(Boolean) p.getOrDefault("isGroup", Boolean.FALSE)) {
-					addProfileFeaturesToResult(securityDb, appId,
-							(String) p.get("profileId"),
-							(String) p.get("profileName"),
-							false, result);
-				}
+				Map<String, Object> entry = new LinkedHashMap<>();
+				entry.put("profileId", p.get("profileId"));
+				entry.put("profileName", p.get("profileName"));
+				entry.put("isDefault", false);
+				entry.put("features", buildFeatureMap(catalog, getEnabledProfileFeatureIds(securityDb, appId, (String) p.get("profileId"))));
+				result.add(entry);
+			}
+		} else {
+			Map<String, Object> defaultProfile = getDefaultProfile(securityDb, appId);
+			if (defaultProfile != null) {
+				Map<String, Object> entry = new LinkedHashMap<>();
+				entry.put("profileId", defaultProfile.get("profileId"));
+				entry.put("profileName", defaultProfile.get("profileName"));
+				entry.put("isDefault", true);
+				entry.put("features", buildFeatureMap(catalog, getEnabledProfileFeatureIds(securityDb, appId, (String) defaultProfile.get("profileId"))));
+				result.add(entry);
 			}
 		}
-
-		// Subgroup features + parent group profile base features
-		List<Map<String, Object>> subgroups = getExplicitUserSubgroups(securityDb, appId, userId);
-		for (Map<String, Object> sg : subgroups) {
-			addSubgroupFeaturesToResult(securityDb, appId,
-					(String) sg.get("subgroupId"),
-					(String) sg.get("subgroupName"),
-					(String) sg.get("profileName"),
-					result);
-			// Group profile base features apply to all subgroup members
-			String parentProfileId = (String) sg.get("profileId");
-			if (parentProfileId != null) {
-				addProfileFeaturesToResult(securityDb, appId,
-						parentProfileId,
-						(String) sg.get("profileName"),
-						false, result);
-			}
-		}
-
 		return result;
 	}
 
@@ -1316,99 +848,65 @@ public class AppProfileUtils {
 		return count != null ? count : 0;
 	}
 
-
 	private static Map<String, Object> getDefaultProfile(IRDBMSEngine securityDb, String appId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID", "profileId"));
 		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME", "profileName"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_GROUP", "isGroup"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__APP_ID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__IS_DEFAULT", "==", Boolean.TRUE));
 		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		if (rows.isEmpty()) return null;
-		Map<String, Object> row = rows.get(0);
-		row.put("isGroup", Boolean.TRUE.equals(row.get("isGroup")));
-		row.put("isExplicitAssignment", false);
-		return row;
+		return rows.isEmpty() ? null : rows.get(0);
 	}
 
 	/**
-	 * Returns all explicit profile assignments for a user (not falling back to default).
+	 * Returns all explicit profile assignments for a user.
+	 * Two single-table queries + in-memory join to avoid unreliable OWL join traversal.
 	 */
 	private static List<Map<String, Object>> getExplicitUserProfiles(IRDBMSEngine securityDb,
 			String appId, String userId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID", "profileId"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME", "profileName"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_GROUP", "isGroup"));
-		qs.addRelation("APP_USER_PROFILE__PROFILE_ID", "APP_PROFILE__PROFILE_ID", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__USER_ID", "==", userId));
-		List<Map<String, Object>> profiles = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		profiles.forEach(r -> r.put("isGroup", Boolean.TRUE.equals(r.get("isGroup"))));
-		return profiles;
+		SelectQueryStruct qs1 = new SelectQueryStruct();
+		qs1.addSelector(new QueryColumnSelector("APP_USER_PROFILE__PROFILE_ID", "profileId"));
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__APP_ID", "==", appId));
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__USER_ID", "==", userId));
+		Set<String> assignedIds = QueryExecutionUtility.flushRsToMap(securityDb, qs1).stream()
+				.map(r -> (String) r.get("profileId")).collect(Collectors.toSet());
+		if (assignedIds.isEmpty()) return new ArrayList<>();
+
+		SelectQueryStruct qs2 = new SelectQueryStruct();
+		qs2.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID", "profileId"));
+		qs2.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME", "profileName"));
+		qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__APP_ID", "==", appId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs2).stream()
+				.filter(p -> assignedIds.contains((String) p.get("profileId")))
+				.collect(Collectors.toList());
 	}
 
-	/**
-	 * Returns all subgroup assignments for a user, including parent profile name.
-	 */
-	private static List<Map<String, Object>> getExplicitUserSubgroups(IRDBMSEngine securityDb,
-			String appId, String userId) {
+	/** Returns featureId → featureKey map for all features in this app. */
+	private static Map<String, String> getFeatureCatalog(IRDBMSEngine securityDb, String appId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_USER_SUBGROUP__SUBGROUP_ID", "subgroupId"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_NAME", "subgroupName"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_ID", "profileId"));
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__PROFILE_NAME", "profileName"));
-		qs.addRelation("APP_USER_SUBGROUP__SUBGROUP_ID", "APP_PROFILE_SUBGROUP__SUBGROUP_ID", "inner.join");
-		qs.addRelation("APP_PROFILE_SUBGROUP__PROFILE_ID", "APP_PROFILE__PROFILE_ID", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__USER_ID", "==", userId));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-
-	private static void addProfileFeaturesToResult(IRDBMSEngine securityDb, String appId,
-			String profileId, String profileName, boolean isDefaultProfile,
-			Map<String, Object> result) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY", "featureKey"));
 		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_ID", "featureId"));
-		qs.addRelation("APP_PROFILE_FEATURE__FEATURE_ID", "APP_FEATURE__FEATURE_ID", "inner.join");
+		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY", "featureKey"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_FEATURE__APP_ID", "==", appId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs).stream()
+				.collect(Collectors.toMap(r -> (String) r.get("featureId"), r -> (String) r.get("featureKey")));
+	}
+
+	/** Returns the set of enabled featureIds for a profile. */
+	private static Set<String> getEnabledProfileFeatureIds(IRDBMSEngine securityDb, String appId, String profileId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("APP_PROFILE_FEATURE__FEATURE_ID", "featureId"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_FEATURE__APP_ID", "==", appId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_FEATURE__PROFILE_ID", "==", profileId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_FEATURE__ENABLED", "==", Boolean.TRUE));
-		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(securityDb, qs)) {
-			String featureKey = (String) row.get("featureKey");
-			if (!result.containsKey(featureKey)) {
-				Map<String, Object> featureInfo = new HashMap<>();
-				featureInfo.put("featureId", row.get("featureId"));
-				featureInfo.put("profileName", profileName);
-				featureInfo.put("isDefaultProfile", isDefaultProfile);
-				result.put(featureKey, featureInfo);
-			}
-		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs).stream()
+				.map(r -> (String) r.get("featureId")).collect(Collectors.toSet());
 	}
 
-	private static void addSubgroupFeaturesToResult(IRDBMSEngine securityDb, String appId,
-			String subgroupId, String subgroupName, String parentProfileName,
-			Map<String, Object> result) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_KEY", "featureKey"));
-		qs.addSelector(new QueryColumnSelector("APP_FEATURE__FEATURE_ID", "featureId"));
-		qs.addRelation("APP_SUBGROUP_FEATURE__FEATURE_ID", "APP_FEATURE__FEATURE_ID", "inner.join");
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__SUBGROUP_ID", "==", subgroupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__ENABLED", "==", Boolean.TRUE));
-		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(securityDb, qs)) {
-			String featureKey = (String) row.get("featureKey");
-			if (!result.containsKey(featureKey)) {
-				Map<String, Object> featureInfo = new HashMap<>();
-				featureInfo.put("featureId", row.get("featureId"));
-				featureInfo.put("profileName", parentProfileName);
-				featureInfo.put("subgroupName", subgroupName);
-				featureInfo.put("isDefaultProfile", false);
-				result.put(featureKey, featureInfo);
-			}
-		}
+	/** Builds a {featureKey: true/false} map for all features, true if featureId is in enabledIds. */
+	private static Map<String, Boolean> buildFeatureMap(Map<String, String> catalog, Set<String> enabledIds) {
+		Map<String, Boolean> map = new LinkedHashMap<>();
+		catalog.forEach((featureId, featureKey) -> map.put(featureKey, enabledIds.contains(featureId)));
+		return map;
 	}
 
 	private static String resolveFeatureId(IRDBMSEngine securityDb, String appId, String featureKey) {
@@ -1428,66 +926,6 @@ public class AppProfileUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_FEATURE__FEATURE_ID", "==", featureId));
 		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		return !rows.isEmpty() && Boolean.TRUE.equals(rows.get(0).get("enabled"));
-	}
-
-	private static boolean querySubgroupFeatureEnabled(IRDBMSEngine securityDb, String appId,
-			String subgroupId, String featureId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_SUBGROUP_FEATURE__ENABLED", "enabled"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__SUBGROUP_ID", "==", subgroupId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_SUBGROUP_FEATURE__FEATURE_ID", "==", featureId));
-		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		return !rows.isEmpty() && Boolean.TRUE.equals(rows.get(0).get("enabled"));
-	}
-
-	private static boolean isGroupProfile(String appId, String profileId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE__IS_GROUP", "isGroup"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE__PROFILE_ID", "==", profileId));
-		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		return !rows.isEmpty() && Boolean.TRUE.equals(rows.get(0).get("isGroup"));
-	}
-
-	private static List<String> getSubgroupIdsForProfile(IRDBMSEngine securityDb, String appId, String profileId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("APP_PROFILE_SUBGROUP__SUBGROUP_ID", "subgroupId"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_SUBGROUP__APP_ID", "==", appId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_PROFILE_SUBGROUP__PROFILE_ID", "==", profileId));
-		List<String> ids = new ArrayList<>();
-		for (Map<String, Object> r : QueryExecutionUtility.flushRsToMap(securityDb, qs)) {
-			ids.add((String) r.get("subgroupId"));
-		}
-		return ids;
-	}
-
-	private static void deleteSubgroupInternal(IRDBMSEngine securityDb, String appId, String subgroupId) {
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_USER_SUBGROUP WHERE APP_ID=? AND SUBGROUP_ID=?");
-			ps.setString(1, appId);
-			ps.setString(2, subgroupId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete subgroup user assignments", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-		ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM APP_SUBGROUP_FEATURE WHERE APP_ID=? AND SUBGROUP_ID=?");
-			ps.setString(1, appId);
-			ps.setString(2, subgroupId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
-		} catch (SQLException e) {
-			classLogger.error("Failed to cascade delete subgroup feature assignments", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
 	}
 
 	/** Returns the primary user ID from the user's active access token. */

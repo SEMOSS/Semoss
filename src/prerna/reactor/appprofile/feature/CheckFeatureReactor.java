@@ -63,9 +63,6 @@ public class CheckFeatureReactor extends AbstractReactor {
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
-		}
 		boolean enabled = AppProfileUtils.checkFeature(appId, featureKey, user);
 		return new NounMetadata(enabled, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}

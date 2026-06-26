@@ -29,6 +29,7 @@ package prerna.reactor.appprofile.user;
 
 import prerna.reactor.appprofile.AppProfileUtils;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -60,10 +61,7 @@ public class GetUserAppProfilesReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
-		}
-		Map<String, Object> result = AppProfileUtils.getUserAppProfiles(appId, user);
+		List<Map<String, Object>> result = AppProfileUtils.getUserAppProfiles(appId, user);
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 

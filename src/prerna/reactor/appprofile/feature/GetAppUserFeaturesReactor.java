@@ -60,10 +60,7 @@ public class GetAppUserFeaturesReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
 
-		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
-			throw new IllegalArgumentException("User does not have access to this app.");
-		}
-		Map<String, Object> features = AppProfileUtils.getUserFeatures(appId, user);
+		Map<String, Boolean> features = AppProfileUtils.getUserFeatures(appId, user);
 		return new NounMetadata(features, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 

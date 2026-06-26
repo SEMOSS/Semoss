@@ -48,8 +48,8 @@ public class UpdateAppProfileReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(UpdateAppProfileReactor.class);
 
 	public UpdateAppProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.IS_DEFAULT.getKey(), ReactorKeysEnum.IS_GROUP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.IS_DEFAULT.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -62,13 +62,11 @@ public class UpdateAppProfileReactor extends AbstractReactor {
 		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 		String isDefaultStr = this.keyValue.get(ReactorKeysEnum.IS_DEFAULT.getKey());
 		Boolean isDefault = isDefaultStr != null ? Boolean.parseBoolean(isDefaultStr) : null;
-		String isGroupStr = this.keyValue.get(ReactorKeysEnum.IS_GROUP.getKey());
-		Boolean isGroup = isGroupStr != null ? Boolean.parseBoolean(isGroupStr) : null;
 
 		if (!AppProfileUtils.canManageProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		AppProfileUtils.updateProfile(appId, profileId, name, description, isDefault, isGroup, user);
+		AppProfileUtils.updateProfile(appId, profileId, name, description, isDefault, user);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile updated."));
 		return noun;
