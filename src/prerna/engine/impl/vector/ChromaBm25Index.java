@@ -29,6 +29,7 @@ package prerna.engine.impl.vector;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -123,9 +124,9 @@ public class ChromaBm25Index {
 			return results;
 		}
 
+		ensureStats();
 		lock.readLock().lock();
 		try {
-			refreshStatsIfNeeded();
 			if (records.isEmpty() || avgDocLength <= 0.0) {
 				return results;
 			}
@@ -162,21 +163,41 @@ public class ChromaBm25Index {
 		return score;
 	}
 
-	/** Recompute document-frequency and average length. Caller must hold a lock. */
-	private void refreshStatsIfNeeded() {
-		if (!statsDirty) {
+	/**
+	 * Recompute corpus statistics (document frequency, average length) when the index has changed.
+	 * Runs the rebuild under the write lock — never under a read lock — so concurrent searches can't
+	 * race on the shared stats. Double-checked so only one rebuild happens per change.
+	 */
+	private void ensureStats() {
+		lock.readLock().lock();
+		boolean dirty;
+		try {
+			dirty = statsDirty;
+		} finally {
+			lock.readLock().unlock();
+		}
+		if (!dirty) {
 			return;
 		}
-		docFreq = new LinkedHashMap<>();
-		long totalLength = 0;
-		for (Record record : records.values()) {
-			totalLength += record.length;
-			for (String term : record.termFreqs.keySet()) {
-				docFreq.merge(term, 1, Integer::sum);
+		lock.writeLock().lock();
+		try {
+			if (!statsDirty) {
+				return;
 			}
+			Map<String, Integer> freshDocFreq = new LinkedHashMap<>();
+			long totalLength = 0;
+			for (Record record : records.values()) {
+				totalLength += record.length;
+				for (String term : record.termFreqs.keySet()) {
+					freshDocFreq.merge(term, 1, Integer::sum);
+				}
+			}
+			this.docFreq = freshDocFreq;
+			this.avgDocLength = records.isEmpty() ? 0.0 : (double) totalLength / records.size();
+			this.statsDirty = false;
+		} finally {
+			lock.writeLock().unlock();
 		}
-		avgDocLength = records.isEmpty() ? 0.0 : (double) totalLength / records.size();
-		statsDirty = false;
 	}
 
 	/** Lower-case and split into alphanumeric tokens (no external tokenizer/stemmer). */
@@ -194,12 +215,6 @@ public class ChromaBm25Index {
 	}
 
 	private static List<String> uniqueTokens(String text) {
-		List<String> unique = new ArrayList<>();
-		for (String token : tokenize(text)) {
-			if (!unique.contains(token)) {
-				unique.add(token);
-			}
-		}
-		return unique;
+		return new ArrayList<>(new LinkedHashSet<>(tokenize(text)));
 	}
 }

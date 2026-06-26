@@ -102,6 +102,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final double DEFAULT_HYBRID_VECTOR_WEIGHT = 0.5;
 	private static final double DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD = 0.0;
 	private static final int RRF_K = 60;
+	// over-fetch the hybrid candidate pool: pull more than the caller's limit from each signal
+	// (vector + keyword) so RRF has a meaningful pool to fuse before truncating back to limit
+	private static final int HYBRID_CANDIDATE_MULTIPLIER = 10;
+	private static final int HYBRID_MIN_CANDIDATES = 100;
+	// the in-memory BM25 index loads the whole collection on open; warn past this size (see PR notes on scale)
+	private static final int BM25_LARGE_CORPUS_WARN = 100_000;
 	// transient key holding each candidate's vector distance during ranking; stripped before return
 	private static final String DISTANCE_KEY = "_distance";
 
@@ -109,7 +115,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private double hybridVectorWeight = DEFAULT_HYBRID_VECTOR_WEIGHT;
 	private double hybridKeywordGateThreshold = DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD;
 	// in-memory keyword index (rebuilt from Chroma on open); used only when hybrid search is enabled
-	private ChromaBm25Index bm25Index;
+	private volatile ChromaBm25Index bm25Index;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -198,6 +204,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 						content == null ? "" : content.toString(), metadata);
 			}
 			classLogger.info("Built BM25 index for engine '{}' from {} chunk(s)", this.className, count);
+			if (count >= BM25_LARGE_CORPUS_WARN) {
+				classLogger.warn(
+						"BM25 index for engine '{}' loaded {} chunks into memory on open; at this scale consider "
+								+ "paginated loading or native sparse search (Chroma Cloud /search)",
+						this.className, count);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build BM25 index for engine '{}'; keyword scoring disabled", this.className, e);
 		}
@@ -526,7 +538,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private List<Map<String, Object>> executeHybridRrfSearch(String searchStatement, List<Double> vector, int limit,
 			Map<String, Object> where) {
-		int candidateLimit = Math.max(limit * 10, 100);
+		int candidateLimit = Math.max(limit * HYBRID_CANDIDATE_MULTIPLIER, HYBRID_MIN_CANDIDATES);
 
 		List<Map<String, Object>> vectorHits = queryVectors(vector, candidateLimit, where);
 		List<Map<String, Object>> keywordHits = (this.bm25Index != null)
@@ -546,7 +558,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			distanceById.put(id, distanceOf(hit));
 		}
 		for (Map<String, Object> hit : keywordHits) {
-			// the vector side is filtered by Chroma; apply the same filter to the keyword side
+			// the vector side is filtered by Chroma; apply the same filter to the keyword side.
+			// NOTE: matches() compares as strings, so it can diverge from Chroma's type coercion for
+			// non-string metadata (e.g. numeric); our metadata is string-typed so this is consistent today.
 			if (where != null && !ChromaVectorQueryFilterTranslationHelper.matches(hit, where)) {
 				continue;
 			}

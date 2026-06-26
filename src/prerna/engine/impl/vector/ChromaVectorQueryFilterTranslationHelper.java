@@ -285,6 +285,10 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 	}
 
 	private static boolean valuesEqual(Object a, Object b) {
+		// a missing field (null) must not match the literal string "null"
+		if (a == null || b == null) {
+			return a == b;
+		}
 		return String.valueOf(a).equals(String.valueOf(b));
 	}
 
