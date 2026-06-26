@@ -384,6 +384,19 @@ public class Room implements Serializable {
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
+		return addToolExecutionResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, paramValuesMap,
+				parentMessageId, modelEngine, insight, toolStatus, null);
+	}
+
+	/**
+	 * Adds a tool execution result and optionally uses a caller-supplied system
+	 * prompt for the follow-up model call. A {@code null} override preserves the
+	 * historical playground-themed prompt behavior.
+	 */
+	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
+			String systemPromptOverride) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
@@ -467,8 +480,10 @@ public class Room implements Serializable {
 
 			if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
+				String systemPrompt = systemPromptOverride != null ? systemPromptOverride
+						: this.getPlaygroundThemedSystemPrompt();
 				toolResultsMessage = InputMessage
-						.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt()).withToolResult(toolCallId,
+						.builder(this).withSystemPrompt(systemPrompt).withToolResult(toolCallId,
 								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
@@ -990,7 +1005,8 @@ public class Room implements Serializable {
 	 * <p>
 	 * Use this when you need the raw user prompt as a composable layer (e.g., a
 	 * harness combining it with built-in agent instructions). Use
-	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
+	 * {@link #getPlaygroundThemedSystemPrompt()} for the final playground prompt
+	 * that includes the active admin theme.
 	 *
 	 * @return authored prompt, or {@code null} if neither layer is set
 	 * @throws IllegalArgumentException when workspace lookup fails access or
@@ -1051,15 +1067,15 @@ public class Room implements Serializable {
 	}
 
 	/**
-	 * Returns the effective system prompt seen by the model: the user-authored
-	 * layer (room or workspace) wrapped by the enterprise template from the active
-	 * admin theme and with {@code {{VAR}}} placeholders expanded.
+	 * Returns the playground-themed system prompt: the user-authored layer (room
+	 * or workspace) wrapped by the enterprise template from the active admin theme
+	 * and with {@code {{VAR}}} placeholders expanded.
 	 *
 	 * @return resolved system prompt, or {@code null} when no prompt is configured
 	 * @throws IllegalArgumentException when workspace prompt resolution fails
 	 *                                  access or active-state checks
 	 */
-	public String getEffectiveSystemPrompt() {
+	public String getPlaygroundThemedSystemPrompt() {
 		String systemPrompt = getRoomOrWorkspaceSystemPrompt();
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
 		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);

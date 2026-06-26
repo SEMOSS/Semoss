@@ -98,7 +98,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-		String givenSystemPrompt = room.getEffectiveSystemPrompt();
+		String givenSystemPrompt = room.getPlaygroundThemedSystemPrompt();
 
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 

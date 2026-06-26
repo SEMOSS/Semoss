@@ -183,7 +183,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				lengthOrZero(agentConfig.getAuthoredPrompt()));
 
 		try {
-			String systemPrompt = room.getEffectiveSystemPrompt();
+			String systemPrompt = room.getRoomOrWorkspaceSystemPrompt();
 
 			// Start the clock BEFORE the first model call so it counts against max_seconds.
 			AgentLoopState state = new AgentLoopState();
@@ -247,7 +247,8 @@ public class SemossAgentHarness implements IAgentHarness {
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
-					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+						ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx,
+								systemPrompt);
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 

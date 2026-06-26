@@ -96,7 +96,7 @@ final class HarnessToolExecutor {
 	 */
 	@SuppressWarnings("unchecked")
 	static ResponseMessage executeToolBatch(ResponseMessage toolResponse, AgentLoopState state,
-			Map<String, Object> paramMap, AgentRunContext ctx) {
+			Map<String, Object> paramMap, AgentRunContext ctx, String systemPrompt) {
 
 		Room room = ctx.getRoom();
 		String parentMsgId = toolResponse.getMessageId();
@@ -112,7 +112,7 @@ final class HarnessToolExecutor {
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
 			ToolExecResult r = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
-					spawnsRemainingInBatch);
+					spawnsRemainingInBatch, systemPrompt);
 			state.addToolCallRecord(r.record);
 			nextModelResp = r.modelResponse;
 
@@ -125,7 +125,7 @@ final class HarnessToolExecutor {
 				for (int i = 0; i < toolCalls.size(); i++) {
 					final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
 					futures[i] = CompletableFuture.supplyAsync(() -> executeOneTool(tc, state.getIterations(), paramMap,
-							parentMsgId, ctx, jobId, spawnsRemainingInBatch), pool);
+							parentMsgId, ctx, jobId, spawnsRemainingInBatch, systemPrompt), pool);
 				}
 				// Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
 				CompletableFuture<Void> all = CompletableFuture.allOf(futures);
@@ -185,7 +185,8 @@ final class HarnessToolExecutor {
 	 * concurrently - Room.addToolExecutionResult() is synchronized.
 	 */
 	private static ToolExecResult executeOneTool(ParsedToolCall tc, int currentIter, Map<String, Object> paramMap,
-			String parentMsgId, AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch) {
+			String parentMsgId, AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch,
+			String systemPrompt) {
 
 		logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}", tc.rawToolName, tc.toolCallId,
 				currentIter);
@@ -214,7 +215,7 @@ final class HarnessToolExecutor {
 		// Pass a fresh copy - Room.appendToolsToParams() mutates the map.
 		AskModelEngineResponse<?> modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
 				outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
-				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR, systemPrompt);
 
 		return new ToolExecResult(record, modelResp);
 	}
