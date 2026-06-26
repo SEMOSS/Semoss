@@ -30,6 +30,7 @@ package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.agent.skill.PlatformSkills;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -57,8 +59,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -183,6 +185,24 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 		}
 
+		Set<String> platformSkills = null;
+		if (getGenRowStruct(PLATFORM_SKILLS) != null) {
+			platformSkills = new LinkedHashSet<>();
+			for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
+				if (slug == null) {
+					continue;
+				}
+				String trimmed = slug.trim();
+				if (trimmed.isEmpty()) {
+					continue;
+				}
+				if (!PlatformSkills.exists(trimmed)) {
+					return getError("Platform skill not found: " + trimmed);
+				}
+				platformSkills.add(trimmed);
+			}
+		}
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -198,7 +218,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
 		// correctly from those.
 		try {
-			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds);
+			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
+					platformSkills);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
@@ -229,9 +250,16 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	 * {@code AgentConfigLoader.resolveSkills} and
 	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write. No
 	 * {@code pinned_version} is emitted because the edit input carries only ids.
+	 *
+	 * <p>
+	 * {@code platformSkills} differs from {@code skills}/{@code mcps}: a {@code null}
+	 * value leaves any existing {@code platform_skills} array untouched (callers that
+	 * omit the input never clobber it), while a non-null value is a full replace (an
+	 * empty set clears it). Entries are plain slug strings, matching
+	 * {@code CONFIG_JSON.platform_skills[]}.
 	 */
 	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects, Set<String> skills) throws Exception {
+			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -265,6 +293,14 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			skillsJson.put(entry);
 		}
 		cfg.put("skills", skillsJson);
+
+		if (platformSkills != null) {
+			JSONArray platformSkillsJson = new JSONArray();
+			for (String slug : platformSkills) {
+				platformSkillsJson.put(slug);
+			}
+			cfg.put("platform_skills", platformSkillsJson);
+		}
 
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}
