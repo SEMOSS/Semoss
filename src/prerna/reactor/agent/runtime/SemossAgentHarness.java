@@ -183,7 +183,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				lengthOrZero(agentConfig.getAuthoredPrompt()));
 
 		try {
-			String systemPrompt = room.getRoomOrWorkspaceSystemPrompt();
+			String systemPrompt = room.getSystemPromptForModel();
 
 			// Start the clock BEFORE the first model call so it counts against max_seconds.
 			AgentLoopState state = new AgentLoopState();
