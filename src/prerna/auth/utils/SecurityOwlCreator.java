@@ -429,6 +429,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("REPO_ID", "BIGINT"),
 				Pair.with("REPO_FULL_NAME", "VARCHAR(511)"),
 				Pair.with("BRANCH", VARCHAR_255),
+				Pair.with("SUBDIR", "VARCHAR(1024)"),
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
