@@ -194,4 +194,106 @@ public final class ChromaVectorQueryFilterTranslationHelper {
 		}
 		return values;
 	}
+
+	/**
+	 * Evaluate a Chroma {@code where} clause (as produced by {@link #toWhere}) against a row's
+	 * metadata. Used to apply the same filter to app-side BM25 results that Chroma applies to the
+	 * vector query. Returns {@code true} when {@code where} is null/empty.
+	 */
+	public static boolean matches(Map<String, Object> metadata, Map<String, Object> where) {
+		return matchesNode(metadata, where);
+	}
+
+	private static boolean matchesNode(Map<String, Object> metadata, Map<?, ?> node) {
+		if (node == null || node.isEmpty()) {
+			return true;
+		}
+		for (Map.Entry<?, ?> entry : node.entrySet()) {
+			String key = String.valueOf(entry.getKey());
+			Object value = entry.getValue();
+			if (AND.equals(key)) {
+				for (Object sub : asList(value)) {
+					if (sub instanceof Map && !matchesNode(metadata, (Map<?, ?>) sub)) {
+						return false;
+					}
+				}
+			} else if (OR.equals(key)) {
+				boolean any = false;
+				for (Object sub : asList(value)) {
+					if (sub instanceof Map && matchesNode(metadata, (Map<?, ?>) sub)) {
+						any = true;
+						break;
+					}
+				}
+				if (!any) {
+					return false;
+				}
+			} else if (value instanceof Map) {
+				if (!matchesField(metadata == null ? null : metadata.get(key), (Map<?, ?>) value)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private static boolean matchesField(Object actual, Map<?, ?> condition) {
+		for (Map.Entry<?, ?> entry : condition.entrySet()) {
+			String op = String.valueOf(entry.getKey());
+			Object operand = entry.getValue();
+			switch (op) {
+				case "$eq": if (!valuesEqual(actual, operand)) return false; break;
+				case "$ne": if (valuesEqual(actual, operand)) return false; break;
+				case "$in": if (!containsValue(asList(operand), actual)) return false; break;
+				case "$nin": if (containsValue(asList(operand), actual)) return false; break;
+				case "$gt": case "$gte": case "$lt": case "$lte":
+					if (!matchesRange(op, actual, operand)) return false;
+					break;
+				default: return false;
+			}
+		}
+		return true;
+	}
+
+	/** Numeric range comparison; fails closed (no match) when either side is not numeric. */
+	private static boolean matchesRange(String op, Object actual, Object operand) {
+		Double a = toDouble(actual);
+		Double b = toDouble(operand);
+		if (a == null || b == null) {
+			return false;
+		}
+		int cmp = Double.compare(a, b);
+		switch (op) {
+			case "$gt": return cmp > 0;
+			case "$gte": return cmp >= 0;
+			case "$lt": return cmp < 0;
+			case "$lte": return cmp <= 0;
+			default: return false;
+		}
+	}
+
+	private static Double toDouble(Object value) {
+		try {
+			return Double.parseDouble(String.valueOf(value));
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	private static List<?> asList(Object value) {
+		return (value instanceof List) ? (List<?>) value : new ArrayList<>();
+	}
+
+	private static boolean valuesEqual(Object a, Object b) {
+		return String.valueOf(a).equals(String.valueOf(b));
+	}
+
+	private static boolean containsValue(List<?> values, Object actual) {
+		for (Object value : values) {
+			if (valuesEqual(actual, value)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

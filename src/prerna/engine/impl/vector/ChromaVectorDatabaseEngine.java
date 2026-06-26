@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -51,6 +50,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -84,6 +84,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private final String API_ADD = "/add";
 	private final String API_DELETE = "/delete";
 	private final String API_QUERY = "/query";
+	private final String API_GET = "/get";
 
 	private String url = null;
 	private String apiKey = null;
@@ -102,15 +103,14 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final double DEFAULT_HYBRID_VECTOR_WEIGHT = 0.5;
 	private static final double DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD = 0.0;
 	private static final int RRF_K = 60;
-	// BM25 tuning constants (Lucene defaults)
-	private static final double BM25_K1 = 1.2;
-	private static final double BM25_B = 0.75;
 	// transient key holding each candidate's vector distance during ranking; stripped before return
 	private static final String DISTANCE_KEY = "_distance";
 
 	private boolean useHybridSearch = false;
 	private double hybridVectorWeight = DEFAULT_HYBRID_VECTOR_WEIGHT;
 	private double hybridKeywordGateThreshold = DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD;
+	// persistent keyword index; populated only when hybrid search is enabled
+	private ChromaBm25Index bm25Index;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -127,38 +127,101 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		this.useHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(USE_HYBRID_SEARCH, "false"));
 
-		if (this.smssProp.containsKey(HYBRID_VECTOR_WEIGHT)) {
-			try {
-				double parsedVectorWeight = Double.parseDouble(this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT));
-				if (parsedVectorWeight >= 0.0 && parsedVectorWeight <= 1.0) {
-					this.hybridVectorWeight = parsedVectorWeight;
-				} else {
-					classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' must be between 0.0 and 1.0 (inclusive); defaulting to {}",
-							parsedVectorWeight, DEFAULT_HYBRID_VECTOR_WEIGHT);
+		// weight/gate tuning only matters when hybrid search is enabled
+		if (this.useHybridSearch) {
+			if (this.smssProp.containsKey(HYBRID_VECTOR_WEIGHT)) {
+				try {
+					double parsedVectorWeight = Double.parseDouble(this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT));
+					if (parsedVectorWeight >= 0.0 && parsedVectorWeight <= 1.0) {
+						this.hybridVectorWeight = parsedVectorWeight;
+					} else {
+						classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' must be between 0.0 and 1.0 (inclusive); defaulting to {}",
+								parsedVectorWeight, DEFAULT_HYBRID_VECTOR_WEIGHT);
+					}
+				} catch (NumberFormatException e) {
+					classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' is not a valid number; defaulting to {}",
+							this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT), DEFAULT_HYBRID_VECTOR_WEIGHT, e);
 				}
-			} catch (NumberFormatException e) {
-				classLogger.warn("HYBRID_VECTOR_WEIGHT '{}' is not a valid number; defaulting to {}",
-						this.smssProp.getProperty(HYBRID_VECTOR_WEIGHT), DEFAULT_HYBRID_VECTOR_WEIGHT, e);
 			}
-		}
 
-		if (this.smssProp.containsKey(HYBRID_KEYWORD_GATE_THRESHOLD)) {
-			try {
-				double parsedGateThreshold = Double.parseDouble(this.smssProp.getProperty(HYBRID_KEYWORD_GATE_THRESHOLD));
-				if (parsedGateThreshold >= 0.0) {
-					this.hybridKeywordGateThreshold = parsedGateThreshold;
-				} else {
-					classLogger.warn("HYBRID_KEYWORD_GATE_THRESHOLD '{}' must be >= 0; defaulting to {}",
-							parsedGateThreshold, DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD);
+			if (this.smssProp.containsKey(HYBRID_KEYWORD_GATE_THRESHOLD)) {
+				try {
+					double parsedGateThreshold = Double.parseDouble(this.smssProp.getProperty(HYBRID_KEYWORD_GATE_THRESHOLD));
+					if (parsedGateThreshold >= 0.0) {
+						this.hybridKeywordGateThreshold = parsedGateThreshold;
+					} else {
+						classLogger.warn("HYBRID_KEYWORD_GATE_THRESHOLD '{}' must be >= 0; defaulting to {}",
+								parsedGateThreshold, DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD);
+					}
+				} catch (NumberFormatException e) {
+					classLogger.warn("HYBRID_KEYWORD_GATE_THRESHOLD '{}' is not a valid number; defaulting to {}",
+							this.smssProp.getProperty(HYBRID_KEYWORD_GATE_THRESHOLD), DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD, e);
 				}
-			} catch (NumberFormatException e) {
-				classLogger.warn("HYBRID_KEYWORD_GATE_THRESHOLD '{}' is not a valid number; defaulting to {}",
-						this.smssProp.getProperty(HYBRID_KEYWORD_GATE_THRESHOLD), DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD, e);
 			}
 		}
 
 		// create or fetch collection Id from the Chroma DB
 		this.collectionID = createCollection(this.className);
+
+		if (this.useHybridSearch) {
+			initBm25Index();
+		}
+	}
+
+	/**
+	 * Load the persistent BM25 index from disk, or backfill it from the existing collection if the
+	 * index file is missing (e.g. first run after enabling hybrid, or a fresh cluster node). Failures
+	 * are non-fatal: hybrid search simply contributes no keyword signal until the index is populated.
+	 */
+	private void initBm25Index() {
+		File bm25Dir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + this.defaultIndexClass
+				+ FILE_SEPARATOR + "bm25");
+		this.bm25Index = new ChromaBm25Index(bm25Dir);
+		try {
+			this.bm25Index.load();
+			if (this.bm25Index.isEmpty()) {
+				backfillBm25IndexFromCollection();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to initialize BM25 index for engine '{}'; keyword scoring disabled until rebuilt",
+					this.className, e);
+		}
+	}
+
+	/** Rebuild the BM25 index by reading every chunk currently stored in the Chroma collection. */
+	private void backfillBm25IndexFromCollection() {
+		Gson gson = new Gson();
+		Map<String, Object> getBody = new HashMap<>();
+		List<String> include = new ArrayList<>();
+		include.add("metadatas");
+		getBody.put("include", include);
+
+		String response = HttpHelperUtility.postRequestStringBody(
+				collection(this.url, this.tenant, this.dbName, this.collectionID, API_GET),
+				buildHeaders(), gson.toJson(getBody), ContentType.APPLICATION_JSON, null, null, null);
+
+		ChromaGetResponse parsed = gson.fromJson(response, ChromaGetResponse.class);
+		if (parsed == null || parsed.ids == null || parsed.metadatas == null) {
+			return;
+		}
+		int count = Math.min(parsed.ids.size(), parsed.metadatas.size());
+		for (int i = 0; i < count; i++) {
+			Map<String, Object> metadata = parsed.metadatas.get(i);
+			Object content = metadata.get(VectorDatabaseCSVTable.CONTENT);
+			Object source = metadata.get(VectorDatabaseCSVTable.SOURCE);
+			this.bm25Index.addRecord(parsed.ids.get(i), source == null ? null : source.toString(),
+					content == null ? "" : content.toString(), metadata);
+		}
+		this.bm25Index.save();
+		classLogger.info("Backfilled BM25 index for engine '{}' with {} chunk(s)", this.className, count);
+	}
+
+	/** Push the BM25 index file to cloud storage when running in a cluster (mirrors document sync). */
+	private void pushBm25IndexIfClustered() {
+		if (ClusterUtil.IS_CLUSTER && this.bm25Index != null) {
+			Thread.ofVirtual().start(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(),
+					new String[] { this.bm25Index.getFilePath() }));
+		}
 	}
 
 	/** Chroma v2 collections endpoint: {@code {url}api/v2/tenants/{tenant}/databases/{db}/collections}. */
@@ -313,6 +376,19 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		}
 
+		// keep the BM25 index in sync with the successful add
+		if (this.useHybridSearch && this.bm25Index != null && response != null && !response.trim().isEmpty()) {
+			for (int i = 0; i < ids.size(); i++) {
+				Map<String, Object> metadata = metadatas.get(i);
+				Object source = metadata.get(VectorDatabaseCSVTable.SOURCE);
+				Object content = metadata.get(VectorDatabaseCSVTable.CONTENT);
+				this.bm25Index.addRecord(ids.get(i), source == null ? null : source.toString(),
+						content == null ? "" : content.toString(), metadata);
+			}
+			this.bm25Index.save();
+			pushBm25IndexIfClustered();
+		}
+
 	    return fileStatusList;
 	}
 
@@ -335,6 +411,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
     	}
 		
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
+		boolean bm25Changed = false;
 
 		// need to get the source names and then delete it based on the names
 		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
@@ -369,6 +446,11 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 						this.className);
 			}
 
+			// prune the same source from the BM25 index
+			if (this.useHybridSearch && this.bm25Index != null && this.bm25Index.removeBySource(source) > 0) {
+				bm25Changed = true;
+			}
+
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
 			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
@@ -381,6 +463,11 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
+		}
+
+		if (bm25Changed) {
+			this.bm25Index.save();
+			pushBm25IndexIfClustered();
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
@@ -404,7 +491,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		List<Double> vector = getEmbeddingsDouble(searchStatement, insight);
-		Map<String, Object> where = buildWhere(parameters);
+		Map<String, Object> where = buildWhereClause(parameters);
 
 		if (this.useHybridSearch) {
 			return executeHybridRrfSearch(searchStatement, vector, limit.intValue(), where);
@@ -415,6 +502,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> results = new ArrayList<>(candidates.size());
 		for (Map<String, Object> candidate : candidates) {
 			Object distance = candidate.remove(DISTANCE_KEY);
+			candidate.remove(ChromaBm25Index.ID_KEY);
 			Map<String, Object> row = new LinkedHashMap<>();
 			if (distance instanceof Number) {
 				double d = ((Number) distance).doubleValue();
@@ -436,7 +524,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/** Build a Chroma {@code where} clause from the {@code filters}/{@code metaFilters} params (AND-combined), or {@code null}. */
-	private Map<String, Object> buildWhere(Map<String, Object> parameters) {
+	private Map<String, Object> buildWhereClause(Map<String, Object> parameters) {
 		if (parameters == null) {
 			return null;
 		}
@@ -459,77 +547,119 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
-	 * Re-rank a vector candidate pool by fusing vector similarity with an in-app BM25 keyword score
-	 * via weighted RRF: {@code score = vw/(k+vRank) + kw/(k+kRank)}, k=60. Keyword ranking is skipped
-	 * when no candidate matches the query. Vector-first: a keyword-only match outside the pool is not
-	 * surfaced (same trade-off as the PGVector hybrid).
+	 * Hybrid search via full-corpus union: take the vector candidate pool and the BM25 keyword hits
+	 * (from the persistent index), union them by chunk id, rank each dimension independently, and fuse
+	 * with weighted RRF ({@code score = vw/(k+vRank) + kw/(k+kRank)}, k=60). A document contributes a
+	 * term only for the dimension(s) it appears in, so a keyword-only match outside the vector pool can
+	 * still surface. Keyword ranking is skipped when nothing matched the query text.
 	 */
 	private List<Map<String, Object>> executeHybridRrfSearch(String searchStatement, List<Double> vector, int limit,
 			Map<String, Object> where) {
 		int candidateLimit = Math.max(limit * 10, 100);
 
-		List<Map<String, Object>> candidates = queryVectors(vector, candidateLimit, where);
-		if (candidates.isEmpty()) {
-			return candidates;
+		List<Map<String, Object>> vectorHits = queryVectors(vector, candidateLimit, where);
+		List<Map<String, Object>> keywordHits = (this.bm25Index != null)
+				? this.bm25Index.search(searchStatement, candidateLimit)
+				: new ArrayList<>();
+
+		// union vector + keyword hits by chunk id
+		Map<String, Map<String, Object>> rowById = new LinkedHashMap<>();
+		Map<String, Double> distanceById = new LinkedHashMap<>();
+		Map<String, Double> keywordById = new LinkedHashMap<>();
+		for (Map<String, Object> hit : vectorHits) {
+			String id = idOf(hit);
+			if (id == null) {
+				continue;
+			}
+			rowById.put(id, hit);
+			distanceById.put(id, distanceOf(hit));
 		}
-		int n = candidates.size();
+		for (Map<String, Object> hit : keywordHits) {
+			// the vector side is filtered by Chroma; apply the same filter to the keyword side
+			if (where != null && !ChromaVectorQueryFilterTranslationHelper.matches(hit, where)) {
+				continue;
+			}
+			String id = idOf(hit);
+			if (id == null) {
+				continue;
+			}
+			keywordById.put(id, ((Number) hit.get("Score")).doubleValue());
+			rowById.putIfAbsent(id, hit);
+		}
+		if (rowById.isEmpty()) {
+			return new ArrayList<>();
+		}
 
-		double[] keywordScores = bm25Scores(searchStatement, candidates);
-
-		// rank by vector distance (asc) and keyword score (desc); rank 0 = best
-		List<Integer> byVector = sortedIndices(n,
-				(a, b) -> Double.compare(distanceOf(candidates.get(a)), distanceOf(candidates.get(b))));
-		List<Integer> byKeyword = sortedIndices(n, (a, b) -> Double.compare(keywordScores[b], keywordScores[a]));
-		int[] vectorRank = toRanks(byVector);
-		int[] keywordRank = toRanks(byKeyword);
-
-		// skip keyword signal when nothing matched the query text
-		double maxKeywordScore = keywordScores[byKeyword.get(0)];
-		boolean useKeyword = maxKeywordScore > this.hybridKeywordGateThreshold;
+		// independent ranks (rank 0 = best): vector by ascending distance, keyword by descending BM25
+		Map<String, Integer> vectorRank = ranksOf(distanceById, true);
+		boolean useKeyword = !keywordById.isEmpty() && maxValue(keywordById) > this.hybridKeywordGateThreshold;
+		Map<String, Integer> keywordRank = ranksOf(keywordById, false);
 
 		double vectorWeight = this.hybridVectorWeight;
 		double keywordWeight = 1.0 - vectorWeight;
-		classLogger.debug("Chroma hybrid RRF for query '{}': candidates={}, vectorWeight={}, keywordWeight={}, useKeyword={}, maxKeywordScore={}",
-				searchStatement, n, vectorWeight, keywordWeight, useKeyword, maxKeywordScore);
+		classLogger.debug("Chroma hybrid RRF for query '{}': vectorHits={}, keywordHits={}, union={}, vectorWeight={}, keywordWeight={}, useKeyword={}",
+				searchStatement, vectorHits.size(), keywordHits.size(), rowById.size(), vectorWeight, keywordWeight, useKeyword);
 
-		double[] rrfScores = new double[n];
-		for (int i = 0; i < n; i++) {
-			rrfScores[i] = vectorWeight / (RRF_K + vectorRank[i] + 1.0);
-			if (useKeyword) {
-				rrfScores[i] += keywordWeight / (RRF_K + keywordRank[i] + 1.0);
+		// RRF over the union: each doc contributes per dimension only where it ranks
+		Map<String, Double> rrfScores = new LinkedHashMap<>();
+		for (String id : rowById.keySet()) {
+			double score = 0.0;
+			Integer vRank = vectorRank.get(id);
+			if (vRank != null) {
+				score += vectorWeight / (RRF_K + vRank + 1.0);
 			}
+			Integer kRank = keywordRank.get(id);
+			if (useKeyword && kRank != null) {
+				score += keywordWeight / (RRF_K + kRank + 1.0);
+			}
+			rrfScores.put(id, score);
 		}
 
-		// top-N by fused RRF score
-		List<Integer> ranked = sortedIndices(n, (a, b) -> Double.compare(rrfScores[b], rrfScores[a]));
-		int resultCount = Math.min(limit, n);
+		// top-N by fused score
+		List<String> rankedIds = new ArrayList<>(rrfScores.keySet());
+		rankedIds.sort((a, b) -> Double.compare(rrfScores.get(b), rrfScores.get(a)));
+		int resultCount = Math.min(limit, rankedIds.size());
 		List<Map<String, Object>> results = new ArrayList<>(resultCount);
 		for (int i = 0; i < resultCount; i++) {
-			Map<String, Object> row = candidates.get(ranked.get(i));
-			row.put("Score", rrfScores[ranked.get(i)]);
+			String id = rankedIds.get(i);
+			Map<String, Object> row = rowById.get(id);
+			row.put("Score", rrfScores.get(id));
 			row.remove(DISTANCE_KEY);
+			row.remove(ChromaBm25Index.ID_KEY);
 			results.add(row);
 		}
 		return results;
 	}
 
-	/** Indices {@code [0, n)} sorted by {@code order} (position 0 = best). */
-	private static List<Integer> sortedIndices(int n, Comparator<Integer> order) {
-		List<Integer> indices = new ArrayList<>(n);
-		for (int i = 0; i < n; i++) {
-			indices.add(i);
-		}
-		indices.sort(order);
-		return indices;
+	/** The chunk id tagged on a row (vector hits via {@link #queryVectors}, keyword hits via the index). */
+	private static String idOf(Map<String, Object> row) {
+		Object id = row.get(ChromaBm25Index.ID_KEY);
+		return (id == null) ? null : id.toString();
 	}
 
-	/** Invert a best-first index ordering into a per-index rank array (rank 0 = best). */
-	private static int[] toRanks(List<Integer> ordered) {
-		int[] rank = new int[ordered.size()];
-		for (int position = 0; position < ordered.size(); position++) {
-			rank[ordered.get(position)] = position;
+	/**
+	 * Rank ids by their score (rank 0 = best). {@code ascending} ranks smaller values first (vector
+	 * distance); {@code !ascending} ranks larger values first (keyword score).
+	 */
+	private static Map<String, Integer> ranksOf(Map<String, Double> scoreById, boolean ascending) {
+		List<String> order = new ArrayList<>(scoreById.keySet());
+		order.sort((a, b) -> ascending ? Double.compare(scoreById.get(a), scoreById.get(b))
+				: Double.compare(scoreById.get(b), scoreById.get(a)));
+		Map<String, Integer> ranks = new LinkedHashMap<>();
+		for (int i = 0; i < order.size(); i++) {
+			ranks.put(order.get(i), i);
 		}
-		return rank;
+		return ranks;
+	}
+
+	private static double maxValue(Map<String, Double> values) {
+		double max = 0.0;
+		for (double value : values.values()) {
+			if (value > max) {
+				max = value;
+			}
+		}
+		return max;
 	}
 
 	/**
@@ -563,9 +693,13 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> rows = parsed.metadatas.get(0);
 		List<Double> distances = (parsed.distances != null && !parsed.distances.isEmpty()) ? parsed.distances.get(0)
 				: null;
+		List<String> ids = (parsed.ids != null && !parsed.ids.isEmpty()) ? parsed.ids.get(0) : null;
 		for (int i = 0; i < rows.size(); i++) {
 			Double distance = (distances != null && i < distances.size()) ? distances.get(i) : null;
 			rows.get(i).put(DISTANCE_KEY, distance);
+			if (ids != null && i < ids.size()) {
+				rows.get(i).put(ChromaBm25Index.ID_KEY, ids.get(i));
+			}
 		}
 		return rows;
 	}
@@ -574,87 +708,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private double distanceOf(Map<String, Object> row) {
 		Object distance = row.get(DISTANCE_KEY);
 		return (distance instanceof Number) ? ((Number) distance).doubleValue() : Double.MAX_VALUE;
-	}
-
-	/**
-	 * BM25 keyword score per candidate (index-aligned), using corpus statistics from the candidate
-	 * pool itself. A candidate matching no query term scores 0.
-	 */
-	private double[] bm25Scores(String query, List<Map<String, Object>> candidates) {
-		int n = candidates.size();
-		double[] scores = new double[n];
-
-		List<String> queryTerms = tokenize(query);
-		if (queryTerms.isEmpty() || n == 0) {
-			return scores;
-		}
-
-		// term frequencies per document + document lengths
-		List<Map<String, Integer>> docTermFreqs = new ArrayList<>(n);
-		int[] docLengths = new int[n];
-		double totalLength = 0.0;
-		for (int i = 0; i < n; i++) {
-			Object content = candidates.get(i).get(VectorDatabaseCSVTable.CONTENT);
-			List<String> tokens = tokenize(content == null ? "" : content.toString());
-			Map<String, Integer> termFreq = new HashMap<>();
-			for (String token : tokens) {
-				termFreq.put(token, termFreq.getOrDefault(token, 0) + 1);
-			}
-			docTermFreqs.add(termFreq);
-			docLengths[i] = tokens.size();
-			totalLength += tokens.size();
-		}
-		double avgDocLength = totalLength / n;
-		if (avgDocLength <= 0.0) {
-			return scores;
-		}
-
-		// document frequency per query term
-		Map<String, Integer> docFreq = new HashMap<>();
-		for (String term : queryTerms) {
-			if (docFreq.containsKey(term)) {
-				continue;
-			}
-			int df = 0;
-			for (Map<String, Integer> termFreq : docTermFreqs) {
-				if (termFreq.containsKey(term)) {
-					df++;
-				}
-			}
-			docFreq.put(term, df);
-		}
-
-		// BM25 score per document
-		for (int i = 0; i < n; i++) {
-			Map<String, Integer> termFreq = docTermFreqs.get(i);
-			double score = 0.0;
-			for (Map.Entry<String, Integer> entry : docFreq.entrySet()) {
-				int f = termFreq.getOrDefault(entry.getKey(), 0);
-				if (f == 0) {
-					continue;
-				}
-				int df = entry.getValue();
-				double idf = Math.log(1.0 + (n - df + 0.5) / (df + 0.5));
-				double denom = f + BM25_K1 * (1.0 - BM25_B + BM25_B * docLengths[i] / avgDocLength);
-				score += idf * (f * (BM25_K1 + 1.0)) / denom;
-			}
-			scores[i] = score;
-		}
-		return scores;
-	}
-
-	/** Lower-case and split into alphanumeric tokens (no external tokenizer/stemmer). */
-	private List<String> tokenize(String text) {
-		List<String> tokens = new ArrayList<>();
-		if (text == null || text.isEmpty()) {
-			return tokens;
-		}
-		for (String token : text.toLowerCase().split("[^a-z0-9]+")) {
-			if (!token.isEmpty()) {
-				tokens.add(token);
-			}
-		}
-		return tokens;
 	}
 
 	@Override
@@ -707,6 +760,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	/** Typed Chroma query response — lets Gson resolve the nested generics without unchecked casts. */
 	private static class ChromaQueryResponse {
+		private List<List<String>> ids;
 		private List<List<Map<String, Object>>> metadatas;
 		private List<List<Double>> distances;
 	}
@@ -714,6 +768,12 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	/** Typed Chroma delete response: {@code {"deleted": N}}. */
 	private static class ChromaDeleteResponse {
 		private Integer deleted;
+	}
+
+	/** Typed Chroma {@code /get} response (flat ids + metadata, used to backfill the BM25 index). */
+	private static class ChromaGetResponse {
+		private List<String> ids;
+		private List<Map<String, Object>> metadatas;
 	}
 
 }
