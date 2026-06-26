@@ -187,6 +187,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			include.add("metadatas");
 			getBody.put("include", include);
 
+			// TODO: paginate (Chroma /get supports offset/limit) for very large collections
 			String response = HttpHelperUtility.postRequestStringBody(
 					collection(this.url, this.tenant, this.dbName, this.collectionID, API_GET),
 					buildHeaders(), gson.toJson(getBody), ContentType.APPLICATION_JSON, null, null, null);
@@ -203,6 +204,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				this.bm25Index.addRecord(parsed.ids.get(i), source == null ? null : source.toString(),
 						content == null ? "" : content.toString(), metadata);
 			}
+			this.bm25Index.refreshStats();
 			classLogger.info("Built BM25 index for engine '{}' from {} chunk(s)", this.className, count);
 			if (count >= BM25_LARGE_CORPUS_WARN) {
 				classLogger.warn(
@@ -376,6 +378,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				this.bm25Index.addRecord(ids.get(i), source == null ? null : source.toString(),
 						content == null ? "" : content.toString(), metadata);
 			}
+			this.bm25Index.refreshStats();
 		}
 
 	    return fileStatusList;
@@ -451,6 +454,10 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
+		}
+
+		if (this.useHybridSearch && this.bm25Index != null) {
+			this.bm25Index.refreshStats();
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {

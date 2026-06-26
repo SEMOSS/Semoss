@@ -60,7 +60,6 @@ public class ChromaBm25Index {
 	private final Map<String, Record> records = new LinkedHashMap<>();
 	private Map<String, Integer> docFreq = new LinkedHashMap<>();
 	private double avgDocLength = 0.0;
-	private boolean statsDirty = true;
 
 	public boolean isEmpty() {
 		lock.readLock().lock();
@@ -86,7 +85,6 @@ public class ChromaBm25Index {
 		lock.writeLock().lock();
 		try {
 			records.put(id, record);
-			statsDirty = true;
 		} finally {
 			lock.writeLock().unlock();
 		}
@@ -102,11 +100,31 @@ public class ChromaBm25Index {
 		try {
 			int before = records.size();
 			records.values().removeIf(r -> source.equals(r.source));
-			int removed = before - records.size();
-			if (removed > 0) {
-				statsDirty = true;
+			return before - records.size();
+		} finally {
+			lock.writeLock().unlock();
+		}
+	}
+
+	/**
+	 * Recompute corpus statistics (document frequency, average length) under the write lock. The
+	 * engine calls this once after a batch of {@link #addRecord}/{@link #removeBySource} mutations —
+	 * not per record, since a full-corpus load would otherwise be O(n^2). {@link #search} only reads
+	 * these stats, so it never mutates shared state and concurrent searches cannot race.
+	 */
+	public void refreshStats() {
+		lock.writeLock().lock();
+		try {
+			Map<String, Integer> freshDocFreq = new LinkedHashMap<>();
+			long totalLength = 0;
+			for (Record record : records.values()) {
+				totalLength += record.length;
+				for (String term : record.termFreqs.keySet()) {
+					freshDocFreq.merge(term, 1, Integer::sum);
+				}
 			}
-			return removed;
+			this.docFreq = freshDocFreq;
+			this.avgDocLength = records.isEmpty() ? 0.0 : (double) totalLength / records.size();
 		} finally {
 			lock.writeLock().unlock();
 		}
@@ -124,7 +142,6 @@ public class ChromaBm25Index {
 			return results;
 		}
 
-		ensureStats();
 		lock.readLock().lock();
 		try {
 			if (records.isEmpty() || avgDocLength <= 0.0) {
@@ -161,43 +178,6 @@ public class ChromaBm25Index {
 			score += idf * (f * (BM25_K1 + 1.0)) / denom;
 		}
 		return score;
-	}
-
-	/**
-	 * Recompute corpus statistics (document frequency, average length) when the index has changed.
-	 * Runs the rebuild under the write lock — never under a read lock — so concurrent searches can't
-	 * race on the shared stats. Double-checked so only one rebuild happens per change.
-	 */
-	private void ensureStats() {
-		lock.readLock().lock();
-		boolean dirty;
-		try {
-			dirty = statsDirty;
-		} finally {
-			lock.readLock().unlock();
-		}
-		if (!dirty) {
-			return;
-		}
-		lock.writeLock().lock();
-		try {
-			if (!statsDirty) {
-				return;
-			}
-			Map<String, Integer> freshDocFreq = new LinkedHashMap<>();
-			long totalLength = 0;
-			for (Record record : records.values()) {
-				totalLength += record.length;
-				for (String term : record.termFreqs.keySet()) {
-					freshDocFreq.merge(term, 1, Integer::sum);
-				}
-			}
-			this.docFreq = freshDocFreq;
-			this.avgDocLength = records.isEmpty() ? 0.0 : (double) totalLength / records.size();
-			this.statsDirty = false;
-		} finally {
-			lock.writeLock().unlock();
-		}
 	}
 
 	/** Lower-case and split into alphanumeric tokens (no external tokenizer/stemmer). */
