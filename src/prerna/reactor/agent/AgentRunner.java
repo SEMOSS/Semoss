@@ -211,7 +211,11 @@ public final class AgentRunner {
 			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 					maxReflections, explicitWorkspaceId);
 
-			// Best-effort skill staging for harnesses that discover local skills from disk.
+			try {
+				SkillStager.stagePlatform(filePath, agentConfig.getPlatformSkills());
+			} catch (Exception e) {
+				logger.warn("AgentRunner: platform skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+			}
 			try {
 				SkillStager.stage(filePath, agentConfig.getSkills());
 			} catch (Exception e) {

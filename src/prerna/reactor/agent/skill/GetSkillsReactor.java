@@ -57,8 +57,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *       Default {@code accessible}.
  *     <ul>
  *       <li>{@code mine}       - skills where {@code CREATED_BY = me}</li>
- *       <li>{@code platform}   - skills with {@code ORIGIN = 'PLATFORM'}</li>
- *       <li>{@code accessible} - every skill-project the user can view</li>
+ *       <li>{@code platform}   - built-in platform skills (disk-backed folders under
+ *           {@code <BASE_FOLDER>/skills/}; keyed by slug, no {@code skill_id})</li>
+ *       <li>{@code accessible} - every skill-project the user can view, plus all
+ *           platform skills (this is the default when no {@code filter} is given)</li>
  *     </ul>
  *   </li>
  * </ul>
@@ -101,7 +103,9 @@ public class GetSkillsReactor extends AbstractReactor {
 				rows = ModelInferenceLogsUtils.listSkills(null, userId);
 				break;
 			case FILTER_PLATFORM:
-				rows = ModelInferenceLogsUtils.listSkills(Skill.ORIGIN_PLATFORM, null);
+				// Platform skills are disk-backed folders under <BASE_FOLDER>/skills/,
+				// not SKILL__ rows - enumerate them from disk (no skill_id; keyed by slug).
+				rows = PlatformSkills.list();
 				break;
 			case FILTER_ACCESSIBLE:
 				Set<String> visibleProjectIds = getVisibleSkillProjectIds(user);
@@ -113,6 +117,9 @@ public class GetSkillsReactor extends AbstractReactor {
 						rows.add(row);
 					}
 				}
+				// Platform skills are global, read-only built-ins available to everyone,
+				// so they are always part of the accessible set (origin=PLATFORM, keyed by slug).
+				rows.addAll(PlatformSkills.list());
 				break;
 			default:
 				throw new IllegalArgumentException(
@@ -163,7 +170,7 @@ public class GetSkillsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (FILTER.equals(key)) {
 			return "Scope filter: 'mine' (skills I created), 'platform' (platform skills), "
-					+ "or 'accessible' (default - every skill-project I can view)";
+					+ "or 'accessible' (default - every skill-project I can view, plus all platform skills)";
 		}
 		return super.getDescriptionForKey(key);
 	}

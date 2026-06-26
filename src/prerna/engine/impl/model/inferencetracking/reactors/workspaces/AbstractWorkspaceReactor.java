@@ -63,6 +63,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
 	static final String SKILLS = "skills";
+	/** Request key for platform-skill (slug) collection input. */
+	static final String PLATFORM_SKILLS = "platformSkills";
 	/** Request key for active/inactive workspace state. */
 	static final String IS_ACTIVE = "isActive";
 
