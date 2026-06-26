@@ -588,13 +588,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
-		String activeQuery = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY : nearestNeighborQuery;
-		String activeSearchEndpoint = this.useHybridSearch
+		String nearestNeighborQueryToRun = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY : nearestNeighborQuery;
+		String nearestNeighborSearchEndpoint = this.useHybridSearch
 				? SEARCH_ENDPOINT + "?search_pipeline=" + HYBRID_SEARCH_PIPELINE_NAME
 				: SEARCH_ENDPOINT;
 
 		String vectorString = "";
-		if (activeQuery.contains("${VECTOR}")) {
+		if (nearestNeighborQueryToRun.contains("${VECTOR}")) {
 			if (!this.modelPropsLoaded) {
 				verifyModelProps();
 			}
@@ -678,9 +678,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 			StringSubstitutor substitutor = new StringSubstitutor(replacements);
 			substitutor.setEnableSubstitutionInVariables(true);
-			String searchString = substitutor.replace(activeQuery);
+			String searchString = substitutor.replace(nearestNeighborQueryToRun);
 
-			String searchResponse = getSearchResponse(searchString, activeSearchEndpoint);
+			String searchResponse = getSearchResponse(searchString, nearestNeighborSearchEndpoint);
 			DocumentContext jsonContext = JsonPath.using(configuration).parse(searchResponse);
 
 			Set<String> hitKeys = new HashSet<>();
