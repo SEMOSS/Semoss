@@ -413,7 +413,7 @@ public final class AgentRunStore {
 		}
 		return new RunAgentRequest(rs.getString("ROOM_ID"), rs.getString("INPUT"), rs.getString("MODEL_ID"),
 				rs.getString("HARNESS_TYPE"), rs.getString("WORKSPACE_ID"), AgentRunContext.DEFAULT_MAX_TURNS,
-				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, insight);
+				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight);
 	}
 
 	private static AgentRunStatus parseRunStatus(String value) {
