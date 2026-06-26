@@ -25,10 +25,13 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.platformprofile;
+package prerna.reactor.appprofile.feature;
 
+import prerna.reactor.appprofile.AppProfileUtils;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,33 +39,39 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
- *
- * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ * @deprecated Use {@link CheckAppFeatureReactor} (Pixel: CheckAppFeature).
  */
-public class RemoveUserPlatformProfileReactor extends AbstractReactor {
+@Deprecated
+/**
+ * Check whether a feature is enabled for the calling user in an app.
+ *
+ * <p>Pixel: {@code CheckFeature(app=["appId"], feature=["featureKey"]);}</p>
+ */
+public class CheckFeatureReactor extends AbstractReactor {
 
-	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
-		this.keyRequired = new int[] { 1 };
+	private static final Logger classLogger = LogManager.getLogger(CheckFeatureReactor.class);
+
+	public CheckFeatureReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FEATURE_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String featureKey = this.keyValue.get(ReactorKeysEnum.FEATURE_KEY.getKey());
+
+		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
+			throw new IllegalArgumentException("User does not have access to this app.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
-		PlatformProfileUtils.removeUserProfile(userId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
-		return noun;
+		boolean enabled = AppProfileUtils.checkFeature(appId, featureKey, user);
+		return new NounMetadata(enabled, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's platform profile assignment.";
+		return "Check whether a feature is enabled for the calling user in an app.";
 	}
 }

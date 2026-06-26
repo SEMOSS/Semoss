@@ -30,6 +30,7 @@ package prerna.reactor.platformprofile;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -52,7 +53,7 @@ public class CreatePlatformProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!PlatformProfileUtils.canManage(user)) {
+		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
 		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());

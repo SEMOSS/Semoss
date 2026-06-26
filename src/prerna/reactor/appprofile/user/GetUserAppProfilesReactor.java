@@ -25,10 +25,15 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.platformprofile;
+package prerna.reactor.appprofile.user;
 
+import prerna.reactor.appprofile.AppProfileUtils;
+
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,14 +41,16 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
+ * Get all profile and subgroup memberships for the calling user in an app.
  *
- * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ * <p>Pixel: {@code GetUserAppProfiles(app=["appId"]);}</p>
  */
-public class RemoveUserPlatformProfileReactor extends AbstractReactor {
+public class GetUserAppProfilesReactor extends AbstractReactor {
 
-	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
+	private static final Logger classLogger = LogManager.getLogger(GetUserAppProfilesReactor.class);
+
+	public GetUserAppProfilesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -51,18 +58,17 @@ public class RemoveUserPlatformProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+
+		if (!AppProfileUtils.canEvaluateFeatures(user, appId)) {
+			throw new IllegalArgumentException("User does not have access to this app.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
-		PlatformProfileUtils.removeUserProfile(userId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
-		return noun;
+		Map<String, Object> result = AppProfileUtils.getUserAppProfiles(appId, user);
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's platform profile assignment.";
+		return "Get all profile and subgroup memberships for the calling user in an app.";
 	}
 }

@@ -25,25 +25,34 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.platformprofile;
+package prerna.reactor.appprofile.manager;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
+import prerna.reactor.appprofile.AppProfileUtils;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+
+import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
+ * Get all users with delegated profile manager permission for an app.
  *
- * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ * <p>Pixel: {@code GetAppProfileManagers(app=["appId"]);}</p>
  */
-public class RemoveUserPlatformProfileReactor extends AbstractReactor {
+public class GetAppProfileManagersReactor extends AbstractReactor {
 
-	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
+	private static final Logger classLogger = LogManager.getLogger(GetAppProfileManagersReactor.class);
+
+	public GetAppProfileManagersReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -51,18 +60,17 @@ public class RemoveUserPlatformProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+
+		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
-		PlatformProfileUtils.removeUserProfile(userId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
-		return noun;
+		List<Map<String, Object>> result = AppProfileUtils.getProfileManagers(appId);
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's platform profile assignment.";
+		return "Get all users with delegated profile manager permission for an app.";
 	}
 }

@@ -25,10 +25,13 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.platformprofile;
+package prerna.reactor.appprofile.profile;
 
+import prerna.reactor.appprofile.AppProfileUtils;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,33 +39,43 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
+ * Update a named profile for an app.
  *
- * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ * <p>Pixel: {@code UpdateAppProfile(app=["appId"], profile=["profileId"], name=["newName"]);}</p>
  */
-public class RemoveUserPlatformProfileReactor extends AbstractReactor {
+public class UpdateAppProfileReactor extends AbstractReactor {
 
-	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
-		this.keyRequired = new int[] { 1 };
+	private static final Logger classLogger = LogManager.getLogger(UpdateAppProfileReactor.class);
+
+	public UpdateAppProfileReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.PROFILE_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.IS_DEFAULT.getKey(), ReactorKeysEnum.IS_GROUP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		String isDefaultStr = this.keyValue.get(ReactorKeysEnum.IS_DEFAULT.getKey());
+		Boolean isDefault = isDefaultStr != null ? Boolean.parseBoolean(isDefaultStr) : null;
+		String isGroupStr = this.keyValue.get(ReactorKeysEnum.IS_GROUP.getKey());
+		Boolean isGroup = isGroupStr != null ? Boolean.parseBoolean(isGroupStr) : null;
+
+		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
-		PlatformProfileUtils.removeUserProfile(userId, user);
+		AppProfileUtils.updateProfile(appId, profileId, name, description, isDefault, isGroup, user);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Profile updated."));
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's platform profile assignment.";
+		return "Update a named profile for an app.";
 	}
 }

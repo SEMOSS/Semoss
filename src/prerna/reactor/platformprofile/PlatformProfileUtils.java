@@ -43,17 +43,17 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -71,13 +71,6 @@ public class PlatformProfileUtils {
 	private PlatformProfileUtils() {
 	}
 
-	// ─── Permission check ────────────────────────────────────────────────────
-
-	/** Returns {@code true} if the given user has admin privileges to manage platform profiles. */
-	public static boolean canManage(User user) {
-		return prerna.auth.utils.SecurityAdminUtils.userIsAdmin(user);
-	}
-
 	// ─── Profile CRUD ────────────────────────────────────────────────────────
 
 	/** Creates a new platform profile with the given name and description and returns its id, name, and description. */
@@ -86,7 +79,7 @@ public class PlatformProfileUtils {
 			throw new IllegalArgumentException("Profile name cannot be blank.");
 		}
 		String profileId = UUID.randomUUID().toString();
-		String actorId = prerna.reactor.appprofile.AppProfileUtils.getUserId(user);
+		String actorId = getUserId(user);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
@@ -179,33 +172,23 @@ public class PlatformProfileUtils {
 	/** Returns all platform profiles ordered by name, each with id, name, description, createdBy, createdAt, and userCount. */
 	public static List<Map<String, Object>> getProfiles(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		List<Map<String, Object>> profiles = new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_ID"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_NAME"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__DESCRIPTION"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_BY"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_AT"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_ID", "profileId"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_NAME", "profileName"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__DESCRIPTION", "description"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_BY", "createdBy"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_AT", "createdAt"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "PLATFORM_USER_PROFILE__USER_ID", "userCount"));
+		qs.addRelation("PLATFORM_PROFILE__PROFILE_ID", "PLATFORM_USER_PROFILE__PROFILE_ID", "left.join");
+		qs.addGroupBy(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_ID"));
+		qs.addGroupBy(new QueryColumnSelector("PLATFORM_PROFILE__PROFILE_NAME"));
+		qs.addGroupBy(new QueryColumnSelector("PLATFORM_PROFILE__DESCRIPTION"));
+		qs.addGroupBy(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_BY"));
+		qs.addGroupBy(new QueryColumnSelector("PLATFORM_PROFILE__CREATED_AT"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PLATFORM_PROFILE__PROFILE_NAME"));
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				String pid = (String) row[0];
-				Map<String, Object> profile = new HashMap<>();
-				profile.put("profileId", pid);
-				profile.put("profileName", row[1]);
-				profile.put("description", row[2]);
-				profile.put("createdBy", row[3]);
-				profile.put("createdAt", row[4]);
-				profile.put("userCount", getAssignedUserCount(securityDb, pid));
-				profiles.add(profile);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to get platform profiles", e);
-		}
-		return profiles;
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	// ─── Profile-Feature Assignment ──────────────────────────────────────────
@@ -261,19 +244,14 @@ public class PlatformProfileUtils {
 		qs.addSelector(new QueryColumnSelector("PLATFORM_PROFILE_FEATURE__ENABLED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PLATFORM_PROFILE_FEATURE__PROFILE_ID", "==", profileId));
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				String key = (String) row[0];
-				if (key != null && PREDEFINED_FEATURE_KEYS.contains(key)) {
-					Object enabledVal = row[1];
-					boolean enabled = enabledVal instanceof Boolean ? (Boolean) enabledVal
-							: (enabledVal != null && "true".equalsIgnoreCase(enabledVal.toString()));
-					result.put(key, enabled);
-				}
+		for (Object[] row : QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs)) {
+			String key = (String) row[0];
+			if (key != null && PREDEFINED_FEATURE_KEYS.contains(key)) {
+				Object enabledVal = row[1];
+				boolean enabled = enabledVal instanceof Boolean ? (Boolean) enabledVal
+						: (enabledVal != null && "true".equalsIgnoreCase(enabledVal.toString()));
+				result.put(key, enabled);
 			}
-		} catch (Exception e) {
-			classLogger.error("Failed to get platform profile features", e);
 		}
 		return result;
 	}
@@ -283,7 +261,7 @@ public class PlatformProfileUtils {
 	/** Assigns a user to a platform profile, replacing any existing assignment for that user. */
 	public static void assignUserProfile(String userId, String profileId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String actorId = prerna.reactor.appprofile.AppProfileUtils.getUserId(actor);
+		String actorId = getUserId(actor);
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("DELETE FROM PLATFORM_USER_PROFILE WHERE USER_ID=?");
@@ -338,7 +316,7 @@ public class PlatformProfileUtils {
 	 */
 	public static Map<String, Boolean> getUserFeatures(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String userId = prerna.reactor.appprofile.AppProfileUtils.getUserId(user);
+		String userId = getUserId(user);
 		String profileId = getAssignedProfileId(securityDb, userId);
 		if (profileId == null) {
 			Map<String, Boolean> all = new LinkedHashMap<>();
@@ -353,35 +331,26 @@ public class PlatformProfileUtils {
 	/** Returns the list of users assigned to the given platform profile with their name, email, and assignment metadata. */
 	public static List<Map<String, Object>> getPlatformProfileUsers(String profileId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		List<Map<String, Object>> users = new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__USER_ID"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__ASSIGNED_BY"));
-		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__ASSIGNED_AT"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__USER_ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__ASSIGNED_BY", "assignedBy"));
+		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__ASSIGNED_AT", "assignedAt"));
 		qs.addRelation("PLATFORM_USER_PROFILE__USER_ID", "SMSS_USER__ID", "left.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PLATFORM_USER_PROFILE__PROFILE_ID", "==", profileId));
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				Map<String, Object> user = new HashMap<>();
-				user.put("userId", row[0]);
-				user.put("name", row[1]);
-				user.put("email", row[2]);
-				user.put("assignedBy", row[3]);
-				user.put("assignedAt", row[4]);
-				users.add(user);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to get platform profile users", e);
-		}
-		return users;
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	// ─── Private helpers ─────────────────────────────────────────────────────
+
+	private static String getUserId(User user) {
+		if (user == null) return null;
+		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		return token != null ? token.getId() : null;
+	}
 
 	private static int getAssignedUserCount(IRDBMSEngine securityDb, String profileId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -390,30 +359,14 @@ public class PlatformProfileUtils {
 		countFn.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(countFn);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PLATFORM_USER_PROFILE__PROFILE_ID", "==", profileId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
-				return val instanceof Number ? ((Number) val).intValue() : 0;
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to count platform profile users", e);
-		}
-		return 0;
+		Integer count = QueryExecutionUtility.flushToInteger(securityDb, qs);
+		return count != null ? count : 0;
 	}
 
 	private static String getAssignedProfileId(IRDBMSEngine securityDb, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PLATFORM_USER_PROFILE__PROFILE_ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PLATFORM_USER_PROFILE__USER_ID", "==", userId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return (String) wrapper.next().getValues()[0];
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to get platform user profile", e);
-		}
-		return null;
+		return QueryExecutionUtility.flushToString(securityDb, qs);
 	}
 }

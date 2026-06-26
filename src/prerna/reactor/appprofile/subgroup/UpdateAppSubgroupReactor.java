@@ -25,10 +25,13 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.platformprofile;
+package prerna.reactor.appprofile.subgroup;
 
+import prerna.reactor.appprofile.AppProfileUtils;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,33 +39,39 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Removes a user's platform profile assignment, reverting them to the default fail-open feature set.
+ * Update a sub-group's name or description.
  *
- * <p>Pixel: {@code RemoveUserPlatformProfile(userId=["<userId>"]);}</p>
+ * <p>Pixel: {@code UpdateAppSubgroup(app=["appId"], subgroup=["subgroupId"], name=["newName"]);}</p>
  */
-public class RemoveUserPlatformProfileReactor extends AbstractReactor {
+public class UpdateAppSubgroupReactor extends AbstractReactor {
 
-	public RemoveUserPlatformProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey() };
-		this.keyRequired = new int[] { 1 };
+	private static final Logger classLogger = LogManager.getLogger(UpdateAppSubgroupReactor.class);
+
+	public UpdateAppSubgroupReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.SUBGROUP_ID.getKey(), ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.DESCRIPTION.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
+		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
+		String subgroupId = this.keyValue.get(ReactorKeysEnum.SUBGROUP_ID.getKey());
+		String name = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+
+		if (!AppProfileUtils.canManageProfiles(user, appId)) {
+			throw new IllegalArgumentException("User does not have permission to manage profiles for this app.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
-		PlatformProfileUtils.removeUserProfile(userId, user);
+		AppProfileUtils.updateSubgroup(appId, subgroupId, name, description, user);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User removed from platform profile."));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Subgroup updated."));
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Remove a user's platform profile assignment.";
+		return "Update a sub-group's name or description.";
 	}
 }
