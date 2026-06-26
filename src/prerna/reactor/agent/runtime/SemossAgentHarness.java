@@ -107,11 +107,17 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	@Override
+	public boolean supportsMediaInput() {
+		return true;
+	}
+
+	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
 		int maxSeconds = resolveMaxSeconds(paramMap);
+		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
@@ -126,7 +132,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (canSpawn) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
 		}
-		injectSubAgentTools(paramMap, subAgentTools);
+		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget. Released in finally.
 		String rootJobIdRegistered = null;
@@ -186,6 +192,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			int runMessageStartIndex = room.getMessages().size();
 
 			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
+					.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
 			inputMessageId = firstMsg.getMessageId();
@@ -237,9 +244,9 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
-					// Re-inject synthesized tools so the tool-result follow-up call sees a fresh
+					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
-					injectSubAgentTools(paramMap, subAgentTools);
+					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
@@ -260,7 +267,7 @@ public class SemossAgentHarness implements IAgentHarness {
 								ctx.getMaxReflections(), room.getId());
 
 						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
-						injectSubAgentTools(reflectionParams, subAgentTools);
+						injectHarnessTools(reflectionParams, defaultAndExplicitTools, subAgentTools);
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
 								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
 								.withParamMap(reflectionParams).build();
@@ -389,6 +396,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_SUBDIR);
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
+		paramMap.remove(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS);
 	}
 
 	private static String buildRuntimeContextPromptBlock(AgentRunContext ctx, Room room, Map<String, Object> paramMap) {
@@ -446,16 +454,26 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * Stuff a fresh copy of the synthesized subagent tool list into {@code paramMap.tools}.
-	 * No-op when {@code subAgentTools} is empty. We always replace (rather than merge) so
-	 * the in-place mutation done by {@code Room.appendToolsToParams} on the previous call
-	 * doesn't carry stale entries forward.
+	 * Stuff a fresh copy of the harness-owned tool list into {@code paramMap.tools}.
+	 * No-op when no harness tools are configured. We always replace (rather than merge)
+	 * so the in-place mutation done by {@code Room.appendToolsToParams} on the previous
+	 * call doesn't carry stale entries forward.
 	 */
-	private static void injectSubAgentTools(Map<String, Object> paramMap, List<Map<String, Object>> subAgentTools) {
-		if (paramMap == null || subAgentTools == null || subAgentTools.isEmpty()) {
+	private static void injectHarnessTools(Map<String, Object> paramMap, List<Map<String, Object>> baseTools,
+			List<Map<String, Object>> subAgentTools) {
+		if (paramMap == null) {
 			return;
 		}
-		paramMap.put("tools", new ArrayList<>(subAgentTools));
+		List<Map<String, Object>> tools = new ArrayList<>();
+		if (baseTools != null && !baseTools.isEmpty()) {
+			tools.addAll(baseTools);
+		}
+		if (subAgentTools != null && !subAgentTools.isEmpty()) {
+			tools.addAll(subAgentTools);
+		}
+		if (!tools.isEmpty()) {
+			paramMap.put("tools", tools);
+		}
 	}
 
 	/**
