@@ -510,6 +510,20 @@ public class AppProfileUtils {
 	// ─── User-Profile Assignment (multi-profile) ────────────────────────────
 
 	/**
+	 * Returns {@code true} if the given userId exists as a row in {@code SMSS_USER}.
+	 */
+	private static boolean userExists(IRDBMSEngine securityDb, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector countFn = new QueryFunctionSelector();
+		countFn.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		countFn.setFunction(QueryFunctionHelper.COUNT);
+		qs.addSelector(countFn);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		Integer count = QueryExecutionUtility.flushToInteger(securityDb, qs);
+		return count != null && count > 0;
+	}
+
+	/**
 	 * Assigns a user to a profile. A user can be in multiple profiles simultaneously.
 	 * If already assigned to this specific profile, this is a no-op.
 	 */
@@ -545,6 +559,74 @@ public class AppProfileUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	/**
+	 * Bulk-assigns a list of users to a profile for an app. Each user is processed independently:
+	 * users already in the profile are silently skipped, users not found in {@code SMSS_USER} are
+	 * recorded in the errors bucket. A user may be in multiple profiles simultaneously.
+	 *
+	 * @param appId     the app ID
+	 * @param userIds   non-empty list of {@code SMSS_USER.ID} values to assign
+	 * @param profileId the profile to assign users to
+	 * @param actor     the user performing the assignment
+	 * @return a map with keys: {@code assigned} ({@code List<String>}), {@code skipped}
+	 *         ({@code List<String>}), {@code errors} ({@code Map<String,String>})
+	 */
+	public static Map<String, Object> assignUsersToProfile(String appId, List<String> userIds, String profileId, User actor) {
+		List<String> assigned = new ArrayList<>();
+		List<String> skipped = new ArrayList<>();
+		Map<String, String> errors = new LinkedHashMap<>();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String actorId = getUserId(actor);
+
+		for (String userId : userIds) {
+			if (!userExists(securityDb, userId)) {
+				classLogger.warn("assignUsersToProfile: user '{}' not found in SMSS_USER — adding to errors", userId);
+				errors.put(userId, "User not found.");
+				continue;
+			}
+
+			SelectQueryStruct checkQs = new SelectQueryStruct();
+			QueryFunctionSelector countFn = new QueryFunctionSelector();
+			countFn.addInnerSelector(new QueryColumnSelector("APP_USER_PROFILE__USER_ID"));
+			countFn.setFunction(QueryFunctionHelper.COUNT);
+			checkQs.addSelector(countFn);
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__APP_ID", "==", appId));
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__USER_ID", "==", userId));
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_PROFILE__PROFILE_ID", "==", profileId));
+			Integer existingCount = QueryExecutionUtility.flushToInteger(securityDb, checkQs);
+			if (existingCount != null && existingCount > 0) {
+				classLogger.debug("assignUsersToProfile: user '{}' already in profile '{}' for app '{}' — skipping", userId, profileId, appId);
+				skipped.add(userId);
+				continue;
+			}
+
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(
+						"INSERT INTO APP_USER_PROFILE (APP_ID, USER_ID, PROFILE_ID, ASSIGNED_BY, ASSIGNED_AT) VALUES (?,?,?,?,?)");
+				ps.setString(1, appId);
+				ps.setString(2, userId);
+				ps.setString(3, profileId);
+				ps.setString(4, actorId);
+				ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
+				assigned.add(userId);
+			} catch (SQLException e) {
+				classLogger.error("assignUsersToProfile: DB error assigning user '{}'", userId, e);
+				errors.put(userId, "Database error during assignment.");
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		}
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("assigned", assigned);
+		result.put("skipped", skipped);
+		result.put("errors", errors);
+		return result;
 	}
 
 	/**
@@ -932,6 +1014,74 @@ public class AppProfileUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	/**
+	 * Bulk-assigns a list of users to a sub-group. Each user is processed independently:
+	 * users already in the sub-group are silently skipped, users not found in {@code SMSS_USER}
+	 * are recorded in the errors bucket.
+	 *
+	 * @param appId      the app ID
+	 * @param userIds    non-empty list of {@code SMSS_USER.ID} values to assign
+	 * @param subgroupId the sub-group to assign users to
+	 * @param actor      the user performing the assignment
+	 * @return a map with keys: {@code assigned} ({@code List<String>}), {@code skipped}
+	 *         ({@code List<String>}), {@code errors} ({@code Map<String,String>})
+	 */
+	public static Map<String, Object> assignUsersToSubgroup(String appId, List<String> userIds, String subgroupId, User actor) {
+		List<String> assigned = new ArrayList<>();
+		List<String> skipped = new ArrayList<>();
+		Map<String, String> errors = new LinkedHashMap<>();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String actorId = getUserId(actor);
+
+		for (String userId : userIds) {
+			if (!userExists(securityDb, userId)) {
+				classLogger.warn("assignUsersToSubgroup: user '{}' not found in SMSS_USER — adding to errors", userId);
+				errors.put(userId, "User not found.");
+				continue;
+			}
+
+			SelectQueryStruct checkQs = new SelectQueryStruct();
+			QueryFunctionSelector countFn = new QueryFunctionSelector();
+			countFn.addInnerSelector(new QueryColumnSelector("APP_USER_SUBGROUP__USER_ID"));
+			countFn.setFunction(QueryFunctionHelper.COUNT);
+			checkQs.addSelector(countFn);
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__APP_ID", "==", appId));
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__USER_ID", "==", userId));
+			checkQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("APP_USER_SUBGROUP__SUBGROUP_ID", "==", subgroupId));
+			Integer existingCount = QueryExecutionUtility.flushToInteger(securityDb, checkQs);
+			if (existingCount != null && existingCount > 0) {
+				classLogger.debug("assignUsersToSubgroup: user '{}' already in subgroup '{}' for app '{}' — skipping", userId, subgroupId, appId);
+				skipped.add(userId);
+				continue;
+			}
+
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(
+						"INSERT INTO APP_USER_SUBGROUP (APP_ID, USER_ID, SUBGROUP_ID, ASSIGNED_BY, ASSIGNED_AT) VALUES (?,?,?,?,?)");
+				ps.setString(1, appId);
+				ps.setString(2, userId);
+				ps.setString(3, subgroupId);
+				ps.setString(4, actorId);
+				ps.setTimestamp(5, Utility.getCurrentSqlTimestampUTC());
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
+				assigned.add(userId);
+			} catch (SQLException e) {
+				classLogger.error("assignUsersToSubgroup: DB error assigning user '{}'", userId, e);
+				errors.put(userId, "Database error during assignment.");
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		}
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("assigned", assigned);
+		result.put("skipped", skipped);
+		result.put("errors", errors);
+		return result;
 	}
 
 	/**

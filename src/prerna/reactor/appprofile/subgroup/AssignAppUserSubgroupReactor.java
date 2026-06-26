@@ -27,21 +27,28 @@
  *******************************************************************************/
 package prerna.reactor.appprofile.subgroup;
 
-import prerna.reactor.appprofile.AppProfileUtils;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.appprofile.AppProfileUtils;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Assign a user to a sub-group.
+ * Bulk-assigns one or more users to a sub-group. Users already in the sub-group are
+ * silently skipped; unknown users are returned in the {@code errors} bucket.
  *
- * <p>Pixel: {@code AssignAppUserSubgroup(app=["appId"], userId=["userId"], subgroup=["subgroupId"]);}</p>
+ * <p>Pixel: {@code AssignAppUserSubgroup(app=["appId"], userId=["user1", "user2"], subgroup=["subgroupId"]);}</p>
+ *
+ * <p>Returns a map with three keys: {@code assigned}, {@code skipped}, {@code errors}.</p>
  */
 public class AssignAppUserSubgroupReactor extends AbstractReactor {
 
@@ -57,20 +64,50 @@ public class AssignAppUserSubgroupReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String appId = this.keyValue.get(ReactorKeysEnum.APP.getKey());
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 		String subgroupId = this.keyValue.get(ReactorKeysEnum.SUBGROUP_ID.getKey());
+		List<String> userIds = getUserIds();
 
 		if (!AppProfileUtils.canAssignProfiles(user, appId)) {
 			throw new IllegalArgumentException("User does not have permission to assign users for this app.");
 		}
-		AppProfileUtils.assignUserSubgroup(appId, userId, subgroupId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User assigned to subgroup."));
+
+		Map<String, Object> result = AppProfileUtils.assignUsersToSubgroup(appId, userIds, subgroupId, user);
+		classLogger.debug("AssignAppUserSubgroup: assigned={}, skipped={}, errors={}",
+				((List<?>) result.get("assigned")).size(),
+				((List<?>) result.get("skipped")).size(),
+				((Map<?, ?>) result.get("errors")).size());
+
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(
+				"Bulk assign complete: " + ((List<?>) result.get("assigned")).size() + " assigned, "
+				+ ((List<?>) result.get("skipped")).size() + " skipped, "
+				+ ((Map<?, ?>) result.get("errors")).size() + " errors."));
 		return noun;
+	}
+
+	/**
+	 * Reads the {@code userId} parameter as a list. Validates that the list is non-empty
+	 * and that every item is a non-blank string.
+	 */
+	private List<String> getUserIds() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.USER_ID.getKey());
+		if (grs == null || grs.isEmpty()) {
+			throw new IllegalArgumentException("userId must be provided and must contain at least one value.");
+		}
+		List<String> userIds = grs.getAllStrValues();
+		if (userIds == null || userIds.isEmpty()) {
+			throw new IllegalArgumentException("userId must contain at least one value.");
+		}
+		for (String id : userIds) {
+			if (id == null || id.trim().isEmpty()) {
+				throw new IllegalArgumentException("userId list contains a blank entry — all userId values must be non-blank.");
+			}
+		}
+		return userIds;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Assign a user to a sub-group.";
+		return "Bulk-assign one or more users to a sub-group. Returns assigned, skipped, and errors buckets.";
 	}
 }

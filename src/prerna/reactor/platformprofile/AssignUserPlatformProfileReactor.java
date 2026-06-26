@@ -27,20 +27,33 @@
  *******************************************************************************/
 package prerna.reactor.platformprofile;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Assigns a user to a platform profile, replacing any existing profile assignment for that user.
+ * Bulk-assigns one or more users to a platform profile. Because a user may be in at most
+ * one platform profile at a time, users already in this profile are silently skipped; users
+ * in a different profile are re-assigned; unknown users are returned in the {@code errors} bucket.
  *
- * <p>Pixel: {@code AssignUserPlatformProfile(userId=["<userId>"], profileId=["<profileId>"]);}</p>
+ * <p>Pixel: {@code AssignUserPlatformProfile(userId=["user1", "user2"], profileId=["<profileId>"]);}</p>
+ *
+ * <p>Returns a map with three keys: {@code assigned}, {@code skipped}, {@code errors}.</p>
  */
 public class AssignUserPlatformProfileReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AssignUserPlatformProfileReactor.class);
 
 	public AssignUserPlatformProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.USER_ID.getKey(), ReactorKeysEnum.PROFILE_ID.getKey() };
@@ -54,16 +67,46 @@ public class AssignUserPlatformProfileReactor extends AbstractReactor {
 		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throw new IllegalArgumentException("User must be an admin to manage platform profiles.");
 		}
-		String userId = this.keyValue.get(ReactorKeysEnum.USER_ID.getKey());
 		String profileId = this.keyValue.get(ReactorKeysEnum.PROFILE_ID.getKey());
-		PlatformProfileUtils.assignUserProfile(userId, profileId, user);
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("User assigned to platform profile."));
+		List<String> userIds = getUserIds();
+
+		Map<String, Object> result = PlatformProfileUtils.assignUsersToProfile(userIds, profileId, user);
+		classLogger.debug("AssignUserPlatformProfile: assigned={}, skipped={}, errors={}",
+				((List<?>) result.get("assigned")).size(),
+				((List<?>) result.get("skipped")).size(),
+				((Map<?, ?>) result.get("errors")).size());
+
+		NounMetadata noun = new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage(
+				"Bulk assign complete: " + ((List<?>) result.get("assigned")).size() + " assigned, "
+				+ ((List<?>) result.get("skipped")).size() + " skipped, "
+				+ ((Map<?, ?>) result.get("errors")).size() + " errors."));
 		return noun;
+	}
+
+	/**
+	 * Reads the {@code userId} parameter as a list. Validates that the list is non-empty
+	 * and that every item is a non-blank string.
+	 */
+	private List<String> getUserIds() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.USER_ID.getKey());
+		if (grs == null || grs.isEmpty()) {
+			throw new IllegalArgumentException("userId must be provided and must contain at least one value.");
+		}
+		List<String> userIds = grs.getAllStrValues();
+		if (userIds == null || userIds.isEmpty()) {
+			throw new IllegalArgumentException("userId must contain at least one value.");
+		}
+		for (String id : userIds) {
+			if (id == null || id.trim().isEmpty()) {
+				throw new IllegalArgumentException("userId list contains a blank entry — all userId values must be non-blank.");
+			}
+		}
+		return userIds;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Assign a user to a platform profile.";
+		return "Bulk-assign one or more users to a platform profile. Returns assigned, skipped, and errors buckets.";
 	}
 }

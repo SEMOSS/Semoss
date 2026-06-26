@@ -258,6 +258,20 @@ public class PlatformProfileUtils {
 
 	// ─── User-Profile Assignment ─────────────────────────────────────────────
 
+	/**
+	 * Returns {@code true} if the given userId exists as a row in {@code SMSS_USER}.
+	 */
+	private static boolean userExists(IRDBMSEngine securityDb, String userId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector countFn = new QueryFunctionSelector();
+		countFn.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		countFn.setFunction(QueryFunctionHelper.COUNT);
+		qs.addSelector(countFn);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		Integer count = QueryExecutionUtility.flushToInteger(securityDb, qs);
+		return count != null && count > 0;
+	}
+
 	/** Assigns a user to a platform profile, replacing any existing assignment for that user. */
 	public static void assignUserProfile(String userId, String profileId, User actor) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -289,6 +303,82 @@ public class PlatformProfileUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	/**
+	 * Bulk-assigns a list of users to a platform profile. Each user is processed independently.
+	 * Because a user may be in at most one platform profile at a time, users already in this
+	 * profile are silently skipped; users in a different profile are re-assigned (prior assignment
+	 * removed first). Users not found in {@code SMSS_USER} are recorded in the errors bucket.
+	 *
+	 * @param userIds   non-empty list of {@code SMSS_USER.ID} values to assign
+	 * @param profileId the platform profile to assign users to
+	 * @param actor     the user performing the assignment
+	 * @return a map with keys: {@code assigned} ({@code List<String>}), {@code skipped}
+	 *         ({@code List<String>}), {@code errors} ({@code Map<String,String>})
+	 */
+	public static Map<String, Object> assignUsersToProfile(List<String> userIds, String profileId, User actor) {
+		List<String> assigned = new ArrayList<>();
+		List<String> skipped = new ArrayList<>();
+		Map<String, String> errors = new LinkedHashMap<>();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String actorId = getUserId(actor);
+
+		for (String userId : userIds) {
+			if (!userExists(securityDb, userId)) {
+				classLogger.warn("assignUsersToProfile: user '{}' not found in SMSS_USER — adding to errors", userId);
+				errors.put(userId, "User not found.");
+				continue;
+			}
+
+			String currentProfileId = getAssignedProfileId(securityDb, userId);
+			if (profileId.equals(currentProfileId)) {
+				classLogger.debug("assignUsersToProfile: user '{}' already in platform profile '{}' — skipping", userId, profileId);
+				skipped.add(userId);
+				continue;
+			}
+
+			// Remove any existing platform profile assignment before inserting the new one
+			if (currentProfileId != null) {
+				PreparedStatement delPs = null;
+				try {
+					delPs = securityDb.getPreparedStatement("DELETE FROM PLATFORM_USER_PROFILE WHERE USER_ID=?");
+					delPs.setString(1, userId);
+					delPs.execute();
+					if (!delPs.getConnection().getAutoCommit()) delPs.getConnection().commit();
+				} catch (SQLException e) {
+					classLogger.error("assignUsersToProfile: DB error removing existing assignment for user '{}'", userId, e);
+					errors.put(userId, "Database error removing existing assignment.");
+					continue;
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, delPs);
+				}
+			}
+
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(
+						"INSERT INTO PLATFORM_USER_PROFILE (USER_ID, PROFILE_ID, ASSIGNED_BY, ASSIGNED_AT) VALUES (?,?,?,?)");
+				ps.setString(1, userId);
+				ps.setString(2, profileId);
+				ps.setString(3, actorId);
+				ps.setTimestamp(4, Utility.getCurrentSqlTimestampUTC());
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
+				assigned.add(userId);
+			} catch (SQLException e) {
+				classLogger.error("assignUsersToProfile: DB error assigning user '{}'", userId, e);
+				errors.put(userId, "Database error during assignment.");
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		}
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("assigned", assigned);
+		result.put("skipped", skipped);
+		result.put("errors", errors);
+		return result;
 	}
 
 	/** Removes the platform profile assignment for the specified user. */
