@@ -50,7 +50,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.CopyFilesToEngineRunner;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -109,7 +108,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private boolean useHybridSearch = false;
 	private double hybridVectorWeight = DEFAULT_HYBRID_VECTOR_WEIGHT;
 	private double hybridKeywordGateThreshold = DEFAULT_HYBRID_KEYWORD_GATE_THRESHOLD;
-	// persistent keyword index; populated only when hybrid search is enabled
+	// in-memory keyword index (rebuilt from Chroma on open); used only when hybrid search is enabled
 	private ChromaBm25Index bm25Index;
 
 	@Override
@@ -169,58 +168,38 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
-	 * Load the persistent BM25 index from disk, or backfill it from the existing collection if the
-	 * index file is missing (e.g. first run after enabling hybrid, or a fresh cluster node). Failures
-	 * are non-fatal: hybrid search simply contributes no keyword signal until the index is populated.
+	 * Build the in-memory BM25 index from the chunks already stored in the Chroma collection. The
+	 * index holds no separate persisted state — Chroma is the source of truth — so it is rebuilt on
+	 * every engine open. Failures are non-fatal: hybrid search simply contributes no keyword signal.
 	 */
 	private void initBm25Index() {
-		File bm25Dir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + this.defaultIndexClass
-				+ FILE_SEPARATOR + "bm25");
-		this.bm25Index = new ChromaBm25Index(bm25Dir);
+		this.bm25Index = new ChromaBm25Index();
 		try {
-			this.bm25Index.load();
-			if (this.bm25Index.isEmpty()) {
-				backfillBm25IndexFromCollection();
+			Gson gson = new Gson();
+			Map<String, Object> getBody = new HashMap<>();
+			List<String> include = new ArrayList<>();
+			include.add("metadatas");
+			getBody.put("include", include);
+
+			String response = HttpHelperUtility.postRequestStringBody(
+					collection(this.url, this.tenant, this.dbName, this.collectionID, API_GET),
+					buildHeaders(), gson.toJson(getBody), ContentType.APPLICATION_JSON, null, null, null);
+
+			ChromaGetResponse parsed = gson.fromJson(response, ChromaGetResponse.class);
+			if (parsed == null || parsed.ids == null || parsed.metadatas == null) {
+				return;
 			}
+			int count = Math.min(parsed.ids.size(), parsed.metadatas.size());
+			for (int i = 0; i < count; i++) {
+				Map<String, Object> metadata = parsed.metadatas.get(i);
+				Object content = metadata.get(VectorDatabaseCSVTable.CONTENT);
+				Object source = metadata.get(VectorDatabaseCSVTable.SOURCE);
+				this.bm25Index.addRecord(parsed.ids.get(i), source == null ? null : source.toString(),
+						content == null ? "" : content.toString(), metadata);
+			}
+			classLogger.info("Built BM25 index for engine '{}' from {} chunk(s)", this.className, count);
 		} catch (Exception e) {
-			classLogger.error("Failed to initialize BM25 index for engine '{}'; keyword scoring disabled until rebuilt",
-					this.className, e);
-		}
-	}
-
-	/** Rebuild the BM25 index by reading every chunk currently stored in the Chroma collection. */
-	private void backfillBm25IndexFromCollection() {
-		Gson gson = new Gson();
-		Map<String, Object> getBody = new HashMap<>();
-		List<String> include = new ArrayList<>();
-		include.add("metadatas");
-		getBody.put("include", include);
-
-		String response = HttpHelperUtility.postRequestStringBody(
-				collection(this.url, this.tenant, this.dbName, this.collectionID, API_GET),
-				buildHeaders(), gson.toJson(getBody), ContentType.APPLICATION_JSON, null, null, null);
-
-		ChromaGetResponse parsed = gson.fromJson(response, ChromaGetResponse.class);
-		if (parsed == null || parsed.ids == null || parsed.metadatas == null) {
-			return;
-		}
-		int count = Math.min(parsed.ids.size(), parsed.metadatas.size());
-		for (int i = 0; i < count; i++) {
-			Map<String, Object> metadata = parsed.metadatas.get(i);
-			Object content = metadata.get(VectorDatabaseCSVTable.CONTENT);
-			Object source = metadata.get(VectorDatabaseCSVTable.SOURCE);
-			this.bm25Index.addRecord(parsed.ids.get(i), source == null ? null : source.toString(),
-					content == null ? "" : content.toString(), metadata);
-		}
-		this.bm25Index.save();
-		classLogger.info("Backfilled BM25 index for engine '{}' with {} chunk(s)", this.className, count);
-	}
-
-	/** Push the BM25 index file to cloud storage when running in a cluster (mirrors document sync). */
-	private void pushBm25IndexIfClustered() {
-		if (ClusterUtil.IS_CLUSTER && this.bm25Index != null) {
-			Thread.ofVirtual().start(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(),
-					new String[] { this.bm25Index.getFilePath() }));
+			classLogger.error("Failed to build BM25 index for engine '{}'; keyword scoring disabled", this.className, e);
 		}
 	}
 
@@ -376,7 +355,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		}
 
-		// keep the BM25 index in sync with the successful add
+		// keep the in-memory BM25 index in sync with the successful add
 		if (this.useHybridSearch && this.bm25Index != null && response != null && !response.trim().isEmpty()) {
 			for (int i = 0; i < ids.size(); i++) {
 				Map<String, Object> metadata = metadatas.get(i);
@@ -385,8 +364,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				this.bm25Index.addRecord(ids.get(i), source == null ? null : source.toString(),
 						content == null ? "" : content.toString(), metadata);
 			}
-			this.bm25Index.save();
-			pushBm25IndexIfClustered();
 		}
 
 	    return fileStatusList;
@@ -411,7 +388,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
     	}
 		
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
-		boolean bm25Changed = false;
 
 		// need to get the source names and then delete it based on the names
 		for (int fileIndex = 0; fileIndex < sourceNames.size(); fileIndex++) {
@@ -446,9 +422,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 						this.className);
 			}
 
-			// prune the same source from the BM25 index
-			if (this.useHybridSearch && this.bm25Index != null && this.bm25Index.removeBySource(source) > 0) {
-				bm25Changed = true;
+			// prune the same source from the in-memory BM25 index
+			if (this.useHybridSearch && this.bm25Index != null) {
+				this.bm25Index.removeBySource(source);
 			}
 
 			String documentName = Paths.get(fileName).getFileName().toString();
@@ -463,11 +439,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
-		}
-
-		if (bm25Changed) {
-			this.bm25Index.save();
-			pushBm25IndexIfClustered();
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {

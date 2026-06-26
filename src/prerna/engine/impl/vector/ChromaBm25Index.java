@@ -27,95 +27,39 @@
  *******************************************************************************/
 package prerna.engine.impl.vector;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 /**
- * Self-contained, persistent BM25 keyword index for a Chroma collection. Stores each chunk's id,
- * source, metadata, and per-term frequencies so keyword retrieval runs over the full corpus — not
- * just a vector candidate pool — and survives restarts. Chroma OSS has no usable native keyword
- * search over REST, so this provides it app-side; thread-safe via a read/write lock.
+ * In-memory BM25 keyword index for a Chroma collection. Chroma OSS has no usable native keyword
+ * search over REST, so this provides it app-side. The index is derived from the chunk {@code Content}
+ * that already lives in Chroma — it holds no separate persisted state and is rebuilt from the
+ * collection on engine open. Thread-safe via a read/write lock.
  */
 public class ChromaBm25Index {
 
-	private static final Logger classLogger = LogManager.getLogger(ChromaBm25Index.class);
-	private static final Gson GSON = new Gson();
-
 	private static final double BM25_K1 = 1.2;
 	private static final double BM25_B = 0.75;
-	private static final String INDEX_FILE_NAME = "bm25_index.json";
 
 	/** Key under which {@link #search} tags each result row with its chunk id (for fusion/dedup). */
 	public static final String ID_KEY = "_bm25_id";
 
 	/** One indexed chunk: enough to score it and return it without re-fetching from Chroma. */
 	private static class Record {
-		private String id;
 		private String source;
 		private Map<String, Object> metadata;
 		private Map<String, Integer> termFreqs;
 		private int length;
 	}
 
-	private final File indexFile;
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-	private Map<String, Record> records = new LinkedHashMap<>();
+	private final Map<String, Record> records = new LinkedHashMap<>();
 	private Map<String, Integer> docFreq = new LinkedHashMap<>();
 	private double avgDocLength = 0.0;
 	private boolean statsDirty = true;
-
-	public ChromaBm25Index(File dir) {
-		this.indexFile = new File(dir, INDEX_FILE_NAME);
-	}
-
-	/** Absolute path of the backing file (for cluster push/pull). */
-	public String getFilePath() {
-		return indexFile.getAbsolutePath();
-	}
-
-	/** Load the index from disk if a file exists; a no-op otherwise. */
-	public void load() {
-		lock.writeLock().lock();
-		try {
-			if (!indexFile.exists()) {
-				return;
-			}
-			String json = FileUtils.readFileToString(indexFile, StandardCharsets.UTF_8);
-			Map<String, Record> loaded = GSON.fromJson(json, new TypeToken<LinkedHashMap<String, Record>>() {}.getType());
-			this.records = (loaded != null) ? loaded : new LinkedHashMap<>();
-			this.statsDirty = true;
-		} catch (Exception e) {
-			classLogger.error("Failed to load BM25 index from {}; starting empty", indexFile.getAbsolutePath(), e);
-			this.records = new LinkedHashMap<>();
-		} finally {
-			lock.writeLock().unlock();
-		}
-	}
-
-	/** Persist the index to disk, creating the parent directory if needed. */
-	public void save() {
-		lock.readLock().lock();
-		try {
-			FileUtils.forceMkdirParent(indexFile);
-			FileUtils.writeStringToFile(indexFile, GSON.toJson(this.records), StandardCharsets.UTF_8);
-		} catch (Exception e) {
-			classLogger.error("Failed to save BM25 index to {}", indexFile.getAbsolutePath(), e);
-		} finally {
-			lock.readLock().unlock();
-		}
-	}
 
 	public boolean isEmpty() {
 		lock.readLock().lock();
@@ -129,7 +73,6 @@ public class ChromaBm25Index {
 	/** Add (or replace) one chunk. {@code metadata} is copied so later mutations don't leak in. */
 	public void addRecord(String id, String source, String content, Map<String, Object> metadata) {
 		Record record = new Record();
-		record.id = id;
 		record.source = source;
 		record.metadata = (metadata != null) ? new LinkedHashMap<>(metadata) : new LinkedHashMap<>();
 		record.termFreqs = new LinkedHashMap<>();
@@ -187,13 +130,13 @@ public class ChromaBm25Index {
 				return results;
 			}
 			int n = records.size();
-			for (Record record : records.values()) {
-				double score = scoreRecord(record, queryTerms, n);
+			for (Map.Entry<String, Record> entry : records.entrySet()) {
+				double score = scoreRecord(entry.getValue(), queryTerms, n);
 				if (score <= 0.0) {
 					continue;
 				}
-				Map<String, Object> row = new LinkedHashMap<>(record.metadata);
-				row.put(ID_KEY, record.id);
+				Map<String, Object> row = new LinkedHashMap<>(entry.getValue().metadata);
+				row.put(ID_KEY, entry.getKey());
 				row.put("Score", score);
 				results.add(row);
 			}
