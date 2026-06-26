@@ -43,6 +43,14 @@ public interface IAgentHarness {
     String getName();
 
     /**
+     * @return true when this harness can attach current-turn media to the initial
+     *         user message.
+     */
+    default boolean supportsMediaInput() {
+        return false;
+    }
+
+    /**
      * Execute the agentic loop and return a rich result.
      *
      * @param ctx fully-resolved context containing Room, model engine, insight, and parameters
