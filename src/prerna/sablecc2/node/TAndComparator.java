@@ -9,12 +9,12 @@ public final class TAndComparator extends Token
 {
     public TAndComparator()
     {
-        super.setText(" AND ");
+        super.setText("AND");
     }
 
     public TAndComparator(int line, int pos)
     {
-        super.setText(" AND ");
+        super.setText("AND");
         setLine(line);
         setPos(pos);
     }
