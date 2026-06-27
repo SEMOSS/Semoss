@@ -59,6 +59,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String DESCRIPTION = "description";
 	/** Request key for workspace-level system prompt. */
 	static final String SYSTEM_PROMPT = "systemPrompt";
+	/** Request key for the workspace/agent default model engine id (CONFIG_JSON.model_id). */
+	static final String MODEL_ID = "modelId";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */

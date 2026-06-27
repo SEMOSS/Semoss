@@ -59,8 +59,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS, MODEL_ID };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -203,6 +203,12 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 		}
 
+		// Default/fallback model engine for the agent. Presence-detected so omitting
+		// the key leaves any existing CONFIG_JSON.model_id untouched; passing it blank
+		// clears it (falling back to room MODEL_ID / options at run time).
+		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
+		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -219,7 +225,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// correctly from those.
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
-					platformSkills);
+					platformSkills, modelIdProvided, workspaceModelId);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
@@ -259,7 +265,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	 * {@code CONFIG_JSON.platform_skills[]}.
 	 */
 	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
+			Set<String> projects, Set<String> skills, Set<String> platformSkills, boolean modelIdProvided,
+			String modelId) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -269,6 +276,16 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			cfg.put("system_prompt", systemPrompt);
 		} else {
 			cfg.remove("system_prompt");
+		}
+
+		// model_id mirrors the platform_skills semantics: omitted -> leave untouched;
+		// provided-blank -> clear; provided -> set as the agent's default model.
+		if (modelIdProvided) {
+			if (modelId != null && !modelId.trim().isEmpty()) {
+				cfg.put("model_id", modelId.trim());
+			} else {
+				cfg.remove("model_id");
+			}
 		}
 
 		JSONArray mcpsJson = new JSONArray();
