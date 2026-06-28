@@ -173,6 +173,18 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		current.put("permission", permission);
 		current.put("number_collaborators", userCount);
 
+		// Full per-agent config blob (hooks, budgets, subagents, model_id, etc.) that
+		// the normalized fields above don't surface. Best-effort; omitted on absence so
+		// callers can still rely on the normalized mcp/skills/system_prompt fields.
+		try {
+			JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+			if (cfg != null) {
+				current.put("config_json", cfg.toMap());
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to load CONFIG_JSON for workspace '{}': {}", workspaceId, e.getMessage());
+		}
+
 		return new NounMetadata(current, PixelDataType.MAP);
 	}
 
