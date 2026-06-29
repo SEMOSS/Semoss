@@ -2516,6 +2516,88 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Adds a platform-skill slug to {@code WORKSPACE.CONFIG_JSON.platform_skills[]}.
+	 * Platform skills are disk-backed folders (see
+	 * {@code prerna.reactor.agent.skill.PlatformSkills}) - they are not Projects,
+	 * have no ids, and carry no {@code WORKSPACE_RESOURCE} row, so CONFIG_JSON is
+	 * the sole store. The array holds plain slug strings. Idempotent: a slug
+	 * already present is left untouched and no write is issued.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param slug        platform skill slug (folder name) to add
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void addPlatformSkillToWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (slug == null || slug.isEmpty()) {
+			throw new IllegalArgumentException("slug is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
+		if (platformSkills == null) {
+			platformSkills = new JSONArray();
+		}
+		for (int i = 0; i < platformSkills.length(); i++) {
+			if (slug.equals(platformSkills.optString(i, null))) {
+				return;
+			}
+		}
+		platformSkills.put(slug);
+		cfg.put("platform_skills", platformSkills);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Removes a platform-skill slug from
+	 * {@code WORKSPACE.CONFIG_JSON.platform_skills[]}. No-op (no write) when the
+	 * workspace has no CONFIG_JSON, no {@code platform_skills} array, or the slug
+	 * is not present.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param slug        platform skill slug to remove
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void removePlatformSkillFromWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (slug == null || slug.isEmpty()) {
+			throw new IllegalArgumentException("slug is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			return;
+		}
+		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
+		if (platformSkills == null || platformSkills.length() == 0) {
+			return;
+		}
+		JSONArray kept = new JSONArray();
+		boolean removed = false;
+		for (int i = 0; i < platformSkills.length(); i++) {
+			String existing = platformSkills.optString(i, null);
+			if (slug.equals(existing)) {
+				removed = true;
+				continue;
+			}
+			if (existing != null) {
+				kept.put(existing);
+			}
+		}
+		if (!removed) {
+			return;
+		}
+		cfg.put("platform_skills", kept);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
 	 * Returns paginated room entries for a workspace visible to the requesting
 	 * user.
 	 *
@@ -3604,17 +3686,39 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Removes the SKILL__ row and any WORKSPACE_RESOURCE__ rows pointing at this
-	 * skill. Does NOT delete the underlying Project - callers (typically the
-	 * project-delete path) own that.
+	 * Removes the SKILL__ row, any WORKSPACE_RESOURCE__ rows pointing at this skill,
+	 * and the matching {@code CONFIG_JSON.skills[]} mirror entry in every workspace
+	 * that referenced it. Does NOT delete the underlying Project - callers (typically
+	 * the project-delete path) own that.
+	 *
+	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
+	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping the
+	 * mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
+	 * still returns, so the run-time {@code SkillStager} fails it every run with
+	 * "not found in SKILL__". The referencing workspaces are captured before the row
+	 * deletes so the mirror can be scrubbed afterward.
 	 *
 	 * @param skillId skill identifier
 	 */
 	public static void deleteSkillEntry(String skillId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
+		List<String> affectedWorkspaceIds = new ArrayList<>();
 		try {
 			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement sel = con.prepareStatement(
+					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				sel.setString(1, "SKILL");
+				sel.setString(2, skillId);
+				try (ResultSet rs = sel.executeQuery()) {
+					while (rs.next()) {
+						String wsId = rs.getString(1);
+						if (wsId != null && !wsId.trim().isEmpty()) {
+							affectedWorkspaceIds.add(wsId);
+						}
+					}
+				}
+			}
 			try (PreparedStatement ps1 = con
 					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
 					PreparedStatement ps2 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
@@ -3632,6 +3736,16 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+
+		for (String workspaceId : affectedWorkspaceIds) {
+			try {
+				removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
+			} catch (Exception e) {
+				classLogger.warn(
+						"Deleted skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
+						skillId, workspaceId, e.getMessage());
+			}
 		}
 	}
 

@@ -74,7 +74,7 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 		if (engineId == null || engineId.trim().isEmpty()) {
 			throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
 		}
-		String       systemPrompt   = room.getRoomOrWorkspaceSystemPrompt();
+			String       systemPrompt   = room.getSystemPromptForModel();
 		if (systemPrompt == null) {
 			systemPrompt = "";
 		}

@@ -9,12 +9,12 @@ public final class TOrComparator extends Token
 {
     public TOrComparator()
     {
-        super.setText(" OR ");
+        super.setText("OR");
     }
 
     public TOrComparator(int line, int pos)
     {
-        super.setText(" OR ");
+        super.setText("OR");
         setLine(line);
         setPos(pos);
     }

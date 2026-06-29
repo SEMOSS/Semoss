@@ -41,7 +41,6 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
@@ -70,8 +69,9 @@ import prerna.util.Constants;
  *   <li>{@code name}         - display name. Required <i>only</i> when the frontmatter omits one. When
  *                              both are supplied, frontmatter wins.</li>
  *   <li>{@code description}  - same rule as {@code name}: required only when frontmatter omits it.</li>
- *   <li>{@code origin}       - provenance, default {@link Skill#ORIGIN_USER}. Setting this to
- *                              {@link Skill#ORIGIN_PLATFORM} requires platform admin (optional)</li>
+ *   <li>{@code origin}       - provenance, default {@link Skill#ORIGIN_USER}. Accepts USER,
+ *                              IMPORTED, or GENERATED; {@link Skill#ORIGIN_PLATFORM} is rejected
+ *                              (platform skills ship as folders, not Projects). (optional)</li>
  * </ul>
  *
  * <p>When the supplied {@code skillContent} already starts with a {@code ---} frontmatter
@@ -133,9 +133,10 @@ public class CreateSkillReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		String createdBy = resolveUserId(user);
-		boolean isPlatform = Skill.ORIGIN_PLATFORM.equals(origin);
-		if (isPlatform && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
-			throw new IllegalArgumentException("Only platform admins can create platform skills");
+		if (Skill.ORIGIN_PLATFORM.equals(origin)) {
+			throw new IllegalArgumentException(
+					"origin=PLATFORM is not supported here - platform skills ship as folders under "
+							+ "<BASE_FOLDER>/skills/. Use origin USER, IMPORTED, or GENERATED.");
 		}
 
 		String skillId = GUID.v7().toString();
@@ -145,7 +146,7 @@ public class CreateSkillReactor extends AbstractReactor {
 				: Skill.buildFrontmatter(name, description) + skillContent;
 
 		try {
-			ProjectHelper.createSkillProject(skillId, name, /* global */ isPlatform,
+			ProjectHelper.createSkillProject(skillId, name, /* global */ false,
 					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
 
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(skillId);
@@ -214,8 +215,8 @@ public class CreateSkillReactor extends AbstractReactor {
 					+ "Frontmatter wins when both are supplied";
 		}
 		if (ORIGIN.equals(key)) {
-			return "Provenance: USER | PLATFORM | IMPORTED | GENERATED. Default USER. "
-					+ "Setting to PLATFORM requires platform admin.";
+			return "Provenance: USER | IMPORTED | GENERATED. Default USER. "
+					+ "PLATFORM is rejected - platform skills ship as folders under <BASE_FOLDER>/skills/.";
 		}
 		return super.getDescriptionForKey(key);
 	}
