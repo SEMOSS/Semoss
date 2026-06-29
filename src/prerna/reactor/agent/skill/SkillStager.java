@@ -165,21 +165,94 @@ public final class SkillStager {
 			return StageOutcome.FAILED;
 		}
 
+		return stageFromSource(skillsRoot, slug, sourceDir, skillId);
+	}
+
+	/**
+	 * Stage every platform skill named in {@code slugs} under
+	 * {@code <workingDir>/.claude/skills/}. Platform skills are disk-backed folders
+	 * (see {@link PlatformSkills}); each slug resolves to
+	 * {@code <BASE_FOLDER>/skills/<slug>/}. Skipped silently when {@code workingDir}
+	 * is blank or {@code slugs} is empty.
+	 *
+	 * <p>Call this BEFORE {@link #stage} so that a user's own registry skill of the
+	 * same slug, staged last, shadows the built-in one.
+	 *
+	 * @param workingDir agent's working directory
+	 * @param slugs      platform skill folder names to stage
+	 */
+	public static void stagePlatform(String workingDir, List<String> slugs) {
+		if (workingDir == null || workingDir.trim().isEmpty()) {
+			return;
+		}
+		if (slugs == null || slugs.isEmpty()) {
+			return;
+		}
+
+		Path skillsRoot = Paths.get(workingDir, CLAUDE_DIR, SKILLS_DIR);
+		try {
+			Files.createDirectories(skillsRoot);
+		} catch (IOException e) {
+			logger.warn("SkillStager: failed to create skills root '{}': {}", skillsRoot, e.getMessage());
+			return;
+		}
+
+		int staged = 0;
+		int skipped = 0;
+		int failed = 0;
+		for (String slug : slugs) {
+			if (slug == null || slug.trim().isEmpty()) {
+				failed++;
+				continue;
+			}
+			try {
+				StageOutcome outcome = stagePlatformOne(skillsRoot, slug.trim());
+				if (outcome == StageOutcome.STAGED) staged++;
+				else if (outcome == StageOutcome.CACHED) skipped++;
+				else failed++;
+			} catch (Exception e) {
+				logger.warn("SkillStager: failed to stage platform skill '{}': {}", slug, e.getMessage(), e);
+				failed++;
+			}
+		}
+		logger.info("SkillStager: [platform] workingDir='{}' total={} staged={} cached={} failed={}",
+				workingDir, slugs.size(), staged, skipped, failed);
+	}
+
+	private static StageOutcome stagePlatformOne(Path skillsRoot, String slug) throws Exception {
+		Path sourceDir = PlatformSkills.resolveDir(slug);
+		if (sourceDir == null) {
+			logger.warn("SkillStager: platform skill '{}' not found under '{}'; skipping", slug,
+					PlatformSkills.baseDir());
+			return StageOutcome.FAILED;
+		}
+		return stageFromSource(skillsRoot, slug, sourceDir, "platform:" + slug);
+	}
+
+	/**
+	 * Shared staging core: fingerprint the source, short-circuit on an unchanged
+	 * cache, otherwise wipe-and-copy and refresh the {@code .skill-meta} sidecar.
+	 * The {@code identity} is the cache key written into (and matched against) the
+	 * sidecar - the project id for registry skills, {@code "platform:<slug>"} for
+	 * platform skills - so the two source kinds never alias on a shared slug.
+	 */
+	private static StageOutcome stageFromSource(Path skillsRoot, String slug, Path sourceDir, String identity)
+			throws IOException {
 		long sourceFingerprint = computeFingerprint(sourceDir);
 		Path targetDir = skillsRoot.resolve(slug);
-		if (cacheHit(targetDir, slug, sourceFingerprint)) {
+		if (cacheHit(targetDir, identity, sourceFingerprint)) {
 			return StageOutcome.CACHED;
 		}
 
 		if (Files.exists(targetDir)) {
 			deleteTree(targetDir);
-			logger.info("SkillStager: re-staging skill '{}' (slug='{}') - wiped existing dir", skillId, slug);
+			logger.info("SkillStager: re-staging skill '{}' (slug='{}') - wiped existing dir", identity, slug);
 		}
 		Files.createDirectories(targetDir);
 
 		copyTree(sourceDir, targetDir);
-		writeMetaSidecar(targetDir, skillId, sourceFingerprint);
-		logger.info("SkillStager: staged skill '{}' from '{}' into '{}'", skillId, sourceDir, targetDir);
+		writeMetaSidecar(targetDir, identity, sourceFingerprint);
+		logger.info("SkillStager: staged skill '{}' from '{}' into '{}'", identity, sourceDir, targetDir);
 		return StageOutcome.STAGED;
 	}
 
