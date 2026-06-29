@@ -40,6 +40,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEntityDefaultTokenUtils;
 import prerna.auth.utils.SecurityModelTokenUtils;
 import prerna.auth.utils.SecurityPrincipalTokenLimitUtils;
+import prerna.auth.utils.SecurityQueryRateLimitUtils;
 import prerna.auth.utils.SecurityRoomTokenUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -75,6 +76,7 @@ public final class ModelUsageRestrictionUtility {
 	public static final String ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for room level: This room has used %d tokens, but the limit is %d";
 	public static final String ROOM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Input token limit exceeded for room level: This room has used %d input tokens, but the limit is %d";
 	public static final String ROOM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Output token limit exceeded for room level: This room has used %d output tokens, but the limit is %d";
+	public static final String USER_QUERY_RATE_LIMIT_EXCEEDED_MESSAGE = "Query rate limit exceeded for user level: You have made %d requests, but the limit is %d for this %s";
 
 	/**
 	 * 
@@ -112,6 +114,8 @@ public final class ModelUsageRestrictionUtility {
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId, String projectId, String roomId) {
 		Map<String, Object> userRestrictionMap = new HashMap<>();
 		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
+
+		checkUserQueryRateRestriction(user, currentDateTime);
 
 		// platform room-policy check against this room's usage
 		if (roomId != null && !roomId.trim().isEmpty()) {
@@ -186,6 +190,34 @@ public final class ModelUsageRestrictionUtility {
 					throw new IllegalArgumentException(String.format(PLATFORM_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
 							computeUsage.doubleValue(), maxResponseTime.doubleValue()));
 				}
+			}
+		}
+	}
+
+	private static void checkUserQueryRateRestriction(User user, ZonedDateTime currentDateTime) {
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		List<Map<String, Object>> queryLimits = SecurityQueryRateLimitUtils.getEffectiveQueryRateLimits(userId);
+		if (queryLimits == null || queryLimits.isEmpty()) {
+			return;
+		}
+
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			throw new IllegalArgumentException(
+					"Query rate limits have been enabled but inference logs are not configured on the platform. Please reach out to a system administrator");
+		}
+
+		for (Map<String, Object> limit : queryLimits) {
+			Number maxRequests = (Number) limit.get("maxRequests");
+			if (maxRequests == null || maxRequests.longValue() < 0) {
+				continue;
+			}
+
+			String frequency = (String) limit.get("usageFrequency");
+			Number requestCount = ModelInferenceLogsUtils.getQueryCountForUser(user, currentDateTime, frequency);
+			if (requestCount != null && requestCount.longValue() >= maxRequests.longValue()) {
+				throw new IllegalArgumentException(String.format(USER_QUERY_RATE_LIMIT_EXCEEDED_MESSAGE,
+						requestCount.longValue(), maxRequests.longValue(),
+						frequency == null ? "period" : frequency.toLowerCase()));
 			}
 		}
 	}

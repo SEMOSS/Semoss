@@ -3822,6 +3822,43 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Count user model requests during a frequency window. INPUT message rows map to
+	 * user requests, while RESPONSE rows are excluded to avoid double-counting.
+	 */
+	public static Number getQueryCountForUser(User user, ZonedDateTime currentDateTime, String frequency) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		String query = "SELECT COUNT(MESSAGE_ID) AS \"current_usage\" FROM MESSAGE "
+				+ "WHERE USER_ID=? AND MESSAGE_TYPE=? AND DATE_CREATED BETWEEN ? AND ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			ps.setString(1, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setString(2, "INPUT");
+			ps.setTimestamp(3, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(4, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				return retNum == null ? 0 : retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate query count for userId '{}', frequency '{}'.",
+					user.getAccessToken(user.getLogins().get(0)).getId(), frequency, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return 0;
+	}
+
+	/**
 	 * Updates metadata on a skill. Null arguments leave a field untouched.
 	 *
 	 * @param skillId     skill identifier

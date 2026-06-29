@@ -72,6 +72,12 @@ import prerna.auth.utils.reactors.SetEngineTeamTokenLimitReactor;
 import prerna.auth.utils.reactors.SetEngineUserTokenLimitReactor;
 import prerna.auth.utils.reactors.SetProjectTeamTokenLimitReactor;
 import prerna.auth.utils.reactors.SetProjectUserTokenLimitReactor;
+import prerna.auth.utils.reactors.admin.AdminGetQueryRateLimitsReactor;
+import prerna.auth.utils.reactors.admin.AdminGetRoomTokenLimitsReactor;
+import prerna.auth.utils.reactors.admin.AdminRemoveQueryRateLimitReactor;
+import prerna.auth.utils.reactors.admin.AdminRemoveRoomTokenLimitReactor;
+import prerna.auth.utils.reactors.admin.AdminSetQueryRateLimitReactor;
+import prerna.auth.utils.reactors.admin.AdminSetRoomTokenLimitReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
 import prerna.reactor.algorithms.CreateNLPVizReactor;
@@ -621,6 +627,12 @@ public class ReactorFactory {
 		reactorHash.put("GetProjectTeamTokenLimits", GetProjectTeamTokenLimitsReactor.class);
 		reactorHash.put("SetProjectTeamTokenLimit", SetProjectTeamTokenLimitReactor.class);
 		reactorHash.put("RemoveProjectTeamTokenLimit", RemoveProjectTeamTokenLimitReactor.class);
+		reactorHash.put("AdminGetRoomTokenLimits", AdminGetRoomTokenLimitsReactor.class);
+		reactorHash.put("AdminSetRoomTokenLimit", AdminSetRoomTokenLimitReactor.class);
+		reactorHash.put("AdminRemoveRoomTokenLimit", AdminRemoveRoomTokenLimitReactor.class);
+		reactorHash.put("AdminGetQueryRateLimits", AdminGetQueryRateLimitsReactor.class);
+		reactorHash.put("AdminSetQueryRateLimit", AdminSetQueryRateLimitReactor.class);
+		reactorHash.put("AdminRemoveQueryRateLimit", AdminRemoveQueryRateLimitReactor.class);
 
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
