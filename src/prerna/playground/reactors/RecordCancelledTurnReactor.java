@@ -47,8 +47,8 @@ import prerna.util.Utility;
  * substituting an assistant response built from the FE-supplied parts array.
  *
  * Called by the FE immediately after StopPixelExecution. Inputs:
- *   command       — user prompt (plain text)
- *   responseParts — JSON array of THINKING/TEXT parts the FE accumulated
+ * command — user prompt (plain text)
+ * responseParts — JSON array of THINKING/TEXT parts the FE accumulated
  *
  * Returns the persisted inputMessage and responseMessage so the FE can sync
  * its placeholder IDs without a separate room reload.
@@ -113,7 +113,7 @@ public class RecordCancelledTurnReactor extends AbstractReactor {
 
 		// Build the visible user input — matches AskPlaygroundReactor's build so
 		// the persisted message looks identical to what a non-cancelled turn would.
-		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(room.getEffectiveSystemPrompt())
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(room.getSystemPromptForModel())
 				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
