@@ -36,177 +36,128 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
-import prerna.util.Constants;
 import prerna.util.FstUtil;
 
 public class SocketClientHandler implements Runnable {
 
 	private static final Logger classLogger = LogManager.getLogger(SocketClientHandler.class);
 
-    private int offset = 4;
-	
-    private boolean done = false;    
+	private int offset = 4;
 
-    private byte[] lenBytes = null;
-    private int lenBytesReadSoFar = 0;
-    private byte[] curBytes = null;
+	private boolean done = false;
+
+	private byte[] lenBytes = null;
+	private int lenBytesReadSoFar = 0;
+	private byte[] curBytes = null;
 	private int bytesReadSoFar = 0;
-	
+
 	private SocketClient socketClient = null;
-    private InputStream in = null;
+	private InputStream in = null;
 
-    // I think we should move this also into stream reader or move stream reader here
+	public void setClient(SocketClient socketClient) {
+		this.socketClient = socketClient;
+	}
 
-    public void setClient(SocketClient socketClient) {
-    	this.socketClient = socketClient;
-    }
-    
 	public void setInputStream(InputStream in) {
 		this.in = in;
 	}
-    
-	public void printObject(Object obj) {
-		// we know this is a payload struct
-		// just print it
-		PayloadStruct ps = (PayloadStruct)obj;
-		//System.err.println("<< Payload " + ps.epoc + " bytes left " + totalBytes);
-		
-		// this is where we inform the nc that this is done
-		// will come to it 
+
+	public void handleResponse(Object obj) {
+		PayloadStruct ps = (PayloadStruct) obj;
 		try {
-			if(ps != null)
-			{
-				if(ps.ex != null)
-				{
-					System.out.println("Payload came with an exception " + ps.ex);
-					//throw ps.ex;
-				}
-				
-				if(ps.payload != null)
-				{
-					//System.out.println("Got the response for  " + ps.methodName + "  " + ps.epoc);
+			if (ps != null) {
+				if (ps.ex != null) {
+					classLogger.warn("Payload for epoc {} came with an exception: {}", ps.epoc, ps.ex);
 				}
 				String id = ps.epoc;
-				
-				PayloadStruct lock = (PayloadStruct)socketClient.requestMap.remove(id);
-				
-				// put it in response
+
+				// hand the response to the waiting caller and wake it
+				PayloadStruct lock = socketClient.requestMap.remove(id);
 				socketClient.responseMap.put(id, ps);
-				
-				
-				if(lock != null)
-				{
-					synchronized(lock)
-					{
-						lock.notifyAll();
-					}
+				if (lock != null) {
+					lock.signalResponse();
 				}
-			}		
-		} catch(Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-		}		
+			}
+		} catch (Exception ex) {
+			classLogger.error("Error handling incoming payload response for epoc: {}", ps != null ? ps.epoc : null, ex);
+		}
 	}
-	
+
 	@Override
 	public void run() {
-		while(!done) {
-			try
-			{
+		while (!done) {
+			try {
 				int bytesToRead = offset;
 				int readBytes = 0;
-				if(lenBytes != null)
-				{
-					bytesToRead  = ByteBuffer.wrap(lenBytes).getInt();
-					if(curBytes == null)
-						curBytes = new byte[bytesToRead]; // initialize only if it is not null
+				if (lenBytes != null) {
+					bytesToRead = ByteBuffer.wrap(lenBytes).getInt();
+					if (curBytes == null) {
+						curBytes = new byte[bytesToRead];
+					}
 
-					readBytes = in.read(curBytes, bytesReadSoFar, (curBytes.length - bytesReadSoFar)); // block
-					//logger.info("  Need bytes " + curBytes.length  + " <> Got bytes " + readBytes);
+					readBytes = in.read(curBytes, bytesReadSoFar, (curBytes.length - bytesReadSoFar)); // blocking read
 					bytesReadSoFar = bytesReadSoFar + readBytes;
-					
-					if(bytesReadSoFar == curBytes.length && readBytes != -1)
-					{
-						try
-						{
-							Object retObject = FstUtil.deserialize(curBytes);
-							PayloadStruct ps = (PayloadStruct)retObject;
-							classLogger.info("  Received payload  " + ps.epoc  + " <> bytes " + curBytes.length);
-							if(retObject != null)
-							{
-								if(ps.response)
-								{
-									//logger.info("In the got response block ");
-									printObject(retObject);
+
+					if (bytesReadSoFar == curBytes.length && readBytes != -1) {
+						try {
+							PayloadStruct ps = (PayloadStruct) FstUtil.deserialize(curBytes);
+							if (ps != null) {
+								classLogger.info("Received payload {} of {} bytes", ps.epoc, curBytes.length);
+								if (ps.response) {
+									handleResponse(ps);
+									lenBytes = null;
+									bytesReadSoFar = 0;
+									lenBytesReadSoFar = 0;
+									curBytes = null;
+								} else if (ps.operation == PayloadStruct.OPERATION.ENGINE) {
+									// a reverse request from the server - run it and send the result back
+									NativePyEngineWorker ew = new NativePyEngineWorker(socketClient.getUser(), ps);
+									ew.run();
+									socketClient.executeCommand(ew.getOutput());
+
 									lenBytes = null;
 									bytesReadSoFar = 0;
 									lenBytesReadSoFar = 0;
 									curBytes = null;
 								}
-								else
-								{
-									// there could be other operations 
-									// for now it is the engine
-									//logger.info("In the request block...");
-									if(ps.operation == PayloadStruct.OPERATION.ENGINE)
-									{
-										// old way
-										/*
-										Thread ew = new Thread(new EngineWorker((SocketClient)socketClient, ps));
-										ew.start();
-										*/
-										NativePyEngineWorker ew = new NativePyEngineWorker(((SocketClient)socketClient).getUser(), ps);
-										ew.run();
-										PayloadStruct ps2 = ew.getOutput();
-										socketClient.executeCommand(ps2);
-										
-										lenBytes = null;
-										bytesReadSoFar = 0;
-										lenBytesReadSoFar = 0;
-										curBytes = null;
-									}
-								} 
-							}
-							else
-							{
-								classLogger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);	
+							} else {
+								classLogger.warn("Failed to deserialize payload of {} bytes (bytes read {})",
+										curBytes.length, readBytes);
 								lenBytes = null;
 								bytesReadSoFar = 0;
 								lenBytesReadSoFar = 0;
 								curBytes = null;
 							}
-						} catch(Exception ex) 
-						{
-							classLogger.info("Failed to deserialize " + curBytes.length + " <> bytes read " + readBytes);
-							// I need somehting to get rid of this, we have a bad packet
-							// dont know why we have a bad packet in the first place
-							// the problem here is the thread will hang
-							// we need some way to catch the next one and invalidate the previous ones ?
+						} catch (Exception ex) {
+							// bad packet - reset the buffers and continue so the reader thread
+							// recovers on the next message instead of hanging
+							int badPacketLength = curBytes.length;
 							lenBytes = null;
 							bytesReadSoFar = 0;
 							lenBytesReadSoFar = 0;
-							curBytes = null;							
-							classLogger.error(Constants.STACKTRACE, ex);
+							curBytes = null;
+							classLogger.error("Failed to deserialize payload of {} bytes (bytes read {})",
+									badPacketLength, readBytes, ex);
 						}
 					}
-				}
-				else
-				{
-					if(lenBytes == null)
-						lenBytes = new byte[bytesToRead]; // block it
-					int bytesRead = in.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // block
+				} else {
+					if (lenBytes == null) {
+						lenBytes = new byte[bytesToRead];
+					}
+					int bytesRead = in.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // blocking
+																													// read
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
-				}	
-				
-				if(readBytes < 0) // stream is closed kill this thread
+				}
+
+				if (readBytes < 0) // stream is closed - kill this thread
 				{
 					done = true;
 					this.socketClient.crash();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("IO error reading from socket; crashing the client", e);
 				done = true;
 				this.socketClient.crash();
-				// at some point we can relisten if we want.. 
 			}
 		}
 	}

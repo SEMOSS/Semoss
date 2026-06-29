@@ -45,8 +45,6 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.egit.github.core.client.GitHubClient;
-import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
@@ -67,17 +65,18 @@ import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.LargeObjectException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
+import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -105,89 +104,6 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * Convenience overload of {@link #checkRemoteRepositoryO(String, String, int)}
-	 * that starts the attempt counter at {@code 1}.
-	 *
-	 * @param repositoryName the GitHub repository, either {@code owner/repo} or
-	 *                       just {@code repo} (the owner is resolved from the OAuth
-	 *                       user)
-	 * @param oauth          OAuth2 token used to authenticate against GitHub; may
-	 *                       be {@code null}
-	 * @return {@code true} if the repository was found, {@code false} otherwise
-	 */
-	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth) {
-		int attempt = 1;
-		return checkRemoteRepositoryO(repositoryName, oauth, attempt);
-	}
-
-	/**
-	 * Checks whether the given GitHub repository exists and is reachable using the
-	 * supplied OAuth token. When {@code oauth} is provided the owner is resolved
-	 * from the authenticated user if {@code repositoryName} does not already
-	 * contain a {@code /}. On an {@link HttpException} this attempts to install the
-	 * github.com certificate and retries by recursively re-invoking itself with an
-	 * incremented attempt counter, giving up once {@code attempt} reaches
-	 * {@code 3}.
-	 *
-	 * @param repositoryName the GitHub repository, either {@code owner/repo} or
-	 *                       just {@code repo} (the owner is resolved from the OAuth
-	 *                       user)
-	 * @param oauth          OAuth2 token used to authenticate against GitHub; may
-	 *                       be {@code null}
-	 * @param attempt        the current attempt number; retries stop once this
-	 *                       reaches {@code 3}
-	 * @return {@code true} if the repository was found, {@code false} if the
-	 *         maximum number of attempts was exhausted
-	 * @throws IllegalArgumentException if the repository cannot be found (lookup
-	 *                                  fails with a non-HTTP exception)
-	 */
-	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth, int attempt) {
-
-		boolean returnVal = true;
-		String[] repoParts = null;
-
-		if (attempt < 3) {
-			try {
-				GitHubClient client = GitHubClient.createClient("https://github.com");
-				if (oauth != null) {
-					client.setOAuth2Token(oauth);
-					GitHub gh = GitUtils.login(oauth);
-					classLogger.debug(gh.getMyself().getLogin());
-					if (!repositoryName.contains("/")) {
-						repositoryName = gh.getMyself().getLogin() + "/" + repositoryName;
-					}
-				}
-
-				repoParts = repositoryName.split("/");
-
-				RepositoryService service = new RepositoryService(client);
-
-				service.getRepository(repoParts[0], repoParts[1]);
-
-			} catch (HttpException ex) {
-				classLogger.error("Failed to check remote repository access using OAuth: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to check remote repository access using OAuth: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				checkRemoteRepositoryO(repositoryName, oauth, attempt);
-			} catch (Exception ex) {
-				if (repoParts != null) {
-					throw new IllegalArgumentException(
-							"Cannot find repo at " + repositoryName + " for username " + repoParts[0]);
-				} else {
-					throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for null username ");
-				}
-			}
-			return returnVal;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Adds (or overwrites) a named git remote on the local repository pointing at
 	 * the GitHub URL {@code https://github.com/<username>/<repoName>} and saves the
 	 * updated stored config. The remote is named after {@code repoName} and its
@@ -207,6 +123,8 @@ public class GitRepoUtils {
 			config = thisRepo.getConfig();
 			config.setString("remote", repoName, "url", "https://github.com/" + username + "/" + repoName);
 			config.setString("remote", repoName, "fetch", "+refs/heads/*:refs/remotes/" + repoName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
 			config.save();
 		} catch (IOException e) {
 			classLogger.error("Failed to add git remote: {}", e.getMessage(), e);
@@ -236,6 +154,8 @@ public class GitRepoUtils {
 			StoredConfig config = thisRepo.getConfig();
 			config.setString("remote", remoteName, "url", remoteUrl);
 			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
 			config.save();
 
 			String branch = thisRepo.getBranch();
@@ -272,6 +192,8 @@ public class GitRepoUtils {
 			StoredConfig config = thisRepo.getConfig();
 			config.setString("remote", remoteName, "url", remoteUrl);
 			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
 			config.save();
 
 			String branch = thisRepo.getBranch();
@@ -318,6 +240,8 @@ public class GitRepoUtils {
 			StoredConfig config = thisRepo.getConfig();
 			config.setString("remote", remoteName, "url", remoteUrl);
 			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
 			config.save();
 
 			String targetBranch = (branch == null || branch.isEmpty()) ? thisRepo.getBranch() : branch;
@@ -327,6 +251,15 @@ public class GitRepoUtils {
 				fetch.setCredentialsProvider(cp);
 			}
 			fetch.call();
+
+			// reject a poisoned remote commit (one containing any symbolic link) BEFORE
+			// touching the local working tree, so a rejected sync is a no-op and the
+			// symlink object is never reset into HEAD nor propagated to the cluster
+			ObjectId remoteCommit = thisRepo.resolve(remoteName + "/" + targetBranch);
+			if (remoteCommit == null) {
+				throw new IOException("Could not resolve " + remoteName + "/" + targetBranch + " after fetch");
+			}
+			assertNoSymlinks(thisRepo, remoteCommit, remoteUrl);
 
 			// discard local working-tree/index changes so they cannot block the
 			// checkout - the remote is the source of truth on a webhook-driven sync
@@ -353,6 +286,81 @@ public class GitRepoUtils {
 
 			ObjectId head = thisRepo.resolve("HEAD");
 			return head == null ? null : head.getName();
+		}
+	}
+
+	/**
+	 * Shallow-clones a remote repository into {@code targetDir} at the tip of
+	 * {@code branch} and returns the resolved {@code HEAD} SHA. Used by the
+	 * monorepo subdir sync path to stage the full repo in a temporary directory
+	 * before copying only the relevant subtree into the project's assets folder.
+	 * <p>
+	 * The caller is responsible for deleting {@code targetDir} afterwards (in a
+	 * {@code finally} block) to avoid leaving stale staging directories on disk.
+	 *
+	 * @param targetDir the directory to clone into (created by the clone)
+	 * @param remoteUrl HTTPS URL of the remote repository
+	 * @param branch    the branch to check out
+	 * @param cp        credentials provider carrying the installation token
+	 * @return the {@code HEAD} commit SHA of the cloned repository
+	 * @throws GitAPIException if the clone fails
+	 * @throws IOException     if {@code HEAD} cannot be resolved after the clone
+	 */
+	public static String cloneToDir(File targetDir, String remoteUrl, String branch, CredentialsProvider cp)
+			throws GitAPIException, IOException {
+		// clone without writing the working tree so we can reject symbolic links based
+		// on the commit tree before anything touches disk, and force
+		// core.symlinks=false
+		// so a symlink entry could never be materialized as a real link on checkout
+		try (Git cloned = Git.cloneRepository().setURI(remoteUrl).setDirectory(targetDir).setBranch(branch)
+				.setCloneAllBranches(false).setDepth(1).setNoCheckout(true).setCredentialsProvider(cp).call()) {
+			Repository repo = cloned.getRepository();
+
+			StoredConfig config = repo.getConfig();
+			config.setBoolean("core", null, "symlinks", false);
+			config.save();
+
+			ObjectId head = repo.resolve("HEAD");
+			if (head == null) {
+				throw new IOException("Cloned repository has no HEAD commit");
+			}
+
+			// airtight: refuse to materialize a tree that contains any symbolic link
+			assertNoSymlinks(repo, head, remoteUrl);
+
+			// now safe to write the (verified, symlink-free) working tree
+			cloned.checkout().setName(head.getName()).setForced(true).call();
+
+			return head.getName();
+		}
+	}
+
+	/**
+	 * Walks the tree of {@code commitId} and throws if it contains any symbolic
+	 * link entry (git file mode {@code 120000}). A checked-out symlink can point
+	 * outside the repository (e.g. to {@code /etc/passwd} or a mounted secret), so
+	 * copying or serving the working tree could exfiltrate host files. The check
+	 * reads tree metadata only, so it runs before any working tree is written and a
+	 * rejection leaves the filesystem untouched.
+	 *
+	 * @param repo      the repository the commit lives in
+	 * @param commitId  the commit whose tree should be validated
+	 * @param repoLabel human-readable repository identifier for the error message
+	 * @throws IOException if a symbolic link is found, or the tree cannot be read
+	 */
+	private static void assertNoSymlinks(Repository repo, ObjectId commitId, String repoLabel) throws IOException {
+		try (RevWalk revWalk = new RevWalk(repo)) {
+			RevTree tree = revWalk.parseCommit(commitId).getTree();
+			try (TreeWalk treeWalk = new TreeWalk(repo)) {
+				treeWalk.addTree(tree);
+				treeWalk.setRecursive(true);
+				while (treeWalk.next()) {
+					if (treeWalk.getFileMode(0).equals(FileMode.SYMLINK)) {
+						throw new IOException("Refusing to sync repository " + repoLabel
+								+ ": symbolic links are not allowed (found '" + treeWalk.getPathString() + "')");
+					}
+				}
+			}
 		}
 	}
 

@@ -282,12 +282,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
 
 								if (lock != null) {
-									synchronized (lock) {
-										classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
-										lock.notifyAll();
-										classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
-
-									}
+									classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
+									lock.signalResponse();
+									classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
 								}
 							}
 							// this is a request for a reactor
@@ -381,9 +378,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								lock = requestMap.remove(ps.epoc);
 								responseMap.put(ps.epoc, ps);
 								if (lock != null) {
-									synchronized (lock) {
-										lock.notifyAll();
-									}
+									lock.signalResponse();
 								}
 							}
 						} else {
@@ -567,8 +562,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		ps.longRunning = true;
 
 		try {
-			synchronized (ps) {
-				classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName,
+			// ReentrantLock + Condition (not synchronized/wait) so a virtual thread
+			// blocked here while python works unmounts its carrier cleanly instead of
+			// pinning it.
+			ps.lockResponse();
+			try {
+				classLogger.debug("Inside response lock for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName,
 						threadId);
 
 				if (!ps.response) {
@@ -584,21 +583,25 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				int maxWait = 1_000;
 				if (!ps.response) // this is a response to something the socket has asked
 				{
+					long waitDeadline = System.nanoTime() + MAX_RESPONSE_WAIT.toNanos();
 					int pollNum = 1;
 					while (!responseMap.containsKey(ps.epoc) && (pollNum < maxWait || ps.longRunning) && !killAll
-							&& !cancelledEpocs.contains(ps.epoc)) {
+							&& !cancelledEpocs.contains(ps.epoc) && System.nanoTime() < waitDeadline) {
 						classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})",
 								Thread.currentThread().threadId(), ps.epoc, pollNum);
 						try {
 							classLogger.debug("I'm looking for epoc{}", ps.epoc);
 							if (pollNum < maxWait) {
-								ps.wait(this.averageMillis);
+								ps.awaitResponse(this.averageMillis, TimeUnit.MILLISECONDS);
 							} else {
-								classLogger.debug("Im about to wait eternally for epoc {}", ps.epoc);
-								// wait eternally - we dont know how long some of the load operations would take
-								// besides
-								// I am not sure if the null gets us anything
-								ps.wait();
+								classLogger.debug("Waiting for long-running epoc {} (up to the max wait)", ps.epoc);
+								// wait for the response, but no longer than the time remaining
+								// until the cap - we don't know how long load operations take,
+								// but we don't wait forever either
+								long remainingNanos = waitDeadline - System.nanoTime();
+								if (remainingNanos > 0) {
+									ps.awaitResponse(remainingNanos, TimeUnit.NANOSECONDS);
+								}
 							}
 							pollNum++;
 						} catch (InterruptedException e) {
@@ -621,12 +624,24 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						cancelledEpocs.remove(ps.epoc);
 						classLogger.info("Cancelled epoc {} {}", ps.epoc, ps.methodName);
 						throw new SemossPixelException("The request was cancelled by the user");
+					} else if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
+						// hit the hard cap - stop waiting but leave python running so a script
+						// that persists its own results can still finish
+						this.requestMap.remove(ps.epoc);
+						classLogger.warn(
+								"Stopped waiting for epoc {} method {} after the {}h max wait; python continues running in the background",
+								ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
+						throw new SemossPixelException("This execution exceeded the maximum wait time of "
+								+ MAX_RESPONSE_WAIT.toHours()
+								+ " hours. The python process is still running in the background - if your script persists its results, you can retrieve them later.");
 					} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
 						classLogger.info("Timed out for epoc {} {}", ps.epoc, ps.methodName);
 					}
 				}
 
 				return responseMap.remove(ps.epoc);
+			} finally {
+				ps.unlockResponse();
 			}
 		} finally {
 			removeEpocForInsight(ps.insightId, ps.epoc);
@@ -773,9 +788,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						PayloadStruct ps = this.requestMap.get(k);
 						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
 						ps.ex = "Client is disconnected from the server.";
-						synchronized (ps) {
-							ps.notifyAll();
-						}
+						ps.signalResponse();
 					}
 				} catch (Exception e) {
 					classLogger.error("Error releasing pending payload structs during crash", e);

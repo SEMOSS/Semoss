@@ -115,24 +115,16 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void initModelInferenceLogsDatabase() throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
-		if (modelInfCreator.needsRemake()) {
-			modelInfCreator.remakeOwl();
+		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(
+				modelInferenceLogsDb.getQueryUtil());
+		if (modelInfCreator.needsRemake(modelInferenceLogsDb)) {
+			modelInfCreator.remakeOwl(modelInferenceLogsDb);
 		}
 
 		Connection conn = null;
 		try {
 			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
-
-			// boolean primaryKeysAdded =
-			// addAllPrimaryKeys(modelInferenceLogsDb, conn,
-			// modelInfCreator.getDBPrimaryKeys());
-			// if (primaryKeysAdded) {
-			// addAllForeignKeys(modelInferenceLogsDb, conn,
-			// modelInfCreator.getDBForeignKeys());
-			// }
-
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -304,118 +296,6 @@ public class ModelInferenceLogsUtils {
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
 				executeSql(conn, sql);
-			}
-		}
-	}
-
-	/**
-	 * Attempts to add primary-key constraints for configured tables.
-	 *
-	 * @param engine      target engine
-	 * @param conn        database connection
-	 * @param primaryKeys table-to-primary-key definitions
-	 * @return {@code true} when processing completes (including no-op fallbacks)
-	 */
-	private static boolean addAllPrimaryKeys(IRDBMSEngine engine, Connection conn,
-			List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys) {
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		for (Pair<String, Pair<List<String>, List<String>>> tablePrimaryKeys : primaryKeys) {
-			String tableName = tablePrimaryKeys.getValue0();
-			Pair<List<String>, List<String>> primaryKeyInfo = tablePrimaryKeys.getValue1();
-			List<String> primaryKeyNames = primaryKeyInfo.getValue0();
-			List<String> primaryKeyTypes = primaryKeyInfo.getValue1();
-
-			// first try make sure its not null
-			for (int i = 0; i < primaryKeyNames.size(); i++) {
-				String name = primaryKeyNames.get(i);
-				String type = primaryKeyTypes.get(i);
-				String notNullQuery = queryUtil.modColumnNotNull(tableName, name, type);
-				try {
-					executeSql(conn, notNullQuery);
-				} catch (SQLException se) {
-					classLogger.error("Failed to set column '{}' as NOT NULL before adding primary key on table '{}'.",
-							name, tableName, se);
-					// We can't change it to NOT NULL so probably can't create the PRIMARY KEY
-					return true;
-				}
-			}
-			String primaryKeyConstraintName = tableName + "_KEY";
-			if (queryUtil.allowIfExistsAddConstraint()) {
-				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT IF NOT EXISTS "
-						+ primaryKeyConstraintName + " PRIMARY KEY ( " + String.join(",", primaryKeyNames) + " );";
-				try {
-					executeSql(conn, primaryKeyQuery);
-				} catch (SQLException se) {
-					classLogger.error("Failed to add primary key constraint '{}' on table '{}'.",
-							primaryKeyConstraintName, tableName, se);
-				}
-			} else {
-				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT " + primaryKeyConstraintName
-						+ " PRIMARY KEY ( " + String.join(",", primaryKeyNames) + " );";
-				try {
-					if (!queryUtil.tableConstraintExists(conn, primaryKeyConstraintName, tableName,
-							engine.getDatabase(), engine.getSchema())) {
-						executeSql(conn, primaryKeyQuery);
-					}
-				} catch (SQLException se) {
-					classLogger.error("Failed to verify or add primary key constraint '{}' on table '{}'.",
-							primaryKeyConstraintName, tableName, se);
-				}
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * Attempts to add foreign-key constraints for configured tables.
-	 *
-	 * @param engine      target engine
-	 * @param conn        database connection
-	 * @param foreignKeys table-to-foreign-key definitions
-	 */
-	private static void addAllForeignKeys(IRDBMSEngine engine, Connection conn,
-			List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> foreignKeys) {
-		ATTEMPT_TO__ADD_FOREIGN_KEY: for (Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>> tableForeignKeys : foreignKeys) {
-			String tableName = tableForeignKeys.getValue0();
-			Pair<List<String>, Pair<List<String>, List<String>>> foreignKeyInfo = tableForeignKeys.getValue1();
-			List<String> tableColumns = foreignKeyInfo.getValue0();
-			Pair<List<String>, List<String>> referenceDetails = foreignKeyInfo.getValue1();
-			List<String> referenceTables = referenceDetails.getValue0();
-			List<String> referenceColumns = referenceDetails.getValue1();
-
-			for (int i = 0; i < tableColumns.size(); i++) {
-				String tableColumn = tableColumns.get(i);
-				String refTable = referenceTables.get(i);
-				String refColumn = referenceColumns.get(i);
-
-				String constraintName = tableName + "_" + tableColumn + "_" + refTable + "_" + refColumn + "_KEY";
-				constraintName = constraintName.replace(",", "");
-				if (engine.getQueryUtil().allowIfExistsAddConstraint()) {
-					String sqlStatement = String.format(
-							"ALTER TABLE %s ADD CONSTRAINT IF NOT EXISTS %s FOREIGN KEY (%s) REFERENCES %s (%s);",
-							tableName, constraintName, tableColumn, refTable, refColumn);
-					try {
-						executeSql(conn, sqlStatement);
-					} catch (SQLException se) {
-						classLogger.error("Failed to add foreign key constraint '{}' on table '{}'.", constraintName,
-								tableName, se);
-						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
-					}
-				} else {
-					String sqlStatement = String.format(
-							"ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s);", tableName,
-							constraintName, tableColumn, refTable, refColumn);
-					try {
-						if (!engine.getQueryUtil().tableConstraintExists(conn, constraintName, tableName,
-								engine.getDatabase(), engine.getSchema())) {
-							executeSql(conn, sqlStatement);
-						}
-					} catch (SQLException se) {
-						classLogger.error("Failed to verify or add foreign key constraint '{}' on table '{}'.",
-								constraintName, tableName, se);
-						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
-					}
-				}
 			}
 		}
 	}
@@ -2305,12 +2185,12 @@ public class ModelInferenceLogsUtils {
 	 * associations - MCP engines/projects, prompts, and skills alike.
 	 * <p>
 	 * The supplied {@code resources} list is treated as the complete desired set:
-	 * every existing {@code WORKSPACE_RESOURCE} row for the workspace is deleted and
-	 * replaced with the rows derived from {@code resources}. Callers must therefore
-	 * pass the full resource set (including any skills to keep); a resource omitted
-	 * from the list is detached. (Incremental skill attach/detach without a full
-	 * rewrite is available via {@code AttachSkillToWorkspaceReactor} /
-	 * {@code DetachSkillFromWorkspaceReactor}.)
+	 * every existing {@code WORKSPACE_RESOURCE} row for the workspace is deleted
+	 * and replaced with the rows derived from {@code resources}. Callers must
+	 * therefore pass the full resource set (including any skills to keep); a
+	 * resource omitted from the list is detached. (Incremental skill attach/detach
+	 * without a full rewrite is available via {@code AttachSkillToWorkspaceReactor}
+	 * / {@code DetachSkillFromWorkspaceReactor}.)
 	 *
 	 * @param workspaceId          workspace identifier
 	 * @param workspaceName        workspace display name
@@ -2344,8 +2224,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 
-			try (PreparedStatement ps = con
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
+			try (PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.execute();
@@ -2633,6 +2512,88 @@ public class ModelInferenceLogsUtils {
 			return;
 		}
 		cfg.put("skills", kept);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Adds a platform-skill slug to {@code WORKSPACE.CONFIG_JSON.platform_skills[]}.
+	 * Platform skills are disk-backed folders (see
+	 * {@code prerna.reactor.agent.skill.PlatformSkills}) - they are not Projects,
+	 * have no ids, and carry no {@code WORKSPACE_RESOURCE} row, so CONFIG_JSON is
+	 * the sole store. The array holds plain slug strings. Idempotent: a slug
+	 * already present is left untouched and no write is issued.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param slug        platform skill slug (folder name) to add
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void addPlatformSkillToWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (slug == null || slug.isEmpty()) {
+			throw new IllegalArgumentException("slug is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
+		if (platformSkills == null) {
+			platformSkills = new JSONArray();
+		}
+		for (int i = 0; i < platformSkills.length(); i++) {
+			if (slug.equals(platformSkills.optString(i, null))) {
+				return;
+			}
+		}
+		platformSkills.put(slug);
+		cfg.put("platform_skills", platformSkills);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Removes a platform-skill slug from
+	 * {@code WORKSPACE.CONFIG_JSON.platform_skills[]}. No-op (no write) when the
+	 * workspace has no CONFIG_JSON, no {@code platform_skills} array, or the slug
+	 * is not present.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param slug        platform skill slug to remove
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void removePlatformSkillFromWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (slug == null || slug.isEmpty()) {
+			throw new IllegalArgumentException("slug is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			return;
+		}
+		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
+		if (platformSkills == null || platformSkills.length() == 0) {
+			return;
+		}
+		JSONArray kept = new JSONArray();
+		boolean removed = false;
+		for (int i = 0; i < platformSkills.length(); i++) {
+			String existing = platformSkills.optString(i, null);
+			if (slug.equals(existing)) {
+				removed = true;
+				continue;
+			}
+			if (existing != null) {
+				kept.put(existing);
+			}
+		}
+		if (!removed) {
+			return;
+		}
+		cfg.put("platform_skills", kept);
 		updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
@@ -3301,7 +3262,8 @@ public class ModelInferenceLogsUtils {
 
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
-		// INPUT_TOKENS / RESPONSE_TOKENS — derived from MESSAGE_TOKENS via CASE so that
+		// INPUT_TOKENS / RESPONSE_TOKENS — derived from MESSAGE_TOKENS via CASE so
+		// that
 		// records written before per-type granular columns existed are still included.
 		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
@@ -3313,7 +3275,8 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
 				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
 				"RESPONSE_IF");
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
+		qs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
 
 		// TOTAL_TOKENS — sum across all rows covers the full history.
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
@@ -3321,21 +3284,28 @@ public class ModelInferenceLogsUtils {
 
 		// Granular token detail columns — only populated for records written after
 		// per-type tracking was introduced. Prefixed DETAIL_ so the reactor can nest
-		// them into a TOKEN_DETAIL sub-object without conflicting with the legacy names.
+		// them into a TOKEN_DETAIL sub-object without conflicting with the legacy
+		// names.
+		qs.addSelector(
+				QueryFunctionSelector.makeCoalesceSelector(
+						QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+								MESSAGE_TABLE_NAME + "INPUT_TOKENS", null),
+						new QueryConstantSelector(0), "DETAIL_INPUT_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "INPUT_TOKENS", null),
-				new QueryConstantSelector(0), "DETAIL_INPUT_TOKENS"));
-		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", null),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", null),
 				new QueryConstantSelector(0), "DETAIL_OUTPUT_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_READ_TOKENS", null),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "CACHE_READ_TOKENS", null),
 				new QueryConstantSelector(0), "DETAIL_CACHE_READ_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_CREATION_TOKENS", null),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "CACHE_CREATION_TOKENS", null),
 				new QueryConstantSelector(0), "DETAIL_CACHE_CREATION_TOKENS"));
 		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
 				new QueryConstantSelector(0), "DETAIL_THINKING_TOKENS"));
 
 		// Count number of requests (INPUT messages only)
@@ -3716,17 +3686,39 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Removes the SKILL__ row and any WORKSPACE_RESOURCE__ rows pointing at this
-	 * skill. Does NOT delete the underlying Project - callers (typically the
-	 * project-delete path) own that.
+	 * Removes the SKILL__ row, any WORKSPACE_RESOURCE__ rows pointing at this skill,
+	 * and the matching {@code CONFIG_JSON.skills[]} mirror entry in every workspace
+	 * that referenced it. Does NOT delete the underlying Project - callers (typically
+	 * the project-delete path) own that.
+	 *
+	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
+	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping the
+	 * mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
+	 * still returns, so the run-time {@code SkillStager} fails it every run with
+	 * "not found in SKILL__". The referencing workspaces are captured before the row
+	 * deletes so the mirror can be scrubbed afterward.
 	 *
 	 * @param skillId skill identifier
 	 */
 	public static void deleteSkillEntry(String skillId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
+		List<String> affectedWorkspaceIds = new ArrayList<>();
 		try {
 			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement sel = con.prepareStatement(
+					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				sel.setString(1, "SKILL");
+				sel.setString(2, skillId);
+				try (ResultSet rs = sel.executeQuery()) {
+					while (rs.next()) {
+						String wsId = rs.getString(1);
+						if (wsId != null && !wsId.trim().isEmpty()) {
+							affectedWorkspaceIds.add(wsId);
+						}
+					}
+				}
+			}
 			try (PreparedStatement ps1 = con
 					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
 					PreparedStatement ps2 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
@@ -3744,6 +3736,16 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+
+		for (String workspaceId : affectedWorkspaceIds) {
+			try {
+				removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
+			} catch (Exception e) {
+				classLogger.warn(
+						"Deleted skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
+						skillId, workspaceId, e.getMessage());
+			}
 		}
 	}
 

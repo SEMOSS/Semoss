@@ -61,97 +61,97 @@ class TokenIndex extends AnalysisAdapter
     }
 
     @Override
-    public void caseTId(@SuppressWarnings("unused") TId node)
+    public void caseTAndComparator(@SuppressWarnings("unused") TAndComparator node)
     {
         this.index = 4;
     }
 
     @Override
-    public void caseTDot(@SuppressWarnings("unused") TDot node)
+    public void caseTOrComparator(@SuppressWarnings("unused") TOrComparator node)
     {
         this.index = 5;
     }
 
     @Override
-    public void caseTSemicolon(@SuppressWarnings("unused") TSemicolon node)
+    public void caseTId(@SuppressWarnings("unused") TId node)
     {
         this.index = 6;
     }
 
     @Override
-    public void caseTColon(@SuppressWarnings("unused") TColon node)
+    public void caseTDot(@SuppressWarnings("unused") TDot node)
     {
         this.index = 7;
     }
 
     @Override
-    public void caseTPlus(@SuppressWarnings("unused") TPlus node)
+    public void caseTSemicolon(@SuppressWarnings("unused") TSemicolon node)
     {
         this.index = 8;
     }
 
     @Override
-    public void caseTMinus(@SuppressWarnings("unused") TMinus node)
+    public void caseTColon(@SuppressWarnings("unused") TColon node)
     {
         this.index = 9;
     }
 
     @Override
-    public void caseTMod(@SuppressWarnings("unused") TMod node)
+    public void caseTPlus(@SuppressWarnings("unused") TPlus node)
     {
         this.index = 10;
     }
 
     @Override
-    public void caseTPow(@SuppressWarnings("unused") TPow node)
+    public void caseTMinus(@SuppressWarnings("unused") TMinus node)
     {
         this.index = 11;
     }
 
     @Override
-    public void caseTWord(@SuppressWarnings("unused") TWord node)
+    public void caseTMod(@SuppressWarnings("unused") TMod node)
     {
         this.index = 12;
     }
 
     @Override
-    public void caseTComment(@SuppressWarnings("unused") TComment node)
+    public void caseTPow(@SuppressWarnings("unused") TPow node)
     {
         this.index = 13;
     }
 
     @Override
-    public void caseTMult(@SuppressWarnings("unused") TMult node)
+    public void caseTWord(@SuppressWarnings("unused") TWord node)
     {
         this.index = 14;
     }
 
     @Override
-    public void caseTComma(@SuppressWarnings("unused") TComma node)
+    public void caseTComment(@SuppressWarnings("unused") TComment node)
     {
         this.index = 15;
     }
 
     @Override
-    public void caseTDiv(@SuppressWarnings("unused") TDiv node)
+    public void caseTMult(@SuppressWarnings("unused") TMult node)
     {
         this.index = 16;
     }
 
     @Override
-    public void caseTComparator(@SuppressWarnings("unused") TComparator node)
+    public void caseTComma(@SuppressWarnings("unused") TComma node)
     {
         this.index = 17;
     }
 
     @Override
-    public void caseTAndComparator(@SuppressWarnings("unused") TAndComparator node)
+    public void caseTDiv(@SuppressWarnings("unused") TDiv node)
     {
         this.index = 18;
     }
 
     @Override
-    public void caseTOrComparator(@SuppressWarnings("unused") TOrComparator node)
+    public void caseTComparator(@SuppressWarnings("unused") TComparator node)
     {
         this.index = 19;
     }

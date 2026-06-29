@@ -34,6 +34,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -45,6 +47,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.skill.PlatformSkills;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -130,9 +133,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				}
 				prompts.add(promptMap);
 			} else if (AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
-				// Skills are projects (PROJECT_TYPE.SKILL) but they are not engines and
-				// not regular projects either - they have their own bucket in the response
-				// so the UI can surface them distinctly from MCPs.
+
 				Map<String, String> skillMap = new HashMap<>();
 				skillMap.put("id", resourceId);
 				skillMap.put("type", rType);
@@ -142,6 +143,10 @@ public class GetWorkspaceReactor extends AbstractReactor {
 					Object slug = skillRow.get("slug");
 					if (slug != null) {
 						skillMap.put("slug", slug.toString());
+					}
+					Object description = skillRow.get("description");
+					if (description != null) {
+						skillMap.put("description", description.toString());
 					}
 				}
 				skills.add(skillMap);
@@ -160,13 +165,73 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				mcps.add(mcpMap);
 			}
 		}
+		mergePlatformSkills(workspaceId, skills);
+
 		current.put("mcp", mcps);
 		current.put("prompts", prompts);
 		current.put("skills", skills);
 		current.put("permission", permission);
 		current.put("number_collaborators", userCount);
 
+		// Full per-agent config blob (hooks, budgets, subagents, model_id, etc.) that
+		// the normalized fields above don't surface. Best-effort; omitted on absence so
+		// callers can still rely on the normalized mcp/skills/system_prompt fields.
+		try {
+			JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+			if (cfg != null) {
+				current.put("config_json", cfg.toMap());
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to load CONFIG_JSON for workspace '{}': {}", workspaceId, e.getMessage());
+		}
+
 		return new NounMetadata(current, PixelDataType.MAP);
+	}
+
+	/**
+	 * Appends the workspace's platform skills (disk-backed built-ins referenced by
+	 * slug in {@code CONFIG_JSON.platform_skills[]}) to {@code skills}. Each entry
+	 * carries {@code id} (= slug), {@code slug}, {@code type=PLATFORM_SKILL}, and
+	 * {@code name}/{@code description} resolved from the on-disk catalog - falling
+	 * back to the slug for name when a slug is no longer present on disk so it stays
+	 * visible (and detachable) in the UI.
+	 */
+	private void mergePlatformSkills(String workspaceId, List<Map<String, String>> skills) {
+		try {
+			JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+			JSONArray platformSlugs = cfg != null ? cfg.optJSONArray("platform_skills") : null;
+			if (platformSlugs == null || platformSlugs.length() == 0) {
+				return;
+			}
+			Map<String, Map<String, Object>> catalog = new HashMap<>();
+			for (Map<String, Object> ps : PlatformSkills.list()) {
+				Object slug = ps.get("slug");
+				if (slug != null) {
+					catalog.put(slug.toString(), ps);
+				}
+			}
+			for (int i = 0; i < platformSlugs.length(); i++) {
+				String slug = platformSlugs.optString(i, null);
+				if (slug == null || slug.trim().isEmpty()) {
+					continue;
+				}
+				slug = slug.trim();
+				Map<String, Object> meta = catalog.get(slug);
+				Map<String, String> skillMap = new HashMap<>();
+				skillMap.put("id", slug);
+				skillMap.put("slug", slug);
+				skillMap.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
+				Object name = meta != null ? meta.get("name") : null;
+				skillMap.put("name", name != null ? name.toString() : slug);
+				Object description = meta != null ? meta.get("description") : null;
+				if (description != null) {
+					skillMap.put("description", description.toString());
+				}
+				skills.add(skillMap);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to merge platform skills for workspace '{}': {}", workspaceId, e.getMessage());
+		}
 	}
 
 	/**
