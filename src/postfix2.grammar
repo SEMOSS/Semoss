@@ -33,6 +33,8 @@ Tokens
  number = ['0' .. '9']+;
  boolean = ('TRUE' | 'FALSE' | 'true' | 'false');
  meta = 'META';
+ and_comparator = 'AND';
+ or_comparator = 'OR';
  id = (letter_s | letter_b | digit | underscore) (letter_s | letter_b | digit | underscore)*;
  dot = '.';
  semicolon = ';';
@@ -47,8 +49,6 @@ Tokens
  comma = ',';
  div = '/';
  comparator = ('>' | '<' | '<=' | '>=' | '!=' | '?like' | '?nlike' | '?begins' | '?nbegins' | '?ends' | '?nends' | '==' | '<>');
- and_comparator = ' AND ';
- or_comparator = ' OR ';
  equal = '=';
  l_par = '(';
  r_par = ')';

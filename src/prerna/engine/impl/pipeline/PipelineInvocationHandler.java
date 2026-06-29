@@ -381,7 +381,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Instant end = Instant.now();
 
 					processedArguments = (Map<String, Object>) resultNoun.getValue();
-					pipelineIndex++;
 
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);

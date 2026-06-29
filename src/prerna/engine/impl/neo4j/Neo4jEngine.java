@@ -74,7 +74,7 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to parse neo4j type map", e);
 			}
 		}
 		// get the name map
@@ -83,7 +83,7 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to parse neo4j name map", e);
 			}
 		}
 		if (smssProp.containsKey(Constants.TINKER_USE_LABEL)) {
@@ -117,15 +117,13 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 			map.put(IRDBMSEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
-			classLogger.error("Error executing cypher query = " + Utility.cleanLogString(query));
-			classLogger.error("Error message = " + e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing cypher query = {}", Utility.cleanLogString(query), e);
 		} finally {
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close neo4j statement", e);
 				}
 			}
 		}
@@ -143,16 +141,30 @@ public class Neo4jEngine extends AbstractDatabaseEngine {
 		try {
 			if (this.conn == null || this.conn.isClosed()) {
 				classLogger.info("Opening neo4j graph: ");
-				Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
+				// org.neo4j.jdbc.Neo4jDriver auto-registers via ServiceLoader; load explicitly
+				// so the webapp classloader registers it with DriverManager regardless of
+				// container behavior.
+				Class.forName("org.neo4j.jdbc.Neo4jDriver");
 				String connectionURL = smssProp.getProperty(Constants.CONNECTION_URL);
+				// The Neo4j JDBC 6.x driver uses the scheme jdbc:neo4j:// (with +s / +ssc for
+				// TLS).
+				// Legacy connections persisted by the old neo4j-jdbc-bolt driver use
+				// jdbc:neo4j:bolt://; normalize so existing .smss files keep working without a
+				// data migration.
+				// jdbc:neo4j:bolt:// -> jdbc:neo4j://, jdbc:neo4j:bolt+s:// -> jdbc:neo4j+s://,
+				// etc.
+				if (connectionURL != null && connectionURL.startsWith("jdbc:neo4j:bolt")) {
+					connectionURL = connectionURL.replace("jdbc:neo4j:bolt", "jdbc:neo4j");
+					classLogger.info("Normalized legacy neo4j bolt connection URL scheme to jdbc:neo4j");
+				}
 				String username = smssProp.getProperty(Constants.USERNAME);
 				String password = smssProp.getProperty(Constants.PASSWORD);
-				classLogger.info("Connecting to remote graph: " + Utility.cleanLogString(connectionURL));
+				classLogger.info("Connecting to remote graph: {}", Utility.cleanLogString(connectionURL));
 				conn = DriverManager.getConnection(connectionURL, username, password);
 				classLogger.info("Done neo4j opening graph: ");
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to open neo4j graph database connection", e);
 		}
 		return this.conn;
 	}

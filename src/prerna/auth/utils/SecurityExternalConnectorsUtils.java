@@ -53,6 +53,9 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityExternalConnectorsUtils.class);
 
+	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
+	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
+
 	/**
 	 * Retrieves the ID and alias for each configured Salesforce connection.
 	 *
@@ -100,9 +103,6 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		Map<String, Object> result = resultList.get(0);
 		return new Pair<String, String>((String) result.get("clientid"), (String) result.get("clientsecret"));
 	}
-
-	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
-	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
 
 	/**
 	 * Inserts or updates the single GitHub App record produced by the GitHub
@@ -243,6 +243,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__PRIVATE_KEY", "privateKey"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__CREATED_ON", "createdOn"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_APP__UPDATED_ON", "updatedOn"));
+		qs.addOrderBy("GITHUB_APP__APP_ID");
 		return qs;
 	}
 
@@ -261,13 +262,16 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	 * @param repoFullName   owner/repo full name (human-readable)
 	 */
 	public static void upsertGitHubProjectLink(String projectId, long appId, long installationId, long repoId,
-			String repoFullName, String branch) {
+			String repoFullName, String branch, String subdir) {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Project id must not be empty.");
 		}
 		if (branch == null || (branch = branch.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Branch must not be empty.");
 		}
+		// normalize subdir: blank/null becomes null (full-repo sync)
+		String normalizedSubdir = (subdir != null && !subdir.trim().isEmpty()) ? subdir.trim() : null;
+		normalizedSubdir = Utility.normalizePath(normalizedSubdir);
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = getGitHubProjectLink(projectId) != null;
@@ -278,7 +282,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			Timestamp now = Utility.getCurrentSqlTimestampUTC();
 			if (exists) {
 				String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET APP_ID = ?, INSTALLATION_ID = ?, "
-						+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
+						+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, SUBDIR = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					int i = 1;
 					ps.setLong(i++, appId);
@@ -286,6 +290,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
+					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
+						ps.setNull(i++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(i++, normalizedSubdir);
+					}
 					ps.setTimestamp(i++, now);
 					ps.setString(i++, projectId);
 					ps.executeUpdate();
@@ -295,7 +304,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 				}
 			} else {
 				String sql = "INSERT INTO " + GITHUB_PROJECT_LINK_TABLE + " (PROJECT_ID, APP_ID, INSTALLATION_ID, "
-						+ "REPO_ID, REPO_FULL_NAME, BRANCH, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+						+ "REPO_ID, REPO_FULL_NAME, BRANCH, SUBDIR, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					int i = 1;
 					ps.setString(i++, projectId);
@@ -304,6 +313,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setLong(i++, repoId);
 					ps.setString(i++, repoFullName);
 					ps.setString(i++, branch);
+					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
+						ps.setNull(i++, java.sql.Types.VARCHAR);
+					} else {
+						ps.setString(i++, normalizedSubdir);
+					}
 					ps.setTimestamp(i++, now);
 					ps.setTimestamp(i++, now);
 					ps.execute();
@@ -386,6 +400,22 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GITHUB_PROJECT_LINK__REPO_ID", "==", repoId));
 		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		return resultList.isEmpty() ? null : resultList.get(0);
+	}
+
+	/**
+	 * Retrieves every project link for a repository. A repository can feed more
+	 * than one project (each tracking the same or a different branch), so push
+	 * webhooks must fan out to all of them - prefer this over
+	 * {@link #getGitHubProjectLinkByRepoId(long)} when routing repo events.
+	 *
+	 * @param repoId GitHub numeric repo id
+	 * @return a list of link maps; empty if no project is linked to the repo
+	 */
+	public static List<Map<String, Object>> getGitHubProjectLinksByRepoId(long repoId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildGitHubProjectLinkSelect();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GITHUB_PROJECT_LINK__REPO_ID", "==", repoId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
@@ -484,6 +514,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__REPO_ID", "repoId"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__REPO_FULL_NAME", "repoFullName"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__BRANCH", "branch"));
+		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__SUBDIR", "subdir"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__CREATED_ON", "createdOn"));
 		qs.addSelector(new QueryColumnSelector("GITHUB_PROJECT_LINK__UPDATED_ON", "updatedOn"));
 		return qs;

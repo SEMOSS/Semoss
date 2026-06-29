@@ -67,7 +67,6 @@ import java.text.Normalizer.Form;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -137,13 +136,6 @@ import org.quartz.CronExpression;
 
 import com.google.common.net.InternetDomainName;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -174,7 +166,6 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
@@ -184,7 +175,6 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.util.git.GitAssetUtils;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -259,36 +249,6 @@ public final class Utility {
 	}
 
 	/**
-	 * Matches the given query against a specified pattern. While the next substring
-	 * of the query matches a part of the pattern, set substring as the key with
-	 * EMPTY constants (@@) as the value
-	 * 
-	 * @param Query.
-	 * 
-	 * @return Hashtable of queries to be replaced
-	 * @return JSON format of vector
-	 * 
-	 */
-	public static Hashtable getParamTypeHash(String query) {
-		Hashtable paramHash = new Hashtable();
-		Pattern pattern = Pattern.compile(SPECIFIED_PATTERN);
-
-		Matcher matcher = pattern.matcher(query);
-		while (matcher.find()) {
-			String data = matcher.group();
-			data = data.substring(1, data.length() - 1);
-			String paramName = data.substring(0, data.indexOf("-"));
-			String paramValue = data.substring(data.indexOf("-") + 1);
-
-			classLogger.debug(data);
-			// put something to strip the @
-			paramHash.put(paramName, paramValue);
-		}
-
-		return paramHash;
-	}
-
-	/**
 	 * Get the Base Folder
 	 * 
 	 * @return
@@ -331,19 +291,6 @@ public final class Utility {
 			return null;
 		}
 		return DIHelper.getInstance().getLocalProp(prop);
-	}
-
-	/**
-	 * 
-	 * @param s
-	 * @return
-	 */
-	public static String unescapeHTML(String s) {
-		s = s.replace("&gt;", ">");
-		s = s.replace("&lt;", "<");
-		s = s.replace("&#61;", "=");
-		s = s.replace("&#33;", "!");
-		return s;
 	}
 
 	/**
@@ -739,22 +686,6 @@ public final class Utility {
 		}
 
 		return matched;
-	}
-
-	/**
-	 * Used when selecting a repository.
-	 * 
-	 * @param Used  to retrieve successive elements.
-	 * @param Size.
-	 * 
-	 * @return List of returned strings
-	 */
-	public static Vector<String> convertEnumToStringVector(Enumeration enums, int size) {
-		Vector<String> retString = new Vector<>();
-		while (enums.hasMoreElements()) {
-			retString.add((String) enums.nextElement());
-		}
-		return retString;
 	}
 
 	/**
@@ -1333,60 +1264,6 @@ public final class Utility {
 	}
 
 	/**
-	 * Determines the type of a given value
-	 * 
-	 * @param s The value to determine the type off
-	 * @return The type of the value
-	 */
-	public static String processType(String s) {
-
-		if (s == null) {
-			return null;
-		}
-
-		boolean isDouble = true;
-		try {
-			double val = Double.parseDouble(s);
-			if (val == Math.floor(val)) {
-				return "INTEGER";
-			}
-		} catch (NumberFormatException e) {
-			isDouble = false;
-		}
-
-		if (isDouble) {
-			return ("DOUBLE");
-		}
-
-		// will analyze date types as numerical data
-		Boolean isLongDate = true;
-		SimpleDateFormat formatLongDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-		try {
-			formatLongDate.setLenient(true);
-			formatLongDate.parse(s);
-		} catch (ParseException e) {
-			isLongDate = false;
-		}
-		if (isLongDate) {
-			return ("DATE");
-		}
-
-		Boolean isSimpleDate = true;
-		SimpleDateFormat formatSimpleDate = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-		try {
-			formatSimpleDate.setLenient(true);
-			formatSimpleDate.parse(s);
-		} catch (ParseException e) {
-			isSimpleDate = false;
-		}
-		if (isSimpleDate) {
-			return ("SIMPLEDATE");
-		}
-
-		return ("STRING");
-	}
-
-	/**
 	 * Gets the vector of uris from first variable returned from the query
 	 * 
 	 * @param raw    TODO
@@ -1574,7 +1451,7 @@ public final class Utility {
 		Object obj = null;
 		try {
 			classLogger.debug("Dataframe name is " + Utility.cleanLogString(className));
-			obj = Class.forName(className).getConstructor(null).newInstance(null);
+			obj = Class.forName(className).getDeclaredConstructor().newInstance();
 		} catch (ClassNotFoundException cnfe) {
 			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
 			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
@@ -1677,88 +1554,18 @@ public final class Utility {
 				"MMM dd, yyyy", "MMM dd", "dd MMM yyyy", "MMM yyyy", "dd/MM/yyyy" };
 
 		String output_date = null;
-		boolean itsDate = false;
 		for (String formatString : date_formats) {
 			try {
 				SimpleDateFormat sdf = new SimpleDateFormat(formatString);
 				Date mydate = sdf.parse(input);
 				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd");
 				output_date = outdate.format(mydate);
-				itsDate = true;
 				break;
-			} catch (ParseException e) {
-				// System.out.println("Next!");
+			} catch (ParseException ignore) {
 			}
 		}
 
 		return output_date;
-	}
-
-	@Deprecated
-	public static String getTimeStamp(String input) {
-		String[] date_formats = {
-				// year, month, day
-				"yyyy-MM-dd hh:mm:ss", "yyyy-MM-d hh:mm:ss", "yyyy-M-dd hh:mm:ss", "yyyy-M-d hh:mm:ss",
-				"yyyy-MM-dd'T'hh:mm:ss'Z'", "yyyy-MM-d'T'hh:mm:ss'Z'", "yyyy-M-dd'T'hh:mm:ss'Z'",
-				"yyyy-M-d'T'hh:mm:ss'Z'", };
-
-		String output_date = null;
-		boolean itsDate = false;
-		for (String formatString : date_formats) {
-			try {
-				Date mydate = new SimpleDateFormat(formatString).parse(input);
-				SimpleDateFormat outdate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-				output_date = outdate.format(mydate);
-				itsDate = true;
-				break;
-			} catch (ParseException e) {
-				// System.out.println("Next!");
-			}
-		}
-
-		return output_date;
-	}
-
-	@Deprecated
-	public static Date getDateAsDateObj(String input) {
-		SimpleDateFormat outdate_formatter = new SimpleDateFormat("yyyy-MM-dd");
-		String output_date = getDate(input);
-		if (output_date == null) {
-			return null;
-		}
-
-		Date outDate = null;
-		try {
-			outDate = outdate_formatter.parse(output_date);
-		} catch (ParseException e) {
-//			logger.error(Constants.STACKTRACE, e);
-		}
-
-		return outDate;
-	}
-
-	@Deprecated
-	public static Object getCurrency(String input) {
-		// COMMENTING THIS OUT BECAUSE CAST TO TYPES BREAKS IN CASES WHERE THIS RETURNS,
-		// NEED TO UPDATE THAT BUT WILL KEEP IT AS STRING FOR NOW
-		// what is this check???
-		// this is messing up the types since it works based on if there is a null
-		// pointer
-		// if(input.matches("\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?\\Q-\\E\\Q$\\E(\\d+)\\Q.\\E?(\\d+)?"))
-		// {
-		// return input;
-		// }
-		// Number nm = null;
-		// NumberFormat nf = NumberFormat.getCurrencyInstance();
-		// try {
-		// nm = nf.parse(input);
-		// //System.out.println("Curr.. " + nm);
-		// }catch (Exception ex)
-		// {
-		//
-		// }
-		// return nm;
-		return null;
 	}
 
 	public static Double getDouble(String input) {
@@ -1989,7 +1796,7 @@ public final class Utility {
 		IEngine.CATALOG_TYPE engineType = null;
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
-			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
+			IEngine emptyClass = (IEngine) Class.forName(rawType).getDeclaredConstructor().newInstance();
 			engineType = emptyClass.getCatalogType();
 			// FOR NOW
 			// PGVECTOR IS A DATABASE ENGINE
@@ -2128,91 +1935,6 @@ public final class Utility {
 	}
 
 	/**
-	 * Loads a database - synchronizes to local master and security
-	 * 
-	 * @param smssFilePath
-	 * @param smssProp
-	 * @return
-	 */
-	public static IDatabaseEngine loadDatabase(String smssFilePath, Properties smssProp) {
-		IDatabaseEngine engine = null;
-		try {
-			engine = (IDatabaseEngine) loadEngine(smssFilePath, smssProp);
-		} catch (Exception e) {
-			classLogger.error("Failed to load database engine from SMSS metadata: {}", e.getMessage(), e);
-		}
-		return engine;
-	}
-
-	/**
-	 * Loads a storage - synchronizes to security
-	 * 
-	 * @param smssFilePath
-	 * @param smssProp
-	 * @return
-	 */
-	public static IStorageEngine loadStorage(String smssFilePath, Properties smssProp) {
-		IStorageEngine engine = null;
-		try {
-			engine = (IStorageEngine) loadEngine(smssFilePath, smssProp);
-		} catch (Exception e) {
-			classLogger.error("Failed to load storage engine from SMSS metadata: {}", e.getMessage(), e);
-		}
-		return engine;
-	}
-
-	/**
-	 * Loads a model - synchronizes to security
-	 * 
-	 * @param smssFilePath
-	 * @param smssProp
-	 * @return
-	 */
-	public static IModelEngine loadModel(String smssFilePath, Properties smssProp) {
-		IModelEngine engine = null;
-		try {
-			engine = (IModelEngine) loadEngine(smssFilePath, smssProp);
-		} catch (Exception e) {
-			classLogger.error("Failed to load model engine from SMSS metadata: {}", e.getMessage(), e);
-		}
-		return engine;
-	}
-
-	/**
-	 * Loads a vector db - synchronizes to security
-	 * 
-	 * @param smssFilePath
-	 * @param smssProp
-	 * @return
-	 */
-	public static IVectorDatabaseEngine loadVectorDatabase(String smssFilePath, Properties smssProp) {
-		IVectorDatabaseEngine engine = null;
-		try {
-			engine = (IVectorDatabaseEngine) loadEngine(smssFilePath, smssProp);
-		} catch (Exception e) {
-			classLogger.error("Failed to load vector engine from SMSS metadata: {}", e.getMessage(), e);
-		}
-		return engine;
-	}
-
-	/**
-	 * Loads a service engine - synchronizes to security
-	 * 
-	 * @param smssFilePath
-	 * @param smssProp
-	 * @return
-	 */
-	public static IFunctionEngine loadServiceEngine(String smssFilePath, Properties smssProp) {
-		IFunctionEngine engine = null;
-		try {
-			engine = (IFunctionEngine) loadEngine(smssFilePath, smssProp);
-		} catch (Exception e) {
-			classLogger.error("Failed to load function engine from SMSS metadata: {}", e.getMessage(), e);
-		}
-		return engine;
-	}
-
-	/**
 	 * 
 	 * @param smssFilePath
 	 * @param smssProp
@@ -2268,7 +1990,7 @@ public final class Utility {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
 
 			// create and open the class
-			project = (IProject) Class.forName(projectClass).newInstance();
+			project = (IProject) Class.forName(projectClass).getDeclaredConstructor().newInstance();
 			project.setProjectId(projectId);
 			project.open(smssFilePath);
 
@@ -2988,61 +2710,6 @@ public final class Utility {
 	}
 
 	/**
-	 * PLEASE USE PortAllocator.getInstance().getNextAvailablePort()
-	 */
-//	public static String findOpenPort() {
-//		classLogger.info("Finding an open port.. ");
-//		boolean found = false;
-//
-//		int lowPort = 5355;
-//		int highPort = lowPort + 10_000;
-//
-//		if (Utility.getDIHelperProperty("LOW_PORT") != null) {
-//			try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
-//			try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		for (; !found && lowPort < highPort; lowPort++) {
-//			classLogger.info("Trying port = " + lowPort);
-//			try(ServerSocket s = new ServerSocket(lowPort);) {
-//				classLogger.info("Success with port = " + lowPort);
-//				// no error, found an open port, we can stop
-//				found = true;
-//				s.close();
-//				break;
-//			} catch (Exception ex) {
-//				// do nothing
-//				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
-//				found = false;
-////				logger.error(Constants.STACKTRACE, ex);
-//			}
-//		}
-//
-//		// if we found a port, return that port
-//		if (found) {
-//			return lowPort + "";
-//		}
-//		
-//		// no available ports in the range, either config is bad or something else is messed up
-//		// just throw an exception
-//		throw new IllegalArgumentException("Could not find available port to connect to");
-//	}
-
-	/**
-	 * Write an iterator to a file location using "," as a separator
-	 * 
-	 * @param fileLocation
-	 * @param it
-	 * @return
-	 */
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it) {
-		return Utility.writeResultToFile(fileLocation, it, null, ",");
-	}
-
-	/**
 	 * Write an iterator to a file location using the specified separator
 	 * 
 	 * @param fileLocation
@@ -3052,31 +2719,6 @@ public final class Utility {
 	 */
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, String separator) {
 		return Utility.writeResultToFile(fileLocation, it, null, separator);
-	}
-
-	/**
-	 * Write an iterator to a file location using the types map defined and using a
-	 * "," as a separator
-	 * 
-	 * @param fileLocation
-	 * @param it
-	 * @param typesMap
-	 * @return
-	 */
-	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it,
-			Map<String, SemossDataType> typesMap) {
-		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
-	}
-
-	/**
-	 * Write a task to a file using a "," as a separator
-	 * 
-	 * @param fileLocation
-	 * @param task
-	 * @return
-	 */
-	public static File writeResultToFile(String fileLocation, ITask task) {
-		return writeResultToFile(fileLocation, task, ",");
 	}
 
 	/**
@@ -3752,7 +3394,6 @@ public final class Utility {
 			try (FileInputStream fis = new FileInputStream(Utility.normalizePath(filePath))) {
 				retProp.load(fis);
 			} catch (IOException ioe) {
-				classLogger.info("Unable to read properties file: " + Utility.normalizePath(filePath));
 				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
@@ -3777,7 +3418,6 @@ public final class Utility {
 			try (FileInputStream fis = new FileInputStream(file)) {
 				retProp.load(fis);
 			} catch (IOException ioe) {
-				classLogger.info("Unable to read properties file: " + Utility.normalizePath(file.getAbsolutePath()));
 				classLogger.error("Failed to load properties file: {}", ioe.getMessage(), ioe);
 			}
 		}
@@ -4874,112 +4514,6 @@ public final class Utility {
 		}
 	}
 
-	@Deprecated
-	public static Map<String, Class> loadReactors(String folder, String key) {
-		HashMap<String, Class> thisMap = new HashMap<>();
-
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				classLogger.debug("Project specific reactors are disabled");
-				return thisMap;
-			}
-		}
-		try {
-			// I should create the class pool everytime
-			// this way it doesn't keep others and try to get from other places
-			// does this end up loading all the other classes too ?
-			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the
-			// heap
-
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can
-			// change it to something else if we want
-			String classesFolder = folder + "/classes";
-			classesFolder = Utility.normalizePath(classesFolder.replaceAll("\\\\", "/"));
-
-			File file = new File(classesFolder);
-			if (file.exists()) {
-				// loads a class and tried to change the package of the class on the fly
-				// CtClass clazz = pool.get("prerna.test.CPTest");
-
-				classLogger.info("Loading reactors from {}", classesFolder);
-
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-
-				String[] packages = new String[dirList.size()];
-				for (int dirIndex = 0; dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = dirList.get(dirIndex);
-				}
-
-				Map<String, Class> reactors = new HashMap<>();
-
-				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.whitelistPackages(packages).scan();
-
-				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
-						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
-
-				for (String subclass : subclassSearch) {
-					ClassInfoList classes = sr.getSubclasses(subclass);
-
-					// add the path to the insight classes so only this guy can load it
-					pool.insertClassPath(classesFolder);
-
-					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
-						String name = classes.get(classIndex).getSimpleName();
-						String packageName = classes.get(classIndex).getPackageName();
-						// Class actualClass = classes.get(classIndex).loadClass();
-						// if it is already there.. nothing we can do
-						if (!reactors.containsKey(name.toUpperCase().replaceAll("REACTOR", ""))) {
-							try {
-								// can I modify the class here
-								CtClass clazz = pool.get(packageName + "." + name);
-								clazz.defrost();
-								String qClassName = key + "." + packageName + "." + name;
-								// change the name of the classes
-								// ideally we would just have the pakcage name change to the insight
-								// this is to namespace it appropriately to have no issues
-								// if you want a namespace
-								clazz.setName(qClassName);
-								Class newClass = clazz.toClass();
-
-								Object newInstance = newClass.newInstance();
-
-								// add to the insight map
-								// we could do other instrumentation if we so chose to
-								// once I have created it is in the heap, I dont need to do much. One thing I
-								// could do is not load every class in the insight but give it out slowly
-								if (newInstance instanceof AbstractReactor) {
-									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-								} else if (newInstance instanceof prerna.sablecc2.reactor.AbstractReactor) {
-									thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-								}
-							} catch (NotFoundException nfe) {
-								classLogger.error("Failed to load configured reactor classes: {}", nfe.getMessage(),
-										nfe);
-							} catch (CannotCompileException cce) {
-								classLogger.error("Failed to load configured reactor classes: {}", cce.getMessage(),
-										cce);
-							}
-
-							// once the new instance has been done.. it has been injected into heap.. after
-							// this anyone can access it.
-							// no way to remove this class from heap
-							// has to be garbage collected as it moves
-						}
-					}
-				}
-			}
-		} catch (Exception ex) {
-			classLogger.error("Failed to load configured reactor classes: {}", ex.getMessage(), ex);
-		}
-
-		return thisMap;
-	}
-
 	public static String getCP(String specificJars, String insightFolder) {
 		StringBuffer envClassPath = new StringBuffer();
 		String osName = System.getProperty("os.name").toLowerCase();
@@ -4996,10 +4530,8 @@ public final class Utility {
 			boolean webinfTagged = false;
 
 			for (URL url : urls) {
-
-				String jarName = Utility.getInstanceName(url + "");
-				// jarName = jarName.replace(".jar", "");
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+				String jarName = Paths.get(url.getPath()).getFileName().toString();
+				String thisURL = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
 
 				String separator = ";";
 				if (!win) {
@@ -5012,11 +4544,7 @@ public final class Utility {
 					thisURL = thisURL.replace("/" + thisJarName, "");
 					webinfLib = thisURL + "/*";
 					if (!webinfTagged) {
-						retClassPath
-								// .append("\"")
-								.append(webinfLib)
-								// .append("\"")
-								.append(separator);
+						retClassPath.append(webinfLib).append(separator);
 						webinfTagged = true;
 					}
 
@@ -5028,11 +4556,7 @@ public final class Utility {
 					if (thisURL.endsWith("/")) {
 						thisURL = thisURL.substring(0, thisURL.length() - 1);
 					}
-					retClassPath
-							// .append("\"")
-							.append(thisURL)
-							// .append("\"")
-							.append(separator);
+					retClassPath.append(thisURL).append(separator);
 				}
 				// address the issue when you are running outside of semoss
 				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
@@ -5040,11 +4564,7 @@ public final class Utility {
 					if (thisURL.endsWith("/")) {
 						thisURL = thisURL.substring(0, thisURL.length() - 1);
 					}
-					retClassPath
-							// .append("\"")
-							.append(thisURL)
-							// .append("\"")
-							.append(separator);
+					retClassPath.append(thisURL).append(separator);
 				}
 
 			}
@@ -5308,50 +4828,6 @@ public final class Utility {
 		return name.matches(regex);
 	}
 
-	public static void setOwnerAndGroupPermissionsRecursively2(File directory) {
-		String osName = System.getProperty("os.name").toLowerCase();
-		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
-			return;
-		}
-
-		if (directory == null) {
-			throw new IllegalArgumentException("Directory cannot be null");
-		}
-
-		if (!directory.exists()) {
-			throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
-		}
-
-		if (!directory.isDirectory()) {
-			throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
-		}
-
-		// Construct the chmod command
-		String command = String.format("chmod -R 770 \"%s\"", Utility.normalizePath(directory.getAbsolutePath()));
-
-		// Execute the command
-		Process process;
-		try {
-			process = Runtime.getRuntime().exec(command);
-			// Wait for the process to complete
-			int exitCode = process.waitFor();
-
-			if (exitCode != 0) {
-				classLogger.info("Failed running - " + command);
-				throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
-						+ ", chmod command exited with code " + exitCode);
-			} else {
-				classLogger
-						.info("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode);
-			}
-		} catch (IOException e) {
-			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
-		} catch (InterruptedException e) {
-			classLogger.error("Failed to set owner and group permissions recursively: {}", e.getMessage(), e);
-		}
-
-	}
-
 	public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
 		String osName = System.getProperty("os.name").toLowerCase();
 		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
@@ -5399,47 +4875,6 @@ public final class Utility {
 																															// your
 																															// logger
 		}
-	}
-
-	/**
-	 * 
-	 * @param utcDateTime
-	 * @return the map containing start and end of the week.
-	 */
-	public static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
-		Map<String, ZonedDateTime> weekDates = new HashMap<>();
-
-		// Find the start of the week (Sunday)
-		ZonedDateTime start = utcDateTime;
-		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
-			start = start.minusDays(1);
-		}
-
-		// Find the end of the week (Saturday)
-		ZonedDateTime end = utcDateTime;
-		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
-			end = end.plusDays(1);
-		}
-		// Convert ZonedDateTime to LocalDateTime
-		weekDates.put("start", start);
-		weekDates.put("end", end);
-
-		return weekDates;
-	}
-
-	/**
-	 * 
-	 * @param utcDateTime
-	 * @return the map containing start and end of the month.
-	 */
-	public static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Find the start of the month by setting the day to 1.
-		dates.put("start", utcDateTime.withDayOfMonth(1));
-		// Find the end of the month by setting the day to the last day of the month.
-		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
-
-		return dates;
 	}
 
 	/**

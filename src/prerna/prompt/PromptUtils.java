@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -80,11 +81,11 @@ public final class PromptUtils {
 	 */
 	public static void loadPromptDatabase() throws Exception {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb.getQueryUtil());
+		if (owlCreator.needsRemake(promptDb)) {
+			owlCreator.remakeOwl(promptDb);
 		}
-		initialize();
+		initialize(owlCreator.getDBSchema());
 		initialized = true;
 	}
 
@@ -92,115 +93,69 @@ public final class PromptUtils {
 	 * 
 	 * @throws Exception
 	 */
-	private static void initialize() throws Exception {
+	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String database = promptDb.getDatabase();
 		String schema = promptDb.getSchema();
-		String[] colNames = null;
-		String[] types = null;
 
 		AbstractSqlQueryUtil queryUtil = promptDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
-		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
-		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 
-		// PROMPT
-		colNames = new String[] { "ID", "TITLE", "CONTEXT", "VERSION", "INTENT", "CREATED_BY", "DATE_CREATED",
-				"IS_LATEST", "GLOBAL" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
-		if (allowIfExistsTable) {
-			promptDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(promptDb.getConnection(), "PROMPT", database, schema)) {
-				// make the table
-				promptDb.insertData(queryUtil.createTable("PROMPT", colNames, types));
+		// create the tables and columns from the OWL creator schema
+		String[] metaKeysColNames = null;
+		String[] metaKeysTypes = null;
+		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
+			String tableName = tableSchema.getValue0();
+			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+			if (Constants.PROMPT_METAKEYS.equals(tableName)) {
+				metaKeysColNames = colNames;
+				metaKeysTypes = types;
 			}
-		}
 
-		// check all the columns we want are there
-		{
-			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), "PROMPT", database, schema);
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+				classLogger.info("Running sql {}", sql);
+				promptDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(promptDb.getConnection(), tableName, database, schema)) {
+					String sql = queryUtil.createTable(tableName, colNames, types);
+					classLogger.info("Running sql {}", sql);
+					promptDb.insertData(sql);
+				}
+			}
+
+			// add any columns missing from a previously-created table
+			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), tableName, database, schema);
 			for (int i = 0; i < colNames.length; i++) {
 				String col = colNames[i];
 				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 					String type = types[i];
 					String addColumnSql;
 					if (BOOLEAN_DATATYPE_NAME.equals(type)) {
-						addColumnSql = queryUtil.alterTableAddColumnWithDefault("PROMPT", col, type, false);
+						addColumnSql = queryUtil.alterTableAddColumnWithDefault(tableName, col, type, false);
 					} else {
-						addColumnSql = queryUtil.alterTableAddColumn("PROMPT", col, types[i]);
+						addColumnSql = queryUtil.alterTableAddColumn(tableName, col, type);
 					}
-					classLogger.info("Running sql " + addColumnSql);
+					classLogger.info("Running sql {}", addColumnSql);
 					promptDb.insertData(addColumnSql);
 				}
 			}
 		}
 
-		// PROMPTMETA
-		// check if column exists
-		colNames = new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("PROMPTMETA", colNames, types);
-			classLogger.info("Running sql " + sql);
-			promptDb.insertData(sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(promptDb.getConnection(), "PROMPTMETA", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("PROMPTMETA", colNames, types);
-				classLogger.info("Running sql " + sql);
-				promptDb.insertData(sql);
-			}
-		}
-
+		// PROMPTMETA index (kept)
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", "PROMPT_ID");
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			promptDb.insertData(sql);
 		} else {
 			// see if index exists
 			if (!queryUtil.indexExists(promptDb, "PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", database, schema)) {
 				String sql = queryUtil.createIndex("PROMPTMETA_PROMPT_ID_INDEX", "PROMPTMETA", "PROMPT_ID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				promptDb.insertData(sql);
-			}
-		}
-
-		// all have the same columns and default values
-		colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES" };
-		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(500)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists(Constants.PROMPT_METAKEYS, colNames, types);
-			classLogger.info("Running sql " + sql);
-			promptDb.insertData(sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(promptDb.getConnection(), Constants.PROMPT_METAKEYS, database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable(Constants.PROMPT_METAKEYS, colNames, types);
-				classLogger.info("Running sql " + sql);
-				promptDb.insertData(sql);
-			}
-		}
-		// check all the columns we want are there
-		{
-			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), Constants.PROMPT_METAKEYS,
-					database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					classLogger.info(
-							"Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-					String addColumnSql = queryUtil.alterTableAddColumn(Constants.PROMPT_METAKEYS, col, types[i]);
-					classLogger.info("Running sql " + addColumnSql);
-					promptDb.insertData(addColumnSql);
-				}
 			}
 		}
 		// see if there are any default values
@@ -212,18 +167,18 @@ public final class PromptUtils {
 					if (numrows < 6) {
 						promptDb.removeData("DELETE FROM " + Constants.PROMPT_METAKEYS + " WHERE 1=1");
 						int order = 0;
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { "description", "single", order++, "textarea", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { "data classification", "multi", order++, "select-box",
 										"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, colNames, types,
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
 								new Object[] { "data restrictions", "multi", order++, "select-box",
 										"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" }));
 					}
