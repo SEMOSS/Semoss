@@ -123,7 +123,7 @@ public class CreateProjectReactor extends AbstractReactor {
 					projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
 				} catch (IllegalArgumentException e) {
 					throw new IllegalArgumentException(
-							"Invalid projectType '" + projectTypeStr + "'. Allowed values: CODE, BLOCKS, INSIGHTS.");
+							"Invalid projectType '" + projectTypeStr + "'. Allowed values: CODE, BLOCKS, INSIGHTS, WORKFLOW.");
 				}
 				if (projectType == IProject.PROJECT_TYPE.WORKSPACE) {
 					throw new IllegalArgumentException(
