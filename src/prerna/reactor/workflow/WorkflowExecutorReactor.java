@@ -264,7 +264,19 @@ public class WorkflowExecutorReactor extends AbstractReactor {
 				String engineId = getString(config, "engineId");
 				String prompt = getString(config, "promptTemplate");
 				if (engineId != null && prompt != null) {
-					pixel = "LLMChat(engine=[\"" + engineId + "\"], command=[\"" + escape(prompt) + "\"]);";
+					StringBuilder sb = new StringBuilder();
+					sb.append("LLMChat(engine=[\"").append(engineId)
+					  .append("\"], command=[\"").append(escape(prompt)).append("\"]");
+					String systemMessage = getString(config, "systemMessage");
+					if (systemMessage != null && !systemMessage.isEmpty()) {
+						sb.append(", systemMessage=[\"").append(escape(systemMessage)).append("\"]");
+					}
+					String paramValues = getString(config, "paramValues");
+					if (paramValues != null && !paramValues.isEmpty()) {
+						sb.append(", paramValues=[").append(paramValues).append("]");
+					}
+					sb.append(");");
+					pixel = sb.toString();
 				}
 				break;
 			}
@@ -290,7 +302,9 @@ public class WorkflowExecutorReactor extends AbstractReactor {
 				String operation = getString(config, "operation");
 				String expression = getString(config, "expression");
 				if (engineId != null && "query".equals(operation) && expression != null) {
-					pixel = "VectorDatabaseQuery(engine=[\"" + engineId + "\"], command=[\"" + escape(expression) + "\"]);";
+					String limitStr = getString(config, "limit");
+					String limitPart = (limitStr != null && !limitStr.isEmpty()) ? ", limit=[" + limitStr + "]" : "";
+					pixel = "VectorDatabaseQuery(engine=[\"" + engineId + "\"], command=[\"" + escape(expression) + "\"]" + limitPart + ");";
 				} else if (engineId != null) {
 					pixel = "VectorDatabaseQuery(engine=[\"" + engineId + "\"], command=[\"query\"]);";
 				}
