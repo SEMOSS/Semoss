@@ -28,15 +28,26 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.skill.PlatformSkills;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 /**
@@ -151,6 +162,198 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 */
 	List<Map<String, Object>> getMcpMapList() {
 		return getList(ReactorKeysEnum.MCP.getKey(), List.of());
+	}
+
+	/**
+	 * Mirrors the workspace's {@code system_prompt}, MCP refs, skill refs, and
+	 * (optionally) platform-skill refs into {@code WORKSPACE.CONFIG_JSON},
+	 * preserving any other fields already present (hooks, subagents, budgets,
+	 * etc.).
+	 *
+	 * <p>Empty {@code engines} + empty {@code projects} writes an empty
+	 * {@code mcps} array, and empty {@code skills} writes an empty {@code skills}
+	 * array - both intentional, since the caller may be removing all of them.
+	 * Null {@code systemPrompt} omits the key (vs. writing JSON null), so the
+	 * loader falls through to the legacy SYSTEM_PROMPT column for that field.
+	 *
+	 * <p>The {@code skills} entry shape - {@code { "skill_id": <id> }} - matches
+	 * what {@code AgentConfigLoader.resolveSkills} and
+	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write.
+	 * No {@code pinned_version} is emitted because the edit/add inputs carry only
+	 * ids.
+	 *
+	 * <p>{@code platformSkills} differs from {@code skills}/{@code mcps}: a
+	 * {@code null} value leaves any existing {@code platform_skills} array
+	 * untouched (callers that omit the input never clobber it), while a non-null
+	 * value is a full replace (an empty set clears it). Entries are plain slug
+	 * strings, matching {@code CONFIG_JSON.platform_skills[]}.
+	 */
+	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
+		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		if (systemPrompt != null && !systemPrompt.isEmpty()) {
+			cfg.put("system_prompt", systemPrompt);
+		} else {
+			cfg.remove("system_prompt");
+		}
+
+		JSONArray mcpsJson = new JSONArray();
+		for (String id : engines) {
+			JSONObject entry = new JSONObject();
+			entry.put("id", id);
+			entry.put("name", id);
+			mcpsJson.put(entry);
+		}
+		for (String id : projects) {
+			JSONObject entry = new JSONObject();
+			entry.put("id", id);
+			entry.put("name", id);
+			mcpsJson.put(entry);
+		}
+		cfg.put("mcps", mcpsJson);
+
+		JSONArray skillsJson = new JSONArray();
+		for (String id : skills) {
+			JSONObject entry = new JSONObject();
+			entry.put("skill_id", id);
+			skillsJson.put(entry);
+		}
+		cfg.put("skills", skillsJson);
+
+		if (platformSkills != null) {
+			JSONArray platformSkillsJson = new JSONArray();
+			for (String slug : platformSkills) {
+				platformSkillsJson.put(slug);
+			}
+			cfg.put("platform_skills", platformSkillsJson);
+		}
+
+		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Reads the MCP / prompt / skill nouns from the request, validates them, and
+	 * populates the caller-owned accumulators in place. Throws
+	 * {@link IllegalArgumentException} with a human-readable message on
+	 * validation failure (callers catch and convert to {@code getError(...)}).
+	 *
+	 * <p>Platform skills are handled separately by
+	 * {@link #collectPlatformSkillsInput()} because the null-vs-empty distinction
+	 * (input absent vs. input supplied empty) matters for the CONFIG_JSON mirror
+	 * and doesn't fit a simple out-param.
+	 *
+	 * <p>The allowlist parameters carry the "existing attachment" escape hatch
+	 * Edit uses: an id already attached to the workspace passes the permission
+	 * check even if the caller has lost view rights since. Add passes
+	 * {@code null} for both, since on create there are no prior attachments to
+	 * preserve.
+	 */
+	protected void validateWorkspaceInputs(User user, String workspaceId,
+			Set<String> existingDepAllowlist, Set<String> existingSkillAllowlist,
+			Set<String> engines, Set<String> projectDependencies,
+			List<Map<String, Object>> dependencyList,
+			List<Map<String, String>> workspaceResources,
+			Set<String> skillIds) {
+		boolean hasDepAllowlist = existingDepAllowlist != null;
+		boolean hasSkillAllowlist = existingSkillAllowlist != null;
+		List<Map<String, Object>> mcpMapList = getMcpMapList();
+		for (Map<String, Object> mcpMap : mcpMapList) {
+			if (!mcpMap.containsKey("type") || !mcpMap.containsKey("id")) {
+				throw new IllegalArgumentException("Tool map must contain both type and id");
+			}
+			String type = (String) mcpMap.get("type");
+			String id = (String) mcpMap.get("id");
+			CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
+			switch (catalogType) {
+			case PROJECT:
+				projectDependencies.add(id);
+				break;
+			default:
+				engines.add(id);
+			}
+			Map<String, Object> dependencyEntry = new HashMap<>();
+			dependencyEntry.put("ENGINEID", id);
+			dependencyEntry.put("ENGINETYPE", type);
+			dependencyList.add(dependencyEntry);
+		}
+
+		for (String engine : engines) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine)
+					&& !(hasDepAllowlist && existingDepAllowlist.contains(engine))) {
+				throw new IllegalArgumentException("User lacks permission to one of the given engines: " + engine);
+			}
+			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
+		}
+
+		for (String project : projectDependencies) {
+			if (!SecurityProjectUtils.userCanViewProject(user, project)
+					&& !(hasDepAllowlist && existingDepAllowlist.contains(project))) {
+				throw new IllegalArgumentException(
+						"User lacks permission to one of the mcp tools/projects: " + project);
+			}
+			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
+		}
+
+		// linked to workspaces via WORKSPACE_RESOURCE with RESOURCE_TYPE = "PROMPT"
+		List<String> promptIds = getNounAsStringList(PROMPTS);
+		if (!promptIds.isEmpty()) {
+			if (!SystemEngineRegistry.isPromptDbLoaded()) {
+				throw new IllegalArgumentException("Prompt database is not enabled");
+			}
+			for (String promptId : promptIds) {
+				Map<String, Object> prompt = PromptUtils.getPrompt(promptId, user);
+				if (prompt == null || prompt.isEmpty()) {
+					throw new IllegalArgumentException("Prompt not found or user lacks access: " + promptId);
+				}
+				workspaceResources.add(makePromptResourceEntryMap(workspaceId, promptId));
+			}
+		}
+
+		skillIds.addAll(getNounAsStringList(SKILLS));
+		for (String skillId : skillIds) {
+			if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
+				throw new IllegalArgumentException("Skill not found: " + skillId);
+			}
+			if (!SecurityProjectUtils.userCanViewProject(user, skillId)
+					&& !(hasSkillAllowlist && existingSkillAllowlist.contains(skillId))) {
+				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
+			}
+			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
+		}
+	}
+
+	/**
+	 * Reads and validates the {@code PLATFORM_SKILLS} noun. Returns {@code null}
+	 * when the noun was not supplied (signal to leave existing CONFIG_JSON
+	 * {@code platform_skills} untouched), a populated set when slugs were
+	 * supplied (possibly empty after trimming), and throws
+	 * {@link IllegalArgumentException} when a slug fails validation. Callers
+	 * catch and convert to {@code getError(...)} when they want the existing
+	 * partial-success response shape.
+	 */
+	protected Set<String> collectPlatformSkillsInput() {
+		if (getGenRowStruct(PLATFORM_SKILLS) == null) {
+			return null;
+		}
+		Set<String> out = new LinkedHashSet<>();
+		for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
+			if (slug == null) {
+				continue;
+			}
+			String trimmed = slug.trim();
+			if (trimmed.isEmpty()) {
+				continue;
+			}
+			if (!PlatformSkills.exists(trimmed)) {
+				throw new IllegalArgumentException("Platform skill not found: " + trimmed);
+			}
+			out.add(trimmed);
+		}
+		return out;
 	}
 
 }
