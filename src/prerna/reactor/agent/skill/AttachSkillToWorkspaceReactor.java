@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.agent.skill;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -37,6 +39,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
@@ -172,6 +175,39 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to mirror into CONFIG_JSON.skills",
 						skillId, workspaceId, mirrorEx);
 				response.put("warning", "Skill attached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
+			}
+
+			// Mirror the attachment into PROJECTDEPENDENCIES so the skill shows up as a
+			// project dependency alongside MCP engines/projects. Bulk update via merge:
+			// read current deps, append the skill if not already present, rewrite.
+			// Best-effort - WORKSPACE_RESOURCE row is the source of truth.
+			try {
+				List<Map<String, Object>> current = SecurityProjectUtils.getProjectDependencies(workspaceId, false);
+				List<Map<String, Object>> merged = new ArrayList<>();
+				boolean alreadyPresent = false;
+				for (Map<String, Object> row : current) {
+					String existingId = (String) row.get("engine_id");
+					String existingType = (String) row.get("engine_type");
+					Map<String, Object> entry = new HashMap<>();
+					entry.put("ENGINEID", existingId);
+					entry.put("ENGINETYPE", existingType);
+					merged.add(entry);
+					if (skillId.equals(existingId)) {
+						alreadyPresent = true;
+					}
+				}
+				if (!alreadyPresent) {
+					Map<String, Object> skillDep = new HashMap<>();
+					skillDep.put("ENGINEID", skillId);
+					skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
+					merged.add(skillDep);
+				}
+				SecurityProjectUtils.updateProjectDependencies(user, workspaceId, merged);
+			} catch (Exception depEx) {
+				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record PROJECTDEPENDENCIES entry",
+						skillId, workspaceId, depEx);
+				response.put("dependency_warning",
+						"Skill attached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
 
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);

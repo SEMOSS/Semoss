@@ -139,6 +139,15 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 			response.put("warning", "Skill detached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
 		}
 
+		try {
+			SecurityProjectUtils.removeProjectDependency(user, workspaceId, skillId);
+		} catch (Exception depEx) {
+			classLogger.warn("Detached skill '{}' from workspace '{}' but failed to remove PROJECTDEPENDENCIES entry",
+					skillId, workspaceId, depEx);
+			response.put("dependency_warning",
+					"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
+		}
+
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

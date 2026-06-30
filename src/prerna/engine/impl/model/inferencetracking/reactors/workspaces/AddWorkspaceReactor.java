@@ -55,8 +55,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public AddWorkspaceReactor() {
 		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
-				SKILLS };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
+				SKILLS, PLATFORM_SKILLS };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -83,9 +83,10 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
+		Set<String> platformSkills = getGenRowStruct(PLATFORM_SKILLS) != null ? new LinkedHashSet<>() : null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, null, null, engines, projectDependencies, dependencyList,
-					workspaceResources, skillIds, null);
+					workspaceResources, skillIds, platformSkills);
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}
@@ -97,6 +98,14 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
+			try {
+				mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies,
+						skillIds, platformSkills);
+			} catch (Exception mirrorEx) {
+				classLogger.warn(
+						"Created workspace '{}' but failed to mirror system_prompt/mcps/skills into CONFIG_JSON (legacy writes already succeeded)",
+						workspaceId, mirrorEx);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to create workspace '{}' (ID: {}).", workspaceName, workspaceId, e);
 			if (workspaceProject != null) {

@@ -330,6 +330,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
+			// Skills are projects (type=SKILL), so they belong in PROJECTDEPENDENCIES
+			// alongside MCP engines/projects. ENGINETYPE = "PROJECT" because the
+			// catalog stores skills as projects.
+			Map<String, Object> skillDep = new HashMap<>();
+			skillDep.put("ENGINEID", skillId);
+			skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
+			dependencyList.add(skillDep);
 		}
 
 		if (platformSkills != null) {
