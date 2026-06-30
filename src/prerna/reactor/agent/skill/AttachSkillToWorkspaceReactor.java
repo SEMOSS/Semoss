@@ -201,8 +201,8 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 					skillDep.put("ENGINEID", skillId);
 					skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
 					merged.add(skillDep);
+					SecurityProjectUtils.updateProjectDependencies(user, workspaceId, merged);
 				}
-				SecurityProjectUtils.updateProjectDependencies(user, workspaceId, merged);
 			} catch (Exception depEx) {
 				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record PROJECTDEPENDENCIES entry",
 						skillId, workspaceId, depEx);
