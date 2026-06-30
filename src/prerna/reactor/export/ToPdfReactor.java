@@ -519,7 +519,7 @@ public class ToPdfReactor extends AbstractReactor {
 	 */
 	private void captureScreenshot(String url, String outputPath, Integer waitTime) {
 		try (Playwright pw = Playwright.create();
-				Browser browser = pw.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
+				Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
 				Page page = browser.newPage()) {
 			page.navigate(url);
 			page.waitForLoadState();
@@ -591,7 +591,7 @@ public class ToPdfReactor extends AbstractReactor {
 		String pdfPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".pdf";
 
 		try (Playwright pw = Playwright.create();
-				Browser browser = pw.webkit().launch(new BrowserType.LaunchOptions().setHeadless(true));
+				Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
 				Page page = browser.newPage();) {
 
 			// Navigate to HTML file
