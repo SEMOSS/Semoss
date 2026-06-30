@@ -30,6 +30,7 @@ package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.agent.skill.PlatformSkills;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -57,8 +59,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -166,6 +168,41 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 		}
 
+
+		Set<String> skillIds = new HashSet<>(getNounAsStringList(SKILLS));
+		if (!skillIds.isEmpty()) {
+			Set<String> curSkillList = ModelInferenceLogsUtils
+					.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null).stream()
+					.map(map -> map.get("resource_id")).collect(Collectors.toSet());
+			for (String skillId : skillIds) {
+				if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
+					return getError("Skill not found: " + skillId);
+				}
+				if (!SecurityProjectUtils.userCanViewProject(user, skillId) && !curSkillList.contains(skillId)) {
+					return getError("User lacks permission to one of the given skills: " + skillId);
+				}
+				workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
+			}
+		}
+
+		Set<String> platformSkills = null;
+		if (getGenRowStruct(PLATFORM_SKILLS) != null) {
+			platformSkills = new LinkedHashSet<>();
+			for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
+				if (slug == null) {
+					continue;
+				}
+				String trimmed = slug.trim();
+				if (trimmed.isEmpty()) {
+					continue;
+				}
+				if (!PlatformSkills.exists(trimmed)) {
+					return getError("Platform skill not found: " + trimmed);
+				}
+				platformSkills.add(trimmed);
+			}
+		}
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -174,17 +211,18 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return getError("Error during workspace update: " + e.getMessage());
 		}
 
-		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs into
-		// WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields (e.g. hooks)
-		// the workspace already has. Best-effort - a failure here is logged but does
-		// not fail the reactor, since the legacy SYSTEM_PROMPT column +
+		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs +
+		// skill refs into WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields
+		// (e.g. hooks) the workspace already has. Best-effort - a failure here is logged
+		// but does not fail the reactor, since the legacy SYSTEM_PROMPT column +
 		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
 		// correctly from those.
 		try {
-			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies);
+			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
+					platformSkills);
 		} catch (Exception e) {
 			classLogger.warn(
-					"Failed to mirror system_prompt/mcps into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
+					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
 					workspaceId, e);
 			Map<String, Object> partial = new HashMap<>();
 			partial.put("success", true);
@@ -196,17 +234,32 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	}
 
 	/**
-	 * Persist {@code system_prompt} and the engine/project MCP refs into
-	 * {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already there.
+	 * Persist {@code system_prompt}, the engine/project MCP refs, and the skill
+	 * refs into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
+	 * there.
 	 *
 	 * <p>
 	 * Empty {@code engines} + empty {@code projects} writes an empty {@code mcps}
-	 * array - intentional, since the user may be removing all MCPs. Null
+	 * array, and empty {@code skills} writes an empty {@code skills} array - both
+	 * intentional, since the user may be removing all MCPs/skills. Null
 	 * {@code systemPrompt} omits the key (vs. writing JSON null), so the loader
 	 * falls through to the legacy SYSTEM_PROMPT column read for that field.
+	 *
+	 * <p>
+	 * The {@code skills} entry shape - {@code { "skill_id": <id> }} - matches what
+	 * {@code AgentConfigLoader.resolveSkills} and
+	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write. No
+	 * {@code pinned_version} is emitted because the edit input carries only ids.
+	 *
+	 * <p>
+	 * {@code platformSkills} differs from {@code skills}/{@code mcps}: a {@code null}
+	 * value leaves any existing {@code platform_skills} array untouched (callers that
+	 * omit the input never clobber it), while a non-null value is a full replace (an
+	 * empty set clears it). Entries are plain slug strings, matching
+	 * {@code CONFIG_JSON.platform_skills[]}.
 	 */
 	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects) throws Exception {
+			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -232,6 +285,22 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			mcpsJson.put(entry);
 		}
 		cfg.put("mcps", mcpsJson);
+
+		JSONArray skillsJson = new JSONArray();
+		for (String id : skills) {
+			JSONObject entry = new JSONObject();
+			entry.put("skill_id", id);
+			skillsJson.put(entry);
+		}
+		cfg.put("skills", skillsJson);
+
+		if (platformSkills != null) {
+			JSONArray platformSkillsJson = new JSONArray();
+			for (String slug : platformSkills) {
+				platformSkillsJson.put(slug);
+			}
+			cfg.put("platform_skills", platformSkillsJson);
+		}
 
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}

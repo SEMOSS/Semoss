@@ -170,6 +170,9 @@ public final class AgentConfigLoader {
         // Skills follow the same layered merge and are staged later by AgentRunner.
         b.skills(resolveSkills(workspaceId, room, cfgJson));
 
+        // Platform skills: disk-backed built-ins referenced by slug, staged from <BASE_FOLDER>/skills/.
+        b.platformSkills(resolvePlatformSkills(room, cfgJson));
+
         // Hooks and subagents currently come from CONFIG_JSON only. resolveHooks classifies
         // each entry by interface so a hook can land on the run-hook list, tool-hook list,
         // or both.
@@ -180,9 +183,9 @@ public final class AgentConfigLoader {
 
         AgentConfig cfg = b.build();
         logger.info(
-                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} runHooks={} toolHooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
+                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} platformSkills={} runHooks={} toolHooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
                 room.getId(), cfg.getWorkspaceId(), cfg.getName(), cfg.getModelId(), cfg.getWorkingDir(),
-                cfg.getMcps().size(), cfg.getSkills().size(), cfg.getRunHooks().size(), cfg.getToolHooks().size(), cfg.getSubagents().size(),
+                cfg.getMcps().size(), cfg.getSkills().size(), cfg.getPlatformSkills().size(), cfg.getRunHooks().size(), cfg.getToolHooks().size(), cfg.getSubagents().size(),
                 cfg.getBudgets().getMaxTurns(), cfg.getBudgets().getMaxReflections(), cfg.getBudgets().getMaxSeconds(),
                 lengthOrZero(cfg.getAuthoredPrompt()), lengthOrZero(cfg.getWorkdirAgentsMd()),
                 cfgJson == null ? "absent" : "present");
@@ -368,6 +371,67 @@ public final class AgentConfigLoader {
             entry.put("pinned_version", pinnedVersion);
         }
         return entry;
+    }
+
+    /**
+     * Builds the platform-skill slug list from CONFIG_JSON and room options,
+     * deduped by slug (insertion order preserved). Platform skills are disk-backed
+     * folders under {@code <BASE_FOLDER>/skills/}; they have no ids and are
+     * referenced by folder name. Staged from disk by
+     * {@link prerna.reactor.agent.skill.SkillStager#stagePlatform}.
+     */
+    private static List<String> resolvePlatformSkills(Room room, JSONObject cfgJson) {
+        Set<String> out = new LinkedHashSet<>();
+
+        // CONFIG_JSON.platform_skills[] - array of slug strings.
+        if (cfgJson != null && cfgJson.has("platform_skills")) {
+            JSONArray arr = cfgJson.optJSONArray("platform_skills");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    String slug = StringUtils.trimToNull(arr.optString(i, null));
+                    if (slug != null) {
+                        out.add(slug);
+                    }
+                }
+            }
+        }
+
+        // room.options.platform_skills[] - array of slug strings.
+        for (String slug : extractRoomPlatformSkills(room)) {
+            if (slug != null && !slug.isEmpty()) {
+                out.add(slug);
+            }
+        }
+
+        return new ArrayList<>(out);
+    }
+
+    /** Parse {@code room.options.platform_skills[]} into a list of slug strings. */
+    private static List<String> extractRoomPlatformSkills(Room room) {
+        List<String> result = new ArrayList<>();
+        String opts = room.getOptions();
+        if (opts == null || opts.trim().isEmpty()) {
+            return result;
+        }
+        try {
+            JsonObject obj = JsonParser.parseString(opts).getAsJsonObject();
+            JsonElement el = obj.get("platform_skills");
+            if (el == null || !el.isJsonArray()) {
+                return result;
+            }
+            for (JsonElement e : el.getAsJsonArray()) {
+                if (!e.isJsonPrimitive()) {
+                    continue;
+                }
+                String slug = StringUtils.trimToNull(e.getAsString());
+                if (slug != null) {
+                    result.add(slug);
+                }
+            }
+        } catch (Exception ignore) {
+            // best-effort parse; bad options blob -> no room platform skills
+        }
+        return result;
     }
 
     /** Parse {@code room.options.mcp[]} into a list of {@code {id, name}} maps. */

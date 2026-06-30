@@ -52,6 +52,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static final Object CACHE_LOCK = new Object();
 	private static volatile String cachedGlobalSystemPrompt = null;
 	private static volatile Map<String, String> cachedSystemPromptVars = null;
+	private static volatile boolean cachedHideSystemMessages = false;
 	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
@@ -89,6 +90,16 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
+	 * Returns {@code playground.hide_system_messages} from the currently active
+	 * theme. When enabled, playground message APIs should omit system prompt parts
+	 * from their response payloads.
+	 */
+	public static boolean hidePlaygroundSystemMessages() {
+		ensureCacheLoaded();
+		return cachedHideSystemMessages;
+	}
+
+	/**
 	 * Refreshes the in-memory cache from the active theme.
 	 */
 	public static void refreshCacheFromActiveTheme() {
@@ -102,6 +113,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		synchronized (CACHE_LOCK) {
 			cachedGlobalSystemPrompt = null;
 			cachedSystemPromptVars = null;
+			cachedHideSystemMessages = false;
 			cacheInitialized = false;
 		}
 	}
@@ -116,6 +128,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static void parseThemeMap(String themeMapJson) {
 		cachedGlobalSystemPrompt = null;
 		cachedSystemPromptVars = new LinkedHashMap<>();
+		cachedHideSystemMessages = false;
 		if (themeMapJson == null) {
 			return;
 		}
@@ -126,6 +139,9 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 				return;
 			}
 			JsonObject playground = playgroundElem.getAsJsonObject();
+
+			cachedHideSystemMessages = getBooleanValue(playground, "hide_system_messages",
+					getBooleanValue(playground, "hideSystemMessages", false));
 
 			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
 			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
@@ -151,6 +167,14 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		} catch (Exception e) {
 			classLogger.debug(Constants.STACKTRACE, e);
 		}
+	}
+
+	private static boolean getBooleanValue(JsonObject obj, String key, boolean defaultValue) {
+		JsonElement elem = obj.get(key);
+		if (elem == null || elem.isJsonNull() || !elem.isJsonPrimitive()) {
+			return defaultValue;
+		}
+		return Boolean.parseBoolean(elem.getAsString());
 	}
 
 	private static String extractActiveThemeMapJson() {

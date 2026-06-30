@@ -51,6 +51,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
@@ -94,10 +95,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null,
+				PlaygroundUtils.PLAYGROUND_PROJECT_ID, null);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-		String givenSystemPrompt = room.getEffectiveSystemPrompt();
+		String givenSystemPrompt = room.getSystemPromptForModel();
 
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
@@ -120,8 +122,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
+		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+		if (hideSystemMessages) {
+			MessageUtils.removeSystemPromptFromMessageMap(inputMap);
+		}
 //		MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 

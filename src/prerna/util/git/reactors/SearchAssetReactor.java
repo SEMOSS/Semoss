@@ -60,7 +60,6 @@ public class SearchAssetReactor extends AbstractReactor {
 			location = location.replaceAll("\\\\", "/");
 		}
 
-		// location = location.replaceAll("/app_assets", "");
 		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null),
 				PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

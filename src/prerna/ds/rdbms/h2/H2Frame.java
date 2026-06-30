@@ -266,12 +266,6 @@ public class H2Frame extends AbstractRdbmsFrame {
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Random methods I am pulling from the old H2Builder Not specifically used in
 	 * any workflow at the moment
@@ -363,12 +357,6 @@ public class H2Frame extends AbstractRdbmsFrame {
 		serverURL = null;
 	}
 
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-
 	/*
 	 * Legacy calls
 	 */
@@ -381,25 +369,10 @@ public class H2Frame extends AbstractRdbmsFrame {
 	 * @return
 	 */
 	public ResultSet execQuery(String query) {
-		PreparedStatement stmt = null;
-		boolean error = false;
-		try {
-			// Statement stmt = this.conn.createStatement();
-			stmt = this.conn.prepareStatement(query);
+		try (PreparedStatement stmt = this.conn.prepareStatement(query)) {
 			return stmt.executeQuery();
 		} catch (SQLException e) {
-			error = true;
 			classLogger.error("Error executing the query {}", query, e);
-		} finally {
-			// it is the responsibility of the code executing this
-			// to take the statement and close it if no error
-			if (error && stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					classLogger.error("Error closing the statement after executing the query", e);
-				}
-			}
 		}
 
 		return null;
