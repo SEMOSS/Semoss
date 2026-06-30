@@ -239,7 +239,7 @@ public class CmdExecUtil {
 //	    }
 
 		org.apache.commons.exec.ExecuteWatchdog.Builder executeWatchdogBuilder = ExecuteWatchdog.builder();
-		executeWatchdogBuilder.setTimeout(Duration.ofSeconds(20));
+		executeWatchdogBuilder.setTimeout(Duration.ofSeconds(200));
 
 		org.apache.commons.exec.DefaultExecutor.Builder<?> executorBuilder = DefaultExecutor.builder();
 

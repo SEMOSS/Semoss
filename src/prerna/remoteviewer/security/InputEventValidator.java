@@ -75,6 +75,16 @@ public class InputEventValidator {
 
 		switch (type) {
 		case "mouse-click":
+			if (!hasSelector(event)) {
+				requireCoordinates(event, vpWidth, vpHeight);
+			} else if (event.getX() != null || event.getY() != null) {
+				requireCoordinates(event, vpWidth, vpHeight);
+			}
+			if (event.getButton() != null && !ALLOWED_BUTTONS.contains(event.getButton())) {
+				throw new IllegalArgumentException("Invalid button: " + event.getButton());
+			}
+			break;
+
 		case "mouse-move":
 		case "mouse-down":
 		case "mouse-up":
@@ -129,5 +139,11 @@ public class InputEventValidator {
 		// Clamp coordinates to viewport (mutate in place — safe because we own this object)
 		event.setX(Math.max(0, Math.min(event.getX(), vpWidth)));
 		event.setY(Math.max(0, Math.min(event.getY(), vpHeight)));
+	}
+
+	private static boolean hasSelector(BrowserInputEvent event) {
+		return event.getSelector() != null
+				&& event.getSelector().getValue() != null
+				&& !event.getSelector().getValue().isBlank();
 	}
 }

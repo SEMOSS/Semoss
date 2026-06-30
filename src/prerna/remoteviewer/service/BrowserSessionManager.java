@@ -29,6 +29,7 @@ package prerna.remoteviewer.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import com.google.gson.Gson;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.ScreenshotType;
+
+import prerna.remoteviewer.model.BrowserInputEvent;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,7 +91,7 @@ public class BrowserSessionManager {
 		this.defaultViewportWidth = parseInt("REMOTE_BROWSER_VIEWPORT_WIDTH", 1365);
 		this.defaultViewportHeight = parseInt("REMOTE_BROWSER_VIEWPORT_HEIGHT", 768);
 		this.headless = !"false".equalsIgnoreCase(System.getenv("REMOTE_BROWSER_HEADLESS"));
-		this.maxSessionsPerUser = parseInt("REMOTE_BROWSER_MAX_SESSIONS_PER_USER", 3);
+		this.maxSessionsPerUser = parseInt("REMOTE_BROWSER_MAX_SESSIONS_PER_USER", 10);
 
 		// Reap expired sessions every 60 seconds
 		reaper.scheduleAtFixedRate(this::closeExpiredSessions, 60, 60, TimeUnit.SECONDS);
@@ -144,8 +151,81 @@ public class BrowserSessionManager {
 			classLogger.warn("Initial navigation to '{}' failed for session {}: {}", url, sessionId, e.getMessage());
 		}
 
+		// Start the event-processing loop immediately so that injected events
+		// (e.g. from the Chrome extension mock) are processed even before a
+		// WebSocket viewer connects. The WebSocket onOpen will reuse this thread.
+		Thread loopThread = new Thread(() -> runEventLoop(session), "BrowserLoop-" + sessionId);
+		loopThread.setDaemon(true);
+		session.setSessionThread(loopThread);
+		loopThread.start();
+
 		classLogger.info("Created remote browser session {} for user {} -> {}", sessionId, userId, url);
 		return session;
+	}
+
+	/**
+	 * Background event loop: drains the event queue and (when a viewer is
+	 * connected) streams frames. Runs for the lifetime of the session.
+	 */
+	private static final Gson LOOP_GSON = new Gson();
+
+	private void runEventLoop(BrowserSession session) {
+		Page page = session.getPage();
+		String lastUrl = "";
+		while (!session.isClosed() && !Thread.currentThread().isInterrupted()) {
+			long start = System.currentTimeMillis();
+			try {
+				// Process all queued events (from WebSocket or inject endpoint)
+				BrowserInputEvent event;
+				while ((event = session.eventQueue.poll()) != null) {
+					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
+							session.getSessionId(), session.eventQueue.size(), event.getType());
+					BrowserInputService.dispatch(session, event);
+					BrowserRecordingService.record(session, event);
+					session.touchActivity();
+				}
+
+				if (page.isClosed()) break;
+
+				// Send frame and navigated notification only when a viewer is connected
+				FrameSender sender = session.getFrameSender();
+				if (sender != null && session.isWsConnected()) {
+					// Notify URL changes
+					try {
+						String currentUrl = page.url();
+						if (!currentUrl.equals(lastUrl)) {
+							lastUrl = currentUrl;
+							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
+						}
+					} catch (Exception ignored) {}
+
+					// Send screenshot frame
+					try {
+						byte[] buf = page.screenshot(
+								new Page.ScreenshotOptions()
+										.setFullPage(false)
+										.setType(ScreenshotType.JPEG)
+										.setQuality(75));
+						String b64 = Base64.getEncoder().encodeToString(buf);
+						sender.send(LOOP_GSON.toJson(Map.of(
+								"type", "frame",
+								"data", b64,
+								"metadata", Map.of(
+										"width", session.getViewportWidth(),
+										"height", session.getViewportHeight(),
+										"pageScaleFactor", 1))));
+					} catch (Exception ignored) {}
+				}
+			} catch (Exception e) {
+				classLogger.debug("Session loop error for {}: {}", session.getSessionId(), e.getMessage());
+			}
+			long elapsed = System.currentTimeMillis() - start;
+			long sleep = 67 - elapsed;
+			if (sleep > 0) {
+				try { Thread.sleep(sleep); } catch (InterruptedException e) { break; }
+			}
+		}
+		classLogger.info("Session loop ended for {}", session.getSessionId());
 	}
 
 	/**

@@ -57,6 +57,26 @@ public class BrowserInputEvent {
 	// ---- navigate ----
 	private String url;
 
+	// ---- optional enrichment from Chrome extension recording ----
+	/** CSS/ID/role selector for the target element (preferred over raw coords). */
+	private SelectorInfo selector;
+	/** How long to wait after this action before the next one (ms). */
+	private Integer waitAfterMs;
+	/** Viewport width used when the action was recorded. */
+	private Integer recordedViewportWidth;
+	/** Viewport height used when the action was recorded. */
+	private Integer recordedViewportHeight;
+
+	public static class SelectorInfo {
+		private String strategy; // "css", "id", "role", "text"
+		private String value;
+
+		public String getStrategy() { return strategy; }
+		public void setStrategy(String strategy) { this.strategy = strategy; }
+		public String getValue() { return value; }
+		public void setValue(String value) { this.value = value; }
+	}
+
 	// ---- getters & setters ----
 
 	public String getType() { return type; }
@@ -91,4 +111,16 @@ public class BrowserInputEvent {
 
 	public String getUrl() { return url; }
 	public void setUrl(String url) { this.url = url; }
+
+	public SelectorInfo getSelector() { return selector; }
+	public void setSelector(SelectorInfo selector) { this.selector = selector; }
+
+	public Integer getWaitAfterMs() { return waitAfterMs; }
+	public void setWaitAfterMs(Integer waitAfterMs) { this.waitAfterMs = waitAfterMs; }
+
+	public Integer getRecordedViewportWidth() { return recordedViewportWidth; }
+	public void setRecordedViewportWidth(Integer recordedViewportWidth) { this.recordedViewportWidth = recordedViewportWidth; }
+
+	public Integer getRecordedViewportHeight() { return recordedViewportHeight; }
+	public void setRecordedViewportHeight(Integer recordedViewportHeight) { this.recordedViewportHeight = recordedViewportHeight; }
 }
