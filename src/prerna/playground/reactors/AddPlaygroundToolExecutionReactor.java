@@ -47,6 +47,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -118,6 +119,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have access to room " + roomId);
 		}
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.isEmpty()) {

@@ -138,6 +138,10 @@ public final class AgentRunner {
 	 *                         rounds.
 	 * @param paramMap         Optional. Extra model parameters (temperature,
 	 *                         max_tokens, etc.).
+	 * @param mediaInputPaths  Optional room-local media filenames for the initial
+	 *                         user message.
+	 * @param mediaUrls        Optional direct media URLs for the initial user
+	 *                         message.
 	 * @param runId            Optional durable AGENT_RUN id used to tag room
 	 *                         messages.
 	 * @param insight          Required. Current insight context (user, project,
@@ -148,7 +152,7 @@ public final class AgentRunner {
 	 */
 	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
-			String runId, Insight insight) throws Exception {
+			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight) throws Exception {
 
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("roomId is required");
@@ -211,7 +215,11 @@ public final class AgentRunner {
 			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 					maxReflections, explicitWorkspaceId);
 
-			// Best-effort skill staging for harnesses that discover local skills from disk.
+			try {
+				SkillStager.stagePlatform(filePath, agentConfig.getPlatformSkills());
+			} catch (Exception e) {
+				logger.warn("AgentRunner: platform skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+			}
 			try {
 				SkillStager.stage(filePath, agentConfig.getSkills());
 			} catch (Exception e) {
@@ -220,6 +228,7 @@ public final class AgentRunner {
 
 			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
 					.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
+					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls)
 					// Root runs are not registered as subagents and resolve to depth 0.
 					// Child runs are recorded by AgentSubAgentRegistry before their
 					// virtual thread starts, so this lookup can classify the run without
@@ -228,6 +237,10 @@ public final class AgentRunner {
 
 			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
 			logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
+			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
+				throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
+						+ harness.getName() + "'");
+			}
 
 			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
 			List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
@@ -292,6 +305,13 @@ public final class AgentRunner {
 		} finally {
 			ACTIVE_ROOMS.remove(roomId);
 		}
+	}
+
+	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			String runId, Insight insight) throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				null, null, runId, insight);
 	}
 
 	// workspace_id overlay helpers
@@ -426,6 +446,10 @@ public final class AgentRunner {
 			return AgentRunContext.ROOT_SPAWN_DEPTH;
 		}
 		return AgentSubAgentRegistry.getManager().getDepthForJob(jobId);
+	}
+
+	private static boolean hasMediaInput(AgentRunContext ctx) {
+		return ctx != null && (!ctx.getMediaInputPaths().isEmpty() || !ctx.getMediaUrls().isEmpty());
 	}
 
 	/**
