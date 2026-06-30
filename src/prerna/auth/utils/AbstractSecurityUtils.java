@@ -2414,6 +2414,195 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// APP_PROFILE
+			colNames = new String[] { "PROFILE_ID", "APP_ID", "PROFILE_NAME", "DESCRIPTION", "IS_DEFAULT", "CREATED_BY", "CREATED_AT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("APP_PROFILE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "APP_PROFILE", database, schema)) {
+					String sql = queryUtil.createTable("APP_PROFILE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "APP_PROFILE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("APP_PROFILE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// APP_FEATURE
+			colNames = new String[] { "FEATURE_ID", "APP_ID", "FEATURE_KEY", "DESCRIPTION", "CREATED_BY", "CREATED_AT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("APP_FEATURE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "APP_FEATURE", database, schema)) {
+					String sql = queryUtil.createTable("APP_FEATURE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "APP_FEATURE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("APP_FEATURE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// APP_PROFILE_FEATURE
+			colNames = new String[] { "APP_ID", "PROFILE_ID", "FEATURE_ID", "ENABLED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("APP_PROFILE_FEATURE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "APP_PROFILE_FEATURE", database, schema)) {
+					String sql = queryUtil.createTable("APP_PROFILE_FEATURE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "APP_PROFILE_FEATURE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("APP_PROFILE_FEATURE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// APP_USER_PROFILE
+			colNames = new String[] { "APP_ID", "USER_ID", "PROFILE_ID", "ASSIGNED_BY", "ASSIGNED_AT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("APP_USER_PROFILE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "APP_USER_PROFILE", database, schema)) {
+					String sql = queryUtil.createTable("APP_USER_PROFILE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "APP_USER_PROFILE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("APP_USER_PROFILE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// PLATFORM_PROFILE
+			colNames = new String[] { "PROFILE_ID", "PROFILE_NAME", "DESCRIPTION", "CREATED_BY", "CREATED_AT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PLATFORM_PROFILE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "PLATFORM_PROFILE", database, schema)) {
+					String sql = queryUtil.createTable("PLATFORM_PROFILE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PLATFORM_PROFILE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("PLATFORM_PROFILE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// PLATFORM_PROFILE_FEATURE
+			colNames = new String[] { "PROFILE_ID", "FEATURE_KEY", "ENABLED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(100)", BOOLEAN_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PLATFORM_PROFILE_FEATURE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "PLATFORM_PROFILE_FEATURE", database, schema)) {
+					String sql = queryUtil.createTable("PLATFORM_PROFILE_FEATURE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PLATFORM_PROFILE_FEATURE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("PLATFORM_PROFILE_FEATURE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// PLATFORM_USER_PROFILE
+			colNames = new String[] { "USER_ID", "PROFILE_ID", "ASSIGNED_BY", "ASSIGNED_AT" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PLATFORM_USER_PROFILE", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "PLATFORM_USER_PROFILE", database, schema)) {
+					String sql = queryUtil.createTable("PLATFORM_USER_PROFILE", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "PLATFORM_USER_PROFILE", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("PLATFORM_USER_PROFILE", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}

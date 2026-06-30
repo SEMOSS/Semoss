@@ -1692,6 +1692,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
+		AppProfileUtils.removeAllUserProfilesForApp(projectId);
 	}
 
 	/**
@@ -1751,10 +1752,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
+		AppProfileUtils.removeUserProfile(projectId, existingUserId);
 	}
 
 	/**
-	 * 
+	 *
 	 * @param userId
 	 * @param projectId
 	 * @return
@@ -1777,6 +1779,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		AppProfileUtils.removeUserProfile(projectId, userId);
 	}
 
 	/**
@@ -3126,6 +3129,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to copy project permissions to the target project", e);
 			throw e;
 		}
+
+		// cascade: remove all app user profile assignments for the target project
+		AppProfileUtils.removeAllUserProfilesForApp(targetProjectId);
 
 		// first delete the current project permissions
 		PreparedStatement ps = null;
@@ -4609,6 +4615,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
+		// cascade: remove app profile assignments for all affected users
+		for (Map<String, String> req : requests) {
+			AppProfileUtils.removeUserProfile(projectId, req.get("userid"));
+		}
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		PreparedStatement insertPs = null;
@@ -4896,6 +4906,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		// cascade: remove app profile assignments for all removed users
+		AppProfileUtils.removeUserProfiles(projectId, existingUserIds);
 	}
 
 	/**
