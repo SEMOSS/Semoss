@@ -241,11 +241,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * Throws {@link IllegalArgumentException} with a human-readable message on
 	 * validation failure (callers catch and convert to {@code getError(...)}).
 	 *
-	 * <p>The allowlist parameters carry the "existing attachment" escape hatch
-	 * Edit uses: an id already attached to the workspace passes the permission
-	 * check even if the caller has lost view rights since. Add passes
-	 * {@code null} for both, since on create there are no prior attachments to
-	 * preserve.
+	 * <p>{@code existingDependencies} and {@code existingSkills} are the
+	 * workspace's pre-existing attachments — ids already in
+	 * {@code PROJECTDEPENDENCIES} and skill ids already in
+	 * {@code WORKSPACE_RESOURCE} respectively. They carry the "existing
+	 * attachment" escape hatch Edit uses: an id already attached passes the
+	 * permission check even if the caller has lost view rights since. Add
+	 * passes {@code null} for both, since on create there are no prior
+	 * attachments to preserve.
 	 *
 	 * <p>{@code platformSkills} encodes "did the caller supply
 	 * {@code PLATFORM_SKILLS}?": pass a fresh empty {@code LinkedHashSet} when
@@ -257,13 +260,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * LinkedHashSet<>() : null} before calling.
 	 */
 	protected void validateWorkspaceInputs(User user, String workspaceId,
-			Set<String> existingDepAllowlist, Set<String> existingSkillAllowlist,
+			Set<String> existingDependencies, Set<String> existingSkills,
 			Set<String> engines, Set<String> projectDependencies,
 			List<Map<String, Object>> dependencyList,
 			List<Map<String, String>> workspaceResources,
 			Set<String> skillIds, Set<String> platformSkills) {
-		boolean hasDepAllowlist = existingDepAllowlist != null;
-		boolean hasSkillAllowlist = existingSkillAllowlist != null;
+		boolean hasExistingDeps = existingDependencies != null;
+		boolean hasExistingSkills = existingSkills != null;
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		for (Map<String, Object> mcpMap : mcpMapList) {
 			if (!mcpMap.containsKey("type") || !mcpMap.containsKey("id")) {
@@ -287,7 +290,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 		for (String engine : engines) {
 			if (!SecurityEngineUtils.userCanViewEngine(user, engine)
-					&& !(hasDepAllowlist && existingDepAllowlist.contains(engine))) {
+					&& !(hasExistingDeps && existingDependencies.contains(engine))) {
 				throw new IllegalArgumentException("User lacks permission to one of the given engines: " + engine);
 			}
 			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
@@ -295,7 +298,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 		for (String project : projectDependencies) {
 			if (!SecurityProjectUtils.userCanViewProject(user, project)
-					&& !(hasDepAllowlist && existingDepAllowlist.contains(project))) {
+					&& !(hasExistingDeps && existingDependencies.contains(project))) {
 				throw new IllegalArgumentException(
 						"User lacks permission to one of the mcp tools/projects: " + project);
 			}
@@ -323,7 +326,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Skill not found: " + skillId);
 			}
 			if (!SecurityProjectUtils.userCanViewProject(user, skillId)
-					&& !(hasSkillAllowlist && existingSkillAllowlist.contains(skillId))) {
+					&& !(hasExistingSkills && existingSkills.contains(skillId))) {
 				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
