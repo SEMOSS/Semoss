@@ -85,7 +85,7 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		Set<String> skillIds = new LinkedHashSet<>();
 		try {
 			validateWorkspaceInputs(user, workspaceId, null, null, engines, projectDependencies, dependencyList,
-					workspaceResources, skillIds);
+					workspaceResources, skillIds, null);
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}

@@ -107,11 +107,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
-		Set<String> platformSkills;
+		Set<String> platformSkills = getGenRowStruct(PLATFORM_SKILLS) != null ? new LinkedHashSet<>() : null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
-					dependencyList, workspaceResources, skillIds);
-			platformSkills = collectPlatformSkillsInput();
+					dependencyList, workspaceResources, skillIds, platformSkills);
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}

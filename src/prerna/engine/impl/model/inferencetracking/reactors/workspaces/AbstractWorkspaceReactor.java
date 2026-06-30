@@ -236,28 +236,32 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Reads the MCP / prompt / skill nouns from the request, validates them, and
-	 * populates the caller-owned accumulators in place. Throws
-	 * {@link IllegalArgumentException} with a human-readable message on
+	 * Reads the MCP / prompt / skill / platform-skill nouns from the request,
+	 * validates them, and populates the caller-owned accumulators in place.
+	 * Throws {@link IllegalArgumentException} with a human-readable message on
 	 * validation failure (callers catch and convert to {@code getError(...)}).
-	 *
-	 * <p>Platform skills are handled separately by
-	 * {@link #collectPlatformSkillsInput()} because the null-vs-empty distinction
-	 * (input absent vs. input supplied empty) matters for the CONFIG_JSON mirror
-	 * and doesn't fit a simple out-param.
 	 *
 	 * <p>The allowlist parameters carry the "existing attachment" escape hatch
 	 * Edit uses: an id already attached to the workspace passes the permission
 	 * check even if the caller has lost view rights since. Add passes
 	 * {@code null} for both, since on create there are no prior attachments to
 	 * preserve.
+	 *
+	 * <p>{@code platformSkills} encodes "did the caller supply
+	 * {@code PLATFORM_SKILLS}?": pass a fresh empty {@code LinkedHashSet} when
+	 * the noun was supplied (helper fills it), or {@code null} to skip
+	 * platform-skill validation. The mirror reads this same null-vs-empty
+	 * signal — null leaves existing {@code CONFIG_JSON.platform_skills}
+	 * untouched, empty/populated replaces the array — so the caller does the
+	 * one-line gate {@code getGenRowStruct(PLATFORM_SKILLS) != null ? new
+	 * LinkedHashSet<>() : null} before calling.
 	 */
 	protected void validateWorkspaceInputs(User user, String workspaceId,
 			Set<String> existingDepAllowlist, Set<String> existingSkillAllowlist,
 			Set<String> engines, Set<String> projectDependencies,
 			List<Map<String, Object>> dependencyList,
 			List<Map<String, String>> workspaceResources,
-			Set<String> skillIds) {
+			Set<String> skillIds, Set<String> platformSkills) {
 		boolean hasDepAllowlist = existingDepAllowlist != null;
 		boolean hasSkillAllowlist = existingSkillAllowlist != null;
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
@@ -324,36 +328,22 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
 		}
-	}
 
-	/**
-	 * Reads and validates the {@code PLATFORM_SKILLS} noun. Returns {@code null}
-	 * when the noun was not supplied (signal to leave existing CONFIG_JSON
-	 * {@code platform_skills} untouched), a populated set when slugs were
-	 * supplied (possibly empty after trimming), and throws
-	 * {@link IllegalArgumentException} when a slug fails validation. Callers
-	 * catch and convert to {@code getError(...)} when they want the existing
-	 * partial-success response shape.
-	 */
-	protected Set<String> collectPlatformSkillsInput() {
-		if (getGenRowStruct(PLATFORM_SKILLS) == null) {
-			return null;
+		if (platformSkills != null) {
+			for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
+				if (slug == null) {
+					continue;
+				}
+				String trimmed = slug.trim();
+				if (trimmed.isEmpty()) {
+					continue;
+				}
+				if (!PlatformSkills.exists(trimmed)) {
+					throw new IllegalArgumentException("Platform skill not found: " + trimmed);
+				}
+				platformSkills.add(trimmed);
+			}
 		}
-		Set<String> out = new LinkedHashSet<>();
-		for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
-			if (slug == null) {
-				continue;
-			}
-			String trimmed = slug.trim();
-			if (trimmed.isEmpty()) {
-				continue;
-			}
-			if (!PlatformSkills.exists(trimmed)) {
-				throw new IllegalArgumentException("Platform skill not found: " + trimmed);
-			}
-			out.add(trimmed);
-		}
-		return out;
 	}
 
 }
