@@ -52,8 +52,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS, MODEL_ID };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -117,6 +117,12 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 
+		// Default/fallback model engine for the agent. Presence-detected so omitting
+		// the key leaves any existing CONFIG_JSON.model_id untouched; passing it blank
+		// clears it (falling back to room MODEL_ID / options at run time).
+		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
+		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -133,7 +139,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// correctly from those.
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
-					platformSkills);
+					platformSkills, modelIdProvided, workspaceModelId);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",

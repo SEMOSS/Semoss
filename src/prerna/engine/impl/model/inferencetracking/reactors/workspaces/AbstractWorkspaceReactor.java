@@ -70,6 +70,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String DESCRIPTION = "description";
 	/** Request key for workspace-level system prompt. */
 	static final String SYSTEM_PROMPT = "systemPrompt";
+	/** Request key for the workspace/agent default model engine id (CONFIG_JSON.model_id). */
+	static final String MODEL_ID = "modelId";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
@@ -190,6 +192,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, platformSkills, false,
+				null);
+	}
+
+	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects, Set<String> skills, Set<String> platformSkills, boolean modelIdProvided,
+			String modelId) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -199,6 +208,16 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			cfg.put("system_prompt", systemPrompt);
 		} else {
 			cfg.remove("system_prompt");
+		}
+
+		// model_id mirrors platform_skills semantics: omitted leaves existing config,
+		// provided blank clears it, and provided non-blank sets the default model.
+		if (modelIdProvided) {
+			if (modelId != null && !modelId.trim().isEmpty()) {
+				cfg.put("model_id", modelId.trim());
+			} else {
+				cfg.remove("model_id");
+			}
 		}
 
 		JSONArray mcpsJson = new JSONArray();
