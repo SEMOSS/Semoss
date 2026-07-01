@@ -220,11 +220,11 @@ public final class AgentSubAgentRegistry {
                 clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR);
             }
 
-            // 2. Determine the effective system prompt for the child room.
+            // 2. Determine the system prompt for the child room.
             //    Override > parent's resolved system prompt.
             String effectiveContext = (req.additionalContext != null && !req.additionalContext.trim().isEmpty())
                     ? req.additionalContext
-                    : parentRoom.getEffectiveSystemPrompt();
+                    : parentRoom.getRoomOrWorkspaceSystemPrompt();
 
             // 3. Create child room. It is always separate from the parent room, while
             //    optional working-dir inheritance is handled through child room options.
