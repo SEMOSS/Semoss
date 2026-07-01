@@ -968,3 +968,223 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             out.append(text)
 
         return "".join(out)
+
+    # ------------------------------------------------------------------
+    # Batch API (Anthropic native Message Batches)
+    #
+    # Lifecycle: submit -> provider batch id -> poll status -> fetch results.
+    # All methods return plain JSON-serializable dicts so they marshal cleanly
+    # back to the Java engine over the TCP PayloadStruct protocol.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _to_dict(obj):
+        if obj is None:
+            return None
+        if hasattr(obj, "model_dump"):
+            try:
+                return obj.model_dump(mode="json")
+            except Exception:
+                pass
+        if hasattr(obj, "to_dict"):
+            try:
+                return obj.to_dict()
+            except Exception:
+                pass
+        if isinstance(obj, dict):
+            return obj
+        try:
+            return json.loads(json.dumps(obj, default=str))
+        except Exception:
+            return {"value": str(obj)}
+
+    @staticmethod
+    def _normalize_batch_status(status):
+        s = (status or "").lower()
+        mapping = {
+            "in_progress": "IN_PROGRESS",
+            "canceling": "CANCELING",
+            "ended": "COMPLETED",
+        }
+        return mapping.get(s, s.upper() or "UNKNOWN")
+
+    def _ensure_native_batch_supported(self):
+        # Only the direct Anthropic API exposes Message Batches in this shape.
+        # Bedrock/Vertex/Foundry batch use different, provider-specific APIs.
+        if self.provider not in ("anthropic",):
+            raise ValueError(
+                f"Native message batches are not supported for Anthropic provider "
+                f"'{self.provider}'."
+            )
+
+    def _normalize_request_for_batch(self, req, idx):
+        """Convert simplified {command, context} format to Anthropic batch wire format."""
+        if not isinstance(req, dict):
+            return req
+        # Room-context path: full SEMOSS message history (+ tools) supplied. Reuse the
+        # same builder as the sync ask so history/tools/system are handled in one place.
+        if req.get("message_json"):
+            return self._build_batch_params_from_history(req, idx)
+        if "command" not in req:
+            return req
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        params = {"messages": [{"role": "user", "content": req["command"]}]}
+        if req.get("context"):
+            params["system"] = req["context"]
+        skip = {"command", "context", "custom_id"}
+        for k, v in req.items():
+            if k not in skip:
+                params[k] = v
+        return {"custom_id": custom_id, "params": params}
+
+    def _build_batch_params_from_history(self, req, idx):
+        """Build per-request Anthropic batch params from a full SEMOSS message_json +
+        tools, reusing the same message builder the synchronous ask path uses."""
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        skip = {"command", "context", "custom_id", "message_json"}
+        kwargs = {k: v for k, v in req.items() if k not in skip}
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings,
+            message_json=req["message_json"],
+            **kwargs,
+        )
+        msg_builder_response = AnthropicMessageBuilder().build_messages(
+            semoss_messages,
+            self.model_settings,
+            self.model_limits,
+            self.model_name,
+            self.use_beta_header,
+            self.beta_feature_name,
+            thinking_signature=self.thinking_signature,
+        )
+        params = msg_builder_response.request_config.model_dump(exclude_none=True)
+        # batch params cannot carry streaming or per-request beta headers
+        params.pop("stream", None)
+        params.pop("betas", None)
+        return {"custom_id": custom_id, "params": params}
+
+    def submit_batch(self, requests, completion_window="24h", metadata=None, **kwargs):
+        self._ensure_native_batch_supported()
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        requests = [self._normalize_request_for_batch(r, i) for i, r in enumerate(requests or [])]
+        model = self.model_settings.model_name
+        default_max_tokens = getattr(self.model_settings, "max_tokens", None) or 1024
+        batch_requests = []
+        for req in requests or []:
+            custom_id = str(req.get("custom_id"))
+            params = dict(req.get("body") or req.get("params") or {})
+            params.setdefault("model", model)
+            params.setdefault("max_tokens", default_max_tokens)
+            batch_requests.append({"custom_id": custom_id, "params": params})
+        if not batch_requests:
+            raise ValueError("submit_batch requires at least one request")
+
+        batch = self.client.messages.batches.create(requests=batch_requests)
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(
+                getattr(batch, "processing_status", None)
+            ),
+            "request_count": len(batch_requests),
+            "endpoint": "/v1/messages/batches",
+            "results_url": getattr(batch, "results_url", None),
+            "raw": self._to_dict(batch),
+        }
+
+    def get_batch_status(self, provider_batch_id, **kwargs):
+        self._ensure_native_batch_supported()
+        batch = self.client.messages.batches.retrieve(provider_batch_id)
+        rc = getattr(batch, "request_counts", None)
+        counts = {}
+        if rc is not None:
+            processing = getattr(rc, "processing", 0) or 0
+            succeeded = getattr(rc, "succeeded", 0) or 0
+            errored = getattr(rc, "errored", 0) or 0
+            canceled = getattr(rc, "canceled", 0) or 0
+            expired = getattr(rc, "expired", 0) or 0
+            counts = {
+                "total": processing + succeeded + errored + canceled + expired,
+                "completed": succeeded,
+                "failed": errored + canceled + expired,
+                "in_progress": processing,
+            }
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(
+                getattr(batch, "processing_status", None)
+            ),
+            "counts": counts,
+            "output_ref": None,
+            "error_ref": None,
+            "results_url": getattr(batch, "results_url", None),
+            "raw": self._to_dict(batch),
+        }
+
+    def get_batch_results(self, provider_batch_id, **kwargs):
+        self._ensure_native_batch_supported()
+        items = []
+        raw_lines = []
+        for entry in self.client.messages.batches.results(provider_batch_id):
+            d = self._to_dict(entry)
+            result = d.get("result") or {}
+            rtype = result.get("type")
+            ok = rtype == "succeeded"
+            message = result.get("message") if ok else None
+            error = result.get("error") if not ok else None
+            usage = (message or {}).get("usage") if message else None
+            normalized_message = None
+            if ok and isinstance(message, dict):
+                normalized_message = {
+                    "role": "assistant",
+                    "content": message.get("content") or [],
+                }
+            items.append(
+                {
+                    "custom_id": d.get("custom_id"),
+                    "ok": ok,
+                    "status": rtype,
+                    "message": normalized_message,
+                    "error": error,
+                    "input_tokens": (usage or {}).get("input_tokens") if usage else None,
+                    "output_tokens": (usage or {}).get("output_tokens")
+                    if usage
+                    else None,
+                }
+            )
+            raw_lines.append(json.dumps(d, ensure_ascii=False, default=str))
+        return {
+            "provider_batch_id": provider_batch_id,
+            "count": len(items),
+            "results": items,
+            "raw_jsonl": "\n".join(raw_lines),
+        }
+
+    def list_batches(self, limit=20, **kwargs):
+        self._ensure_native_batch_supported()
+        resp = self.client.messages.batches.list(limit=limit)
+        data = resp.data if hasattr(resp, "data") else resp
+        batches = []
+        for b in data:
+            batches.append(
+                {
+                    "provider_batch_id": b.id,
+                    "status": self._normalize_batch_status(
+                        getattr(b, "processing_status", None)
+                    ),
+                    "request_count": None,
+                    "created_at": getattr(b, "created_at", None),
+                }
+            )
+        return {"batches": batches}
+
+    def cancel_batch(self, provider_batch_id, **kwargs):
+        self._ensure_native_batch_supported()
+        batch = self.client.messages.batches.cancel(provider_batch_id)
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(
+                getattr(batch, "processing_status", None)
+            ),
+            "raw": self._to_dict(batch),
+        }

@@ -405,6 +405,149 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Returns true when the user submitted the given batch (batch_submit row exists).
+	 */
+	public static boolean userOwnsBatch(String userId, String providerBatchId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return false;
+		}
+		String query = "SELECT COUNT(*) FROM MESSAGE WHERE TRANSACTION_ID = ? AND USER_ID = ? AND MESSAGE_METHOD = 'batch_submit'";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, providerBatchId);
+			ps.setString(2, userId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getInt(1) > 0;
+			}
+		} catch (Exception e) {
+			classLogger.warn("Batch ownership check failed for batch '{}': {}", providerBatchId, e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return false;
+	}
+
+	/**
+	 * Returns the user's batch submissions for an engine, most recent first.
+	 * Each map has: providerBatchId, submittedAt, engineId, requestCount.
+	 */
+	public static List<Map<String, Object>> getUserBatches(String userId, String engineId, int limit) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return out;
+		}
+		String query = "SELECT TRANSACTION_ID, DATE_CREATED, AGENT_ID, MESSAGE_DATA FROM MESSAGE"
+				+ " WHERE USER_ID = ? AND AGENT_ID = ? AND MESSAGE_METHOD = 'batch_submit'"
+				+ " ORDER BY DATE_CREATED DESC LIMIT ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, engineId);
+			ps.setInt(3, limit);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> row = new HashMap<>();
+				row.put("batchId", rs.getString("TRANSACTION_ID"));
+				row.put("submittedAt", rs.getString("DATE_CREATED"));
+				row.put("engineId", rs.getString("AGENT_ID"));
+				String msgData = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
+				if (msgData != null) {
+					try {
+						row.put("requestCount", Integer.parseInt(msgData.trim()));
+					} catch (NumberFormatException ignore) {
+						// non-numeric stored data
+					}
+				}
+				out.add(row);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to list batches for user '{}'", userId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return out;
+	}
+
+	/**
+	 * Returns the stored input prompts for a batch as customId -> command map.
+	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written
+	 * at submit time. TRANSACTION_ID has the form "batchId.customId", so customId
+	 * is extracted as the suffix after "batchId.".
+	 */
+	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
+		Map<String, String> out = new HashMap<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return out;
+		}
+		String roomId = "mb_" + providerBatchId;
+		String prefix = providerBatchId + ".";
+		String query = "SELECT TRANSACTION_ID, MESSAGE_DATA FROM MESSAGE"
+				+ " WHERE ROOM_ID = ? AND USER_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, roomId);
+			ps.setString(2, userId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				String txnId = rs.getString("TRANSACTION_ID");
+				String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
+				if (txnId != null && txnId.startsWith(prefix) && command != null) {
+					out.put(txnId.substring(prefix.length()), command);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to retrieve batch inputs for batch '{}'", providerBatchId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return out;
+	}
+
+	/**
+	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch item.
+	 * The INPUT row is written at submit time before token counts are known; this
+	 * back-fills them at results time so usage analytics (which derive the input/
+	 * response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
+	 * Matched by the per-item TRANSACTION_ID ("batchId.customId").
+	 */
+	public static void updateBatchInputTokens(String transactionId, Integer inputTokens) {
+		if (inputTokens == null) {
+			return;
+		}
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return;
+		}
+		String query = "UPDATE MESSAGE SET MESSAGE_TOKENS = ?, INPUT_TOKENS = ?"
+				+ " WHERE TRANSACTION_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setInt(1, inputTokens);
+			ps.setInt(2, inputTokens);
+			ps.setString(3, transactionId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to update batch input tokens for transaction '{}'", transactionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	/**
 	 * Upserts feedback for a response message.
 	 *
 	 * @param feedback feedback payload
@@ -1142,7 +1285,11 @@ public class ModelInferenceLogsUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
-			ps.setDouble(index++, reponseTime);
+			if (reponseTime != null) {
+				ps.setDouble(index++, reponseTime);
+			} else {
+				ps.setNull(index++, java.sql.Types.DOUBLE);
+			}
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
 			ps.setString(index++, agentId);
 			ps.setString(index++, insightId);
@@ -3262,7 +3409,7 @@ public class ModelInferenceLogsUtils {
 
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
-		// INPUT_TOKENS / RESPONSE_TOKENS — derived from MESSAGE_TOKENS via CASE so
+		// INPUT_TOKENS / RESPONSE_TOKENS: derived from MESSAGE_TOKENS via CASE so
 		// that
 		// records written before per-type granular columns existed are still included.
 		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
@@ -3278,11 +3425,11 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
 
-		// TOTAL_TOKENS — sum across all rows covers the full history.
+		// TOTAL_TOKENS: sum across all rows covers the full history.
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
 				MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", "TOTAL_TOKENS"));
 
-		// Granular token detail columns — only populated for records written after
+		// Granular token detail columns: only populated for records written after
 		// per-type tracking was introduced. Prefixed DETAIL_ so the reactor can nest
 		// them into a TOKEN_DETAIL sub-object without conflicting with the legacy
 		// names.

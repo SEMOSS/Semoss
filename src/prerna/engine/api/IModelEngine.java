@@ -33,6 +33,10 @@ import java.util.Map;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.BatchListResponse;
+import prerna.engine.impl.model.responses.BatchResultsResponse;
+import prerna.engine.impl.model.responses.BatchStatusResponse;
+import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
@@ -140,10 +144,68 @@ public interface IModelEngine extends IEngine {
 	boolean keepsConversationHistory();
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	@IgnoreEngineLogging
 	int getContextWindow();
+
+	// ------------------------------------------------------------------
+	// Batch model calls (native provider Batch APIs).
+	//
+	// These are optional capabilities. Engines that do not support a native
+	// provider batch API inherit the defaults below, which report
+	// supportsBatch()==false and throw on use. Submit -> provider batch id ->
+	// poll status -> fetch results. There is no SEMOSS-side state: the provider
+	// is the source of truth and the engine is the security boundary.
+	// ------------------------------------------------------------------
+
+	/**
+	 * Whether this engine supports submitting native provider batch jobs.
+	 */
+	@IgnoreEngineLogging
+	default boolean supportsBatch() {
+		return false;
+	}
+
+	/**
+	 * Submit a batch of requests to the provider's batch API.
+	 *
+	 * @param requests   each entry is {@code {custom_id, body}} where body is the
+	 *                   provider-native per-request payload
+	 * @param parameters optional submission params (e.g. completion_window, endpoint)
+	 * @return the provider batch id and initial status
+	 */
+	default BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Fetch the live status of a previously submitted batch.
+	 */
+	default BatchStatusResponse getBatchStatus(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Fetch the per-request results of a batch (mapped back by custom_id).
+	 */
+	default BatchResultsResponse getBatchResults(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * List the batches visible to this engine's provider credentials.
+	 */
+	default BatchListResponse listBatches(Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Best-effort cancel of a submitted batch.
+	 */
+	default BatchStatusResponse cancelBatch(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
 
 }

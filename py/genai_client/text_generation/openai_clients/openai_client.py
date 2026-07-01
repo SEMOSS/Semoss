@@ -842,3 +842,313 @@ class OpenAiClient(AbstractTextGenerationClient):
                 return f"Reasoning used {reasoning_tokens} tokens - text not available via chat-completion API"
 
         return ""
+
+    # ------------------------------------------------------------------
+    # Batch API (OpenAI / Azure OpenAI native Batch)
+    #
+    # Lifecycle: submit -> provider batch id -> poll status -> fetch results.
+    # All methods return plain JSON-serializable dicts so they marshal cleanly
+    # back to the Java engine over the TCP PayloadStruct protocol.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _to_dict(obj):
+        if obj is None:
+            return None
+        if hasattr(obj, "model_dump"):
+            try:
+                return obj.model_dump(mode="json")
+            except Exception:
+                pass
+        if hasattr(obj, "to_dict"):
+            try:
+                return obj.to_dict()
+            except Exception:
+                pass
+        if isinstance(obj, dict):
+            return obj
+        try:
+            return json.loads(json.dumps(obj, default=str))
+        except Exception:
+            return {"value": str(obj)}
+
+    @staticmethod
+    def _normalize_batch_status(status):
+        s = (status or "").lower()
+        mapping = {
+            "validating": "VALIDATING",
+            "in_progress": "IN_PROGRESS",
+            "finalizing": "FINALIZING",
+            "completed": "COMPLETED",
+            "failed": "FAILED",
+            "expired": "EXPIRED",
+            "cancelling": "CANCELING",
+            "cancelled": "CANCELED",
+            "canceled": "CANCELED",
+        }
+        return mapping.get(s, s.upper() or "UNKNOWN")
+
+    def _normalize_request_for_batch(self, req, idx, endpoint="/v1/chat/completions"):
+        """Convert simplified {command, context} format to the correct wire format for endpoint."""
+        if not isinstance(req, dict):
+            return req
+        # Room-context path: a full SEMOSS message history (+ tools) was supplied.
+        # Reuse the same builder as the sync ask so history/tools/chat_type are
+        # handled in one place.
+        if req.get("message_json"):
+            return self._build_batch_body_from_history(req, idx, endpoint)
+        if "command" not in req:
+            return req
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        skip = {"command", "context", "custom_id"}
+        extra = {k: v for k, v in req.items() if k not in skip}
+        if endpoint == "/v1/responses":
+            body = {"input": [{"role": "user", "content": req["command"]}]}
+            if req.get("context"):
+                body["instructions"] = req["context"]
+            # Responses API uses max_output_tokens, not max_completion_tokens
+            if "max_completion_tokens" in extra:
+                extra = dict(extra)
+                extra["max_output_tokens"] = extra.pop("max_completion_tokens")
+        else:
+            messages = []
+            if req.get("context"):
+                messages.append({"role": "system", "content": req["context"]})
+            messages.append({"role": "user", "content": req["command"]})
+            body = {"messages": messages}
+        body.update(extra)
+        return {"custom_id": custom_id, "body": body}
+
+    def _build_batch_body_from_history(self, req, idx, endpoint):
+        """Build a per-request batch body from a full SEMOSS message_json + tools,
+        reusing the same message builder the synchronous ask path uses."""
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        skip = {"command", "context", "custom_id", "message_json"}
+        kwargs = {k: v for k, v in req.items() if k not in skip}
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings,
+            message_json=req["message_json"],
+            **kwargs,
+        )
+        body = self.message_builder.build_request(semoss_messages)
+        # batch lines cannot stream and the file create() adds the model
+        body.pop("stream", None)
+        return {"custom_id": custom_id, "body": body}
+
+    def _chat_completion_to_content_blocks(self, body):
+        """Normalize a chat completion response body to SEMOSS content blocks."""
+        if not isinstance(body, dict):
+            return None
+        msg = ((body.get("choices") or [{}])[0].get("message") or {})
+        blocks = []
+        text = msg.get("content")
+        if text:
+            blocks.append({"type": "text", "text": text})
+        for tc in msg.get("tool_calls") or []:
+            func = tc.get("function") or {}
+            try:
+                input_data = json.loads(func.get("arguments") or "{}")
+            except Exception:
+                input_data = {"raw": func.get("arguments")}
+            blocks.append({
+                "type": "tool_use",
+                "id": tc.get("id"),
+                "name": func.get("name"),
+                "input": input_data,
+            })
+        return {"role": "assistant", "content": blocks} if blocks else None
+
+    def _responses_api_to_content_blocks(self, body):
+        """Normalize a Responses API response body to SEMOSS content blocks."""
+        if not isinstance(body, dict):
+            return None
+        blocks = []
+        for item in body.get("output") or []:
+            itype = item.get("type")
+            if itype == "message":
+                for block in item.get("content") or []:
+                    btype = block.get("type")
+                    if btype in ("output_text", "text"):
+                        blocks.append({"type": "text", "text": block.get("text")})
+                    elif btype == "refusal":
+                        blocks.append({"type": "text", "text": block.get("refusal")})
+            elif itype == "function_call":
+                try:
+                    input_data = json.loads(item.get("arguments") or "{}")
+                except Exception:
+                    input_data = {"raw": item.get("arguments")}
+                blocks.append({
+                    "type": "tool_use",
+                    "id": item.get("call_id"),
+                    "name": item.get("name"),
+                    "input": input_data,
+                })
+            elif itype == "reasoning":
+                for block in item.get("summary") or []:
+                    if block.get("type") == "summary_text":
+                        blocks.append({"type": "thinking", "thinking": block.get("text", "")})
+        return {"role": "assistant", "content": blocks} if blocks else None
+
+    def submit_batch(
+        self,
+        requests,
+        completion_window="24h",
+        endpoint=None,
+        metadata=None,
+        **kwargs,
+    ):
+        import io
+
+        if endpoint is None:
+            endpoint = "/v1/responses" if self.chat_type == "responses" else "/v1/chat/completions"
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        requests = [self._normalize_request_for_batch(r, i, endpoint) for i, r in enumerate(requests or [])]
+
+        model = self.model_settings.model_name
+        lines = []
+        for req in requests or []:
+            custom_id = str(req.get("custom_id"))
+            body = dict(req.get("body") or {})
+            body.setdefault("model", model)
+            lines.append(
+                json.dumps(
+                    {
+                        "custom_id": custom_id,
+                        "method": "POST",
+                        "url": endpoint,
+                        "body": body,
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        if not lines:
+            raise ValueError("submit_batch requires at least one request")
+
+        jsonl = "\n".join(lines)
+        file_obj = io.BytesIO(jsonl.encode("utf-8"))
+        file_obj.name = "batch_input.jsonl"
+        uploaded = self.client.files.create(file=file_obj, purpose="batch")
+        batch = self.client.batches.create(
+            input_file_id=uploaded.id,
+            endpoint=endpoint,
+            completion_window=completion_window,
+            metadata=metadata or None,
+        )
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(batch.status),
+            "request_count": len(lines),
+            "endpoint": endpoint,
+            "input_file_id": uploaded.id,
+            "raw": self._to_dict(batch),
+        }
+
+    def get_batch_status(self, provider_batch_id, **kwargs):
+        batch = self.client.batches.retrieve(provider_batch_id)
+        rc = getattr(batch, "request_counts", None)
+        counts = {}
+        if rc is not None:
+            counts = {
+                "total": getattr(rc, "total", None),
+                "completed": getattr(rc, "completed", None),
+                "failed": getattr(rc, "failed", None),
+            }
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(batch.status),
+            "counts": counts,
+            "output_ref": getattr(batch, "output_file_id", None),
+            "error_ref": getattr(batch, "error_file_id", None),
+            "raw": self._to_dict(batch),
+        }
+
+    def get_batch_results(self, provider_batch_id, **kwargs):
+        batch = self.client.batches.retrieve(provider_batch_id)
+        batch_endpoint = getattr(batch, "endpoint", "/v1/chat/completions") or "/v1/chat/completions"
+        output_file_id = getattr(batch, "output_file_id", None)
+        error_file_id = getattr(batch, "error_file_id", None)
+        items = []
+        raw_lines = []
+
+        def _consume(file_id):
+            if not file_id:
+                return
+            content = self.client.files.content(file_id)
+            if hasattr(content, "text"):
+                text = content.text
+            else:
+                text = content.read().decode("utf-8")
+            for line in text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                raw_lines.append(line)
+                obj = json.loads(line)
+                resp = obj.get("response") or {}
+                err = obj.get("error")
+                status_code = resp.get("status_code") if isinstance(resp, dict) else None
+                body = resp.get("body") if isinstance(resp, dict) else None
+                usage = body.get("usage") if isinstance(body, dict) else None
+                ok = err is None and (status_code is None or 200 <= status_code < 300)
+                # HTTP 4xx errors: the error detail is in resp.body, not obj.error
+                if not ok and err is None and isinstance(body, dict):
+                    err = body.get("error") or body
+                if ok:
+                    if batch_endpoint == "/v1/responses":
+                        message = self._responses_api_to_content_blocks(body)
+                        input_tokens = (usage or {}).get("input_tokens")
+                        output_tokens = (usage or {}).get("output_tokens")
+                    else:
+                        message = self._chat_completion_to_content_blocks(body)
+                        input_tokens = (usage or {}).get("prompt_tokens")
+                        output_tokens = (usage or {}).get("completion_tokens")
+                else:
+                    message = None
+                    input_tokens = None
+                    output_tokens = None
+                items.append(
+                    {
+                        "custom_id": obj.get("custom_id"),
+                        "ok": ok,
+                        "status": "succeeded" if err is None else "errored",
+                        "message": message,
+                        "error": err,
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                    }
+                )
+
+        _consume(output_file_id)
+        _consume(error_file_id)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": self._normalize_batch_status(batch.status),
+            "count": len(items),
+            "results": items,
+            "raw_jsonl": "\n".join(raw_lines),
+        }
+
+    def list_batches(self, limit=20, **kwargs):
+        resp = self.client.batches.list(limit=limit)
+        data = resp.data if hasattr(resp, "data") else resp
+        batches = []
+        for b in data:
+            rc = getattr(b, "request_counts", None)
+            batches.append(
+                {
+                    "provider_batch_id": b.id,
+                    "status": self._normalize_batch_status(b.status),
+                    "request_count": getattr(rc, "total", None) if rc else None,
+                    "created_at": getattr(b, "created_at", None),
+                }
+            )
+        return {"batches": batches}
+
+    def cancel_batch(self, provider_batch_id, **kwargs):
+        batch = self.client.batches.cancel(provider_batch_id)
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(batch.status),
+            "raw": self._to_dict(batch),
+        }
