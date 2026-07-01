@@ -385,6 +385,24 @@ public class Room implements Serializable {
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
+		return addToolExecutionResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, paramValuesMap,
+				parentMessageId, modelEngine, insight, toolStatus, null);
+	}
+
+	/**
+	 * Overload for the cancel-persistence path. Behaves exactly like
+	 * {@link #addToolExecutionResult(String, String, String, Map, Map, String, IModelEngine, Insight, String)}
+	 * except that when all tool_call_ids are answered and {@code prebuiltResponse}
+	 * is non-null, the LLM follow-up call is skipped and {@code prebuiltResponse}
+	 * is used as the next assistant message. Returns {@code null} in the
+	 * prebuilt path (the appended response is the last message in room history);
+	 * callers should route on the prebuilt-response presence, not the return
+	 * value, when using this overload.
+	 */
+	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
+			ResponseMessage prebuiltResponse) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
@@ -554,18 +572,30 @@ public class Room implements Serializable {
 
 				AskModelEngineResponse llmResponse = null;
 				ResponseMessage nextAssistant = null;
-				try {
-					llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
-							paramValuesMap);
-					applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
-					nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine,
-							toolResultsMessage);
-				} catch (Exception e) {
-					// remove the entire input message since it failed
-					messages.removeLast();
-					classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
-							e.getMessage(), e);
-					throw e;
+				if (prebuiltResponse != null) {
+					// Cancel-persistence path: caller supplied the follow-up response
+					// (assembled from FE-streamed parts). Skip the LLM call and slot
+					// the pre-built message in as the next assistant message. Model /
+					// room / parent linkage still gets applied so downstream reads
+					// see a fully-formed message.
+					nextAssistant = prebuiltResponse;
+					nextAssistant.setModel(modelEngine);
+					nextAssistant.setRoom(this);
+					nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
+				} else {
+					try {
+						llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+								paramValuesMap);
+						applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
+						nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine,
+								toolResultsMessage);
+					} catch (Exception e) {
+						// remove the entire input message since it failed
+						messages.removeLast();
+						classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+								e.getMessage(), e);
+						throw e;
+					}
 				}
 				// we have already added to the messages above
 				// we dont need to add again, only the response

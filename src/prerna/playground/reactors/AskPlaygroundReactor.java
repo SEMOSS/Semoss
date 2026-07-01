@@ -177,7 +177,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	 */
 	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
 			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage) {
-		ResponseMessage response = buildPartialFromParts(responseParts);
+		ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
 		response.setModel(modelEngine);
 
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
@@ -231,41 +231,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			}
 		}
 		return response;
-	}
-
-	/**
-	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
-	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
-	 * and the matching payload field. Always returns a message — empty when no
-	 * usable parts came through — so the input/response pair stays balanced.
-	 */
-	private ResponseMessage buildPartialFromParts(List<Map<String, Object>> responseParts) {
-		ResponseMessage.Builder builder = ResponseMessage.builder();
-		if (responseParts != null) {
-			for (Map<String, Object> part : responseParts) {
-				if (part == null) {
-					continue;
-				}
-				Object typeObj = part.get("type");
-				String type = typeObj != null ? typeObj.toString() : null;
-				if ("THINKING".equals(type)) {
-					Object thinkingObj = part.get("thinking");
-					String thinking = thinkingObj != null ? thinkingObj.toString() : null;
-					if (thinking != null && !thinking.isEmpty()) {
-						builder.withThinking(thinking);
-					}
-				} else if ("TEXT".equals(type)) {
-					Object textObj = part.get("text");
-					String text = textObj != null ? textObj.toString() : null;
-					if (text != null && !text.isEmpty()) {
-						builder.withText(text);
-					}
-				}
-				// Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are not produced by a
-				// cancelled stream and are intentionally ignored here.
-			}
-		}
-		return builder.build();
 	}
 
 	/**

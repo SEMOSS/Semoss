@@ -27,6 +27,11 @@
  *******************************************************************************/
 package prerna.playground;
 
+import java.util.List;
+import java.util.Map;
+
+import prerna.engine.impl.model.message.ResponseMessage;
+
 public class PlaygroundUtils {
 
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
@@ -63,4 +68,39 @@ public class PlaygroundUtils {
 			}
 			""";
 
+	/**
+	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
+	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
+	 * and the matching payload field. Always returns a message — empty when no
+	 * usable parts came through — so the caller's input/response pair stays
+	 * balanced. Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are intentionally
+	 * ignored: a cancelled stream shouldn't have them, and any half-formed
+	 * TOOL_CALL from a chained tool-use turn would be an orphan.
+	 */
+	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
+		ResponseMessage.Builder builder = ResponseMessage.builder();
+		if (responseParts != null) {
+			for (Map<String, Object> part : responseParts) {
+				if (part == null) {
+					continue;
+				}
+				Object typeObj = part.get("type");
+				String type = typeObj != null ? typeObj.toString() : null;
+				if ("THINKING".equals(type)) {
+					Object thinkingObj = part.get("thinking");
+					String thinking = thinkingObj != null ? thinkingObj.toString() : null;
+					if (thinking != null && !thinking.isEmpty()) {
+						builder.withThinking(thinking);
+					}
+				} else if ("TEXT".equals(type)) {
+					Object textObj = part.get("text");
+					String text = textObj != null ? textObj.toString() : null;
+					if (text != null && !text.isEmpty()) {
+						builder.withText(text);
+					}
+				}
+			}
+		}
+		return builder.build();
+	}
 }
