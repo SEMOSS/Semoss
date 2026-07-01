@@ -31,6 +31,13 @@ public class PlaygroundUtils {
 
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 
+	/**
+	 * Canned assistant-side ack persisted after a hidden user note (e.g. the
+	 * "your prior response was cut short" note that follows a cancelled turn).
+	 * Kept so provider payloads stay role-alternating.
+	 */
+	public static final String HIDDEN_MESSAGE_ACK = "Understood — I'll wait for your next instruction.";
+
 	public static final String FOLLOW_UP_SUGGESTIONS_PROMPT = """
 			You generate follow-up suggestions only.
 			Based on the most recent conversation, propose short, user-style follow-up questions that advance the same topic.

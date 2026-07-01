@@ -42,6 +42,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -58,12 +59,27 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
+	/**
+	 * When present, the LLM call is skipped and the reactor persists a turn
+	 * assembled from the caller-supplied response parts instead. Used by the FE
+	 * cancel flow to commit whatever streamed before the user hit stop.
+	 */
+	private static final String RESPONSE_PARTS_KEY = "responseParts";
+
+	/**
+	 * Cancel-flow only. When paired with {@link #RESPONSE_PARTS_KEY}, a hidden
+	 * user note carrying this string is appended after the visible turn (plus
+	 * an auto-generated assistant ack) so the model sees on the next turn that
+	 * its previous response was cut short. Ignored on live LLM calls.
+	 */
+	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
+
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), RESPONSE_PARTS_KEY, HIDDEN_MESSAGE_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -93,6 +109,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
 		List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
 
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
+		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
+
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null,
@@ -110,14 +130,23 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				// .withTools(tools)
 				.build();
 
-		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
+		ResponseMessage response;
+		if (responseParts != null) {
+			// ---- FE-supplied response (cancel flow): skip the LLM call and persist
+			// the input + a response built from the caller-supplied parts. Mirrors
+			// the surrounding scaffold of Room.ask so the persisted turn looks
+			// identical to a live one.
+			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage);
+		} else {
+			// ---- Actually run LLM call
+			response = room.ask(msg, modelEngine, parentMessageId);
 
-		// parse the response for code blocks
-		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
-		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			room.updateToolResponseMeta(response);
+			// parse the response for code blocks
+			if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
+				RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
+			} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
+				room.updateToolResponseMeta(response);
+			}
 		}
 
 		// ---- Return both messages as a Map
@@ -138,9 +167,134 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
+	/**
+	 * Persist a caller-provided input + response as a completed turn. Mirrors
+	 * the surrounding scaffold of {@link Room#ask} (mutation lock, latest
+	 * projection refresh, orphan-tool normalization, parent-id resolution,
+	 * append, room-name inference, persist) but skips the LLM call — the
+	 * response is built from {@code responseParts}. Optionally appends a hidden
+	 * user-note / assistant-ack pair after the visible turn.
+	 */
+	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
+			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage) {
+		ResponseMessage response = buildPartialFromParts(responseParts);
+		response.setModel(modelEngine);
+
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		synchronized (room) {
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+				RoomMessageStore.refreshFromLatestProjection(room, userId);
+				RoomMessageStore.normalizeForProviderPayload(room);
+
+				msg.setModel(modelEngine);
+
+				// Parent-id resolution mirrors Room.ask: explicit param wins, otherwise
+				// hang off the latest message, otherwise this is the first message.
+				if (!room.getMessages().isEmpty()) {
+					if (parentMessageId != null && !parentMessageId.isEmpty()) {
+						msg.setParentMessageId(parentMessageId);
+					} else {
+						AbstractMessage lastMsg = room.getMessages().get(room.getMessages().size() - 1);
+						msg.setParentMessageId(lastMsg.getMessageId());
+					}
+				} else {
+					msg.setParentMessageId(null);
+				}
+				response.setParentMessageId(msg.getMessageId());
+
+				room.getMessages().add(msg);
+				room.getMessages().add(response);
+
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
+					appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId());
+				}
+
+				// Room-name inference + 4-arg/2-arg persist switch (from Room.ask's tail).
+				String prevRoomName = room.getRoomName();
+				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+					for (AbstractMessage m : room.getMessages()) {
+						if (m instanceof InputMessage) {
+							String prompt = ((InputMessage) m).getInputUIPrompt();
+							if (prompt != null && !prompt.trim().isEmpty()) {
+								room.setRoomName(prompt.substring(0, Math.min(prompt.length(), 100)));
+								break;
+							}
+						}
+					}
+				}
+				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && room.getRoomName() != null
+						&& !room.getRoomName().trim().isEmpty()) {
+					RoomMessageStore.persist(room, userId, room.getRoomName(), modelEngine.getEngineId());
+				} else {
+					RoomMessageStore.persist(room, userId);
+				}
+			}
+		}
+		return response;
+	}
+
+	/**
+	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
+	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
+	 * and the matching payload field. Always returns a message — empty when no
+	 * usable parts came through — so the input/response pair stays balanced.
+	 */
+	private ResponseMessage buildPartialFromParts(List<Map<String, Object>> responseParts) {
+		ResponseMessage.Builder builder = ResponseMessage.builder();
+		if (responseParts != null) {
+			for (Map<String, Object> part : responseParts) {
+				if (part == null) {
+					continue;
+				}
+				Object typeObj = part.get("type");
+				String type = typeObj != null ? typeObj.toString() : null;
+				if ("THINKING".equals(type)) {
+					Object thinkingObj = part.get("thinking");
+					String thinking = thinkingObj != null ? thinkingObj.toString() : null;
+					if (thinking != null && !thinking.isEmpty()) {
+						builder.withThinking(thinking);
+					}
+				} else if ("TEXT".equals(type)) {
+					Object textObj = part.get("text");
+					String text = textObj != null ? textObj.toString() : null;
+					if (text != null && !text.isEmpty()) {
+						builder.withText(text);
+					}
+				}
+				// Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are not produced by a
+				// cancelled stream and are intentionally ignored here.
+			}
+		}
+		return builder.build();
+	}
+
+	/**
+	 * Append a hidden user note + canned assistant ack to the room history.
+	 * Both are invisible to the FE (visible=false, platformGenerated=true) but
+	 * ride along to the model on the next turn via
+	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
+	 * role-alternating and telling the model its prior response was cut short.
+	 */
+	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId) {
+		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
+				.withModelType(modelEngine.getModelType()).build();
+		hiddenUserNote.setPlatformGenerated(true);
+		hiddenUserNote.setVisible(false);
+		hiddenUserNote.setParentMessageId(hiddenParentId);
+
+		ResponseMessage hiddenAck = ResponseMessage.text(PlaygroundUtils.HIDDEN_MESSAGE_ACK);
+		hiddenAck.setPlatformGenerated(true);
+		hiddenAck.setVisible(false);
+		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
+
+		room.getMessages().add(hiddenUserNote);
+		room.getMessages().add(hiddenAck);
+	}
+
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
+				|| RESPONSE_PARTS_KEY.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return MCP_KEY_TYPE.OBJECT;
@@ -171,6 +325,14 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					"""
 					.replace("<replacement>", Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
 							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
+		} else if (RESPONSE_PARTS_KEY.equals(key)) {
+			return "Optional. When provided, the LLM call is skipped and this array of response parts"
+					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+					+ " response. Used by the FE cancel flow to commit whatever streamed before the user hit stop.";
+		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
+			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
+					+ " appended after the visible turn, plus an auto-generated assistant ack, so the model sees on"
+					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
 		}
 		return super.getDescriptionForKey(key);
 	}

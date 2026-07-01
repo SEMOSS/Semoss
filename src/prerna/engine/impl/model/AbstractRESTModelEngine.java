@@ -206,8 +206,9 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 						} catch (Exception e) {
 							// If the user cancelled, the IOException came from us closing
 							// the response — let the upstream pixel cancel handler take
-							// over (it throws SemossPixelException). The FE will then
-							// call RecordCancelledTurn to persist the visible partial.
+							// over (it throws SemossPixelException). The FE then calls
+							// AskPlayground with responseParts to persist the visible
+							// partial.
 							if (Thread.currentThread().isInterrupted()
 									|| (jobRunner != null && jobRunner.isCancelRequested())) {
 								throw new IllegalStateException("LLM stream cancelled by user");
