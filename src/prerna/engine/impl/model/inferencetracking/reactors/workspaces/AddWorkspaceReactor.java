@@ -29,8 +29,8 @@ package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,16 +40,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
-import prerna.prompt.PromptUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
@@ -82,76 +78,16 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		String workspaceDescription = this.keyValue.get(DESCRIPTION);
 		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 
-		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
-
-		if (!mcpMapList.isEmpty()) {
-			for (Map<String, Object> mcpMap : mcpMapList) {
-				if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
-					String type = (String) mcpMap.get("type");
-					String id = (String) mcpMap.get("id");
-					CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-					switch (catalogType) {
-					case PROJECT:
-						projectDependencies.add(id);
-						break;
-					default:
-						engines.add(id);
-					}
-					Map<String, Object> dependencyEntry = new HashMap<>();
-					dependencyEntry.put("ENGINEID", id);
-					dependencyEntry.put("ENGINETYPE", type);
-					dependencyList.add(dependencyEntry);
-				} else {
-					return getError("Tool map must contain both type and id");
-				}
-			}
-		}
-
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
-		for (String engine : engines) {
-			if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
-				return getError("User lacks permission to one of the given engines: " + engine);
-			}
-			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
-		}
-
-		for (String project : projectDependencies) {
-			if (!SecurityProjectUtils.userCanViewProject(user, project)) {
-				return getError("User lacks permission to one of the mcp tools/projects: " + project);
-			}
-			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
-		}
-
-		// linked to workspaces via WORKSPACE_RESOURCE with RESOURCE_TYPE = "PROMPT"
-		List<String> promptIds = getNounAsStringList(PROMPTS);
-		if (!promptIds.isEmpty()) {
-			if (!SystemEngineRegistry.isPromptDbLoaded()) {
-				return getError("Prompt database is not enabled");
-			}
-			for (String promptId : promptIds) {
-				Map<String, Object> prompt = PromptUtils.getPrompt(promptId, user);
-				if (prompt == null || prompt.isEmpty()) {
-					return getError("Prompt not found or user lacks access: " + promptId);
-				}
-				workspaceResources.add(makePromptResourceEntryMap(workspaceId, promptId));
-			}
-		}
-
-
-		List<String> skillIds = getNounAsStringList(SKILLS);
-		if (!skillIds.isEmpty()) {
-			for (String skillId : skillIds) {
-				if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
-					return getError("Skill not found: " + skillId);
-				}
-				if (!SecurityProjectUtils.userCanViewProject(user, skillId)) {
-					return getError("User lacks permission to one of the given skills: " + skillId);
-				}
-				workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
-			}
+		Set<String> skillIds = new LinkedHashSet<>();
+		try {
+			validateWorkspaceInputs(user, workspaceId, null, null, engines, projectDependencies, dependencyList,
+					workspaceResources, skillIds, null);
+		} catch (IllegalArgumentException e) {
+			return getError(e.getMessage());
 		}
 
 		IProject workspaceProject = null;
