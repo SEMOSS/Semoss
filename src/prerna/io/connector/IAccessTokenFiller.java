@@ -148,6 +148,43 @@ public interface IAccessTokenFiller {
 	}
 
 	/**
+	 * Fetch the user's groups from the provider and store them on the access token.
+	 * <p>
+	 * Reads {@code {prefix}groups} (a boolean gate), {@code {prefix}group_url},
+	 * {@code {prefix}groupJsonPattern}, {@code {prefix}group_string_return}, and
+	 * {@code {prefix}group_string_regex} from the social properties.
+	 * {@link AbstractOAuthTokenFiller} provides the generic implementation; the
+	 * default here is a no-op so providers that do not expose groups (or fetch them
+	 * some other way, e.g. the Microsoft Graph API) simply skip.
+	 *
+	 * @param accessToken the token to populate with groups (its provider should
+	 *                    already be set)
+	 * @param prefix      social.properties prefix for the provider
+	 */
+	default void fillUserGroups(AccessToken accessToken, String prefix) {
+		// no-op by default; AbstractOAuthTokenFiller provides the generic
+		// implementation
+	}
+
+	/**
+	 * Provide a fallback redirect/callback URL to use when
+	 * {@code {prefix}redirect_uri} is not configured in the social properties. The
+	 * unified login endpoint passes the current callback URL here so that
+	 * {@code redirect_uri} can be left blank and default to the request's own
+	 * callback (matching the dynamic-connector endpoints).
+	 * <p>
+	 * The default is a no-op; {@link AbstractOAuthTokenFiller} stores the value and
+	 * uses it in {@link #buildAuthorizeRedirect(String, String)} /
+	 * {@link #exchangeCodeForToken(String, String)}.
+	 *
+	 * @param defaultRedirectUri the fallback redirect URI (may be {@code null})
+	 */
+	default void setDefaultRedirectUri(String defaultRedirectUri) {
+		// no-op by default; AbstractOAuthTokenFiller stores it for redirect_uri
+		// fallback
+	}
+
+	/**
 	 * Whether this provider uses PKCE (Proof Key for Code Exchange). When
 	 * {@code true}, the login endpoint generates a {@code code_verifier} before the
 	 * authorize redirect (stashing it in the session), passes the derived
