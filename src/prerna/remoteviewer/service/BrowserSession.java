@@ -38,26 +38,31 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 
+import prerna.reactor.playwright.PlaywrightSession;
 import prerna.remoteviewer.model.BrowserInputEvent;
 import prerna.remoteviewer.model.RecordedStep;
 
 /**
  * Represents one isolated remote browser session.
  *
- * <p>Each session owns:
+ * <p>
+ * This is a thin wrapper around a {@link PlaywrightSession} (which owns the
+ * isolated {@link BrowserContext}, {@link Page}, network tracking, and expiry).
+ * On top of that it adds the live-streaming transport state that only the
+ * remote viewer needs:
  * <ul>
- *   <li>An isolated Playwright {@link BrowserContext}</li>
- *   <li>A {@link Page} navigated to the requested URL</li>
- *   <li>A dedicated event-loop thread that processes input events and streams frames</li>
- *   <li>The WebSocket {@link Session} used to push frames to the React client</li>
+ * <li>A dedicated event-loop thread that processes input events and streams
+ * frames</li>
+ * <li>The {@link FrameSender} used to push frames to the React client, and the
+ * {@code wsConnected} flag</li>
+ * <li>An input event queue and recorded interaction steps</li>
  * </ul>
  */
 public class BrowserSession {
 
 	private final String sessionId;
 	private final String userId;
-	private final BrowserContext context;
-	private final Page page;
+	private final PlaywrightSession playwrightSession;
 	private final int viewportWidth;
 	private final int viewportHeight;
 
@@ -81,39 +86,94 @@ public class BrowserSession {
 	/** Handle to the session's background thread for cleanup. */
 	private volatile Thread sessionThread;
 
-	public BrowserSession(String sessionId, String userId, BrowserContext context, Page page,
-			int viewportWidth, int viewportHeight) {
+	public BrowserSession(String sessionId, String userId, PlaywrightSession playwrightSession, int viewportWidth,
+			int viewportHeight) {
 		this.sessionId = sessionId;
 		this.userId = userId;
-		this.context = context;
-		this.page = page;
+		this.playwrightSession = playwrightSession;
 		this.viewportWidth = viewportWidth;
 		this.viewportHeight = viewportHeight;
 		this.createdAt = Instant.now();
 		this.lastActivityAt = Instant.now();
 	}
 
-	public String getSessionId() { return sessionId; }
-	public String getUserId() { return userId; }
-	public BrowserContext getContext() { return context; }
-	public Page getPage() { return page; }
-	public int getViewportWidth() { return viewportWidth; }
-	public int getViewportHeight() { return viewportHeight; }
-	public Instant getCreatedAt() { return createdAt; }
-	public Instant getLastActivityAt() { return lastActivityAt; }
-	public void touchActivity() { this.lastActivityAt = Instant.now(); }
+	public String getSessionId() {
+		return sessionId;
+	}
 
-	public boolean isClosed() { return closed.get(); }
-	public boolean markClosed() { return closed.compareAndSet(false, true); }
+	public String getUserId() {
+		return userId;
+	}
 
-	public FrameSender getFrameSender() { return frameSender; }
-	public void setFrameSender(FrameSender frameSender) { this.frameSender = frameSender; }
+	/**
+	 * The wrapped Playwright session that owns the browser context, page, and
+	 * network tracking.
+	 */
+	public PlaywrightSession getPlaywrightSession() {
+		return playwrightSession;
+	}
 
-	public boolean isWsConnected() { return wsConnected; }
-	public void setWsConnected(boolean connected) { this.wsConnected = connected; }
+	public BrowserContext getContext() {
+		return playwrightSession.getBrowserContext();
+	}
 
-	public List<RecordedStep> getRecordedSteps() { return recordedSteps; }
+	public Page getPage() {
+		return playwrightSession.getPage();
+	}
 
-	public Thread getSessionThread() { return sessionThread; }
-	public void setSessionThread(Thread t) { this.sessionThread = t; }
+	public int getViewportWidth() {
+		return viewportWidth;
+	}
+
+	public int getViewportHeight() {
+		return viewportHeight;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public Instant getLastActivityAt() {
+		return lastActivityAt;
+	}
+
+	public void touchActivity() {
+		this.lastActivityAt = Instant.now();
+	}
+
+	public boolean isClosed() {
+		return closed.get();
+	}
+
+	public boolean markClosed() {
+		return closed.compareAndSet(false, true);
+	}
+
+	public FrameSender getFrameSender() {
+		return frameSender;
+	}
+
+	public void setFrameSender(FrameSender frameSender) {
+		this.frameSender = frameSender;
+	}
+
+	public boolean isWsConnected() {
+		return wsConnected;
+	}
+
+	public void setWsConnected(boolean connected) {
+		this.wsConnected = connected;
+	}
+
+	public List<RecordedStep> getRecordedSteps() {
+		return recordedSteps;
+	}
+
+	public Thread getSessionThread() {
+		return sessionThread;
+	}
+
+	public void setSessionThread(Thread t) {
+		this.sessionThread = t;
+	}
 }

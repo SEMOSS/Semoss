@@ -27,11 +27,18 @@
  *******************************************************************************/
 package prerna.remoteviewer.model;
 
+import prerna.reactor.playwright.Viewport;
+
 /**
- * A recorded interaction step captured during a remote browser session.
- * Steps are stored in memory and can be persisted for later replay.
+ * A recorded interaction step captured during a remote browser session. Steps
+ * are stored in memory and can be persisted for later replay.
  */
 public class RecordedStep {
+
+	/**
+	 * Device scale factor for remote browser sessions (see BrowserSessionManager).
+	 */
+	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
 	private String type;
 	private String url;
@@ -39,7 +46,7 @@ public class RecordedStep {
 	private String text;
 	private String role;
 	private CoordinatesInfo coordinates;
-	private ViewportInfo viewport;
+	private Viewport viewport;
 	private long timestamp;
 
 	public static class CoordinatesInfo {
@@ -51,39 +58,85 @@ public class RecordedStep {
 			this.y = y;
 		}
 
-		public double getX() { return x; }
-		public double getY() { return y; }
-	}
-
-	public static class ViewportInfo {
-		private int width;
-		private int height;
-
-		public ViewportInfo(int width, int height) {
-			this.width = width;
-			this.height = height;
+		public double getX() {
+			return x;
 		}
 
-		public int getWidth() { return width; }
-		public int getHeight() { return height; }
+		public double getY() {
+			return y;
+		}
 	}
 
 	// Builder-style setters
-	public RecordedStep type(String type) { this.type = type; return this; }
-	public RecordedStep url(String url) { this.url = url; return this; }
-	public RecordedStep selector(String selector) { this.selector = selector; return this; }
-	public RecordedStep text(String text) { this.text = text; return this; }
-	public RecordedStep role(String role) { this.role = role; return this; }
-	public RecordedStep coordinates(double x, double y) { this.coordinates = new CoordinatesInfo(x, y); return this; }
-	public RecordedStep viewport(int width, int height) { this.viewport = new ViewportInfo(width, height); return this; }
-	public RecordedStep timestamp(long ts) { this.timestamp = ts; return this; }
+	public RecordedStep type(String type) {
+		this.type = type;
+		return this;
+	}
 
-	public String getType() { return type; }
-	public String getUrl() { return url; }
-	public String getSelector() { return selector; }
-	public String getText() { return text; }
-	public String getRole() { return role; }
-	public CoordinatesInfo getCoordinates() { return coordinates; }
-	public ViewportInfo getViewport() { return viewport; }
-	public long getTimestamp() { return timestamp; }
+	public RecordedStep url(String url) {
+		this.url = url;
+		return this;
+	}
+
+	public RecordedStep selector(String selector) {
+		this.selector = selector;
+		return this;
+	}
+
+	public RecordedStep text(String text) {
+		this.text = text;
+		return this;
+	}
+
+	public RecordedStep role(String role) {
+		this.role = role;
+		return this;
+	}
+
+	public RecordedStep coordinates(double x, double y) {
+		this.coordinates = new CoordinatesInfo(x, y);
+		return this;
+	}
+
+	public RecordedStep viewport(int width, int height) {
+		this.viewport = new Viewport(width, height, DEVICE_SCALE_FACTOR);
+		return this;
+	}
+
+	public RecordedStep timestamp(long ts) {
+		this.timestamp = ts;
+		return this;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public String getSelector() {
+		return selector;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public String getRole() {
+		return role;
+	}
+
+	public CoordinatesInfo getCoordinates() {
+		return coordinates;
+	}
+
+	public Viewport getViewport() {
+		return viewport;
+	}
+
+	public long getTimestamp() {
+		return timestamp;
+	}
 }

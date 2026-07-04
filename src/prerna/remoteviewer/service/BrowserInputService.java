@@ -41,14 +41,14 @@ import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.MouseButton;
 import com.microsoft.playwright.options.WaitUntilState;
 
+import prerna.reactor.playwright.Selector;
 import prerna.remoteviewer.model.BrowserInputEvent;
-import prerna.remoteviewer.model.BrowserInputEvent.SelectorInfo;
 import prerna.remoteviewer.security.UrlSafetyValidator;
 
 /**
- * Maps validated frontend input events onto Playwright browser actions.
- * For CLICK events, uses a 3-tier fallback: selector → coords → skip.
- * After each action, respects waitAfterMs and waits for page to settle.
+ * Maps validated frontend input events onto Playwright browser actions. For
+ * CLICK events, uses a 3-tier fallback: selector → coords → skip. After
+ * each action, respects waitAfterMs and waits for page to settle.
  *
  * All calls must be made from the session's dedicated Playwright thread.
  */
@@ -57,7 +57,8 @@ public class BrowserInputService {
 	private static final Logger classLogger = LogManager.getLogger(BrowserInputService.class);
 	private static final int DEFAULT_WAIT_AFTER_MS = 300;
 
-	private BrowserInputService() {}
+	private BrowserInputService() {
+	}
 
 	public static void dispatch(BrowserSession session, BrowserInputEvent event) {
 		Page page = session.getPage();
@@ -67,8 +68,8 @@ public class BrowserInputService {
 
 		String urlBefore = safeUrl(page);
 		String type = event.getType();
-		classLogger.info("Remote viewer dispatch start session={} event={} urlBefore={}",
-				session.getSessionId(), describeEvent(event), urlBefore);
+		classLogger.info("Remote viewer dispatch start session={} event={} urlBefore={}", session.getSessionId(),
+				describeEvent(event), urlBefore);
 		long start = System.currentTimeMillis();
 		try {
 			switch (type) {
@@ -124,8 +125,8 @@ public class BrowserInputService {
 
 	private static void clickWithNavigationWait(Page page, BrowserInputEvent event) {
 		boolean likelyNavigation = isLikelyNavigationClick(page, event);
-		classLogger.info("Remote viewer click navigationProbe likelyNavigation={} event={}",
-				likelyNavigation, describeEvent(event));
+		classLogger.info("Remote viewer click navigationProbe likelyNavigation={} event={}", likelyNavigation,
+				describeEvent(event));
 		if (!likelyNavigation) {
 			clickWithFallback(page, event);
 			return;
@@ -133,9 +134,7 @@ public class BrowserInputService {
 
 		try {
 			page.waitForNavigation(
-					new Page.WaitForNavigationOptions()
-							.setTimeout(8_000)
-							.setWaitUntil(WaitUntilState.NETWORKIDLE),
+					new Page.WaitForNavigationOptions().setTimeout(8_000).setWaitUntil(WaitUntilState.NETWORKIDLE),
 					() -> clickWithFallback(page, event));
 			classLogger.info("Remote viewer click navigation observed urlAfter={}", safeUrl(page));
 		} catch (PlaywrightException e) {
@@ -150,22 +149,17 @@ public class BrowserInputService {
 			payload.put("x", event.getX());
 			payload.put("y", event.getY());
 			payload.put("selector", selectorPayload(event.getSelector()));
-			Object result = page.evaluate("(event) => {"
-					+ "let el = null;"
-					+ "const sel = event.selector;"
-					+ "if (sel && sel.value) {"
-					+ "  try {"
+			Object result = page.evaluate("(event) => {" + "let el = null;" + "const sel = event.selector;"
+					+ "if (sel && sel.value) {" + "  try {"
 					+ "    if (sel.strategy === 'id') el = document.getElementById(sel.value);"
 					+ "    else if (sel.strategy === 'css') el = document.querySelector(sel.value);"
 					+ "    else if (sel.strategy === 'role') el = document.querySelector('[role=\"' + CSS.escape(sel.value) + '\"]');"
 					+ "    else if (sel.strategy === 'xpath') el = document.evaluate(sel.value, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;"
-					+ "  } catch (e) {}"
-					+ "}"
+					+ "  } catch (e) {}" + "}"
 					+ "if (!el && event.x != null && event.y != null) el = document.elementFromPoint(event.x, event.y);"
 					+ "if (!el) return false;"
 					+ "const target = el.closest('a[href], button, input, [role=\"link\"], [role=\"button\"]');"
-					+ "if (!target) return false;"
-					+ "if (target.matches('a[href], [role=\"link\"]')) return true;"
+					+ "if (!target) return false;" + "if (target.matches('a[href], [role=\"link\"]')) return true;"
 					+ "if (target.matches('button[type=\"submit\"], input[type=\"submit\"]')) return true;"
 					+ "const form = target.closest('form');"
 					+ "return !!form && target.matches('button:not([type]), button[type=\"submit\"], input[type=\"submit\"]');"
@@ -176,21 +170,21 @@ public class BrowserInputService {
 		}
 	}
 
-	private static Map<String, Object> selectorPayload(SelectorInfo sel) {
+	private static Map<String, Object> selectorPayload(Selector sel) {
 		Map<String, Object> payload = new HashMap<>();
 		if (sel == null) {
 			return payload;
 		}
-		payload.put("strategy", sel.getStrategy() != null ? sel.getStrategy() : "");
-		payload.put("value", sel.getValue() != null ? sel.getValue() : "");
+		payload.put("strategy", sel.strategy() != null ? sel.strategy() : "");
+		payload.put("value", sel.value() != null ? sel.value() : "");
 		return payload;
 	}
 
 	private static void clickWithFallback(Page page, BrowserInputEvent event) {
-		SelectorInfo sel = event.getSelector();
+		Selector sel = event.getSelector();
 
 		// 1) Try CSS/ID selector (most reliable, survives minor layout changes)
-		if (sel != null && sel.getValue() != null && !sel.getValue().isBlank()) {
+		if (sel != null && sel.value() != null && !sel.value().isBlank()) {
 			try {
 				Locator loc = resolveLocator(page, sel);
 				if (loc != null) {
@@ -209,11 +203,11 @@ public class BrowserInputService {
 		// 2) Fall back to raw coordinates
 		if (event.getX() != null && event.getY() != null) {
 			try {
-				classLogger.info("Remote viewer click attempt method=coords x={} y={}",
-						round(event.getX()), round(event.getY()));
+				classLogger.info("Remote viewer click attempt method=coords x={} y={}", round(event.getX()),
+						round(event.getY()));
 				page.mouse().click(event.getX(), event.getY());
-				classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}",
-						round(event.getX()), round(event.getY()), safeUrl(page));
+				classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
+						round(event.getY()), safeUrl(page));
 				return;
 			} catch (Exception e) {
 				classLogger.warn("Coord click failed at ({}, {}): {}", event.getX(), event.getY(), e.getMessage());
@@ -223,16 +217,28 @@ public class BrowserInputService {
 		classLogger.warn("Click could not be performed — no selector and no coords");
 	}
 
-	private static Locator resolveLocator(Page page, SelectorInfo sel) {
-		if (sel == null || sel.getValue() == null) return null;
-		String strat = sel.getStrategy();
-		String val = sel.getValue();
+	private static Locator resolveLocator(Page page, Selector sel) {
+		if (sel == null || sel.value() == null) {
+			return null;
+		}
+		String strat = sel.strategy();
+		String val = sel.value();
 		try {
-			if ("id".equals(strat))   return page.locator("#" + val);
-			if ("css".equals(strat))  return page.locator(val);
-			if ("xpath".equals(strat)) return page.locator("xpath=" + val);
-			if ("role".equals(strat)) return page.locator("[role=\"" + val + "\"]");
-			if ("text".equals(strat)) return page.getByText(val);
+			if ("id".equals(strat)) {
+				return page.locator("#" + val);
+			}
+			if ("css".equals(strat)) {
+				return page.locator(val);
+			}
+			if ("xpath".equals(strat)) {
+				return page.locator("xpath=" + val);
+			}
+			if ("role".equals(strat)) {
+				return page.locator("[role=\"" + val + "\"]");
+			}
+			if ("text".equals(strat)) {
+				return page.getByText(val);
+			}
 			return page.locator(val); // default: treat as CSS
 		} catch (Exception e) {
 			return null;
@@ -244,13 +250,16 @@ public class BrowserInputService {
 	private static void postActionWait(Page page, BrowserInputEvent event, String urlBefore) {
 		String type = event.getType();
 		// Always skip wait for mouse-move (high frequency, no meaningful wait)
-		if ("mouse-move".equals(type)) return;
+		if ("mouse-move".equals(type)) {
+			return;
+		}
 
 		int waitMs = event.getWaitAfterMs() != null ? event.getWaitAfterMs() : DEFAULT_WAIT_AFTER_MS;
 		classLogger.debug("Remote viewer postActionWait start type={} waitMs={} urlBefore={}", type, waitMs, urlBefore);
 
 		// For navigate/navigate-back/forward: wait for page load
-		if ("navigate".equals(type) || "navigate-back".equals(type) || "navigate-forward".equals(type) || "reload".equals(type)) {
+		if ("navigate".equals(type) || "navigate-back".equals(type) || "navigate-forward".equals(type)
+				|| "reload".equals(type)) {
 			try {
 				page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(10_000));
 				classLogger.info("Remote viewer loadState reached NETWORKIDLE type={} url={}", type, safeUrl(page));
@@ -259,15 +268,16 @@ public class BrowserInputService {
 				try {
 					page.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(3_000));
 					classLogger.info("Remote viewer loadState reached LOAD type={} url={}", type, safeUrl(page));
-				}
-				catch (Exception ignored) {
-					classLogger.info("Remote viewer loadState LOAD fallback timed out type={} url={}", type, safeUrl(page));
+				} catch (Exception ignored) {
+					classLogger.info("Remote viewer loadState LOAD fallback timed out type={} url={}", type,
+							safeUrl(page));
 				}
 			}
 			return;
 		}
 
-		// For clicks: honour waitAfterMs then check if URL changed (navigation triggered)
+		// For clicks: honour waitAfterMs then check if URL changed (navigation
+		// triggered)
 		if (waitMs > 0) {
 			page.waitForTimeout(waitMs);
 		}
@@ -275,18 +285,21 @@ public class BrowserInputService {
 		String urlAfter = safeUrl(page);
 		if (!urlBefore.equals(urlAfter)) {
 			// Click triggered a navigation — wait for it to settle
-			classLogger.info("Remote viewer postActionWait detected URL change type={} from={} to={}", type, urlBefore, urlAfter);
+			classLogger.info("Remote viewer postActionWait detected URL change type={} from={} to={}", type, urlBefore,
+					urlAfter);
 			try {
 				page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(10_000));
-				classLogger.info("Remote viewer postActionWait NETWORKIDLE reached type={} url={}", type, safeUrl(page));
+				classLogger.info("Remote viewer postActionWait NETWORKIDLE reached type={} url={}", type,
+						safeUrl(page));
 			} catch (PlaywrightException e) {
-				classLogger.info("Remote viewer postActionWait NETWORKIDLE timeout type={} reason={}", type, e.getMessage());
+				classLogger.info("Remote viewer postActionWait NETWORKIDLE timeout type={} reason={}", type,
+						e.getMessage());
 				try {
 					page.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(3_000));
 					classLogger.info("Remote viewer postActionWait LOAD reached type={} url={}", type, safeUrl(page));
-				}
-				catch (Exception ignored) {
-					classLogger.info("Remote viewer postActionWait LOAD fallback timed out type={} url={}", type, safeUrl(page));
+				} catch (Exception ignored) {
+					classLogger.info("Remote viewer postActionWait LOAD fallback timed out type={} url={}", type,
+							safeUrl(page));
 				}
 			}
 		} else {
@@ -297,16 +310,15 @@ public class BrowserInputService {
 	// ---- Other actions ----
 
 	private static void wheel(Page page, BrowserInputEvent event) {
-		classLogger.info("Remote viewer wheel x={} y={} deltaX={} deltaY={}",
-				round(event.getX()), round(event.getY()), event.getDeltaX(), event.getDeltaY());
-		page.mouse().wheel(
-				event.getDeltaX() != null ? event.getDeltaX() : 0,
+		classLogger.info("Remote viewer wheel x={} y={} deltaX={} deltaY={}", round(event.getX()), round(event.getY()),
+				event.getDeltaX(), event.getDeltaY());
+		page.mouse().wheel(event.getDeltaX() != null ? event.getDeltaX() : 0,
 				event.getDeltaY() != null ? event.getDeltaY() : 0);
 	}
 
 	private static void typeText(Page page, BrowserInputEvent event) {
-		SelectorInfo sel = event.getSelector();
-		if (sel != null && sel.getValue() != null && !sel.getValue().isBlank()) {
+		Selector sel = event.getSelector();
+		if (sel != null && sel.value() != null && !sel.value().isBlank()) {
 			try {
 				Locator loc = resolveLocator(page, sel);
 				if (loc != null) {
@@ -323,13 +335,14 @@ public class BrowserInputService {
 		}
 		if (event.getX() != null && event.getY() != null) {
 			try {
-				classLogger.info("Remote viewer type focus attempt method=coords x={} y={}",
-						round(event.getX()), round(event.getY()));
+				classLogger.info("Remote viewer type focus attempt method=coords x={} y={}", round(event.getX()),
+						round(event.getY()));
 				page.mouse().click(event.getX(), event.getY());
-				classLogger.info("Remote viewer type focus success method=coords x={} y={}",
-						round(event.getX()), round(event.getY()));
+				classLogger.info("Remote viewer type focus success method=coords x={} y={}", round(event.getX()),
+						round(event.getY()));
 			} catch (Exception e) {
-				classLogger.debug("Could not focus type target at ({}, {}): {}", event.getX(), event.getY(), e.getMessage());
+				classLogger.debug("Could not focus type target at ({}, {}): {}", event.getX(), event.getY(),
+						e.getMessage());
 			}
 		}
 		page.keyboard().type(event.getText());
@@ -350,17 +363,26 @@ public class BrowserInputService {
 	}
 
 	private static String safeUrl(Page page) {
-		try { return page.url(); } catch (Exception e) { return ""; }
+		try {
+			return page.url();
+		} catch (Exception e) {
+			return "";
+		}
 	}
 
 	// ---- Helpers ----
 
 	private static MouseButton resolveButton(String btn) {
-		if (btn == null) return MouseButton.LEFT;
+		if (btn == null) {
+			return MouseButton.LEFT;
+		}
 		switch (btn) {
-		case "right":  return MouseButton.RIGHT;
-		case "middle": return MouseButton.MIDDLE;
-		default:       return MouseButton.LEFT;
+		case "right":
+			return MouseButton.RIGHT;
+		case "middle":
+			return MouseButton.MIDDLE;
+		default:
+			return MouseButton.LEFT;
 		}
 	}
 
@@ -380,10 +402,18 @@ public class BrowserInputService {
 		Map<String, Boolean> mods = event.getModifiers();
 		StringBuilder sb = new StringBuilder();
 		if (mods != null) {
-			if (Boolean.TRUE.equals(mods.get("ctrl")))  sb.append("Control+");
-			if (Boolean.TRUE.equals(mods.get("meta")))  sb.append("Meta+");
-			if (Boolean.TRUE.equals(mods.get("alt")))   sb.append("Alt+");
-			if (Boolean.TRUE.equals(mods.get("shift"))) sb.append("Shift+");
+			if (Boolean.TRUE.equals(mods.get("ctrl"))) {
+				sb.append("Control+");
+			}
+			if (Boolean.TRUE.equals(mods.get("meta"))) {
+				sb.append("Meta+");
+			}
+			if (Boolean.TRUE.equals(mods.get("alt"))) {
+				sb.append("Alt+");
+			}
+			if (Boolean.TRUE.equals(mods.get("shift"))) {
+				sb.append("Shift+");
+			}
 		}
 		sb.append(event.getKey());
 		return sb.toString();
@@ -411,11 +441,11 @@ public class BrowserInputService {
 		return sb.toString();
 	}
 
-	private static String describeSelector(SelectorInfo selector) {
+	private static String describeSelector(Selector selector) {
 		if (selector == null) {
 			return "none";
 		}
-		return selector.getStrategy() + ":" + truncate(selector.getValue(), 120);
+		return selector.strategy() + ":" + truncate(selector.value(), 120);
 	}
 
 	private static String truncate(String value, int max) {

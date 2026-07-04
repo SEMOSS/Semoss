@@ -40,29 +40,28 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.ScreenshotType;
-
-import prerna.remoteviewer.model.BrowserInputEvent;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.ScreenshotType;
 
+import prerna.reactor.playwright.PlaywrightBrowserProvider;
+import prerna.reactor.playwright.PlaywrightSession;
+import prerna.remoteviewer.model.BrowserInputEvent;
 import prerna.remoteviewer.security.UrlSafetyValidator;
 
 /**
  * Singleton that manages all active remote browser sessions.
  *
- * <p>Each call to {@link #createSession} launches an isolated Playwright browser context
- * and a dedicated Playwright instance. Sessions are cleaned up on explicit close or TTL
- * expiry.
+ * <p>
+ * Each call to {@link #createSession} isolates a session with its own
+ * {@link com.microsoft.playwright.BrowserContext} created from the shared
+ * browser ({@link prerna.reactor.playwright.PlaywrightBrowserProvider}).
+ * Sessions are cleaned up on explicit close or TTL expiry.
  */
 public class BrowserSessionManager {
 
@@ -77,8 +76,12 @@ public class BrowserSessionManager {
 	private final long ttlSeconds;
 	private final int defaultViewportWidth;
 	private final int defaultViewportHeight;
-	private final boolean headless;
 	private final int maxSessionsPerUser;
+	/**
+	 * Absolute max lifetime (minutes) enforced by the wrapped PlaywrightSession as
+	 * a backstop; idle TTL governs normal cleanup.
+	 */
+	private final long sessionMaxMinutes;
 
 	private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "BrowserSessionReaper");
@@ -90,8 +93,8 @@ public class BrowserSessionManager {
 		this.ttlSeconds = parseLong("REMOTE_BROWSER_SESSION_TTL_SECONDS", 900);
 		this.defaultViewportWidth = parseInt("REMOTE_BROWSER_VIEWPORT_WIDTH", 1365);
 		this.defaultViewportHeight = parseInt("REMOTE_BROWSER_VIEWPORT_HEIGHT", 768);
-		this.headless = !"false".equalsIgnoreCase(System.getenv("REMOTE_BROWSER_HEADLESS"));
 		this.maxSessionsPerUser = parseInt("REMOTE_BROWSER_MAX_SESSIONS_PER_USER", 10);
+		this.sessionMaxMinutes = parseLong("REMOTE_BROWSER_SESSION_MAX_MINUTES", 720);
 
 		// Reap expired sessions every 60 seconds
 		reaper.scheduleAtFixedRate(this::closeExpiredSessions, 60, 60, TimeUnit.SECONDS);
@@ -102,21 +105,20 @@ public class BrowserSessionManager {
 	}
 
 	/**
-	 * Creates a new isolated browser session for the given user and navigates to {@code url}.
+	 * Creates a new isolated browser session for the given user and navigates to
+	 * {@code url}.
 	 *
-	 * @param userId  the authenticated SEMOSS user id
-	 * @param url     the target URL (must pass {@link UrlSafetyValidator})
-	 * @param width   requested viewport width (or 0 to use default)
-	 * @param height  requested viewport height (or 0 to use default)
+	 * @param userId the authenticated SEMOSS user id
+	 * @param url    the target URL (must pass {@link UrlSafetyValidator})
+	 * @param width  requested viewport width (or 0 to use default)
+	 * @param height requested viewport height (or 0 to use default)
 	 * @return the newly created {@link BrowserSession}
 	 */
 	public BrowserSession createSession(String userId, String url, int width, int height) {
 		UrlSafetyValidator.validate(url);
 
 		// Enforce per-user session limit
-		long userCount = sessions.values().stream()
-				.filter(s -> !s.isClosed() && userId.equals(s.getUserId()))
-				.count();
+		long userCount = sessions.values().stream().filter(s -> !s.isClosed() && userId.equals(s.getUserId())).count();
 		if (userCount >= maxSessionsPerUser) {
 			throw new IllegalStateException(
 					"Maximum concurrent sessions (" + maxSessionsPerUser + ") reached for this user");
@@ -125,12 +127,12 @@ public class BrowserSessionManager {
 		int vpWidth = width > 0 ? width : defaultViewportWidth;
 		int vpHeight = height > 0 ? height : defaultViewportHeight;
 
-		// Each session owns its own Playwright instance for full isolation
-		Playwright playwright = Playwright.create();
-		Browser browser = playwright.webkit().launch(buildLaunchOptions());
+		// Reuse the shared, lazily-launched browser (chromium, headless) and isolate
+		// each session with its own BrowserContext instead of a per-session Playwright
+		// instance.
+		Browser browser = PlaywrightBrowserProvider.getBrowser();
 
-		Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions()
-				.setViewportSize(vpWidth, vpHeight)
+		Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions().setViewportSize(vpWidth, vpHeight)
 				.setDeviceScaleFactor(1.0);
 		BrowserContext context = browser.newContext(ctxOpts);
 		context.setDefaultTimeout(30_000);
@@ -139,7 +141,11 @@ public class BrowserSessionManager {
 		Page page = context.newPage();
 
 		String sessionId = UUID.randomUUID().toString();
-		BrowserSession session = new BrowserSession(sessionId, userId, context, page, vpWidth, vpHeight);
+		// Wrap a PlaywrightSession (owns context/page/network tracking); the viewer
+		// adds the streaming transport state and manages idle-based cleanup via this
+		// manager.
+		PlaywrightSession playwrightSession = PlaywrightSession.forRemoteViewer(context, page, sessionMaxMinutes);
+		BrowserSession session = new BrowserSession(sessionId, userId, playwrightSession, vpWidth, vpHeight);
 
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);
@@ -185,7 +191,9 @@ public class BrowserSessionManager {
 					session.touchActivity();
 				}
 
-				if (page.isClosed()) break;
+				if (page.isClosed()) {
+					break;
+				}
 
 				// Send frame and navigated notification only when a viewer is connected
 				FrameSender sender = session.getFrameSender();
@@ -197,24 +205,19 @@ public class BrowserSessionManager {
 							lastUrl = currentUrl;
 							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
 						}
-					} catch (Exception ignored) {}
+					} catch (Exception ignored) {
+					}
 
 					// Send screenshot frame
 					try {
-						byte[] buf = page.screenshot(
-								new Page.ScreenshotOptions()
-										.setFullPage(false)
-										.setType(ScreenshotType.JPEG)
-										.setQuality(75));
+						byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
+								.setType(ScreenshotType.JPEG).setQuality(75));
 						String b64 = Base64.getEncoder().encodeToString(buf);
-						sender.send(LOOP_GSON.toJson(Map.of(
-								"type", "frame",
-								"data", b64,
-								"metadata", Map.of(
-										"width", session.getViewportWidth(),
-										"height", session.getViewportHeight(),
+						sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
+								Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
 										"pageScaleFactor", 1))));
-					} catch (Exception ignored) {}
+					} catch (Exception ignored) {
+					}
 				}
 			} catch (Exception e) {
 				classLogger.debug("Session loop error for {}: {}", session.getSessionId(), e.getMessage());
@@ -222,7 +225,11 @@ public class BrowserSessionManager {
 			long elapsed = System.currentTimeMillis() - start;
 			long sleep = 67 - elapsed;
 			if (sleep > 0) {
-				try { Thread.sleep(sleep); } catch (InterruptedException e) { break; }
+				try {
+					Thread.sleep(sleep);
+				} catch (InterruptedException e) {
+					break;
+				}
 			}
 		}
 		classLogger.info("Session loop ended for {}", session.getSessionId());
@@ -240,12 +247,23 @@ public class BrowserSessionManager {
 	}
 
 	/**
-	 * Closes the session and releases all Playwright resources.
+	 * Closes the session with the given id and releases all Playwright resources.
 	 */
 	public void closeSession(String sessionId) {
-		BrowserSession s = sessions.remove(sessionId);
-		if (s != null && s.markClosed()) {
-			safeClose(s);
+		closeSession(sessions.get(sessionId));
+	}
+
+	/**
+	 * Closes the given session and releases all Playwright resources. Idempotent
+	 * and null-safe.
+	 */
+	public void closeSession(BrowserSession session) {
+		if (session == null) {
+			return;
+		}
+		sessions.remove(session.getSessionId(), session);
+		if (session.markClosed()) {
+			safeClose(session);
 		}
 	}
 
@@ -283,40 +301,50 @@ public class BrowserSessionManager {
 
 	// ---- helpers ----
 
-	private BrowserType.LaunchOptions buildLaunchOptions() {
-		// WebKit is used on macOS — does not require Chromium sandbox flags
-		BrowserType.LaunchOptions opts = new BrowserType.LaunchOptions().setHeadless(headless);
-		return opts;
-	}
-
 	private void safeClose(BrowserSession s) {
 		// Interrupt the session loop thread if running
 		Thread t = s.getSessionThread();
 		if (t != null && t.isAlive()) {
 			t.interrupt();
 		}
+		// Close the wrapped PlaywrightSession (closes its pages; idempotent, so the
+		// backstop expiry task becomes a no-op).
+		try {
+			s.getPlaywrightSession().close();
+		} catch (Exception e) {
+			classLogger.debug("Error closing playwright session {}: {}", s.getSessionId(), e.getMessage());
+		}
+		// Each viewer owns its context, so close it here. The browser and Playwright
+		// instance are shared (owned by PlaywrightBrowserProvider) and must not be
+		// closed.
 		try {
 			s.getContext().close();
 		} catch (Exception e) {
 			classLogger.debug("Error closing browser context for session {}: {}", s.getSessionId(), e.getMessage());
 		}
-		// The Playwright instance is associated with the context's browser
-		try {
-			s.getContext().browser().close();
-		} catch (Exception e) {
-			classLogger.debug("Error closing browser for session {}: {}", s.getSessionId(), e.getMessage());
-		}
 	}
 
 	private static long parseLong(String envKey, long def) {
 		String v = System.getenv(envKey);
-		if (v == null) return def;
-		try { return Long.parseLong(v.trim()); } catch (NumberFormatException e) { return def; }
+		if (v == null) {
+			return def;
+		}
+		try {
+			return Long.parseLong(v.trim());
+		} catch (NumberFormatException e) {
+			return def;
+		}
 	}
 
 	private static int parseInt(String envKey, int def) {
 		String v = System.getenv(envKey);
-		if (v == null) return def;
-		try { return Integer.parseInt(v.trim()); } catch (NumberFormatException e) { return def; }
+		if (v == null) {
+			return def;
+		}
+		try {
+			return Integer.parseInt(v.trim());
+		} catch (NumberFormatException e) {
+			return def;
+		}
 	}
 }

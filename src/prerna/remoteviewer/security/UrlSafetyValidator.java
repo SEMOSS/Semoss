@@ -36,9 +36,17 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.util.Utility;
+
 /**
  * Validates target URLs before a browser session opens them.
- * Blocks private networks, metadata services, and dangerous schemes.
+ *
+ * <p>
+ * This is the single entry point for remote-browser URL safety: it enforces the
+ * shared, configurable domain whitelist via
+ * {@link Utility#checkIfValidDomain(String)} and then layers additional
+ * restrictions on top — allowed schemes, and blocking private networks,
+ * loopback, and metadata services.
  */
 public class UrlSafetyValidator {
 
@@ -48,19 +56,15 @@ public class UrlSafetyValidator {
 
 	/** RFC-1918 / loopback / APIPA / IPv6 loopback prefixes */
 	private static final List<Pattern> BLOCKED_HOST_PATTERNS = Arrays.asList(
-			Pattern.compile("^localhost$", Pattern.CASE_INSENSITIVE),
-			Pattern.compile("^127\\..*"),
-			Pattern.compile("^0\\.0\\.0\\.0$"),
-			Pattern.compile("^10\\..*"),
-			Pattern.compile("^172\\.(1[6-9]|2[0-9]|3[01])\\..*"),
-			Pattern.compile("^192\\.168\\..*"),
-			Pattern.compile("^169\\.254\\..*"),   // APIPA / AWS metadata
-			Pattern.compile("^::1$"),             // IPv6 loopback
-			Pattern.compile("^fc00:.*", Pattern.CASE_INSENSITIVE),
-			Pattern.compile("^fd.*", Pattern.CASE_INSENSITIVE)
-	);
+			Pattern.compile("^localhost$", Pattern.CASE_INSENSITIVE), Pattern.compile("^127\\..*"),
+			Pattern.compile("^0\\.0\\.0\\.0$"), Pattern.compile("^10\\..*"),
+			Pattern.compile("^172\\.(1[6-9]|2[0-9]|3[01])\\..*"), Pattern.compile("^192\\.168\\..*"),
+			Pattern.compile("^169\\.254\\..*"), // APIPA / AWS metadata
+			Pattern.compile("^::1$"), // IPv6 loopback
+			Pattern.compile("^fc00:.*", Pattern.CASE_INSENSITIVE), Pattern.compile("^fd.*", Pattern.CASE_INSENSITIVE));
 
-	private UrlSafetyValidator() {}
+	private UrlSafetyValidator() {
+	}
 
 	/**
 	 * Returns {@code true} when the URL is safe to open in a remote browser.
@@ -90,6 +94,11 @@ public class UrlSafetyValidator {
 			throw new IllegalArgumentException("URL must contain a valid host");
 		}
 
+		// Enforce the shared, configurable domain whitelist
+		// (Constants.WHITE_LIST_DOMAINS).
+		// No-op when no whitelist is configured; the SSRF checks below always apply.
+		Utility.checkIfValidDomain(rawUrl.trim());
+
 		// Check the literal hostname
 		for (Pattern p : BLOCKED_HOST_PATTERNS) {
 			if (p.matcher(host).matches()) {
@@ -99,13 +108,13 @@ public class UrlSafetyValidator {
 		}
 
 		// Resolve DNS and check the resolved IP
-		boolean blockPrivateNetworks = !"false".equalsIgnoreCase(
-				System.getenv("REMOTE_BROWSER_BLOCK_PRIVATE_NETWORKS"));
+		boolean blockPrivateNetworks = !"false"
+				.equalsIgnoreCase(System.getenv("REMOTE_BROWSER_BLOCK_PRIVATE_NETWORKS"));
 		if (blockPrivateNetworks) {
 			try {
 				InetAddress addr = InetAddress.getByName(host);
-				if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
-						|| addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+				if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()
+						|| addr.isAnyLocalAddress()) {
 					classLogger.warn("Blocked resolved private address for host: {}", host);
 					throw new IllegalArgumentException("URL resolves to a blocked address");
 				}

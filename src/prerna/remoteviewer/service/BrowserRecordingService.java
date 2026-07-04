@@ -36,40 +36,35 @@ import prerna.remoteviewer.model.RecordedStep;
 /**
  * Records deterministic interaction steps for a browser session.
  *
- * <p>For click events, attempts to identify the clicked element via JavaScript
- * to enrich the recorded step with a semantic selector.
+ * <p>
+ * For click events, attempts to identify the clicked element via JavaScript to
+ * enrich the recorded step with a semantic selector.
  */
 public class BrowserRecordingService {
 
 	private static final Logger classLogger = LogManager.getLogger(BrowserRecordingService.class);
 
 	/** Sensitive input types where text should not be recorded. */
-	private static final String PROBE_SCRIPT =
-			"([x, y]) => {" +
-			"  const el = document.elementFromPoint(x, y);" +
-			"  if (!el) return null;" +
-			"  const tag = el.tagName.toLowerCase();" +
-			"  const type = (el.getAttribute('type') || '').toLowerCase();" +
-			"  if (tag === 'input' && (type === 'password' || type === 'hidden')) return { masked: true };" +
-			"  const role = el.getAttribute('role') || el.tagName.toLowerCase();" +
-			"  const text = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().substring(0, 100);" +
-			"  const id = el.id ? '#' + el.id : null;" +
-			"  const ariaLabel = el.getAttribute('aria-label') ? '[aria-label=\"' + el.getAttribute('aria-label') + '\"]' : null;" +
-			"  const selector = id || ariaLabel || null;" +
-			"  return { role, text, selector };" +
-			"}";
+	private static final String PROBE_SCRIPT = "([x, y]) => {" + "  const el = document.elementFromPoint(x, y);"
+			+ "  if (!el) return null;" + "  const tag = el.tagName.toLowerCase();"
+			+ "  const type = (el.getAttribute('type') || '').toLowerCase();"
+			+ "  if (tag === 'input' && (type === 'password' || type === 'hidden')) return { masked: true };"
+			+ "  const role = el.getAttribute('role') || el.tagName.toLowerCase();"
+			+ "  const text = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || '').trim().substring(0, 100);"
+			+ "  const id = el.id ? '#' + el.id : null;"
+			+ "  const ariaLabel = el.getAttribute('aria-label') ? '[aria-label=\"' + el.getAttribute('aria-label') + '\"]' : null;"
+			+ "  const selector = id || ariaLabel || null;" + "  return { role, text, selector };" + "}";
 
-	private BrowserRecordingService() {}
+	private BrowserRecordingService() {
+	}
 
 	/**
-	 * Records an input event as a step in the session's history.
-	 * Click events are enriched with element information when possible.
+	 * Records an input event as a step in the session's history. Click events are
+	 * enriched with element information when possible.
 	 */
 	public static void record(BrowserSession session, BrowserInputEvent event) {
 		String type = event.getType();
-		RecordedStep step = new RecordedStep()
-				.type(type)
-				.url(safeUrl(session))
+		RecordedStep step = new RecordedStep().type(type).url(safeUrl(session))
 				.viewport(session.getViewportWidth(), session.getViewportHeight())
 				.timestamp(System.currentTimeMillis() / 1000L);
 
@@ -118,8 +113,7 @@ public class BrowserRecordingService {
 		step.coordinates(event.getX(), event.getY());
 
 		try {
-			Object result = session.getPage().evaluate(PROBE_SCRIPT,
-					new double[]{ event.getX(), event.getY() });
+			Object result = session.getPage().evaluate(PROBE_SCRIPT, new double[] { event.getX(), event.getY() });
 
 			if (result instanceof java.util.Map) {
 				@SuppressWarnings("unchecked")
@@ -127,15 +121,21 @@ public class BrowserRecordingService {
 
 				if (Boolean.TRUE.equals(info.get("masked"))) {
 					// Password field — record coordinates only, no selector or text
-					classLogger.debug("Click on masked field at ({}, {}) — not recording selector/text",
-							event.getX(), event.getY());
+					classLogger.debug("Click on masked field at ({}, {}) — not recording selector/text", event.getX(),
+							event.getY());
 				} else {
 					String selector = (String) info.get("selector");
 					String text = (String) info.get("text");
 					String role = (String) info.get("role");
-					if (selector != null) step.selector(selector);
-					if (text != null && !text.isBlank()) step.text(text);
-					if (role != null) step.role(role);
+					if (selector != null) {
+						step.selector(selector);
+					}
+					if (text != null && !text.isBlank()) {
+						step.text(text);
+					}
+					if (role != null) {
+						step.role(role);
+					}
 				}
 			}
 		} catch (Exception e) {

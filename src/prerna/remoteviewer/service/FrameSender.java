@@ -37,8 +37,8 @@ package prerna.remoteviewer.service;
 @FunctionalInterface
 public interface FrameSender {
 	/**
-	 * Send a JSON string to the connected WebSocket client.
-	 * Implementations must be thread-safe.
+	 * Send a JSON string to the connected WebSocket client. Implementations must be
+	 * thread-safe.
 	 *
 	 * @param json the JSON message to send
 	 */

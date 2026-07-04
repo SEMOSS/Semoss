@@ -34,8 +34,8 @@ import java.util.Set;
 import prerna.remoteviewer.model.BrowserInputEvent;
 
 /**
- * Validates incoming WebSocket input events from the React frontend.
- * Prevents injection of arbitrary browser commands or excessively large payloads.
+ * Validates incoming WebSocket input events from the React frontend. Prevents
+ * injection of arbitrary browser commands or excessively large payloads.
  */
 public class InputEventValidator {
 
@@ -43,25 +43,23 @@ public class InputEventValidator {
 	private static final int MAX_KEY_LENGTH = 64;
 	private static final int MAX_URL_LENGTH = 2048;
 
-	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList(
-			"mouse-click", "mouse-move", "mouse-down", "mouse-up",
-			"wheel", "type-text", "key", "navigate", "close-session",
-			"navigate-back", "navigate-forward", "reload"
-	));
+	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
+			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
+					"navigate", "close-session", "navigate-back", "navigate-forward", "reload"));
 
-	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList(
-			"left", "right", "middle"
-	));
+	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
-	private InputEventValidator() {}
+	private InputEventValidator() {
+
+	}
 
 	/**
 	 * Validates the incoming event. Throws {@link IllegalArgumentException} on any
 	 * violation.
 	 *
-	 * @param event       the parsed event from the WebSocket message
-	 * @param vpWidth     the browser session viewport width (for coordinate clamping)
-	 * @param vpHeight    the browser session viewport height (for coordinate clamping)
+	 * @param event    the parsed event from the WebSocket message
+	 * @param vpWidth  the browser session viewport width (for coordinate clamping)
+	 * @param vpHeight the browser session viewport height (for coordinate clamping)
 	 */
 	public static void validate(BrowserInputEvent event, int vpWidth, int vpHeight) {
 		if (event == null) {
@@ -126,7 +124,8 @@ public class InputEventValidator {
 			UrlSafetyValidator.validate(event.getUrl());
 			break;
 
-		// close-session, navigate-back, navigate-forward, reload — no payload to validate
+		// close-session, navigate-back, navigate-forward, reload — no payload to
+		// validate
 		default:
 			break;
 		}
@@ -136,14 +135,14 @@ public class InputEventValidator {
 		if (event.getX() == null || event.getY() == null) {
 			throw new IllegalArgumentException("Event type '" + event.getType() + "' requires x and y");
 		}
-		// Clamp coordinates to viewport (mutate in place — safe because we own this object)
+		// Clamp coordinates to viewport (mutate in place — safe because we own this
+		// object)
 		event.setX(Math.max(0, Math.min(event.getX(), vpWidth)));
 		event.setY(Math.max(0, Math.min(event.getY(), vpHeight)));
 	}
 
 	private static boolean hasSelector(BrowserInputEvent event) {
-		return event.getSelector() != null
-				&& event.getSelector().getValue() != null
-				&& !event.getSelector().getValue().isBlank();
+		return event.getSelector() != null && event.getSelector().value() != null
+				&& !event.getSelector().value().isBlank();
 	}
 }

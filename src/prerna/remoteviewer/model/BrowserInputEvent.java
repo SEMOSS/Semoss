@@ -29,12 +29,14 @@ package prerna.remoteviewer.model;
 
 import java.util.Map;
 
+import prerna.reactor.playwright.Selector;
+
 /**
  * Represents an input event sent from the React frontend to the Java backend
  * over the WebSocket connection.
  *
- * Supported types: mouse-click, mouse-move, mouse-down, mouse-up,
- *                  wheel, type-text, key, navigate, close-session
+ * Supported types: mouse-click, mouse-move, mouse-down, mouse-up, wheel,
+ * type-text, key, navigate, close-session
  */
 public class BrowserInputEvent {
 
@@ -44,7 +46,7 @@ public class BrowserInputEvent {
 	// ---- mouse / wheel ----
 	private Double x;
 	private Double y;
-	private String button;   // "left" | "right" | "middle"
+	private String button; // "left" | "right" | "middle"
 	private Double deltaX;
 	private Double deltaY;
 
@@ -59,7 +61,7 @@ public class BrowserInputEvent {
 
 	// ---- optional enrichment from Chrome extension recording ----
 	/** CSS/ID/role selector for the target element (preferred over raw coords). */
-	private SelectorInfo selector;
+	private Selector selector;
 	/** How long to wait after this action before the next one (ms). */
 	private Integer waitAfterMs;
 	/** Viewport width used when the action was recorded. */
@@ -67,60 +69,125 @@ public class BrowserInputEvent {
 	/** Viewport height used when the action was recorded. */
 	private Integer recordedViewportHeight;
 
-	public static class SelectorInfo {
-		private String strategy; // "css", "id", "role", "text"
-		private String value;
-
-		public String getStrategy() { return strategy; }
-		public void setStrategy(String strategy) { this.strategy = strategy; }
-		public String getValue() { return value; }
-		public void setValue(String value) { this.value = value; }
-	}
-
 	// ---- getters & setters ----
 
-	public String getType() { return type; }
-	public void setType(String type) { this.type = type; }
+	public String getType() {
+		return type;
+	}
 
-	public Double getX() { return x; }
-	public void setX(Double x) { this.x = x; }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-	public Double getY() { return y; }
-	public void setY(Double y) { this.y = y; }
+	public Double getX() {
+		return x;
+	}
 
-	public String getButton() { return button; }
-	public void setButton(String button) { this.button = button; }
+	public void setX(Double x) {
+		this.x = x;
+	}
 
-	public Double getDeltaX() { return deltaX; }
-	public void setDeltaX(Double deltaX) { this.deltaX = deltaX; }
+	public Double getY() {
+		return y;
+	}
 
-	public Double getDeltaY() { return deltaY; }
-	public void setDeltaY(Double deltaY) { this.deltaY = deltaY; }
+	public void setY(Double y) {
+		this.y = y;
+	}
 
-	public String getText() { return text; }
-	public void setText(String text) { this.text = text; }
+	public String getButton() {
+		return button;
+	}
 
-	public String getKey() { return key; }
-	public void setKey(String key) { this.key = key; }
+	public void setButton(String button) {
+		this.button = button;
+	}
 
-	public String getCode() { return code; }
-	public void setCode(String code) { this.code = code; }
+	public Double getDeltaX() {
+		return deltaX;
+	}
 
-	public Map<String, Boolean> getModifiers() { return modifiers; }
-	public void setModifiers(Map<String, Boolean> modifiers) { this.modifiers = modifiers; }
+	public void setDeltaX(Double deltaX) {
+		this.deltaX = deltaX;
+	}
 
-	public String getUrl() { return url; }
-	public void setUrl(String url) { this.url = url; }
+	public Double getDeltaY() {
+		return deltaY;
+	}
 
-	public SelectorInfo getSelector() { return selector; }
-	public void setSelector(SelectorInfo selector) { this.selector = selector; }
+	public void setDeltaY(Double deltaY) {
+		this.deltaY = deltaY;
+	}
 
-	public Integer getWaitAfterMs() { return waitAfterMs; }
-	public void setWaitAfterMs(Integer waitAfterMs) { this.waitAfterMs = waitAfterMs; }
+	public String getText() {
+		return text;
+	}
 
-	public Integer getRecordedViewportWidth() { return recordedViewportWidth; }
-	public void setRecordedViewportWidth(Integer recordedViewportWidth) { this.recordedViewportWidth = recordedViewportWidth; }
+	public void setText(String text) {
+		this.text = text;
+	}
 
-	public Integer getRecordedViewportHeight() { return recordedViewportHeight; }
-	public void setRecordedViewportHeight(Integer recordedViewportHeight) { this.recordedViewportHeight = recordedViewportHeight; }
+	public String getKey() {
+		return key;
+	}
+
+	public void setKey(String key) {
+		this.key = key;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
+	}
+
+	public Map<String, Boolean> getModifiers() {
+		return modifiers;
+	}
+
+	public void setModifiers(Map<String, Boolean> modifiers) {
+		this.modifiers = modifiers;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public Selector getSelector() {
+		return selector;
+	}
+
+	public void setSelector(Selector selector) {
+		this.selector = selector;
+	}
+
+	public Integer getWaitAfterMs() {
+		return waitAfterMs;
+	}
+
+	public void setWaitAfterMs(Integer waitAfterMs) {
+		this.waitAfterMs = waitAfterMs;
+	}
+
+	public Integer getRecordedViewportWidth() {
+		return recordedViewportWidth;
+	}
+
+	public void setRecordedViewportWidth(Integer recordedViewportWidth) {
+		this.recordedViewportWidth = recordedViewportWidth;
+	}
+
+	public Integer getRecordedViewportHeight() {
+		return recordedViewportHeight;
+	}
+
+	public void setRecordedViewportHeight(Integer recordedViewportHeight) {
+		this.recordedViewportHeight = recordedViewportHeight;
+	}
 }

@@ -110,8 +110,24 @@ public class PlaywrightSession {
 	}
 
 	/**
+	 * Creates a session for the remote browser viewer. The viewer manages its own
+	 * context lifecycle and idle-based expiry via {@code BrowserSessionManager}, so
+	 * this session is not registered in any {@code User}'s session store; the
+	 * {@code expiryMinutes} absolute cap acts only as a long backstop.
+	 *
+	 * @param ctx           The Playwright BrowserContext for this session.
+	 * @param page          The initial Page object for this session.
+	 * @param expiryMinutes The absolute number of minutes after which the session
+	 *                      is closed as a backstop.
+	 * @return A new PlaywrightSession.
+	 */
+	public static PlaywrightSession forRemoteViewer(BrowserContext ctx, Page page, long expiryMinutes) {
+		return new PlaywrightSession(ctx, page, expiryMinutes);
+	}
+
+	/**
 	 * Retrieves the BrowserContext associated with this session.
-	 * 
+	 *
 	 * @return The BrowserContext.
 	 */
 	public BrowserContext getBrowserContext() {
