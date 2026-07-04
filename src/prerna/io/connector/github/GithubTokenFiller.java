@@ -92,7 +92,7 @@ public class GithubTokenFiller extends AbstractOAuthTokenFiller {
 	public AccessToken exchangeCodeForToken(String prefix, String code) {
 		String clientId = socialData.getProperty(prefix + "client_id");
 		String clientSecret = socialData.getProperty(prefix + "secret_key");
-		String redirectUri = socialData.getProperty(prefix + "redirect_uri");
+		String redirectUri = resolveRedirectUri(prefix);
 		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), TOKEN_URL);
 
 		Map<String, String> params = new HashMap<>();

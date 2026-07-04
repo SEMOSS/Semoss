@@ -32,13 +32,22 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import prerna.auth.AccessToken;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.SocialPropertiesUtil;
@@ -67,6 +76,27 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	private static final String UTF8 = StandardCharsets.UTF_8.name();
 
 	public static final String REFRESH_TOKEN_KEY = "refresh_token";
+
+	// fallback redirect/callback URL used when {prefix}redirect_uri is not
+	// configured; supplied per request by the unified login endpoint
+	private String defaultRedirectUri = null;
+
+	@Override
+	public void setDefaultRedirectUri(String defaultRedirectUri) {
+		this.defaultRedirectUri = defaultRedirectUri;
+	}
+
+	/**
+	 * Resolve the redirect URI for this provider: the configured
+	 * {@code {prefix}redirect_uri} when present, otherwise the fallback set via
+	 * {@link #setDefaultRedirectUri(String)} (the current callback URL).
+	 *
+	 * @param prefix social.properties prefix for the provider
+	 * @return the redirect URI to send to the provider
+	 */
+	protected String resolveRedirectUri(String prefix) {
+		return resolve(socialData.getProperty(prefix + "redirect_uri"), defaultRedirectUri);
+	}
 
 	// ------------------------------------------------------------------
 	// provider override hooks - defaults keep everything driven by config
@@ -172,7 +202,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	@Override
 	public String buildAuthorizeRedirect(String prefix, String state) {
 		String clientId = socialData.getProperty(prefix + "client_id");
-		String redirectUri = socialData.getProperty(prefix + "redirect_uri");
+		String redirectUri = resolveRedirectUri(prefix);
 		String scope = resolve(socialData.getProperty(prefix + "scope"), getDefaultScope(prefix));
 		String authUrl = resolve(socialData.getProperty(prefix + "auth_url"), getDefaultAuthorizeUrl(prefix));
 
@@ -211,7 +241,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	public AccessToken exchangeCodeForToken(String prefix, String code) {
 		String clientId = socialData.getProperty(prefix + "client_id");
 		String clientSecret = socialData.getProperty(prefix + "secret_key");
-		String redirectUri = socialData.getProperty(prefix + "redirect_uri");
+		String redirectUri = resolveRedirectUri(prefix);
 		String scope = resolve(socialData.getProperty(prefix + "scope"), getDefaultScope(prefix));
 		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), getDefaultTokenUrl(prefix));
 
@@ -302,6 +332,66 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			output = output.replace("\\", "\\\\");
 		}
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, accessToken);
+	}
+
+	/**
+	 * Generic implementation of the group lookup shared by all OAuth providers.
+	 * <p>
+	 * Gated by {@code {prefix}groups}; when enabled, fetches
+	 * {@code {prefix}group_url} with the access token and parses the response
+	 * either as a delimited string ({@code {prefix}group_string_return} +
+	 * {@code {prefix}group_string_regex}) or as a flat JSON array
+	 * ({@code {prefix}groupJsonPattern}). The resulting groups are stored on the
+	 * token, with the group type set to the token's provider. Providers that expose
+	 * groups differently (e.g. the Microsoft Graph API) can override this hook.
+	 */
+	@Override
+	public void fillUserGroups(AccessToken accessToken, String prefix) {
+		if (!Boolean.parseBoolean(socialData.getProperty(prefix + "groups"))) {
+			return;
+		}
+		String group_url = socialData.getProperty(prefix + "group_url");
+		String groupsJson = HttpHelperUtility.makeGetCall(group_url, accessToken.getAccess_token());
+		boolean sanitizeGroupResponse = Boolean.parseBoolean(socialData.getProperty(prefix + "sanitizeGroupResponse"));
+		if (sanitizeGroupResponse) {
+			groupsJson = groupsJson.replace("\\", "\\\\");
+		}
+		Set<String> userGroups = new HashSet<String>();
+		boolean groupStringResponse = Boolean.parseBoolean(socialData.getProperty(prefix + "group_string_return"));
+		if (groupStringResponse) {
+			String groupJsonPattern = socialData.getProperty(prefix + "groupJsonPattern");
+			JsonNode result = BeanFiller.getJmesResult(groupsJson, groupJsonPattern);
+			try {
+				String groupText = result.asText();
+				String regexPattern = socialData.getProperty(prefix + "group_string_regex");
+				try {
+					Pattern.compile(regexPattern);
+				} catch (PatternSyntaxException e) {
+					classLogger.error("Invalid group_string_regex for prefix {}", prefix, e);
+					throw new SemossPixelException("Pattern input is not a valid regex");
+				}
+				String[] groups = groupText.split(regexPattern);
+				for (String group : groups) {
+					userGroups.add(group);
+				}
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error("Could not parse group string response for prefix {}", prefix, e);
+				throw new SemossPixelException("Could not parse response as string");
+			}
+		} else {
+			String groupJsonPattern = socialData.getProperty(prefix + "groupJsonPattern");
+			JsonNode result = BeanFiller.getJmesResult(groupsJson, groupJsonPattern);
+			if ((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) {
+				throw new SemossPixelException("Group result must return flat array. Please check groupJsonPattern");
+			}
+			for (int inputIndex = 0; result != null && inputIndex < result.size(); inputIndex++) {
+				userGroups.add(result.get(inputIndex).asText());
+			}
+		}
+		accessToken.setUserGroups(userGroups);
+		accessToken.setUserGroupType(accessToken.getProvider().toString());
 	}
 
 	/**
