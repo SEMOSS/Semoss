@@ -27,49 +27,64 @@
  *******************************************************************************/
 package prerna.io.connector.google;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
-import prerna.io.connector.IAccessTokenFiller;
-import prerna.security.HttpHelperUtility;
-import prerna.util.BeanFiller;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
-public class GoogleTokenFiller implements IAccessTokenFiller {
+/**
+ * Google OAuth2 provider. Uses the fixed Google authorize/token/userinfo
+ * endpoints, adds Google's {@code access_type} authorize parameter and does not
+ * send {@code response_mode} or the scope in the token exchange.
+ */
+public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 
+	private static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+	private static final String TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token";
 	private static final String USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
-	private static String[] beanProps = { "name", "gender", "locale", "email", "id" }; // add is done when you have a
-																						// list
-	private static String jsonPattern = "[name, gender, locale, email, sub]";
+	// jsonPattern: JMESPath query projecting values out of the userinfo JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	private static final String DEFAULT_JSON_PATTERN = "[name, gender, locale, email, sub]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "gender", "locale", "email", "id" };
 
 	@Override
-	public void fillAccessToken(AccessToken googleAccessToken, String userInfoUrl, String jsonPattern,
-			String[] beanProps, Map<String, Object> params) {
-		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
-			userInfoUrl = USER_INFO_URL;
-		}
-		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
-			jsonPattern = GoogleTokenFiller.jsonPattern;
-		}
-		if (beanProps == null || beanProps.length == 0) {
-			beanProps = GoogleTokenFiller.beanProps;
-		}
-
-		if (params == null) {
-			params = new HashMap<>();
-		}
-
-		String accessToken = googleAccessToken.getAccess_token();
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-		// fill the bean with the return
-		BeanFiller.fillFromJson(output, jsonPattern, beanProps, googleAccessToken);
+	protected String getDefaultAuthorizeUrl(String prefix) {
+		return AUTH_URL;
 	}
 
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params, boolean sanitizeResponse) {
-		// dont need to sanitize
-		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	protected String getDefaultTokenUrl(String prefix) {
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
+	}
+
+	@Override
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
+	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
+	@Override
+	protected boolean includeResponseMode() {
+		return false;
+	}
+
+	@Override
+	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
+		Map<String, String> extra = new LinkedHashMap<>();
+		String accessType = socialData.getProperty(prefix + "access_type");
+		if (!isBlank(accessType)) {
+			extra.put("access_type", accessType);
+		}
+		return extra;
 	}
 
 }

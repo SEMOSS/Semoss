@@ -25,34 +25,40 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.linkedin;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * LinkedIn OAuth2 / OpenID Connect provider. Uses the fixed LinkedIn
+ * authorize/token endpoints with a state value and no {@code response_mode},
+ * and reads the profile from the OIDC userinfo endpoint (requires the
+ * {@code openid profile email} scopes).
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class LinkedInTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	private static final String AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization";
+	private static final String TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken";
+	// OpenID Connect userinfo: returns { sub, name, email, picture, ... }
+	private static final String USER_INFO_URL = "https://api.linkedin.com/v2/userinfo";
+	// jsonPattern: JMESPath query projecting values out of the userinfo JSON.
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	private static final String DEFAULT_JSON_PATTERN = "[name, email, picture]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "profile" };
 
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		return AUTH_URL;
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override
@@ -67,11 +73,6 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 
 	@Override
 	protected boolean includeResponseMode() {
-		return false;
-	}
-
-	@Override
-	protected boolean includeState() {
 		return false;
 	}
 
