@@ -146,11 +146,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME)));
 
-		addTable("WORKSPACEENGINE", Arrays.asList(
-				Pair.with("PROJECTID", VARCHAR_255),
-				Pair.with("USERID", VARCHAR_255),
-				Pair.with("TYPE", VARCHAR_255)));
-
 		addTable("ASSETENGINE", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
