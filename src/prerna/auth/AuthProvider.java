@@ -33,15 +33,26 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.io.connector.GenericTokenFiller;
+import prerna.io.connector.IAccessTokenFiller;
+import prerna.io.connector.adfs.AdfsTokenFiller;
+import prerna.io.connector.dropbox.DropboxTokenFiller;
 import prerna.io.connector.github.GithubTokenFiller;
 import prerna.io.connector.gitlab.GitLabTokenFiller;
 import prerna.io.connector.google.GoogleTokenFiller;
 import prerna.io.connector.jira.JiraTokenFiller;
+import prerna.io.connector.linkedin.LinkedInTokenFiller;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.okta.OktaTokenFiller;
+import prerna.io.connector.producthunt.ProductHuntTokenFiller;
 import prerna.io.connector.salesforce.SalesforceTokenFiller;
 import prerna.io.connector.servicenow.ServiceNowTokenFiller;
+import prerna.io.connector.siteminder.SiteminderTokenFiller;
+import prerna.io.connector.surveymonkey.SurveyMonkeyTokenFiller;
+import prerna.io.connector.twitter.TwitterTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
@@ -53,12 +64,13 @@ public enum AuthProvider implements Serializable {
 	GITLAB("GITLAB", "GitLab", true, GitLabTokenFiller.class.getName()),
 	JIRA("JIRA", "Jira", true, JiraTokenFiller.class.getName()),
 	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
-	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName()),
+	// legacy social.properties prefix for Microsoft is "ms" (not "microsoft")
+	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName(), "ms"),
 	SALESFORCE("SALESFORCE", "Salesforce", true, SalesforceTokenFiller.class.getName()),
 	SERVICENOW("SERVICENOW", "ServiceNow", true, ServiceNowTokenFiller.class.getName()),
-	SITEMINDER("SITEMINDER", "SiteMinder", true, null),
-	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
-	ADFS("ADFS", "ADFS", true, null),
+	SITEMINDER("SITEMINDER", "SiteMinder", true, SiteminderTokenFiller.class.getName()),
+	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, SurveyMonkeyTokenFiller.class.getName()),
+	ADFS("ADFS", "ADFS", true, AdfsTokenFiller.class.getName()),
 	OKTA("OKTA", "Okta", true, OktaTokenFiller.class.getName()),
 
 	// native login
@@ -76,30 +88,91 @@ public enum AuthProvider implements Serializable {
 	API_USER("API_USER", "API Login", false, null),
 	
 	// these are not used as much ...
-	TWITTER("TWITTER", "Twitter", true, null),
-	DROPBOX("DROPBOX", "Dropbox", true, null),
-	PRODUCT_HUNT("PRODUCT_HUNT", "Product Hunt", true, null),
-	LINKEDIN("LINKEDIN", "LinkedIn", true, null),
+	TWITTER("TWITTER", "Twitter", true, TwitterTokenFiller.class.getName()),
+	DROPBOX("DROPBOX", "Dropbox", true, DropboxTokenFiller.class.getName()),
+	// social.properties prefix / path is "producthunt" (not "product_hunt")
+	PRODUCT_HUNT("PRODUCT_HUNT", "Product Hunt", true, ProductHuntTokenFiller.class.getName(), "producthunt"),
+	LINKEDIN("LINKEDIN", "LinkedIn", true, LinkedInTokenFiller.class.getName()),
 
 	// catch all for other OAuth
 	GENERIC("GENERIC", "Generic", true, GenericTokenFiller.class.getName()),
 	;
 	// @formatter:on
 
+	private static final Logger classLogger = LogManager.getLogger(AuthProvider.class);
+
 	private String label;
 	private String displayName;
 	private boolean isOAuth;
 	private String tokenFillerClass;
+	private String socialPrefix;
 
 	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass) {
+		// default the social.properties prefix to the lower-cased label
+		this(label, displayName, isOAuth, tokenFillerClass, label.toLowerCase());
+	}
+
+	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass, String socialPrefix) {
 		this.label = label;
 		this.displayName = displayName;
 		this.isOAuth = isOAuth;
 		this.tokenFillerClass = tokenFillerClass;
+		this.socialPrefix = socialPrefix;
 	}
 
 	public String getLabel() {
 		return label;
+	}
+
+	/**
+	 * The canonical key used for this provider in the social.properties file (and
+	 * therefore the {@code {socialPrefix}_} property prefix). Usually the
+	 * lower-cased label, but overridden where the config key diverges (e.g.
+	 * Microsoft -&gt; {@code "ms"}, Product Hunt -&gt; {@code "producthunt"}).
+	 *
+	 * @return the social.properties prefix key (no trailing underscore)
+	 */
+	public String getSocialPrefix() {
+		return socialPrefix;
+	}
+
+	/**
+	 * Instantiate the {@link IAccessTokenFiller} configured for this provider,
+	 * falling back to {@link GenericTokenFiller} when none is set or instantiation
+	 * fails. This lets the unified login endpoint pick the right provider strategy
+	 * without naming any concrete filler class.
+	 *
+	 * @return a new token filler instance for this provider
+	 */
+	public IAccessTokenFiller newTokenFiller() {
+		if (tokenFillerClass == null || tokenFillerClass.trim().isEmpty()) {
+			return new GenericTokenFiller();
+		}
+		try {
+			return (IAccessTokenFiller) Class.forName(tokenFillerClass).getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
+			classLogger.error("Failed to instantiate token filler {} for provider {}; falling back to generic",
+					tokenFillerClass, name(), e);
+			return new GenericTokenFiller();
+		}
+	}
+
+	/**
+	 * Resolve the canonical social.properties prefix for a raw
+	 * {@code /login/{provider}} path value. Known providers (including aliases such
+	 * as {@code microsoft}/{@code ms}) resolve to their {@link #getSocialPrefix()};
+	 * unknown values are returned as-is so a fully config-driven generic provider
+	 * still reads its own {@code {value}_} properties.
+	 *
+	 * @param pathValue the raw provider path segment
+	 * @return the canonical social.properties prefix key (no trailing underscore)
+	 */
+	public static String getSocialPrefixForPath(String pathValue) {
+		if (pathValue == null) {
+			return null;
+		}
+		AuthProvider provider = getSocialPropKeysToEnum().get(pathValue.toLowerCase());
+		return provider != null ? provider.getSocialPrefix() : pathValue.toLowerCase();
 	}
 
 	public String getDisplayName() {
@@ -149,9 +222,12 @@ public enum AuthProvider implements Serializable {
 		Map<String, AuthProvider> vals = new HashMap<>();
 		for (AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.name().toLowerCase(), auth);
+			// also register the canonical social.properties prefix (e.g. "producthunt")
+			vals.put(auth.getSocialPrefix(), auth);
 		}
-		// TODO: account for legacy MS
+		// account for legacy MS: both "ms" and "microsoft" map to MICROSOFT
 		vals.put("ms", AuthProvider.MICROSOFT);
+		vals.put("microsoft", AuthProvider.MICROSOFT);
 
 		return vals;
 	}
