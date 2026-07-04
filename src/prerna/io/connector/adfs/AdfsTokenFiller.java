@@ -25,34 +25,38 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.adfs;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * ADFS OIDC provider. The authorize/token endpoints and the claim parsing
+ * ({@code jsonPattern}/{@code beanProps}) are configured entirely via social
+ * properties. The user's claims are carried in the {@code id_token} JWT, so the
+ * token exchange requests an id token and the profile is read from the decoded
+ * JWT payload instead of a userinfo endpoint. Scope is sent in the token
+ * exchange.
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class AdfsTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	// jsonPattern: JMESPath query projecting values out of the decoded id_token
+	// claims.
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	// NOTE: ADFS claim names depend on the relying-party claim rules; these are a
+	// sensible default (standard OIDC "name"/"email" claims) and are meant to be
+	// overridden per deployment via the {prefix}jsonPattern/{prefix}beanProps
+	// props.
+	private static final String DEFAULT_JSON_PATTERN = "[name, email]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email" };
 
 	@Override
-	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+	protected boolean usesIdToken() {
+		return true;
 	}
 
 	@Override
-	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+	protected boolean includeScopeInTokenRequest() {
+		return true;
 	}
 
 	@Override
@@ -63,16 +67,6 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	protected String[] getDefaultBeanProps() {
 		return DEFAULT_BEAN_PROPS;
-	}
-
-	@Override
-	protected boolean includeResponseMode() {
-		return false;
-	}
-
-	@Override
-	protected boolean includeState() {
-		return false;
 	}
 
 }
