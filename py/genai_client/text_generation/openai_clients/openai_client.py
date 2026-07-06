@@ -19,7 +19,7 @@ from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
 from ..model_engine_exception import ModelEngineException, ErrorDetails
-from ...utils import string_to_bool
+from ...utils import string_to_bool, to_dict
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -852,27 +852,6 @@ class OpenAiClient(AbstractTextGenerationClient):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _to_dict(obj):
-        if obj is None:
-            return None
-        if hasattr(obj, "model_dump"):
-            try:
-                return obj.model_dump(mode="json")
-            except Exception:
-                pass
-        if hasattr(obj, "to_dict"):
-            try:
-                return obj.to_dict()
-            except Exception:
-                pass
-        if isinstance(obj, dict):
-            return obj
-        try:
-            return json.loads(json.dumps(obj, default=str))
-        except Exception:
-            return {"value": str(obj)}
-
-    @staticmethod
     def _normalize_batch_status(status):
         s = (status or "").lower()
         mapping = {
@@ -892,9 +871,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         """Convert simplified {command, context} format to the correct wire format for endpoint."""
         if not isinstance(req, dict):
             return req
-        # Room-context path: a full SEMOSS message history (+ tools) was supplied.
-        # Reuse the same builder as the sync ask so history/tools/chat_type are
-        # handled in one place.
+
         if req.get("message_json"):
             return self._build_batch_body_from_history(req, idx, endpoint)
         if "command" not in req:
@@ -931,15 +908,14 @@ class OpenAiClient(AbstractTextGenerationClient):
             **kwargs,
         )
         body = self.message_builder.build_request(semoss_messages)
-        # batch lines cannot stream and the file create() adds the model
-        body.pop("stream", None)
+        body.pop("stream", None)  # no streaming on batch requests
         return {"custom_id": custom_id, "body": body}
 
     def _chat_completion_to_content_blocks(self, body):
         """Normalize a chat completion response body to SEMOSS content blocks."""
         if not isinstance(body, dict):
             return None
-        msg = ((body.get("choices") or [{}])[0].get("message") or {})
+        msg = (body.get("choices") or [{}])[0].get("message") or {}
         blocks = []
         text = msg.get("content")
         if text:
@@ -950,12 +926,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                 input_data = json.loads(func.get("arguments") or "{}")
             except Exception:
                 input_data = {"raw": func.get("arguments")}
-            blocks.append({
-                "type": "tool_use",
-                "id": tc.get("id"),
-                "name": func.get("name"),
-                "input": input_data,
-            })
+            blocks.append(
+                {
+                    "type": "tool_use",
+                    "id": tc.get("id"),
+                    "name": func.get("name"),
+                    "input": input_data,
+                }
+            )
         return {"role": "assistant", "content": blocks} if blocks else None
 
     def _responses_api_to_content_blocks(self, body):
@@ -977,16 +955,20 @@ class OpenAiClient(AbstractTextGenerationClient):
                     input_data = json.loads(item.get("arguments") or "{}")
                 except Exception:
                     input_data = {"raw": item.get("arguments")}
-                blocks.append({
-                    "type": "tool_use",
-                    "id": item.get("call_id"),
-                    "name": item.get("name"),
-                    "input": input_data,
-                })
+                blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": item.get("call_id"),
+                        "name": item.get("name"),
+                        "input": input_data,
+                    }
+                )
             elif itype == "reasoning":
                 for block in item.get("summary") or []:
                     if block.get("type") == "summary_text":
-                        blocks.append({"type": "thinking", "thinking": block.get("text", "")})
+                        blocks.append(
+                            {"type": "thinking", "thinking": block.get("text", "")}
+                        )
         return {"role": "assistant", "content": blocks} if blocks else None
 
     def submit_batch(
@@ -1000,10 +982,17 @@ class OpenAiClient(AbstractTextGenerationClient):
         import io
 
         if endpoint is None:
-            endpoint = "/v1/responses" if self.chat_type == "responses" else "/v1/chat/completions"
+            endpoint = (
+                "/v1/responses"
+                if self.chat_type == "responses"
+                else "/v1/chat/completions"
+            )
         if isinstance(requests, str):
             requests = json.loads(requests)
-        requests = [self._normalize_request_for_batch(r, i, endpoint) for i, r in enumerate(requests or [])]
+        requests = [
+            self._normalize_request_for_batch(r, i, endpoint)
+            for i, r in enumerate(requests or [])
+        ]
 
         model = self.model_settings.model_name
         lines = []
@@ -1041,7 +1030,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             "request_count": len(lines),
             "endpoint": endpoint,
             "input_file_id": uploaded.id,
-            "raw": self._to_dict(batch),
+            "raw": to_dict(batch),
         }
 
     def get_batch_status(self, provider_batch_id, **kwargs):
@@ -1060,12 +1049,14 @@ class OpenAiClient(AbstractTextGenerationClient):
             "counts": counts,
             "output_ref": getattr(batch, "output_file_id", None),
             "error_ref": getattr(batch, "error_file_id", None),
-            "raw": self._to_dict(batch),
+            "raw": to_dict(batch),
         }
 
     def get_batch_results(self, provider_batch_id, **kwargs):
         batch = self.client.batches.retrieve(provider_batch_id)
-        batch_endpoint = getattr(batch, "endpoint", "/v1/chat/completions") or "/v1/chat/completions"
+        batch_endpoint = (
+            getattr(batch, "endpoint", "/v1/chat/completions") or "/v1/chat/completions"
+        )
         output_file_id = getattr(batch, "output_file_id", None)
         error_file_id = getattr(batch, "error_file_id", None)
         items = []
@@ -1087,11 +1078,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                 obj = json.loads(line)
                 resp = obj.get("response") or {}
                 err = obj.get("error")
-                status_code = resp.get("status_code") if isinstance(resp, dict) else None
+                status_code = (
+                    resp.get("status_code") if isinstance(resp, dict) else None
+                )
                 body = resp.get("body") if isinstance(resp, dict) else None
                 usage = body.get("usage") if isinstance(body, dict) else None
                 ok = err is None and (status_code is None or 200 <= status_code < 300)
-                # HTTP 4xx errors: the error detail is in resp.body, not obj.error
                 if not ok and err is None and isinstance(body, dict):
                     err = body.get("error") or body
                 if ok:
@@ -1150,5 +1142,5 @@ class OpenAiClient(AbstractTextGenerationClient):
         return {
             "provider_batch_id": batch.id,
             "status": self._normalize_batch_status(batch.status),
-            "raw": self._to_dict(batch),
+            "raw": to_dict(batch),
         }
