@@ -25,34 +25,44 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.dropbox;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * Dropbox OAuth2 provider. Uses the fixed Dropbox authorize/token endpoints and
+ * the Dropbox-specific {@code require_role}/{@code disable_signup} authorize
+ * params. The profile is read from {@code /users/get_current_account}, which is
+ * an HTTP POST (see {@link #userInfoUsesPost()}).
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class DropboxTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	private static final String AUTH_URL = "https://www.dropbox.com/oauth2/authorize";
+	private static final String TOKEN_URL = "https://www.dropbox.com/oauth2/token";
+	// Dropbox current-account lookup is a POST with no body
+	private static final String USER_INFO_URL = "https://api.dropboxapi.com/2/users/get_current_account";
+	// jsonPattern: JMESPath query projecting values out of the account JSON
+	// (display_name is nested under "name").
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	private static final String DEFAULT_JSON_PATTERN = "[name.display_name, email, profile_photo_url]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "profile" };
 
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		return AUTH_URL;
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override
@@ -66,6 +76,11 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 	}
 
 	@Override
+	protected boolean userInfoUsesPost() {
+		return true;
+	}
+
+	@Override
 	protected boolean includeResponseMode() {
 		return false;
 	}
@@ -73,6 +88,17 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	protected boolean includeState() {
 		return false;
+	}
+
+	@Override
+	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
+		Map<String, String> extra = new LinkedHashMap<>();
+		String role = socialData.getProperty(prefix + "role");
+		if (!isBlank(role)) {
+			extra.put("require_role", role);
+		}
+		extra.put("disable_signup", "false");
+		return extra;
 	}
 
 }

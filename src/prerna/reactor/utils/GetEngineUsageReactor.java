@@ -49,6 +49,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String CODE = "code";
 	private static final String PARAM_INFO = "parameters";
 
+	private static final String INTRODUCTION = "introduction";
 	private static final String PYTHON = "python";
 	private static final String JAVA = "java";
 	private static final String PIXEL = "pixel";
@@ -62,7 +63,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String ANTHROPIC_ENDPOINT_PLACEHOLDER = "<anthropicendpoint>";
 	private static final String OLLAMA_ENDPOINT_PLACEHOLDER = "<ollamaendpoint>";
 
-	private static final String PIXEL_LABEL = "How to use in Pixel";
+	private static final String INTRODUCTION_LABEL = "Introduction";
+	private static final String PIXEL_LABEL = "How to use in REST via Pixel";
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
@@ -71,6 +73,26 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String OLLAMA_LABEL = "How to use externally with Ollama API";
 
 	private static final String SAMPLE_ENGINE_ID = "SAMPLE_ENGINE_ID";
+
+	// Shared platform primer appended to every engine's Introduction section so the
+	// orientation text lives in one place instead of being repeated per channel.
+	private static final String PLATFORM_INTRODUCTION = """
+			**How to reach this engine**
+			<br/>
+			<br/>
+
+			**REST via Pixel** - submit Pixel (the platform's server-side scripting language) to the `runPixel` REST endpoint. It returns a JSON envelope where each executed expression's result is at `pixelReturn[i].output`.
+			<br/>
+			**Python** - classes that generate the Pixel and unwraps the JSON response into a plain Python dict.
+			<br/>
+			<br/>
+
+			A note on `<encode>` in Pixel: wrapping a string argument in `<encode>...</encode>` (for example `command = "<encode>She said "hi" to O'Brien</encode>"`) URL-encodes that text before parsing, so inner quotes and special characters do not need escaping. It is entirely optional. If you are programmatically generating Pixel, it is usually simpler and less error-prone to skip `<encode>` and instead escape inner double quotes with `\\"` and reserve `<encode>` for cases where escaping by hand would be tedious.
+			<br/>
+			<br/>
+
+			Each section lists the common operations and shows the return structure.
+			""";
 
 	private static class EngineSelection {
 		private final String engineId;
@@ -139,6 +161,23 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getModelUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Model** engine wraps one specific LLM (chat + embeddings) behind a single, consistent interface, so provider differences (OpenAI, Anthropic, Ollama, and others) are abstracted away and you interact with all of them the same way.
+						<br/>
+						<br/>
+
+						Model/chat calls are *stateful* by default: a **room** object is created with each call which holds the conversation history, so follow-up calls can build on earlier turns. Pass a `roomId` (Pixel) / `room_id` (Python) to keep a thread going, or omit it and the current insight id will be used as the room identifier.
+						<br/>
+						<br/>
+
+						Responses use schemaVersion 2: `response` is the convenience concatenated text, while `parts` is the full ordered content (text, tool_call, media, ...) that can mix modalities in a single turn. `messageType` (`CHAT`, `TOOL`, `IMAGE`) summarizes the turn.
+						<br/>
+						<br/>
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						Setup Room ID (Optional - this will default to the current insight id if not provided)
@@ -155,12 +194,72 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
 						```
 
+						Example Output
+
+						Pixel runs through the `runPixel` REST endpoint, which wraps every result in an envelope. The model answer is nested at `pixelReturn[0].output`. Skip `isMeta = true` entries (bookkeeping), and treat an `operationType` of `["ERROR"]` as a failure where `output` holds the error message. Reuse the top-level `insightID` and the output's `roomId` to continue the conversation.
+
+						```json
+						{
+						    "insightID": "8b419eaf-df7d-4a7f-869e-8d7d59bbfde8",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "3",
+						            "pixelExpression": "LLM ( engine = [\\"<engineid>\\"] , command = [\\"Sample Question\\"] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 842,
+						            "output": {
+						                "schemaVersion": 2,
+						                "messageType": "CHAT",
+						                "io": "OUTPUT",
+						                "response": "The Los Angeles Dodgers won the World Series in 2020.",
+						                "parts": [
+						                    {
+						                        "type": "TEXT",
+						                        "text": "The Los Angeles Dodgers won the World Series in 2020."
+						                    }
+						                ],
+						                "messageId": "0a80c2ce-76f9-4466-b2a2-8455e4cab34a",
+						                "roomId": "28261853-0e41-49b0-8a50-df34e8c62a19",
+						                "numberOfTokensInPrompt": 12,
+						                "numberOfTokensInResponse": 11,
+						                "numberOfCacheCreationTokens": 12
+						            },
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
+						```
+
+						Understanding `output.parts` (schemaVersion 2)
+
+						`response` is the concatenated text kept for convenience, but the full ordered content is in `parts` - an array that can mix modalities in a single turn (for example text + tool_call, or text + image). `io` is `OUTPUT` for a response, and `messageType` summarizes the turn (`CHAT`, `TOOL`, or `IMAGE`). Each part carries a `type` discriminator:
+
+						- `TEXT` - `{"type":"TEXT","text":"...","uiText":"..."}` (`uiText` is a display-friendly variant; defaults to `text`).
+						- `THINKING` - `{"type":"THINKING","thinking":"..."}` model reasoning trace.
+						- `TOOL_CALL` - `{"type":"TOOL_CALL","toolCall":{"id":"call_1","type":"function","name":"get_weather","arguments":{"city":"Paris"}}}` a tool the model wants to run.
+						- `TOOL_RESULT` - `{"type":"TOOL_RESULT","toolResult":{"toolCallId":"call_1","toolName":"get_weather","output":"...","toolParameterValues":{"city":"Paris"},"toolStatus":"success","serverTool":true}}` the result of a (server-run) tool.
+						- `MEDIA` - `{"type":"MEDIA","mediaInfo":{"fileName":"chart.png","mimeType":"image/png","sourceUrl":"...","base64Data":"..."}}` an image/audio/file part.
+						- `SYSTEM` - `{"type":"SYSTEM","prompt":"..."}` a system-prompt part.
+
+						Token fields may also include `numberOfCacheCreationTokens`, `numberOfCacheReadTokens`, and `numberOfThinkingTokens`. Multi-part example (`messageType` `TOOL`), where the model emits text and then requests a tool:
+
+						```json
+						"parts": [
+						    {"type": "TEXT", "text": "Let me check the weather for you."},
+						    {"type": "TOOL_CALL", "toolCall": {"id": "call_1", "type": "function", "name": "get_weather", "arguments": {"city": "Paris"}}}
+						]
+						```
+
 						Generation with Image
 
 						```
 						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
 						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
 						```
+
+						Example Output
+
+						Same envelope as Basic Generation - `pixelReturn[0].output` is a `CHAT` map with `response`, `parts`, `messageId`, `roomId`, `messageType`, and token counts. A model that returns an image instead sets `messageType` to `IMAGE` and carries the image in a `MEDIA` part.
 
 						Generation with ChatML
 
@@ -179,10 +278,41 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						}]);
 						```
 
+						Example Output
+
+						Same `CHAT` envelope as Basic Generation.
+
 						Embeddings
 
 						```
 						Embeddings(engine = "<engineid>", values = ["Sample String 1", "Sample String 2"], paramValues=[{}]);
+						```
+
+						Example Output
+
+						Same envelope; `output` holds one vector per input string under `response`.
+
+						```json
+						{
+						    "insightID": "8b419eaf-df7d-4a7f-869e-8d7d59bbfde8",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "4",
+						            "pixelExpression": "Embeddings ( engine = [\\"<engineid>\\"] , values = [\\"Sample String 1\\" , \\"Sample String 2\\"] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 128,
+						            "output": {
+						                "response": [
+						                    [0.007663827, -0.030877046, -0.035327386],
+						                    [0.012112318, -0.041237816, -0.006112934]
+						                ],
+						                "numberOfTokensInPrompt": 8,
+						                "numberOfTokensInResponse": 0
+						            },
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
 						```
 
 						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
@@ -218,6 +348,46 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						output = model.ask(command = prompt, param_dict={'max_completion_tokens':2000,'temperature':0.3})
 						```
 
+						Example Output
+
+						`ModelEngine` unwraps the `runPixel` envelope and returns `pixelReturn[0].output` directly - a dict.
+						```python
+						{
+						    'schemaVersion': 2,
+						    'messageType': 'CHAT',
+						    'io': 'OUTPUT',
+						    'response': 'The Los Angeles Dodgers won the World Series in 2020.',
+						    'parts': [
+						        {'type': 'TEXT', 'text': 'The Los Angeles Dodgers won the World Series in 2020.'}
+						    ],
+						    'messageId': '0a80c2ce-76f9-4466-b2a2-8455e4cab34a',
+						    'roomId': '28261853-0e41-49b0-8a50-df34e8c62a19',
+						    'numberOfTokensInPrompt': 12,
+						    'numberOfTokensInResponse': 11,
+						    'numberOfCacheCreationTokens': 12
+						}
+						```
+
+						Understanding `parts` (schemaVersion 2)
+
+						`response` is the `overall` return from the model and can be used for convenience, but the full ordered content is in `parts` - an array that can mix modalities in a single turn (for example text + tool_call, or text + image). `io` is `OUTPUT` for a response, and `messageType` summarizes the turn (`CHAT`, `TOOL`, or `IMAGE`). Each part carries a `type` discriminator:
+
+						- `TEXT` - `{'type':'TEXT','text':'...','uiText':'...'}` (`uiText` is a display-friendly variant; defaults to `text`).
+						- `THINKING` - `{'type':'THINKING','thinking':'...'}` model reasoning trace.
+						- `TOOL_CALL` - `{'type':'TOOL_CALL','toolCall':{'id':'call_1','type':'function','name':'get_weather','arguments':{'city':'Paris'}}}` a tool the model wants to run.
+						- `TOOL_RESULT` - `{'type':'TOOL_RESULT','toolResult':{'toolCallId':'call_1','toolName':'get_weather','output':'...','toolParameterValues':{'city':'Paris'},'toolStatus':'success','serverTool':True}}` the result of a (server-run) tool.
+						- `MEDIA` - `{'type':'MEDIA','mediaInfo':{'fileName':'chart.png','mimeType':'image/png','sourceUrl':'...','base64Data':'...'}}` an image/audio/file part.
+						- `SYSTEM` - `{'type':'SYSTEM','prompt':'...'}` a system-prompt part.
+
+						Token fields may also include `numberOfCacheCreationTokens`, `numberOfCacheReadTokens`, and `numberOfThinkingTokens`. Multi-part example (`messageType` `TOOL`), where the model emits text and then requests a tool:
+
+						```python
+						'parts': [
+						    {'type': 'TEXT', 'text': 'Let me check the weather for you.'},
+						    {'type': 'TOOL_CALL', 'toolCall': {'id': 'call_1', 'type': 'function', 'name': 'get_weather', 'arguments': {'city': 'Paris'}}}
+						]
+						```
+
 						Generation with Image / Vision
 
 						Use only for models that support image input.
@@ -228,6 +398,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						output = model.ask(command = prompt, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
 						```
 
+						Example Output
+
+						Same `CHAT` dict as Text Generation (`response`, `messageId`, `roomId`, `messageType`, token counts).
+
 						Continue Conversation with Room ID
 
 						```python
@@ -235,6 +409,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						room_id = 'my_room_id'
 						output = model.ask(command = prompt, room_id = room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
 						```
+
+						Example Output
+
+						Same `CHAT` dict as Text Generation, with `roomId` echoing the `room_id` you passed in.
 
 						Structured Outputs
 
@@ -262,6 +440,26 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						output = model.ask(command = prompt, param_dict={"schema": json_schema})
 						```
 
+						Example Output
+
+						Same dict shape, but `response` (and the `TEXT` part) is the schema-constrained JSON encoded as a string (parse it with `json.loads`).
+
+						```python
+						{
+						    'schemaVersion': 2,
+						    'messageType': 'CHAT',
+						    'io': 'OUTPUT',
+						    'response': '{"sample_property": [{"sample_property_1": "value_1", "sample_property_2": "value_2"}]}',
+						    'parts': [
+						        {'type': 'TEXT', 'text': '{"sample_property": [{"sample_property_1": "value_1", "sample_property_2": "value_2"}]}'}
+						    ],
+						    'messageId': '1b91d3df-87fa-5577-c3b3-9566f5dbc45b',
+						    'roomId': '28261853-0e41-49b0-8a50-df34e8c62a19',
+						    'numberOfTokensInPrompt': 40,
+						    'numberOfTokensInResponse': 22
+						}
+						```
+
 						Generation with ChatML
 
 						Pass `full_prompt` to explicitly define message history for a single call.
@@ -279,11 +477,30 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						});
 						```
 
+						Example Output
+
+						Same `CHAT` dict as Text Generation.
+
 						Embeddings
 
 						```python
 						text_arr = ['Sample String 1', 'Sample String 2']
 						model.embeddings(strings_to_embed = text_arr)
+						```
+
+						Example Output
+
+						Returns a dict with one vector per input string under `response`.
+
+						```python
+						{
+						    'response': [
+						        [0.007663827, -0.030877046, -0.035327386],
+						        [0.012112318, -0.041237816, -0.006112934]
+						    ],
+						    'numberOfTokensInPrompt': 8,
+						    'numberOfTokensInResponse': 0
+						}
 						```
 
 						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
@@ -500,11 +717,48 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getStorageUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Storage** engine is a file/object store (for example a cloud bucket or a mounted filesystem) exposed behind one consistent interface. You reference files by a `storagePath` inside the engine and move them to and from a local `filePath`.
+						<br/>
+						<br/>
+
+						Common operations are: list paths, list path details (name, size, mime type, modified time, metadata), upload/download single files, sync a folder in either direction, and delete. Uploads can attach arbitrary key-value `metadata`.
+						<br/>
+						<br/>
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						List Paths
 						```
 						Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
+						```
+
+						Example Output
+
+						`output` is a flat array of the paths found under `storagePath`.
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePath ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 62,
+						            "output": [
+						                "report.pdf",
+						                "images/",
+						                "notes.txt"
+						            ],
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
 						```
 
 						List Path Details<br/>
@@ -513,6 +767,45 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						`Metadata` is a key-value map (empty map when none exists).
 						```
 						Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
+						```
+
+						Example Output
+
+						`output` is an array with one object per file/folder. `Size` is in bytes, `ModTime` is null for folders, and `Metadata` is an empty map when none exists.
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePathDetails ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 74,
+						            "output": [
+						                {
+						                    "Path": "/your/storage/path/report.pdf",
+						                    "Name": "report.pdf",
+						                    "Size": 20841,
+						                    "MimeType": "application/pdf",
+						                    "ModTime": "2026-06-14T18:03:11Z",
+						                    "IsDir": false,
+						                    "Metadata": {"author": "jsmith"}
+						                },
+						                {
+						                    "Path": "/your/storage/path/images",
+						                    "Name": "images",
+						                    "Size": 0,
+						                    "MimeType": "inode/directory",
+						                    "ModTime": null,
+						                    "IsDir": true,
+						                    "Metadata": {}
+						                }
+						            ],
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
 						```
 
 						Download from Storage
@@ -539,6 +832,26 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 						Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
 						```
+
+						Example Output (transfer + delete operations)
+
+						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, `SyncLocalToStorage`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | PushToStorage ( storagePath = [ \\"/your/storage/path\\" ] , filePath = [ \\"/your/local/path\\" ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 318,
+						            "output": true,
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
+						```
 						""",
 				engineId);
 
@@ -557,11 +870,30 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						storageEngine.list(storagePath = '/your/path/')
 						```
 
+						Example Output
+
+						`StorageEngine` unwraps the envelope and returns the `output` directly - a list of paths.
+
+						```python
+						['report.pdf', 'images/', 'notes.txt']
+						```
+
 						List Path Details<br/>
 						Returns one object per file/folder with common keys:<br/>
 						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
 						```python
 						storageEngine.listDetails(storagePath = '/your/path/')
+						```
+
+						Example Output
+
+						A list of dicts, one per file/folder (`Size` in bytes, `ModTime` null for folders, `Metadata` an empty dict when none exists).
+
+						```python
+						[
+						    {'Path': '/your/path/report.pdf', 'Name': 'report.pdf', 'Size': 20841, 'MimeType': 'application/pdf', 'ModTime': '2026-06-14T18:03:11Z', 'IsDir': False, 'Metadata': {'author': 'jsmith'}},
+						    {'Path': '/your/path/images', 'Name': 'images', 'Size': 0, 'MimeType': 'inode/directory', 'ModTime': None, 'IsDir': True, 'Metadata': {}}
+						]
 						```
 
 						Sync Local to Storage
@@ -587,6 +919,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Delete from Storage
 						```python
 						storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)
+						```
+
+						Example Output (sync, copy, and delete operations)
+
+						`syncLocalToStorage`, `syncStorageToLocal`, `copyToLocal`, `copyToStorage`, and `deleteFromStorage` all return `True` on success (they raise a `RuntimeError` on failure).
+
+						```python
+						True
 						```
 						""",
 				engineId);
@@ -652,6 +992,23 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getDatabaseUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Database** engine is a connected data source (RDBMS, RDF, Graph, NoSQL, etc.) you query behind one consistent interface. For ease of documentation, we will assume a SQL database, but the query can be replaced with SPARQL, Gremlin, etc. query based on the database type.
+						<br/>
+						<br/>
+
+						Run `SELECT` queries to read rows and `INSERT`/`UPDATE`/`DELETE` to modify data.
+						<br/>
+						<br/>
+
+						You can also fetch the database structure (logical and physical table/column or vertex/property names plus data types), which is useful for building queries or grounding an LLM. Select-style calls take a row `limit`; modification calls take a `commit` flag.
+						<br/>
+						<br/>
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						Select Queries
@@ -672,6 +1029,47 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						SqlQuery(database = "<engineid>", query = "<encode> SELECT * FROM table_name </encode>", limit = 500);
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
 						```
+
+						Example Output (select query)
+
+						A select query returns a tabular result inside `pixelReturn[0].output`. `data.values` is an array of row arrays aligned to `data.headers` (display names) and `data.rawHeaders` (physical column names). `headerInfo` describes each column (`dataType`/`type`, and `derived = true` for computed columns), `sources` lists the engine(s) queried, `numCollected` is the number of rows returned (bounded by `limit`), and `taskId` references the server-side task iterator. Rows and columns are trimmed below for brevity.
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "SqlQuery ( database = [ \\"<engineid>\\" ] , query = [ \\"<encode>SELECT ID, AGE, GENDER FROM DIABETES</encode>\\" ] , limit = [ 500 ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 114,
+						            "output": {
+						                "data": {
+						                    "values": [
+						                        ["1000", 59, "female"],
+						                        ["1001", 68, "female"]
+						                    ],
+						                    "headers": ["ID", "AGE", "GENDER"],
+						                    "rawHeaders": ["ID", "AGE", "GENDER"]
+						                },
+						                "headerInfo": [
+						                    {"dataType": "STRING", "alias": "ID", "header": "ID", "type": "STRING", "derived": false},
+						                    {"dataType": "INT", "alias": "AGE", "header": "AGE", "type": "NUMBER", "derived": false},
+						                    {"dataType": "STRING", "alias": "GENDER", "header": "GENDER", "type": "STRING", "derived": false}
+						                ],
+						                "sources": [
+						                    {"name": "<engineid>", "type": "RAW_ENGINE_QUERY"}
+						                ],
+						                "numCollected": 2,
+						                "taskId": "null"
+						            },
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
+						```
+
+						An insert/update/delete query (or a `SqlQuery` with `commit = true`) instead returns the number of rows affected in `output`.
 
 						Get Database Structure (logical + physical metadata)<br/>
 						Each result row contains:<br/>
@@ -719,8 +1117,20 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Run Select Query
 						```python
-						databaseEngine.execQuery(query = 'SELECT * FROM table_name')
+						databaseEngine.execQuery(query = 'SELECT ID, AGE, GENDER FROM DIABETES')
 						```
+
+						Example Output
+
+						By default `execQuery` returns a pandas DataFrame (columns are the query's display headers):
+
+						```
+						     ID  AGE  GENDER
+						0  1000   59  female
+						1  1001   68  female
+						```
+
+						Pass `return_pandas=False` to get the raw dict instead - the same `output` payload shown in the Pixel tab (`data.values`, `data.headers`, `data.rawHeaders`, `headerInfo`, ...).
 
 						Insert Data
 						```python
@@ -783,11 +1193,47 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getVectorUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Vector** engine indexes documents as embeddings so you can run semantic (nearest-neighbor) search - the backbone of retrieval-augmented generation (RAG). It handles chunking and embedding for you; you just add documents and query in natural language.
+						<br/>
+						<br/>
+
+						Common operations are: list indexed documents (unique `Source` values), add documents (files or pre-chunked VectorCSV files, from the insight/room space or an app/user space), run a nearest-neighbor search with optional `filters`/`metaFilters`, and remove documents. Pair a Vector engine with a Model engine to answer questions grounded in your own content.
+						<br/>
+						<br/>
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						List current vector documents (unique `Source` values)
 						```
 						ListDocumentsInVectorDatabase (engine = "<engineid>");
+						```
+
+						Example Output
+
+						`output` is an array with one object per indexed document (`fileName` is the `Source` identifier, `fileSize` is in MB, `lastModified` is a formatted timestamp).
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "ListDocumentsInVectorDatabase ( engine = [ \\"<engineid>\\" ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 41,
+						            "output": [
+						                {"fileName": "handbook.pdf", "fileSize": 482.11, "lastModified": "2026-06-14 18:03:11"},
+						                {"fileName": "faq.pdf", "fileSize": 88.4, "lastModified": "2026-06-14 18:05:52"}
+						            ],
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
 						```
 
 						Add uploaded documents from the current insight/room space
@@ -830,11 +1276,78 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						VectorDatabaseQuery (engine = "<engineid>", command = "Sample Search Statement", limit = 5, filters=[], metaFilters=[]);
 						```
 
+						Example Output
+
+						`output` is an array of the closest matching chunks, ordered best-first (up to `limit`). Each match carries the chunk `Content` plus its provenance (`Source`, `Modality`, `Divider`, `Part`, `Tokens`) and a `Score` (relevance/distance - interpretation depends on the underlying vector store). Feed the `Content` values to a Model engine as grounding context for RAG.
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "VectorDatabaseQuery ( engine = [ \\"<engineid>\\" ] , command = [ \\"Sample Search Statement\\" ] , limit = [ 5 ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 210,
+						            "output": [
+						                {
+						                    "Score": 0.8123,
+						                    "Content": "Employees accrue 15 days of paid time off per year.",
+						                    "Source": "handbook.pdf",
+						                    "Modality": "text",
+						                    "Divider": 12,
+						                    "Part": 0,
+						                    "Tokens": 11
+						                },
+						                {
+						                    "Score": 0.7460,
+						                    "Content": "Unused PTO rolls over up to a maximum of 5 days.",
+						                    "Source": "handbook.pdf",
+						                    "Modality": "text",
+						                    "Divider": 12,
+						                    "Part": 1,
+						                    "Tokens": 12
+						                }
+						            ],
+						            "operationType": ["OPERATION"]
+						        }
+						    ]
+						}
+						```
+
 						Remove files from the vector index
 
 						Use `fileNames` (source identifiers), not file paths.
 						```
 						RemoveDocumentFromVectorDatabase (engine = "<engineid>", fileNames = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
+						```
+
+						Example Output
+
+						`CreateEmbeddingsFromDocuments` / `CreateEmbeddingsFromVectorCSVFile` return a success message, with a per-file status array (`fileName`, `status`, `insertedRecords`, `failedRecords`, `totalRecords`) under `additionalOutput`. `RemoveDocumentFromVectorDatabase` returns a boolean `true` in `output`.
+
+						```json
+						{
+						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+						    "pixelReturn": [
+						        {
+						            "pixelId": "0",
+						            "pixelExpression": "CreateEmbeddingsFromDocuments ( engine = [ \\"<engineid>\\" ] , filePaths = [ \\"handbook.pdf\\" ] ) ;",
+						            "isMeta": false,
+						            "timeToRun": 5231,
+						            "output": "Successfully embedded all files",
+						            "operationType": ["OPERATION"],
+						            "additionalOutput": [
+						                {
+						                    "output": [
+						                        {"fileName": "handbook.pdf", "status": "SUCCESS", "insertedRecords": 42, "failedRecords": 0, "totalRecords": 42}
+						                    ],
+						                    "operationType": ["OPERATION"]
+						                }
+						            ]
+						        }
+						    ]
+						}
 						```
 						""",
 				engineId);
@@ -853,6 +1366,17 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Returns unique source identifiers currently stored in the vector database.
 						```python
 						vectorEngine.listDocuments()
+						```
+
+						Example Output
+
+						A list of dicts, one per indexed document (`fileSize` in MB).
+
+						```python
+						[
+						    {'fileName': 'handbook.pdf', 'fileSize': 482.11, 'lastModified': '2026-06-14 18:03:11'},
+						    {'fileName': 'faq.pdf', 'fileSize': 88.4, 'lastModified': '2026-06-14 18:05:52'}
+						]
 						```
 
 						Add Uploaded Documents (insight/room space)
@@ -895,12 +1419,27 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')
 						```
 
+						Example Output
+
+						A list of the closest matching chunks, ordered best-first (up to `limit`). Use the `Content` values as grounding context for a Model engine (RAG); `Score` is relevance/distance (interpretation depends on the underlying vector store).
+
+						```python
+						[
+						    {'Score': 0.8123, 'Content': 'Employees accrue 15 days of paid time off per year.', 'Source': 'handbook.pdf', 'Modality': 'text', 'Divider': 12, 'Part': 0, 'Tokens': 11},
+						    {'Score': 0.7460, 'Content': 'Unused PTO rolls over up to a maximum of 5 days.', 'Source': 'handbook.pdf', 'Modality': 'text', 'Divider': 12, 'Part': 1, 'Tokens': 12}
+						]
+						```
+
 						Remove Indexed Documents
 
 						Use `file_names` as source identifiers (for example names returned by `listDocuments()`).
 						```python
 						vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])
 						```
+
+						Example Output
+
+						`addDocument` / `addVectorCSVFile` return the success message string; `removeDocument` returns `True`.
 						""",
 				engineId);
 
@@ -1002,6 +1541,20 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		}
 		String pixelMapArg = mapParams.isEmpty() ? "" : " , map=[" + mapParams + "] ";
 
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Function** engine exposes a callable tool or API behind one consistent interface. You execute it with a map of named parameter values and it returns the tool's result.
+						<br/>
+						<br/>
+
+						Its parameter contract (each parameter's `name`, `type`, `description`, and whether it is `required`) is published alongside these snippets in the `parameters` field, and the example call below is pre-filled with this engine's actual parameters. Function engines are also what a Model engine calls when doing tool use.
+						<br/>
+						<br/>
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				engineId);
+
 		addUsage(usage, PIXEL, PIXEL_LABEL, """
 				Execute Function
 				```
@@ -1036,6 +1589,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getPendingUsage() {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL, """
+				Detailed usage examples for this engine type are not available yet.
+				<br/>
+				<br/>
+
+				""" + PLATFORM_INTRODUCTION, null);
 		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
 		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
 		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
@@ -1148,11 +1707,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Builds sample usage snippets for a selected engine across Pixel, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+				Builds tutorial-style usage snippets for a selected engine across Pixel, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+
+				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), and Function (callable tools) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `ai_server` Python SDK and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
 
 				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
 				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
 				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
+				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does plus a shared "how to reach this engine" platform section. The remaining channels (`pixel`, `python`, `java`, ...) are per-integration.
+				- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
+				- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
 				- Function-engine responses also include `parameters`, where each item contains `name`, `type`, `description`, and `required`.
 				""";
 	}
