@@ -42,129 +42,120 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.engine.api.IConstructStatement;
 import prerna.engine.api.IConstructWrapper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SesameSelectCheater extends AbstractWrapper implements IConstructWrapper {
 
-	private static final Logger logger = LogManager.getLogger(SesameSelectCheater.class);
-
-	private static final String STACKTRACE = "StackTrace: ";
+	private static final Logger classLogger = LogManager.getLogger(SesameSelectCheater.class);
 
 	public transient TupleQueryResult tqr = null;
 	transient int count = 0;
-	transient String [] var = null;
+	transient String[] var = null;
 	transient BindingSet bs = null;
 	transient int triples;
-	transient int tqrCount=0;
+	transient int tqrCount = 0;
 	String queryVar[];
 	String nextPred;
-	
+
 	@Override
 	public IConstructStatement next() {
 		IConstructStatement thisSt = new ConstructStatement();
 
-		if(!hasNext()) {
-		      throw new NoSuchElementException();
-	    }
+		if (!hasNext()) {
+			throw new NoSuchElementException();
+		}
 
-		if(nextPred != null) {
+		if (nextPred != null) {
 			// need to create triple saying pred is a sub prop of relationship
 			thisSt.setSubject(nextPred);
-			thisSt.setPredicate(RDFS.subPropertyOf +"");
+			thisSt.setPredicate(RDFS.subPropertyOf + "");
 			thisSt.setObject("http://semoss.org/ontologies/Relation");
 			this.nextPred = null;
 			return thisSt;
 		}
-		
+
 		try {
-			if(count==0)
-			{
+			if (count == 0) {
 				bs = tqr.next();
 			}
-			logger.debug("Adding a sesame statement ");
-			
+			classLogger.debug("Adding a sesame statement ");
+
 			// there should only be three values
-			Object sub=null;
+			Object sub = null;
 			Object pred = null;
 			Object obj = null;
-			while (sub==null || pred==null || obj==null)
-			{
-				if (count==triples)
-				{
-					count=0;
+			while (sub == null || pred == null || obj == null) {
+				if (count == triples) {
+					count = 0;
 					bs = tqr.next();
 					tqrCount++;
 				}
-				sub = bs.getValue(queryVar[count*3].substring(1));
-				pred = bs.getValue(queryVar[count*3+1].substring(1));
-				if(bs.size()>2){
-					obj = bs.getValue(queryVar[count*3+2].substring(1));
-				}
-				else {
+				sub = bs.getValue(queryVar[count * 3].substring(1));
+				pred = bs.getValue(queryVar[count * 3 + 1].substring(1));
+				if (bs.size() > 2) {
+					obj = bs.getValue(queryVar[count * 3 + 2].substring(1));
+				} else {
 					obj = pred;
-					pred = "http://semoss.org/Relation/" + Utility.getInstanceName(sub + "") + ":" + Utility.getInstanceName(obj + "");
-					nextPred =  pred + "";
+					pred = "http://semoss.org/Relation/" + Utility.getInstanceName(sub + "") + ":"
+							+ Utility.getInstanceName(obj + "");
+					nextPred = pred + "";
 				}
 				count++;
 			}
-			thisSt.setSubject(sub+"");
-			thisSt.setPredicate(pred+"");
+			thisSt.setSubject(sub + "");
+			thisSt.setPredicate(pred + "");
 			thisSt.setObject(obj);
-			if (count==triples)
-			{
-				count=0;
+			if (count == triples) {
+				count = 0;
 			}
 		} catch (QueryEvaluationException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
 	}
-	
-	protected void processSelectVar()
-	{
-		if(query.contains("DISTINCT"))
-		{
-			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) 
-		    {
-		    	varString = matcher.group(1);
-		    }
-		    if (varString != null) {
-		    	varString = varString.trim();
-		    	queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
-		}
-		else
-		{
-			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
-		    Matcher matcher = pattern.matcher(query);
-		    String varString = null;
-		    while (matcher.find()) {
-		        varString = matcher.group(1);
-		    }
 
-		    if (varString != null) {
-			    varString = varString.trim();
-			    queryVar = varString.split(" ");
-			    int num = queryVar.length+1;
-			    triples = num/3;
-		    }
+	protected void processSelectVar() {
+		if (query.contains("DISTINCT")) {
+			Pattern pattern = Pattern.compile("SELECT DISTINCT(.*?)WHERE");
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
+		} else {
+			Pattern pattern = Pattern.compile("SELECT (.*?)WHERE");
+			Matcher matcher = pattern.matcher(query);
+			String varString = null;
+			while (matcher.find()) {
+				varString = matcher.group(1);
+			}
+
+			if (varString != null) {
+				varString = varString.trim();
+				queryVar = varString.split(" ");
+				int num = queryVar.length + 1;
+				triples = num / 3;
+			}
 		}
 	}
 
-	protected String[] getVariables()
-	{
+	protected String[] getVariables() {
 		try {
 			var = new String[tqr.getBindingNames().size()];
-			List <String> names = tqr.getBindingNames();
-			for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
+			List<String> names = tqr.getBindingNames();
+			for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
+				;
+			}
 			return var;
 		} catch (QueryEvaluationException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -173,23 +164,24 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 	public void execute() throws Exception {
 		tqr = (TupleQueryResult) engine.execQuery(query);
 		getVariables();
-		
+
 		processSelectVar();
-		count=0;
+		count = 0;
 	}
 
 	@Override
 	public boolean hasNext() {
-		if(this.nextPred != null){
+		if (this.nextPred != null) {
 			return true;
 		}
 		boolean retBool = false;
 		try {
 			retBool = tqr.hasNext();
-			if(!retBool)
+			if (!retBool) {
 				tqr.close();
+			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retBool;
 	}
@@ -199,7 +191,7 @@ public class SesameSelectCheater extends AbstractWrapper implements IConstructWr
 		try {
 			tqr.close();
 		} catch (QueryEvaluationException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IOException(e);
 		}
 	}

@@ -40,9 +40,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor duplicates and existing column and adds it to the frame. The
-	 * inputs to the reactor are: 1) the name for the column to duplicate 2) the new
-	 * column name
+	 * <p>
+	 * This reactor duplicates and existing column and adds it to the frame.
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the name for the column to duplicate</li>
+	 * <li>the new column name</li>
+	 * </ul>
 	 */
 
 	public DuplicateColumnReactor() {

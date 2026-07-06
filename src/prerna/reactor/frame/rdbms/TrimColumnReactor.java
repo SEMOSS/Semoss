@@ -37,7 +37,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class TrimColumnReactor extends AbstractFrameReactor {
 
@@ -74,7 +73,7 @@ public class TrimColumnReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(update);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to trim selected columns on frame {}", frame.getName(), e);
 			}
 		}
 

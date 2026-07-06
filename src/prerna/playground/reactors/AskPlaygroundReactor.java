@@ -40,8 +40,8 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -51,6 +51,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
@@ -94,10 +95,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null,
+				PlaygroundUtils.PLAYGROUND_PROJECT_ID, null);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-		String givenSystemPrompt = room.getEffectiveSystemPrompt();
+		String givenSystemPrompt = room.getSystemPromptForModel();
 
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
@@ -113,17 +115,20 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 			room.updateToolResponseMeta(response);
 		}
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
+		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
-		// MessageUtils.applyLegacyInputFields(msg, inputMap);
+		if (hideSystemMessages) {
+			MessageUtils.removeSystemPromptFromMessageMap(inputMap);
+		}
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));

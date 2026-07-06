@@ -33,67 +33,72 @@ import org.apache.logging.log4j.Logger;
 /**
  * Static holder that picks a {@link SandboxLauncher} for the current host.
  *
- * <p>Throws {@link SandboxUnavailableException} from {@link #get()} when no
+ * <p>
+ * Throws {@link SandboxUnavailableException} from {@link #get()} when no
  * backend is available so callers fail closed without a separate guard.
  * Successful resolution is cached; failures are not (re-detected each call,
  * which is cheap).
  */
 public final class SandboxLauncherRegistry {
 
-    private static final Logger logger = LogManager.getLogger(SandboxLauncherRegistry.class);
+	private static final Logger classLogger = LogManager.getLogger(SandboxLauncherRegistry.class);
 
-    private static volatile SandboxLauncher cached;
+	private static volatile SandboxLauncher cached;
 
-    private SandboxLauncherRegistry() {}
+	private SandboxLauncherRegistry() {
+	}
 
-    public static SandboxLauncher get() {
-        SandboxLauncher c = cached;
-        if (c != null) return c;
-        synchronized (SandboxLauncherRegistry.class) {
-            if (cached == null) {
-                cached = detect();
-            }
-            return cached;
-        }
-    }
+	public static SandboxLauncher get() {
+		SandboxLauncher c = cached;
+		if (c != null) {
+			return c;
+		}
+		synchronized (SandboxLauncherRegistry.class) {
+			if (cached == null) {
+				cached = detect();
+			}
+			return cached;
+		}
+	}
 
-    /** For tests; clears the cached launcher so a different platform can be simulated. */
-    public static synchronized void reset() {
-        cached = null;
-    }
+	/**
+	 * For tests; clears the cached launcher so a different platform can be
+	 * simulated.
+	 */
+	public static synchronized void reset() {
+		cached = null;
+	}
 
-    /** For tests / explicit overrides. */
-    public static synchronized void setOverride(SandboxLauncher override) {
-        cached = override;
-    }
+	/** For tests / explicit overrides. */
+	public static synchronized void setOverride(SandboxLauncher override) {
+		cached = override;
+	}
 
-    private static SandboxLauncher detect() {
-        Platform p = Platform.current();
-        SandboxLauncher backend = null;
-        if (p == Platform.LINUX) {
-            backend = new LandlockLauncher(
-                    resolveJavaExecutable(),
-                    System.getProperty("java.class.path"));
-        } else if (p == Platform.MACOS) {
-            backend = new SandboxExecLauncher();
-        }
-        if (backend != null && backend.isAvailable()) {
-            logger.info("Sandbox backend resolved: platform={} backend={}", p, backend.getClass().getSimpleName());
-            return backend;
-        }
-        throw new SandboxUnavailableException(
-                "AGENT_SANDBOX_ENABLE=true but no sandbox backend is available for platform " + p);
-    }
+	private static SandboxLauncher detect() {
+		Platform p = Platform.current();
+		SandboxLauncher backend = null;
+		if (p == Platform.LINUX) {
+			backend = new LandlockLauncher(resolveJavaExecutable(), System.getProperty("java.class.path"));
+		} else if (p == Platform.MACOS) {
+			backend = new SandboxExecLauncher();
+		}
+		if (backend != null && backend.isAvailable()) {
+			classLogger.info("Sandbox backend resolved: platform={} backend={}", p, backend.getClass().getSimpleName());
+			return backend;
+		}
+		throw new SandboxUnavailableException(
+				"AGENT_SANDBOX_ENABLE=true but no sandbox backend is available for platform " + p);
+	}
 
-    private static String resolveJavaExecutable() {
-        String javaHome = System.getProperty("java.home");
-        if (javaHome == null) {
-            return "java";
-        }
-        java.nio.file.Path candidate = java.nio.file.Paths.get(javaHome, "bin", "java");
-        if (java.nio.file.Files.isExecutable(candidate)) {
-            return candidate.toString();
-        }
-        return "java";
-    }
+	private static String resolveJavaExecutable() {
+		String javaHome = System.getProperty("java.home");
+		if (javaHome == null) {
+			return "java";
+		}
+		java.nio.file.Path candidate = java.nio.file.Paths.get(javaHome, "bin", "java");
+		if (java.nio.file.Files.isExecutable(candidate)) {
+			return candidate.toString();
+		}
+		return "java";
+	}
 }

@@ -28,7 +28,6 @@
 package prerna.reactor.insights.fs;
 
 import java.io.File;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -45,8 +44,6 @@ import prerna.util.Utility;
 
 public class SearchInsightAssetsReactor extends AbstractReactor {
 
-	private DateTimeFormatter dateTimeFormatter;
-
 	public SearchInsightAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SEARCH.getKey(),
 				ReactorKeysEnum.OPTIONS.getKey() };
@@ -57,7 +54,6 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		this.dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
 
 		String relativeFilePath = keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		String rawTerm = keyValue.get(ReactorKeysEnum.SEARCH.getKey());
@@ -99,7 +95,7 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String, Object>> results = FileSystemUtil.search(rootDir, pattern, baseLen, dateTimeFormatter);
+		List<Map<String, Object>> results = FileSystemUtil.search(user, rootDir, pattern, baseLen);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

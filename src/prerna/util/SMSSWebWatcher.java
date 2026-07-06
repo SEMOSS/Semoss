@@ -46,6 +46,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.agent.skill.PlatformSkillBootstrap;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -90,29 +91,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
 
-			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-//			OwlPrettyPrintFixer.fixOwl(prop);
-			// Update OWL
-//			OwlSeparatePixelFromConceptual.fixOwl(prop);
-
 			engineId = prop.getProperty(Constants.ENGINE);
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 					|| engines.endsWith(";" + engineId)) {
-				classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("DB {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load engine from SMSS file {} in {}", newFile, folderToWatch, e);
 		}
 
 		return engineId;
 	}
 
-	// this is an alternate method.. which will not load the database but would
-	// merely keep the name of the engine
-	// and the SMSS file
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * 
@@ -128,22 +121,17 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
 			}
 
-			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-//			OwlPrettyPrintFixer.fixOwl(prop);
-			// Update OWL
-//			OwlSeparatePixelFromConceptual.fixOwl(prop);
-
 			engineId = prop.getProperty(Constants.ENGINE);
 
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 					|| engines.endsWith(";" + engineId)) {
-				classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
+				classLogger.debug("DB {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
 				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to catalog engine from SMSS file {} in {}", newFile, folderToWatch, e);
 		}
 
 		return engineId;
@@ -163,7 +151,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[localMasterIndex]);
 			MasterDatabaseUtility.initLocalMaster();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load and initialize the local master database", e);
 			return;
 		}
 
@@ -174,7 +162,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[securityIndex]);
 			AbstractSecurityUtils.loadSecurityDatabase();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load and initialize the security database", e);
 			return;
 		}
 
@@ -186,7 +174,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[auditLogsIndex]);
 					AuditLogsDbUtils.loadAuditLogsDatabase();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and initialize the audit logs database", e);
 				}
 			}
 		}
@@ -200,7 +188,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[userTrackerDbNameIndex]);
 					UserTrackingUtils.initUserTrackerDatabase();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and initialize the user tracking database", e);
 				}
 			}
 		}
@@ -212,7 +200,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[themingDbNameIndex]);
 				AbstractThemeUtils.loadThemingDatabase();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load and initialize the theming database", e);
 			}
 		}
 
@@ -225,7 +213,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[schedulerDbNameIndex]);
 					SchedulerDatabaseUtility.startServer();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and start the scheduler database", e);
 				}
 			}
 		}
@@ -240,8 +228,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry
 							.loadSystemEngine(folderToWatch + "/" + fileNames[modelInferenceLogsDBNameIndex]);
 					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+					// Disabled stub; platform-skill migration to Skill-Projects is handled
+					// out-of-band. Kept here so the call site is documented.
+					PlatformSkillBootstrap.scan();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and initialize the model inference logs database", e);
 				}
 			}
 		}
@@ -254,7 +245,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[promptDbNameIndex]);
 					PromptUtils.loadPromptDatabase();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and initialize the prompt database", e);
 				}
 			}
 		}
@@ -267,7 +258,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[notificationDbNameIndex]);
 					NotificationDbUtils.loadNotificationDatabase();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to load and initialize the notification database", e);
 				}
 			}
 		}
@@ -325,8 +316,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String loadedEngineId = catalogEngine(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-				classLogger.fatal("Database engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error("Failed to catalog database engine from SMSS file {}/{}", folderToWatch,
+						fileNames[fileIdx], ex);
+				classLogger.fatal("Database engine failed to load: {}/{}", folderToWatch, fileNames[fileIdx]);
 			}
 		}
 
@@ -337,8 +329,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 			for (String engine : engines) {
 				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger.info(
-							"Deleting the database engine from local master..... " + Utility.cleanLogString(engine));
+					classLogger.info("Deleting the database engine from local master..... {}",
+							Utility.cleanLogString(engine));
 					remover.deleteEngineRDBMS(engine);
 				}
 			}
@@ -346,8 +338,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.toString()));
 			for (String engine : engines) {
 				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-					classLogger
-							.info("Deleting the database engine " + Utility.cleanLogString(engine) + " from security");
+					classLogger.info("Deleting the database engine {} from security", Utility.cleanLogString(engine));
 					SecurityEngineUtils.deleteEngine(engine);
 				}
 			}

@@ -40,7 +40,7 @@ import prerna.reactor.agent.AgentHarnessResult;
  * tool-call record. Future PRs will extend this with token counts (for compaction) and
  * hook/span references (for observability).
  *
- * <p>Not thread-safe — owned and mutated exclusively by the harness's main execution thread.
+ * <p>Not thread-safe - owned and mutated exclusively by the harness's main execution thread.
  * Tool call records are added from the main thread after all parallel futures complete.
  */
 public final class AgentLoopState {
@@ -65,8 +65,7 @@ public final class AgentLoopState {
 
     AgentLoopState() {}
 
-    // ── Iteration counter ────────────────────────────────────────────────────
-
+    // Iteration counter
     /** Number of tool-call rounds completed (excludes reflection rounds). */
     public int getIterations() {
         return iterations;
@@ -77,8 +76,7 @@ public final class AgentLoopState {
         iterations++;
     }
 
-    // ── Reflection counter ───────────────────────────────────────────────────
-
+    // Reflection counter
     /** Number of reflection rounds fired so far. */
     public int getReflectionsUsed() {
         return reflectionsUsed;
@@ -89,8 +87,7 @@ public final class AgentLoopState {
         reflectionsUsed++;
     }
 
-    // ── Terminal flag ────────────────────────────────────────────────────────
-
+    // Terminal flag
     /** {@code true} when the loop should exit on the next check. */
     public boolean isTerminal() {
         return terminal;
@@ -100,9 +97,8 @@ public final class AgentLoopState {
         this.terminal = terminal;
     }
 
-    // ── Final text ───────────────────────────────────────────────────────────
-
-    /** Set when the loop exits normally via a RESPONSE_TEXT. */
+    // Final text
+    /** Set when the loop exits normally with a final assistant response. */
     public String getFinalText() {
         return finalText;
     }
@@ -111,15 +107,13 @@ public final class AgentLoopState {
         this.finalText = text;
     }
 
-    // ── Elapsed time ─────────────────────────────────────────────────────────
-
+    // Elapsed time
     /** Milliseconds elapsed since this state object was created (i.e., since run start). */
     public long getElapsedMs() {
         return (System.nanoTime() - startNanos) / 1_000_000L;
     }
 
-    // ── Tool call records ────────────────────────────────────────────────────
-
+    // Tool call records
     /** Append a completed tool call record. Called from the harness main thread only. */
     public void addToolCallRecord(AgentHarnessResult.ToolCallRecord record) {
         toolCallRecords.add(record);

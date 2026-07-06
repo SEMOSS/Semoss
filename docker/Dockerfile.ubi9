@@ -5,21 +5,28 @@ ARG BASE_TAG=latest
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.117
+ARG TOMCAT_VERSION=9.0.119
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
 ARG COPILOT_VERSION
+# Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
+# without buildx (TARGETARCH unset).
+ARG TARGETARCH
 
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
 	&& rm -rf /var/lib/apt/lists/* \
+	&& case "${TARGETARCH:-amd64}" in \
+		arm64) copilot_arch="arm64" ;; \
+		*)     copilot_arch="x64" ;; \
+	   esac \
 	&& tmp="$(mktemp -d)" \
 	&& case "${COPILOT_VERSION}" in \
-		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-x64.tar.gz" ;; \
-		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-x64.tar.gz" ;; \
+		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${copilot_arch}.tar.gz" ;; \
+		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-${copilot_arch}.tar.gz" ;; \
 	   esac \
 	&& curl -fsSL -o "$tmp/copilot.tgz" "$copilot_url" \
 	&& tar -xzf "$tmp/copilot.tgz" -C "$tmp" \
@@ -100,7 +107,12 @@ RUN yum update -y \
 #FAKECHROOT and FAKEROOT
 RUN yum install -y \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-RUN yum install -y fakechroot fakeroot
+RUN yum install -y fakechroot fakeroot shadow-utils util-linux
+
+# Bake the shared chroot template at build time (as root) so the running
+# container never builds it. Writes /opt/chroot/.template/.ready, which makes
+# ChrootTemplate.awaitReady() a no-op at startup. Auto-detects Ubuntu/RHEL paths.
+RUN bash /opt/semoss-artifacts/artifacts/scripts/build_chroot_template.sh /opt/chroot
 
 
 # Create a group 'root' with GID 0 if it doesn't exist (it should by default)

@@ -304,7 +304,7 @@ class RiGraphUnitTests {
 
             graph.addRelationship(headers, values, cardinality);
 
-            // With null endIndices, hasRel stays false → inserts single node
+            // With null endIndices, hasRel stays false -> inserts single node
             ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
             verify(mockTranslator, atLeast(3)).executeEmptyR(captor.capture());
             List<String> allCalls = captor.getAllValues();

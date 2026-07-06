@@ -53,7 +53,7 @@ import prerna.util.Utility;
 
 public class TemplateUtility {
 
-	private static final Logger logger = LogManager.getLogger(TemplateUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(TemplateUtility.class);
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public static final String TEMPLATE_PROPS_FILE = "template.properties";
@@ -72,22 +72,22 @@ public class TemplateUtility {
 		// fetching the project base folder based on the app id
 		String projectName = project.getProjectName();
 		// fetching the project base folder based on the app id
-		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/'); 
+		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/');
 
-		File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE); 
+		File file = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 		if (!file.exists()) {
 			file.getParentFile().mkdirs();
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		Properties props = Utility.loadProperties(file.getAbsolutePath());
 		props.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 
-		// templateDataMap will contain all the template information 
-		// with template name as key and file name as the value 
+		// templateDataMap will contain all the template information
+		// with template name as key and file name as the value
 		return templateDataMap;
 	}
 
@@ -102,8 +102,8 @@ public class TemplateUtility {
 	public static String getTemplateFile(String projectId, String templateName) {
 		String assetFolder = AssetUtility.getProjectAppRootFolder(projectId).replace('\\', '/');
 		String fileName = getTemplateList(projectId).get(templateName);
-		// returns the project template folder appended with the template file name 
-		if(fileName.startsWith("/") || fileName.startsWith("\\")) {
+		// returns the project template folder appended with the template file name
+		if (fileName.startsWith("/") || fileName.startsWith("\\")) {
 			return assetFolder + fileName;
 		} else {
 			return assetFolder + DIR_SEPARATOR + fileName;
@@ -119,18 +119,19 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> deleteTemplate(String projectId, String templateRelativeFilePath, String templateName) {
+	public static Map<String, String> deleteTemplate(String projectId, String templateRelativeFilePath,
+			String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
-		
+
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
-		// fetching the project asset folder 
+		// fetching the project asset folder
 		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
-		// deleting the corresponding template file by appending 
+		// deleting the corresponding template file by appending
 		// the template folder and filename to the project asset folder
 		File file = null;
-		if(templateRelativeFilePath.startsWith("/") || templateRelativeFilePath.startsWith("\\")) {
+		if (templateRelativeFilePath.startsWith("/") || templateRelativeFilePath.startsWith("\\")) {
 			file = new File(assetFolder + templateRelativeFilePath);
 		} else {
 			file = new File(assetFolder + DIR_SEPARATOR + templateRelativeFilePath);
@@ -139,33 +140,34 @@ public class TemplateUtility {
 
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
-		
+
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(templatePropsFile.getAbsolutePath());
-			
+
 			// removing the template from the properties due to deletion of the template
 			templateProps.remove(templateName);
-			// rewriting to the template property file the updated properties 
+			// rewriting to the template property file the updated properties
 			templateProps.store(out, null);
-			// iterate through the properties and update in the templateDataMap with 
+			// iterate through the properties and update in the templateDataMap with
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
-				if(out != null) {
+				if (out != null) {
 					out.close();
 				}
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		// returning back the updated template information which will contain all the template information
+
+		// returning back the updated template information which will contain all the
+		// template information
 		// with template name as key and file name as the value
 		return templateDataMap;
 	}
@@ -188,12 +190,12 @@ public class TemplateUtility {
 		assetFolder = assetFolder.replace('\\', '/');
 
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
-		if(!templatePropsFile.exists()) {
+		if (!templatePropsFile.exists()) {
 			templatePropsFile.getParentFile().mkdirs();
 			try {
 				templatePropsFile.createNewFile();
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
@@ -212,24 +214,25 @@ public class TemplateUtility {
 			templateProps.put(templateName, filename);
 			// rewriting to the template property file the updated properties
 			templateProps.store(out, null);
-			// iterate through the properties and update in the templateDataMap with 
+			// iterate through the properties and update in the templateDataMap with
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(out != null) {
+			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		
-		// returning back the updated template information which will contain all the template information with template name as key and file name as the value
+
+		// returning back the updated template information which will contain all the
+		// template information with template name as key and file name as the value
 		return templateDataMap;
 	}
 
@@ -242,60 +245,63 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
-	public static Map<String, String> editTemplate(String projectId, String templateRelativeFilePath, String templateName) {
+	public static Map<String, String> editTemplate(String projectId, String templateRelativeFilePath,
+			String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
-		
+
 		IProject project = Utility.getProject(projectId);
 		String projectName = project.getProjectName();
-		// fetching the project asset folder 
+		// fetching the project asset folder
 		String assetFolder = AssetUtility.getProjectAssetsFolder(projectName, projectId).replace('\\', '/');
 		templateRelativeFilePath = templateRelativeFilePath.replace('\\', '/');
-		
-		// get the properties file 
+
+		// get the properties file
 		File templatePropsFile = new File(assetFolder + DIR_SEPARATOR + TEMPLATE + DIR_SEPARATOR + TEMPLATE_PROPS_FILE);
 		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
 
 		// need to grab the existing file to delete from the prop file
 		String removeTemplateRelativePath = (String) templateProps.get(templateName);
-		// deleting the corresponding template file by appending 
+		// deleting the corresponding template file by appending
 		// the template folder and filename to the app asset folder
 		File file = null;
-		if(removeTemplateRelativePath.startsWith("/") || removeTemplateRelativePath.startsWith("\\")) {
+		if (removeTemplateRelativePath.startsWith("/") || removeTemplateRelativePath.startsWith("\\")) {
 			file = new File(Utility.normalizePath(assetFolder + removeTemplateRelativePath));
 		} else {
 			file = new File(Utility.normalizePath(assetFolder + DIR_SEPARATOR + removeTemplateRelativePath));
 		}
 		file.delete();
-		
+
 		// now we will update the prop file to point to the new file
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(templatePropsFile.getAbsolutePath());
-			// deleting the old template information and adding the updated template information 
+			// deleting the old template information and adding the updated template
+			// information
 			// from the properties due to updating of the template
 			templateProps.remove(templateName);
 			templateProps.put(templateName, templateRelativeFilePath);
-			
+
 			// rewriting to the template property file the updated properties
 			templateProps.store(out, null);
-			// iterate through the properties and update in the templateDataMap with 
+			// iterate through the properties and update in the templateDataMap with
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(out != null) {
+			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		
-		// returning back the updated template information which will contain all the template information 
+
+		// returning back the updated template information which will contain all the
+		// template information
 		// with template name as key and file name as the value
 		return templateDataMap;
 	}
@@ -314,52 +320,53 @@ public class TemplateUtility {
 		XSSFWorkbook wb = null;
 		try {
 			String exportTemplateFile = getTemplateFile(projectId, templateName);
-			 // fetching the template file 
+			// fetching the template file
 			File file = new File(exportTemplateFile);
 			fis = new FileInputStream(file);
 			// creating Workbook instance that refers to template .xlsx file
 			wb = new XSSFWorkbook(fis);
 			// creating a Sheet object to retrieve place holder sheet
-			 // creating a Sheet object to retrieve place holder sheet
+			// creating a Sheet object to retrieve place holder sheet
 			XSSFSheet placeholderSheet = wb.getSheet("placeholders");
 			if (placeholderSheet != null) {
 				placeHolderData = extractPlaceHolderInfo(placeholderSheet);
 			}
 		} catch (FileNotFoundException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wb != null) {
+			if (wb != null) {
 				try {
 					wb.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(fis != null) {
+			if (fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		// returns the complete place holder data with key as placeholder label name and values 
+		// returns the complete place holder data with key as placeholder label name and
+		// values
 		// containing place holder default value, cell position
 		return placeHolderData;
 	}
 
 	/**
-     * This method will extract all place holder info from the placeholder Sheet.
-     * 
-      * @param sheet
-     * @return
-     */
+	 * This method will extract all place holder info from the placeholder Sheet.
+	 * 
+	 * @param sheet
+	 * @return
+	 */
 	public static Map<String, List<String>> extractPlaceHolderInfo(XSSFSheet sheet) {
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
 		Iterator<Row> rows = sheet.iterator(); // iterating over place holder sheet
-		if(rows.hasNext()) {
+		if (rows.hasNext()) {
 			rows.next(); // skips the first row as its a header label
 		}
 		while (rows.hasNext()) {
@@ -367,31 +374,35 @@ public class TemplateUtility {
 			List<String> placeholderValueAndPosition = new ArrayList<>();
 			String placeholderName = "", placeholderPosition = "";
 			// retrieve the label placeholder name from cell index 0 from place holder sheet
-			if(row.getCell(0) != null) {
-				placeholderName = row.getCell(0).getStringCellValue(); 
+			if (row.getCell(0) != null) {
+				placeholderName = row.getCell(0).getStringCellValue();
 			}
-			// retrieve the label placeholder default value from cell index 1 from place holder sheet
-			if(row.getCell(1) != null) {
+			// retrieve the label placeholder default value from cell index 1 from place
+			// holder sheet
+			if (row.getCell(1) != null) {
 				placeholderValueAndPosition.add(row.getCell(1).getStringCellValue());
 			} else {
 				placeholderValueAndPosition.add("");
 			}
-			// retrieve the label placeholder position from cell index 2 from place holder sheet
-			if(row.getCell(2) != null) {
+			// retrieve the label placeholder position from cell index 2 from place holder
+			// sheet
+			if (row.getCell(2) != null) {
 				placeholderPosition = row.getCell(2).getStringCellValue();
 				placeholderValueAndPosition.add(placeholderPosition);
 			}
-			// retrieve the label placeholder position from cell index 2 from place holder sheet
-			if(row.getCell(3) != null) {
+			// retrieve the label placeholder position from cell index 2 from place holder
+			// sheet
+			if (row.getCell(3) != null) {
 				placeholderPosition = row.getCell(3).getStringCellValue();
 				placeholderValueAndPosition.add(placeholderPosition);
 			}
-			if(!(placeholderName.isEmpty() || placeholderPosition.isEmpty())) {
+			if (!(placeholderName.isEmpty() || placeholderPosition.isEmpty())) {
 				placeHolderData.put(placeholderName, placeholderValueAndPosition);
 			}
 		}
-		
-		// returns the complete place holder data with key as placeholder label name and values 
+
+		// returns the complete place holder data with key as placeholder label name and
+		// values
 		// containing place holder default value, cell position
 		return placeHolderData;
 	}

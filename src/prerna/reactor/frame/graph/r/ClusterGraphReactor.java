@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.Constants;
 
 public class ClusterGraphReactor extends AbstractRFrameReactor {
 
@@ -50,37 +49,36 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 	/**
 	 * Example input for routine
 	 * 
-	 * previous method from AbstractBaseRClass -> Reactor input
-	 * walk info 	-> 	cluster_walktrap
-	 * cluster info -> 	clus
+	 * previous method from AbstractBaseRClass -> Reactor input walk info ->
+	 * cluster_walktrap cluster info -> clus
 	 */
-	
+
 	public ClusterGraphReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ROUTINE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ROUTINE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String[] packages = new String[] {"igraph"};
+		String[] packages = new String[] { "igraph" };
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
 		String routine = this.keyValue.get(this.keysToGet[0]);
 
 		ITableDataFrame frame = getFrame();
-		if(!(frame instanceof TinkerFrame)) {
+		if (!(frame instanceof TinkerFrame)) {
 			throw new IllegalArgumentException("Frame must be a graph frame type");
 		}
 		TinkerFrame graph = (TinkerFrame) frame;
-		if(!graph.isIGraphSynched()) {
+		if (!graph.isIGraphSynched()) {
 			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
 			String wd = this.insight.getInsightFolder();
 			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
 		}
 		String graphName = graph.getName();
-		
+
 		try {
 			logger.info("Determining graph clusters...");
 			String clusterName = "clus" + Utility.getRandomString(8);
@@ -88,7 +86,8 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			if (routine.toLowerCase().equals("clusters")) {
 				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ")");
 			} else if (routine.toLowerCase().equals("cluster_walktrap")) {
-				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
+				this.rJavaTranslator
+						.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
 			} else {
 				throw new IllegalArgumentException("Invalid igraph routine");
 			}
@@ -99,7 +98,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
 			return new NounMetadata(graph, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			logger.error("Failed to cluster graph {} using igraph routine {}.", graphName, routine, ex);
 		}
 
 		throw new IllegalArgumentException("Unable to cluster graph");
@@ -123,7 +122,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 				retVertex.property("CLUSTER", memberships[memIndex]);
 			}
 			if (memIndex % 100 == 0) {
-				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
+				logger.info("Done synchronizing graph vertex number {} out of {}", memIndex, memberships.length);
 			}
 		}
 		logger.info("Done synchronizing graph vertices");

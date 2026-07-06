@@ -54,11 +54,12 @@ import com.microsoft.playwright.BrowserContext;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
-import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
+import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -71,7 +72,7 @@ public class User implements Serializable {
 
 	private static Logger classLogger = LogManager.getLogger(User.class);
 
-	protected static final String DIR_SEPARATOR = "/";
+	private static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
 	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
@@ -80,7 +81,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	private Map<String, Object> roomHash = new ConcurrentHashMap<>();
+	private Map<String, Room> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -108,9 +109,6 @@ public class User implements Serializable {
 	private AuthProvider primaryLogin;
 
 	private transient Object assetSyncObject = null;
-	private transient Object workspaceSyncObject = null;
-
-	public transient CopyObject cp = null;
 
 	private int rPort = -1;
 	private int pyPort = -1;
@@ -132,7 +130,6 @@ public class User implements Serializable {
 		// since if this is serialized we dont want these values to be null
 		this.openInsights = new HashMap<>();
 		this.assetSyncObject = new Object();
-		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
@@ -281,7 +278,7 @@ public class User implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to load or create user asset project for token {}", token, e);
 			}
 
 			this.assetProjectMap.put(token, projectId);
@@ -293,6 +290,26 @@ public class User implements Serializable {
 		}
 
 		return this.assetProjectMap.get(token);
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject,
+	 * resolved via the primary login token.
+	 */
+	public IProject getAssetProject() {
+		return getAssetProject(getPrimaryLogin());
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject for
+	 * the given auth provider token.
+	 */
+	public IProject getAssetProject(AuthProvider token) {
+		String projectId = getAssetProjectId(token);
+		if (projectId == null) {
+			return null;
+		}
+		return Utility.getUserAssetProject(projectId);
 	}
 
 	public Map<AuthProvider, String> getAssetEngineMap() {
@@ -319,27 +336,6 @@ public class User implements Serializable {
 
 	public void setRconRemote(RRemoteRserve rconRemote) {
 		this.rconRemote = rconRemote;
-	}
-
-	public void ctrlC(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-	}
-
-	public CopyObject getCtrlC() {
-		return cp;
-	}
-
-	public void ctrlX(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-		cp.delete = true;
-	}
-
-	public void escapeCopy() {
-		this.cp = null;
 	}
 
 	/**
@@ -428,7 +424,7 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public Map<String, Object> getRoomHash() {
+	public Map<String, Room> getRoomHash() {
 		return roomHash;
 	}
 
@@ -627,7 +623,7 @@ public class User implements Serializable {
 			try {
 				this.pythonCPW.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to reconnect to user python process", e);
 				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 			}
 		}
@@ -697,7 +693,7 @@ public class User implements Serializable {
 						debug = true;
 					} catch (NumberFormatException e) {
 						// ignore
-						classLogger.warn("User " + User.getSingleLogginName(this) + " has an invalid FORCE_PORT value");
+						classLogger.warn("User {} has an invalid FORCE_PORT value", User.getSingleLogginName(this));
 					}
 				}
 			}
@@ -727,18 +723,20 @@ public class User implements Serializable {
 					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
 							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to start chrooted python process for user {}",
+							User.getSingleLogginName(this), e);
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
 			} else {
 				try {
 					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
+							serverDirectory, e);
 					throw new IllegalArgumentException("Could not create directory to launch project process");
 				}
 
-				classLogger.info("Starting Non-chroot TCP Server for User = " + User.getSingleLogginName(this));
+				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
 							: null;
@@ -746,7 +744,8 @@ public class User implements Serializable {
 							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
 							ThreadContext.getImmutableContext());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to start non-chroot python process for user {}",
+							User.getSingleLogginName(this), e);
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
 			}

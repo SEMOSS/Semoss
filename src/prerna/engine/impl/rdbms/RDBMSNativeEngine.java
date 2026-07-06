@@ -145,12 +145,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		// but some will have it as accessKey/secretKey
 		// so accounting for that here
 		this.userName = this.smssProp.getProperty(queryUtil.getConnectionUserKey());
-		if (smssFilePath != null) {
-			this.password = decryptPass(smssFilePath, false);
-		}
-		if (this.password == null) {
-			this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
-		}
+		this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
 
 		// grab the connection url
 		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
@@ -379,7 +374,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-		if (this.connectionTestQuery != null && this.connectionTestQuery.isEmpty()) {
+		if (this.connectionTestQuery != null && !this.connectionTestQuery.isEmpty()) {
 			dataSource.setConnectionTestQuery(this.connectionTestQuery);
 		}
 	}

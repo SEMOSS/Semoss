@@ -30,17 +30,9 @@ package prerna.reactor.agent;
 /**
  * Pluggable harness interface for the generic agent loop.
  *
- * <p>Implementations receive a fully-resolved {@link AgentRunContext} and are
- * responsible for driving the model/tool loop until a final text response is obtained.
- *
- * <p>Built-in implementations:
- * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — SEMOSS Room tool-calling loop
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness} — ClaudeCode SDK
- *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness} — GitHub Copilot SDK
- * </ul>
- *
- * <p>Custom harnesses can be registered at startup via {@link AgentHarnessRegistry#register}.
+ * <p>Implementations receive a resolved {@link AgentRunContext} and drive the
+ * model/tool loop to a final response. Built-ins are registered through
+ * {@link AgentHarnessRegistry}, and custom harnesses can be added at startup.
  */
 public interface IAgentHarness {
 
@@ -49,6 +41,14 @@ public interface IAgentHarness {
      * Must be stable across JVM restarts.
      */
     String getName();
+
+    /**
+     * @return true when this harness can attach current-turn media to the initial
+     *         user message.
+     */
+    default boolean supportsMediaInput() {
+        return false;
+    }
 
     /**
      * Execute the agentic loop and return a rich result.

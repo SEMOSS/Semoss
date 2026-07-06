@@ -30,7 +30,6 @@ package prerna.tcp.client;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -48,11 +47,13 @@ import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import prerna.auth.User;
+import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -64,11 +65,20 @@ import prerna.sablecc2.comm.PixelJobStatus;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
 
 	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
+	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
+
+	// Connection polling: try frequently at first so a fast machine connects almost
+	// immediately, easing off with a capped backoff, and keep trying until a
+	// generous deadline so a slow / loaded machine still succeeds.
+	private static final int CONNECT_INITIAL_INTERVAL_MS = 100;
+	private static final int CONNECT_MAX_INTERVAL_MS = 500;
+	private static final long CONNECT_TIMEOUT_MS = 30_000L;
 
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
@@ -84,6 +94,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
+
+			// if we aren't already running in some span context, add one to correlate
+			// events on this thread
+			if (!ThreadContext.containsKey(SemossLogUtils.SPAN_ID)) {
+				startCtx.put(SemossLogUtils.SPAN_ID,
+						this.cpw == null ? "UNK_" + Utility.getRandomString(5) : cpw.getPrefix());
+			}
+
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -91,28 +109,30 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 			// Configure SSL.git
 			if (!connected && !killAll) {
-				int attempt = 1;
-				int SLEEP_TIME = 800;
+				// Poll at a short interval so a fast machine connects almost immediately,
+				// then ease off with a capped backoff, and keep trying until a generous
+				// deadline so a slow / loaded machine still succeeds. SLEEP_TIME (if set)
+				// overrides the initial interval for backwards compatibility.
+				int intervalMs = CONNECT_INITIAL_INTERVAL_MS;
 				if (Utility.getDIHelperProperty("SLEEP_TIME") != null) {
 					try {
-						SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
+						intervalMs = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 					} catch (NumberFormatException e) {
 						classLogger.error("Invalid SLEEP_TIME property value: {}",
 								Utility.getDIHelperProperty("SLEEP_TIME"), e);
 					}
 				}
+				int curIntervalMs = intervalMs;
+				long deadline = System.currentTimeMillis() + CONNECT_TIMEOUT_MS;
 
-				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
-				while (!connected && attempt < 6) {
+				classLogger.info("Connecting to python server: polling every {}ms (cap {}ms) for up to {}ms",
+						intervalMs, CONNECT_MAX_INTERVAL_MS, CONNECT_TIMEOUT_MS);
+				int attempt = 0;
+				while (!connected && !killAll && System.currentTimeMillis() < deadline) {
+					attempt++;
 					try {
-						clientSocket = new Socket(this.HOST, this.PORT);
-						// pick input and output stream and start the threads
-						this.is = clientSocket.getInputStream();
-						this.os = clientSocket.getOutputStream();
-						classLogger.info("CLIENT Connection complete !!!!!!!");
-						// sleep some before executing command
-						Thread.sleep(100);
-
+						openConnection();
+						classLogger.info("CLIENT Connection complete after {} attempt(s) !!!!!!!", attempt);
 						connected = true;
 						ready = true;
 						killAll = false;
@@ -120,22 +140,29 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							this.notifyAll();
 						}
 					} catch (Exception ex) {
-						attempt++;
-						classLogger.info("Attempting connection number {}", attempt);
-						// see if sleeping helps ?
-						try {
-							// sleeping only for 1 second here
-							// but the py executor sleeps in 2 second increments
-							Thread.sleep(attempt * SLEEP_TIME);
-						} catch (Exception ex2) {
-							// ignored
+						// fail fast if the process already died - no point waiting out the
+						// deadline, and it lets the caller surface the real startup error
+						Process proc = (this.cpw != null) ? this.cpw.getProcess() : null;
+						if (proc != null && !proc.isAlive()) {
+							classLogger.error("Python process exited before accepting a connection (attempt {})",
+									attempt);
+							break;
 						}
+						try {
+							Thread.sleep(curIntervalMs);
+						} catch (InterruptedException ex2) {
+							Thread.currentThread().interrupt();
+							break;
+						}
+						// gentle capped backoff: stay responsive but ease off if it drags
+						curIntervalMs = Math.min(curIntervalMs * 2, CONNECT_MAX_INTERVAL_MS);
 					}
 				}
 
-				if (attempt >= 6) {
-					classLogger.error("CLIENT Connection Failed !!!!!!!");
+				if (!connected) {
+					classLogger.error("CLIENT Connection Failed after {} attempt(s) !!!!!!!", attempt);
 					ready = false;
+					killAll = true;
 					synchronized (this) {
 						this.notifyAll();
 					}
@@ -196,13 +223,19 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (ps.operation == PayloadStruct.OPERATION.CANCELLED) {
 								classLogger.debug("User cancelled request for epoc: {}", ps.epoc);
 							}
-							// std out no questions
+							// std out
 							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null
 									&& !ps.response) {
 								String logMessage = (String) ps.payload[0];
 								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
 								}
+							}
+							// explicit log output goes to py logger
+							else if (ps.operation == PayloadStruct.OPERATION.LOG && ps.payload != null
+									&& !ps.response) {
+								String logMessage = (String) ps.payload[0];
+								pyLogger.info(logMessage);
 							}
 
 							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
@@ -249,12 +282,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
 
 								if (lock != null) {
-									synchronized (lock) {
-										classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
-										lock.notifyAll();
-										classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
-
-									}
+									classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
+									lock.signalResponse();
+									classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
 								}
 							}
 							// this is a request for a reactor
@@ -348,9 +378,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								lock = requestMap.remove(ps.epoc);
 								responseMap.put(ps.epoc, ps);
 								if (lock != null) {
-									synchronized (lock) {
-										lock.notifyAll();
-									}
+									lock.signalResponse();
 								}
 							}
 						} else {
@@ -457,6 +485,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	private void exposeLog(String data, String jobId) {
 		classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
 		if (jobId != null && data != null) {
+			pyLogger.info(data);
 			PixelJobManager.getManager().addStdOut(jobId, data);
 		} else {
 			// 2025-07-08
@@ -533,8 +562,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		ps.longRunning = true;
 
 		try {
-			synchronized (ps) {
-				classLogger.debug("Inside synchronized block for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName,
+			// ReentrantLock + Condition (not synchronized/wait) so a virtual thread
+			// blocked here while python works unmounts its carrier cleanly instead of
+			// pinning it.
+			ps.lockResponse();
+			try {
+				classLogger.debug("Inside response lock for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName,
 						threadId);
 
 				if (!ps.response) {
@@ -550,21 +583,25 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				int maxWait = 1_000;
 				if (!ps.response) // this is a response to something the socket has asked
 				{
+					long waitDeadline = System.nanoTime() + MAX_RESPONSE_WAIT.toNanos();
 					int pollNum = 1;
 					while (!responseMap.containsKey(ps.epoc) && (pollNum < maxWait || ps.longRunning) && !killAll
-							&& !cancelledEpocs.contains(ps.epoc)) {
+							&& !cancelledEpocs.contains(ps.epoc) && System.nanoTime() < waitDeadline) {
 						classLogger.debug("Thread {} waiting for response to epoc: {} (poll #{})",
 								Thread.currentThread().threadId(), ps.epoc, pollNum);
 						try {
 							classLogger.debug("I'm looking for epoc{}", ps.epoc);
 							if (pollNum < maxWait) {
-								ps.wait(this.averageMillis);
+								ps.awaitResponse(this.averageMillis, TimeUnit.MILLISECONDS);
 							} else {
-								classLogger.debug("Im about to wait eternally for epoc {}", ps.epoc);
-								// wait eternally - we dont know how long some of the load operations would take
-								// besides
-								// I am not sure if the null gets us anything
-								ps.wait();
+								classLogger.debug("Waiting for long-running epoc {} (up to the max wait)", ps.epoc);
+								// wait for the response, but no longer than the time remaining
+								// until the cap - we don't know how long load operations take,
+								// but we don't wait forever either
+								long remainingNanos = waitDeadline - System.nanoTime();
+								if (remainingNanos > 0) {
+									ps.awaitResponse(remainingNanos, TimeUnit.NANOSECONDS);
+								}
 							}
 							pollNum++;
 						} catch (InterruptedException e) {
@@ -587,12 +624,24 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						cancelledEpocs.remove(ps.epoc);
 						classLogger.info("Cancelled epoc {} {}", ps.epoc, ps.methodName);
 						throw new SemossPixelException("The request was cancelled by the user");
+					} else if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
+						// hit the hard cap - stop waiting but leave python running so a script
+						// that persists its own results can still finish
+						this.requestMap.remove(ps.epoc);
+						classLogger.warn(
+								"Stopped waiting for epoc {} method {} after the {}h max wait; python continues running in the background",
+								ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
+						throw new SemossPixelException("This execution exceeded the maximum wait time of "
+								+ MAX_RESPONSE_WAIT.toHours()
+								+ " hours. The python process is still running in the background - if your script persists its results, you can retrieve them later.");
 					} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
 						classLogger.info("Timed out for epoc {} {}", ps.epoc, ps.methodName);
 					}
 				}
 
 				return responseMap.remove(ps.epoc);
+			} finally {
+				ps.unlockResponse();
 			}
 		} finally {
 			removeEpocForInsight(ps.insightId, ps.epoc);
@@ -684,34 +733,32 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.epoc = "stop_all";
+						ps.hasReturn = false;
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						ps.operation = PayloadStruct.OPERATION.CMD;
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.epoc = "stop_all";
-					ps.hasReturn = false;
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					ps.operation = PayloadStruct.OPERATION.CMD;
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					boolean result = future.get(5, TimeUnit.SECONDS);
-					classLogger.info("Stop socket result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					Thread.currentThread().interrupt();
-					classLogger.error("Interrupted or execution failure during stop server", e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						boolean result = future.get(5, TimeUnit.SECONDS);
+						classLogger.info("Stop socket result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						Thread.currentThread().interrupt();
+						classLogger.error("Interrupted or execution failure during stop server", e);
+						return false;
+					}
 				}
 			} else {
 				return true;
@@ -734,36 +781,33 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
 
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Callable<String> callableTask = () -> {
-			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-					ps.ex = "Client is disconnected from the server.";
-					synchronized (ps) {
-						ps.notifyAll();
+		try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+			Callable<String> callableTask = () -> {
+				try {
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
+						ps.ex = "Client is disconnected from the server.";
+						ps.signalResponse();
 					}
+				} catch (Exception e) {
+					classLogger.error("Error releasing pending payload structs during crash", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error releasing pending payload structs during crash", e);
-			}
-			return "Successfully released the payload structs";
-		};
+				return "Successfully released the payload structs";
+			};
 
-		Future<String> future = executor.submit(callableTask);
-		try {
-			// wait 1 minute at most
-			String result = future.get(60, TimeUnit.SECONDS);
-			classLogger.info(result);
-		} catch (TimeoutException e) {
-			classLogger.warn("Not able to release the payload structs within a timely fashion");
-			future.cancel(true);
-		} catch (InterruptedException | ExecutionException e) {
-			Thread.currentThread().interrupt();
-			classLogger.error("Interrupted or execution failure during crash", e);
-		} finally {
-			executor.shutdown();
+			Future<String> future = executor.submit(callableTask);
+			try {
+				// wait 1 minute at most
+				String result = future.get(60, TimeUnit.SECONDS);
+				classLogger.info(result);
+			} catch (TimeoutException e) {
+				classLogger.warn("Not able to release the payload structs within a timely fashion");
+				future.cancel(true);
+			} catch (InterruptedException | ExecutionException e) {
+				Thread.currentThread().interrupt();
+				classLogger.error("Interrupted or execution failure during crash", e);
+			}
 		}
 
 		this.close();

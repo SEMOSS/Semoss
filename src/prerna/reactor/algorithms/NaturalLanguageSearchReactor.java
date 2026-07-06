@@ -50,7 +50,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -496,10 +496,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put("Multiple" + combinedQs.size(), curQs);
 				combinedQs.put(currDatabaseId, curQs);
@@ -508,10 +508,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			} else if (!combined && currDatabaseId != null && !currDatabaseId.equals(rowDatabaseId)) {
@@ -520,10 +520,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			} else if (!combined && currDatabaseId != null && currDatabaseId.equals(rowDatabaseId)
@@ -531,10 +531,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// How do we handle multiple queries from the same database
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			}
@@ -1230,13 +1230,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	public String buildImportPixelFromQs(SelectQueryStruct qs, String databaseId, String frameName, boolean merge,
 			boolean global) {
 		StringBuilder psb = new StringBuilder();
-		QUERY_STRUCT_TYPE type = qs.getQsType();
+		AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
 
 		// continue with import if false
-		if (type == QUERY_STRUCT_TYPE.ENGINE) {
+		if (type == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			// pull from the appId
 			psb.append("Database ( database = [ \"" + databaseId + "\" ] ) | ");
-		} else if (type == QUERY_STRUCT_TYPE.FRAME) {
+		} else if (type == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			psb.append("Frame ( frame = [" + this.getFrame().getName() + "] ) | ");
 		}
 
@@ -1432,7 +1432,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					psb.append(joinType + ", ");
 					psb.append(col2 + " ) ");
 				} else {
-					classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
+					classLogger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 				}
 			}
 			psb.append(") | ");
@@ -1629,7 +1629,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// create the frame qs and other vars
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 		String colDropString = "";
 		String mergeString = "Merge ( joins = [ ";
 

@@ -1,7 +1,7 @@
 #Base Properties
 ENGINE	UserTrackingDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-OWL	db/UserTrackingDatabase/UserTrackingDatabase_OWL.OWL
+OWL	UserTrackingDatabase_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	

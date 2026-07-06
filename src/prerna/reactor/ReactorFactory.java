@@ -84,7 +84,6 @@ import prerna.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.reactor.cluster.OpenDatabaseReactor;
 import prerna.reactor.cluster.VersionReactor;
 import prerna.reactor.database.DatabaseColumnUniqueReactor;
@@ -381,11 +380,7 @@ import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
-import prerna.reactor.utils.BDelReactor;
-import prerna.reactor.utils.BQReactor;
 import prerna.reactor.utils.BackupDatabaseReactor;
-import prerna.reactor.utils.BaddReactor;
-import prerna.reactor.utils.BupdReactor;
 import prerna.reactor.utils.CheckRPackagesReactor;
 import prerna.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.reactor.utils.DatabaseProfileReactor;
@@ -412,23 +407,6 @@ import prerna.reactor.workspace.UploadUserFileReactor;
 import prerna.reactor.workspace.UserDirReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.git.reactors.AddAppCollaborator;
-import prerna.util.git.reactors.CopyAppRepo;
-import prerna.util.git.reactors.DeleteAppRepo;
-import prerna.util.git.reactors.DropAppRepo;
-import prerna.util.git.reactors.GitStatusReactor;
-import prerna.util.git.reactors.InitAppRepo;
-import prerna.util.git.reactors.IsGit;
-import prerna.util.git.reactors.ListAppCollaborators;
-import prerna.util.git.reactors.ListAppRemotes;
-import prerna.util.git.reactors.ListUserApps;
-import prerna.util.git.reactors.LoginReactor;
-import prerna.util.git.reactors.RemoveAppCollaborator;
-import prerna.util.git.reactors.SearchAppCollaborator;
-import prerna.util.git.reactors.SyncApp;
-import prerna.util.git.reactors.SyncAppFiles;
-import prerna.util.git.reactors.SyncAppFilesO;
-import prerna.util.git.reactors.SyncAppOReactor;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
@@ -987,29 +965,6 @@ public class ReactorFactory {
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 
-		// Git it
-		reactorHash.put("InitAppRepo", InitAppRepo.class);
-		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
-		reactorHash.put("RemoveAppCollaborator", RemoveAppCollaborator.class);
-		reactorHash.put("SearchAppCollaborator", SearchAppCollaborator.class);
-		reactorHash.put("ListAppCollaborators", ListAppCollaborators.class);
-		reactorHash.put("CopyAppRepo", CopyAppRepo.class);
-		reactorHash.put("DeleteAppRepo", DeleteAppRepo.class);
-		reactorHash.put("DropAppRepo", DropAppRepo.class);
-		reactorHash.put("SyncApp", SyncApp.class);
-		reactorHash.put("SyncAppFiles", SyncAppFiles.class);
-		reactorHash.put("ListAppRemotes", ListAppRemotes.class);
-		reactorHash.put("ListUserApps", ListUserApps.class);
-		reactorHash.put("IsGit", IsGit.class);
-		reactorHash.put("Login", LoginReactor.class);
-		reactorHash.put("GitStatus", GitStatusReactor.class);
-		reactorHash.put("GitVersion", prerna.util.git.reactors.GitVersion.class);
-		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
-		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
-		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
-		reactorHash.put("SyncAppO", SyncAppOReactor.class);
-		reactorHash.put("SyncAppFilesO", SyncAppFilesO.class);
-
 		// App Metadata
 //		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
@@ -1028,7 +983,6 @@ public class ReactorFactory {
 
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
-		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
@@ -1089,12 +1043,6 @@ public class ReactorFactory {
 //		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 //		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
 //		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
-
-		// bitly
-		reactorHash.put("badd", BaddReactor.class);
-		reactorHash.put("bupd", BupdReactor.class);
-		reactorHash.put("bdel", BDelReactor.class);
-		reactorHash.put("bq", BQReactor.class);
 
 		// Dates
 		reactorHash.put("DATE", DateReactor.class);

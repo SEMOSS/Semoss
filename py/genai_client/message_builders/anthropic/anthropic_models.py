@@ -67,6 +67,17 @@ class AnthropicToolResultContentPart(BaseModel):
     content: str
 
 
+# Result block for Anthropic server-side tools (web_search,
+# code_execution, ...). Lives inside the assistant turn (unlike the regular
+# tool_result block, which only belongs in user turns). The `type` is
+# provider-specific (e.g. "web_search_tool_result") and the content is a
+# structured list of result entries rather than an opaque string.
+class AnthropicServerToolResultContentPart(BaseModel):
+    type: str
+    tool_use_id: str
+    content: Union[List[Dict[str, Any]], Dict[str, Any], str]
+
+
 # FOR CALLING TOOLS
 class AnthropicToolCall(BaseModel):
     name: str
@@ -99,6 +110,7 @@ class AnthropicMessage(BaseModel):
                 AnthropicTextContentPart,
                 AnthropicImageContentPart,
                 AnthropicToolUseContentPart,
+                AnthropicServerToolResultContentPart,
                 AnthropicToolResultContentPart,
                 AnthropicThinkingContentPart,
                 AnthropicDocumentContentPart,
@@ -122,6 +134,8 @@ class AnthropicRequestConfig(BaseModel):
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     thinking: Optional[Dict[str, Any]] = None
+    # Modern Claude (Opus 4.6+/Sonnet 4.6/Fable): {"effort": "low|medium|high|xhigh|max"}
+    output_config: Optional[Dict[str, Any]] = None
 
 
 class AnthropicMessageBuilderResponse(BaseModel):

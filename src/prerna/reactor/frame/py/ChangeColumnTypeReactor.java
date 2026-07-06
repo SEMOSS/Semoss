@@ -36,12 +36,21 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-/**
- * This reactor changes the data type of an existing column The inputs to the
- * reactor are: 1) the column to update 2) the desired column type
- */
-
 public class ChangeColumnTypeReactor extends AbstractPyFrameReactor {
+
+	/**
+	 * <p>
+	 * This reactor changes the data type of an existing column
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to update</li>
+	 * <li>the desired column type</li>
+	 * </ul>
+	 */
 
 	public ChangeColumnTypeReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
@@ -50,7 +59,6 @@ public class ChangeColumnTypeReactor extends AbstractPyFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-
 		// if it is string super easy
 		// if it is int need to see if this is a string if so run regex
 		// if it is a int and the current is a float need to run regex
