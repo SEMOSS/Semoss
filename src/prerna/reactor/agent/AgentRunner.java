@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
@@ -178,10 +179,19 @@ public final class AgentRunner {
 			Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
 					: RoomUtils.getOrLoadRoom(roomId, insight);
 
-			String modelId = resolveModelId(room, runtimeModelId);
+			Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+			Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
+
+			// Resolve and strip any per-run workspace override before model + working-dir lookup.
+			String explicitWorkspaceId = extractExplicitWorkspaceId(params);
+			String effectiveWorkspaceId = explicitWorkspaceId != null ? explicitWorkspaceId
+					: extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
+
+			String modelId = resolveModelId(room, runtimeModelId, effectiveWorkspaceId);
 			if (modelId == null || modelId.trim().isEmpty()) {
 				throw new IllegalArgumentException("No model engine found for room '" + roomId + "'. "
-						+ "Set MODEL_ID on the room or pass engine= to the reactor.");
+						+ "Set MODEL_ID on the room, pass engine= to the reactor, or set model_id on the "
+						+ "workspace/agent config (CONFIG_JSON).");
 			}
 			logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
 
@@ -195,14 +205,6 @@ public final class AgentRunner {
 			room.setModelId(modelId);
 
 			insight.setRoomForInsight(room);
-
-			Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
-			Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
-
-			// Resolve and strip any per-run workspace override before working-dir lookup.
-			String explicitWorkspaceId = extractExplicitWorkspaceId(params);
-			String effectiveWorkspaceId = explicitWorkspaceId != null ? explicitWorkspaceId
-					: extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
 
 			String filePath = resolveWorkingDir(room, params, effectiveWorkspaceId);
 			if (filePath != null && !filePath.trim().isEmpty()) {
@@ -669,7 +671,7 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Resolves the model/engine ID using a three-tier priority:
+	 * Resolves the model/engine ID using a four-tier priority:
 	 *
 	 * <ol>
 	 * <li>Runtime override - {@code engine=} passed explicitly to
@@ -678,10 +680,16 @@ public final class AgentRunner {
 	 * <li>Room {@code options} map - legacy keys ({@code engine}, {@code model},
 	 * etc.) used by older rooms that stored the model id in options rather than the
 	 * column.
+	 * <li>Workspace/agent config - {@code WORKSPACE.CONFIG_JSON.model_id}, the
+	 * per-agent default that lets callers run an agent without binding a model to
+	 * the room or passing {@code engine=}.
 	 * </ol>
+	 *
+	 * @param workspaceId effective workspace id for this run (may be null); used to
+	 *                    look up the CONFIG_JSON default in tier 4.
 	 */
 	@SuppressWarnings("unchecked")
-	private static String resolveModelId(Room room, String runtimeOverride) {
+	private static String resolveModelId(Room room, String runtimeOverride, String workspaceId) {
 		// Tier 1: explicit runtime engine= param wins.
 		if (runtimeOverride != null && !runtimeOverride.trim().isEmpty()) {
 			logger.info("AgentRunner: using runtime engine override={}", runtimeOverride);
@@ -704,6 +712,25 @@ public final class AgentRunner {
 					logger.info("AgentRunner: resolved modelId from options['{}']={}", key, val);
 					return ((String) val).trim();
 				}
+			}
+		}
+
+		// Tier 4: workspace/agent CONFIG_JSON default model. Best-effort - a missing
+		// workspace, empty column, or parse failure just falls through to null.
+		if (workspaceId != null && !workspaceId.trim().isEmpty()) {
+			try {
+				JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId.trim());
+				if (cfg != null) {
+					String cfgModelId = cfg.optString("model_id", null);
+					if (cfgModelId != null && !cfgModelId.trim().isEmpty()) {
+						logger.info("AgentRunner: resolved modelId from CONFIG_JSON.model_id={} (workspace={})",
+								cfgModelId, workspaceId);
+						return cfgModelId.trim();
+					}
+				}
+			} catch (Exception e) {
+				logger.warn("AgentRunner: CONFIG_JSON model_id lookup failed for workspace '{}': {}", workspaceId,
+						e.getMessage());
 			}
 		}
 
