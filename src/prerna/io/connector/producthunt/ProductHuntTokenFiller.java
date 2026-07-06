@@ -25,34 +25,41 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.producthunt;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * Product Hunt OAuth2 provider (API v1). Uses the fixed Product Hunt
+ * authorize/token endpoints with a scope and no
+ * {@code response_mode}/{@code state}, and reads the profile from the v1
+ * {@code /me} endpoint.
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class ProductHuntTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	private static final String AUTH_URL = "https://api.producthunt.com/v1/oauth/authorize";
+	private static final String TOKEN_URL = "https://api.producthunt.com/v1/oauth/token";
+	// v1 /me returns { "user": { id, name, username, ... } }
+	private static final String USER_INFO_URL = "https://api.producthunt.com/v1/me";
+	// jsonPattern: JMESPath query projecting values out of the /me JSON (nested
+	// under "user").
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	private static final String DEFAULT_JSON_PATTERN = "[user.name, user.username, user.id]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "username", "id" };
 
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		return AUTH_URL;
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override

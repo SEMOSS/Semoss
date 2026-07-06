@@ -25,34 +25,42 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.siteminder;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * SiteMinder fronting an Azure AD tenant. When
+ * {@code auth_url}/{@code token_url} are not configured they default to the
+ * Microsoft tenant endpoints derived from the {@code tenant} property. Scope is
+ * included in the token exchange and the profile is read from Microsoft Graph
+ * (the token is an Azure AD token).
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class SiteminderTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	private static final String MS_BASE = "https://login.microsoftonline.com/";
+	// Azure AD access token -> Microsoft Graph "me" for the profile
+	private static final String USER_INFO_URL = "https://graph.microsoft.com/v1.0/me/";
+	// jsonPattern: JMESPath query projecting values out of the Graph "me" JSON.
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	private static final String DEFAULT_JSON_PATTERN = "[displayName, id, mail]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "id", "email" };
 
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		String tenant = socialData.getProperty(prefix + "tenant");
+		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		String tenant = socialData.getProperty(prefix + "tenant");
+		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override
@@ -66,13 +74,8 @@ public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
 	}
 
 	@Override
-	protected boolean includeResponseMode() {
-		return false;
-	}
-
-	@Override
-	protected boolean includeState() {
-		return false;
+	protected boolean includeScopeInTokenRequest() {
+		return true;
 	}
 
 }
