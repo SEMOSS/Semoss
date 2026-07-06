@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +45,10 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.run.AgentRuntimeManager;
@@ -72,6 +76,23 @@ public class RunAgentReactor extends AbstractReactor {
     private static final String WAIT_TIMEOUT_MS_KEY = "waitTimeoutMs";
     private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
 
+    /**
+     * When present, the agent loop is skipped and the reactor persists a
+     * single input+response turn assembled from these parts. Used by the FE
+     * cancel flow to commit whatever streamed before the user hit stop on the
+     * initial ask of a RunAgent turn. Reflection and tool-followup cancel
+     * points are not covered by this key.
+     */
+    private static final String RESPONSE_PARTS_KEY = "responseParts";
+
+    /**
+     * Cancel-flow only. When paired with {@link #RESPONSE_PARTS_KEY}, a hidden
+     * user note carrying this string is appended after the visible turn (plus
+     * an auto-generated assistant ack) so the model sees on the next turn that
+     * its previous response was cut short. Ignored on live runs.
+     */
+    private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
+
     public RunAgentReactor() {
         this.keysToGet = new String[] {
                 ReactorKeysEnum.ROOM_ID.getKey(),
@@ -89,8 +110,11 @@ public class RunAgentReactor extends AbstractReactor {
                 ReactorKeysEnum.AGENT_PARAMS.getKey(),
                 ReactorKeysEnum.IMAGE.getKey(),
                 ReactorKeysEnum.URL.getKey(),
+                ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(),
+                RESPONSE_PARTS_KEY,
+                HIDDEN_MESSAGE_KEY,
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -141,6 +165,19 @@ public class RunAgentReactor extends AbstractReactor {
         }
         if (input == null || input.trim().isEmpty()) {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
+        if (responseParts != null) {
+            // Cancel-persistence short-circuit: skip the agent loop entirely,
+            // commit the FE-supplied parts as a single input+response turn.
+            // Only the initial-ask cancel point is covered here; reflection
+            // and tool-followup cancels are not supported by this path.
+            String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
+            String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
+            return commitCancelledInitialAsk(roomId, input, engineIdFallback, paramMap, inputImages, inputImageURLs,
+                    parentMessageId, responseParts, hiddenMessage);
         }
 
         logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} images={} urls={}",
@@ -195,6 +232,72 @@ public class RunAgentReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+    }
+
+    /**
+     * Persist a cancelled initial-ask turn without running the agent loop.
+     * Assembles the assistant response from {@code responseParts} and commits
+     * the input/response pair via {@link Room#ask(InputMessage, IModelEngine, String, ResponseMessage)}.
+     * Optionally appends a hidden user-note / assistant-ack pair so the next
+     * turn's provider payload signals the prior response was cut short.
+     *
+     * <p>Returns a playground-shape map ({@code inputMessage}, {@code responseMessage},
+     * {@code extraMessages}) rather than {@link RunAgentResult#toMap()}, since
+     * there is no runId or harness result to report — the FE cancel flow already
+     * consumes this shape from AskPlayground.
+     */
+    private NounMetadata commitCancelledInitialAsk(String roomId, String input, String engineIdFallback,
+            Map<String, Object> paramMap, List<String> inputImages, List<String> inputImageURLs,
+            String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage) {
+        if (engineIdFallback == null || engineIdFallback.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "engine is required for RunAgent cancel-commit (responseParts) — the harness normally resolves"
+                            + " it from room options but the cancel-commit path does not run the harness");
+        }
+        IModelEngine modelEngine = Utility.getModel(engineIdFallback.trim());
+        if (modelEngine == null) {
+            throw new IllegalArgumentException(
+                    "Could not load model engine '" + engineIdFallback + "' for room '" + roomId + "'");
+        }
+
+        List<String> copiedImages = stageMediaInputs(roomId, input, engineIdFallback, inputImages);
+        Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input);
+
+        String systemPrompt = room.getSystemPromptForModel();
+        InputMessage msg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(input)
+                .withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
+                .withModelType(modelEngine.getModelType())
+                .withParamMap(paramMap != null ? paramMap : new HashMap<>()).build();
+
+        ResponseMessage prebuilt = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
+        ResponseMessage response = room.ask(msg, modelEngine, parentMessageId, prebuilt);
+
+        List<AbstractMessage> extraMessages = new ArrayList<>();
+        if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
+            PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
+                    insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
+        }
+
+        Map<String, Object> pixelReturn = new LinkedHashMap<>();
+        pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
+        pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
+
+        List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+        for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+            Map<String, Object> pair = new LinkedHashMap<>();
+            pair.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i))));
+            pair.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i + 1))));
+            extraMessagesList.add(pair);
+        }
+        pixelReturn.put("extraMessages", extraMessagesList);
+
+        pixelReturn.put("runId", null);
+        pixelReturn.put("status", "CANCELLED_COMMIT");
+        pixelReturn.put("roomId", roomId);
+
+        logger.info("RunAgentReactor: cancel-commit persisted roomId={} extraPairs={}", roomId,
+                extraMessagesList.size());
+        return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
 
     // Helpers
@@ -350,7 +453,8 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-        if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+        if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
+                || RESPONSE_PARTS_KEY.equals(key)) {
             return MCP_KEY_TYPE.ARRAY;
         }
         if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey()) || key.equals(ReactorKeysEnum.AGENT_PARAMS.getKey())) {
@@ -369,6 +473,17 @@ public class RunAgentReactor extends AbstractReactor {
         }
         if (key.equals(INCLUDE_MESSAGES_KEY)) {
             return "When true, returns the run's full message history (input, assistant turns, tool calls/results) under 'messages'. Implies wait=true.";
+        }
+        if (RESPONSE_PARTS_KEY.equals(key)) {
+            return "Optional. When provided, the agent loop is skipped and this array of response parts"
+                    + " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+                    + " response for a single initial-ask turn. Used by the FE cancel flow to commit whatever"
+                    + " streamed before the user hit stop on the first ask of a RunAgent turn. Requires engine.";
+        }
+        if (HIDDEN_MESSAGE_KEY.equals(key)) {
+            return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
+                    + " appended after the visible turn, plus an auto-generated assistant ack, so the model sees on"
+                    + " the next turn that its previous response was cut short. Ignored on live runs.";
         }
         return super.getDescriptionForKey(key);
     }
