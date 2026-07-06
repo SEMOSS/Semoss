@@ -92,8 +92,10 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_SUBDIR = "subdir";
 	private static final String PARAM_WORKSPACE_ID = "workspace_id";
 	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
-	private static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
-	private static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
+	/** Ornament key tagging every room message produced by a given agent run. */
+	public static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
+	/** Ornament key tagging the role each message played within the run. */
+	public static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
 	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
 	private static final String RUN_ROLE_ASSISTANT = "assistant";

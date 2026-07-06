@@ -27,48 +27,62 @@
  *******************************************************************************/
 package prerna.io.connector.salesforce;
 
-import java.util.HashMap;
-import java.util.Map;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
-import prerna.auth.AccessToken;
-import prerna.io.connector.IAccessTokenFiller;
-import prerna.security.HttpHelperUtility;
-import prerna.util.BeanFiller;
+/**
+ * Salesforce OAuth2 provider. Uses the standard authorization-code flow against
+ * the fixed Salesforce endpoints with the {@code api} scope. The authorize
+ * redirect does not use {@code response_mode}/{@code state}.
+ */
+public class SalesforceTokenFiller extends AbstractOAuthTokenFiller {
 
-public class SalesforceTokenFiller implements IAccessTokenFiller {
-
+	private static final String AUTH_URL = "https://login.salesforce.com/services/oauth2/authorize";
+	private static final String TOKEN_URL = "https://login.salesforce.com/services/oauth2/token";
 	private static final String USER_INFO_URL = "https://login.salesforce.com/services/oauth2/userinfo";
-	private static final String[] DEFAULT_BEAN_PROPS = { "username", "email", "id" };
+	// jsonPattern: JMESPath query projecting values out of the userinfo JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
 	private static final String DEFAULT_JSON_PATTERN = "[name, email, user_id]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "username", "email", "id" };
+	private static final String DEFAULT_SCOPE = "api";
 
 	@Override
-	public void fillAccessToken(AccessToken salesforceAccessToken, String userInfoUrl, String jsonPattern,
-			String[] beanProps, Map<String, Object> params) {
-		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
-			userInfoUrl = USER_INFO_URL;
-		}
-		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
-			jsonPattern = DEFAULT_JSON_PATTERN;
-		}
-		if (beanProps == null || beanProps.length == 0) {
-			beanProps = DEFAULT_BEAN_PROPS;
-		}
-
-		if (params == null) {
-			params = new HashMap<>();
-		}
-
-		String accessToken = salesforceAccessToken.getAccess_token();
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-		// fill the bean with the return
-		BeanFiller.fillFromJson(output, jsonPattern, beanProps, salesforceAccessToken);
+	protected String getDefaultAuthorizeUrl(String prefix) {
+		return AUTH_URL;
 	}
 
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params, boolean sanitizeResponse) {
-		// Salesforce payload is controlled and immediately mapped into AccessToken.
-		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	protected String getDefaultTokenUrl(String prefix) {
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
+	}
+
+	@Override
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
+	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
+	@Override
+	protected String getDefaultScope(String prefix) {
+		return DEFAULT_SCOPE;
+	}
+
+	@Override
+	protected boolean includeResponseMode() {
+		return false;
+	}
+
+	@Override
+	protected boolean includeState() {
+		return false;
 	}
 
 }
