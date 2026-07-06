@@ -30,11 +30,9 @@ package prerna.util.git;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -44,52 +42,41 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.SSLHandshakeException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.egit.github.core.client.GitHubClient;
-import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.AddCommand;
+import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.CommitCommand;
+import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
+import org.eclipse.jgit.api.FetchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
-import org.eclipse.jgit.api.RemoteRemoveCommand;
+import org.eclipse.jgit.api.PullCommand;
+import org.eclipse.jgit.api.PullResult;
+import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.CheckoutConflictException;
-import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
-import org.eclipse.jgit.api.errors.NoMessageException;
-import org.eclipse.jgit.api.errors.UnmergedPathsException;
-import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
-import org.eclipse.jgit.errors.AmbiguousObjectException;
 import org.eclipse.jgit.errors.CorruptObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.LargeObjectException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.NoWorkTreeException;
-import org.eclipse.jgit.errors.RevisionSyntaxException;
-import org.eclipse.jgit.errors.TransportException;
+import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
-import org.eclipse.jgit.lib.ProgressMonitor;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.RefSpec;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.kohsuke.github.GHCreateRepositoryBuilder;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -97,6 +84,13 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.security.InstallCertNow;
 import prerna.util.Utility;
 
+/**
+ * Static utility methods for working with local git repositories and their
+ * GitHub remotes via JGit and the GitHub Java APIs. Provides helpers to check
+ * remote repository existence, configure/list remotes, fetch/pull and push,
+ * inspect commit history, read file content at a given commit, and stage and
+ * commit changes.
+ */
 public class GitRepoUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(GitRepoUtils.class);
@@ -105,386 +99,301 @@ public class GitRepoUtils {
 	public static final String SUBSCRIBE = "SUBSCRIBE";
 	public static final String PUBLISH = "PUBLISH";
 
-	/**
-	 * This class is not intended to be extended or used outside of its static
-	 * method
-	 */
 	private GitRepoUtils() {
 
 	}
 
 	/**
-	 * Generate a version folder within an app and init a local Git repo
-	 * 
-	 * @param appFolder
-	 */
-	public static void makeLocalDatabaseGitVersionFolder(String appFolder) {
-		File appDir = new File(appFolder + "/version");
-		if (!appDir.exists()) {
-			appDir.mkdirs();
-		}
-		try {
-			Git.init().setDirectory(appDir).call();
-			Git.open(appDir).close();
-		} catch (IllegalStateException | GitAPIException | IOException e) {
-			throw new IllegalArgumentException("Error in initializing local Git repository");
-		}
-	}
-
-	public static void makeRemoteRepository(GitHub gh, String username, String repoName) {
-		int attempt = 1;
-		makeRemoteRepository(gh, username, repoName, attempt);
-	}
-
-	/**
-	 * 
-	 * @param gh
-	 * @param username
-	 * @param repoName
-	 */
-	public static void makeRemoteRepository(GitHub gh, String username, String repoName, int attempt) {
-		if (attempt < 3) {
-			try {
-				GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
-						.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username)
-						.autoInit(false);
-				ghr.create();
-			} catch (SSLHandshakeException ex) {
-				classLogger.error("Failed to create remote repository: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to create remote repository: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				makeRemoteRepository(gh, username, repoName, attempt);
-			} catch (IOException e) {
-				classLogger.error("Failed to create remote repository: {}", e.getMessage(), e);
-				throw new IllegalArgumentException(
-						"Error with creating remote repository at " + username + "/" + repoName);
-			}
-		}
-	}
-
-	public static void removeRemote(String localRepository, String repositoryName) {
-		int attempt = 1;
-		removeRemote(localRepository, repositoryName, attempt);
-	}
-
-	/**
-	 * 
-	 * @param localRepository
-	 * @param repositoryName
-	 */
-	public static void removeRemote(String localRepository, String repositoryName, int attempt) {
-		if (attempt < 3) {
-			Git thisGit = null;
-			Repository thisRepo = null;
-			try {
-				thisGit = Git.open(new File(localRepository));
-				thisRepo = thisGit.getRepository();
-				StoredConfig config = thisRepo.getConfig();
-				config.unsetSection("remote", repositoryName);
-				config.save();
-			} catch (HttpException ex) {
-				classLogger.error("Failed to remove git remote: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to remove git remote: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				removeRemote(localRepository, repositoryName, attempt);
-			} catch (IOException e) {
-				classLogger.error("Failed to remove git remote: {}", e.getMessage(), e);
-				throw new IllegalArgumentException("Unable to drop remote");
-			} finally {
-				if (thisRepo != null) {
-					thisRepo.close();
-				}
-				if (thisGit != null) {
-					thisGit.close();
-				}
-			}
-		}
-	}
-
-	public static void deleteRemoteRepository(String repositoryName, String username, String password) {
-		int attempt = 1;
-		deleteRemoteRepository(repositoryName, username, password, attempt);
-	}
-
-	/**
-	 * Delete a repository
-	 * 
-	 * @param repositoryName
-	 * @param username
-	 * @param password
-	 * @throws IOException
-	 */
-	public static void deleteRemoteRepository(String repositoryName, String username, String password, int attempt) {
-		if (attempt < 3) {
-			String repoName = repositoryName.split("/")[1];
-			if (checkRemoteRepository(repoName, username, password)) {
-				GitHub gh = GitUtils.login(username, password);
-				GHRepository ghr = null;
-				try {
-					ghr = gh.getRepository(repositoryName);
-					ghr.delete();
-				} catch (HttpException ex) {
-					classLogger.error("Failed to delete remote repository: {}", ex.getMessage(), ex);
-					try {
-						InstallCertNow.please("github.com", null, null);
-					} catch (Exception e) {
-						classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
-					}
-					attempt = attempt + 1;
-					deleteRemoteRepository(repositoryName, username, password, attempt);
-				} catch (IOException e) {
-					classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
-					throw new IllegalArgumentException("Unable to delete remote repository at " + repositoryName);
-				}
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param localRepository
-	 * @param repositoryName
-	 */
-	public static void deleteRemoteRepositorySettings(String localRepository, String repositoryName) {
-		File file = new File(localRepository);
-
-		try (Git gFile = Git.open(file)) {
-			RemoteRemoveCommand remover = gFile.remoteRemove();
-			remover.setRemoteName(repositoryName.split("/")[1]);
-			remover.call();
-		} catch (IOException ioe) {
-			classLogger.error("Failed to delete remote repository settings: {}", ioe.getMessage(), ioe);
-		} catch (GitAPIException e) {
-			classLogger.error("Failed to delete remote repository settings: {}", e.getMessage(), e);
-		}
-	}
-
-	public static boolean checkRemoteRepository(String repositoryName, String username, String password) {
-		int attempt = 1;
-		return checkRemoteRepository(repositoryName, username, password, attempt);
-	}
-
-	/**
-	 * Check if a repo exists
-	 * 
-	 * @param repositoryName
-	 * @param username
-	 * @param password
-	 * @return
-	 * @throws IOException
-	 */
-	public static boolean checkRemoteRepository(String repositoryName, String username, String password, int attempt) {
-
-		if (attempt < 3) {
-			GitHubClient client = GitHubClient.createClient("https://github.com");
-			if (password != null) {
-				client.setCredentials(username, password);
-			}
-			RepositoryService service = new RepositoryService(client);
-			boolean returnVal = true;
-			try {
-				service.getRepository(username, repositoryName);
-			} catch (HttpException ex) {
-				classLogger.error("Failed to check remote repository access: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to check remote repository access: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				checkRemoteRepository(repositoryName, username, password, attempt);
-			} catch (Exception ex) {
-				throw new IllegalArgumentException(
-						"Cannot find repo at " + repositoryName + " for username " + username);
-			}
-			return returnVal;
-		} else {
-			return false;
-		}
-	}
-
-	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth) {
-		int attempt = 1;
-		return checkRemoteRepositoryO(repositoryName, oauth, attempt);
-	}
-
-	/**
-	 * Check if a repo exists
-	 * 
-	 * @param repositoryName
-	 * @param username
-	 * @param password
-	 * @return
-	 * @throws IOException
-	 */
-	public static boolean checkRemoteRepositoryO(String repositoryName, String oauth, int attempt) {
-
-		boolean returnVal = true;
-		String[] repoParts = null;
-
-		if (attempt < 3) {
-			try {
-				GitHubClient client = GitHubClient.createClient("https://github.com");
-				if (oauth != null) {
-					client.setOAuth2Token(oauth);
-					GitHub gh = GitUtils.login(oauth);
-					classLogger.debug(gh.getMyself().getLogin());
-					if (!repositoryName.contains("/")) {
-						repositoryName = gh.getMyself().getLogin() + "/" + repositoryName;
-					}
-				}
-
-				repoParts = repositoryName.split("/");
-
-				RepositoryService service = new RepositoryService(client);
-
-				service.getRepository(repoParts[0], repoParts[1]);
-
-			} catch (HttpException ex) {
-				classLogger.error("Failed to check remote repository access using OAuth: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to check remote repository access using OAuth: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				checkRemoteRepositoryO(repositoryName, oauth, attempt);
-			} catch (Exception ex) {
-				if (repoParts != null) {
-					throw new IllegalArgumentException(
-							"Cannot find repo at " + repositoryName + " for username " + repoParts[0]);
-				} else {
-					throw new IllegalArgumentException("Cannot find repo at " + repositoryName + " for null username ");
-				}
-			}
-			return returnVal;
-		}
-
-		return false;
-	}
-
-	/**
-	 * 
-	 * @param localRepository
-	 * @param username
-	 * @param repoName
+	 * Adds (or overwrites) a named git remote on the local repository pointing at
+	 * the GitHub URL {@code https://github.com/<username>/<repoName>} and saves the
+	 * updated stored config. The remote is named after {@code repoName} and its
+	 * fetch refspec is configured to track all of its heads. Opens and closes the
+	 * repository for the duration of the call.
+	 *
+	 * @param localRepository path to the local git working directory
+	 * @param username        GitHub owner/user used to build the remote URL
+	 * @param repoName        repository name, used both as the remote name and in
+	 *                        the remote URL
+	 * @throws IllegalArgumentException if the repository config cannot be read or
+	 *                                  saved
 	 */
 	public static void addRemote(String localRepository, String username, String repoName) {
-		Git thisGit = null;
-		Repository thisRepo = null;
 		StoredConfig config;
-		try {
-			thisGit = Git.open(new File(localRepository));
-			thisRepo = thisGit.getRepository();
+		try (Git thisGit = Git.open(new File(localRepository)); Repository thisRepo = thisGit.getRepository()) {
 			config = thisRepo.getConfig();
 			config.setString("remote", repoName, "url", "https://github.com/" + username + "/" + repoName);
 			config.setString("remote", repoName, "fetch", "+refs/heads/*:refs/remotes/" + repoName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
 			config.save();
 		} catch (IOException e) {
 			classLogger.error("Failed to add git remote: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error with adding the remote repository");
-		} finally {
-			if (thisRepo != null) {
-				thisRepo.close();
-			}
-			if (thisGit != null) {
-				thisGit.close();
-			}
 		}
 	}
 
-	public static ProgressMonitor fetchRemote(String localRepo, String remoteRepo, String userName, String password) {
-		int attempt = 1;
-		return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
-	}
-
 	/**
-	 * Switch to a specific git remote
-	 * 
-	 * @param localRepo
-	 * @param remoteRepo
-	 * @param userName
-	 * @param password
+	 * Fetch and merge (pull) the current branch from a remote using the supplied
+	 * credentials. The named remote's URL is (re)pointed at {@code remoteUrl} first
+	 * so a short-lived token is never embedded/persisted in git config - the
+	 * credential is supplied per call via {@code cp}.
+	 *
+	 * @param localRepository local git working directory
+	 * @param remoteName      name of the remote to use/point (e.g. "origin")
+	 * @param remoteUrl       https clone url to point the remote at
+	 * @param cp              credentials used for the fetch (may be null for public
+	 *                        repos)
+	 * @return the jgit {@link PullResult} describing the fetch + merge outcome
+	 * @throws IOException     if the local repository cannot be opened
+	 * @throws GitAPIException if the fetch or merge fails
 	 */
-	public static ProgressMonitor fetchRemote(String localRepo, String remoteRepo, String userName, String password,
-			int attempt) {
+	public static PullResult pullFromRemote(String localRepository, String remoteName, String remoteUrl,
+			CredentialsProvider cp) throws IOException, GitAPIException {
+		File dir = new File(Utility.normalizePath(localRepository));
+		try (Git thisGit = Git.open(dir); Repository thisRepo = thisGit.getRepository()) {
+			StoredConfig config = thisRepo.getConfig();
+			config.setString("remote", remoteName, "url", remoteUrl);
+			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
+			config.save();
 
-		ProgressMonitor mon = new GitProgressMonitor();
-		try {
-			InstallCertNow.please("github.com", null, null);
-		} catch (Exception e1) {
-			classLogger.error("Failed to fetch from remote repository: {}", e1.getMessage(), e1);
-		}
-
-		if (attempt < 3) {
-			File file = new File(localRepo);
-			RefSpec spec = new RefSpec("refs/heads/master:refs/remotes/" + remoteRepo + "/master");
-			List<RefSpec> refList = new ArrayList<>();
-			refList.add(spec);
-			CredentialsProvider cp = null;
-			if (userName != null && password != null && !userName.isEmpty() && !password.isEmpty()) {
-				cp = new UsernamePasswordCredentialsProvider(userName, password);
+			String branch = thisRepo.getBranch();
+			PullCommand pc = thisGit.pull().setRemote(remoteName);
+			if (cp != null) {
+				pc.setCredentialsProvider(cp);
 			}
-			Git thisGit = null;
-			try {
-				thisGit = Git.open(file);
-				if (cp != null) {
-					thisGit.fetch().setCredentialsProvider(cp).setRemote(remoteRepo).setProgressMonitor(mon).call();
-				} else {
-					thisGit.fetch().setRemote(remoteRepo).setProgressMonitor(mon).call();
-				}
-
-			} catch (TransportException ex) {
-				classLogger.error("Failed to fetch from remote repository: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
-			} catch (IOException | GitAPIException e) {
-				classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
-				mon.endTask();
-				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
-			} finally {
-				if (thisGit != null) {
-					thisGit.close();
-				}
+			if (branch != null && !branch.isEmpty()) {
+				pc.setRemoteBranchName(branch);
 			}
+			return pc.call();
 		}
-		return mon;
 	}
 
 	/**
-	 * 
-	 * Configuration based remote methods
-	 * 
+	 * Push the current branch to a remote using the supplied credentials. The named
+	 * remote's URL is (re)pointed at {@code remoteUrl} first so a short-lived token
+	 * is never embedded/persisted in git config - the credential is supplied per
+	 * call via {@code cp}.
+	 *
+	 * @param localRepository local git working directory
+	 * @param remoteName      name of the remote to use/point (e.g. "origin")
+	 * @param remoteUrl       https clone url to point the remote at
+	 * @param cp              credentials used for the push (may be null for public
+	 *                        repos)
+	 * @return the jgit {@link PushResult}s describing the per-ref outcome
+	 * @throws IOException     if the local repository cannot be opened
+	 * @throws GitAPIException if the push fails
 	 */
+	public static Iterable<PushResult> pushToRemote(String localRepository, String remoteName, String remoteUrl,
+			CredentialsProvider cp) throws IOException, GitAPIException {
+		File dir = new File(Utility.normalizePath(localRepository));
+		try (Git thisGit = Git.open(dir); Repository thisRepo = thisGit.getRepository()) {
+			StoredConfig config = thisRepo.getConfig();
+			config.setString("remote", remoteName, "url", remoteUrl);
+			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
+			config.save();
+
+			String branch = thisRepo.getBranch();
+			PushCommand pc = thisGit.push().setRemote(remoteName);
+			if (cp != null) {
+				pc.setCredentialsProvider(cp);
+			}
+			if (branch != null && !branch.isEmpty()) {
+				pc.add(branch);
+			}
+			return pc.call();
+		}
+	}
 
 	/**
-	 * Get the list of remote configurations associated with an app directory Get
-	 * the url Get the namespace/appName Get the type -> dual or subscript
-	 * 
-	 * @param localRepositoryDir
-	 * @return
+	 * Fetches a remote, checks out the target branch (creating it to track the
+	 * remote branch if it does not exist locally), and hard-resets it to match the
+	 * remote, replacing local history and working-tree content with the remote
+	 * state.
+	 * <p>
+	 * The named remote's URL is (re)pointed at {@code remoteUrl} first so a
+	 * short-lived token is never persisted in git config. This is a destructive,
+	 * one-way mirror operation: any uncommitted or divergent local changes are
+	 * discarded (hard reset) and untracked files are removed (git clean, respecting
+	 * {@code .gitignore}) so the working tree exactly matches the remote branch.
+	 *
+	 * @param localRepository local git working directory
+	 * @param remoteName      name of the remote to use/point (e.g. "origin")
+	 * @param remoteUrl       https clone url to point the remote at
+	 * @param branch          branch to switch to and reset; when {@code null} or
+	 *                        empty the local repository's current branch name is
+	 *                        used
+	 * @param cp              credentials used for the fetch (may be {@code null}
+	 *                        for public repos)
+	 * @return the resulting {@code HEAD} commit SHA after the reset, or
+	 *         {@code null} if HEAD cannot be resolved
+	 * @throws IOException     if the local repository cannot be opened
+	 * @throws GitAPIException if the fetch or reset fails
+	 */
+	public static String resetToRemote(String localRepository, String remoteName, String remoteUrl, String branch,
+			CredentialsProvider cp) throws IOException, GitAPIException {
+		File dir = new File(Utility.normalizePath(localRepository));
+		try (Git thisGit = Git.open(dir); Repository thisRepo = thisGit.getRepository()) {
+			StoredConfig config = thisRepo.getConfig();
+			config.setString("remote", remoteName, "url", remoteUrl);
+			config.setString("remote", remoteName, "fetch", "+refs/heads/*:refs/remotes/" + remoteName + "/*");
+			// never materialize a symbolic link from the remote as a real link on disk
+			config.setBoolean("core", null, "symlinks", false);
+			config.save();
+
+			String targetBranch = (branch == null || branch.isEmpty()) ? thisRepo.getBranch() : branch;
+
+			FetchCommand fetch = thisGit.fetch().setRemote(remoteName);
+			if (cp != null) {
+				fetch.setCredentialsProvider(cp);
+			}
+			fetch.call();
+
+			// reject a poisoned remote commit (one containing any symbolic link) BEFORE
+			// touching the local working tree, so a rejected sync is a no-op and the
+			// symlink object is never reset into HEAD nor propagated to the cluster
+			ObjectId remoteCommit = thisRepo.resolve(remoteName + "/" + targetBranch);
+			if (remoteCommit == null) {
+				throw new IOException("Could not resolve " + remoteName + "/" + targetBranch + " after fetch");
+			}
+			assertNoSymlinks(thisRepo, remoteCommit, remoteUrl);
+
+			// discard local working-tree/index changes so they cannot block the
+			// checkout - the remote is the source of truth on a webhook-driven sync
+			thisGit.reset().setMode(ResetType.HARD).call();
+
+			// ensure the target branch is checked out, creating it to track the remote
+			// branch if it does not exist locally (forced, in case anything still
+			// conflicts in the working tree)
+			if (!targetBranch.equals(thisRepo.getBranch())) {
+				boolean localExists = thisRepo.findRef("refs/heads/" + targetBranch) != null;
+				CheckoutCommand checkout = thisGit.checkout().setName(targetBranch).setForced(true);
+				if (!localExists) {
+					checkout.setCreateBranch(true).setStartPoint(remoteName + "/" + targetBranch)
+							.setUpstreamMode(SetupUpstreamMode.TRACK);
+				}
+				checkout.call();
+			}
+
+			thisGit.reset().setMode(ResetType.HARD).setRef(remoteName + "/" + targetBranch).call();
+
+			// remove untracked files/dirs (respecting .gitignore) so the working tree
+			// is an exact mirror of the remote branch
+			thisGit.clean().setCleanDirectories(true).call();
+
+			ObjectId head = thisRepo.resolve("HEAD");
+			return head == null ? null : head.getName();
+		}
+	}
+
+	/**
+	 * Shallow-clones a remote repository into {@code targetDir} at the tip of
+	 * {@code branch} and returns the resolved {@code HEAD} SHA. Used by the
+	 * monorepo subdir sync path to stage the full repo in a temporary directory
+	 * before copying only the relevant subtree into the project's assets folder.
+	 * <p>
+	 * The caller is responsible for deleting {@code targetDir} afterwards (in a
+	 * {@code finally} block) to avoid leaving stale staging directories on disk.
+	 *
+	 * @param targetDir the directory to clone into (created by the clone)
+	 * @param remoteUrl HTTPS URL of the remote repository
+	 * @param branch    the branch to check out
+	 * @param cp        credentials provider carrying the installation token
+	 * @return the {@code HEAD} commit SHA of the cloned repository
+	 * @throws GitAPIException if the clone fails
+	 * @throws IOException     if {@code HEAD} cannot be resolved after the clone
+	 */
+	public static String cloneToDir(File targetDir, String remoteUrl, String branch, CredentialsProvider cp)
+			throws GitAPIException, IOException {
+		// clone without writing the working tree so we can reject symbolic links based
+		// on the commit tree before anything touches disk, and force
+		// core.symlinks=false
+		// so a symlink entry could never be materialized as a real link on checkout
+		try (Git cloned = Git.cloneRepository().setURI(remoteUrl).setDirectory(targetDir).setBranch(branch)
+				.setCloneAllBranches(false).setDepth(1).setNoCheckout(true).setCredentialsProvider(cp).call()) {
+			Repository repo = cloned.getRepository();
+
+			StoredConfig config = repo.getConfig();
+			config.setBoolean("core", null, "symlinks", false);
+			config.save();
+
+			ObjectId head = repo.resolve("HEAD");
+			if (head == null) {
+				throw new IOException("Cloned repository has no HEAD commit");
+			}
+
+			// airtight: refuse to materialize a tree that contains any symbolic link
+			assertNoSymlinks(repo, head, remoteUrl);
+
+			// now safe to write the (verified, symlink-free) working tree
+			cloned.checkout().setName(head.getName()).setForced(true).call();
+
+			return head.getName();
+		}
+	}
+
+	/**
+	 * Walks the tree of {@code commitId} and throws if it contains any symbolic
+	 * link entry (git file mode {@code 120000}). A checked-out symlink can point
+	 * outside the repository (e.g. to {@code /etc/passwd} or a mounted secret), so
+	 * copying or serving the working tree could exfiltrate host files. The check
+	 * reads tree metadata only, so it runs before any working tree is written and a
+	 * rejection leaves the filesystem untouched.
+	 *
+	 * @param repo      the repository the commit lives in
+	 * @param commitId  the commit whose tree should be validated
+	 * @param repoLabel human-readable repository identifier for the error message
+	 * @throws IOException if a symbolic link is found, or the tree cannot be read
+	 */
+	private static void assertNoSymlinks(Repository repo, ObjectId commitId, String repoLabel) throws IOException {
+		try (RevWalk revWalk = new RevWalk(repo)) {
+			RevTree tree = revWalk.parseCommit(commitId).getTree();
+			try (TreeWalk treeWalk = new TreeWalk(repo)) {
+				treeWalk.addTree(tree);
+				treeWalk.setRecursive(true);
+				while (treeWalk.next()) {
+					if (treeWalk.getFileMode(0).equals(FileMode.SYMLINK)) {
+						throw new IOException("Refusing to sync repository " + repoLabel
+								+ ": symbolic links are not allowed (found '" + treeWalk.getPathString() + "')");
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns the name of the branch currently checked out in the local repository.
+	 *
+	 * @param localRepository local git working directory
+	 * @return the current branch name (e.g. "main"), or {@code null} if it cannot
+	 *         be determined
+	 * @throws IOException if the local repository cannot be opened
+	 */
+	public static String getCurrentBranch(String localRepository) throws IOException {
+		try (Git thisGit = Git.open(new File(Utility.normalizePath(localRepository)));
+				Repository thisRepo = thisGit.getRepository()) {
+			return thisRepo.getBranch();
+		}
+	}
+
+	/**
+	 * Lists every remote configured on the local repository. For each remote it
+	 * collects the remote {@code url}, derives a {@code name} of the form
+	 * {@code namespace/appName} from that URL, and classifies the {@code type} as
+	 * {@link #SUBSCRIBE} when the remote's {@code upstream} value equals
+	 * {@code "DEFUNCT"} or {@link #DUAL} otherwise. Returns an empty list (and
+	 * logs) if the repository cannot be opened.
+	 *
+	 * @param localRepositoryDir path to the local git working directory
+	 * @return a list of maps, one per remote, each containing {@code url},
+	 *         {@code name} and {@code type} entries; never {@code null}
 	 */
 	public static List<Map<String, String>> listConfigRemotes(String localRepositoryDir) {
 		List<Map<String, String>> returnList = new ArrayList<>();
-		Git thisGit = null;
-		Repository thisRepo = null;
-		try {
-			File file = new File(localRepositoryDir);
-			thisGit = Git.open(file);
-			thisRepo = thisGit.getRepository();
+		try (Git thisGit = Git.open(new File(localRepositoryDir)); Repository thisRepo = thisGit.getRepository()) {
 			String[] remNames = thisRepo.getRemoteNames().toArray(new String[] {});
 			for (int remIndex = 0; remIndex < remNames.length; remIndex++) {
 				String remName = remNames[remIndex] + "";
@@ -500,255 +409,62 @@ public class GitRepoUtils {
 				} else {
 					remoteMap.put("type", DUAL);
 				}
-				classLogger.debug("We have remote with details " + remoteMap);
+				classLogger.debug("We have remote with details {}", remoteMap);
 				returnList.add(remoteMap);
 			}
 		} catch (IOException e) {
 			classLogger.error("Failed to list configured git remotes: {}", e.getMessage(), e);
-		} finally {
-			if (thisRepo != null) {
-				thisRepo.close();
-			}
-			if (thisGit != null) {
-				thisGit.close();
-			}
 		}
 
 		return returnList;
 	}
 
 	/**
-	 * Get the list of remote configurations associated with an app directory Get
-	 * the url Get the namespace/appName Get the type -> dual or subscript
-	 * 
-	 * @param localRepositoryName
-	 * @return
+	 * Looks up the configured URL of a specific remote on the local repository. The
+	 * remote name match is case-insensitive. Returns {@code null} if no matching
+	 * remote is found or if the repository cannot be opened.
+	 *
+	 * @param localRepositoryName path to the local git working directory
+	 * @param remoteName          name of the remote whose URL is requested (matched
+	 *                            case-insensitively)
+	 * @return the remote URL, or {@code null} if the remote is not configured
 	 */
 	public static String getConfigRemoteURL(String localRepositoryName, String remoteName) {
-		List<Map<String, String>> returnList = new ArrayList<>();
-		Git thisGit = null;
-		Repository thisRepo = null;
-		try {
-			File file = new File(Utility.normalizePath(localRepositoryName));
-			thisGit = Git.open(file);
-			thisRepo = thisGit.getRepository();
+		try (Git thisGit = Git.open(new File(Utility.normalizePath(localRepositoryName)));
+				Repository thisRepo = thisGit.getRepository()) {
 			String[] remNames = thisRepo.getRemoteNames().toArray(new String[] {});
 			for (int remIndex = 0; remIndex < remNames.length; remIndex++) {
 				String remName = remNames[remIndex] + "";
 				if (remName.equalsIgnoreCase(remoteName)) {
 					String url = thisRepo.getConfig().getString("remote", remName, "url");
-					String upstream = thisRepo.getConfig().getString(remName, "upstream", "url");
 					return url;
 				}
 			}
 		} catch (IOException e) {
 			classLogger.error("Failed to read configured remote URL: {}", e.getMessage(), e);
-		} finally {
-			if (thisRepo != null) {
-				thisRepo.close();
-			}
-			if (thisGit != null) {
-				thisGit.close();
-			}
 		}
 
 		return null;
 	}
 
-	public static List<String> listRemotesForUser(String username, String password) {
-		int attempt = 1;
-		return listRemotesForUser(username, password, attempt);
-	}
-
 	/**
-	 * Get the list of repos for a given user
-	 * 
-	 * @param username
-	 * @param password
-	 * @return
+	 * Finds a commit in the given repository whose object id contains the supplied
+	 * id fragment. Walks the full commit log (all refs) and returns the first
+	 * commit whose id string contains {@code id}, or {@code null} if none match.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param id        a full or partial commit id to search for within commit
+	 *                  object ids
+	 * @return the matching {@link RevCommit}, or {@code null} if no commit matches
+	 * @throws Exception if the repository cannot be opened or the log cannot be
+	 *                   read
 	 */
-	public static List<String> listRemotesForUser(String username, String password, int attempt) {
-		if (attempt < 3) {
-
-			List<String> remoteRepos = new ArrayList<>();
-			GitHubClient client = GitHubClient.createClient("https://github.com");
-			client.setCredentials(username, password);
-			RepositoryService service = new RepositoryService(client);
-			try {
-				List<org.eclipse.egit.github.core.Repository> repList = service.getRepositories();
-				for (int repIndex = 0; repIndex < repList.size(); repIndex++) {
-					remoteRepos.add(repList.get(repIndex).getName());
-				}
-			} catch (HttpException ex) {
-				classLogger.error("Failed to list remote repositories for user: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				listRemotesForUser(username, password, attempt);
-
-			} catch (IOException e) {
-				classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
-			}
-
-			return remoteRepos;
-		}
-		return null;
-	}
-
-	/*************** OAUTH Overloads Go Here ***********************/
-	/***************************************************************/
-
-	public static List<String> listRemotesForUser(String token) {
-		int attempt = 1;
-		return listRemotesForUser(token, attempt);
-	}
-
-	/**
-	 * Get the list of repos for a given user
-	 * 
-	 * @param username
-	 * @param password
-	 * @return
-	 */
-	public static List<String> listRemotesForUser(String token, int attempt) {
-		if (attempt < 3) {
-			List<String> remoteRepos = new ArrayList<>();
-			GitHubClient client = GitHubClient.createClient("https://github.com");
-			client.setOAuth2Token(token);
-			RepositoryService service = new RepositoryService(client);
-			try {
-				List<org.eclipse.egit.github.core.Repository> repList = service.getRepositories();
-				for (int repIndex = 0; repIndex < repList.size(); repIndex++) {
-					remoteRepos.add(repList.get(repIndex).getName());
-				}
-			} catch (HttpException ex) {
-				classLogger.error("Failed to list remote repositories for user: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				listRemotesForUser(token, attempt);
-
-			} catch (IOException e) {
-				classLogger.error("Failed to list remote repositories for user: {}", e.getMessage(), e);
-			}
-
-			return remoteRepos;
-		}
-		return null;
-	}
-
-	public static void deleteRemoteRepository(String repositoryName, String token) {
-		int attempt = 1;
-		deleteRemoteRepository(repositoryName, token, attempt);
-	}
-
-	/**
-	 * Delete a repository
-	 * 
-	 * @param repositoryName
-	 * @param username
-	 * @param password
-	 * @throws IOException
-	 */
-	public static void deleteRemoteRepository(String repositoryName, String token, int attempt) {
-		if (attempt < 3) {
-			String repoName = repositoryName.split("/")[1];
-			if (checkRemoteRepositoryO(repoName, token)) {
-				GitHub gh = GitUtils.login(token);
-				GHRepository ghr = null;
-				try {
-					ghr = gh.getRepository(repositoryName);
-					ghr.delete();
-				} catch (HttpException ex) {
-					classLogger.error("Failed to delete remote repository: {}", ex.getMessage(), ex);
-					try {
-						InstallCertNow.please("github.com", null, null);
-					} catch (Exception e) {
-						classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
-					}
-					attempt = attempt + 1;
-					deleteRemoteRepository(repositoryName, token, attempt);
-				} catch (IOException e) {
-					classLogger.error("Failed to delete remote repository: {}", e.getMessage(), e);
-					throw new IllegalArgumentException("Unalbe to delete remote repository at " + repositoryName);
-				}
-			}
-		}
-	}
-
-	public static void fetchRemote(String localRepo, String remoteRepo, String token) {
-		int attempt = 1;
-		fetchRemote(localRepo, remoteRepo, token, attempt);
-	}
-
-	/**
-	 * Switch to a specific git remote
-	 * 
-	 * @param localRepo
-	 * @param remoteRepo
-	 * @param userName
-	 * @param password
-	 */
-	public static void fetchRemote(String localRepo, String remoteRepo, String token, int attempt) {
-
-		if (attempt < 3) {
-			File file = new File(localRepo);
-			RefSpec spec = new RefSpec("refs/heads/master:refs/remotes/" + remoteRepo + "/master");
-			List<RefSpec> refList = new ArrayList<>();
-			refList.add(spec);
-			CredentialsProvider cp = null;
-			if (token != null) {
-				cp = new UsernamePasswordCredentialsProvider(token, "");
-			}
-			Git thisGit = null;
-			try {
-				thisGit = Git.open(file);
-				if (cp != null) {
-					thisGit.fetch().setCredentialsProvider(cp).setRemote(remoteRepo).call();
-				} else {
-					thisGit.fetch().setRemote(remoteRepo).call();
-				}
-			} catch (SSLHandshakeException ex) {
-				classLogger.error("Failed to fetch from remote repository: {}", ex.getMessage(), ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
-				}
-				attempt = attempt + 1;
-				fetchRemote(localRepo, remoteRepo, token, attempt);
-
-			} catch (IOException | GitAPIException e) {
-				classLogger.error("Failed to fetch from remote repository: {}", e.getMessage(), e);
-				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
-			} finally {
-				if (thisGit != null) {
-					thisGit.close();
-				}
-			}
-		}
-	}
-
 	// find a particular commit in the folder
 	public static RevCommit findCommit(String gitFolder, String id) throws Exception {
 		RevCommit comm = null;
-
 		try (Git thisGit = Git.open(new File(gitFolder))) {
-			StringBuilder builder = new StringBuilder();
-			LogCommand lg = thisGit.log()
-					// .addPath(fileName)
-					.all();
-
+			LogCommand lg = thisGit.log().all();
 			Iterator<RevCommit> commits = lg.call().iterator();
-
-			boolean first = true;
-
 			while (commits.hasNext()) {
 				comm = commits.next();
 				if ((comm.getId() + "").contains(id)) {
@@ -756,11 +472,20 @@ public class GitRepoUtils {
 				}
 				comm = null;
 			}
-
 		}
 		return comm;
 	}
 
+	/**
+	 * Installs the SSL certificate for the host of the given repository URL into
+	 * the local trust store. The host is parsed from {@code repoName} as a URI and
+	 * any leading {@code www.} prefix is stripped before installing the
+	 * certificate.
+	 *
+	 * @param repoName the repository URL from which the host/domain is extracted
+	 * @return {@code true} if the certificate was installed, {@code false} if the
+	 *         URL was malformed or the install failed
+	 */
 	// install the certificate
 	public static boolean addCertForDomain(String repoName) {
 		try {
@@ -779,12 +504,27 @@ public class GitRepoUtils {
 		}
 	}
 
-	public static List listCommits(String gitFolder, String fileName) {
+	/**
+	 * Lists the commit history of the repository as rows of raw values. The first
+	 * row is a header ({@code date}, {@code user}, {@code message}, {@code id}) and
+	 * each subsequent row holds the commit time, author name, full commit message,
+	 * and the first 6 characters of the commit id. When {@code fileName} is
+	 * non-null the log is restricted to commits touching that path. Returns
+	 * whatever has been collected (logging) if the repository or log cannot be
+	 * read.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param fileName  optional repo-relative path to limit history to a single
+	 *                  file; pass {@code null} to list all commits
+	 * @return a list of rows; the first row is the header and the rest are commit
+	 *         records; never {@code null}
+	 */
+	public static List<List<Object>> listCommits(String gitFolder, String fileName) {
 		// list of lists
-		List builder = null;
+		List<List<Object>> builder = new ArrayList<>();
 		try (Git thisGit = Git.open(new File(gitFolder))) {
-			builder = new ArrayList();
-			List row = new ArrayList();
+			// add header row
+			List<Object> row = new ArrayList<>();
 			row.add("date");
 			row.add("user");
 			row.add("message");
@@ -798,28 +538,14 @@ public class GitRepoUtils {
 			}
 
 			Iterator<RevCommit> commits = lg.call().iterator();
-
-			boolean first = true;
-
 			while (commits.hasNext()) {
 				RevCommit comm = commits.next();
-				row = new ArrayList();
-
+				row = new ArrayList<>();
 				row.add(comm.getCommitTime());
 				row.add(comm.getAuthorIdent().getName());
 				row.add(comm.getFullMessage());
 				row.add(comm.toObjectId().toString().replace("commit ", "").substring(0, 6));
 				builder.add(row);
-				// RevTree tree = comm.getTree();
-				// tree.
-
-				// if(first)
-				// {
-				// System.out.println(comm.getId());
-				// thisGit.revert().include(comm).call();
-				// first = false;
-				// }
-				// break;
 			}
 		} catch (NoHeadException nhe) {
 			classLogger.error("Failed to list commit history: {}", nhe.getMessage(), nhe);
@@ -833,11 +559,18 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * Get commit message with metadata
-	 * 
-	 * @param gitFolder
-	 * @param fileName  optional if getting specific commit messages for a file
-	 * @return
+	 * Returns the commit history of the repository as a list of maps with commit
+	 * metadata. Each map contains a formatted {@code date} (via
+	 * {@link GitAssetUtils#getDate(int)}), the author {@code user}, the full commit
+	 * {@code message}, and the first 6 characters of the commit {@code id}. When
+	 * {@code fileName} is non-null and non-empty the log is restricted to commits
+	 * touching that path. Returns whatever has been collected (logging) if the
+	 * repository or log cannot be read.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param fileName  optional repo-relative path to limit history to a single
+	 *                  file; pass {@code null} or empty to list all commits
+	 * @return a list of per-commit metadata maps; never {@code null}
 	 */
 	public static List<Map<String, Object>> getCommits(String gitFolder, String fileName) {
 		// list of lists
@@ -872,6 +605,23 @@ public class GitRepoUtils {
 		return commitList;
 	}
 
+	/**
+	 * Reads the text content of a file from the repository, either from the working
+	 * tree or from a specific commit. When {@code commId} is {@code null} the
+	 * current file is read from disk under {@code gitFolder} (falling back to the
+	 * legacy {@code version/assets/} location if the direct path is missing). When
+	 * {@code commId} is provided the matching commit is resolved via
+	 * {@link #findCommit(String, String)} and the blob is read from that commit's
+	 * tree. All opened resources (readers, repository, object reader) are closed in
+	 * a finally block. Returns {@code null} if the file does not exist or reading
+	 * fails (errors are logged).
+	 *
+	 * @param commId    full or partial commit id to read the file from;
+	 *                  {@code null} reads the current working-tree copy
+	 * @param fileName  repo-relative path of the file to read
+	 * @param gitFolder path to the local git working directory
+	 * @return the file content as a string, or {@code null} if unavailable
+	 */
 	// gets a particular file
 	// showing file content for a particular ID
 	// this will be utilized where the user goes
@@ -906,10 +656,6 @@ public class GitRepoUtils {
 					}
 
 					output = buff.toString();
-					// not going to process the head for now
-					// ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
-					// RevWalk walk = new RevWalk(thisGit.getRepository());
-					// comm = walk.lookupCommit(commId2);
 				}
 			} else {
 				thisGit = Git.open(new File(gitFolder));
@@ -963,6 +709,21 @@ public class GitRepoUtils {
 
 	}
 
+	/**
+	 * Reads the raw bytes of a file from the repository, either from the working
+	 * tree or from a specific commit. When {@code commId} is {@code null} the
+	 * current file is read from disk under {@code gitFolder}. When {@code commId}
+	 * is provided the matching commit is resolved via
+	 * {@link #findCommit(String, String)} and the blob is read from that commit's
+	 * tree. The repository and object reader are closed in a finally block. Returns
+	 * {@code null} if the file does not exist or reading fails (errors are logged).
+	 *
+	 * @param commId    full or partial commit id to read the file from;
+	 *                  {@code null} reads the current working-tree copy
+	 * @param fileName  repo-relative path of the file to read
+	 * @param gitFolder path to the local git working directory
+	 * @return the file content as a byte array, or {@code null} if unavailable
+	 */
 	// gets a particular file
 	// showing file content for a particular ID
 	// this will be utilized where the user goes
@@ -981,10 +742,6 @@ public class GitRepoUtils {
 				File file = new File(gitFolder + "/" + fileName);
 				if (file.exists()) {
 					bytes = FileUtils.readFileToByteArray(file);
-					// not going to process the head for now
-					// ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
-					// RevWalk walk = new RevWalk(thisGit.getRepository());
-					// comm = walk.lookupCommit(commId2);
 				}
 			} else {
 				thisGit = Git.open(new File(gitFolder));
@@ -1023,6 +780,21 @@ public class GitRepoUtils {
 
 	}
 
+	/**
+	 * Stages all untracked and modified files in the repository. Each candidate
+	 * file is added unless {@code ignoreTheIgnoreFiles} is {@code false} and
+	 * {@link GitUtils#isIgnore(String)} reports it as ignored. The add command is
+	 * only invoked when at least one file was matched. Opens the repository and
+	 * closes it before returning.
+	 *
+	 * @param gitFolder            path to the local git working directory
+	 * @param ignoreTheIgnoreFiles when {@code true}, ignore filtering is bypassed
+	 *                             and every untracked/modified file is staged; when
+	 *                             {@code false}, files matching the ignore rules
+	 *                             are skipped
+	 * @throws IllegalArgumentException if the repository cannot be opened or files
+	 *                                  cannot be staged
+	 */
 	public static void addAllFiles(String gitFolder, boolean ignoreTheIgnoreFiles) {
 		Git thisGit = null;
 		Status status = null;
@@ -1070,10 +842,16 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * Add specific files to a given git
-	 * 
-	 * @param thisGit
-	 * @param files
+	 * Stages a specific set of files in the given repository. Each pattern is
+	 * trimmed to the portion after a {@code version} segment (when present) and
+	 * then normalized via {@link #normalizeGitFilePattern(String)} before being
+	 * added. No-op when {@code files} is {@code null} or empty. Opens the
+	 * repository and closes it before returning; add failures are logged rather
+	 * than thrown.
+	 *
+	 * @param localRepository path to the local git working directory
+	 * @param files           list of file paths/patterns to stage
+	 * @throws IllegalArgumentException if the repository cannot be opened
 	 */
 	public static void addSpecificFiles(String localRepository, List<String> files) {
 		if (files == null || files.isEmpty()) {
@@ -1106,10 +884,16 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * Add specific files to a given git
-	 * 
-	 * @param thisGit
-	 * @param files
+	 * Stages a specific set of files in the given repository. Each file's absolute
+	 * path is trimmed to the portion after a {@code version} segment (when present)
+	 * and then normalized via {@link #normalizeGitFilePattern(String)} before being
+	 * added. No-op when {@code files} is {@code null} or empty. Opens the
+	 * repository and closes it before returning; add failures are logged rather
+	 * than thrown.
+	 *
+	 * @param localRepository path to the local git working directory
+	 * @param files           array of files to stage
+	 * @throws IllegalArgumentException if the repository cannot be opened
 	 */
 	public static void addSpecificFiles(String localRepository, File[] files) {
 		if (files == null || files.length == 0) {
@@ -1143,102 +927,177 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * 
-	 * @param gitFolder
+	 * Convenience overload of
+	 * {@link #commitAddedFiles(String, String, String, String)} that commits with a
+	 * {@code null} (auto-generated) message and the default SEMOSS author/email.
+	 *
+	 * @param gitFolder path to the local git working directory
 	 */
 	public static void commitAddedFiles(String gitFolder) {
 		commitAddedFiles(gitFolder, null);
 	}
 
 	/**
-	 * 
-	 * @param gitFolder
-	 * @param message
+	 * Convenience overload of
+	 * {@link #commitAddedFiles(String, String, String, String)} that commits with
+	 * the given message and the default SEMOSS author/email.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param message   the commit message; {@code null} or empty triggers an
+	 *                  auto-generated dated message
 	 */
 	public static void commitAddedFiles(String gitFolder, String message) {
 		commitAddedFiles(gitFolder, message, null, null);
 	}
 
 	/**
-	 * 
-	 * @param gitFolder
-	 * @param message
-	 * @param user
+	 * Convenience overload of
+	 * {@link #commitAddedFiles(String, String, String, String)} that derives the
+	 * author name and email from the user's primary-login {@link AccessToken}.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param message   the commit message; {@code null} or empty triggers an
+	 *                  auto-generated dated message
+	 * @param user      the user whose primary-login access token supplies the
+	 *                  commit author name and email
 	 */
 	public static void commitAddedFiles(String gitFolder, String message, User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 		commitAddedFiles(gitFolder, message, author, email);
 	}
 
 	/**
-	 * 
-	 * @param gitFolder
-	 * @param message
-	 * @param author
-	 * @param email
+	 * Commits the already-staged changes in the repository. First checks the status
+	 * and skips the commit (logging a warning) when there are no staged
+	 * added/changed/removed entries. Falls back to an auto-generated dated message,
+	 * the {@code SEMOSS} author, and {@code semoss@semoss.org} email when the
+	 * respective arguments are {@code null} or empty. Opens the repository and
+	 * closes it before returning; commit failures are logged rather than thrown.
+	 *
+	 * @param gitFolder path to the local git working directory
+	 * @param message   the commit message; {@code null} or empty triggers an
+	 *                  auto-generated dated message
+	 * @param author    the commit author name; {@code null} or empty defaults to
+	 *                  {@code SEMOSS}
+	 * @param email     the commit author email; {@code null} or empty defaults to
+	 *                  {@code semoss@semoss.org}
+	 * @throws IllegalArgumentException if the repository cannot be opened
 	 */
 	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
-		Git thisGit = null;
-		try {
-			thisGit = Git.open(new File(gitFolder));
+		try (Git thisGit = Git.open(new File(gitFolder))) {
+			try {
+				// Check if there are actually staged changes before committing
+				Status status = thisGit.status().call();
+				boolean hasStagedChanges = !status.getAdded().isEmpty() || !status.getChanged().isEmpty()
+						|| !status.getRemoved().isEmpty();
+
+				if (!hasStagedChanges) {
+					classLogger.warn("Skipping commit in {} - no staged changes to commit", gitFolder);
+					return;
+				}
+
+				if (message == null || message.isEmpty()) {
+					message = GitUtils.getDateMessage("Commited on.. ");
+				}
+				if (author == null || author.isEmpty()) {
+					author = "SEMOSS";
+				}
+				if (email == null || email.isEmpty()) {
+					email = "semoss@semoss.org";
+				}
+
+				CommitCommand cc = thisGit.commit();
+				cc.setMessage(message).setAuthor(author, email).call();
+				classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
+			} catch (GitAPIException e) {
+				classLogger.error("Failed to commit in {}", gitFolder, e);
+			}
 		} catch (IOException e) {
 			classLogger.error("Unable to connect to Git directory at {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
-		try {
-			// Check if there are actually staged changes before committing
-			Status status = thisGit.status().call();
-			boolean hasStagedChanges = !status.getAdded().isEmpty() || !status.getChanged().isEmpty()
-					|| !status.getRemoved().isEmpty();
-
-			if (!hasStagedChanges) {
-				classLogger.warn("Skipping commit in {} - no staged changes to commit", gitFolder);
-				return;
-			}
-
-			if (message == null || message.isEmpty()) {
-				message = GitUtils.getDateMessage("Commited on.. ");
-			}
-			if (author == null || author.isEmpty()) {
-				author = "SEMOSS";
-			}
-			if (email == null || email.isEmpty()) {
-				email = "semoss@semoss.org";
-			}
-
-			CommitCommand cc = thisGit.commit();
-			cc.setMessage(message).setAuthor(author, email).call();
-			classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
-		} catch (GitAPIException e) {
-			classLogger.error("Failed to commit in {}", gitFolder, e);
-		} finally {
-			thisGit.close();
-		}
 	}
 
+	/**
+	 * Convenience overload of
+	 * {@link #addAllChangesAndCommit(String, boolean, String, String, String)} that
+	 * uses a {@code null} (auto-generated) message and the default SEMOSS
+	 * author/email.
+	 *
+	 * @param gitFolder            path to the local git working directory
+	 * @param ignoreTheIgnoreFiles when {@code true}, ignore filtering is bypassed
+	 *                             when staging changes
+	 */
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles) {
 		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, null, null, null);
 	}
 
+	/**
+	 * Convenience overload of
+	 * {@link #addAllChangesAndCommit(String, boolean, String, String, String)} that
+	 * uses the given message and the default SEMOSS author/email.
+	 *
+	 * @param gitFolder            path to the local git working directory
+	 * @param ignoreTheIgnoreFiles when {@code true}, ignore filtering is bypassed
+	 *                             when staging changes
+	 * @param message              the commit message; {@code null} or empty
+	 *                             triggers an auto-generated dated message
+	 */
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message) {
 		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, null, null);
 	}
 
+	/**
+	 * Convenience overload of
+	 * {@link #addAllChangesAndCommit(String, boolean, String, String, String)} that
+	 * derives the author name and email from the user's primary-login
+	 * {@link AccessToken}.
+	 *
+	 * @param gitFolder            path to the local git working directory
+	 * @param ignoreTheIgnoreFiles when {@code true}, ignore filtering is bypassed
+	 *                             when staging changes
+	 * @param message              the commit message; {@code null} or empty
+	 *                             triggers an auto-generated dated message
+	 * @param user                 the user whose primary-login access token
+	 *                             supplies the commit author name and email
+	 */
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
 			User user) {
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getUsername(),
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getResolvedUsername(),
 				accessToken.getEmail());
 	}
 
+	/**
+	 * Stages all changes in the repository and commits them in a single call. Adds
+	 * untracked and modified files, and removes (cached) missing/deleted files,
+	 * applying ignore filtering unless {@code ignoreTheIgnoreFiles} is
+	 * {@code true}. After staging it re-checks status and skips the commit (logging
+	 * a warning) when nothing is staged. Falls back to an auto-generated dated
+	 * message, the {@code SEMOSS} author, and {@code semoss@semoss.org} email when
+	 * the respective arguments are {@code null} or empty. Opens the repository and
+	 * closes it before returning.
+	 *
+	 * @param gitFolder            path to the local git working directory
+	 * @param ignoreTheIgnoreFiles when {@code true}, ignore filtering is bypassed
+	 *                             so all changed files are staged; when
+	 *                             {@code false}, files matching the ignore rules
+	 *                             are skipped
+	 * @param message              the commit message; {@code null} or empty
+	 *                             triggers an auto-generated dated message
+	 * @param author               the commit author name; {@code null} or empty
+	 *                             defaults to {@code SEMOSS}
+	 * @param email                the commit author email; {@code null} or empty
+	 *                             defaults to {@code semoss@semoss.org}
+	 * @throws IllegalArgumentException if the repository cannot be opened or the
+	 *                                  add/commit fails
+	 */
 	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message,
 			String author, String email) {
-		Git thisGit = null;
-		try {
-			thisGit = Git.open(new File(gitFolder));
+		try (Git thisGit = Git.open(new File(gitFolder))) {
 			Status status = thisGit.status().call();
 
 			AddCommand ac = thisGit.add();
@@ -1300,196 +1159,18 @@ public class GitRepoUtils {
 		} catch (IOException | GitAPIException e) {
 			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
-		}
-	}
-
-	public static void revertCommit(String gitFolder, String comm1) {
-
-		Git thisGit = null;
-		try {
-			thisGit = Git.open(new File(gitFolder));
-			RevCommit comm = findCommit(gitFolder, comm1);
-			// revert sets it up where you go back as if nothing has happened
-			// thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
-
-			// this is the revert
-			// the revert works perfectly if you want to go one back
-			// if you further than that.. it will create a change log on your file which you
-			// need to find and resolve
-			// thisGit.revert().include(comm.getId()).setOurCommitName("new Commit").call();
-			thisGit.revert().include(thisGit.getRepository().resolve(org.eclipse.jgit.lib.Constants.HEAD))
-					.setOurCommitName("new Commit").call();
-			// thisGit.commit().setMessage("Post Revert.. " ).call();
-		} catch (RevisionSyntaxException rse) {
-			classLogger.error("Failed to revert commit: {}", rse.getMessage(), rse);
-		} catch (NoMessageException nme) {
-			classLogger.error("Failed to revert commit: {}", nme.getMessage(), nme);
-		} catch (UnmergedPathsException upe) {
-			classLogger.error("Failed to revert commit: {}", upe.getMessage(), upe);
-		} catch (ConcurrentRefUpdateException cfue) {
-			classLogger.error("Failed to revert commit: {}", cfue.getMessage(), cfue);
-		} catch (WrongRepositoryStateException wrse) {
-			classLogger.error("Failed to revert commit: {}", wrse.getMessage(), wrse);
-		} catch (AmbiguousObjectException aoe) {
-			classLogger.error("Failed to revert commit: {}", aoe.getMessage(), aoe);
-		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error("Failed to revert commit: {}", iote.getMessage(), iote);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to revert commit: {}", ioe.getMessage(), ioe);
-		} catch (GitAPIException gae) {
-			classLogger.error("Failed to revert commit: {}", gae.getMessage(), gae);
-		} catch (Exception e) {
-			classLogger.error("Failed to revert commit: {}", e.getMessage(), e);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
-		}
-	}
-
-	public static void resetCommit(String gitFolder, String comm1) {
-		Git thisGit = null;
-		try {
-			// this is a different animal.. we just want to make sure the user knows what
-			// they are doing
-			// if you dont do hard reset it doesn't give you shit
-			thisGit = Git.open(new File(gitFolder));
-			RevCommit comm = findCommit(gitFolder, comm1);
-			// revert sets it up where you go back as if nothing has happened
-			thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
-		} catch (CheckoutConflictException cce) {
-			classLogger.error("Failed to reset commit: {}", cce.getMessage(), cce);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to reset commit: {}", ioe.getMessage(), ioe);
-		} catch (GitAPIException gae) {
-			classLogger.error("Failed to reset commit: {}", gae.getMessage(), gae);
-		} catch (Exception e) {
-			classLogger.error("Failed to reset commit: {}", e.getMessage(), e);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
-		}
-	}
-
-	// saves aparticular version of the file
-	// this has to be in some kind of temp directory
-	public static String saveFileForDownload(String commId, String fileName, String gitFolder) {
-		String output = null;
-		ObjectReader objectReader = null;
-		// this needs to change
-		String cacheFolder = gitFolder;
-		String cacheFileName = null;
-		Git thisGit = null;
-		FileOutputStream fos = null;
-		try {
-			thisGit = Git.open(new File(gitFolder));
-			// ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" +
-			// commitID);
-
-			RevCommit comm = null;
-			if (commId == null) {
-				ObjectId commId2 = thisGit.getRepository().resolve(org.eclipse.jgit.lib.Constants.HEAD);
-				RevWalk walk = new RevWalk(thisGit.getRepository());
-				comm = walk.lookupCommit(commId2);
-				commId = comm.getId().toString().substring(0, 5);
-			} else {
-				comm = findCommit(gitFolder, commId);
-			}
-
-			// this file needs to be in the cache
-			// infact we should even lookup to see if it is in the cache and if so create it
-			cacheFileName = cacheFolder + "/" + fileName + "_" + commId;
-
-			// if this is available send it out
-			File cacheFile = new File(cacheFileName);
-			if (cacheFile.exists()) {
-				return cacheFileName;
-			}
-
-			TreeWalk treeWalk = TreeWalk.forPath(thisGit.getRepository(), fileName, comm.getTree());
-			ObjectId blobId = treeWalk.getObjectId(0);
-
-			objectReader = thisGit.getRepository().newObjectReader();
-			ObjectLoader objectLoader = objectReader.open(blobId);
-
-			byte[] bytes = objectLoader.getBytes();
-
-			fos = new FileOutputStream(cacheFile);
-			fos.write(bytes);
-
-		} catch (MissingObjectException moe) {
-			classLogger.error("Failed to save commit file for download: {}", moe.getMessage(), moe);
-		} catch (IncorrectObjectTypeException iote) {
-			classLogger.error("Failed to save commit file for download: {}", iote.getMessage(), iote);
-		} catch (CorruptObjectException coe) {
-			classLogger.error("Failed to save commit file for download: {}", coe.getMessage(), coe);
-		} catch (LargeObjectException loe) {
-			classLogger.error("Failed to save commit file for download: {}", loe.getMessage(), loe);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to save commit file for download: {}", ioe.getMessage(), ioe);
-		} catch (Exception e) {
-			classLogger.error("Failed to save commit file for download: {}", e.getMessage(), e);
-		} finally {
-			if (thisGit != null) {
-				thisGit.close();
-			}
-			if (objectReader != null) {
-				objectReader.close();
-			}
-			if (fos != null) {
-				try {
-					fos.flush();
-					fos.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to save commit file for download: {}", e.getMessage(), e);
-				}
-			}
-		}
-
-		return cacheFileName;
-	}
-
-	// I dont know how it will work for non text files
-	public static void createASCIIFile(String gitFolder, String fileName, String content, String message) {
-		// makes the file
-		// adds it
-		// commits it
-		try {
-			if (message == null) {
-				message = GitUtils.getDateMessage("Edited on");
-			}
-			File file = new File(gitFolder + "/" + fileName);
-			PrintWriter pw = new PrintWriter(new FileWriter(fileName), true);
-			pw.write(content);
-			pw.close();
-			addAllFiles(gitFolder, false);
-			commitAddedFiles(gitFolder, message);
-		} catch (IOException e) {
-			classLogger.error("Failed to create and commit ASCII file: {}", e.getMessage(), e);
-		}
-	}
-
-	public static void checkout(String gitFolder, String comm) throws Exception {
-		try (Git git = Git.open(new File(gitFolder))) {
-			git.checkout().setName(comm).call();
-		}
-
-	}
-
-	public static void resetCheckout(String gitFolder) throws Exception {
-		try (Git git = Git.open(new File(gitFolder))) {
-			git.checkout().setName("master").call();
 		}
 	}
 
 	/**
-	 * 
-	 * @param folder
+	 * Initializes a new git repository in the given folder. First writes a default
+	 * {@code .gitignore} via {@link #addGitIgnore(String)}, then runs
+	 * {@code git init} on the folder and immediately opens and closes it to
+	 * finalize creation. When running in cluster mode the folder is validated via
+	 * {@link ClusterUtil#validateFolder(String)}. Failures are logged rather than
+	 * thrown.
+	 *
+	 * @param folder path to the directory to initialize as a git repository
 	 */
 	public static void init(String folder) {
 		try {
@@ -1509,8 +1190,12 @@ public class GitRepoUtils {
 	}
 
 	/**
-	 * 
-	 * @param folder
+	 * Creates a {@code .gitignore} file in the given folder pre-populated with a
+	 * standard set of ignore patterns (OS metadata, log/cache/temp/pid files,
+	 * compiled python, npm/yarn debug logs, and {@code node_modules}). Failures are
+	 * logged rather than thrown.
+	 *
+	 * @param folder path to the directory in which to create the {@code .gitignore}
 	 */
 	public static void addGitIgnore(String folder) {
 		// @formatter:off

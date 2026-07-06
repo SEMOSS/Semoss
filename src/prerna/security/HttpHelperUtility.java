@@ -45,7 +45,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -806,6 +805,24 @@ public final class HttpHelperUtility {
 	 *         parsing succeeds; otherwise {@code null}
 	 */
 	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
+		return getAccessToken(url, params, null, json, extract);
+	}
+
+	/**
+	 * Requests an OAuth token endpoint (HTTP POST, form-encoded body) with optional
+	 * extra request headers, such as an HTTP Basic {@code Authorization} header for
+	 * confidential clients (e.g. the X / Twitter token endpoint).
+	 *
+	 * @param url     token endpoint URL
+	 * @param params  form parameters sent as URL-encoded body values
+	 * @param headers optional additional request headers (may be {@code null})
+	 * @param json    {@code true} when the response is JSON; {@code false} for
+	 *                key-value form responses
+	 * @param extract {@code true} to parse and return a token object
+	 * @return parsed {@link AccessToken}, or {@code null}
+	 */
+	public static AccessToken getAccessToken(String url, Map<String, String> params, Map<String, String> headers,
+			boolean json, boolean extract) {
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
 		String result = null;
@@ -814,6 +831,9 @@ public final class HttpHelperUtility {
 			;
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
+			if (headers != null) {
+				headers.forEach(httppost::addHeader);
+			}
 			// loop through all keys and add as basic name value pair
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			params.keySet().stream().forEach(param -> paramList.add(new BasicNameValuePair(param, params.get(param))));
@@ -1298,14 +1318,11 @@ public final class HttpHelperUtility {
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
-			Hashtable params = null;
 			List<NameValuePair> paramList = new ArrayList<NameValuePair>();
 			if (!json) {
-				params = (Hashtable) input;
-				Enumeration<String> keys = params.keys();
-				while (keys.hasMoreElements()) {
-					String key = keys.nextElement();
-					String value = (String) params.get(key);
+				Map<String, String> params = (Map<String, String>) input;
+				for (String key : params.keySet()) {
+					String value = params.get(key);
 					paramList.add(new BasicNameValuePair(key, value));
 				}
 				httppost.setEntity(new UrlEncodedFormEntity(paramList, StandardCharsets.UTF_8));

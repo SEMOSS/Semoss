@@ -141,8 +141,8 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			unzip(portalsZip, portalsDir, Constants.PORTALS_FOLDER);
 			classLogger.info("Extracted portals -> {}", portalsDir);
 
-			// 4 - Re-publish the project so SEMOSS picks up the new assets
-			this.insight.runPixel("PublishProject(project=['" + projectId + "']);");
+			// 4 - Re-publish and release the project so the public portal is refreshed.
+			this.insight.runPixel("PublishProject(project='" + projectId + "', release=true);");
 
 			// 5 - Push project to central storage so other pods see the changes
 			try {

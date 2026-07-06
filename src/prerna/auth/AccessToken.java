@@ -33,9 +33,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import prerna.date.SemossDate;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
 public class AccessToken implements Serializable {
 
@@ -689,6 +693,96 @@ public class AccessToken implements Serializable {
 	 */
 	public void setModelUsageRestriction(String modelUsageRestriction) {
 		this.modelUsageRestriction = modelUsageRestriction;
+	}
+
+	/**
+	 * Resolves a usable username for the access token, preferring the username and
+	 * falling back to the display name and then the email. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of username, name, or email; null if all are
+	 *         null
+	 */
+	public String getResolvedUsername() {
+		return Stream.of(username, name, email).filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	/**
+	 * Resolves a usable display name for the access token, preferring the name and
+	 * falling back to the email and then the username. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of name, email, or username; null if all are
+	 *         null
+	 */
+	public String getResolvedDisplayName() {
+		return Stream.of(name, email, username).filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	/**
+	 * Builds a map describing this token for user-info responses. Core identifying
+	 * fields use the literal string {@code "null"} in place of any value that is
+	 * not set, so callers get a consistent set of keys regardless of which fields
+	 * the login populated. Also includes the token's meta, SAN, and group
+	 * information, plus the supplied user epoch.
+	 * <p>
+	 * When {@code includeToken} is {@code true} the raw access token is included
+	 * under the {@code accessToken} key; when it is {@code false} the refresh-token
+	 * entry ({@link AbstractOAuthTokenFiller#REFRESH_TOKEN_KEY}) is stripped from
+	 * the meta map before it is added.
+	 *
+	 * @param includeToken whether to include the raw access token and retain the
+	 *                     refresh token in the meta map
+	 * @param userEpoch    the user epoch to record under the {@code userEpoch} key
+	 * @param includeDates if the output should include teh lastPwdReset and
+	 *                     lastLogin dates which only come from the semoss dbs and
+	 *                     not the IdP provider
+	 * @return a map of this token's exposed properties
+	 */
+	public Map<String, Object> toProviderMap(boolean includeToken, String userEpoch, boolean includeDates) {
+		// add basic user details we capture
+		Map<String, Object> providerMap = new TreeMap<>();
+		if (includeToken) {
+			providerMap.put("accessToken", getAccess_token());
+		}
+		providerMap.put("id", getId() == null ? "null" : getId());
+		providerMap.put("name", getName() == null ? "null" : getName());
+		providerMap.put("username", getUsername() == null ? "null" : getUsername());
+		providerMap.put("email", getEmail() == null ? "null" : getEmail());
+		if (includeDates) {
+			providerMap.put("lastPwdReset", getLastPasswordReset() == null ? "null" : getLastPasswordReset());
+			providerMap.put("lastLogin", getLastLogin() == null ? "null" : getLastLogin());
+		}
+		// get extended user properties
+		Map<String, Collection<String>> meta = getMeta();
+		if (meta != null) {
+			if (!includeToken && meta.containsKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY)) {
+				Map<String, Collection<String>> newMap = new HashMap<>(meta);
+				newMap.remove(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
+				providerMap.put("meta", newMap);
+			} else {
+				providerMap.put("meta", meta);
+			}
+		}
+
+		// add san info
+		Map<String, String> san = getSAN();
+		providerMap.put("san", san);
+
+		// add group info
+		Map<String, Object> groupMap = new HashMap<>();
+		String groupType = getUserGroupType();
+		Collection<String> groups = getUserGroups();
+		groupMap.put("groupType", groupType);
+		groupMap.put("groups", groups);
+		providerMap.put("groupInfo", groupMap);
+
+		// add user epoch into the login map
+		providerMap.put("userEpoch", userEpoch);
+
+		return providerMap;
 	}
 
 	/**

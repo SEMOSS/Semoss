@@ -288,6 +288,7 @@ public class CmdExecUtil {
 			cmdLine.addArgument("cd '" + escapedWorkingDir + "' && " + command, false);
 		} else {
 			// non-chroot execution
+			environment = createEnvironmentWithConfiguredPythonPath();
 			cmdLine = new CommandLine(commandAppender);
 			if (commandAppender.equalsIgnoreCase("/bin/bash")) {
 				cmdLine.addArgument("-c");
@@ -311,14 +312,14 @@ public class CmdExecUtil {
 			executor.setWatchdog(watchdog);
 
 			int exitValue = -1;
-			try {
-				if (environment == null) {
-					exitValue = executor.execute(cmdLine);
-				} else {
-					exitValue = executor.execute(cmdLine, environment);
-				}
-				classLogger.debug("Command executed successfully with exit code: " + exitValue);
-			} catch (Exception ex) {
+				try {
+					if (environment == null) {
+						exitValue = executor.execute(cmdLine);
+					} else {
+						exitValue = executor.execute(cmdLine, environment);
+					}
+					classLogger.debug("Command executed successfully with exit code: " + exitValue);
+				} catch (Exception ex) {
 				success = false;
 				classLogger.error("Command execution failed with exit code: " + exitValue, ex);
 			}
@@ -353,6 +354,38 @@ public class CmdExecUtil {
 		}
 
 		return foutput;
+	}
+
+	private Map<String, String> createEnvironmentWithConfiguredPythonPath() {
+		String pythonHome = System.getenv(Settings.PYTHONHOME);
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PYTHONHOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = System.getenv(Settings.PY_HOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			return null;
+		}
+
+		Map<String, String> environment = new HashMap<>(System.getenv());
+		String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
+		String existingPath = environment.get("PATH");
+		if (existingPath == null || existingPath.isEmpty()) {
+			environment.put("PATH", pythonBin);
+			return environment;
+		}
+
+		for (String entry : existingPath.split(File.pathSeparator)) {
+			if (pythonBin.equals(entry)) {
+				return environment;
+			}
+		}
+		environment.put("PATH", pythonBin + File.pathSeparator + existingPath);
+		return environment;
 	}
 
 	/**

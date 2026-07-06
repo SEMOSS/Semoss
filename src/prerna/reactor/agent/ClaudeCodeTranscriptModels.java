@@ -53,6 +53,13 @@ public class ClaudeCodeTranscriptModels {
 	public record AssistantText(String text, String model, String timestamp) {
 	}
 
+	// Claude's internal reasoning (parsed from assistant message.content where
+	// block.type="thinking" or "redacted_thinking")
+	public record AssistantThinking(String thinking, // the reasoning text; null for redacted blocks
+			boolean redacted, // true when block.type="redacted_thinking" (encrypted, not human-readable)
+			String model, String timestamp) {
+	}
+
 	// Tool execution result (type="user" where toolUseResult is present)
 	public record ToolResult(String toolUseId, // from sourceToolAssistantUUID or content[].tool_use_id
 			String status, // "completed", etc.

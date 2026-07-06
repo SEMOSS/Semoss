@@ -40,7 +40,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * CheckSubAgent(jobId='<id>')
  * }</pre>
  *
- * <p>Returns a JSON string {@code {status, jobId, alias?, workspaceId?, roomId?, spawnedAt?}}.
+ * <p>Returns a JSON string {@code {jobId, status, result, error}}.
  */
 public class CheckSubAgentReactor extends AbstractReactor {
 
@@ -56,11 +56,11 @@ public class CheckSubAgentReactor extends AbstractReactor {
         if (jobId == null || jobId.trim().isEmpty()) {
             throw new IllegalArgumentException("jobId is required for CheckSubAgent");
         }
-        return new NounMetadata(SubAgentDispatcher.check(jobId), PixelDataType.CONST_STRING);
+        return new NounMetadata(SubAgentDispatcher.check(jobId, this.insight), PixelDataType.CONST_STRING);
     }
 
     @Override
     public String getReactorDescription() {
-        return "Non-blocking subagent status check; returns a JSON string with status and meta.";
+        return "Non-blocking subagent status check; returns a JSON string with {jobId, status, result, error}.";
     }
 }

@@ -289,8 +289,8 @@ public abstract class AbstractMessage {
 		return visible;
 	}
 
-	public void setVisibile(boolean visibile) {
-		this.visible = visibile;
+	public void setVisible(boolean visible) {
+		this.visible = visible;
 	}
 
 	public boolean isPlatformGenerated() {
