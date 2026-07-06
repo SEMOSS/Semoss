@@ -30,6 +30,11 @@ package prerna.playground;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
@@ -102,5 +107,53 @@ public class PlaygroundUtils {
 			}
 		}
 		return builder.build();
+	}
+
+	/**
+	 * Append a hidden user note + canned assistant ack to the room history.
+	 * Both are invisible to the FE (visible=false, platformGenerated=true) but
+	 * ride along to the model on the next turn via
+	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
+	 * role-alternating and telling the model its prior response was cut short.
+	 *
+	 * <p>Persists the room inside the same mutation lock, so callers do not need
+	 * to persist again. When {@code extrasOut} is non-null the two appended
+	 * messages are added to it (in order) so callers can surface them back to
+	 * the FE via {@code extraMessages}.
+	 *
+	 * @param room           room to append into
+	 * @param modelEngine    model engine (used for model-type stamping on the
+	 *                       hidden input)
+	 * @param hiddenMessage  text of the hidden user note
+	 * @param hiddenParentId parent id for the hidden user note (typically the
+	 *                       just-persisted assistant response's message id)
+	 * @param userId         user id used for persistence
+	 * @param extrasOut      optional accumulator; when non-null receives the
+	 *                       hidden user note followed by the hidden ack
+	 */
+	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+			InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
+					.withModelType(modelEngine.getModelType()).build();
+			hiddenUserNote.setPlatformGenerated(true);
+			hiddenUserNote.setVisible(false);
+			hiddenUserNote.setParentMessageId(hiddenParentId);
+
+			ResponseMessage hiddenAck = ResponseMessage.text(HIDDEN_MESSAGE_ACK);
+			hiddenAck.setPlatformGenerated(true);
+			hiddenAck.setVisible(false);
+			hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
+
+			room.getMessages().add(hiddenUserNote);
+			room.getMessages().add(hiddenAck);
+
+			RoomMessageStore.persist(room, userId);
+
+			if (extrasOut != null) {
+				extrasOut.add(hiddenUserNote);
+				extrasOut.add(hiddenAck);
+			}
+		}
 	}
 }

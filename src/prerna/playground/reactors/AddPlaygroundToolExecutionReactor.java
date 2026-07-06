@@ -183,7 +183,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				// user-note / assistant-ack pair after it so the model sees on
 				// the next turn that its response was cut short.
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
+					PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
 							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
 				}
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -217,40 +217,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			// there might be times when this is unnecessary
 			// but we dont know if a tool output generated a file in the room
 			ClusterUtil.pushRoomAsync(room.getId());
-		}
-	}
-
-	/**
-	 * Append a hidden user note + canned assistant ack to the room history
-	 * after the visible tool follow-up. Both are invisible to the FE
-	 * (visible=false, platformGenerated=true) but ride along to the model on
-	 * the next turn via {@link RoomMessageStore#providerMessageHistory}, keeping
-	 * the payload role-alternating and telling the model its prior response was
-	 * cut short.
-	 */
-	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
-			String userId, List<AbstractMessage> extrasOut) {
-		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
-			InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
-					.withModelType(modelEngine.getModelType()).build();
-			hiddenUserNote.setPlatformGenerated(true);
-			hiddenUserNote.setVisible(false);
-			hiddenUserNote.setParentMessageId(hiddenParentId);
-
-			ResponseMessage hiddenAck = ResponseMessage.text(PlaygroundUtils.HIDDEN_MESSAGE_ACK);
-			hiddenAck.setPlatformGenerated(true);
-			hiddenAck.setVisible(false);
-			hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
-
-			room.getMessages().add(hiddenUserNote);
-			room.getMessages().add(hiddenAck);
-
-			RoomMessageStore.persist(room, userId);
-
-			if (extrasOut != null) {
-				extrasOut.add(hiddenUserNote);
-				extrasOut.add(hiddenAck);
-			}
 		}
 	}
 
