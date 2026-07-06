@@ -48,8 +48,9 @@ import prerna.util.Utility;
 
 /**
  * Deletes a skill: removes the {@code SKILL__} row, any {@code WORKSPACE_RESOURCE__}
- * rows that attach it to a workspace, and the underlying skill-project (security
- * rows, DIHelper entry, on-disk folder).
+ * rows that attach it to a workspace, the matching {@code CONFIG_JSON.skills[]} mirror
+ * entries, and the underlying skill-project (security rows, DIHelper entry, on-disk
+ * folder).
  *
  * <p>Mirrors {@code DeleteWorkspaceReactor}. The generic {@code DeleteProjectReactor}
  * also handles skill cleanup via its {@code PROJECT_TYPE.SKILL} branch, so callers

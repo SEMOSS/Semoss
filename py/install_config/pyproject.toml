@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.12.0",
     "annoy>=1.17.3",
-    "anthropic[bedrock,vertex]==0.102.0",
+    "anthropic[bedrock,vertex]==0.111.0",
     "asksageclient>=1.42",
     "azure-ai-formrecognizer>=3.3.3",
     "azure-common>=1.1.28",
@@ -20,7 +20,7 @@ dependencies = [
     "boto3>=1.43.9",
     "bs4>=0.0.2",
     "chonky==0.1.4",
-    "claude-agent-sdk==0.1.81",
+    "claude-agent-sdk==0.2.107",
     "github-copilot-sdk==0.3.0",
     "datasets==2.14.3",
     "deepdiff>=8.3.0",

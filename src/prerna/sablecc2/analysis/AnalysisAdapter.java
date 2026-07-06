@@ -882,6 +882,18 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseTAndComparator(TAndComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseTOrComparator(TOrComparator node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseTId(TId node)
     {
         defaultCase(node);
@@ -961,18 +973,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTComparator(TComparator node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTAndComparator(TAndComparator node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTOrComparator(TOrComparator node)
     {
         defaultCase(node);
     }
