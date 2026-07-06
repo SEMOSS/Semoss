@@ -69,36 +69,38 @@ public class RenameRoomReactor extends AbstractReactor {
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 
-		// If a name was explicitly provided, persist it directly
-		if (roomName != null && !roomName.trim().isEmpty()) {
-			boolean result = ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, roomName);
-			return new NounMetadata(result, PixelDataType.BOOLEAN);
-		}
-
-		// No name provided — generate one via LLM from the question
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (engineId == null || engineId.trim().isEmpty()) {
-			throw new IllegalArgumentException("An engine must be provided when no room name is supplied");
-		}
-
-		IModelEngine modelEngine = Utility.getModel(engineId);
 		Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
-		// Use the first user message as the question for title generation
-		String question = room.getMessages().stream()
-				.filter(m -> m instanceof InputMessage)
-				.map(m -> ((InputMessage) m).getInputUIPrompt())
-				.filter(p -> p != null && !p.trim().isEmpty())
-				.findFirst()
-				.orElse("");
+		String finalName;
+		if (roomName != null && !roomName.trim().isEmpty()) {
+			// Name provided explicitly — use it as-is
+			finalName = roomName.trim();
+		} else {
+			// No name provided — generate one via LLM from the first user message
+			String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+			if (engineId == null || engineId.trim().isEmpty()) {
+				throw new IllegalArgumentException("An engine must be provided when no room name is supplied");
+			}
 
-		String generatedName = generateRoomTitle(room, modelEngine, question);
-		room.setRoomName(generatedName);
-		boolean result = ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, generatedName);
-		if (!result) {
-			classLogger.warn("Room title was not persisted for room {}", roomId);
+			IModelEngine modelEngine = Utility.getModel(engineId);
+
+			String question = room.getMessages().stream()
+					.filter(m -> m instanceof InputMessage)
+					.map(m -> ((InputMessage) m).getInputUIPrompt())
+					.filter(p -> p != null && !p.trim().isEmpty())
+					.findFirst()
+					.orElse("");
+
+			finalName = generateRoomTitle(room, modelEngine, question);
 		}
-		return new NounMetadata(generatedName, PixelDataType.CONST_STRING);
+
+		// Update the in-memory room and persist, then return the final name
+		room.setRoomName(finalName);
+		boolean persisted = ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, finalName);
+		if (!persisted) {
+			classLogger.warn("Room name was not persisted for room {}", roomId);
+		}
+		return new NounMetadata(finalName, PixelDataType.CONST_STRING);
 	}
 
 	/**
@@ -107,22 +109,20 @@ public class RenameRoomReactor extends AbstractReactor {
 	 * does not bleed into the original room's conversation history.
 	 * Falls back to a truncated version of the question if the LLM call fails.
 	 */
-	public static String generateRoomTitle(Room originalRoom, IModelEngine modelEngine, String question) {
+	private static String generateRoomTitle(Room originalRoom, IModelEngine modelEngine, String question) {
 		String fallback = (question != null && !question.trim().isEmpty())
 				? question.trim()
 				: "New Conversation";
 
-		// Get the user ID from the original room's insight — needed for temp room c
-		// eanup
+		// Get the user ID from the original room's insight — needed for temp room cleanup
 		String userId = originalRoom.getInsight().getUser().getPrimaryLoginToken().getId();
 
 		// Generate a unique ID for the throwaway room
 		String tempRoomId = GUID.v7().toUUID().toString();
 
-		// Create a brand new isolated room — the Python model engine keys c
-		// nversation
-		// history by room ID, so using a separate room ID ensures the title prompt
-		// is completely isolated from the user's actual conversation
+		// Create a brand new isolated room — the Python model engine keys conversation
+		// history by room ID, so a separate room ID keeps the title prompt completely
+		// isolated from the user's actual conversation
 		Room tempRoom = RoomUtils.createRoomIfNotExists(tempRoomId, originalRoom.getInsight(), modelEngine, null);
 
 		String title = null;
@@ -136,8 +136,7 @@ public class RenameRoomReactor extends AbstractReactor {
 					.withModelType(modelEngine.getModelType())
 					.build();
 
-			// Serialize the single message to JSON — this is what the Python model e
-			// pects
+			// Serialize the single message to JSON — this is what the Python model expects
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json",
 					MessageUtils.toJsonArrayWithImageData(Arrays.asList(titleMsg)));
