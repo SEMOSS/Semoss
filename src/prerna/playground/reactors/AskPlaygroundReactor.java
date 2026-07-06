@@ -172,12 +172,19 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
-		// Extra (non-visible) messages persisted alongside the visible pair.
-		// Currently only populated on the cancel path, but always emitted (as
-		// an empty list on normal turns) so the FE contract stays consistent.
+		// Extra (non-visible) input/response pairs persisted alongside the
+		// visible pair — same shape as {inputMessage, responseMessage} above,
+		// just repeated for each extra turn. Currently only populated on the
+		// cancel path with the hidden user-note/assistant-ack pair, but always
+		// emitted (as an empty list on normal turns) so the FE contract stays
+		// consistent. Assumes extras arrive strictly as InputMessage+Response
+		// couplets in conversation order (which appendHiddenPair guarantees).
 		List<Map<String, Object>> extraMessagesList = new ArrayList<>();
-		for (AbstractMessage extra : extraMessages) {
-			extraMessagesList.add(jsonToMap(MessageUtils.toJson(extra)));
+		for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+			Map<String, Object> pair = new LinkedHashMap<>();
+			pair.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i))));
+			pair.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i + 1))));
+			extraMessagesList.add(pair);
 		}
 		pixelReturn.put("extraMessages", extraMessagesList);
 

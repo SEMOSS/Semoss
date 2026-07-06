@@ -29,6 +29,7 @@ package prerna.playground.reactors;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -196,11 +197,18 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			pixelReturn.put("inputMessage", inputMap);
 			pixelReturn.put("responseMessage", responseMap);
 
-			// Extra (non-visible) messages the FE needs to sync into its history
-			// so its provider-message view matches the room's. Empty on live turns.
+			// Extra (non-visible) input/response pairs — same shape as
+			// {inputMessage, responseMessage} above, repeated per extra turn.
+			// Currently only populated on the cancel path with the hidden
+			// user-note/assistant-ack pair. Assumes extras arrive strictly as
+			// InputMessage+Response couplets in conversation order (which
+			// appendHiddenPair guarantees).
 			List<Map<String, Object>> extraMessagesList = new ArrayList<>();
-			for (AbstractMessage extra : extraMessages) {
-				extraMessagesList.add(jsonToMap(MessageUtils.toJson(extra)));
+			for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+				Map<String, Object> pair = new LinkedHashMap<>();
+				pair.put("inputMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i))));
+				pair.put("responseMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i + 1))));
+				extraMessagesList.add(pair);
 			}
 			pixelReturn.put("extraMessages", extraMessagesList);
 
