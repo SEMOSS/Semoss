@@ -33,47 +33,67 @@ import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.io.connector.IAccessTokenFiller;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.security.HttpHelperUtility;
-import prerna.util.BeanFiller;
 import prerna.util.SocialPropertiesUtil;
 
-public class MicrosoftTokenFiller implements IAccessTokenFiller {
+/**
+ * Microsoft (Azure AD) OAuth2 provider. The authorize/token endpoints default
+ * to the Microsoft tenant endpoints derived from the {@code tenant} property,
+ * scope is included in the token exchange, and the profile is read from
+ * Microsoft Graph. Also enforces the {@code login_external} allowlist and
+ * supports delegated refresh-token flows.
+ */
+public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 
 	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
-	public static final String REFRESH_TOKEN_KEY = "refresh_token";
+	private static final String MS_BASE = "https://login.microsoftonline.com/";
 	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
-	private static String[] beanProps = { "name", "id", "email" };
-	private static String jsonPattern = "[displayName,id,mail]";
+	// jsonPattern: JMESPath query projecting values out of the Graph "me" JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	private static final String DEFAULT_JSON_PATTERN = "[displayName,id,mail]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "id", "email" };
 
 	@Override
-	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params) {
-		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
-			userInfoUrl = USER_INFO_URL;
-		}
-		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
-			jsonPattern = MicrosoftTokenFiller.jsonPattern;
-		}
-		if (beanProps == null || beanProps.length == 0) {
-			beanProps = MicrosoftTokenFiller.beanProps;
-		}
-
-		if (params == null) {
-			params = new HashMap<>();
-		}
-
-		String accessToken = msAccessToken.getAccess_token();
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-		// fill the bean with the return
-		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
+	protected String getDefaultAuthorizeUrl(String prefix) {
+		String tenant = socialData.getProperty(prefix + "tenant");
+		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
 	}
 
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params, boolean sanitizeResponse) {
-		// dont need to sanitize
-		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	protected String getDefaultTokenUrl(String prefix) {
+		String tenant = socialData.getProperty(prefix + "tenant");
+		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
+	}
+
+	@Override
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
+	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
+	@Override
+	protected boolean includeScopeInTokenRequest() {
+		return true;
+	}
+
+	@Override
+	public void fillAccessToken(AccessToken accessToken, String prefix) {
+		super.fillAccessToken(accessToken, prefix);
+		// enforce the external-user allowlist once the display name is populated
+		boolean loginExternalAllowed = Boolean.parseBoolean(socialData.getProperty(prefix + "login_external"));
+		if (!loginExternalAllowed && accessToken.getName() != null && accessToken.getName().contains("External")) {
+			throw new IllegalArgumentException("External users are not allowed");
+		}
 	}
 
 	@Override
@@ -98,7 +118,7 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 		String tokenEndpoint = SocialPropertiesUtil.getInstance().getProperty("ms_token_url");
 		if (isBlank(tokenEndpoint)) {
-			tokenEndpoint = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
+			tokenEndpoint = MS_BASE + tenantId + "/oauth2/v2.0/token";
 		}
 
 		Map<String, String> refreshParams = new HashMap<>();
@@ -122,9 +142,9 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 		String updatedRefreshToken = getRefreshToken(refreshedToken);
 		if (!isBlank(updatedRefreshToken)) {
-			mergedToken.addMetaValue(REFRESH_TOKEN_KEY, updatedRefreshToken);
+			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, updatedRefreshToken);
 		} else {
-			mergedToken.addMetaValue(REFRESH_TOKEN_KEY, refreshToken);
+			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refreshToken);
 		}
 
 		if (mergedToken.getProvider() == null) {
@@ -137,7 +157,7 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		if (accessToken == null) {
 			return null;
 		}
-		Collection<String> refreshTokens = accessToken.getMetaValues(REFRESH_TOKEN_KEY);
+		Collection<String> refreshTokens = accessToken.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
 		if (refreshTokens == null || refreshTokens.isEmpty()) {
 			return null;
 		}
@@ -147,10 +167,6 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 			}
 		}
 		return null;
-	}
-
-	private boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
 	}
 
 }
