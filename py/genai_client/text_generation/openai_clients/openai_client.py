@@ -1,4 +1,4 @@
-from typing import Any, Dict, TYPE_CHECKING, Union
+from typing import Any, Dict, TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from ...tokenizers.vllm_tokenizer import VLLMTokenizer
@@ -10,7 +10,8 @@ if TYPE_CHECKING:
 
 
 import json
-from openai import OpenAI, AzureOpenAI
+from openai import OpenAI, AzureOpenAI, omit
+from openai.types import Batch, BatchRequestCounts
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
@@ -19,7 +20,7 @@ from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
 from ..model_engine_exception import ModelEngineException, ErrorDetails
-from ...utils import string_to_bool, to_dict
+from ...utils import string_to_bool
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -737,7 +738,6 @@ class OpenAiClient(AbstractTextGenerationClient):
 
         elif self.chat_type == "responses":
             for tool_call in response.output:
-                # Only process items where type == "function_call"
                 if getattr(tool_call, "type", None) != "function_call":
                     continue
 
@@ -747,7 +747,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call.arguments
                 else:
-                    # Already a dict/object
                     arguments = tool_call.arguments
 
                 tools_result.append(
@@ -759,7 +758,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                     }
                 )
 
-        # preamble text the model emitted alongside the tool calls
         preamble_text = None
         if self.chat_type == "chat-completion":
             preamble_text = response.choices[0].message.content
@@ -852,7 +850,7 @@ class OpenAiClient(AbstractTextGenerationClient):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _normalize_batch_status(status):
+    def _normalize_batch_status(status: str | None) -> str:
         s = (status or "").lower()
         mapping = {
             "validating": "VALIDATING",
@@ -867,13 +865,15 @@ class OpenAiClient(AbstractTextGenerationClient):
         }
         return mapping.get(s, s.upper() or "UNKNOWN")
 
-    def _normalize_request_for_batch(self, req, idx, endpoint="/v1/chat/completions"):
+    def _normalize_request_for_batch(
+        self, req, idx: int, endpoint: str = "/v1/chat/completions"
+    ):
         """Convert simplified {command, context} format to the correct wire format for endpoint."""
         if not isinstance(req, dict):
             return req
 
         if req.get("message_json"):
-            return self._build_batch_body_from_history(req, idx, endpoint)
+            return self._build_batch_body_from_history(req, idx)
         if "command" not in req:
             return req
         custom_id = req.get("custom_id") or f"req-{idx}"
@@ -896,22 +896,27 @@ class OpenAiClient(AbstractTextGenerationClient):
         body.update(extra)
         return {"custom_id": custom_id, "body": body}
 
-    def _build_batch_body_from_history(self, req, idx, endpoint):
+    def _build_batch_body_from_history(self, req: dict, idx: int):
         """Build a per-request batch body from a full SEMOSS message_json + tools,
         reusing the same message builder the synchronous ask path uses."""
         custom_id = req.get("custom_id") or f"req-{idx}"
         skip = {"command", "context", "custom_id", "message_json"}
         kwargs = {k: v for k, v in req.items() if k not in skip}
+        message_json = req.get("message_json")
+        if not message_json:
+            raise ValueError(
+                f"Request {custom_id} is missing 'message_json' for batch processing"
+            )
         semoss_messages = self.build_semoss_messages(
             model_settings=self.model_settings,
-            message_json=req["message_json"],
+            message_json=message_json,
             **kwargs,
         )
         body = self.message_builder.build_request(semoss_messages)
         body.pop("stream", None)  # no streaming on batch requests
         return {"custom_id": custom_id, "body": body}
 
-    def _chat_completion_to_content_blocks(self, body):
+    def _chat_completion_to_content_blocks(self, body: dict):
         """Normalize a chat completion response body to SEMOSS content blocks."""
         if not isinstance(body, dict):
             return None
@@ -936,7 +941,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             )
         return {"role": "assistant", "content": blocks} if blocks else None
 
-    def _responses_api_to_content_blocks(self, body):
+    def _responses_api_to_content_blocks(self, body: dict):
         """Normalize a Responses API response body to SEMOSS content blocks."""
         if not isinstance(body, dict):
             return None
@@ -974,9 +979,11 @@ class OpenAiClient(AbstractTextGenerationClient):
     def submit_batch(
         self,
         requests,
-        completion_window="24h",
-        endpoint=None,
-        metadata=None,
+        completion_window: Optional[
+            str
+        ] = "24h",  # technically not honoring this right now, as OpenAI only allows 24h
+        endpoint: Optional[str] = None,
+        metadata: Optional[Dict[str, str]] = None,
         **kwargs,
     ):
         import io
@@ -1018,11 +1025,12 @@ class OpenAiClient(AbstractTextGenerationClient):
         file_obj = io.BytesIO(jsonl.encode("utf-8"))
         file_obj.name = "batch_input.jsonl"
         uploaded = self.client.files.create(file=file_obj, purpose="batch")
+        completion_window = "24h"  # completion window must be '24h' right now
         batch = self.client.batches.create(
             input_file_id=uploaded.id,
             endpoint=endpoint,
             completion_window=completion_window,
-            metadata=metadata or None,
+            metadata=metadata if metadata else None,
         )
         return {
             "provider_batch_id": batch.id,
@@ -1030,39 +1038,37 @@ class OpenAiClient(AbstractTextGenerationClient):
             "request_count": len(lines),
             "endpoint": endpoint,
             "input_file_id": uploaded.id,
-            "raw": to_dict(batch),
+            "raw": batch.model_dump(),
         }
 
-    def get_batch_status(self, provider_batch_id, **kwargs):
-        batch = self.client.batches.retrieve(provider_batch_id)
-        rc = getattr(batch, "request_counts", None)
+    def get_batch_status(self, provider_batch_id: str, **kwargs):
+        batch: Batch = self.client.batches.retrieve(provider_batch_id)
+        rc: BatchRequestCounts | None = batch.request_counts
         counts = {}
         if rc is not None:
             counts = {
-                "total": getattr(rc, "total", None),
-                "completed": getattr(rc, "completed", None),
-                "failed": getattr(rc, "failed", None),
+                "total": rc.total,
+                "completed": rc.completed,
+                "failed": rc.failed,
             }
         return {
             "provider_batch_id": batch.id,
             "status": self._normalize_batch_status(batch.status),
             "counts": counts,
-            "output_ref": getattr(batch, "output_file_id", None),
-            "error_ref": getattr(batch, "error_file_id", None),
-            "raw": to_dict(batch),
+            "output_ref": batch.output_file_id,
+            "error_ref": batch.error_file_id,
+            "raw": batch.model_dump(),
         }
 
-    def get_batch_results(self, provider_batch_id, **kwargs):
-        batch = self.client.batches.retrieve(provider_batch_id)
-        batch_endpoint = (
-            getattr(batch, "endpoint", "/v1/chat/completions") or "/v1/chat/completions"
-        )
-        output_file_id = getattr(batch, "output_file_id", None)
-        error_file_id = getattr(batch, "error_file_id", None)
+    def get_batch_results(self, provider_batch_id: str, **kwargs):
+        batch: Batch = self.client.batches.retrieve(provider_batch_id)
+        batch_endpoint = batch.endpoint
+        output_file_id = batch.output_file_id
+        error_file_id = batch.error_file_id
         items = []
         raw_lines = []
 
-        def _consume(file_id):
+        def _consume(file_id: Optional[str]):
             if not file_id:
                 return
             content = self.client.files.content(file_id)
@@ -1121,26 +1127,34 @@ class OpenAiClient(AbstractTextGenerationClient):
             "raw_jsonl": "\n".join(raw_lines),
         }
 
-    def list_batches(self, limit=20, **kwargs):
-        resp = self.client.batches.list(limit=limit)
-        data = resp.data if hasattr(resp, "data") else resp
-        batches = []
-        for b in data:
-            rc = getattr(b, "request_counts", None)
-            batches.append(
-                {
-                    "provider_batch_id": b.id,
-                    "status": self._normalize_batch_status(b.status),
-                    "request_count": getattr(rc, "total", None) if rc else None,
-                    "created_at": getattr(b, "created_at", None),
-                }
-            )
-        return {"batches": batches}
+    def list_batches(self, limit: int = 20, after: str | None = None, **kwargs):
+        if not after:
+            after = kwargs.get("after")
+        resp = self.client.batches.list(
+            limit=limit,
+            after=after if after is not None else omit,
+        )
+        batches = [
+            {
+                "provider_batch_id": b.id,
+                "status": self._normalize_batch_status(b.status),
+                "request_count": (
+                    b.request_counts.total if b.request_counts is not None else None
+                ),
+                "created_at": b.created_at,
+            }
+            for b in resp.data
+        ]
+        return {
+            "batches": batches,
+            "has_more": resp.has_more,
+            "next_cursor": resp.data[-1].id if resp.data and resp.has_more else None,
+        }
 
-    def cancel_batch(self, provider_batch_id, **kwargs):
-        batch = self.client.batches.cancel(provider_batch_id)
+    def cancel_batch(self, provider_batch_id: str, **kwargs):
+        batch: Batch = self.client.batches.cancel(provider_batch_id)
         return {
             "provider_batch_id": batch.id,
             "status": self._normalize_batch_status(batch.status),
-            "raw": to_dict(batch),
+            "raw": batch.model_dump(),
         }
