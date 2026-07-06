@@ -1,4 +1,5 @@
 from typing import Any, Dict, TYPE_CHECKING, Optional, Union
+import typing
 
 if TYPE_CHECKING:
     from ...tokenizers.vllm_tokenizer import VLLMTokenizer
@@ -16,6 +17,7 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
+from ...message_builders.openai.openai_models import BatchEndpoint
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
@@ -1026,6 +1028,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         file_obj.name = "batch_input.jsonl"
         uploaded = self.client.files.create(file=file_obj, purpose="batch")
         completion_window = "24h"  # completion window must be '24h' right now
+
         batch = self.client.batches.create(
             input_file_id=uploaded.id,
             endpoint=endpoint,
