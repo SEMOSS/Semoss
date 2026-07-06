@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.agent.skill;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -37,6 +39,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
@@ -47,18 +50,30 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 /**
- * Attaches a skill from the registry to a workspace by inserting a
- * {@code WORKSPACE_RESOURCE__} row with {@code RESOURCE_TYPE='SKILL'}.
+ * Attaches a skill to a workspace. Handles both skill kinds through one entry
+ * point, keyed by which identifier you pass:
  *
- * <p>Since a skill is itself a Project (type=SKILL), authorization piggybacks on
- * project permissions: the user must be able to edit the workspace project and
- * view the skill project. Idempotent - a second call with the same
- * {@code (workspaceId, skillId)} no-ops.
+ * <ul>
+ *   <li>{@code skillId} - a registry skill (a Project of type {@code SKILL}).
+ *       Inserts a {@code WORKSPACE_RESOURCE__} row with
+ *       {@code RESOURCE_TYPE='SKILL'} and mirrors it into
+ *       {@code CONFIG_JSON.skills[]}. Authorization piggybacks on project
+ *       permissions: edit on the workspace, view on the skill.</li>
+ *   <li>{@code slug} - a platform skill (a disk-backed built-in under
+ *       {@code <BASE_FOLDER>/skills/}; see {@link PlatformSkills}). Adds the slug
+ *       to {@code CONFIG_JSON.platform_skills[]}. Platform skills are not Projects
+ *       and carry no permissions, so only workspace-edit rights are required.</li>
+ * </ul>
+ *
+ * <p>Exactly one of {@code skillId} / {@code slug} must be supplied - a
+ * {@code slug} (no id) is the signal that you mean a platform skill. Idempotent
+ * in both modes.
  *
  * <p>Inputs:
  * <ul>
  *   <li>{@code workspaceId} - target workspace (required)</li>
- *   <li>{@code skillId}     - skill to attach (required)</li>
+ *   <li>{@code skillId}     - registry skill to attach (required unless {@code slug} given)</li>
+ *   <li>{@code slug}        - platform skill to attach (required unless {@code skillId} given)</li>
  * </ul>
  */
 public class AttachSkillToWorkspaceReactor extends AbstractReactor {
@@ -66,10 +81,11 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AttachSkillToWorkspaceReactor.class);
 
 	private static final String SKILL_ID = "skillId";
+	private static final String SLUG     = "slug";
 
 	public AttachSkillToWorkspaceReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID, SLUG };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -77,22 +93,53 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 		organizeKeys();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		String skillId     = this.keyValue.get(SKILL_ID);
+		String skillId     = nullIfBlank(this.keyValue.get(SKILL_ID));
+		String slug        = nullIfBlank(this.keyValue.get(SLUG));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
 		}
-		if (skillId == null || skillId.isEmpty()) {
-			throw new IllegalArgumentException("skillId is required");
+		if (skillId == null && slug == null) {
+			throw new IllegalArgumentException("either skillId or slug is required");
+		}
+		if (skillId != null && slug != null) {
+			throw new IllegalArgumentException("provide exactly one of skillId or slug (slug => platform skill)");
 		}
 
 		User user = this.insight.getUser();
-
 		if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have permission to edit it");
 		}
 
+		// A slug (and no id) means a disk-backed platform skill.
+		if (slug != null) {
+			return attachPlatformSkill(workspaceId, slug);
+		}
+		return attachRegistrySkill(user, workspaceId, skillId);
+	}
+
+	/** Platform skill: add the slug to CONFIG_JSON.platform_skills[]. */
+	private NounMetadata attachPlatformSkill(String workspaceId, String slug) {
+		if (!PlatformSkills.exists(slug)) {
+			throw new IllegalArgumentException("Platform skill not found: " + slug);
+		}
+		try {
+			ModelInferenceLogsUtils.addPlatformSkillToWorkspaceConfigJson(workspaceId, slug);
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to attach platform skill to workspace: " + e.getMessage(), e);
+		}
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("workspace_id", workspaceId);
+		response.put("slug", slug);
+		response.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
+		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	/** Registry skill: insert the WORKSPACE_RESOURCE__ row and mirror into CONFIG_JSON.skills[]. */
+	private NounMetadata attachRegistrySkill(User user, String workspaceId, String skillId) {
 		Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(skillId);
 		if (skillRow == null) {
 			throw new IllegalArgumentException("Skill not found: " + skillId);
@@ -130,6 +177,39 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 				response.put("warning", "Skill attached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
 			}
 
+			// Mirror the attachment into PROJECTDEPENDENCIES so the skill shows up as a
+			// project dependency alongside MCP engines/projects. Bulk update via merge:
+			// read current deps, append the skill if not already present, rewrite.
+			// Best-effort - WORKSPACE_RESOURCE row is the source of truth.
+			try {
+				List<Map<String, Object>> current = SecurityProjectUtils.getProjectDependencies(workspaceId, false);
+				List<Map<String, Object>> merged = new ArrayList<>();
+				boolean alreadyPresent = false;
+				for (Map<String, Object> row : current) {
+					String existingId = (String) row.get("engine_id");
+					String existingType = (String) row.get("engine_type");
+					Map<String, Object> entry = new HashMap<>();
+					entry.put("ENGINEID", existingId);
+					entry.put("ENGINETYPE", existingType);
+					merged.add(entry);
+					if (skillId.equals(existingId)) {
+						alreadyPresent = true;
+					}
+				}
+				if (!alreadyPresent) {
+					Map<String, Object> skillDep = new HashMap<>();
+					skillDep.put("ENGINEID", skillId);
+					skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
+					merged.add(skillDep);
+					SecurityProjectUtils.updateProjectDependencies(user, workspaceId, merged);
+				}
+			} catch (Exception depEx) {
+				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record PROJECTDEPENDENCIES entry",
+						skillId, workspaceId, depEx);
+				response.put("dependency_warning",
+						"Skill attached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
+			}
+
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -137,9 +217,18 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 		}
 	}
 
+	private static String nullIfBlank(String s) {
+		if (s == null) {
+			return null;
+		}
+		String t = s.trim();
+		return t.isEmpty() ? null : t;
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Attaches a skill from the registry to a workspace (WORKSPACE_RESOURCE__ with RESOURCE_TYPE='SKILL'). Idempotent.";
+		return "Attaches a skill to a workspace. Pass skillId for a registry skill (WORKSPACE_RESOURCE__ + "
+				+ "CONFIG_JSON.skills[]) or slug for a platform skill (CONFIG_JSON.platform_skills[]). Idempotent.";
 	}
 
 	@Override
@@ -148,7 +237,10 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			return "Target workspace identifier";
 		}
 		if (SKILL_ID.equals(key)) {
-			return "Identifier of the skill to attach";
+			return "Identifier of the registry skill to attach (omit when attaching a platform skill by slug)";
+		}
+		if (SLUG.equals(key)) {
+			return "Folder name (slug) of the platform skill to attach (omit when attaching a registry skill by id)";
 		}
 		return super.getDescriptionForKey(key);
 	}

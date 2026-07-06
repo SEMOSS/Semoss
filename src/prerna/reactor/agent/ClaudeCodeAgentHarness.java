@@ -50,9 +50,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  * <ul>
  *   <li>working dir - {@code ctx.getFilePath()} (raw - no {@code /client} suffix
  *       imposed; callers wanting that pass {@code subdir="client"} to {@code RunAgent})</li>
- *   <li>system prompt - {@code ctx.getRoom().getRoomOrWorkspaceSystemPrompt()} (raw
- *       authored layer; no enterprise-template wrap, no {@code {{VAR}}} expansion -
- *       the external CLI gets the agent's prompt as-authored)</li>
+ *   <li>system prompt - {@code ctx.getRoom().getSystemPromptForModel()}</li>
  *   <li>engine id - {@code ctx.getRoom().getModelId()}</li>
  *   <li>MCP list - {@code ctx.getAgentConfig().getMcps()} (union of
  *       {@code WORKSPACE_RESOURCE} + {@code room.options.mcp[]})</li>
@@ -85,7 +83,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         if (engineId == null || engineId.trim().isEmpty()) {
             throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
         }
-        String       systemPrompt   = room.getRoomOrWorkspaceSystemPrompt();
+        String       systemPrompt   = room.getSystemPromptForModel();
         if (systemPrompt == null) {
             systemPrompt = "";
         }

@@ -84,12 +84,33 @@ public class EngineInfoReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Returns information for a single engine when the user can access it or it is discoverable.
+				Returns the full settings/metadata record for a single engine (database, model, vector, storage, function, etc.).
 
-				Inputs: engine, metaKeys.
-				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name).
-				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				Access: the engine must be one the current user can view, or the engine must be marked discoverable. \
+				If neither is true the reactor throws "Engine does not exist or user does not have access to the engine". \
+				Use AdminEngineInfo if you need to read an engine without regard to the caller's permissions.
+
+				Inputs:
+				  engine   (required) - the engine id.
+				  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
+
+				Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
+				  Core engine fields: engine_id, engine_name, engine_display_name, engine_type, engine_subtype,
+				    engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by,
+				    engine_created_by_type, engine_date_created, low_engine_name, engine_description.
+				  Permission fields (relative to the calling user): engine_user_permission, engine_group_permission, engine_favorite.
+				  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
 				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.ENGINE.getKey().equals(key)) {
+			return "Id of the engine to look up";
+		} else if (ReactorKeysEnum.META_KEYS.getKey().equals(key)) {
+			return "Optional list of metadata tag names to return for the engine; omit to return all metadata tags";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

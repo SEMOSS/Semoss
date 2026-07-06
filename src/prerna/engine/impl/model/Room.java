@@ -75,6 +75,7 @@ import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
@@ -467,9 +468,9 @@ public class Room implements Serializable {
 
 			if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
-				toolResultsMessage = InputMessage
-						.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt()).withToolResult(toolCallId,
-								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
+				toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getSystemPromptForModel())
+						.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus,
+								false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
@@ -990,7 +991,7 @@ public class Room implements Serializable {
 	 * <p>
 	 * Use this when you need the raw user prompt as a composable layer (e.g., a
 	 * harness combining it with built-in agent instructions). Use
-	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
+	 * {@link #getSystemPromptForModel()} for the final prompt sent to the model.
 	 *
 	 * @return authored prompt, or {@code null} if neither layer is set
 	 * @throws IllegalArgumentException when workspace lookup fails access or
@@ -1051,19 +1052,43 @@ public class Room implements Serializable {
 	}
 
 	/**
-	 * Returns the effective system prompt seen by the model: the user-authored
-	 * layer (room or workspace) wrapped by the enterprise template from the active
-	 * admin theme and with {@code {{VAR}}} placeholders expanded.
+	 * Returns the final system prompt this room should send to the model. Starts
+	 * with the room/workspace-authored prompt, then applies any outer wrapper
+	 * required by the room's runtime surface. Today only SYSTEM__PLAYGROUND has an
+	 * outer wrapper: the active playground global system prompt from the admin
+	 * theme.
 	 *
 	 * @return resolved system prompt, or {@code null} when no prompt is configured
 	 * @throws IllegalArgumentException when workspace prompt resolution fails
 	 *                                  access or active-state checks
 	 */
-	public String getEffectiveSystemPrompt() {
-		String systemPrompt = getRoomOrWorkspaceSystemPrompt();
+	public String getSystemPromptForModel() {
+		return applySystemPromptOuterWrapper(getRoomOrWorkspaceSystemPrompt());
+	}
+
+	/**
+	 * Applies the outermost system prompt wrapper, when this room's runtime surface
+	 * defines one.
+	 *
+	 * @param systemPrompt already-composed caller prompt
+	 * @return prompt after project wrapper, or the original prompt when no wrapper
+	 *         applies
+	 */
+	public String applySystemPromptOuterWrapper(String systemPrompt) {
+		if (!usesPlaygroundSystemPromptWrapper()) {
+			return systemPrompt;
+		}
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
 		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
 		return expandSystemPromptVariables(merged);
+	}
+
+	/**
+	 * Returns whether this room should use the playground/admin-theme global system
+	 * prompt wrapper.
+	 */
+	public boolean usesPlaygroundSystemPromptWrapper() {
+		return PlaygroundUtils.PLAYGROUND_PROJECT_ID.equals(this.projectId);
 	}
 
 	/**
