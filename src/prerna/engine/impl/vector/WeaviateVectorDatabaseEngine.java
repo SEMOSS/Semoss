@@ -56,6 +56,7 @@ import io.weaviate.client.v1.data.model.WeaviateObject;
 import io.weaviate.client.v1.filters.Operator;
 import io.weaviate.client.v1.filters.WhereFilter;
 import io.weaviate.client.v1.graphql.model.GraphQLResponse;
+import io.weaviate.client.v1.graphql.query.argument.HybridArgument;
 import io.weaviate.client.v1.graphql.query.argument.NearVectorArgument;
 import io.weaviate.client.v1.graphql.query.fields.Field;
 import io.weaviate.client.v1.schema.model.Schema;
@@ -74,14 +75,22 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	public static final String WEAVIATE_CLASSNAME = "WEAVIATE_CLASSNAME";
 	public static final String AUTOCUT = "AUTOCUT";
-	
+	/** SMSS key: enable hybrid (BM25 + vector) search via Weaviate's native hybrid operator. Default false. */
+	public static final String USE_HYBRID_SEARCH = "USE_HYBRID_SEARCH";
+	/** SMSS key: alpha for hybrid fusion — 1.0 = pure vector, 0.0 = pure keyword, 0.5 = balanced. Default 0.5. */
+	public static final String HYBRID_ALPHA = "HYBRID_ALPHA";
+
+	private static final float DEFAULT_HYBRID_ALPHA = 0.5f;
+
 	private WeaviateClient client = null;
 	private String host = null;
 	private String protocol = "https";
 	private String apiKey = null;
-	
+
 	private String className = null;
 	private int autocut = 1;
+	private boolean useHybridSearch = false;
+	private float hybridAlpha = DEFAULT_HYBRID_ALPHA;
 	
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -118,8 +127,23 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				throw new IllegalArgumentException("Invalid input for autocut. Must be a positive integer value. Value was: " + autoCutStr);
 			}
 		}
+
+		this.useHybridSearch = Boolean.parseBoolean(smssProp.getProperty(USE_HYBRID_SEARCH, "false"));
+
+		if(this.useHybridSearch && smssProp.containsKey(HYBRID_ALPHA)) {
+			try {
+				float parsed = Float.parseFloat(smssProp.getProperty(HYBRID_ALPHA));
+				if(parsed >= 0.0f && parsed <= 1.0f) {
+					this.hybridAlpha = parsed;
+				} else {
+					classLogger.warn("HYBRID_ALPHA '{}' must be between 0.0 and 1.0; defaulting to {}", parsed, DEFAULT_HYBRID_ALPHA);
+				}
+			} catch(NumberFormatException e) {
+				classLogger.warn("HYBRID_ALPHA '{}' is not a valid number; defaulting to {}", smssProp.getProperty(HYBRID_ALPHA), DEFAULT_HYBRID_ALPHA);
+			}
+		}
 	}
-	
+
 	@Override
 	protected String getDefaultDistanceMethod() {
 		return "Cosine Similarity";
@@ -341,22 +365,45 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		Field part = Field.builder().name("part").build();
 		Field modality = Field.builder().name("modality").build();
 		
-		Field _additional = Field.builder()
-				.name("_additional")
-				.fields(new Field[]{
-						Field.builder().name("certainty").build(),  // only supported if distance==cosine
-						Field.builder().name("distance").build()   // always supported
-				}).build();
+		GraphQLResponse response;
+		if(this.useHybridSearch) {
+			// hybrid path: Weaviate fuses BM25 + vector server-side and returns a single fused score
+			Field _additional = Field.builder()
+					.name("_additional")
+					.fields(new Field[]{
+							Field.builder().name("score").build()
+					}).build();
 
-		NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
-		
-		GraphQLResponse response = client.graphQL().get().withClassName(className)
-				.withFields(content, source, divider, part, modality, _additional)
-				.withNearVector(nearVector)
-				.withAutocut(cutter)
-				.withLimit(limit.intValue())
-				.run()
-				.getResult();
+			HybridArgument hybrid = HybridArgument.builder()
+					.query(searchStatement)
+					.vector(vector)
+					.alpha(this.hybridAlpha)
+					.build();
+
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional)
+					.withHybrid(hybrid)
+					.withLimit(limit.intValue())
+					.run()
+					.getResult();
+		} else {
+			Field _additional = Field.builder()
+					.name("_additional")
+					.fields(new Field[]{
+							Field.builder().name("certainty").build(),  // only supported if distance==cosine
+							Field.builder().name("distance").build()   // always supported
+					}).build();
+
+			NearVectorArgument nearVector = NearVectorArgument.builder().vector(vector).build();
+
+			response = client.graphQL().get().withClassName(className)
+					.withFields(content, source, divider, part, modality, _additional)
+					.withNearVector(nearVector)
+					.withAutocut(cutter)
+					.withLimit(limit.intValue())
+					.run()
+					.getResult();
+		}
 
 		// hashmap = LinkedTreeMap
 		// each level is a hashmap
@@ -364,14 +411,14 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// followed by vector table
 		// followed list of contents - array list
 		// the contents is again another hashmap
-		
+
 		// get
 		LinkedTreeMap getMap = (LinkedTreeMap)((LinkedTreeMap)response.getData()).get("Get");
-		
+
 		// vector table
 		ArrayList outputs = (ArrayList)getMap.get(className);
 
-		// each of the output is another treemap with each of the fields.. yay 
+		// each of the output is another treemap with each of the fields.. yay
 		for(int outputIndex = 0;outputIndex < outputs.size();outputIndex++) {
 			LinkedTreeMap thisOutput = (LinkedTreeMap)outputs.get(outputIndex);
 			LinkedTreeMap additional = (LinkedTreeMap)thisOutput.get("_additional");
@@ -381,8 +428,12 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			outputMap.put("Modality", thisOutput.get("modality"));
 			outputMap.put("Part", thisOutput.get("part"));
 			outputMap.put("Content", thisOutput.get("content"));
-			outputMap.put("Score", additional.get("certainty"));
-			outputMap.put("Distance", additional.get("distance"));
+			if(this.useHybridSearch) {
+				outputMap.put("Score", additional.get("score"));
+			} else {
+				outputMap.put("Score", additional.get("certainty"));
+				outputMap.put("Distance", additional.get("distance"));
+			}
 			retOut.add(outputMap);
 		}
 		return retOut;
