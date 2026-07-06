@@ -75,10 +75,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
-        # Provider-specific SDKs are imported lazily so a client only pays for
-        # the backend it actually uses. In particular the Google clients pull in
-        # google / google.auth / google.genai (~0.85s) that direct-Anthropic,
-        # Bedrock and Azure providers never need.
         if self.provider == "google":
             from ...clients.google_clients import (
                 GoogleClient,
@@ -98,9 +94,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
-            from anthropic import AnthropicBedrock
+            from anthropic import AnthropicAWS
 
-            return AnthropicBedrock(
+            return AnthropicAWS(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
@@ -1009,9 +1005,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         return mapping.get(s, s.upper() or "UNKNOWN")
 
     def _ensure_native_batch_supported(self):
-        # Only the direct Anthropic API exposes Message Batches in this shape.
-        # Bedrock/Vertex/Foundry batch use different, provider-specific APIs.
-        if self.provider not in ("anthropic",):
+        """Batch is only working for Anthropic provider; raise if not."""
+        if self.provider not in ("anthropic"):
             raise ValueError(
                 f"Native message batches are not supported for Anthropic provider "
                 f"'{self.provider}'."
@@ -1053,43 +1048,57 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             self.model_settings,
             self.model_limits,
             self.model_name,
-            self.use_beta_header,
+            self.use_beta_header if self.use_beta_header else False,
             self.beta_feature_name,
             thinking_signature=self.thinking_signature,
         )
         params = msg_builder_response.request_config.model_dump(exclude_none=True)
-        # batch params cannot carry streaming or per-request beta headers
-        params.pop("stream", None)
+
+        params.pop("stream", None)  # no streaming for batch
         params.pop("betas", None)
         return {"custom_id": custom_id, "params": params}
 
-    def submit_batch(self, requests, completion_window="24h", metadata=None, **kwargs):
+    def submit_batch(self, requests, **kwargs):
+        from anthropic.types.message_create_params import (
+            MessageCreateParamsNonStreaming,
+        )
+        from anthropic.types.messages.batch_create_params import Request
+        from anthropic.types.messages import MessageBatch
+
         self._ensure_native_batch_supported()
         if isinstance(requests, str):
             requests = json.loads(requests)
-        requests = [self._normalize_request_for_batch(r, i) for i, r in enumerate(requests or [])]
-        model = self.model_settings.model_name
+        requests = [
+            self._normalize_request_for_batch(r, i)
+            for i, r in enumerate(requests or [])
+        ]
         default_max_tokens = getattr(self.model_settings, "max_tokens", None) or 1024
         batch_requests = []
         for req in requests or []:
-            custom_id = str(req.get("custom_id"))
             params = dict(req.get("body") or req.get("params") or {})
-            params.setdefault("model", model)
+            model = params.pop("model", None) or self.model_settings.model_name
             params.setdefault("max_tokens", default_max_tokens)
-            batch_requests.append({"custom_id": custom_id, "params": params})
+            request = Request(
+                custom_id=str(req.get("custom_id")),
+                params=MessageCreateParamsNonStreaming(
+                    **params,
+                    model=model,
+                ),
+            )
+            batch_requests.append(request)
         if not batch_requests:
             raise ValueError("submit_batch requires at least one request")
 
-        batch = self.client.messages.batches.create(requests=batch_requests)
+        batch: MessageBatch = self.client.messages.batches.create(
+            requests=batch_requests
+        )
         return {
             "provider_batch_id": batch.id,
-            "status": self._normalize_batch_status(
-                getattr(batch, "processing_status", None)
-            ),
+            "status": self._normalize_batch_status(batch.processing_status),
             "request_count": len(batch_requests),
             "endpoint": "/v1/messages/batches",
-            "results_url": getattr(batch, "results_url", None),
-            "raw": self._to_dict(batch),
+            "results_url": batch.results_url,
+            "raw": batch.model_dump(),
         }
 
     def get_batch_status(self, provider_batch_id, **kwargs):
@@ -1126,33 +1135,52 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         items = []
         raw_lines = []
         for entry in self.client.messages.batches.results(provider_batch_id):
-            d = self._to_dict(entry)
-            result = d.get("result") or {}
-            rtype = result.get("type")
+            result = entry.result
+            rtype = result.type
             ok = rtype == "succeeded"
-            message = result.get("message") if ok else None
-            error = result.get("error") if not ok else None
-            usage = (message or {}).get("usage") if message else None
+
             normalized_message = None
-            if ok and isinstance(message, dict):
+            error = None
+            error_type = None
+            error_message = None
+            input_tokens = None
+            output_tokens = None
+
+            if rtype == "succeeded":
+                msg = result.message  # anthropic.types.Message
+                msg_dict = self._to_dict(msg)
                 normalized_message = {
-                    "role": "assistant",
-                    "content": message.get("content") or [],
+                    "role": msg.role,
+                    "content": (msg_dict or {}).get("content") or [],
                 }
+                usage = msg.usage
+                if usage is not None:
+                    input_tokens = usage.input_tokens
+                    output_tokens = usage.output_tokens
+            elif rtype == "errored":
+                err = result.error  # ErrorResponse
+                error = self._to_dict(err)
+                inner = getattr(err, "error", None)  # ErrorObject
+                if inner is not None:
+                    error_type = getattr(inner, "type", None)
+                    error_message = getattr(inner, "message", None)
+
             items.append(
                 {
-                    "custom_id": d.get("custom_id"),
+                    "custom_id": entry.custom_id,
                     "ok": ok,
                     "status": rtype,
                     "message": normalized_message,
                     "error": error,
-                    "input_tokens": (usage or {}).get("input_tokens") if usage else None,
-                    "output_tokens": (usage or {}).get("output_tokens")
-                    if usage
-                    else None,
+                    "error_type": error_type,
+                    "error_message": error_message,
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
                 }
             )
-            raw_lines.append(json.dumps(d, ensure_ascii=False, default=str))
+            raw_lines.append(
+                json.dumps(self._to_dict(entry), ensure_ascii=False, default=str)
+            )
         return {
             "provider_batch_id": provider_batch_id,
             "count": len(items),

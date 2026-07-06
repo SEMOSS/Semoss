@@ -981,13 +981,12 @@ class OpenAiClient(AbstractTextGenerationClient):
     def submit_batch(
         self,
         requests,
-        completion_window: Optional[
-            str
-        ] = "24h",  # technically not honoring this right now, as OpenAI only allows 24h
         endpoint: Optional[str] = None,
-        metadata: Optional[Dict[str, str]] = None,
         **kwargs,
     ):
+        # completion_window and metadata are read from kwargs since not all
+        # providers honor them; OpenAI only allows a 24h completion window.
+        metadata = kwargs.get("metadata")
         import io
 
         if endpoint is None:
