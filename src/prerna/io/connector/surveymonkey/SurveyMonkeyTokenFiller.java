@@ -25,34 +25,42 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.servicenow;
+package prerna.io.connector.surveymonkey;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * ServiceNow OAuth2 provider. The authorize and token endpoints are derived
- * from the configured {@code instance_url} ({@code /oauth_auth.do} and
- * {@code /oauth_token.do}); the userinfo endpoint is configured directly. The
- * authorize redirect does not use {@code response_mode}/{@code state}.
+ * SurveyMonkey OAuth2 provider. Uses the fixed SurveyMonkey authorize/token
+ * endpoints (no scope/state/response_mode) and reads the profile from the
+ * SurveyMonkey users API, joining first/last name into a display name.
+ *
+ * @see MonkeyProfile the {@link prerna.io.connector.IConnectorIOp} equivalent
+ *      used outside the login flow
  */
-public class ServiceNowTokenFiller extends AbstractOAuthTokenFiller {
+public class SurveyMonkeyTokenFiller extends AbstractOAuthTokenFiller {
 
-	// jsonPattern: JMESPath query projecting values out of the userinfo JSON
-	// (ServiceNow wraps the user under "result").
+	private static final String AUTH_URL = "https://api.surveymonkey.com/oauth/authorize";
+	private static final String TOKEN_URL = "https://api.surveymonkey.com/oauth/token";
+	private static final String USER_INFO_URL = "https://api.surveymonkey.com/v3/users/me";
+	// jsonPattern: JMESPath query projecting values out of the users/me JSON.
 	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[result.name, result.email, result.sys_id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "id" };
+	private static final String[] DEFAULT_BEAN_PROPS = { "id", "email", "username", "name" };
+	// the pattern joins the first name and last name together into the display name
+	private static final String DEFAULT_JSON_PATTERN = "{id: id, email: email, username: username, first_name: first_name, last_name: last_name}.[id, email, username, join(' ', [first_name, last_name])]";
 
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_auth.do";
+		return AUTH_URL;
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
-		String instanceUrl = socialData.getProperty(prefix + "instance_url");
-		return isBlank(instanceUrl) ? null : instanceUrl + "/oauth_token.do";
+		return TOKEN_URL;
+	}
+
+	@Override
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override
