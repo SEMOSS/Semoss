@@ -174,7 +174,8 @@ final class AgentRunWorker {
 			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
 					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
 					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight);
+					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
+					request.isResumeMode());
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -200,6 +201,13 @@ final class AgentRunWorker {
 			if (runtime.isCancelled(e)) {
 				store.markCancelled(runId, jobId, runtime.boundedError(e));
 				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
+			} else if (e instanceof prerna.reactor.agent.exceptions.AgentInputRequiredException) {
+				// Harness paused on SMSS_MCP_EXECUTION=ask tools.
+				// The harness already persisted AGENT_RUN_ACTION rows and
+				// published the event; we just need to transition the run.
+				store.markInputRequired(runId, jobId);
+				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.INPUT_REQUIRED, true);
+				logger.info("AgentRunWorker: runId={} paused for user input", runId);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
 				Map<String, Object> eventData = new java.util.HashMap<>();

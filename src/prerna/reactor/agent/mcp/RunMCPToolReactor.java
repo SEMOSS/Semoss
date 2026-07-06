@@ -27,14 +27,28 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.AgentRunEventBus;
+import prerna.reactor.agent.run.AgentRunStore;
+import prerna.reactor.agent.run.AgentRunStatus;
+import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,12 +58,24 @@ import prerna.util.Utility;
 
 public class RunMCPToolReactor extends AbstractReactor {
 
+	private static final Logger logger = LogManager.getLogger(RunMCPToolReactor.class);
+
+	// Agent-context keys (optional). When all three are present, the tool result
+	// is written to the room via addToolExecutionResult and the agent run is resumed.
+	private static final String RUN_ID_KEY = "runId";
+	private static final String ROOM_ID_KEY = ReactorKeysEnum.ROOM_ID.getKey();
+	private static final String TOOL_CALL_ID_KEY = "toolCallId";
+	private static final String PARENT_MESSAGE_ID_KEY = ReactorKeysEnum.PARENT_MESSAGE_ID.getKey();
+	private static final String ACTION_ID_KEY = "actionId";
+	private static final String DECISION_KEY = "decision";
+
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
 				ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.MCP_TOOL_RESULT.getKey() };
-		this.keyRequired = new int[] { 0, 1, 1, 0 };
+				ReactorKeysEnum.MCP_TOOL_RESULT.getKey(), RUN_ID_KEY, ROOM_ID_KEY, TOOL_CALL_ID_KEY,
+				PARENT_MESSAGE_ID_KEY, ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), ACTION_ID_KEY, DECISION_KEY };
+		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -61,7 +87,31 @@ public class RunMCPToolReactor extends AbstractReactor {
 		// TODO: this logic should be shifted such that the MCP FE app directly calls
 		// AddPlaygroundToolExecution
 		String toolExecutionResult = this.keyValue.get(this.keysToGet[3]);
-		if (toolExecutionResult != null && !toolExecutionResult.trim().isEmpty()) {
+		boolean hasPassthroughResult = toolExecutionResult != null && !toolExecutionResult.trim().isEmpty();
+
+		// Agent-context params (optional). When runId + roomId + toolCallId are
+		// present, this call originated from an agent run that was paused on an
+		// SMSS_MCP_EXECUTION=ask tool. After getting the tool result (either by
+		// executing or from the passthrough), we write it to the room via
+		// addToolExecutionResult and resume the agent run.
+		String runId = this.keyValue.get(RUN_ID_KEY);
+		String agentRoomId = this.keyValue.get(ROOM_ID_KEY);
+		String toolCallId = this.keyValue.get(TOOL_CALL_ID_KEY);
+		String parentMessageId = this.keyValue.get(PARENT_MESSAGE_ID_KEY);
+		String toolStatus = this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey());
+		String actionId = this.keyValue.get(ACTION_ID_KEY);
+		String decision = this.keyValue.get(DECISION_KEY);
+		boolean hasAgentContext = runId != null && !runId.trim().isEmpty()
+				&& agentRoomId != null && !agentRoomId.trim().isEmpty()
+				&& toolCallId != null && !toolCallId.trim().isEmpty();
+
+		if (hasPassthroughResult) {
+			// Passthrough: the caller provided the result directly (reject/respond).
+			// If agent context is present, write to room + resume before returning.
+			if (hasAgentContext) {
+				writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, toolExecutionResult,
+						toolStatus != null ? toolStatus : "error", actionId, decision, null);
+			}
 			return new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
@@ -98,8 +148,18 @@ public class RunMCPToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getMap();
 
 		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
-				PixelOperationType.MCP_TOOL_EXECUTION);
+		NounMetadata result = new NounMetadata(mcp.callTool(toolName, paramMap, this.insight),
+				PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
+
+		// Agent context: write the tool result to the room and resume the agent run.
+		if (hasAgentContext) {
+			String resultStr = result.getValue() != null ? result.getValue().toString() : "";
+			String status = toolStatus != null ? toolStatus : "success";
+			writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, resultStr, status,
+					actionId, decision, paramMap);
+		}
+
+		return result;
 	}
 
 	/**
@@ -123,7 +183,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Execute a tool defined in an engine or project/app";
+		return "Execute a tool defined in an engine or project/app. When runId/roomId/toolCallId are provided, the result is also written to the agent room and the agent run is resumed.";
 	}
 
 	@Override
@@ -136,8 +196,117 @@ public class RunMCPToolReactor extends AbstractReactor {
 			return "A key-value pair map containing the parameter inputs for the tool/function";
 		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_RESULT.getKey())) {
 			return "If this key is present, its value will be returned as the result of the MCP tool execution, and the tool will not be executed.";
+		} else if (key.equals(RUN_ID_KEY)) {
+			return "Agent run id. When present along with roomId and toolCallId, the tool result is written to the agent room and the run is resumed.";
+		} else if (key.equals(ROOM_ID_KEY)) {
+			return "Agent room id. Used with runId and toolCallId to write the tool result back to the agent's conversation history.";
+		} else if (key.equals(TOOL_CALL_ID_KEY)) {
+			return "The tool call id from the agent's paused tool-call batch. Used to match the result to the pending tool call in the room.";
+		} else if (key.equals(PARENT_MESSAGE_ID_KEY)) {
+			return "The assistant message id that contains the tool-call batch. Used as the parent for the tool result message.";
+		} else if (key.equals(ReactorKeysEnum.MCP_TOOL_STATUS.getKey())) {
+			return "Tool execution status: success, error, or cancelled. Defaults to success (or error for passthrough results).";
+		} else if (key.equals(ACTION_ID_KEY)) {
+			return "The AGENT_RUN_ACTION id for this pending tool call. Used to record the user's decision.";
+		} else if (key.equals(DECISION_KEY)) {
+			return "The user's decision: approve, edit, reject, or respond.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	/**
+	 * Write the tool result to the agent's room via
+	 * {@code Room.addToolExecutionResult}. If all tool calls from the paused
+	 * batch are now answered, this auto-calls the model. Then marks the agent
+	 * run as SUBMITTED so the worker picks it up and resumes the harness loop.
+	 */
+	private void writeToRoomAndResume(String runId, String roomId, String toolCallId, String parentMessageId,
+			String toolResult, String toolStatus, String actionId, String decision, Map<String, Object> toolParams) {
+		try {
+			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			if (room == null) {
+				logger.warn("RunMCPToolReactor: cannot resume — room not found roomId={}", roomId);
+				return;
+			}
+
+			// Resolve the model engine from the room or the agent run record.
+			String modelId = room.getModelId();
+			if (modelId == null || modelId.trim().isEmpty()) {
+				// Fallback: load the run record to get the model id
+				AgentRunStore runStore = new AgentRunStore();
+				prerna.reactor.agent.run.AgentRunRecord record = runStore.getRun(runId, this.insight);
+				if (record != null && record.getRequest() != null) {
+					modelId = record.getRequest().getEngineIdFallback();
+				}
+			}
+			IModelEngine modelEngine = null;
+			if (modelId != null && !modelId.trim().isEmpty()) {
+				modelEngine = Utility.getModel(modelId);
+			}
+			if (modelEngine == null) {
+				logger.warn("RunMCPToolReactor: cannot resume — model engine not found for roomId={} modelId={}",
+						roomId, modelId);
+				return;
+			}
+
+			// Write the tool result to the room. addToolExecutionResult
+			// auto-calls the model when all tool_call_ids from the parent
+			// message are answered.
+			Map<String, Object> paramMapForRoom = new HashMap<>();
+			room.addToolExecutionResult(toolCallId, this.keyValue.get(this.keysToGet[1]),
+					toolResult, toolParams != null ? toolParams : new HashMap<>(),
+					paramMapForRoom, parentMessageId, modelEngine, this.insight, toolStatus);
+
+			// Record the decision in AGENT_RUN_ACTION.
+			if (actionId != null && !actionId.trim().isEmpty()) {
+				String actionStatus = resolveActionStatus(decision);
+				AgentRunActionStore actionStore = new AgentRunActionStore();
+				actionStore.markDecided(actionId, decision != null ? decision : "approve",
+						"edit".equalsIgnoreCase(decision) ? toolParams : null,
+						null, toolResult, actionStatus);
+			}
+
+			// Transition the run from INPUT_REQUIRED → SUBMITTED so the worker
+			// picks it up. The harness will see resumeMode=true and skip the
+			// initial ask, picking up from the latest room message.
+			AgentRunStore runStore = new AgentRunStore();
+			boolean resumed = runStore.markResumed(runId, runId);
+			if (resumed) {
+				AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.SUBMITTED, false);
+				AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
+				logger.info("RunMCPToolReactor: resumed agent runId={} roomId={} toolCallId={}",
+						runId, roomId, toolCallId);
+			} else {
+				logger.warn("RunMCPToolReactor: could not resume runId={} — not in INPUT_REQUIRED state", runId);
+			}
+
+			// Push room to cluster if needed
+			if (ClusterUtil.IS_CLUSTER) {
+				try {
+					ClusterUtil.pushRoomAsync(roomId);
+				} catch (Exception e) {
+					logger.warn("RunMCPToolReactor: room push failed for roomId={}: {}", roomId, e.getMessage());
+				}
+			}
+		} catch (Exception e) {
+			logger.error("RunMCPToolReactor: failed to write to room and resume runId={}: {}", runId, e.getMessage(), e);
+		}
+	}
+
+	private static String resolveActionStatus(String decision) {
+		if (decision == null) {
+			return "APPROVED";
+		}
+		switch (decision.toLowerCase()) {
+		case "edit":
+			return "EDITED";
+		case "reject":
+			return "REJECTED";
+		case "respond":
+			return "RESPONDED";
+		default:
+			return "APPROVED";
+		}
 	}
 
 }

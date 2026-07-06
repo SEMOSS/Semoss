@@ -54,6 +54,7 @@ import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -108,6 +109,14 @@ final class HarnessToolExecutor {
 		// decrement.
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
+
+		// --- Human-in-the-loop pause: scan for SMSS_MCP_EXECUTION=ask tools ---
+		// If any tool in the batch requires user approval, pause the entire batch.
+		// The harness catches AgentInputRequiredException, persists AGENT_RUN_ACTION
+		// rows, transitions the run to INPUT_REQUIRED, and releases the worker.
+		if (hasAskTools(toolCalls)) {
+			throw new AgentInputRequiredException(parentMsgId, toolCalls);
+		}
 
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
@@ -217,6 +226,29 @@ final class HarnessToolExecutor {
 				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
 
 		return new ToolExecResult(record, modelResp);
+	}
+
+	/**
+	 * Check if any tool call in the batch has {@code SMSS_MCP_EXECUTION=ask}.
+	 * The enriched {@code _meta} is attached by
+	 * {@code Room.updateToolResponseMeta()} before this method is called.
+	 */
+	@SuppressWarnings("unchecked")
+	private static boolean hasAskTools(List<Map<String, Object>> toolCalls) {
+		if (toolCalls == null || toolCalls.isEmpty()) {
+			return false;
+		}
+		for (Map<String, Object> toolCall : toolCalls) {
+			Object metaObj = toolCall.get("_meta");
+			if (metaObj instanceof Map) {
+				Map<String, Object> meta = (Map<String, Object>) metaObj;
+				Object execValue = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				if ("ask".equalsIgnoreCase(String.valueOf(execValue))) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,
