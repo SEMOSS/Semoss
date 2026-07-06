@@ -25,35 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.io.connector.adfs;
 
-import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
 /**
- * Recursively deletes the skill folder at {@code .claude/skills/<skillName>}.
- *
- * <p>Replaces {@code ClaudeCodeDeleteSkillReactor}.
+ * ADFS OIDC provider. The authorize/token endpoints and the claim parsing
+ * ({@code jsonPattern}/{@code beanProps}) are configured entirely via social
+ * properties. The user's claims are carried in the {@code id_token} JWT, so the
+ * token exchange requests an id token and the profile is read from the decoded
+ * JWT payload instead of a userinfo endpoint. Scope is sent in the token
+ * exchange.
  */
-public class DeleteAppSkillReactor extends AbstractReactor {
+public class AdfsTokenFiller extends AbstractOAuthTokenFiller {
 
-	public DeleteAppSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName" };
-		this.keyRequired = new int[] { 1, 1 };
+	// jsonPattern: JMESPath query projecting values out of the decoded id_token
+	// claims.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	// NOTE: ADFS claim names depend on the relying-party claim rules; these are a
+	// sensible default (standard OIDC "name"/"email" claims) and are meant to be
+	// overridden per deployment via the {prefix}jsonPattern/{prefix}beanProps
+	// props.
+	private static final String DEFAULT_JSON_PATTERN = "[name, email]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email" };
+
+	@Override
+	protected boolean usesIdToken() {
+		return true;
 	}
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-
-		User user = this.insight.getUser();
-		Boolean response = AppBuilderHarnessConfiguration.deleteSkill(user, projectId, skillName);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	protected boolean includeScopeInTokenRequest() {
+		return true;
 	}
+
+	@Override
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
+	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
 }
