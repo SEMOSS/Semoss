@@ -25,37 +25,17 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.jira;
+package prerna.reactor.function;
 
-import prerna.io.connector.AbstractOAuthTokenFiller;
+public class GetGuardrailEngineDefinitionReactor extends GetFunctionEngineDefinitionReactor {
 
-/**
- * Jira (Atlassian) OAuth2 provider. The interactive login runs through the
- * dynamic {@code /login2/jira} endpoint (which passes a cloud-id-scoped
- * userinfo URL), so only the profile fill defaults are defined here; the
- * default userinfo endpoint is Atlassian's {@code /me}.
- */
-public class JiraTokenFiller extends AbstractOAuthTokenFiller {
-
-	private static final String USER_INFO_URL = "https://api.atlassian.com/me";
-	// jsonPattern: JMESPath query projecting values out of the /me JSON.
-	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[name, email, locale]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "locale" };
+	/*
+	 * Just a convenience method Works the same as the function engine Since
+	 * guardrail engine is a function engine as well
+	 */
 
 	@Override
-	protected String getDefaultUserInfoUrl(String prefix) {
-		return USER_INFO_URL;
+	String getUnableToAccessError(String engineId) {
+		return "Guardrail Engine " + engineId + " does not exist or user does not have access to this guardrail";
 	}
-
-	@Override
-	protected String getDefaultJsonPattern() {
-		return DEFAULT_JSON_PATTERN;
-	}
-
-	@Override
-	protected String[] getDefaultBeanProps() {
-		return DEFAULT_BEAN_PROPS;
-	}
-
 }

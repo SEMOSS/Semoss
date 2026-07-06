@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	security
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-OWL	db/security/security_OWL.OWL
+OWL	security_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	
