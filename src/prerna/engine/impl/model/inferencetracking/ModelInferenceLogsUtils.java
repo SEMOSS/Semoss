@@ -1604,10 +1604,15 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+		// Also return the persisted room name so callers (e.g. the playground
+		// room breadcrumb) can display it on load without a separate query.
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
+		// Only OPTIONS is JSON — ROOM_NAME is a plain string, so it stays out of
+		// mapKeys (mapKeys marks which columns to deserialize, not which to return).
 		Set<String> mapKeys = new HashSet<>();
 		mapKeys.add("OPTIONS");
 
