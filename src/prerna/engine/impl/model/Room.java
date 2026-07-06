@@ -223,6 +223,89 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Overload for the cancel-persistence path. When {@code prebuiltResponse} is
+	 * non-null, the LLM call is skipped and the caller-supplied response is
+	 * slotted in as the assistant turn. Otherwise delegates to the live
+	 * {@link #ask(InputMessage, IModelEngine, String)} path.
+	 *
+	 * <p>On the prebuilt path this method mirrors the surrounding scaffold of
+	 * the live ask (mutation lock, latest projection refresh, orphan tool
+	 * normalization, parent-id resolution, append, room-name inference,
+	 * persist) so the persisted turn looks identical to a live one.
+	 *
+	 * @param msg              input message to send
+	 * @param modelEngine      model engine used for follow-up inference
+	 * @param parentMessageId  explicit parent id; when null/blank the latest
+	 *                         message is used
+	 * @param prebuiltResponse when non-null, used as the assistant response
+	 *                         instead of invoking the LLM
+	 * @return the assistant response persisted to the room (either LLM-generated
+	 *         or {@code prebuiltResponse})
+	 */
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			ResponseMessage prebuiltResponse) {
+		if (prebuiltResponse == null) {
+			return ask(msg, modelEngine, parentMessageId);
+		}
+		return commitPrebuiltTurn(msg, modelEngine, parentMessageId, prebuiltResponse);
+	}
+
+	/**
+	 * Persist a caller-provided input + prebuilt response as a completed turn.
+	 * Skips the LLM call; everything else matches the live ask tail so the
+	 * persisted turn is indistinguishable from an LLM-generated one.
+	 */
+	private synchronized ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine,
+			String parentMessageId, ResponseMessage prebuiltResponse) {
+		prebuiltResponse.setModel(modelEngine);
+		prebuiltResponse.setRoom(this);
+
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			RoomMessageStore.refreshFromLatestProjection(this, userId);
+			RoomMessageStore.normalizeForProviderPayload(this);
+
+			msg.setModel(modelEngine);
+
+			if (!messages.isEmpty()) {
+				if (parentMessageId != null && !parentMessageId.isEmpty()) {
+					msg.setParentMessageId(parentMessageId);
+				} else {
+					AbstractMessage lastMsg = messages.get(messages.size() - 1);
+					msg.setParentMessageId(lastMsg.getMessageId());
+				}
+			} else {
+				msg.setParentMessageId(null);
+			}
+			prebuiltResponse.setParentMessageId(msg.getMessageId());
+
+			messages.add(msg);
+			messages.add(prebuiltResponse);
+
+			String prevRoomName = this.roomName;
+			if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+				for (AbstractMessage m : this.messages) {
+					if (m instanceof InputMessage) {
+						String prompt = ((InputMessage) m).getInputUIPrompt();
+						if (prompt != null && !prompt.trim().isEmpty()) {
+							this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+							break;
+						}
+					}
+				}
+			}
+
+			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+					&& !this.roomName.trim().isEmpty()) {
+				RoomMessageStore.persist(this, userId, this.roomName, modelEngine.getEngineId());
+			} else {
+				RoomMessageStore.persist(this, userId);
+			}
+		}
+		return prebuiltResponse;
+	}
+
+	/**
 	 * Core room ask flow.
 	 * <p>
 	 * Builds message payload, applies tool metadata, executes model inference, and
