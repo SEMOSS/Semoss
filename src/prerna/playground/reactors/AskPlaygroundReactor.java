@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -130,13 +131,20 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				// .withTools(tools)
 				.build();
 
+		// Collects any non-visible messages (e.g. cancel-flow hidden pair) so
+		// they can be surfaced back to the FE via `extraMessages` in the return
+		// map. The FE won't render them, but does need them to stay in sync
+		// with the room's provider history.
+		List<AbstractMessage> extraMessages = new ArrayList<>();
+
 		ResponseMessage response;
 		if (responseParts != null) {
 			// ---- FE-supplied response (cancel flow): skip the LLM call and persist
 			// the input + a response built from the caller-supplied parts. Mirrors
 			// the surrounding scaffold of Room.ask so the persisted turn looks
 			// identical to a live one.
-			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage);
+			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage,
+					extraMessages);
 		} else {
 			// ---- Actually run LLM call
 			response = room.ask(msg, modelEngine, parentMessageId);
@@ -164,6 +172,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
+		// Extra (non-visible) messages persisted alongside the visible pair.
+		// Currently only populated on the cancel path, but always emitted (as
+		// an empty list on normal turns) so the FE contract stays consistent.
+		List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+		for (AbstractMessage extra : extraMessages) {
+			extraMessagesList.add(jsonToMap(MessageUtils.toJson(extra)));
+		}
+		pixelReturn.put("extraMessages", extraMessagesList);
+
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
@@ -176,7 +193,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	 * user-note / assistant-ack pair after the visible turn.
 	 */
 	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
-			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage) {
+			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage,
+			List<AbstractMessage> extrasOut) {
 		ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
 		response.setModel(modelEngine);
 
@@ -206,7 +224,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				room.getMessages().add(response);
 
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId());
+					appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(), extrasOut);
 				}
 
 				// Room-name inference + 4-arg/2-arg persist switch (from Room.ask's tail).
@@ -240,7 +258,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
 	 * role-alternating and telling the model its prior response was cut short.
 	 */
-	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId) {
+	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
+			List<AbstractMessage> extrasOut) {
 		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
 				.withModelType(modelEngine.getModelType()).build();
 		hiddenUserNote.setPlatformGenerated(true);
@@ -254,6 +273,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		room.getMessages().add(hiddenUserNote);
 		room.getMessages().add(hiddenAck);
+
+		if (extrasOut != null) {
+			extrasOut.add(hiddenUserNote);
+			extrasOut.add(hiddenAck);
+		}
 	}
 
 	@Override

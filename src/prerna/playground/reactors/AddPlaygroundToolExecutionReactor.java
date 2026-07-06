@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -150,6 +151,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> pixelReturn = new HashMap<>();
+		// Collects any non-visible messages persisted alongside the visible pair
+		// (currently only the cancel-flow hidden pair) so they can be surfaced
+		// back to the FE via `extraMessages`. Always emitted, empty on live turns.
+		List<AbstractMessage> extraMessages = new ArrayList<>();
 		try {
 			ResponseMessage prebuiltResponse = responseParts != null
 					? PlaygroundUtils.buildResponseMessageFromParts(responseParts) : null;
@@ -178,7 +183,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				// the next turn that its response was cut short.
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
 					appendHiddenPair(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
-							insight.getUser().getPrimaryLoginToken().getId());
+							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
 				}
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
@@ -190,6 +195,15 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
 			pixelReturn.put("inputMessage", inputMap);
 			pixelReturn.put("responseMessage", responseMap);
+
+			// Extra (non-visible) messages the FE needs to sync into its history
+			// so its provider-message view matches the room's. Empty on live turns.
+			List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+			for (AbstractMessage extra : extraMessages) {
+				extraMessagesList.add(jsonToMap(MessageUtils.toJson(extra)));
+			}
+			pixelReturn.put("extraMessages", extraMessagesList);
+
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} finally {
 			// there might be times when this is unnecessary
@@ -207,7 +221,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	 * cut short.
 	 */
 	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
-			String userId) {
+			String userId, List<AbstractMessage> extrasOut) {
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
 			InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
 					.withModelType(modelEngine.getModelType()).build();
@@ -224,6 +238,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			room.getMessages().add(hiddenAck);
 
 			RoomMessageStore.persist(room, userId);
+
+			if (extrasOut != null) {
+				extrasOut.add(hiddenUserNote);
+				extrasOut.add(hiddenAck);
+			}
 		}
 	}
 
