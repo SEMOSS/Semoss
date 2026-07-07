@@ -35,6 +35,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
+
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -296,8 +298,8 @@ public class SemossAgentHarness implements IAgentHarness {
 						// Persist pending actions, publish an event so the UI can render
 						// approve/decline UI or open a portal URL, then re-throw so the
 						// worker transitions the run to INPUT_REQUIRED.
-						persistPendingActions(ctx, room, pauseEx);
-						publishInputRequiredEvent(ctx, room, pauseEx);
+						List<Map<String, Object>> pendingActions = persistPendingActions(ctx, room, pauseEx);
+						publishInputRequiredEvent(ctx, room, pendingActions);
 						throw pauseEx;
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
@@ -439,11 +441,11 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * (when the tool has an associated portal).
 	 */
 	@SuppressWarnings("unchecked")
-	private static void persistPendingActions(AgentRunContext ctx, Room room, AgentInputRequiredException pauseEx) {
+	private static List<Map<String, Object>> persistPendingActions(AgentRunContext ctx, Room room,
+			AgentInputRequiredException pauseEx) {
 		String runId = ctx.getRunId();
 		if (runId == null || runId.trim().isEmpty()) {
-			logger.warn("SemossAgentHarness: cannot persist pending actions — no runId");
-			return;
+			throw new IllegalStateException("Cannot persist pending actions without a runId");
 		}
 		String roomId = room != null ? room.getId() : null;
 		String userId = ctx.getUserId();
@@ -454,6 +456,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		List<Map<String, Object>> actions = new ArrayList<>();
 		for (Map<String, Object> toolCall : pendingToolCalls) {
 			Map<String, Object> action = new HashMap<>();
+			action.put("actionId", GUID.v7().toUUID().toString());
 			action.put("parentMessageId", pauseEx.getParentMessageId());
 			action.put("toolCallId", String.valueOf(toolCall.get("id")));
 			action.put("toolName", String.valueOf(toolCall.get("name")));
@@ -477,6 +480,10 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (uiObj instanceof Map) {
 					uiMeta = (Map<String, Object>) uiObj;
 				}
+				Object execVal = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				if (execVal != null) {
+					action.put("executionMode", execVal);
+				}
 			}
 			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
 			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
@@ -488,9 +495,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			AgentRunActionStore actionStore = new AgentRunActionStore();
 			actionStore.insertPendingActions(runId, roomId, userId, actions);
 			logger.info("SemossAgentHarness: persisted {} pending action(s) for runId={}", actions.size(), runId);
+			return actions;
 		} catch (Exception e) {
-			logger.error("SemossAgentHarness: failed to persist pending actions for runId={}: {}", runId,
-					e.getMessage(), e);
+			throw new IllegalStateException("Failed to persist pending actions for runId=" + runId, e);
 		}
 	}
 
@@ -498,48 +505,12 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * Publish an {@code INPUT_REQUIRED} event on the {@link AgentRunEventBus}
 	 * so any subscribed UI can render the pending actions immediately.
 	 */
-	@SuppressWarnings("unchecked")
-	private static void publishInputRequiredEvent(AgentRunContext ctx, Room room, AgentInputRequiredException pauseEx) {
+	private static void publishInputRequiredEvent(AgentRunContext ctx, Room room, List<Map<String, Object>> pendingActions) {
 		String runId = ctx.getRunId();
 		if (runId == null || runId.trim().isEmpty()) {
 			return;
 		}
 		String roomId = room != null ? room.getId() : null;
-		List<Map<String, Object>> pendingToolCalls = pauseEx.getPendingToolCalls();
-		List<Map<String, Object>> pendingActions = new ArrayList<>();
-		for (Map<String, Object> toolCall : pendingToolCalls) {
-			Map<String, Object> action = new HashMap<>();
-			action.put("toolCallId", String.valueOf(toolCall.get("id")));
-			action.put("toolName", String.valueOf(toolCall.get("name")));
-			action.put("parentMessageId", pauseEx.getParentMessageId());
-			Map<String, Object> meta = null;
-			Object metaObj = toolCall.get("_meta");
-			if (metaObj instanceof Map) {
-				meta = (Map<String, Object>) metaObj;
-			}
-			if (meta != null) {
-				action.put("toolMeta", meta);
-				Object execVal = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
-				if (execVal != null) {
-					action.put("executionMode", execVal);
-				}
-			}
-			// UI info
-			Map<String, Object> uiMeta = null;
-			if (meta != null) {
-				Object uiObj = meta.get(MCPUtility.SMSS_MCP_UI);
-				if (uiObj instanceof Map) {
-					uiMeta = (Map<String, Object>) uiObj;
-				}
-			}
-			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
-			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
-			action.put("hasUi", hasUi);
-			if (hasUi) {
-				action.put("uiUrl", resolveUiUrl(resourceURI, meta, action, runId, roomId));
-			}
-			pendingActions.add(action);
-		}
 		Map<String, Object> eventData = new HashMap<>();
 		eventData.put("runId", runId);
 		eventData.put("roomId", roomId);
@@ -561,12 +532,13 @@ public class SemossAgentHarness implements IAgentHarness {
 			engineId = toolMeta != null ? stringValue(toolMeta.get("SMSS_PROJECT_ID")) : null;
 		}
 		if (engineId == null) {
-			// Cannot resolve the app context; return the raw resourceURI
-			return resourceURI;
+			// Cannot resolve the app context; GetAgentRun.pendingActions still
+			// exposes the action id and tool metadata for UI-driven execution.
+			return null;
 		}
 		String base = "/Monolith/public_home/" + engineId + "/portals/" + resourceURI;
 		StringBuilder sb = new StringBuilder(base);
-		sb.append("?actionId=").append(action.get("toolCallId")); // use toolCallId as temp actionId
+		sb.append("?actionId=").append(action.get("actionId"));
 		sb.append("&runId=").append(runId != null ? runId : "");
 		sb.append("&roomId=").append(roomId != null ? roomId : "");
 		sb.append("&toolCallId=").append(action.get("toolCallId"));

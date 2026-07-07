@@ -8,6 +8,33 @@
  *
  * 	  http://www.apache.org/licenses/LICENSE-2.0
  *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +62,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
@@ -81,7 +107,10 @@ public final class AgentRunActionStore {
 			ps = db.getPreparedStatement(query);
 			for (Map<String, Object> action : actions) {
 				int idx = 1;
-				String actionId = GUID.v7().toUUID().toString();
+				String actionId = stringValue(action.get("actionId"));
+				if (actionId == null) {
+					throw new IllegalArgumentException("actionId is required for AGENT_RUN_ACTION rows");
+				}
 				ps.setString(idx++, actionId);
 				ps.setString(idx++, runId);
 				ps.setString(idx++, roomId);
@@ -149,7 +178,35 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Mark an action as decided — the user approved, edited, rejected, or
+	 * Return one pending action row by identity and owner.
+	 */
+	public Map<String, Object> getPendingAction(String actionId, String runId, String userId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
+					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, DECISION, "
+					+ "DECISION_MESSAGE, RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, actionId);
+			ps.setString(2, runId);
+			ps.setString(3, userId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return rowToMap(rs);
+			}
+			return null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load pending AGENT_RUN_ACTION actionId=" + actionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Mark an action as decided: the user approved, edited, rejected, or
 	 * responded. Called by {@code RunMCPToolReactor} when agent context is
 	 * present.
 	 *
@@ -163,8 +220,8 @@ public final class AgentRunActionStore {
 	 * @param status           the action status: APPROVED, EDITED, REJECTED,
 	 *                         RESPONDED
 	 */
-	public void markDecided(String actionId, String decision, Object editedArgs, String decisionMessage,
-			String result, String status) {
+	public boolean markDecided(String actionId, String runId, String userId, String decision, Object editedArgs,
+			String decisionMessage, String result, String status) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
@@ -179,7 +236,7 @@ public final class AgentRunActionStore {
 			if (result != null) {
 				query.append(", RESULT = ?");
 			}
-			query.append(" WHERE ACTION_ID = ? AND STATUS = 'PENDING'");
+			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'");
 
 			ps = db.getPreparedStatement(query.toString());
 			int idx = 1;
@@ -196,12 +253,37 @@ public final class AgentRunActionStore {
 				setClob(db, ps, idx++, result);
 			}
 			ps.setString(idx++, actionId);
-			ps.executeUpdate();
+			ps.setString(idx++, runId);
+			ps.setString(idx++, userId);
+			int updated = ps.executeUpdate();
 			commitIfNeeded(ps);
+			return updated > 0;
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to update AGENT_RUN_ACTION for actionId=" + actionId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	/**
+	 * Return true if there is at least one action row for the given run.
+	 * Used by the worker as a short-term marker that the run has entered the
+	 * HITL resume flow without relying on persisted REQUEST_JSON.resumeMode.
+	 */
+	public boolean hasAnyActions(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT COUNT(*) FROM AGENT_RUN_ACTION WHERE RUN_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, runId);
+			rs = ps.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		} catch (Exception e) {
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 	}
 

@@ -171,11 +171,14 @@ final class AgentRunWorker {
 		try {
 			seedThreadStore(runId, insightHandle);
 			RunAgentRequest request = record.getRequest();
+			// Detect resume: the persisted request always has resumeMode=false on initial
+			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
+			boolean resumeMode = request.isResumeMode() || new AgentRunActionStore().hasAnyActions(runId);
 			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
 					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
 					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
 					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
-					request.isResumeMode());
+					resumeMode);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -203,10 +206,9 @@ final class AgentRunWorker {
 				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
 			} else if (e instanceof prerna.reactor.agent.exceptions.AgentInputRequiredException) {
 				// Harness paused on SMSS_MCP_EXECUTION=ask tools.
-				// The harness already persisted AGENT_RUN_ACTION rows and
-				// published the event; we just need to transition the run.
+				// The harness already persisted AGENT_RUN_ACTION rows and published
+				// the INPUT_REQUIRED event with pendingActions; only transition the run.
 				store.markInputRequired(runId, jobId);
-				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.INPUT_REQUIRED, true);
 				logger.info("AgentRunWorker: runId={} paused for user input", runId);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
