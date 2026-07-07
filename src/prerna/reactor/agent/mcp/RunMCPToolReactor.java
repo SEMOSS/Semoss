@@ -71,6 +71,10 @@ public class RunMCPToolReactor extends AbstractReactor {
 	private static final String PARENT_MESSAGE_ID_KEY = ReactorKeysEnum.PARENT_MESSAGE_ID.getKey();
 	private static final String ACTION_ID_KEY = "actionId";
 	private static final String DECISION_KEY = "decision";
+	private static final String DECISION_APPROVE = "approve";
+	private static final String DECISION_EDIT = "edit";
+	private static final String DECISION_REJECT = "reject";
+	private static final String DECISION_RESPOND = "respond";
 
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
@@ -113,8 +117,10 @@ public class RunMCPToolReactor extends AbstractReactor {
 		boolean hasAgentContext = actionId != null && !actionId.trim().isEmpty();
 		String userId = this.insight != null ? this.insight.getUserId() : null;
 		Map<String, Object> pendingAction = null;
+		String normalizedDecision = null;
 		if (hasAgentContext) {
 			pendingAction = loadAndValidatePendingAction(actionId, userId);
+			normalizedDecision = normalizeDecision(decision);
 			// Derive the run context from the row, validating any caller-supplied
 			// values against it defensively.
 			runId = resolveFromRow("runId", runId, pendingAction);
@@ -123,14 +129,21 @@ public class RunMCPToolReactor extends AbstractReactor {
 			parentMessageId = resolveFromRow("parentMessageId", parentMessageId, pendingAction);
 		}
 
+		if (hasAgentContext && !decisionExecutesTool(normalizedDecision)) {
+			String manualResult = resolveManualDecisionResult(normalizedDecision, toolExecutionResult);
+			writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, manualResult,
+					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
+					normalizedDecision, resolveToolParamsForDecision(pendingAction, getMap()), pendingAction, userId);
+			return new NounMetadata(manualResult, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
+		}
+
+		if (hasAgentContext && hasPassthroughResult) {
+			throw new IllegalArgumentException("mcpToolResult is only valid for HITL decision=reject or decision=respond");
+		}
+
 		if (hasPassthroughResult) {
-			// Passthrough: the caller provided the result directly (reject/respond).
-			// If agent context is present, write to room + resume before returning.
-			if (hasAgentContext) {
-				writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, toolExecutionResult,
-						toolStatus != null ? toolStatus : "error", actionId, decision,
-						resolveToolParamsForDecision(pendingAction, getMap()), pendingAction, userId);
-			}
+			// Passthrough for normal MCP playground/UI calls. HITL calls are handled
+			// above so approve/edit cannot bypass actual tool execution.
 			return new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
@@ -184,7 +197,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			String resultStr = result.getValue() != null ? result.getValue().toString() : "";
 			String status = toolStatus != null ? toolStatus : "success";
 			writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, resultStr, status,
-					actionId, decision, paramMap, pendingAction, userId);
+					actionId, normalizedDecision, paramMap, pendingAction, userId);
 		}
 
 		return result;
@@ -251,86 +264,75 @@ public class RunMCPToolReactor extends AbstractReactor {
 	private void writeToRoomAndResume(String runId, String roomId, String toolCallId, String parentMessageId,
 			String toolResult, String toolStatus, String actionId, String decision, Map<String, Object> toolParams,
 			Map<String, Object> pendingAction, String userId) {
-		try {
-			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-			if (room == null) {
-				logger.warn("RunMCPToolReactor: cannot resume - room not found roomId={}", roomId);
-				return;
-			}
+		if (pendingAction == null) {
+			throw new IllegalArgumentException("pendingAction is required to resume an agent HITL tool call");
+		}
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		if (room == null) {
+			throw new IllegalStateException("Cannot resume agent run because room was not found roomId=" + roomId);
+		}
 
-			// Resolve the model engine from the room or the agent run record.
-			String modelId = room.getModelId();
-			if (modelId == null || modelId.trim().isEmpty()) {
-				// Fallback: load the run record to get the model id
-				AgentRunStore runStore = new AgentRunStore();
-				prerna.reactor.agent.run.AgentRunRecord record = runStore.getRun(runId, this.insight);
-				if (record != null && record.getRequest() != null) {
-					modelId = record.getRequest().getEngineIdFallback();
-				}
+		// Resolve the model engine from the room or the agent run record.
+		String modelId = room.getModelId();
+		if (modelId == null || modelId.trim().isEmpty()) {
+			AgentRunStore runStore = new AgentRunStore();
+			prerna.reactor.agent.run.AgentRunRecord record = runStore.getRun(runId, this.insight);
+			if (record != null && record.getRequest() != null) {
+				modelId = record.getRequest().getEngineIdFallback();
 			}
-			IModelEngine modelEngine = null;
-			if (modelId != null && !modelId.trim().isEmpty()) {
-				modelEngine = Utility.getModel(modelId);
-			}
-			if (modelEngine == null) {
-				logger.warn("RunMCPToolReactor: cannot resume - model engine not found for roomId={} modelId={}",
-						roomId, modelId);
-				return;
-			}
+		}
+		IModelEngine modelEngine = null;
+		if (modelId != null && !modelId.trim().isEmpty()) {
+			modelEngine = Utility.getModel(modelId);
+		}
+		if (modelEngine == null) {
+			throw new IllegalStateException("Cannot resume agent run because model engine was not found for roomId="
+					+ roomId + " modelId=" + modelId);
+		}
 
-			// Write the tool result to the room. addToolExecutionResult
-			// auto-calls the model when all tool_call_ids from the parent
-			// message are answered.
-			Map<String, Object> paramMapForRoom = new HashMap<>();
-			String roomToolName = stringValue(pendingAction.get("toolName"));
-			room.addToolExecutionResult(toolCallId, roomToolName,
-					toolResult, toolParams != null ? toolParams : new HashMap<>(),
-					paramMapForRoom, parentMessageId, modelEngine, this.insight, toolStatus);
+		Map<String, Object> paramMapForRoom = new HashMap<>();
+		String roomToolName = stringValue(pendingAction.get("toolName"));
+		room.addToolExecutionResult(toolCallId, roomToolName,
+				toolResult, toolParams != null ? toolParams : new HashMap<>(),
+				paramMapForRoom, parentMessageId, modelEngine, this.insight, toolStatus);
 
-			// Record the decision in AGENT_RUN_ACTION via the STATUS column. Capture
-			// editedArgs whenever the final params differ from what the model
-			// proposed (UI edits or UI-added args), regardless of the decision label.
-			String actionStatus = resolveActionStatus(decision);
-			Map<String, Object> storedArgs = parseStoredMap(pendingAction.get("toolArgs"));
-			boolean argsChanged = storedArgs == null ? (toolParams != null && !toolParams.isEmpty())
-					: !storedArgs.equals(toolParams);
-			Object editedArgs = ("edit".equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
-			AgentRunActionStore actionStore = new AgentRunActionStore();
-			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus);
-			if (!marked) {
-				throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
-			}
+		String actionStatus = resolveActionStatus(decision);
+		Map<String, Object> storedArgs = parseStoredMap(pendingAction.get("toolArgs"));
+		boolean argsChanged = storedArgs == null ? (toolParams != null && !toolParams.isEmpty())
+				: !storedArgs.equals(toolParams);
+		Object editedArgs = (DECISION_EDIT.equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
+		AgentRunActionStore actionStore = new AgentRunActionStore();
+		boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus);
+		if (!marked) {
+			throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
+		}
 
-			// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
-			// actions in the batch are decided. For N>1 tool calls, the run must
-			// not re-queue until every tool has a result; addToolExecutionResult
-			// already guards the model auto-call on the same condition.
-			if (actionStore.allActionsDecided(runId)) {
-				AgentRunStore runStore = new AgentRunStore();
-				boolean resumed = runStore.markResumed(runId, runId);
-				if (resumed) {
-					AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.SUBMITTED, false);
-					AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
-					logger.info("RunMCPToolReactor: resumed agent runId={} roomId={} toolCallId={}",
-							runId, roomId, toolCallId);
-				} else {
-					logger.warn("RunMCPToolReactor: could not resume runId={} - not in INPUT_REQUIRED state", runId);
-				}
-			} else {
-				logger.info("RunMCPToolReactor: recorded decision for toolCallId={} but waiting for remaining actions runId={}",
-						toolCallId, runId);
+		// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
+		// actions in the batch are decided. For N>1 tool calls, the run must
+		// not re-queue until every tool has a result; addToolExecutionResult
+		// already guards the model auto-call on the same condition.
+		if (actionStore.allActionsDecided(runId)) {
+			AgentRunStore runStore = new AgentRunStore();
+			boolean resumed = runStore.markResumed(runId, runId);
+			if (!resumed) {
+				throw new IllegalStateException("Agent run was not resumed because it is no longer INPUT_REQUIRED: "
+						+ runId);
 			}
+			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.SUBMITTED, false);
+			AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
+			logger.info("RunMCPToolReactor: resumed agent runId={} roomId={} toolCallId={}",
+					runId, roomId, toolCallId);
+		} else {
+			logger.info("RunMCPToolReactor: recorded decision for toolCallId={} but waiting for remaining actions runId={}",
+					toolCallId, runId);
+		}
 
-			// Push room to cluster if needed
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					ClusterUtil.pushRoomAsync(roomId);
-				} catch (Exception e) {
-					logger.warn("RunMCPToolReactor: room push failed for roomId={}: {}", roomId, e.getMessage());
-				}
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				ClusterUtil.pushRoomAsync(roomId);
+			} catch (Exception e) {
+				logger.warn("RunMCPToolReactor: room push failed for roomId={}: {}", roomId, e.getMessage());
 			}
-		} catch (Exception e) {
-			logger.error("RunMCPToolReactor: failed to write to room and resume runId={}: {}", runId, e.getMessage(), e);
 		}
 	}
 
@@ -425,19 +427,54 @@ public class RunMCPToolReactor extends AbstractReactor {
 	}
 
 	private static String resolveActionStatus(String decision) {
-		if (decision == null) {
-			return "APPROVED";
-		}
-		switch (decision.toLowerCase()) {
-		case "edit":
+		switch (normalizeDecision(decision)) {
+		case DECISION_EDIT:
 			return "EDITED";
-		case "reject":
+		case DECISION_REJECT:
 			return "REJECTED";
-		case "respond":
+		case DECISION_RESPOND:
 			return "RESPONDED";
 		default:
 			return "APPROVED";
 		}
+	}
+
+	private static String normalizeDecision(String decision) {
+		String normalized = stringValue(decision);
+		if (normalized == null) {
+			return DECISION_APPROVE;
+		}
+		normalized = normalized.toLowerCase();
+		if (DECISION_APPROVE.equals(normalized) || DECISION_EDIT.equals(normalized)
+				|| DECISION_REJECT.equals(normalized) || DECISION_RESPOND.equals(normalized)) {
+			return normalized;
+		}
+		throw new IllegalArgumentException("Unsupported HITL decision: " + decision);
+	}
+
+	private static boolean decisionExecutesTool(String decision) {
+		String normalized = normalizeDecision(decision);
+		return DECISION_APPROVE.equals(normalized) || DECISION_EDIT.equals(normalized);
+	}
+
+	private static String resolveManualDecisionResult(String decision, String toolExecutionResult) {
+		String result = stringValue(toolExecutionResult);
+		if (result != null) {
+			return result;
+		}
+		String normalized = normalizeDecision(decision);
+		if (DECISION_REJECT.equals(normalized)) {
+			return "Tool call rejected by user.";
+		}
+		throw new IllegalArgumentException("mcpToolResult is required for HITL decision=" + normalized);
+	}
+
+	private static String toolStatusForDecision(String decision) {
+		String normalized = normalizeDecision(decision);
+		if (DECISION_REJECT.equals(normalized)) {
+			return "cancelled";
+		}
+		return "success";
 	}
 
 	private static String stringValue(Object value) {
