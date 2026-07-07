@@ -1126,7 +1126,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             "raw": batch.model_dump(),
         }
 
-    def get_batch_results(self, provider_batch_id, **kwargs):
+    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """Get the results of a previously submitted batch"""
         self._ensure_native_batch_supported()
         items = []
         raw_lines = []
@@ -1171,10 +1172,22 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             "raw_jsonl": "\n".join(raw_lines),
         }
 
-    def list_batches(self, limit=20, **kwargs):
+    def list_batches(self, limit: int = 20, **kwargs):
         self._ensure_native_batch_supported()
-        resp = self.client.messages.batches.list(limit=limit)
-        data = resp.data if hasattr(resp, "data") else resp
+        list_kwargs: Dict[str, Any] = {"limit": limit}
+        after = kwargs.get("after")
+        if not after:
+            after = kwargs.get("after_id")
+        if after is not None:
+            list_kwargs["after_id"] = after
+        before = kwargs.get("before")
+        if not before:
+            before = kwargs.get("before_id")
+        if before is not None:
+            list_kwargs["before_id"] = before
+        resp = self.client.messages.batches.list(**list_kwargs)
+
+        data = resp.data
         batches = []
         for b in data:
             batches.append(
