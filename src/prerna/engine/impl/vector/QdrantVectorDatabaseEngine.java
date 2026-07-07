@@ -82,6 +82,7 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	public static final String QUANTIZATION_NONE = "none";
 	public static final String DEFAULT_SPARSE_MODEL = "Qdrant/bm25";
+	public static final String QDRANT_STORAGE_FOLDER_NAME = "qdrant_storage";
 
 	public static final String FILTERS_KEY = "filters";
 	public static final String QDRANT_FILTER_KEY = "qdrantFilter";
@@ -168,6 +169,7 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	protected String[] getServerStartCommands() {
+		String locationLiteral = resolveStoragePathLiteral();
 		String quantLiteral = PyUtils.determineStringType(this.qdrantQuantization);
 		String hnswMLiteral = this.qdrantHnswM != null ? this.qdrantHnswM.toString() : "None";
 		String hnswEfLiteral = this.qdrantHnswEfConstruct != null ? this.qdrantHnswEfConstruct.toString() : "None";
@@ -185,6 +187,7 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(", tokenizer = cfg_tokenizer")
 				.append(", keyword_engine_id = '${KEYWORD_ENGINE_ID}'")
 				.append(", distance_method = '${DISTANCE_METHOD}'")
+				.append(", storage_path = ").append(locationLiteral)
 				.append(", quantization = ").append(quantLiteral)
 				.append(", hnsw_m = ").append(hnswMLiteral)
 				.append(", hnsw_ef_construct = ").append(hnswEfLiteral)
@@ -209,6 +212,20 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		return commands;
+	}
+
+	private String resolveStoragePathLiteral() {
+		File engineRoot = this.schemaFolder != null ? this.schemaFolder.getParentFile() : null;
+		if (engineRoot == null) {
+			classLogger.warn("Engine root unresolved at startup, falling back to in-memory Qdrant");
+			return "':memory:'";
+		}
+		File storageDir = new File(engineRoot, QDRANT_STORAGE_FOLDER_NAME);
+		if (!storageDir.exists()) {
+			storageDir.mkdirs();
+		}
+		String normalized = storageDir.getAbsolutePath().replace("\\", FILE_SEPARATOR);
+		return PyUtils.determineStringType(normalized);
 	}
 
 	@Override
@@ -787,11 +804,11 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	public boolean isInMemory() {
-		return true;
+		return false;
 	}
 
 	public boolean isPersistent() {
-		return false;
+		return true;
 	}
 
 	public boolean isHybridSearchEnabled() {

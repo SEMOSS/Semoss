@@ -6,14 +6,17 @@ from .qdrant_searcher import QdrantSearcher
 
 
 class QdrantDatabase:
-    """In-memory Qdrant vector engine.
+    """Embedded Qdrant vector engine.
 
-    Runs entirely in-process via ``QdrantClient(":memory:")`` — no server,
-    no auth, no disk persistence. State is dropped on restart, the same way
-    a freshly-created FAISS store behaves before its first save.
+    Runs entirely in-process via ``QdrantClient(path=…)`` — no server,
+    no auth. State persists to ``storage_path`` under the engine's own
+    folder and survives restarts, the same way FAISS's index files do.
+    ``storage_path=":memory:"`` (or any falsy value) falls back to a
+    volatile in-memory client, used only when the engine folder cannot
+    be resolved at startup.
 
-    Hybrid search (BM25 sparse + dense) is available in-process but IDF is
-    approximated by the embedded engine; for production-grade hybrid,
+    Hybrid search (BM25 sparse + dense) is available in-process but IDF
+    is approximated by the embedded engine; for production-grade hybrid,
     switch to a hosted Qdrant service and swap this adapter.
     """
 
@@ -23,6 +26,7 @@ class QdrantDatabase:
         distance_method: str,
         embedder_engine_id: Optional[str] = None,
         keyword_engine_id: Optional[str] = None,
+        storage_path: Optional[str] = None,
         quantization: str = "none",
         hnsw_m: Optional[int] = None,
         hnsw_ef_construct: Optional[int] = None,
@@ -39,6 +43,7 @@ class QdrantDatabase:
         from qdrant_client import QdrantClient
 
         self.tokenizer = tokenizer
+        self.storage_path = storage_path
         self.quantization = (quantization or "none").lower()
         self.hnsw_m = hnsw_m
         self.hnsw_ef_construct = hnsw_ef_construct
@@ -76,7 +81,10 @@ class QdrantDatabase:
 
         self.default_sort_direction = not self.metric_type_is_cosine_similarity
 
-        self.client = QdrantClient(":memory:")
+        if not self.storage_path or self.storage_path == ":memory:":
+            self.client = QdrantClient(":memory:")
+        else:
+            self.client = QdrantClient(path=self.storage_path)
 
         self.searchers: Dict[str, QdrantSearcher] = {}
         if searchers:
