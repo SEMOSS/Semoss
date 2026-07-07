@@ -121,6 +121,8 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_250;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_255;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_40;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_512;
+import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_1000;
+import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_2000;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
@@ -275,6 +277,49 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(EXEC_ID, VARCHAR_200),
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
+
+		// ── Workflow Engine tables ─────────────────────────────────────────────
+		addTable("WORKFLOW_RUNS", Arrays.asList(
+				Pair.with("RUN_ID", VARCHAR_255),
+				Pair.with("PROJECT_ID", VARCHAR_255),
+				Pair.with("WORKFLOW_ID", VARCHAR_255),
+				Pair.with("STATUS", VARCHAR_120),
+				Pair.with("TRIGGER_TYPE", VARCHAR_120),
+				Pair.with("RESUMED_FROM_RUN", VARCHAR_255),
+				Pair.with("STARTED_AT", TIMESTAMP),
+				Pair.with("COMPLETED_AT", TIMESTAMP),
+				Pair.with("FAILED_NODE_ID", VARCHAR_255),
+				Pair.with("ERROR_MESSAGE", CLOB),
+				Pair.with("LAST_HEARTBEAT", TIMESTAMP),
+				Pair.with("TOTAL_NODES", INTEGER),
+				Pair.with("COMPLETED_NODES", INTEGER),
+				Pair.with("CREATED_BY", VARCHAR_255)));
+
+		addTable("WORKFLOW_NODE_OUTPUTS", Arrays.asList(
+				Pair.with("RUN_ID", VARCHAR_255),
+				Pair.with("NODE_ID", VARCHAR_255),
+				Pair.with("NODE_LABEL", VARCHAR_512),
+				Pair.with("EXECUTION_ORDER", INTEGER),
+				Pair.with("STATUS", VARCHAR_120),
+				Pair.with("STARTED_AT", TIMESTAMP),
+				Pair.with("COMPLETED_AT", TIMESTAMP),
+				Pair.with("DURATION_MS", BIGINT),
+				Pair.with("OUTPUT_VAR", VARCHAR_255),
+				Pair.with("OUTPUT_VALUE", CLOB),
+				Pair.with("OUTPUT_PREVIEW", VARCHAR_2000),
+				Pair.with("ROW_COUNT", INTEGER),
+				Pair.with("ERROR_MESSAGE", CLOB)));
+
+		addTable("WORKFLOW_FOREACH_ROWS", Arrays.asList(
+				Pair.with("RUN_ID", VARCHAR_255),
+				Pair.with("NODE_ID", VARCHAR_255),
+				Pair.with("ROW_INDEX", INTEGER),
+				Pair.with("ROW_KEY", VARCHAR_1000),
+				Pair.with("STATUS", VARCHAR_120),
+				Pair.with("STARTED_AT", TIMESTAMP),
+				Pair.with("COMPLETED_AT", TIMESTAMP),
+				Pair.with("DURATION_MS", BIGINT),
+				Pair.with("ERROR_MESSAGE", CLOB)));
 		// @formatter:on
 	}
 

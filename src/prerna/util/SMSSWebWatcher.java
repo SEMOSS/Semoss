@@ -48,6 +48,7 @@ import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.agent.skill.PlatformSkillBootstrap;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
+import prerna.reactor.workflow.WorkflowDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
 
@@ -214,6 +215,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SchedulerDatabaseUtility.startServer();
 				} catch (Exception e) {
 					classLogger.error("Failed to load and start the scheduler database", e);
+				}
+
+				// Initialize workflow engine tables after scheduler DB is available
+				try {
+					WorkflowDatabaseUtility.initialize();
+					WorkflowDatabaseUtility.markStaleRunsInterrupted();
+				} catch (Exception e) {
+					classLogger.error("Failed to initialize workflow engine tables", e);
 				}
 			}
 		}

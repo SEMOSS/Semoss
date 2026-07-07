@@ -1,0 +1,211 @@
+[
+  {
+    "id": "sync-etl",
+    "name": "Database Sync (ETL)",
+    "description": "Query a source database, transform rows, and insert into a target database. Use for table-to-table sync, data migration, or scheduled ETL jobs.",
+    "category": "data",
+    "icon": "database",
+    "workflow": {
+      "version": 1,
+      "graph": {
+        "nodes": [
+          {
+            "id": "source-query",
+            "type": "database-engine",
+            "label": "Source Query",
+            "outputVar": "source_rows",
+            "config": {
+              "engineId": "",
+              "operation": "query",
+              "query": "SELECT * FROM source_table WHERE updated_at > '${config.last_sync_date}'"
+            },
+            "outputTransform": {
+              "mode": "rows-as-objects"
+            },
+            "builtPixel": ""
+          },
+          {
+            "id": "target-insert",
+            "type": "custom-pixel",
+            "label": "Insert to Target",
+            "outputVar": "insert_result",
+            "config": {
+              "pixel": "SqlQuery(database=[\"${config.target_db}\"], query=[\"<encode>INSERT INTO target_table SELECT * FROM (${source_rows})</encode>\"]);"
+            },
+            "builtPixel": ""
+          }
+        ],
+        "edges": []
+      }
+    },
+    "configKeys": [
+      { "key": "last_sync_date", "label": "Last Sync Date", "description": "Only sync rows updated after this date", "default": "2020-01-01" },
+      { "key": "target_db", "label": "Target Database Engine ID", "description": "The engine ID of the destination database", "default": "" }
+    ]
+  },
+  {
+    "id": "ingest-embed-index",
+    "name": "Document Ingestion Pipeline",
+    "description": "Query for unprocessed documents, download from storage, generate embeddings, and index into a vector database. Mirrors MDE's ingestion pattern.",
+    "category": "ai",
+    "icon": "bot",
+    "workflow": {
+      "version": 1,
+      "graph": {
+        "nodes": [
+          {
+            "id": "fetch-unindexed",
+            "type": "database-engine",
+            "label": "Fetch Unindexed Documents",
+            "outputVar": "documents",
+            "config": {
+              "engineId": "",
+              "operation": "query",
+              "query": "SELECT file_id, file_path, file_name FROM documents WHERE status = 'NOT_INDEXED' LIMIT ${config.batch_size}"
+            },
+            "outputTransform": {
+              "mode": "rows-as-objects"
+            },
+            "builtPixel": ""
+          },
+          {
+            "id": "process-documents",
+            "type": "for-each",
+            "label": "Process Each Document",
+            "outputVar": "processing_results",
+            "config": {
+              "sourceVar": "documents",
+              "iteratorVar": "doc",
+              "rowKeyField": "file_name",
+              "nodes": [
+                {
+                  "id": "download-file",
+                  "type": "custom-pixel",
+                  "label": "Download File",
+                  "outputVar": "file_content",
+                  "config": {
+                    "pixel": "DownloadStorageFile(storage=[\"${config.storage_engine}\"], path=[\"<encode>${doc.file_path}</encode>\"]);"
+                  },
+                  "builtPixel": "DownloadStorageFile(storage=[\"${config.storage_engine}\"], path=[\"<encode>${doc.file_path}</encode>\"]);"
+                },
+                {
+                  "id": "generate-embeddings",
+                  "type": "model-engine",
+                  "label": "Generate Embeddings",
+                  "outputVar": "embeddings",
+                  "config": {
+                    "engineId": "",
+                    "operation": "embeddings",
+                    "text": "${file_content}"
+                  },
+                  "builtPixel": "Embeddings(engine=[\"${config.embedding_model}\"], values=[\"<encode>${file_content}</encode>\"]);"
+                },
+                {
+                  "id": "index-vector",
+                  "type": "custom-pixel",
+                  "label": "Index in Vector DB",
+                  "outputVar": "index_result",
+                  "config": {
+                    "pixel": "VectorDatabaseInsert(engine=[\"${config.vector_engine}\"], values=[\"<encode>${embeddings}</encode>\"], metadata=[\"<encode>{\\\"file_id\\\": \\\"${doc.file_id}\\\", \\\"file_name\\\": \\\"${doc.file_name}\\\"}</encode>\"]);"
+                  },
+                  "builtPixel": "VectorDatabaseInsert(engine=[\"${config.vector_engine}\"], values=[\"<encode>${embeddings}</encode>\"], metadata=[\"<encode>{\\\"file_id\\\": \\\"${doc.file_id}\\\", \\\"file_name\\\": \\\"${doc.file_name}\\\"}</encode>\"]);"
+                },
+                {
+                  "id": "update-status",
+                  "type": "custom-pixel",
+                  "label": "Update Document Status",
+                  "outputVar": "status_update",
+                  "config": {
+                    "pixel": "SqlQuery(database=[\"${config.source_db}\"], query=[\"<encode>UPDATE documents SET status = 'INDEXED', indexed_at = NOW() WHERE file_id = '${doc.file_id}'</encode>\"]);"
+                  },
+                  "builtPixel": "SqlQuery(database=[\"${config.source_db}\"], query=[\"<encode>UPDATE documents SET status = 'INDEXED', indexed_at = NOW() WHERE file_id = '${doc.file_id}'</encode>\"]);"
+                }
+              ]
+            },
+            "builtPixel": ""
+          }
+        ],
+        "edges": []
+      }
+    },
+    "configKeys": [
+      { "key": "source_db", "label": "Source Database", "description": "Database engine with the documents table", "default": "" },
+      { "key": "storage_engine", "label": "Storage Engine", "description": "Storage engine where files are stored", "default": "" },
+      { "key": "embedding_model", "label": "Embedding Model", "description": "Model engine for generating embeddings", "default": "" },
+      { "key": "vector_engine", "label": "Vector Database", "description": "Vector engine for indexing embeddings", "default": "" },
+      { "key": "batch_size", "label": "Batch Size", "description": "Number of documents to process per run", "default": "100" }
+    ]
+  },
+  {
+    "id": "llm-enrichment",
+    "name": "LLM Data Enrichment",
+    "description": "Query records from a database, send each to an LLM for enrichment/classification, and write the results back.",
+    "category": "ai",
+    "icon": "bot",
+    "workflow": {
+      "version": 1,
+      "graph": {
+        "nodes": [
+          {
+            "id": "fetch-records",
+            "type": "database-engine",
+            "label": "Fetch Records to Enrich",
+            "outputVar": "records",
+            "config": {
+              "engineId": "",
+              "operation": "query",
+              "query": "SELECT id, description FROM records WHERE category IS NULL LIMIT ${config.batch_size}"
+            },
+            "outputTransform": {
+              "mode": "rows-as-objects"
+            },
+            "builtPixel": ""
+          },
+          {
+            "id": "enrich-records",
+            "type": "for-each",
+            "label": "Classify Each Record",
+            "outputVar": "enrichment_results",
+            "config": {
+              "sourceVar": "records",
+              "iteratorVar": "record",
+              "rowKeyField": "id",
+              "nodes": [
+                {
+                  "id": "llm-classify",
+                  "type": "model-engine",
+                  "label": "LLM Classification",
+                  "outputVar": "classification",
+                  "config": {
+                    "engineId": "",
+                    "operation": "chat",
+                    "prompt": "Classify the following text into one of these categories: ${config.categories}.\n\nText: ${record.description}\n\nReturn ONLY the category name."
+                  },
+                  "builtPixel": "LLM(engine=[\"${config.llm_engine}\"], command=[\"<encode>Classify the following text into one of these categories: ${config.categories}.\\n\\nText: ${record.description}\\n\\nReturn ONLY the category name.</encode>\"]);"
+                },
+                {
+                  "id": "update-record",
+                  "type": "custom-pixel",
+                  "label": "Update Record",
+                  "outputVar": "update_result",
+                  "config": {
+                    "pixel": "SqlQuery(database=[\"${config.source_db}\"], query=[\"<encode>UPDATE records SET category = '${classification}' WHERE id = '${record.id}'</encode>\"]);"
+                  },
+                  "builtPixel": "SqlQuery(database=[\"${config.source_db}\"], query=[\"<encode>UPDATE records SET category = '${classification}' WHERE id = '${record.id}'</encode>\"]);"
+                }
+              ]
+            },
+            "builtPixel": ""
+          }
+        ],
+        "edges": []
+      }
+    },
+    "configKeys": [
+      { "key": "source_db", "label": "Source Database", "description": "Database engine with the records table", "default": "" },
+      { "key": "llm_engine", "label": "LLM Engine", "description": "Model engine for classification", "default": "" },
+      { "key": "categories", "label": "Categories", "description": "Comma-separated list of valid categories", "default": "Category A, Category B, Category C" },
+      { "key": "batch_size", "label": "Batch Size", "description": "Number of records to process per run", "default": "50" }
+    ]
+  }
+]
