@@ -215,12 +215,12 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	private String resolveStoragePathLiteral() {
-		File engineRoot = this.schemaFolder != null ? this.schemaFolder.getParentFile() : null;
-		if (engineRoot == null) {
-			classLogger.warn("Engine root unresolved at startup, falling back to in-memory Qdrant");
+		File engineAssetsFolder = this.schemaFolder != null ? this.schemaFolder.getParentFile() : null;
+		if (engineAssetsFolder == null) {
+			classLogger.warn("Engine assets folder unresolved at startup, falling back to in-memory Qdrant");
 			return "':memory:'";
 		}
-		File storageDir = new File(engineRoot, QDRANT_STORAGE_FOLDER_NAME);
+		File storageDir = new File(engineAssetsFolder, QDRANT_STORAGE_FOLDER_NAME);
 		if (!storageDir.exists()) {
 			storageDir.mkdirs();
 		}
@@ -844,11 +844,38 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(".add_points(items = ").append(PyUtils.determineStringType(itemsJson))
 				.append(", insight_id = '").append(insight.getInsightId()).append("'");
 		if (parameters != null && parameters.containsKey("batch_size")) {
-			script.append(", batch_size = ").append(parameters.get("batch_size"));
+			script.append(", batch_size = ").append(parsePositiveInteger(parameters.get("batch_size"), "batch_size"));
 		}
 		script.append(")");
 		classLogger.info("Running >>> " + script);
 		return (Map<String, Object>) pyTranslator.runDirectPy(insight, script.toString());
+	}
+
+	private Integer parsePositiveInteger(Object raw, String key) {
+		if (raw == null) {
+			throw new IllegalArgumentException(key + " must be a positive integer");
+		}
+		if (raw instanceof Number) {
+			double numericValue = ((Number) raw).doubleValue();
+			if (!Double.isFinite(numericValue) || numericValue != Math.rint(numericValue)
+					|| numericValue > Integer.MAX_VALUE) {
+				throw new IllegalArgumentException(key + " must be a positive integer");
+			}
+			int value = (int) numericValue;
+			if (value > 0) {
+				return value;
+			}
+			throw new IllegalArgumentException(key + " must be a positive integer");
+		}
+		try {
+			int value = Integer.parseInt(raw.toString().trim());
+			if (value > 0) {
+				return value;
+			}
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(key + " must be a positive integer");
+		}
+		throw new IllegalArgumentException(key + " must be a positive integer");
 	}
 
 	@SuppressWarnings("unchecked")

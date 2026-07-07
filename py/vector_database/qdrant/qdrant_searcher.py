@@ -78,6 +78,7 @@ class QdrantSearcher:
         self._collection_ready = False
         self._sparse_encoder = None
         self._is_hybrid_collection = False
+        self._attach_existing_collection_if_present()
 
     def _resolve_distance(self):
         m = self._models.Distance
@@ -128,12 +129,12 @@ class QdrantSearcher:
     def _ensure_collection(self, vector_size: int) -> None:
         if self._collection_ready:
             return
-        self.vector_size = vector_size
         existing = {c.name for c in self.client.get_collections().collections}
-        if self.collection_name not in existing:
-            self._create_collection(vector_size)
-        else:
-            self._detect_existing_collection_mode()
+        if self.collection_name in existing:
+            if self._attach_existing_collection():
+                return
+        self.vector_size = vector_size
+        self._create_collection(vector_size)
         self._collection_ready = True
         self._refresh_sources_from_qdrant()
 
@@ -187,15 +188,72 @@ class QdrantSearcher:
                     field, schema_key, e,
                 )
 
-    def _detect_existing_collection_mode(self) -> None:
+    def _attach_existing_collection_if_present(self) -> bool:
+        try:
+            existing = {c.name for c in self.client.get_collections().collections}
+        except Exception as e:
+            logger.debug(
+                "Could not inspect Qdrant collections while initializing %s: %s",
+                self.collection_name, e,
+            )
+            return False
+        if self.collection_name not in existing:
+            return False
+        return self._attach_existing_collection()
+
+    def _attach_existing_collection(self) -> bool:
         try:
             info = self.client.get_collection(self.collection_name)
             params = info.config.params
-            sparse_cfg = getattr(params, "sparse_vectors", None)
-            self._is_hybrid_collection = sparse_cfg is not None and SPARSE_VECTOR_NAME in sparse_cfg
-        except Exception:
-            self._is_hybrid_collection = self.enable_hybrid_search
-        self._ensure_payload_indexes()
+            self._is_hybrid_collection = self._has_sparse_vector(params)
+            self.vector_size = self._extract_dense_vector_size(params)
+            self._collection_ready = True
+            self._ensure_payload_indexes()
+            self._refresh_sources_from_qdrant()
+            return True
+        except Exception as e:
+            logger.warning(
+                "Could not attach Qdrant collection %s: %s",
+                self.collection_name, e,
+            )
+            self._collection_ready = False
+            self.vector_size = None
+            return False
+
+    def _has_sparse_vector(self, params: Any) -> bool:
+        sparse_cfg = self._get_config_value(params, "sparse_vectors")
+        if sparse_cfg is None:
+            return False
+        if isinstance(sparse_cfg, dict):
+            return SPARSE_VECTOR_NAME in sparse_cfg
+        try:
+            return SPARSE_VECTOR_NAME in sparse_cfg
+        except TypeError:
+            return True
+
+    def _extract_dense_vector_size(self, params: Any) -> Optional[int]:
+        vectors = self._get_config_value(params, "vectors")
+        if vectors is None:
+            return None
+        dense_vector = self._get_config_value(vectors, DENSE_VECTOR_NAME)
+        if dense_vector is not None:
+            size = self._get_config_value(dense_vector, "size")
+            return int(size) if size is not None else None
+        size = self._get_config_value(vectors, "size")
+        return int(size) if size is not None else None
+
+    @staticmethod
+    def _get_config_value(config: Any, key: str) -> Any:
+        if config is None:
+            return None
+        if isinstance(config, dict):
+            return config.get(key)
+        if hasattr(config, "get"):
+            try:
+                return config.get(key)
+            except Exception:
+                pass
+        return getattr(config, key, None)
 
     def _refresh_sources_from_qdrant(self) -> None:
         try:
