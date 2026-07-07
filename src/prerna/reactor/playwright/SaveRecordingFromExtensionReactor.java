@@ -108,8 +108,11 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 
 		// Get user from session (Google OAuth)
 		User user = this.insight.getUser();
-		
+
 		// Check if user is logged in
+		if (user == null) {
+			throw new IllegalArgumentException("User must be signed in to save a recording.");
+		}
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
@@ -172,18 +175,23 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 		}
 
 		// Auto-update MCP by calling MakePlaywrightMCPReactor
+		boolean mcpUpdated = true;
+		String mcpWarning = null;
 		try {
 			MakePlaywrightMCPReactor mcpReactor = new MakePlaywrightMCPReactor();
 			mcpReactor.setInsight(this.insight);
 			mcpReactor.setNounStore(this.store);
-			
+
 			// Set the project parameter
-			this.store.makeNoun(ReactorKeysEnum.PROJECT.getKey()).add(new NounMetadata(projectId, PixelDataType.CONST_STRING));
-			
+			this.store.makeNoun(ReactorKeysEnum.PROJECT.getKey())
+					.add(new NounMetadata(projectId, PixelDataType.CONST_STRING));
+
 			mcpReactor.execute();
 			classLogger.info("MCP updated successfully");
 		} catch (Exception e) {
 			classLogger.error("Failed to update MCP: {}", e.getMessage(), e);
+			mcpUpdated = false;
+			mcpWarning = e.getMessage();
 			// Don't fail the whole operation, just log the error
 		}
 
@@ -199,9 +207,13 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String email = accessToken != null && accessToken.getEmail() != null ? accessToken.getEmail()
+				: "semoss@localhost";
+		String author = accessToken != null && accessToken.getUsername() != null ? accessToken.getUsername()
+				: "SEMOSS Extension";
 
+		boolean gitCommitted = true;
+		String gitWarning = null;
 		try {
 			GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
 			GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
@@ -209,6 +221,8 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			classLogger.info("Recording committed to git");
 		} catch (Exception e) {
 			classLogger.error("Git operations failed: {}", e.getMessage(), e);
+			gitCommitted = false;
+			gitWarning = e.getMessage();
 			// Don't fail the whole operation
 		}
 
@@ -218,6 +232,14 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 		response.put("fileName", fileName);
 		response.put("filePath", file.toAbsolutePath().toString());
 		response.put("message", "Recording saved successfully");
+		response.put("mcpUpdated", mcpUpdated);
+		if (mcpWarning != null) {
+			response.put("mcpWarning", mcpWarning);
+		}
+		response.put("gitCommitted", gitCommitted);
+		if (gitWarning != null) {
+			response.put("gitWarning", gitWarning);
+		}
 
 		return new NounMetadata(response, PixelDataType.JSON_OBJECT);
 	}
