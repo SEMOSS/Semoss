@@ -300,24 +300,3 @@ def validate_with(model_cls):
         return wrapper
 
     return decorator
-
-
-def to_dict(obj):
-    if obj is None:
-        return None
-    if hasattr(obj, "model_dump"):
-        try:
-            return obj.model_dump(mode="json")
-        except Exception:
-            pass
-    if hasattr(obj, "to_dict"):
-        try:
-            return obj.to_dict()
-        except Exception:
-            pass
-    if isinstance(obj, dict):
-        return obj
-    try:
-        return json.loads(json.dumps(obj, default=str))
-    except Exception:
-        return {"value": str(obj)}
