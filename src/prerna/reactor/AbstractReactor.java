@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -555,7 +555,7 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
 		classLogger.debug("Original signature value = " + this.signature);
-		this.signature = StringUtils.replaceOnce(this.signature, stringToFind, stringReplacement);
+		this.signature = Strings.CS.replaceOnce(this.signature, stringToFind, stringReplacement);
 		classLogger.debug("New signature value = " + this.signature);
 	}
 
@@ -1152,6 +1152,379 @@ public abstract class AbstractReactor implements IReactor {
 			return null;
 		}
 		return store.getGenRowStruct(this.keysToGet[index]);
+	}
+
+	/**
+	 * Convert all values in a GenRowStruct into string representations.
+	 * 
+	 * @param grs The input GenRowStruct.
+	 * @return A list of string values (empty when input is null/empty).
+	 */
+	protected List<String> convertAllValuesToString(GenRowStruct grs) {
+		List<String> values = new ArrayList<>();
+		if (grs == null || grs.isEmpty()) {
+			return values;
+		}
+		for (Object value : grs.getAllValues()) {
+			values.add(value == null ? null : value.toString());
+		}
+		return values;
+	}
+
+	/**
+	 * Convert all current row values into string representations.
+	 * 
+	 * @return A list of string values from the current row.
+	 */
+	protected List<String> getCurRowValuesAsString() {
+		return getCurRowValuesAsString(0);
+	}
+
+	/**
+	 * Get string noun values from curRow (COLUMN and CONST_STRING).
+	 * 
+	 * @return A list of string noun values from curRow.
+	 */
+	protected List<String> getCurRowStringValues() {
+		if (this.curRow == null || this.curRow.isEmpty()) {
+			return new ArrayList<>();
+		}
+		return this.curRow.getAllStrValues();
+	}
+
+	/**
+	 * Convert current row values into string representations starting from a given
+	 * index.
+	 * 
+	 * @param startIndex The starting index in the current row.
+	 * @return A list of string values from the current row.
+	 */
+	protected List<String> getCurRowValuesAsString(int startIndex) {
+		List<String> values = new ArrayList<>();
+		if (this.curRow == null || this.curRow.isEmpty()) {
+			return values;
+		}
+		int safeStartIndex = Math.max(0, startIndex);
+		for (int i = safeStartIndex; i < this.curRow.size(); i++) {
+			Object value = this.curRow.get(i);
+			values.add(value == null ? null : value.toString());
+		}
+		return values;
+	}
+
+	/**
+	 * Get the first value from a keyed GenRowStruct entry, falling back to a value
+	 * in curRow at the provided index.
+	 * 
+	 * @param key         The key to retrieve from noun store.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The value, or null when unavailable.
+	 */
+	protected Object getValueFromKeyOrCurRow(String key, int curRowIndex) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.get(0);
+		}
+		if (this.curRow != null && curRowIndex >= 0 && this.curRow.size() > curRowIndex) {
+			return this.curRow.get(curRowIndex);
+		}
+		return null;
+	}
+
+	/**
+	 * Get the first value from a keyed GenRowStruct entry by key index, falling
+	 * back to a value in curRow at the provided index.
+	 * 
+	 * @param keyIndex    The key index in keysToGet.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The value, or null when unavailable.
+	 */
+	protected Object getValueFromKeyOrCurRow(int keyIndex, int curRowIndex) {
+		GenRowStruct grs = getGenRowStruct(keyIndex);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.get(0);
+		}
+		if (this.curRow != null && curRowIndex >= 0 && this.curRow.size() > curRowIndex) {
+			return this.curRow.get(curRowIndex);
+		}
+		return null;
+	}
+
+	/**
+	 * Get a string by key, falling back to curRow index 0.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRow(String key) {
+		return getStringFromKeyOrCurRow(key, 0);
+	}
+
+	/**
+	 * Get a string by key index, falling back to curRow index 0.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRow(int keyIndex) {
+		return getStringFromKeyOrCurRow(keyIndex, 0);
+	}
+
+	/**
+	 * Get a string by key, falling back to the provided curRow index.
+	 * 
+	 * @param key         The key to retrieve from noun store.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRow(String key, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(key, curRowIndex);
+		return value != null ? value.toString() : null;
+	}
+
+	/**
+	 * Get a string by key, falling back to the first string noun value in curRow.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRowStringValue(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			Object value = grs.get(0);
+			return value != null ? value.toString() : null;
+		}
+		List<String> curRowStringValues = getCurRowStringValues();
+		if (!curRowStringValues.isEmpty()) {
+			return curRowStringValues.get(0);
+		}
+		return null;
+	}
+
+	/**
+	 * Get a string by key index, falling back to the first string noun value in
+	 * curRow.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRowStringValue(int keyIndex) {
+		GenRowStruct grs = getGenRowStruct(keyIndex);
+		if (grs != null && !grs.isEmpty()) {
+			Object value = grs.get(0);
+			return value != null ? value.toString() : null;
+		}
+		List<String> curRowStringValues = getCurRowStringValues();
+		if (!curRowStringValues.isEmpty()) {
+			return curRowStringValues.get(0);
+		}
+		return null;
+	}
+
+	/**
+	 * Get a string by key index, falling back to the provided curRow index.
+	 * 
+	 * @param keyIndex    The key index in keysToGet.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The string value, or null if not found.
+	 */
+	protected String getStringFromKeyOrCurRow(int keyIndex, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(keyIndex, curRowIndex);
+		return value != null ? value.toString() : null;
+	}
+
+	/**
+	 * Get a boolean by key, falling back to curRow index 0.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBooleanFromKeyOrCurRow(String key) {
+		return getBooleanFromKeyOrCurRow(key, 0);
+	}
+
+	/**
+	 * Get a boolean by key index, falling back to curRow index 0.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBooleanFromKeyOrCurRow(int keyIndex) {
+		return getBooleanFromKeyOrCurRow(keyIndex, 0);
+	}
+
+	/**
+	 * Get a boolean by key, falling back to the provided curRow index.
+	 * 
+	 * @param key         The key to retrieve from noun store.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBooleanFromKeyOrCurRow(String key, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(key, curRowIndex);
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		}
+		return Boolean.parseBoolean(value.toString());
+	}
+
+	/**
+	 * Get a boolean by key index, falling back to the provided curRow index.
+	 * 
+	 * @param keyIndex    The key index in keysToGet.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The boolean value, or null if not found.
+	 */
+	protected Boolean getBooleanFromKeyOrCurRow(int keyIndex, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(keyIndex, curRowIndex);
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		}
+		return Boolean.parseBoolean(value.toString());
+	}
+
+	/**
+	 * Get an integer by key, falling back to curRow index 0.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getIntFromKeyOrCurRow(String key) {
+		return getIntFromKeyOrCurRow(key, 0);
+	}
+
+	/**
+	 * Get an integer by key index, falling back to curRow index 0.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getIntFromKeyOrCurRow(int keyIndex) {
+		return getIntFromKeyOrCurRow(keyIndex, 0);
+	}
+
+	/**
+	 * Get an integer by key, falling back to the provided curRow index.
+	 * 
+	 * @param key         The key to retrieve from noun store.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getIntFromKeyOrCurRow(String key, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(key, curRowIndex);
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		return Integer.parseInt(value.toString());
+	}
+
+	/**
+	 * Get an integer by key index, falling back to the provided curRow index.
+	 * 
+	 * @param keyIndex    The key index in keysToGet.
+	 * @param curRowIndex The fallback index in curRow.
+	 * @return The integer value, or null if not found.
+	 */
+	protected Integer getIntFromKeyOrCurRow(int keyIndex, int curRowIndex) {
+		Object value = getValueFromKeyOrCurRow(keyIndex, curRowIndex);
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		return Integer.parseInt(value.toString());
+	}
+
+	/**
+	 * Get list values as strings by key, falling back to all curRow values.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return A list of string values.
+	 */
+	protected List<String> getListStringFromKeyOrCurRow(String key) {
+		return getListStringFromKeyOrCurRow(key, 0);
+	}
+
+	/**
+	 * Get list string noun values by key, falling back to string noun values from
+	 * curRow.
+	 * 
+	 * @param key The key to retrieve from noun store.
+	 * @return A list of string noun values.
+	 */
+	protected List<String> getListStringNounsFromKeyOrCurRow(String key) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		return getCurRowStringValues();
+	}
+
+	/**
+	 * Get list string noun values by key index, falling back to string noun values
+	 * from curRow.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return A list of string noun values.
+	 */
+	protected List<String> getListStringNounsFromKeyOrCurRow(int keyIndex) {
+		GenRowStruct grs = getGenRowStruct(keyIndex);
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		return getCurRowStringValues();
+	}
+
+	/**
+	 * Get list values as strings by key index, falling back to all curRow values.
+	 * 
+	 * @param keyIndex The key index in keysToGet.
+	 * @return A list of string values.
+	 */
+	protected List<String> getListStringFromKeyOrCurRow(int keyIndex) {
+		return getListStringFromKeyOrCurRow(keyIndex, 0);
+	}
+
+	/**
+	 * Get list values as strings by key, falling back to curRow values from a start
+	 * index.
+	 * 
+	 * @param key              The key to retrieve from noun store.
+	 * @param curRowStartIndex The fallback start index in curRow.
+	 * @return A list of string values.
+	 */
+	protected List<String> getListStringFromKeyOrCurRow(String key, int curRowStartIndex) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			return convertAllValuesToString(grs);
+		}
+		return getCurRowValuesAsString(curRowStartIndex);
+	}
+
+	/**
+	 * Get list values as strings by key index, falling back to curRow values from a
+	 * start index.
+	 * 
+	 * @param keyIndex         The key index in keysToGet.
+	 * @param curRowStartIndex The fallback start index in curRow.
+	 * @return A list of string values.
+	 */
+	protected List<String> getListStringFromKeyOrCurRow(int keyIndex, int curRowStartIndex) {
+		GenRowStruct grs = getGenRowStruct(keyIndex);
+		if (grs != null && !grs.isEmpty()) {
+			return convertAllValuesToString(grs);
+		}
+		return getCurRowValuesAsString(curRowStartIndex);
 	}
 
 	/**

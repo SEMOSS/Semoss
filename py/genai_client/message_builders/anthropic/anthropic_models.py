@@ -134,6 +134,8 @@ class AnthropicRequestConfig(BaseModel):
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     thinking: Optional[Dict[str, Any]] = None
+    # Modern Claude (Opus 4.6+/Sonnet 4.6/Fable): {"effort": "low|medium|high|xhigh|max"}
+    output_config: Optional[Dict[str, Any]] = None
 
 
 class AnthropicMessageBuilderResponse(BaseModel):

@@ -43,9 +43,16 @@ import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * GitHub Copilot SDK-backed agent harness.
+ * {@link IAgentHarness} that delegates to {@link GitHubCopilotManager} - spawns the
+ * external {@code copilot} CLI in the agent's working directory and parses its
+ * transcript.
+ *
+ * <p>Reads {@code allowed_tools}, {@code permission_mode}, MCP list, and system
+ * prompt the same way {@link ClaudeCodeAgentHarness} does. Uses
+ * {@code ctx.getFilePath()} directly as the CLI cwd - callers wanting the legacy
+ * {@code /client} subdir must pass {@code subdir="client"} on {@code RunAgent}.
  */
-public class GitHubCopilotAgentHarness extends AppBuildingHarness {
+public class GitHubCopilotAgentHarness implements IAgentHarness {
 
 	private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
 
@@ -57,16 +64,27 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 	}
 
 	@Override
-	protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
+	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room                room  = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String              input = ctx.getInput();
+		String              cwd   = ctx.getFilePath();
 
-		String       engineId       = resolveEngineId(room);
-		String       systemPrompt   = resolveSystemPrompt(room);
+		String       engineId       = room.getModelId();
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
+		}
+			String       systemPrompt   = room.getSystemPromptForModel();
+		if (systemPrompt == null) {
+			systemPrompt = "";
+		}
+		User         user           = ctx.getInsight().getUser();
+		if (user == null) {
+			throw new IllegalArgumentException(NAME + ": insight has no user");
+		}
 		List<String> allowedTools   = resolveAllowedTools(params, Collections.emptyList());
 		String       permissionMode = resolvePermissionMode(params);
-		User         user           = resolveUser(ctx.getInsight());
+		List<Map<String, String>> mcps = ctx.getAgentConfig().getMcps();
 
 		IModelEngine modelEngine = ctx.getModelEngine();
 		if (modelEngine == null) {
@@ -74,16 +92,36 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 		}
 		int contextWindow = modelEngine.getContextWindow();
 
-		String cwd = resolveClientPath(ctx);
-
 		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
 		SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
-				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
+				room.getRoomFolderPath(), cwd, targetBinary, ctx.getSandboxPolicy());
+
+		logger.debug("GitHubCopilotAgentHarness: engine={} cwd={} mcps={}",
+				engineId, cwd, mcps == null ? 0 : mcps.size());
 
 		GitHubCopilotManager manager = new GitHubCopilotManager();
 		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow, policy);
+				room.getId(), allowedTools, permissionMode, mcps, contextWindow, policy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<String> resolveAllowedTools(Map<String, Object> params, List<String> defaults) {
+		if (params == null) {
+			return defaults;
+		}
+		Object o = params.get("allowed_tools");
+		if (o instanceof List) {
+			return (List<String>) o;
+		}
+		return defaults;
+	}
+
+	private static String resolvePermissionMode(Map<String, Object> params) {
+		if (params == null || !params.containsKey("permission_mode")) {
+			return "default";
+		}
+		return String.valueOf(params.get("permission_mode"));
 	}
 }

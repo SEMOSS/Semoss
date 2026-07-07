@@ -28,11 +28,9 @@
 package prerna.reactor.frame.r;
 
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,9 +40,18 @@ import prerna.util.Utility;
 public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor splits columns based on a separator The split values will be
-	 * combined into a single column The inputs to the reactor are: 1) the columns
-	 * to split "columns" 2) the delimiters "delimiters"
+	 * combined into a single column
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the columns to split "columns"</li>
+	 * <li>the delimiters "delimiters"</li>
+	 * </ul>
 	 */
 
 	public SplitUnpivotReactor() {
@@ -145,47 +152,27 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private List<String> getDelimiters() {
-		// inputs are passed based on a key
-		// store in a vector of inputs
-		List<String> delInputs = new Vector<String>();
-		GenRowStruct delGRS = this.store.getGenRowStruct(keysToGet[2]);
-		if (delGRS != null) {
-			int size = delGRS.size();
-			if (size > 0) {
-				for (int i = 0; i < size; i++) {
-					delInputs.add(delGRS.get(i).toString());
-				}
-				return delInputs;
-			}
+		List<String> delimiters = getListString(keysToGet[2]);
+		if (delimiters != null && !delimiters.isEmpty()) {
+			return delimiters;
 		}
 		throw new IllegalArgumentException("Need to define delimiters");
 	}
 
 	private List<String> getColumns() {
-		// if it was passed based on a key
-		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getGenRowStruct(keysToGet[1]);
-		if (colGRS != null) {
-			int size = colGRS.size();
-			if (size > 0) {
-				for (int i = 0; i < size; i++) {
-					// get each individul column entry and clean
-					String column = colGRS.get(i).toString();
-					if (column.contains("__")) {
-						column = column.split("__")[1];
-					}
-					colInputs.add(column);
+		List<String> columns = getListString(keysToGet[1]);
+		if (columns != null && !columns.isEmpty()) {
+			for (int i = 0; i < columns.size(); i++) {
+				String column = columns.get(i);
+				if (column.contains("__")) {
+					column = column.split("__")[1];
 				}
-				return colInputs;
+				columns.set(i, column);
 			}
+			return columns;
 		}
 		throw new IllegalArgumentException("Need to define columns");
 	}
+
 }

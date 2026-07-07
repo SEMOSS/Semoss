@@ -33,51 +33,55 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import prerna.date.SemossDate;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
 public class AccessToken implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	AuthProvider provider = null;
+	private AuthProvider provider = null;
 
 	// this will store all the groups that the user has
 	// will be provided to us when the user logs in
 	// from an IDP
-	Collection<String> userGroups = null;
-	String userGroupType = null;
+	private Collection<String> userGroups = null;
+	private String userGroupType = null;
 
-	String id = null;
-	String username = null;
-	String access_token = null;
-	String instance_url = null;
-	int expires_in = 0; // this is in seconds
-	String token_type = "Bearer";
-	long startTime = -1;
+	private String id = null;
+	private String username = null;
+	private String access_token = null;
+	private String instance_url = null;
+	private int expires_in = 0; // this is in seconds
+	private String token_type = "Bearer";
+	private long startTime = -1;
 
-	String email = null;
-	String name = null;
-	String profile = null;
-	String gender = null;
-	String locale = null;
-	String phone = null;
-	String phoneExtension = null;
-	String countryCode = null;
+	private String email = null;
+	private String name = null;
+	private String profile = null;
+	private String gender = null;
+	private String locale = null;
+	private String phone = null;
+	private String phoneExtension = null;
+	private String countryCode = null;
 
-	int modelMaxTokens = 0;
-	double modelMaxResponseTime = 0.0;
-	String modelUsageFrequency = null;
-	String modelUsageRestriction = null;
+	private int modelMaxTokens = 0;
+	private double modelMaxResponseTime = 0.0;
+	private String modelUsageFrequency = null;
+	private String modelUsageRestriction = null;
 
-	Map<String, String> sans = null;
+	private Map<String, String> sans = null;
 
-	Map<String, Collection<String>> meta = null;
+	private Map<String, Collection<String>> meta = null;
 
-	boolean locked = false;
-	SemossDate lastLogin = null;
-	SemossDate lastPasswordReset = null;
+	private boolean locked = false;
+	private SemossDate lastLogin = null;
+	private SemossDate lastPasswordReset = null;
 
 	/**
 	 * Constructs a new AccessToken.
@@ -116,11 +120,11 @@ public class AccessToken implements Serializable {
 	public void setInstance_url(String instanceUrl) {
 		this.instance_url = instanceUrl;
 	}
-	
+
 	public String getInstance_url() {
 		return this.instance_url;
 	}
-	
+
 	/**
 	 * Gets the authentication provider associated with this token.
 	 * 
@@ -692,6 +696,162 @@ public class AccessToken implements Serializable {
 	}
 
 	/**
+	 * Resolves a usable username for the access token, preferring the username and
+	 * falling back to the display name and then the email. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of username, name, or email; null if all are
+	 *         null
+	 */
+	public String getResolvedUsername() {
+		return Stream.of(username, name, email).filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	/**
+	 * Resolves a usable display name for the access token, preferring the name and
+	 * falling back to the email and then the username. Useful when a single
+	 * identifying label is required (e.g. as a git commit author) but logins vary
+	 * in which of these fields they populate.
+	 *
+	 * @return the first non-null value of name, email, or username; null if all are
+	 *         null
+	 */
+	public String getResolvedDisplayName() {
+		return Stream.of(name, email, username).filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	/**
+	 * Builds a map describing this token for user-info responses. Core identifying
+	 * fields use the literal string {@code "null"} in place of any value that is
+	 * not set, so callers get a consistent set of keys regardless of which fields
+	 * the login populated. Also includes the token's meta, SAN, and group
+	 * information, plus the supplied user epoch.
+	 * <p>
+	 * When {@code includeToken} is {@code true} the raw access token is included
+	 * under the {@code accessToken} key; when it is {@code false} the refresh-token
+	 * entry ({@link AbstractOAuthTokenFiller#REFRESH_TOKEN_KEY}) is stripped from
+	 * the meta map before it is added.
+	 *
+	 * @param includeToken whether to include the raw access token and retain the
+	 *                     refresh token in the meta map
+	 * @param userEpoch    the user epoch to record under the {@code userEpoch} key
+	 * @param includeDates if the output should include teh lastPwdReset and
+	 *                     lastLogin dates which only come from the semoss dbs and
+	 *                     not the IdP provider
+	 * @return a map of this token's exposed properties
+	 */
+	public Map<String, Object> toProviderMap(boolean includeToken, String userEpoch, boolean includeDates) {
+		// add basic user details we capture
+		Map<String, Object> providerMap = new TreeMap<>();
+		if (includeToken) {
+			providerMap.put("accessToken", getAccess_token());
+		}
+		providerMap.put("id", getId() == null ? "null" : getId());
+		providerMap.put("name", getName() == null ? "null" : getName());
+		providerMap.put("username", getUsername() == null ? "null" : getUsername());
+		providerMap.put("email", getEmail() == null ? "null" : getEmail());
+		if (includeDates) {
+			providerMap.put("lastPwdReset", getLastPasswordReset() == null ? "null" : getLastPasswordReset());
+			providerMap.put("lastLogin", getLastLogin() == null ? "null" : getLastLogin());
+		}
+		// get extended user properties
+		Map<String, Collection<String>> meta = getMeta();
+		if (meta != null) {
+			if (!includeToken && meta.containsKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY)) {
+				Map<String, Collection<String>> newMap = new HashMap<>(meta);
+				newMap.remove(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
+				providerMap.put("meta", newMap);
+			} else {
+				providerMap.put("meta", meta);
+			}
+		}
+
+		// add san info
+		Map<String, String> san = getSAN();
+		providerMap.put("san", san);
+
+		// add group info
+		Map<String, Object> groupMap = new HashMap<>();
+		String groupType = getUserGroupType();
+		Collection<String> groups = getUserGroups();
+		groupMap.put("groupType", groupType);
+		groupMap.put("groups", groups);
+		providerMap.put("groupInfo", groupMap);
+
+		// add user epoch into the login map
+		providerMap.put("userEpoch", userEpoch);
+
+		return providerMap;
+	}
+
+	/**
+	 * Copies all scalar (non-collection) field values from {@code source} into this
+	 * instance.
+	 * <p>
+	 * This is a protected hook for subclasses (e.g. {@link ReadOnlyAccessToken})
+	 * that need to populate their inherited fields without going through the public
+	 * setters. Values are copied verbatim, bypassing getter fallbacks (such as
+	 * {@link #getId()} returning the email) and setter validation (such as
+	 * {@link #setId(String)} trimming). The collection/map fields (userGroups,
+	 * sans, meta) are intentionally left untouched so the caller controls how those
+	 * are shared or duplicated.
+	 *
+	 * @param source the token to copy scalar field values from
+	 */
+	protected void copyScalarFieldsFrom(AccessToken source) {
+		this.provider = source.provider;
+		this.userGroupType = source.userGroupType;
+		this.id = source.id;
+		this.username = source.username;
+		this.access_token = source.access_token;
+		this.instance_url = source.instance_url;
+		this.expires_in = source.expires_in;
+		this.token_type = source.token_type;
+		this.startTime = source.startTime;
+		this.email = source.email;
+		this.name = source.name;
+		this.profile = source.profile;
+		this.gender = source.gender;
+		this.locale = source.locale;
+		this.phone = source.phone;
+		this.phoneExtension = source.phoneExtension;
+		this.countryCode = source.countryCode;
+		this.modelMaxTokens = source.modelMaxTokens;
+		this.modelMaxResponseTime = source.modelMaxResponseTime;
+		this.modelUsageFrequency = source.modelUsageFrequency;
+		this.modelUsageRestriction = source.modelUsageRestriction;
+		this.locked = source.locked;
+		this.lastLogin = source.lastLogin;
+		this.lastPasswordReset = source.lastPasswordReset;
+	}
+
+	/**
+	 * Directly replaces the backing user-groups collection.
+	 * <p>
+	 * Protected hook allowing subclasses to install an alternate view (for example
+	 * an unmodifiable wrapper) without going through {@link #setUserGroups(Set)}.
+	 *
+	 * @param userGroups the collection to store as-is
+	 */
+	protected void setUserGroupsInternal(Collection<String> userGroups) {
+		this.userGroups = userGroups;
+	}
+
+	/**
+	 * Directly replaces the backing SAN map.
+	 * <p>
+	 * Protected hook allowing subclasses to install an alternate view (for example
+	 * an unmodifiable wrapper) without going through
+	 * {@link #setSAN(String, String)}.
+	 *
+	 * @param sans the map to store as-is
+	 */
+	protected void setSansInternal(Map<String, String> sans) {
+		this.sans = sans;
+	}
+
+	/**
 	 * Create a copy of the provided AccessToken.
 	 * <p>
 	 * This method constructs a new AccessToken instance and copies scalar fields
@@ -725,6 +885,7 @@ public class AccessToken implements Serializable {
 		newToken.phone = token.phone;
 		newToken.phoneExtension = token.phoneExtension;
 		newToken.countryCode = token.countryCode;
+		newToken.instance_url = token.instance_url;
 
 		// model-related fields
 		newToken.modelMaxTokens = token.modelMaxTokens;

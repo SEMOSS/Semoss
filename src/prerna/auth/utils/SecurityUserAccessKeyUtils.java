@@ -89,7 +89,8 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static User validateKeysAndReturnUser(String accessKey, String secretKey) throws IllegalAccessException {
+	public static AccessToken validateKeysAndReturnToken(String accessKey, String secretKey)
+			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String saltedSecretKey = null;
 		String salt = null;
@@ -158,7 +159,6 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("Invalid credentials");
 		}
 
-		User user = new User();
 		AccessToken token = new AccessToken();
 		AuthProvider provider = AuthProvider.getProviderFromString(loginType);
 		token.setProvider(provider);
@@ -176,10 +176,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error(e);
 		}
-
-		user.setAccessToken(token);
-
-		return user;
+		return token;
 	}
 
 	/**

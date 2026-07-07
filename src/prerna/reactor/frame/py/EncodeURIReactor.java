@@ -28,11 +28,9 @@
 package prerna.reactor.frame.py;
 
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,7 +61,7 @@ public class EncodeURIReactor extends AbstractPyFrameReactor {
 		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
-		List<String> columnNames = getColumns();
+		List<String> columnNames = getListStringFromKeyOrCurRow(this.keysToGet[0]);
 
 		// iterate through all passed columns
 		for (String col : columnNames) {
@@ -85,32 +83,4 @@ public class EncodeURIReactor extends AbstractPyFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
-
-		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns.add(column);
-			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
-		}
-
-		return columns;
-	}
 }

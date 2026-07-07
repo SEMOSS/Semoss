@@ -5,12 +5,27 @@ import json
 import datetime
 import os
 from typing import List, Optional
-from deprecated import deprecated
 
 # this is here so users only need to know to import smssutil and not worry about the internal structure of the code
 from gaas_tcp_server_thread_local import smss_get_runtime_var
 
 logger = logging.getLogger("SocketServer")
+
+
+def deprecated(reason: str = "", version: str = ""):
+    """Lightweight marker decorator, akin to Java's @Deprecated.
+
+    Records the reason/version on the function for documentation and
+    introspection but has no runtime behavior (no warning, no wrapping).
+    Avoids pulling in the third-party ``deprecated``/``wrapt`` packages.
+    """
+
+    def _decorator(func):
+        func.__deprecated__ = {"reason": reason, "version": version}
+        return func
+
+    return _decorator
+
 
 # callback link
 executorExceptionCallback = None
@@ -22,8 +37,6 @@ def setExecutorExceptionCallback(callback):
 
 
 # custom exception class to be used with callback
-
-
 class InterpreterError(Exception):
     pass
 

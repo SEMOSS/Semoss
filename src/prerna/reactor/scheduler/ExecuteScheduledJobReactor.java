@@ -44,7 +44,7 @@ import prerna.util.Utility;
 
 public class ExecuteScheduledJobReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ExecuteScheduledJobReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ExecuteScheduledJobReactor.class);
 
 	public ExecuteScheduledJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -80,7 +80,7 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 						"Could not find job with name = " + jobId + " and group = " + jobGroup);
 			}
 		} catch (SchedulerException se) {
-			logger.error("Failed to trigger Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+			classLogger.error("Failed to trigger Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
 					se.getMessage(), se);
 		}
 

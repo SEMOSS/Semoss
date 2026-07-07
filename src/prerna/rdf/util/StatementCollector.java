@@ -39,7 +39,7 @@ import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 
 public class StatementCollector extends QueryModelVisitorBase<Exception> {
 	
-	private static final Logger logger = LogManager.getLogger(StatementCollector.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(StatementCollector.class.getName());
 	
 	private List<StatementPattern> statementPatterns = new Vector<StatementPattern>();
 	private Set<String> subjectVariables = new HashSet<String>();//keep track of variables that are subjects

@@ -27,9 +27,39 @@
  *******************************************************************************/
 package prerna.io.connector.gitlab;
 
-import prerna.io.connector.GenericTokenFiller;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
-public class GitLabTokenFiller extends GenericTokenFiller {
+/**
+ * GitLab OAuth2 provider. GitLab is usually self-hosted, so the
+ * authorize/token/userinfo endpoints are configured entirely via social
+ * properties (there is no universal default host). The authorize redirect does
+ * not use {@code response_mode}.
+ * <p>
+ * The default userinfo parsing assumes GitLab's {@code /api/v4/user} response
+ * shape; override {@code {prefix}jsonPattern}/{@code {prefix}beanProps} if the
+ * configured {@code userinfo_url} returns something else (e.g. the OIDC
+ * {@code /oauth/userinfo} endpoint).
+ */
+public class GitLabTokenFiller extends AbstractOAuthTokenFiller {
 
-	// this class does nothing ...
+	// jsonPattern: JMESPath query projecting values out of the /api/v4/user JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	private static final String DEFAULT_JSON_PATTERN = "[name, username, email, id]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "username", "email", "id" };
+
+	@Override
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
+	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
+	@Override
+	protected boolean includeResponseMode() {
+		return false;
+	}
+
 }

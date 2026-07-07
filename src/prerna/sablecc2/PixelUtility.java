@@ -565,7 +565,7 @@ public class PixelUtility {
 			// encoded token is byte-identical to the value the user wrote. Restoring
 			// <encode>...</encode> wrapping serves no purpose here and a positionally
 			// naive replace would corrupt the expression by matching the same chars
-			// elsewhere — e.g. "sea" inside the param name "search". Drop the block
+			// elsewhere - e.g. "sea" inside the param name "search". Drop the block
 			// entirely; the expression already reads correctly without the wrapper.
 			if (original.contains(encodedText)) {
 				iterator.remove();
@@ -573,7 +573,7 @@ public class PixelUtility {
 			}
 			// Otherwise the encoded form contains %XX escapes (which can't appear
 			// in identifiers or grammar tokens, and never inside a quoted string
-			// boundary since URI-encoding maps " → %22). Anchor the match to a
+			// boundary since URI-encoding maps " -> %22). Anchor the match to a
 			// string-literal position so an unrelated coincidental occurrence of
 			// the same escape sequence elsewhere can't be picked up. Every encode
 			// block in this codebase is emitted inside "..." so anchoring is safe.
@@ -1327,10 +1327,6 @@ public class PixelUtility {
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * Generates pipeline metadata for the current insight recipe.
 	 *
@@ -1384,24 +1380,13 @@ public class PixelUtility {
 			}
 		}
 		long end = System.currentTimeMillis();
-		classLogger.debug("Total time to process = " + (end - start));
+		classLogger.debug("Total time to process = {}", (end - start));
 
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("idMapping", pixelList);
 		retMap.put("pixelParsing", translation.getAllRoutines());
 		return retMap;
 	}
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * OLD DEPRECATED METHODS - WILL DELETE AFTER A WHILE COMMENT DATED - 2021-01-11
@@ -1531,7 +1516,7 @@ public class PixelUtility {
 				modelMap.put("query", paramQ);
 				paramMap.put("model", modelMap);
 
-				if (keepSearch & !isNumeric) {
+				if (keepSearch && !isNumeric) {
 					// add to model map
 					modelMap.put("infiniteQuery", infiniteVar + " | Collect(20)");
 					modelMap.put("searchParam", jsonParamName + "_Search");

@@ -31,7 +31,6 @@ import org.rosuda.JRI.RFactor;
 
 import prerna.ds.r.RDataTable;
 import prerna.reactor.task.constant.ConstantTaskCreationHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,63 +41,74 @@ import prerna.util.Utility;
 public class ColumnCountReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor counts the number of columns and unique columns
-	 * it stores these values in a matrix
-	 * 1) column to use
-	 * 2) boolean indicator (optional)
-	 * 		if true (default), sort by descending frequency of items in a column
-	 * 		if false, sort ascending
-	 * 3) panelId (defaults to zero if nothing is entered)
+	 * <p>
+	 * This reactor counts the number of columns and unique columns it stores these
+	 * values in a matrix
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>column to use</li>
+	 * <li>boolean indicator (optional) if true (default), sort by descending
+	 * frequency of items in a column if false, sort ascending</li>
+	 * <li>panelId (defaults to zero if nothing is entered)</li>
+	 * </ul>
 	 */
 
 	private static final String TOP = "top";
 
 	public ColumnCountReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), TOP, ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), TOP, ReactorKeysEnum.PANEL.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// initialize the rJavaTranslator
 		init();
-		//get inputs
+		// get inputs
 		String column = getColumn();
-		//clean column name
+		// clean column name
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
-		//get boolean top variable
+		// get boolean top variable
 		boolean top = getTop();
-		//get panel id in order to display
+		// get panel id in order to display
 		String panelId = getPanelId();
 
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		//get frame name
+		// get frame name
 		String table = frame.getName();
 
 		String colType = this.rJavaTranslator.getColumnType(table, column);
-		if(colType == null)
+		if (colType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
-		if(colType.equals("int") || colType.equals("num") || colType.equals("numeric")) {
-			//this accounts for the case that the values are numeric - just make a histogram using the histogram reactor
-			//without this section we get errors because the column values are not string or factors
+		if (colType.equals("int") || colType.equals("num") || colType.equals("numeric")) {
+			// this accounts for the case that the values are numeric - just make a
+			// histogram using the histogram reactor
+			// without this section we get errors because the column values are not string
+			// or factors
 			HistogramReactor histogram = new HistogramReactor();
-			//define the number of breaks to build the histogram
+			// define the number of breaks to build the histogram
 			int numBreaks = 0;
-			//the get histogram method return nounmetadata
+			// the get histogram method return nounmetadata
 			return histogram.getHistogram(this.rJavaTranslator, table, column, panelId, numBreaks);
 		}
 
-		//create temporary table
+		// create temporary table
 		String tempName = Utility.getRandomString(6);
-		//define r script to be executed
-		//this script will create a table with one column of col vals and one column of the corresponding frequency
+		// define r script to be executed
+		// this script will create a table with one column of col vals and one column of
+		// the corresponding frequency
 		String script = null;
 
-		//sort based on boolean top variable; if true, sort descending
-		//more frequent items in the column will appear first
+		// sort based on boolean top variable; if true, sort descending
+		// more frequent items in the column will appear first
 		if (top) {
 			script = tempName + " <-  head(" + table + "[, .N, by=\"" + column + "\"][order(-rank(N)),] , 25);";
 		} else {
@@ -108,7 +118,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 
 		// store the values of the column in a string array
 		// get the column names
-		if(colType.equals("ordered") || colType.equals("factor")) {
+		if (colType.equals("ordered") || colType.equals("factor")) {
 			script = "as.character(" + tempName + "$" + column + ")";
 		} else {
 			script = tempName + "$" + column;
@@ -140,7 +150,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		Object[][] retOutput = new Object[uniqueColumns.length][2];
 
 		for (int outputIndex = 0; outputIndex < uniqueColumns.length; outputIndex++) {
-			//we are storing each uniqe col val and its frequency
+			// we are storing each uniqe col val and its frequency
 			retOutput[outputIndex][0] = uniqueColumns[outputIndex];
 			retOutput[outputIndex][1] = colCount[outputIndex];
 		}
@@ -160,29 +170,17 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private String getColumn() {
-		GenRowStruct columnGRS = this.store.getGenRowStruct(keysToGet[0]);
-		if (columnGRS != null && !columnGRS.isEmpty()) {
-			NounMetadata noun1 = columnGRS.getNoun(0);
-			String column = noun1.getValue() + "";
-			if (column.length() == 0) {
-				throw new IllegalArgumentException("Need to define column for column count");
-			}
+		String column = getString(keysToGet[0]);
+		if (column != null && !column.isEmpty()) {
 			return column;
 		}
 		throw new IllegalArgumentException("Need to define column for column count");
 	}
 
 	private boolean getTop() {
-		GenRowStruct topGRS = this.store.getGenRowStruct(TOP);
-		if (topGRS != null) {
-			NounMetadata noun2 = topGRS.getNoun(0);
-			String topString = noun2.getValue().toString();
-			if (topString.equalsIgnoreCase("false")) {
-				return false;
-			} else {
-				// return true if input is anything other than false
-				return true;
-			}
+		String topString = getString(TOP);
+		if (topString != null) {
+			return !topString.equalsIgnoreCase("false");
 		}
 		// default to true
 		return true;
@@ -190,26 +188,18 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 
 	// get panel id using key "PANEL"
 	private String getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-		return "0";
+		return getString(keysToGet[2], "0");
 	}
 
-	//////////////////////////////////KEYS////////////////////////////////////
+	////////////////////////////////// KEYS////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(TOP)) {
+		if (key.equals(TOP)) {
 			return "Indicates if a column should be sorted by descending frequency";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
 	}
-
 
 }

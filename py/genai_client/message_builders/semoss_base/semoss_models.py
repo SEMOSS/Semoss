@@ -2,9 +2,8 @@ import base64
 from typing import Dict, List, Optional, Union, Any, Literal
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 import urllib.request
-from ...utils import StringEnum
+from ...utils import StringEnum, deprecated
 import json
-from deprecated import deprecated
 
 
 class SEMOSSMediaInputType(StringEnum):
@@ -445,5 +444,6 @@ class ModelSettings(BaseModel):
     tokens_param_name: Optional[str] = None
     thinking: Optional[bool] = False
     thinking_budget: Optional[int] = None
+    effort: Optional[str] = None
     global_param_override: Optional[Dict[str, Any]] = None
     modalities: Optional[List[str]] = None

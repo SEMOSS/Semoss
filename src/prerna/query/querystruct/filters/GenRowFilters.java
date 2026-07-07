@@ -44,7 +44,7 @@ import prerna.query.querystruct.transform.QsToPixelConverter;
 
 public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 
-	private static final Logger logger = LogManager.getLogger(GenRowFilters.class);
+	private static final Logger classLogger = LogManager.getLogger(GenRowFilters.class);
 
 	/*
 	 * This class is used to store filters within the QueryStruct2 Idea is to allow
@@ -193,7 +193,7 @@ public class GenRowFilters implements Iterable<IQueryFilter>, Serializable {
 								// since we have already merged it
 								continue NEW_FILTERS_LOOP;
 							} catch (IllegalArgumentException e) {
-								logger.info("Bad attend at doing a merge - ignoring this and appending", e);
+								classLogger.info("Bad attempt at doing a merge - ignoring this and appending", e);
 								// add this filter to the existing QueryFilter
 								newFiltersToAppend.add(i_filter);
 								newColumnsToFilter.addAll(i_filter.getAllUsedColumns());

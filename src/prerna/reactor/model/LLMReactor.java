@@ -60,8 +60,6 @@ public class LLMReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-
-		////// SET UP //////////
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
@@ -89,8 +87,11 @@ public class LLMReactor extends AbstractReactor {
 
 		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null,
-				parentRoomId);
+		Room room = useHistoryParam
+				? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null,
+						parentRoomId)
+				: RoomUtils.createRoomForStatelessAsk(roomId, insight, modelEngine, question, null, null, null, null,
+						parentRoomId);
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)

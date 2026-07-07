@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -69,7 +70,7 @@ import prerna.util.Utility;
  */
 public class BuildAndPublishAppReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(BuildAndPublishAppReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(BuildAndPublishAppReactor.class);
 
 	private static final String PROJECT_ID = ReactorKeysEnum.PROJECT.getKey();
 	private static final String CLIENT_DIR = "client";
@@ -120,41 +121,41 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		Path portalsZip = null;
 
 		try {
-			// 1 — Zip the client folder
+			// 1 - Zip the client folder
 			tempZip = Files.createTempFile("semoss-client-", ".zip");
 			zipDirectory(clientDir, tempZip);
-			logger.info("Zipped client ({} bytes) -> {}", Files.size(tempZip), tempZip);
+			classLogger.info("Zipped client ({} bytes) -> {}", Files.size(tempZip), tempZip);
 
-			// 2 — POST to the node builder service
+			// 2 - POST to the node builder service
 			String endpoint = endpointBase + "/build" + "?buildCmd=" + URLEncoder.encode(BUILD_CMD, "UTF-8")
 					+ "&outDir=" + URLEncoder.encode(Constants.PORTALS_FOLDER, "UTF-8");
 
 			portalsZip = Files.createTempFile("semoss-portals-", ".zip");
 			postMultipart(endpoint, tempZip, portalsZip);
-			logger.info("Received portals zip ({} bytes)", Files.size(portalsZip));
+			classLogger.info("Received portals zip ({} bytes)", Files.size(portalsZip));
 
-			// 3 — Extract portals zip into the project's asset directory
+			// 3 - Extract portals zip into the project's asset directory
 			Path portalsDir = projectAssetsDir.resolve(Constants.PORTALS_FOLDER).normalize();
 			deleteDirectory(portalsDir);
 			Files.createDirectories(portalsDir);
 			unzip(portalsZip, portalsDir, Constants.PORTALS_FOLDER);
-			logger.info("Extracted portals -> {}", portalsDir);
+			classLogger.info("Extracted portals -> {}", portalsDir);
 
-			// 4 — Re-publish the project so SEMOSS picks up the new assets
-			this.insight.runPixel("PublishProject(project=['" + projectId + "']);");
+			// 4 - Re-publish and release the project so the public portal is refreshed.
+			this.insight.runPixel("PublishProject(project='" + projectId + "', release=true);");
 
-			// 5 — Push project to central storage so other pods see the changes
+			// 5 - Push project to central storage so other pods see the changes
 			try {
 				ClusterUtil.pushProject(projectId);
 			} catch (Exception e) {
-				logger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
+				classLogger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
 			}
 
 			return new NounMetadata("App [" + projectId + "] built and published successfully.",
 					PixelDataType.CONST_STRING, PixelOperationType.SUCCESS);
 
 		} catch (Exception e) {
-			logger.error("BuildAndPublishApp failed for project {}", projectId, e);
+			classLogger.error("BuildAndPublishApp failed for project {}", projectId, e);
 			return error(e.getMessage());
 		} finally {
 			quietDelete(tempZip);
@@ -196,16 +197,18 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 
 	private void zipDirectory(Path dir, Path destZip) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(destZip)))) {
-			Files.walk(dir).filter(p -> !Files.isDirectory(p)).forEach(p -> {
-				String entryName = dir.relativize(p).toString().replace('\\', '/');
-				try {
-					zos.putNextEntry(new ZipEntry(entryName));
-					Files.copy(p, zos);
-					zos.closeEntry();
-				} catch (IOException ex) {
-					throw new UncheckedIOException(ex);
-				}
-			});
+			try (Stream<Path> stream = Files.walk(dir)) {
+				stream.filter(p -> !Files.isDirectory(p)).forEach(p -> {
+					String entryName = dir.relativize(p).toString().replace('\\', '/');
+					try {
+						zos.putNextEntry(new ZipEntry(entryName));
+						Files.copy(p, zos);
+						zos.closeEntry();
+					} catch (IOException ex) {
+						throw new UncheckedIOException(ex);
+					}
+				});
+			}
 		}
 	}
 
@@ -242,7 +245,9 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		if (!Files.exists(dir)) {
 			return;
 		}
-		Files.walk(dir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+		try (Stream<Path> stream = Files.walk(dir)) {
+			stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+		}
 	}
 
 	private void quietDelete(Path p) {

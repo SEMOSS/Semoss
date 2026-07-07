@@ -40,7 +40,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -67,17 +66,17 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		ITableDataFrame frame = getFrame();
-		if(!(frame instanceof TinkerFrame)) {
+		if (!(frame instanceof TinkerFrame)) {
 			throw new IllegalArgumentException("Frame must be a graph frame type");
 		}
 		TinkerFrame graph = (TinkerFrame) frame;
-		if(!graph.isIGraphSynched()) {
+		if (!graph.isIGraphSynched()) {
 			AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(CLASS_NAME);
 			String wd = this.insight.getInsightFolder();
 			iGraphUtilities.synchronizeGraphToR(graph, rJavaTranslator, graph.getName(), wd, logger);
 		}
 		String graphName = graph.getName();
-		
+
 		String inputLayout = this.keyValue.get(this.keysToGet[0]);
 		try {
 			logger.info("Determining vertex positions...");
@@ -96,7 +95,7 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.executeEmptyR("rm(" + tempOutputLayout + ")");
 			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			logger.error("Failed to compute or synchronize graph layout {} for graph {}.", inputLayout, graphName, ex);
 		}
 
 		throw new IllegalArgumentException("Unable to change layout");
@@ -128,7 +127,7 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 			}
 
 			if (memIndex % 100 == 0) {
-				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
+				logger.info("Done synchronizing graph vertex number {} out of {}", memIndex, memberships.length);
 			}
 		}
 		logger.info("Done synchronizing vertex positions");

@@ -32,6 +32,7 @@ import java.util.List;
 import prerna.auth.User;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -110,9 +111,7 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 			}
 
 			// Flush messages to db
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					insight.getUser().getPrimaryLoginToken().getId(),
-					room.getMessagesAsString());
+			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 
 			// Now can add to the feedback table. If neither true or false was parsed,
 			// remove from db

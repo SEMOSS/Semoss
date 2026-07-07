@@ -54,7 +54,7 @@ import prerna.util.Utility;
 
 public class ToXmlReactor extends AbstractExportTxtReactor {
 
-	private static final Logger logger = LogManager.getLogger(ToXmlReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ToXmlReactor.class);
 
 	public ToXmlReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),

@@ -1,0 +1,18 @@
+#Base Properties
+ENGINE	AuditLogs
+ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
+OWL	AuditLogs_OWL.OWL
+
+RDBMS_TYPE	H2_DB
+DATABASE	
+SCHEMA	PUBLIC
+DRIVER org.h2.Driver
+USERNAME        sa
+PASSWORD        
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+USE_CONNECTION_POOLING	false
+POOL_MIN_SIZE       10
+POOL_MAX_SIZE       50
+AUTO_COMMIT         false
+
+DATABASE_ZONEID UTC

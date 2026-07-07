@@ -53,7 +53,7 @@ import prerna.util.Constants;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
-	private static final Logger logger = LogManager.getLogger(RJavaUserRserveTranslator.class);
+	private static final Logger classLogger = LogManager.getLogger(RJavaUserRserveTranslator.class);
 
 	private IRUserConnection rcon;
 	private boolean envConfig = false;
