@@ -183,6 +183,17 @@ public final class AgentRunActionStore {
 	 * is sufficient; runId is derivable from the row.
 	 */
 	public Map<String, Object> getPendingActionById(String actionId, String userId) {
+		Map<String, Object> action = getActionById(actionId, userId);
+		if (action != null && "PENDING".equals(action.get("status"))) {
+			return action;
+		}
+		return null;
+	}
+
+	/**
+	 * Return one action row by action id and owner, regardless of status.
+	 */
+	public Map<String, Object> getActionById(String actionId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -190,7 +201,7 @@ public final class AgentRunActionStore {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
 					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'";
+					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, actionId);
 			ps.setString(2, userId);
@@ -200,10 +211,26 @@ public final class AgentRunActionStore {
 			}
 			return null;
 		} catch (Exception e) {
-			throw new IllegalStateException("Failed to load pending AGENT_RUN_ACTION actionId=" + actionId, e);
+			throw new IllegalStateException("Failed to load AGENT_RUN_ACTION actionId=" + actionId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
+	}
+
+	/**
+	 * Claim a pending action before executing a side-effecting tool. Only one
+	 * request can move the action from PENDING to EXECUTING.
+	 */
+	public boolean claimForExecution(String actionId, String runId, String userId) {
+		return updateStatus(actionId, runId, userId, "PENDING", "EXECUTING", false);
+	}
+
+	/**
+	 * Return an EXECUTING action to PENDING when the tool was not executed to a
+	 * durable result.
+	 */
+	public boolean releaseExecutionClaim(String actionId, String runId, String userId) {
+		return updateStatus(actionId, runId, userId, "EXECUTING", "PENDING", false);
 	}
 
 	/**
@@ -229,7 +256,7 @@ public final class AgentRunActionStore {
 			if (result != null) {
 				query.append(", RESULT = ?");
 			}
-			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'");
+			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS IN ('PENDING', 'EXECUTING')");
 
 			ps = db.getPreparedStatement(query.toString());
 			int idx = 1;
@@ -284,7 +311,7 @@ public final class AgentRunActionStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT COUNT(*) FROM AGENT_RUN_ACTION WHERE RUN_ID = ? AND STATUS = 'PENDING'";
+			String query = "SELECT COUNT(*) FROM AGENT_RUN_ACTION WHERE RUN_ID = ? AND STATUS IN ('PENDING', 'EXECUTING')";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
 			rs = ps.executeQuery();
@@ -300,6 +327,36 @@ public final class AgentRunActionStore {
 	}
 
 	// --- helpers ---
+
+	private boolean updateStatus(String actionId, String runId, String userId, String currentStatus, String nextStatus,
+			boolean setDecidedAt) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			StringBuilder query = new StringBuilder("UPDATE AGENT_RUN_ACTION SET STATUS = ?");
+			if (setDecidedAt) {
+				query.append(", DECIDED_AT = ?");
+			}
+			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS = ?");
+			ps = db.getPreparedStatement(query.toString());
+			int idx = 1;
+			ps.setString(idx++, nextStatus);
+			if (setDecidedAt) {
+				ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
+			}
+			ps.setString(idx++, actionId);
+			ps.setString(idx++, runId);
+			ps.setString(idx++, userId);
+			ps.setString(idx++, currentStatus);
+			int updated = ps.executeUpdate();
+			commitIfNeeded(ps);
+			return updated > 0;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to update AGENT_RUN_ACTION status for actionId=" + actionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
 
 	private static Map<String, Object> rowToMap(ResultSet rs) throws Exception {
 		Map<String, Object> map = new HashMap<>();
