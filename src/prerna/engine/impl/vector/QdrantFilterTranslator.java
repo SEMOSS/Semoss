@@ -152,12 +152,15 @@ public final class QdrantFilterTranslator {
 		if (key == null) {
 			return null;
 		}
-		Map<String, Object> condition = new LinkedHashMap<>();
-		condition.put("key", key);
-
 		if (comparator == null) {
 			comparator = "==";
 		}
+		if (isPointIdKey(key)) {
+			return buildHasIdCondition(value, comparator);
+		}
+		Map<String, Object> condition = new LinkedHashMap<>();
+		condition.put("key", key);
+
 		switch (comparator) {
 		case "==":
 			if (value instanceof Collection) {
@@ -207,6 +210,31 @@ public final class QdrantFilterTranslator {
 			break;
 		default:
 			throw new IllegalArgumentException("Comparator not supported for Qdrant filter: " + comparator);
+		}
+		return condition;
+	}
+
+	private static boolean isPointIdKey(String key) {
+		return "id".equalsIgnoreCase(key) || "_id".equalsIgnoreCase(key)
+				|| "point_id".equalsIgnoreCase(key);
+	}
+
+	private static Map<String, Object> buildHasIdCondition(Object value, String comparator) {
+		List<Object> ids;
+		if (value instanceof Collection) {
+			ids = normalizeCollection((Collection<?>) value);
+		} else {
+			ids = new ArrayList<>();
+			ids.add(normalizeScalar(value));
+		}
+		Map<String, Object> condition = new LinkedHashMap<>();
+		condition.put("has_id", ids);
+		if ("!=".equals(comparator) || "<>".equals(comparator)) {
+			Map<String, Object> exclude = new LinkedHashMap<>();
+			List<Map<String, Object>> mustNot = new ArrayList<>();
+			mustNot.add(condition);
+			exclude.put("must_not", mustNot);
+			return exclude;
 		}
 		return condition;
 	}

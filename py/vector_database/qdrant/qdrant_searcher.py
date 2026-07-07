@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from typing import Any, Dict, List, Optional, Union
@@ -6,11 +7,25 @@ import pandas as pd
 
 from ..constants import ENCODING_OPTIONS
 
+logger = logging.getLogger(__name__)
+
 _NAMESPACE = uuid.UUID("4f7c0c3a-c0f4-5b25-9e7e-1a5d4d2c8e7a")
 
 DENSE_VECTOR_NAME = "dense"
 SPARSE_VECTOR_NAME = "sparse"
 DEFAULT_SPARSE_MODEL = "Qdrant/bm25"
+
+_PAYLOAD_SCHEMA_MAP = {
+    "keyword": "KEYWORD",
+    "integer": "INTEGER",
+    "float": "FLOAT",
+    "bool": "BOOL",
+    "boolean": "BOOL",
+    "geo": "GEO",
+    "text": "TEXT",
+    "datetime": "DATETIME",
+    "uuid": "UUID",
+}
 
 
 class QdrantSearcher:
@@ -32,6 +47,9 @@ class QdrantSearcher:
         base_path: Optional[str] = None,
         enable_hybrid_search: bool = False,
         sparse_model_name: str = DEFAULT_SPARSE_MODEL,
+        fusion: str = "rrf",
+        indexed_fields: Optional[List[Dict[str, str]]] = None,
+        is_local: bool = True,
         **kwargs: Any,
     ) -> None:
         from qdrant_client import models
@@ -52,6 +70,11 @@ class QdrantSearcher:
         self.base_path = base_path
         self.enable_hybrid_search = bool(enable_hybrid_search)
         self.sparse_model_name = sparse_model_name or DEFAULT_SPARSE_MODEL
+        self.fusion = (fusion or "rrf").lower()
+        self.indexed_fields = list(indexed_fields) if indexed_fields else [
+            {"field": "Source", "schema": "keyword"}
+        ]
+        self.is_local = bool(is_local)
         self.vector_size: Optional[int] = None
         self._sources: set = set()
         self._collection_ready = False
@@ -144,6 +167,27 @@ class QdrantSearcher:
 
         self.client.create_collection(**create_kwargs)
         self._is_hybrid_collection = self.enable_hybrid_search
+        self._ensure_payload_indexes()
+
+    def _ensure_payload_indexes(self) -> None:
+        for spec in self.indexed_fields:
+            field = spec.get("field")
+            if not field:
+                continue
+            schema_key = (spec.get("schema") or "keyword").lower()
+            schema_enum = _PAYLOAD_SCHEMA_MAP.get(schema_key, "KEYWORD")
+            try:
+                field_schema = getattr(self._models.PayloadSchemaType, schema_enum)
+                self.client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field,
+                    field_schema=field_schema,
+                )
+            except Exception as e:
+                logger.debug(
+                    "create_payload_index skipped for %s (%s): %s",
+                    field, schema_key, e,
+                )
 
     def _detect_existing_collection_mode(self) -> None:
         try:
@@ -153,6 +197,7 @@ class QdrantSearcher:
             self._is_hybrid_collection = sparse_cfg is not None and SPARSE_VECTOR_NAME in sparse_cfg
         except Exception:
             self._is_hybrid_collection = self.enable_hybrid_search
+        self._ensure_payload_indexes()
 
     def _refresh_sources_from_qdrant(self) -> None:
         try:
@@ -260,7 +305,16 @@ class QdrantSearcher:
                     sparse_emb = sparse_vectors[idx] if sparse_vectors is not None else None
                     point_vec = self._build_point_vector(vec, sparse_emb)
                     points.append(self._models.PointStruct(id=pid, vector=point_vec, payload=payload))
-                self.client.upsert(collection_name=self.collection_name, points=points)
+                if self.is_local:
+                    self.client.upsert(collection_name=self.collection_name, points=points)
+                else:
+                    self.client.upload_points(
+                        collection_name=self.collection_name,
+                        points=points,
+                        batch_size=batch_size,
+                        parallel=2,
+                        wait=False,
+                    )
 
                 for payload in batch_payloads:
                     src = payload.get("Source")
@@ -321,9 +375,16 @@ class QdrantSearcher:
         self._sources.clear()
 
     def _build_filter(self, qdrant_filter: Optional[Dict[str, Any]]):
-        if not qdrant_filter: return None
-        try: return self._models.Filter(**qdrant_filter)
-        except Exception: return None
+        if not qdrant_filter:
+            return None
+        try:
+            return self._models.Filter(**qdrant_filter)
+        except Exception as e:
+            logger.warning(
+                "Ignoring malformed qdrant_filter on %s: %s",
+                self.collection_name, e,
+            )
+            return None
 
     def _embed_query(self, question: str, insight_id: Optional[str]) -> Optional[List[float]]:
         vectors = self._embed_batch([question], insight_id)
@@ -348,6 +409,12 @@ class QdrantSearcher:
         if use_hybrid_search_override is None:
             return self.enable_hybrid_search
         return bool(use_hybrid_search_override)
+
+    def _resolve_fusion(self):
+        fusions = self._models.Fusion
+        if self.fusion == "dbsf" and hasattr(fusions, "DBSF"):
+            return fusions.DBSF
+        return fusions.RRF
 
     def nearestNeighbor(
         self,
@@ -384,19 +451,20 @@ class QdrantSearcher:
             if flt is not None:
                 dense_prefetch_kwargs["filter"] = flt
                 sparse_prefetch_kwargs["filter"] = flt
+            fusion_enum = self._resolve_fusion()
             query_kwargs: Dict[str, Any] = {
                 "collection_name": self.collection_name,
                 "prefetch": [
                     self._models.Prefetch(**dense_prefetch_kwargs),
                     self._models.Prefetch(**sparse_prefetch_kwargs),
                 ],
-                "query": self._models.FusionQuery(fusion=self._models.Fusion.RRF),
+                "query": self._models.FusionQuery(fusion=fusion_enum),
                 "limit": effective_limit,
                 "with_payload": True,
                 "with_vectors": False,
             }
         else:
-            query_arg = query_vector if not self._is_hybrid_collection else query_vector
+            query_arg = query_vector
             using = DENSE_VECTOR_NAME if self._is_hybrid_collection else None
             query_kwargs = {
                 "collection_name": self.collection_name,

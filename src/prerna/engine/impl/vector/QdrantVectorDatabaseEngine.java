@@ -72,12 +72,17 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Logger classLogger = LogManager.getLogger(QdrantVectorDatabaseEngine.class);
 
 	public static final String QDRANT_LOCATION = "QDRANT_LOCATION";
+	public static final String QDRANT_URL = "QDRANT_URL";
+	public static final String QDRANT_API_KEY = "QDRANT_API_KEY";
+	public static final String QDRANT_PREFER_GRPC = "QDRANT_PREFER_GRPC";
 	public static final String QDRANT_QUANTIZATION = "QDRANT_QUANTIZATION";
 	public static final String QDRANT_HNSW_M = "QDRANT_HNSW_M";
 	public static final String QDRANT_HNSW_EF_CONSTRUCT = "QDRANT_HNSW_EF_CONSTRUCT";
 	public static final String QDRANT_ON_DISK_PAYLOAD = "QDRANT_ON_DISK_PAYLOAD";
 	public static final String QDRANT_ENABLE_HYBRID_SEARCH = "QDRANT_ENABLE_HYBRID_SEARCH";
 	public static final String QDRANT_SPARSE_MODEL = "QDRANT_SPARSE_MODEL";
+	public static final String QDRANT_FUSION = "QDRANT_FUSION";
+	public static final String QDRANT_INDEXED_FIELDS = "QDRANT_INDEXED_FIELDS";
 
 	public static final String LOCATION_MEMORY = "MEMORY";
 	public static final String LOCATION_AUTO = "AUTO";
@@ -95,12 +100,17 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private String vectorDatabaseSearcher = null;
 	private String qdrantLocation = LOCATION_MEMORY;
+	private String qdrantUrl = null;
+	private String qdrantApiKey = null;
+	private boolean qdrantPreferGrpc = false;
 	private String qdrantQuantization = QUANTIZATION_NONE;
 	private Integer qdrantHnswM = null;
 	private Integer qdrantHnswEfConstruct = null;
 	private boolean qdrantOnDiskPayload = false;
 	private boolean qdrantHybridSearchEnabled = false;
 	private String qdrantSparseModel = DEFAULT_SPARSE_MODEL;
+	private String qdrantFusion = "rrf";
+	private String qdrantIndexedFieldsJson = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -146,6 +156,25 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		this.qdrantSparseModel = sparseModel;
 
+		String url = this.smssProp.getProperty(QDRANT_URL);
+		this.qdrantUrl = (url != null && !url.trim().isEmpty()) ? url.trim() : null;
+
+		String apiKey = this.smssProp.getProperty(QDRANT_API_KEY);
+		this.qdrantApiKey = (apiKey != null && !apiKey.trim().isEmpty()) ? apiKey.trim() : null;
+
+		this.qdrantPreferGrpc = Boolean.parseBoolean(
+				this.smssProp.getProperty(QDRANT_PREFER_GRPC, "false"));
+
+		String fusion = this.smssProp.getProperty(QDRANT_FUSION, "rrf");
+		if (fusion == null || (fusion = fusion.trim()).isEmpty()) {
+			fusion = "rrf";
+		}
+		this.qdrantFusion = fusion.toLowerCase();
+
+		String indexedFields = this.smssProp.getProperty(QDRANT_INDEXED_FIELDS);
+		this.qdrantIndexedFieldsJson = (indexedFields != null && !indexedFields.trim().isEmpty())
+				? indexedFields.trim() : null;
+
 		if (this.vectorDatabaseSearcher == null
 				|| (this.vectorDatabaseSearcher = this.vectorDatabaseSearcher.trim()).isEmpty()) {
 			this.vectorDatabaseSearcher = Utility.getRandomString(6);
@@ -173,6 +202,12 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String hybridLiteral = this.qdrantHybridSearchEnabled ? "True" : "False";
 		String sparseModelLiteral = PyUtils.determineStringType(this.qdrantSparseModel);
+		String urlLiteral = this.qdrantUrl != null ? PyUtils.determineStringType(this.qdrantUrl) : "None";
+		String apiKeyLiteral = this.qdrantApiKey != null ? PyUtils.determineStringType(this.qdrantApiKey) : "None";
+		String preferGrpcLiteral = this.qdrantPreferGrpc ? "True" : "False";
+		String fusionLiteral = PyUtils.determineStringType(this.qdrantFusion);
+		String indexedFieldsLiteral = this.qdrantIndexedFieldsJson != null
+				? this.qdrantIndexedFieldsJson : "None";
 
 		StringBuilder qdrantInit = new StringBuilder();
 		qdrantInit.append(this.vectorDatabaseSearcher).append("=vector_database.QdrantDatabase(")
@@ -181,12 +216,17 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(", keyword_engine_id = '${KEYWORD_ENGINE_ID}'")
 				.append(", distance_method = '${DISTANCE_METHOD}'")
 				.append(", location = ").append(locationLiteral)
+				.append(", url = ").append(urlLiteral)
+				.append(", api_key = ").append(apiKeyLiteral)
+				.append(", prefer_grpc = ").append(preferGrpcLiteral)
 				.append(", quantization = ").append(quantLiteral)
 				.append(", hnsw_m = ").append(hnswMLiteral)
 				.append(", hnsw_ef_construct = ").append(hnswEfLiteral)
 				.append(", on_disk_payload = ").append(onDiskPayloadLiteral)
 				.append(", enable_hybrid_search = ").append(hybridLiteral)
 				.append(", sparse_model_name = ").append(sparseModelLiteral)
+				.append(", fusion = ").append(fusionLiteral)
+				.append(", indexed_fields = ").append(indexedFieldsLiteral)
 				.append(")");
 
 		String[] commands = (TOKENIZER_INIT_SCRIPT + qdrantInit.toString()).split(PyUtils.PY_COMMAND_SEPARATOR);
