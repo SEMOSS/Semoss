@@ -71,10 +71,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(QdrantVectorDatabaseEngine.class);
 
-	public static final String QDRANT_LOCATION = "QDRANT_LOCATION";
-	public static final String QDRANT_URL = "QDRANT_URL";
-	public static final String QDRANT_API_KEY = "QDRANT_API_KEY";
-	public static final String QDRANT_PREFER_GRPC = "QDRANT_PREFER_GRPC";
 	public static final String QDRANT_QUANTIZATION = "QDRANT_QUANTIZATION";
 	public static final String QDRANT_HNSW_M = "QDRANT_HNSW_M";
 	public static final String QDRANT_HNSW_EF_CONSTRUCT = "QDRANT_HNSW_EF_CONSTRUCT";
@@ -84,9 +80,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public static final String QDRANT_FUSION = "QDRANT_FUSION";
 	public static final String QDRANT_INDEXED_FIELDS = "QDRANT_INDEXED_FIELDS";
 
-	public static final String LOCATION_MEMORY = "MEMORY";
-	public static final String LOCATION_AUTO = "AUTO";
-	public static final String QDRANT_STORAGE_FOLDER_NAME = "qdrant_storage";
 	public static final String QUANTIZATION_NONE = "none";
 	public static final String DEFAULT_SPARSE_MODEL = "Qdrant/bm25";
 
@@ -99,10 +92,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final Gson GSON_LOCAL = new Gson();
 
 	private String vectorDatabaseSearcher = null;
-	private String qdrantLocation = LOCATION_MEMORY;
-	private String qdrantUrl = null;
-	private String qdrantApiKey = null;
-	private boolean qdrantPreferGrpc = false;
 	private String qdrantQuantization = QUANTIZATION_NONE;
 	private Integer qdrantHnswM = null;
 	private Integer qdrantHnswEfConstruct = null;
@@ -115,12 +104,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-
-		String loc = this.smssProp.getProperty(QDRANT_LOCATION, LOCATION_AUTO);
-		if (loc == null || (loc = loc.trim()).isEmpty()) {
-			loc = LOCATION_AUTO;
-		}
-		this.qdrantLocation = loc;
 
 		String quant = this.smssProp.getProperty(QDRANT_QUANTIZATION, QUANTIZATION_NONE);
 		if (quant == null || (quant = quant.trim()).isEmpty()) {
@@ -156,15 +139,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		this.qdrantSparseModel = sparseModel;
 
-		String url = this.smssProp.getProperty(QDRANT_URL);
-		this.qdrantUrl = (url != null && !url.trim().isEmpty()) ? url.trim() : null;
-
-		String apiKey = this.smssProp.getProperty(QDRANT_API_KEY);
-		this.qdrantApiKey = (apiKey != null && !apiKey.trim().isEmpty()) ? apiKey.trim() : null;
-
-		this.qdrantPreferGrpc = Boolean.parseBoolean(
-				this.smssProp.getProperty(QDRANT_PREFER_GRPC, "false"));
-
 		String fusion = this.smssProp.getProperty(QDRANT_FUSION, "rrf");
 		if (fusion == null || (fusion = fusion.trim()).isEmpty()) {
 			fusion = "rrf";
@@ -194,7 +168,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	protected String[] getServerStartCommands() {
-		String locationLiteral = resolveLocationLiteral();
 		String quantLiteral = PyUtils.determineStringType(this.qdrantQuantization);
 		String hnswMLiteral = this.qdrantHnswM != null ? this.qdrantHnswM.toString() : "None";
 		String hnswEfLiteral = this.qdrantHnswEfConstruct != null ? this.qdrantHnswEfConstruct.toString() : "None";
@@ -202,9 +175,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String hybridLiteral = this.qdrantHybridSearchEnabled ? "True" : "False";
 		String sparseModelLiteral = PyUtils.determineStringType(this.qdrantSparseModel);
-		String urlLiteral = this.qdrantUrl != null ? PyUtils.determineStringType(this.qdrantUrl) : "None";
-		String apiKeyLiteral = this.qdrantApiKey != null ? PyUtils.determineStringType(this.qdrantApiKey) : "None";
-		String preferGrpcLiteral = this.qdrantPreferGrpc ? "True" : "False";
 		String fusionLiteral = PyUtils.determineStringType(this.qdrantFusion);
 		String indexedFieldsLiteral = this.qdrantIndexedFieldsJson != null
 				? this.qdrantIndexedFieldsJson : "None";
@@ -215,10 +185,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				.append(", tokenizer = cfg_tokenizer")
 				.append(", keyword_engine_id = '${KEYWORD_ENGINE_ID}'")
 				.append(", distance_method = '${DISTANCE_METHOD}'")
-				.append(", location = ").append(locationLiteral)
-				.append(", url = ").append(urlLiteral)
-				.append(", api_key = ").append(apiKeyLiteral)
-				.append(", prefer_grpc = ").append(preferGrpcLiteral)
 				.append(", quantization = ").append(quantLiteral)
 				.append(", hnsw_m = ").append(hnswMLiteral)
 				.append(", hnsw_ef_construct = ").append(hnswEfLiteral)
@@ -243,34 +209,6 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		return commands;
-	}
-
-	private String resolveLocationLiteral() {
-		if (this.qdrantLocation == null) {
-			return resolveAutoStoragePath();
-		}
-		if (this.qdrantLocation.equalsIgnoreCase(LOCATION_MEMORY)) {
-			return "':memory:'";
-		}
-		if (this.qdrantLocation.equalsIgnoreCase(LOCATION_AUTO)) {
-			return resolveAutoStoragePath();
-		}
-		String normalized = this.qdrantLocation.replace("\\", FILE_SEPARATOR);
-		return PyUtils.determineStringType(normalized);
-	}
-
-	private String resolveAutoStoragePath() {
-		File engineRoot = this.schemaFolder != null ? this.schemaFolder.getParentFile() : null;
-		if (engineRoot == null) {
-			classLogger.warn("Engine root unresolved at startup, falling back to in-memory Qdrant");
-			return "':memory:'";
-		}
-		File storageDir = new File(engineRoot, QDRANT_STORAGE_FOLDER_NAME);
-		if (!storageDir.exists()) {
-			storageDir.mkdirs();
-		}
-		String normalized = storageDir.getAbsolutePath().replace("\\", FILE_SEPARATOR);
-		return PyUtils.determineStringType(normalized);
 	}
 
 	@Override
@@ -848,16 +786,12 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return VectorDatabaseTypeEnum.QDRANT;
 	}
 
-	public String getQdrantLocation() {
-		return this.qdrantLocation;
-	}
-
 	public boolean isInMemory() {
-		return LOCATION_MEMORY.equalsIgnoreCase(this.qdrantLocation);
+		return true;
 	}
 
 	public boolean isPersistent() {
-		return !isInMemory();
+		return false;
 	}
 
 	public boolean isHybridSearchEnabled() {

@@ -6,6 +6,16 @@ from .qdrant_searcher import QdrantSearcher
 
 
 class QdrantDatabase:
+    """In-memory Qdrant vector engine.
+
+    Runs entirely in-process via ``QdrantClient(":memory:")`` — no server,
+    no auth, no disk persistence. State is dropped on restart, the same way
+    a freshly-created FAISS store behaves before its first save.
+
+    Hybrid search (BM25 sparse + dense) is available in-process but IDF is
+    approximated by the embedded engine; for production-grade hybrid,
+    switch to a hosted Qdrant service and swap this adapter.
+    """
 
     def __init__(
         self,
@@ -13,10 +23,6 @@ class QdrantDatabase:
         distance_method: str,
         embedder_engine_id: Optional[str] = None,
         keyword_engine_id: Optional[str] = None,
-        location: str = ":memory:",
-        url: Optional[str] = None,
-        api_key: Optional[str] = None,
-        prefer_grpc: bool = False,
         quantization: str = "none",
         hnsw_m: Optional[int] = None,
         hnsw_ef_construct: Optional[int] = None,
@@ -33,10 +39,6 @@ class QdrantDatabase:
         from qdrant_client import QdrantClient
 
         self.tokenizer = tokenizer
-        self.location = location or ":memory:"
-        self.url = url
-        self.api_key = api_key
-        self.prefer_grpc = bool(prefer_grpc)
         self.quantization = (quantization or "none").lower()
         self.hnsw_m = hnsw_m
         self.hnsw_ef_construct = hnsw_ef_construct
@@ -74,28 +76,7 @@ class QdrantDatabase:
 
         self.default_sort_direction = not self.metric_type_is_cosine_similarity
 
-        if self.url:
-            client_kwargs: Dict[str, Any] = {"url": self.url, "prefer_grpc": self.prefer_grpc}
-            if self.api_key:
-                client_kwargs["api_key"] = self.api_key
-            self.client = QdrantClient(**client_kwargs)
-            self.is_local = False
-        elif self.location == ":memory:":
-            self.client = QdrantClient(":memory:")
-            self.is_local = True
-        else:
-            self.client = QdrantClient(path=self.location)
-            self.is_local = True
-
-        if self.enable_hybrid_search and self.is_local:
-            import warnings as _warnings
-            _warnings.warn(
-                "QdrantLocal (in-memory or path=…) provides only partial support "
-                "for hybrid search: BM25 IDF is approximated and some fusion paths "
-                "are stubbed. Point QdrantDatabase(url='http://host:6333') at a real "
-                "Qdrant server for production hybrid search.",
-                stacklevel=2,
-            )
+        self.client = QdrantClient(":memory:")
 
         self.searchers: Dict[str, QdrantSearcher] = {}
         if searchers:
@@ -136,7 +117,6 @@ class QdrantDatabase:
             sparse_model_name=self.sparse_model_name,
             fusion=self.fusion,
             indexed_fields=self.indexed_fields,
-            is_local=self.is_local,
             base_path=base_path,
             **kwargs,
         )

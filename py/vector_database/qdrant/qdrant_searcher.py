@@ -49,7 +49,6 @@ class QdrantSearcher:
         sparse_model_name: str = DEFAULT_SPARSE_MODEL,
         fusion: str = "rrf",
         indexed_fields: Optional[List[Dict[str, str]]] = None,
-        is_local: bool = True,
         **kwargs: Any,
     ) -> None:
         from qdrant_client import models
@@ -74,7 +73,6 @@ class QdrantSearcher:
         self.indexed_fields = list(indexed_fields) if indexed_fields else [
             {"field": "Source", "schema": "keyword"}
         ]
-        self.is_local = bool(is_local)
         self.vector_size: Optional[int] = None
         self._sources: set = set()
         self._collection_ready = False
@@ -305,16 +303,7 @@ class QdrantSearcher:
                     sparse_emb = sparse_vectors[idx] if sparse_vectors is not None else None
                     point_vec = self._build_point_vector(vec, sparse_emb)
                     points.append(self._models.PointStruct(id=pid, vector=point_vec, payload=payload))
-                if self.is_local:
-                    self.client.upsert(collection_name=self.collection_name, points=points)
-                else:
-                    self.client.upload_points(
-                        collection_name=self.collection_name,
-                        points=points,
-                        batch_size=batch_size,
-                        parallel=2,
-                        wait=False,
-                    )
+                self.client.upsert(collection_name=self.collection_name, points=points)
 
                 for payload in batch_payloads:
                     src = payload.get("Source")
