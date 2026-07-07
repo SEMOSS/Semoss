@@ -297,7 +297,11 @@ class QdrantSearcher:
         return str(uuid.uuid5(_NAMESPACE, key))
 
     def _build_point_vector(self, dense_vec: List[float], sparse_embedding=None):
-        if self._is_hybrid_collection and sparse_embedding is not None:
+        if self._is_hybrid_collection:
+            if sparse_embedding is None:
+                raise ValueError(
+                    "Hybrid Qdrant direct ingest requires text; vector-only points are unsupported."
+                )
             return {
                 DENSE_VECTOR_NAME: dense_vec,
                 SPARSE_VECTOR_NAME: self._to_sparse_vector(sparse_embedding),
@@ -464,6 +468,10 @@ class QdrantSearcher:
                 for i, entry in enumerate(batch):
                     if entry.get("text"):
                         sparse_texts[i] = str(entry["text"])
+                    elif entry.get("vector") is not None:
+                        raise ValueError(
+                            "Hybrid Qdrant direct ingest requires text; vector-only points are unsupported."
+                        )
             sparse_encoded: List[Any] = [None] * len(batch)
             if self._is_hybrid_collection:
                 to_encode = [(i, t) for i, t in enumerate(sparse_texts) if t]
