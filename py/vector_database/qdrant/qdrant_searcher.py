@@ -183,10 +183,17 @@ class QdrantSearcher:
                     field_schema=field_schema,
                 )
             except Exception as e:
-                logger.debug(
-                    "create_payload_index skipped for %s (%s): %s",
-                    field, schema_key, e,
-                )
+                msg = str(e).lower()
+                if "already exists" in msg or "already indexed" in msg:
+                    logger.debug(
+                        "payload index for %s already exists (%s)",
+                        field, schema_key,
+                    )
+                else:
+                    logger.warning(
+                        "create_payload_index failed for %s (%s): %s",
+                        field, schema_key, e,
+                    )
 
     def _attach_existing_collection_if_present(self) -> bool:
         try:
@@ -268,8 +275,11 @@ class QdrantSearcher:
                     if src: sources.add(src)
                 if offset is None: break
             self._sources = sources
-        except Exception:
-            self._sources = set()
+        except Exception as e:
+            logger.warning(
+                "Could not refresh Qdrant source list for %s: %s (keeping prior cache)",
+                self.collection_name, e,
+            )
 
     def _read_csv(self, path: str) -> pd.DataFrame:
         last_err: Optional[Exception] = None
@@ -404,8 +414,14 @@ class QdrantSearcher:
             return {"upserted": 0, "skipped": 0}
 
         prepared: List[Dict[str, Any]] = []
+        pre_skipped = 0
         for item in items:
             if not isinstance(item, dict):
+                pre_skipped += 1
+                logger.warning(
+                    "QdrantAddPoints ignoring non-object item (%s) at index %d",
+                    type(item).__name__, len(prepared) + pre_skipped - 1,
+                )
                 continue
             payload = dict(item.get("payload") or {})
             if "source" in item and "Source" not in payload:
@@ -431,7 +447,7 @@ class QdrantSearcher:
             )
 
         upserted = 0
-        skipped = 0
+        skipped = pre_skipped
         for start in range(0, len(prepared), batch_size):
             batch = prepared[start : start + batch_size]
 
@@ -451,9 +467,15 @@ class QdrantSearcher:
                 embedded = self._embed_batch(texts_to_embed, insight_id)
                 if not embedded:
                     skipped += len(texts_to_embed)
-                    continue
-                for j, vec in enumerate(embedded):
-                    resolved_vectors[embed_indexes[j]] = vec
+                elif len(embedded) != len(texts_to_embed):
+                    raise ValueError(
+                        f"Embedder returned {len(embedded)} vectors for "
+                        f"{len(texts_to_embed)} texts; refusing to upsert a "
+                        "misaligned batch. Check the embedder's response shape."
+                    )
+                else:
+                    for j, vec in enumerate(embedded):
+                        resolved_vectors[embed_indexes[j]] = vec
 
             if self.vector_size is None:
                 first = next(
@@ -646,11 +668,11 @@ class QdrantSearcher:
         try:
             return self._models.Filter(**qdrant_filter)
         except Exception as e:
-            logger.warning(
-                "Ignoring malformed qdrant_filter on %s: %s",
-                self.collection_name, e,
-            )
-            return None
+            raise ValueError(
+                f"Malformed qdrant_filter on {self.collection_name}: {e}. "
+                "Refusing to proceed to avoid silently returning unfiltered "
+                "results or a zero-op delete."
+            ) from e
 
     def _embed_query(self, question: str, insight_id: Optional[str]) -> Optional[List[float]]:
         vectors = self._embed_batch([question], insight_id)
@@ -670,6 +692,12 @@ class QdrantSearcher:
         return out
 
     def _should_use_hybrid(self, use_hybrid_search_override: Optional[bool]) -> bool:
+        if use_hybrid_search_override is True and not self._is_hybrid_collection:
+            raise ValueError(
+                "Hybrid search was explicitly requested, but this Qdrant "
+                "collection was not created with hybrid enabled. Recreate "
+                "the engine with QDRANT_ENABLE_HYBRID_SEARCH=true to use it."
+            )
         if not self._is_hybrid_collection:
             return False
         if use_hybrid_search_override is None:

@@ -702,7 +702,7 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			return null;
 		}
 		if (parameters.containsKey(QDRANT_FILTER_KEY)) {
-			Object raw = parameters.remove(QDRANT_FILTER_KEY);
+			Object raw = parameters.get(QDRANT_FILTER_KEY);
 			if (raw == null) {
 				return null;
 			}
@@ -713,7 +713,7 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 		if (parameters.containsKey(FILTERS_KEY)) {
 			@SuppressWarnings("unchecked")
-			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.remove(FILTERS_KEY);
+			List<IQueryFilter> filters = (List<IQueryFilter>) parameters.get(FILTERS_KEY);
 			if (filters == null || filters.isEmpty()) {
 				return null;
 			}

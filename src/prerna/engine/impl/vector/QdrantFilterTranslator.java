@@ -225,7 +225,14 @@ public final class QdrantFilterTranslator {
 			ids = normalizeCollection((Collection<?>) value);
 		} else {
 			ids = new ArrayList<>();
-			ids.add(normalizeScalar(value));
+			Object scalar = normalizeScalar(value);
+			if (scalar != null) {
+				ids.add(scalar);
+			}
+		}
+		if (ids.isEmpty()) {
+			throw new IllegalArgumentException(
+					"has_id filter requires at least one point id. An empty list would silently match everything under negation (delete-by-filter foot-gun).");
 		}
 		Map<String, Object> condition = new LinkedHashMap<>();
 		condition.put("has_id", ids);

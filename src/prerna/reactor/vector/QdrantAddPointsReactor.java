@@ -102,7 +102,19 @@ public class QdrantAddPointsReactor extends AbstractReactor {
 		if (raw instanceof Map) {
 			return (Map<String, Object>) raw;
 		}
-		return GSON_LOCAL.fromJson(raw.toString(), Map.class);
+		if (raw instanceof String) {
+			try {
+				Object parsed = GSON_LOCAL.fromJson((String) raw, Object.class);
+				if (parsed instanceof Map) {
+					return (Map<String, Object>) parsed;
+				}
+			} catch (Exception ignored) {
+			}
+		}
+		throw new IllegalArgumentException(
+				"QdrantAddPoints entries must be JSON objects (received "
+						+ raw.getClass().getSimpleName()
+						+ "). Each entry must be {text|vector, payload?, source?, id?, ...}.");
 	}
 
 	@Override
