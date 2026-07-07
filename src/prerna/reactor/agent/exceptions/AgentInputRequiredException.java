@@ -66,10 +66,9 @@ import java.util.Map;
  * release the worker thread. The run resumes when the user approves, edits,
  * rejects, or responds via {@code RunMCPTool} with agent-context parameters.
  *
- * <p>The exception carries the assistant {@code ResponseMessage} (so the
- * harness has the parent message id) and a list of pending tool-call descriptors
- * with their enriched {@code _meta} (so the harness knows which need approval
- * and which have associated UIs).
+ * <p>The exception carries the assistant {@code ResponseMessage} parent id and
+ * only the pending tool-call descriptors that require user input, with their
+ * enriched {@code _meta} so the harness can persist approval UI details.
  */
 public class AgentInputRequiredException extends RuntimeException {
 
@@ -82,8 +81,8 @@ public class AgentInputRequiredException extends RuntimeException {
 	 * @param parentMessageId   the assistant message id that contains the
 	 *                          tool-call batch (used as {@code parentMessageId}
 	 *                          when writing tool results back to the room)
-	 * @param pendingToolCalls  one map per tool call in the batch, each carrying
-	 *                          at least {@code id}, {@code name},
+	 * @param pendingToolCalls  one map per ask tool call, each carrying at least
+	 *                          {@code id}, {@code name},
 	 *                          {@code arguments}/{@code input}, and the
 	 *                          enriched {@code _meta} from
 	 *                          {@code Room.updateToolResponseMeta}

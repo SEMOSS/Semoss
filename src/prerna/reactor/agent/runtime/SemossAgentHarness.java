@@ -295,9 +295,10 @@ public class SemossAgentHarness implements IAgentHarness {
 						next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
 					} catch (AgentInputRequiredException pauseEx) {
 						// One or more tools require user approval (SMSS_MCP_EXECUTION=ask).
-						// Persist pending actions, publish an event so the UI can render
-						// approve/decline UI or open a portal URL, then re-throw so the
-						// worker transitions the run to INPUT_REQUIRED.
+						// Non-ask tools may already have written results to the room, so tag
+						// and persist those messages before releasing the worker.
+						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
+						persistAgentRunTags(room, ctx);
 						List<Map<String, Object>> pendingActions = persistPendingActions(ctx, room, pauseEx);
 						publishInputRequiredEvent(ctx, room, pendingActions);
 						throw pauseEx;
