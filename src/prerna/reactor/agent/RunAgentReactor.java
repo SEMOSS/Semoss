@@ -29,6 +29,8 @@ package prerna.reactor.agent;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,17 +38,25 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.run.RunAgentRequest;
 import prerna.reactor.agent.run.RunAgentResult;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 /** Starts a durable generic agent run and waits by default unless wait=false is passed. */
 public class RunAgentReactor extends AbstractReactor {
@@ -60,6 +70,7 @@ public class RunAgentReactor extends AbstractReactor {
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
     private static final String WAIT_KEY            = "wait";
     private static final String WAIT_TIMEOUT_MS_KEY = "waitTimeoutMs";
+    private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
@@ -73,10 +84,13 @@ public class RunAgentReactor extends AbstractReactor {
                 MAX_REFLECTIONS_KEY,
                 WAIT_KEY,
                 WAIT_TIMEOUT_MS_KEY,
+                INCLUDE_MESSAGES_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
                 ReactorKeysEnum.AGENT_PARAMS.getKey(),
+                ReactorKeysEnum.IMAGE.getKey(),
+                ReactorKeysEnum.URL.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -110,9 +124,17 @@ public class RunAgentReactor extends AbstractReactor {
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
         boolean wait = parseBoolean(this.keyValue.get(WAIT_KEY), true);
+        // Returning the run's message history requires a completed run, so this flag
+        // implies wait=true even if the caller passed wait=false.
+        boolean includeMessages = parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY), false);
+        if (includeMessages) {
+            wait = true;
+        }
         long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
+        List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
+        List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -121,10 +143,13 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={}",
-                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections, wait, waitTimeoutMs);
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} images={} urls={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections, wait,
+                waitTimeoutMs, sizeOf(inputImages), sizeOf(inputImageURLs));
 
         try {
+            validateMediaSupported(harnessType, inputImages, inputImageURLs);
+            List<String> copiedImages = stageMediaInputs(roomId, input, engineIdFallback, inputImages);
             RunAgentRequest request = new RunAgentRequest(
                     roomId,
                     input,
@@ -135,11 +160,16 @@ public class RunAgentReactor extends AbstractReactor {
                     maxReflections,
                     paramMap,
                     agentParams,
+                    copiedImages,
+                    inputImageURLs,
                     this.insight);
             RunAgentResult handle = AgentRuntimeManager.get().run(request);
             Map<String, Object> output = handle.toMap();
             if (wait) {
                 output = AgentRuntimeManager.get().waitForRun(handle.getRunId(), this.insight, waitTimeoutMs);
+            }
+            if (includeMessages) {
+                output.put("messages", collectRunMessages(roomId, handle.getRunId()));
             }
             AgentHarnessResult result = handle.getResult();
 
@@ -168,6 +198,77 @@ public class RunAgentReactor extends AbstractReactor {
     }
 
     // Helpers
+
+    private List<String> stageMediaInputs(String roomId, String input, String engineIdFallback, List<String> inputImages) {
+        if (inputImages == null || inputImages.isEmpty()) {
+            return inputImages;
+        }
+
+        IModelEngine modelEngine = null;
+        String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
+        if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+            modelEngine = Utility.getModel(runtimeModelId);
+            if (modelEngine == null) {
+                throw new IllegalArgumentException(
+                        "Could not load model engine '" + runtimeModelId + "' for room '" + roomId + "'");
+            }
+        }
+
+        Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+                : RoomUtils.getOrLoadRoom(roomId, insight);
+        return RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
+    }
+
+    /**
+     * Collect the full message history for a single agent run, in chronological
+     * order. Filters the room's messages by the {@code agentRunId} ornament that the
+     * harness stamps on every message it produces, then serializes each via the same
+     * parts-based projection used for persistence (rich {@code parts}/{@code ornaments}
+     * shape, base64 image data excluded). Returns an empty list when no tagged
+     * messages exist, or {@code null} on a lookup/serialization failure (best-effort).
+     */
+    private List<Object> collectRunMessages(String roomId, String runId) {
+        if (runId == null || runId.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+            List<AbstractMessage> all = room != null ? room.getMessages() : null;
+            if (all == null || all.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<AbstractMessage> runMessages = new ArrayList<>();
+            for (AbstractMessage m : all) {
+                if (m == null) {
+                    continue;
+                }
+                Object tag = m.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
+                if (tag != null && runId.equals(String.valueOf(tag))) {
+                    runMessages.add(m);
+                }
+            }
+            if (runMessages.isEmpty()) {
+                return Collections.emptyList();
+            }
+            // Parse the serialized projection back into plain Maps/Lists so the value
+            // nests cleanly in the reactor's MAP return (vs. a raw JSON string).
+            return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
+        } catch (Exception e) {
+            logger.warn("RunAgentReactor: failed to collect run messages for runId={}: {}", runId, e.getMessage());
+            return null;
+        }
+    }
+
+    private void validateMediaSupported(String harnessType, List<String> inputImages, List<String> inputImageURLs) {
+        if (sizeOf(inputImages) == 0 && sizeOf(inputImageURLs) == 0) {
+            return;
+        }
+        IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
+        if (!harness.supportsMediaInput()) {
+            throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
+                    + harness.getName() + "'");
+        }
+    }
 
     @SuppressWarnings("unchecked")
 	protected Map<String, Object> getMap(String identifier) {
@@ -241,5 +342,34 @@ public class RunAgentReactor extends AbstractReactor {
             return true;
         }
         return defaultValue;
+    }
+
+    private static int sizeOf(List<?> values) {
+        return values == null ? 0 : values.size();
+    }
+
+    @Override
+    protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+        if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+            return MCP_KEY_TYPE.ARRAY;
+        }
+        if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey()) || key.equals(ReactorKeysEnum.AGENT_PARAMS.getKey())) {
+            return MCP_KEY_TYPE.OBJECT;
+        }
+        return super.getKeyTypeForMCP(key);
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
+            return "Array of image file names already uploaded to the insight folder, or supported base64 image/PDF data URIs.";
+        }
+        if (key.equals(ReactorKeysEnum.URL.getKey())) {
+            return "Array of image file URLs whose contents will be fetched when building the initial agent message.";
+        }
+        if (key.equals(INCLUDE_MESSAGES_KEY)) {
+            return "When true, returns the run's full message history (input, assistant turns, tool calls/results) under 'messages'. Implies wait=true.";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

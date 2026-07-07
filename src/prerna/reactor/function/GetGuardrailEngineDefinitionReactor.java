@@ -25,36 +25,17 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.function;
 
-import java.util.Map;
+public class GetGuardrailEngineDefinitionReactor extends GetFunctionEngineDefinitionReactor {
 
-import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-/**
- * Returns a map of {@code CLAUDE.MD} + every skill's {@code SKILL.md} content.
- *
- * <p>Replaces {@code ClaudeCodeGetSkillsReactor}.
- */
-public class GetAppSkillsReactor extends AbstractReactor {
-
-	public GetAppSkillsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1 };
-	}
+	/*
+	 * Just a convenience method Works the same as the function engine Since
+	 * guardrail engine is a function engine as well
+	 */
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-
-		User user = this.insight.getUser();
-		Map<String, String> response = AppBuilderHarnessConfiguration.getSkills(user, projectId);
-		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+	String getUnableToAccessError(String engineId) {
+		return "Guardrail Engine " + engineId + " does not exist or user does not have access to this guardrail";
 	}
 }

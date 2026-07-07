@@ -30,6 +30,7 @@ package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,19 +38,13 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.prompt.PromptUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.SystemEngineRegistry;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
@@ -57,8 +52,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS, MODEL_ID };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -78,8 +73,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			throw new IllegalArgumentException("Workspace not found");
 		}
 
-		Object currentlyIsActive = current.get("is_active");
-		Boolean currentlyActive = (Boolean) currentlyIsActive;
+		Boolean currentlyActive = (Boolean) current.get("is_active");
 
 		if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
@@ -102,86 +96,32 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 		}
 
-		List<Map<String, Object>> currProjectDependencies = SecurityProjectUtils.getProjectDependencies(workspaceId,
-				false);
-		Set<String> curDepList = currProjectDependencies.stream().map(map -> (String) map.get("engine_id"))
-				.collect(Collectors.toSet());
+		Set<String> curDepList = SecurityProjectUtils.getProjectDependencies(workspaceId, false).stream()
+				.map(map -> (String) map.get("engine_id")).collect(Collectors.toSet());
+		Set<String> curSkillList = ModelInferenceLogsUtils
+				.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null).stream()
+				.map(map -> (String) map.get("resource_id")).collect(Collectors.toSet());
 
-		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
-
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
-		if (!mcpMapList.isEmpty()) {
-			for (Map<String, Object> mcpMap : mcpMapList) {
-				if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
-					String type = (String) mcpMap.get("type");
-					String id = (String) mcpMap.get("id");
-					CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-					switch (catalogType) {
-					case PROJECT:
-						projectDependencies.add(id);
-						break;
-					default:
-						engines.add(id);
-					}
-					Map<String, Object> dependencyEntry = new HashMap<>();
-					dependencyEntry.put("ENGINEID", id);
-					dependencyEntry.put("ENGINETYPE", type);
-					dependencyList.add(dependencyEntry);
-				} else {
-					return getError("Tool map must contain both type and id");
-				}
-			}
+		List<Map<String, String>> workspaceResources = new ArrayList<>();
+		Set<String> skillIds = new LinkedHashSet<>();
+		Set<String> platformSkills = getGenRowStruct(PLATFORM_SKILLS) != null ? new LinkedHashSet<>() : null;
+		try {
+			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
+					dependencyList, workspaceResources, skillIds, platformSkills);
+		} catch (IllegalArgumentException e) {
+			return getError(e.getMessage());
 		}
+
 		SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 
-		List<Map<String, String>> workspaceResources = new ArrayList<>();
-		for (String engine : engines) {
-			if (!SecurityEngineUtils.userCanViewEngine(user, engine) && !curDepList.contains(engine)) {
-				return getError("User lacks permission to one of the given engines: " + engine);
-			}
-			workspaceResources.add(makeResourceEntryMap(workspaceId, engine));
-		}
-
-		for (String project : projectDependencies) {
-			if (!SecurityProjectUtils.userCanViewProject(user, project) && !curDepList.contains(project)) {
-				return getError("User lacks permission to one of the mcp tools/projects: " + project);
-			}
-			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
-		}
-
-		// linked to workspaces via WORKSPACE_RESOURCE with RESOURCE_TYPE = "PROMPT"
-		List<String> promptIds = getNounAsStringList(PROMPTS);
-		if (!promptIds.isEmpty()) {
-			if (!SystemEngineRegistry.isPromptDbLoaded()) {
-				return getError("Prompt database is not enabled");
-			}
-			for (String promptId : promptIds) {
-				Map<String, Object> prompt = PromptUtils.getPrompt(promptId, user);
-				if (prompt == null || prompt.isEmpty()) {
-					return getError("Prompt not found or user lacks access: " + promptId);
-				}
-				workspaceResources.add(makePromptResourceEntryMap(workspaceId, promptId));
-			}
-		}
-
-
-		Set<String> skillIds = new HashSet<>(getNounAsStringList(SKILLS));
-		if (!skillIds.isEmpty()) {
-			Set<String> curSkillList = ModelInferenceLogsUtils
-					.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null).stream()
-					.map(map -> map.get("resource_id")).collect(Collectors.toSet());
-			for (String skillId : skillIds) {
-				if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
-					return getError("Skill not found: " + skillId);
-				}
-				if (!SecurityProjectUtils.userCanViewProject(user, skillId) && !curSkillList.contains(skillId)) {
-					return getError("User lacks permission to one of the given skills: " + skillId);
-				}
-				workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
-			}
-		}
+		// Default/fallback model engine for the agent. Presence-detected so omitting
+		// the key leaves any existing CONFIG_JSON.model_id untouched; passing it blank
+		// clears it (falling back to room MODEL_ID / options at run time).
+		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
+		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
 
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
@@ -198,7 +138,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
 		// correctly from those.
 		try {
-			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds);
+			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
+					platformSkills, modelIdProvided, workspaceModelId);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
@@ -210,63 +151,6 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
-
-	/**
-	 * Persist {@code system_prompt}, the engine/project MCP refs, and the skill
-	 * refs into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
-	 * there.
-	 *
-	 * <p>
-	 * Empty {@code engines} + empty {@code projects} writes an empty {@code mcps}
-	 * array, and empty {@code skills} writes an empty {@code skills} array - both
-	 * intentional, since the user may be removing all MCPs/skills. Null
-	 * {@code systemPrompt} omits the key (vs. writing JSON null), so the loader
-	 * falls through to the legacy SYSTEM_PROMPT column read for that field.
-	 *
-	 * <p>
-	 * The {@code skills} entry shape - {@code { "skill_id": <id> }} - matches what
-	 * {@code AgentConfigLoader.resolveSkills} and
-	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write. No
-	 * {@code pinned_version} is emitted because the edit input carries only ids.
-	 */
-	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects, Set<String> skills) throws Exception {
-		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			cfg = new JSONObject();
-			cfg.put("schema_version", 1);
-		}
-		if (systemPrompt != null && !systemPrompt.isEmpty()) {
-			cfg.put("system_prompt", systemPrompt);
-		} else {
-			cfg.remove("system_prompt");
-		}
-
-		JSONArray mcpsJson = new JSONArray();
-		for (String id : engines) {
-			JSONObject entry = new JSONObject();
-			entry.put("id", id);
-			entry.put("name", id);
-			mcpsJson.put(entry);
-		}
-		for (String id : projects) {
-			JSONObject entry = new JSONObject();
-			entry.put("id", id);
-			entry.put("name", id);
-			mcpsJson.put(entry);
-		}
-		cfg.put("mcps", mcpsJson);
-
-		JSONArray skillsJson = new JSONArray();
-		for (String id : skills) {
-			JSONObject entry = new JSONObject();
-			entry.put("skill_id", id);
-			skillsJson.put(entry);
-		}
-		cfg.put("skills", skillsJson);
-
-		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
 }
