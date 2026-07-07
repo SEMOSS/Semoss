@@ -974,27 +974,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _to_dict(obj):
-        if obj is None:
-            return None
-        if hasattr(obj, "model_dump"):
-            try:
-                return obj.model_dump(mode="json")
-            except Exception:
-                pass
-        if hasattr(obj, "to_dict"):
-            try:
-                return obj.to_dict()
-            except Exception:
-                pass
-        if isinstance(obj, dict):
-            return obj
-        try:
-            return json.loads(json.dumps(obj, default=str))
-        except Exception:
-            return {"value": str(obj)}
-
-    @staticmethod
     def _normalize_batch_status(status):
         s = (status or "").lower()
         mapping = {
@@ -1012,12 +991,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 f"'{self.provider}'."
             )
 
-    def _normalize_request_for_batch(self, req, idx):
+    def _normalize_request_for_batch(self, req: Any, idx: int) -> Dict[str, Any]:
         """Convert simplified {command, context} format to Anthropic batch wire format."""
         if not isinstance(req, dict):
             return req
-        # Room-context path: full SEMOSS message history (+ tools) supplied. Reuse the
-        # same builder as the sync ask so history/tools/system are handled in one place.
         if req.get("message_json"):
             return self._build_batch_params_from_history(req, idx)
         if "command" not in req:
@@ -1032,7 +1009,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 params[k] = v
         return {"custom_id": custom_id, "params": params}
 
-    def _build_batch_params_from_history(self, req, idx):
+    def _build_batch_params_from_history(
+        self, req: Dict[str, Any], idx: int
+    ) -> Dict[str, Any]:
         """Build per-request Anthropic batch params from a full SEMOSS message_json +
         tools, reusing the same message builder the synchronous ask path uses."""
         custom_id = req.get("custom_id") or f"req-{idx}"
@@ -1058,7 +1037,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         params.pop("betas", None)
         return {"custom_id": custom_id, "params": params}
 
-    def submit_batch(self, requests, **kwargs):
+    def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
+        """Submit a batch of requests to the Anthropic API."""
         from anthropic.types.message_create_params import (
             MessageCreateParamsNonStreaming,
         )
@@ -1101,7 +1081,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             "raw": batch.model_dump(),
         }
 
-    def get_batch_status(self, provider_batch_id: str, **kwargs):
+    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Get the status of a previously submitted batch."""
         self._ensure_native_batch_supported()
         batch = self.client.messages.batches.retrieve(provider_batch_id)
@@ -1172,7 +1152,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             "raw_jsonl": "\n".join(raw_lines),
         }
 
-    def list_batches(self, limit: int = 20, **kwargs):
+    def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
+        """List previously submitted batches."""
         self._ensure_native_batch_supported()
         list_kwargs: Dict[str, Any] = {"limit": limit}
         after = kwargs.get("after")
@@ -1202,13 +1183,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
         return {"batches": batches}
 
-    def cancel_batch(self, provider_batch_id, **kwargs):
+    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """Cancel a previously submitted batch."""
         self._ensure_native_batch_supported()
         batch = self.client.messages.batches.cancel(provider_batch_id)
         return {
             "provider_batch_id": batch.id,
-            "status": self._normalize_batch_status(
-                getattr(batch, "processing_status", None)
-            ),
-            "raw": self._to_dict(batch),
+            "status": batch.processing_status,
+            "raw": batch.model_dump(),
         }
