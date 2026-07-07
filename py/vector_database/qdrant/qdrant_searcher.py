@@ -312,6 +312,217 @@ class QdrantSearcher:
 
         return {"createdDocuments": created_documents}
 
+    def add_points(
+        self,
+        items: Any,
+        insight_id: Optional[str] = None,
+        batch_size: int = 64,
+    ) -> Dict[str, Any]:
+        """Direct-ingest path: bypass the CSV pipeline entirely.
+
+        Each item is one point. Accepts either:
+          - ``{"text": "...", "payload": {...}}`` — text is embedded server-side.
+          - ``{"vector": [...], "payload": {...}}`` — pre-embedded, used as-is.
+
+        Optional fields per item: ``id`` (stable point id, auto-generated
+        from source/divider/part hash if omitted), ``source`` (mirrored
+        into ``payload["Source"]``), ``divider``, ``part``.
+
+        Returns a summary dict with ingest counts. Payload keys become
+        server-side filterable fields (indexed keys benefit most).
+        """
+        if isinstance(items, str):
+            import json as _json
+
+            try:
+                items = _json.loads(items)
+            except _json.JSONDecodeError:
+                return {"upserted": 0, "skipped": 0, "error": "invalid_json"}
+        if not items:
+            return {"upserted": 0, "skipped": 0}
+
+        prepared: List[Dict[str, Any]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            payload = dict(item.get("payload") or {})
+            if "source" in item and "Source" not in payload:
+                payload["Source"] = item["source"]
+            divider = item.get("divider", payload.get("Divider", 0))
+            part = item.get("part", payload.get("Part", 0))
+            if "Divider" not in payload:
+                payload["Divider"] = divider
+            if "Part" not in payload:
+                payload["Part"] = part
+            pid = item.get("id")
+            if not pid:
+                pid = self._point_id_for(
+                    str(payload.get("Source", "")), divider, part
+                )
+            prepared.append(
+                {
+                    "id": pid,
+                    "text": item.get("text"),
+                    "vector": item.get("vector"),
+                    "payload": payload,
+                }
+            )
+
+        upserted = 0
+        skipped = 0
+        for start in range(0, len(prepared), batch_size):
+            batch = prepared[start : start + batch_size]
+
+            texts_to_embed: List[str] = []
+            embed_indexes: List[int] = []
+            resolved_vectors: List[Optional[List[float]]] = [None] * len(batch)
+            for i, entry in enumerate(batch):
+                if entry.get("vector") is not None:
+                    resolved_vectors[i] = list(entry["vector"])
+                elif entry.get("text"):
+                    texts_to_embed.append(str(entry["text"]))
+                    embed_indexes.append(i)
+                else:
+                    skipped += 1
+
+            if texts_to_embed:
+                embedded = self._embed_batch(texts_to_embed, insight_id)
+                if not embedded:
+                    skipped += len(texts_to_embed)
+                    continue
+                for j, vec in enumerate(embedded):
+                    resolved_vectors[embed_indexes[j]] = vec
+
+            if self.vector_size is None:
+                first = next(
+                    (v for v in resolved_vectors if v is not None), None
+                )
+                if first is None:
+                    continue
+                self._ensure_collection(len(first))
+
+            sparse_texts: List[Optional[str]] = [None] * len(batch)
+            if self._is_hybrid_collection:
+                for i, entry in enumerate(batch):
+                    if entry.get("text"):
+                        sparse_texts[i] = str(entry["text"])
+            sparse_encoded: List[Any] = [None] * len(batch)
+            if self._is_hybrid_collection:
+                to_encode = [(i, t) for i, t in enumerate(sparse_texts) if t]
+                if to_encode:
+                    encoded = self._encode_sparse_batch([t for _, t in to_encode])
+                    for k, (i, _) in enumerate(to_encode):
+                        sparse_encoded[i] = encoded[k]
+
+            points = []
+            for i, entry in enumerate(batch):
+                vec = resolved_vectors[i]
+                if vec is None:
+                    skipped += 1
+                    continue
+                point_vec = self._build_point_vector(vec, sparse_encoded[i])
+                points.append(
+                    self._models.PointStruct(
+                        id=entry["id"], vector=point_vec, payload=entry["payload"]
+                    )
+                )
+
+            if not points:
+                continue
+            self.client.upsert(collection_name=self.collection_name, points=points)
+            upserted += len(points)
+
+            for entry in batch:
+                src = entry["payload"].get("Source")
+                if src:
+                    self._sources.add(str(src))
+
+        return {"upserted": upserted, "skipped": skipped}
+
+    def delete_by_filter(self, qdrant_filter: Dict[str, Any]) -> int:
+        """Remove all points matching a Qdrant filter. Returns the operation id."""
+        if not self._collection_ready:
+            return 0
+        flt = self._build_filter(qdrant_filter)
+        if flt is None:
+            return 0
+        result = self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=self._models.FilterSelector(filter=flt),
+        )
+        for src in list(self._sources):
+            try:
+                info = self.client.count(
+                    collection_name=self.collection_name,
+                    count_filter=self._models.Filter(
+                        must=[
+                            self._models.FieldCondition(
+                                key="Source", match=self._models.MatchValue(value=src)
+                            )
+                        ]
+                    ),
+                )
+                if getattr(info, "count", 0) == 0:
+                    self._sources.discard(src)
+            except Exception:
+                pass
+        return getattr(result, "operation_id", 0) or 0
+
+    def list_points(
+        self,
+        qdrant_filter: Optional[Dict[str, Any]] = None,
+        limit: int = 100,
+        offset: Optional[Any] = None,
+        columns_to_return: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Scroll points with an optional native filter. Paginate via ``next_offset``."""
+        if not self._collection_ready:
+            return {"points": [], "next_offset": None}
+        flt = self._build_filter(qdrant_filter)
+        scroll_kwargs: Dict[str, Any] = {
+            "collection_name": self.collection_name,
+            "limit": int(limit),
+            "with_payload": True,
+            "with_vectors": False,
+        }
+        if flt is not None:
+            scroll_kwargs["scroll_filter"] = flt
+        if offset is not None:
+            scroll_kwargs["offset"] = offset
+        points, next_offset = self.client.scroll(**scroll_kwargs)
+        out: List[Dict[str, Any]] = []
+        for p in points:
+            payload = dict(p.payload or {})
+            record: Dict[str, Any] = {"id": p.id}
+            if columns_to_return:
+                for col in columns_to_return:
+                    if col in payload:
+                        record[col] = payload[col]
+            else:
+                record.update(payload)
+            out.append(record)
+        return {"points": out, "next_offset": next_offset}
+
+    def create_payload_index(
+        self, field: str, schema: str = "keyword"
+    ) -> bool:
+        """Add a payload index on an existing collection. Idempotent."""
+        if not field:
+            return False
+        schema_enum = _PAYLOAD_SCHEMA_MAP.get((schema or "keyword").lower(), "KEYWORD")
+        try:
+            field_schema = getattr(self._models.PayloadSchemaType, schema_enum)
+            self.client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name=field,
+                field_schema=field_schema,
+            )
+            self.indexed_fields.append({"field": field, "schema": schema})
+            return True
+        except Exception as e:
+            logger.warning("create_payload_index failed for %s: %s", field, e)
+            return False
+
     def datasetsLoaded(self) -> bool:
         if not self._collection_ready: return False
         try:

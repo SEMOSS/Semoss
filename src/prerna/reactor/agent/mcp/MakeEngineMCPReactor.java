@@ -50,6 +50,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -66,6 +68,11 @@ import prerna.reactor.storage.PullFromStorageReactor;
 import prerna.reactor.storage.PushToStorageReactor;
 import prerna.reactor.vector.CreateEmbeddingsFromDocumentsReactor;
 import prerna.reactor.vector.ListDocumentsInVectorDatabaseReactor;
+import prerna.reactor.vector.QdrantAddPointsReactor;
+import prerna.reactor.vector.QdrantDeleteByFilterReactor;
+import prerna.reactor.vector.QdrantHybridSearchReactor;
+import prerna.reactor.vector.QdrantListPointsReactor;
+import prerna.reactor.vector.QdrantRecommendReactor;
 import prerna.reactor.vector.RemoveDocumentFromVectorDatabaseReactor;
 import prerna.reactor.vector.VectorDatabaseQueryReactor;
 import prerna.reactor.vector.VectorFileDownloadReactor;
@@ -110,7 +117,24 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             )));
 		}
 	};
-    // @formatter:on 
+
+	private static final Map<VectorDatabaseTypeEnum, List<Class<? extends IReactor>>> VECTOR_SUBTYPE_TOOLS = new HashMap<>() {
+		{
+			put(VectorDatabaseTypeEnum.QDRANT, new ArrayList<>(Arrays.asList(
+					ListDocumentsInVectorDatabaseReactor.class,
+					CreateEmbeddingsFromDocumentsReactor.class,
+					VectorDatabaseQueryReactor.class,
+					RemoveDocumentFromVectorDatabaseReactor.class,
+					VectorFileDownloadReactor.class,
+					QdrantAddPointsReactor.class,
+					QdrantHybridSearchReactor.class,
+					QdrantRecommendReactor.class,
+					QdrantDeleteByFilterReactor.class,
+					QdrantListPointsReactor.class
+			)));
+		}
+	};
+    // @formatter:on
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
@@ -157,6 +181,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		boolean useDefaultReactors = (reactorNames == null || reactorNames.isEmpty());
 		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
+		if (eType == IEngine.CATALOG_TYPE.VECTOR && engine instanceof IVectorDatabaseEngine) {
+			VectorDatabaseTypeEnum vectorSubtype = ((IVectorDatabaseEngine) engine).getVectorDatabaseType();
+			if (vectorSubtype != null && VECTOR_SUBTYPE_TOOLS.containsKey(vectorSubtype)) {
+				defaultReactors = VECTOR_SUBTYPE_TOOLS.get(vectorSubtype);
+			}
+		}
 
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;

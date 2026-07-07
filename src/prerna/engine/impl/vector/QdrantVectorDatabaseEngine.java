@@ -818,4 +818,109 @@ public class QdrantVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public String getSparseModelName() {
 		return this.qdrantSparseModel;
 	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> addPoints(Insight insight, List<Map<String, Object>> items,
+			Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided");
+		}
+		if (items == null || items.isEmpty()) {
+			return Map.of("upserted", 0, "skipped", 0);
+		}
+		checkSocketStatus();
+
+		String indexClass = this.defaultIndexClass;
+		if (parameters != null && parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		if (!this.indexClasses.contains(indexClass)) {
+			addIndexClass(indexClass);
+		}
+
+		String itemsJson = GSON_LOCAL.toJson(items);
+		StringBuilder script = new StringBuilder();
+		script.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass).append("']")
+				.append(".add_points(items = ").append(PyUtils.determineStringType(itemsJson))
+				.append(", insight_id = '").append(insight.getInsightId()).append("'");
+		if (parameters != null && parameters.containsKey("batch_size")) {
+			script.append(", batch_size = ").append(parameters.get("batch_size"));
+		}
+		script.append(")");
+		classLogger.info("Running >>> " + script);
+		return (Map<String, Object>) pyTranslator.runDirectPy(insight, script.toString());
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> hybridSearch(Insight insight, String question, Number limit,
+			Map<String, Object> parameters) {
+		if (parameters == null) {
+			parameters = new HashMap<>();
+		}
+		parameters.put(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey(), Boolean.TRUE);
+		return (List<Map<String, Object>>) nearestNeighborCall(insight, question, limit, parameters);
+	}
+
+	public int deleteByFilter(Insight insight, Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided");
+		}
+		checkSocketStatus();
+
+		String indexClass = this.defaultIndexClass;
+		if (parameters != null && parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		String qdrantFilterLiteral = resolveQdrantFilterLiteral(parameters);
+		if (qdrantFilterLiteral == null) {
+			throw new IllegalArgumentException("A filter is required for deleteByFilter");
+		}
+		StringBuilder script = new StringBuilder();
+		script.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass).append("']")
+				.append(".delete_by_filter(qdrant_filter = ").append(qdrantFilterLiteral).append(")");
+		classLogger.info("Running >>> " + script);
+		Object out = pyTranslator.runDirectPy(insight, script.toString());
+		if (out instanceof Number) {
+			return ((Number) out).intValue();
+		}
+		return 0;
+	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> listPoints(Insight insight, Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided");
+		}
+		checkSocketStatus();
+
+		String indexClass = this.defaultIndexClass;
+		if (parameters != null && parameters.containsKey(INDEX_CLASS)) {
+			indexClass = (String) parameters.get(INDEX_CLASS);
+		}
+		int limit = 100;
+		if (parameters != null && parameters.containsKey("limit")) {
+			Object raw = parameters.get("limit");
+			if (raw instanceof Number) {
+				limit = ((Number) raw).intValue();
+			} else {
+				try {
+					limit = Integer.parseInt(raw.toString());
+				} catch (NumberFormatException ignored) {
+				}
+			}
+		}
+		StringBuilder script = new StringBuilder();
+		script.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass).append("']")
+				.append(".list_points(limit = ").append(limit);
+		String qdrantFilterLiteral = resolveQdrantFilterLiteral(parameters);
+		if (qdrantFilterLiteral != null) {
+			script.append(", qdrant_filter = ").append(qdrantFilterLiteral);
+		}
+		if (parameters != null && parameters.containsKey("offset")) {
+			script.append(", offset = ").append(PyUtils.determineStringType(parameters.get("offset")));
+		}
+		script.append(")");
+		classLogger.info("Running >>> " + script);
+		return (Map<String, Object>) pyTranslator.runDirectPy(insight, script.toString());
+	}
 }
