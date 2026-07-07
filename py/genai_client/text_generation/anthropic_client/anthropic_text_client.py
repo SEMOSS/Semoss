@@ -1101,33 +1101,29 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             "raw": batch.model_dump(),
         }
 
-    def get_batch_status(self, provider_batch_id, **kwargs):
+    def get_batch_status(self, provider_batch_id: str, **kwargs):
+        """Get the status of a previously submitted batch."""
         self._ensure_native_batch_supported()
         batch = self.client.messages.batches.retrieve(provider_batch_id)
-        rc = getattr(batch, "request_counts", None)
-        counts = {}
-        if rc is not None:
-            processing = getattr(rc, "processing", 0) or 0
-            succeeded = getattr(rc, "succeeded", 0) or 0
-            errored = getattr(rc, "errored", 0) or 0
-            canceled = getattr(rc, "canceled", 0) or 0
-            expired = getattr(rc, "expired", 0) or 0
-            counts = {
-                "total": processing + succeeded + errored + canceled + expired,
-                "completed": succeeded,
-                "failed": errored + canceled + expired,
-                "in_progress": processing,
-            }
+        rc = batch.request_counts
+        counts = {
+            "total": rc.processing
+            + rc.succeeded
+            + rc.errored
+            + rc.canceled
+            + rc.expired,
+            "completed": rc.succeeded,
+            "failed": rc.errored + rc.canceled + rc.expired,
+            "in_progress": rc.processing,
+        }
         return {
             "provider_batch_id": batch.id,
-            "status": self._normalize_batch_status(
-                getattr(batch, "processing_status", None)
-            ),
+            "status": self._normalize_batch_status(batch.processing_status),
             "counts": counts,
             "output_ref": None,
             "error_ref": None,
-            "results_url": getattr(batch, "results_url", None),
-            "raw": self._to_dict(batch),
+            "results_url": batch.results_url,
+            "raw": batch.model_dump(),
         }
 
     def get_batch_results(self, provider_batch_id, **kwargs):
@@ -1139,47 +1135,34 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             rtype = result.type
             ok = rtype == "succeeded"
 
-            normalized_message = None
-            error = None
-            error_type = None
-            error_message = None
-            input_tokens = None
-            output_tokens = None
+            batch = {
+                "custom_id": entry.custom_id,
+                "ok": ok,
+                "status": rtype,
+                "message": None,
+                "error": None,
+                "error_type": None,
+                "error_message": None,
+                "input_tokens": None,
+                "output_tokens": None,
+            }
 
-            if rtype == "succeeded":
-                msg = result.message  # anthropic.types.Message
-                msg_dict = self._to_dict(msg)
-                normalized_message = {
+            if result.type == "succeeded":
+                msg = result.message
+                batch["message"] = {
                     "role": msg.role,
-                    "content": (msg_dict or {}).get("content") or [],
+                    "content": msg.content,
                 }
-                usage = msg.usage
-                if usage is not None:
-                    input_tokens = usage.input_tokens
-                    output_tokens = usage.output_tokens
-            elif rtype == "errored":
-                err = result.error  # ErrorResponse
-                error = self._to_dict(err)
-                inner = getattr(err, "error", None)  # ErrorObject
-                if inner is not None:
-                    error_type = getattr(inner, "type", None)
-                    error_message = getattr(inner, "message", None)
+                batch["input_tokens"] = msg.usage.input_tokens
+                batch["output_tokens"] = msg.usage.output_tokens
+            elif result.type == "errored":
+                batch["error"] = result.error.model_dump()
+                batch["error_type"] = result.error.error.type
+                batch["error_message"] = result.error.error.message
 
-            items.append(
-                {
-                    "custom_id": entry.custom_id,
-                    "ok": ok,
-                    "status": rtype,
-                    "message": normalized_message,
-                    "error": error,
-                    "error_type": error_type,
-                    "error_message": error_message,
-                    "input_tokens": input_tokens,
-                    "output_tokens": output_tokens,
-                }
-            )
+            items.append(batch)
             raw_lines.append(
-                json.dumps(self._to_dict(entry), ensure_ascii=False, default=str)
+                json.dumps(entry.model_dump(), ensure_ascii=False, default=str)
             )
         return {
             "provider_batch_id": provider_batch_id,
