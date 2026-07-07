@@ -1611,8 +1611,6 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-		// Only OPTIONS is JSON — ROOM_NAME is a plain string, so it stays out of
-		// mapKeys (mapKeys marks which columns to deserialize, not which to return).
 		Set<String> mapKeys = new HashSet<>();
 		mapKeys.add("OPTIONS");
 
