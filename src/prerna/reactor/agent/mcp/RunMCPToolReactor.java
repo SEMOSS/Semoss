@@ -78,7 +78,10 @@ public class RunMCPToolReactor extends AbstractReactor {
 				ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 				ReactorKeysEnum.MCP_TOOL_RESULT.getKey(), RUN_ID_KEY, ROOM_ID_KEY, TOOL_CALL_ID_KEY,
 				PARENT_MESSAGE_ID_KEY, ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), ACTION_ID_KEY, DECISION_KEY };
-		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+		// function and paramValues are optional: in the agent HITL path the tool
+		// name and args are resolved from the AGENT_RUN_ACTION row via actionId.
+		// toolName is still validated at runtime before execution.
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -104,14 +107,20 @@ public class RunMCPToolReactor extends AbstractReactor {
 		String toolStatus = this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey());
 		String actionId = this.keyValue.get(ACTION_ID_KEY);
 		String decision = this.keyValue.get(DECISION_KEY);
-		boolean hasAgentContext = runId != null && !runId.trim().isEmpty()
-				&& agentRoomId != null && !agentRoomId.trim().isEmpty()
-				&& toolCallId != null && !toolCallId.trim().isEmpty();
+		// Agent context is driven by actionId alone. The AGENT_RUN_ACTION row is
+		// the source of truth for runId/roomId/toolCallId/parentMessageId, so the
+		// caller only needs to send actionId (+ decision, + edited paramValues).
+		boolean hasAgentContext = actionId != null && !actionId.trim().isEmpty();
 		String userId = this.insight != null ? this.insight.getUserId() : null;
 		Map<String, Object> pendingAction = null;
 		if (hasAgentContext) {
-			pendingAction = loadAndValidatePendingAction(actionId, runId, agentRoomId, parentMessageId, toolCallId,
-					userId);
+			pendingAction = loadAndValidatePendingAction(actionId, userId);
+			// Derive the run context from the row, validating any caller-supplied
+			// values against it defensively.
+			runId = resolveFromRow("runId", runId, pendingAction);
+			agentRoomId = resolveFromRow("roomId", agentRoomId, pendingAction);
+			toolCallId = resolveFromRow("toolCallId", toolCallId, pendingAction);
+			parentMessageId = resolveFromRow("parentMessageId", parentMessageId, pendingAction);
 		}
 
 		if (hasPassthroughResult) {
@@ -120,7 +129,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 			if (hasAgentContext) {
 				writeToRoomAndResume(runId, agentRoomId, toolCallId, parentMessageId, toolExecutionResult,
 						toolStatus != null ? toolStatus : "error", actionId, decision,
-						resolveToolParamsForDecision(pendingAction, getMap(), decision), pendingAction, userId);
+						resolveToolParamsForDecision(pendingAction, getMap()), pendingAction, userId);
 			}
 			return new NounMetadata(toolExecutionResult, PixelDataType.CONST_STRING,
 					PixelOperationType.MCP_TOOL_EXECUTION);
@@ -164,7 +173,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 
 		// these are the params
-		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, getMap(), decision);
+		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, getMap());
 
 		IMCP mcp = MCPFactory.build(engine);
 		NounMetadata result = new NounMetadata(mcp.callTool(toolName, paramMap, this.insight),
@@ -278,11 +287,16 @@ public class RunMCPToolReactor extends AbstractReactor {
 					toolResult, toolParams != null ? toolParams : new HashMap<>(),
 					paramMapForRoom, parentMessageId, modelEngine, this.insight, toolStatus);
 
-			// Record the decision in AGENT_RUN_ACTION.
+			// Record the decision in AGENT_RUN_ACTION via the STATUS column. Capture
+			// editedArgs whenever the final params differ from what the model
+			// proposed (UI edits or UI-added args), regardless of the decision label.
 			String actionStatus = resolveActionStatus(decision);
+			Map<String, Object> storedArgs = parseStoredMap(pendingAction.get("toolArgs"));
+			boolean argsChanged = storedArgs == null ? (toolParams != null && !toolParams.isEmpty())
+					: !storedArgs.equals(toolParams);
+			Object editedArgs = ("edit".equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
 			AgentRunActionStore actionStore = new AgentRunActionStore();
-			boolean marked = actionStore.markDecided(actionId, runId, userId, decision != null ? decision : "approve",
-					"edit".equalsIgnoreCase(decision) ? toolParams : null, null, toolResult, actionStatus);
+			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus);
 			if (!marked) {
 				throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
 			}
@@ -320,32 +334,44 @@ public class RunMCPToolReactor extends AbstractReactor {
 		}
 	}
 
-	private Map<String, Object> loadAndValidatePendingAction(String actionId, String runId, String roomId,
-			String parentMessageId, String toolCallId, String userId) {
+	private Map<String, Object> loadAndValidatePendingAction(String actionId, String userId) {
 		if (actionId == null || actionId.trim().isEmpty()) {
 			throw new IllegalArgumentException("actionId is required to resume an agent HITL tool call");
-		}
-		if (parentMessageId == null || parentMessageId.trim().isEmpty()) {
-			throw new IllegalArgumentException("parentMessageId is required to resume an agent HITL tool call");
 		}
 		if (userId == null || userId.trim().isEmpty() || "-1".equals(userId)) {
 			throw new SecurityException("Agent HITL resume requires an authenticated user");
 		}
 		AgentRunActionStore actionStore = new AgentRunActionStore();
-		Map<String, Object> pendingAction = actionStore.getPendingAction(actionId.trim(), runId.trim(), userId.trim());
+		Map<String, Object> pendingAction = actionStore.getPendingActionById(actionId.trim(), userId.trim());
 		if (pendingAction == null) {
 			throw new SecurityException("No pending agent action found for actionId=" + actionId);
 		}
-		requireEquals("roomId", roomId, pendingAction.get("roomId"));
-		requireEquals("parentMessageId", parentMessageId, pendingAction.get("parentMessageId"));
-		requireEquals("toolCallId", toolCallId, pendingAction.get("toolCallId"));
 		return pendingAction;
+	}
+
+	/**
+	 * Resolve a run-context field from the stored action row. If the caller
+	 * supplied a value, it must match the row (defensive check); otherwise the
+	 * stored value is used.
+	 */
+	private String resolveFromRow(String field, String provided, Map<String, Object> pendingAction) {
+		String stored = stringValue(pendingAction.get(field));
+		if (provided == null || provided.trim().isEmpty()) {
+			return stored;
+		}
+		requireEquals(field, provided, stored);
+		return stored;
 	}
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> resolveToolParamsForDecision(Map<String, Object> pendingAction,
-			Map<String, Object> callerParams, String decision) {
-		if (pendingAction == null || "edit".equalsIgnoreCase(decision)) {
+			Map<String, Object> callerParams) {
+		// Prefer caller-supplied params: the UI may add args the model omitted
+		// (e.g. user-selected file_pks) or edit the model's proposed args.
+		if (callerParams != null && !callerParams.isEmpty()) {
+			return callerParams;
+		}
+		if (pendingAction == null) {
 			return callerParams;
 		}
 		Object storedArgs = pendingAction.get("toolArgs");

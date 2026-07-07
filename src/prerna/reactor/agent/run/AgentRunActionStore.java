@@ -145,8 +145,8 @@ public final class AgentRunActionStore {
 		ResultSet rs = null;
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
-					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, DECISION, "
-					+ "DECISION_MESSAGE, RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
+					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
 					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ? ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
@@ -178,21 +178,22 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return one pending action row by identity and owner.
+	 * Return one pending action row by action id and owner. ACTION_ID is a
+	 * globally unique v7 UUID (the table PK), so scoping by actionId + userId
+	 * is sufficient; runId is derivable from the row.
 	 */
-	public Map<String, Object> getPendingAction(String actionId, String runId, String userId) {
+	public Map<String, Object> getPendingActionById(String actionId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
-					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, DECISION, "
-					+ "DECISION_MESSAGE, RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'";
+					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
+					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND USER_ID = ? AND STATUS = 'PENDING'";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, actionId);
-			ps.setString(2, runId);
-			ps.setString(3, userId);
+			ps.setString(2, userId);
 			rs = ps.executeQuery();
 			if (rs.next()) {
 				return rowToMap(rs);
@@ -206,32 +207,24 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Mark an action as decided: the user approved, edited, rejected, or
-	 * responded. Called by {@code RunMCPToolReactor} when agent context is
-	 * present.
+	 * Mark an action as decided. STATUS is the single lifecycle column: it moves
+	 * from PENDING to one of APPROVED / EDITED / REJECTED / RESPONDED, which also
+	 * encodes what the user chose (there is no separate DECISION column).
 	 *
-	 * @param actionId         the action id
-	 * @param decision         one of: approve, edit, reject, respond
-	 * @param editedArgs       edited arguments (for "edit"), or null
-	 * @param decisionMessage  optional user message
-	 * @param result           the tool result (for approve/edit), or the
-	 *                         user's response (for respond), or the rejection
-	 *                         message (for reject)
-	 * @param status           the action status: APPROVED, EDITED, REJECTED,
-	 *                         RESPONDED
+	 * @param actionId    the action id
+	 * @param editedArgs  final args when they differ from what the model proposed, else null
+	 * @param result      the tool result (approve/edit), the user's response (respond),
+	 *                    or the rejection message (reject)
+	 * @param status      the decided status: APPROVED, EDITED, REJECTED, RESPONDED
 	 */
-	public boolean markDecided(String actionId, String runId, String userId, String decision, Object editedArgs,
-			String decisionMessage, String result, String status) {
+	public boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
+			String status) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
-			StringBuilder query = new StringBuilder(
-					"UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECISION = ?, DECIDED_AT = ?");
+			StringBuilder query = new StringBuilder("UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECIDED_AT = ?");
 			if (editedArgs != null) {
 				query.append(", EDITED_ARGS = ?");
-			}
-			if (decisionMessage != null) {
-				query.append(", DECISION_MESSAGE = ?");
 			}
 			if (result != null) {
 				query.append(", RESULT = ?");
@@ -241,13 +234,9 @@ public final class AgentRunActionStore {
 			ps = db.getPreparedStatement(query.toString());
 			int idx = 1;
 			ps.setString(idx++, status);
-			ps.setString(idx++, decision);
 			ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
 			if (editedArgs != null) {
 				setClob(db, ps, idx++, toJson(editedArgs));
-			}
-			if (decisionMessage != null) {
-				setClob(db, ps, idx++, decisionMessage);
 			}
 			if (result != null) {
 				setClob(db, ps, idx++, result);
@@ -326,8 +315,6 @@ public final class AgentRunActionStore {
 		map.put("hasUi", "true".equalsIgnoreCase(rs.getString("HAS_UI")));
 		map.put("uiUrl", clobToString(rs, "UI_URL"));
 		map.put("status", rs.getString("STATUS"));
-		map.put("decision", rs.getString("DECISION"));
-		map.put("decisionMessage", clobToString(rs, "DECISION_MESSAGE"));
 		map.put("result", clobToString(rs, "RESULT"));
 		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
 		map.put("decidedAt", stringValue(rs.getTimestamp("DECIDED_AT")));

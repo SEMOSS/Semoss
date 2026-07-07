@@ -488,7 +488,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
 			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
 			action.put("hasUi", hasUi);
-			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action, runId, roomId) : null);
+			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action) : null);
 			actions.add(action);
 		}
 		try {
@@ -521,12 +521,11 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	/**
 	 * Resolve the {@code resourceURI} (relative to the app's portals folder)
-	 * into an absolute URL with query params carrying the agent-run context
-	 * and prefilled tool arguments.
+	 * into an absolute portal URL carrying only the {@code actionId}. The portal
+	 * calls {@code GetAgentRunAction} on load to fetch the rest from the row.
 	 */
-	@SuppressWarnings("unchecked")
 	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta,
-			Map<String, Object> action, String runId, String roomId) {
+			Map<String, Object> action) {
 		String engineId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
 		if (engineId == null) {
 			engineId = toolMeta != null ? stringValue(toolMeta.get("SMSS_PROJECT_ID")) : null;
@@ -536,23 +535,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			// exposes the action id and tool metadata for UI-driven execution.
 			return null;
 		}
-		String base = "/Monolith/public_home/" + engineId + "/portals/" + resourceURI;
-		StringBuilder sb = new StringBuilder(base);
-		sb.append("?actionId=").append(action.get("actionId"));
-		sb.append("&runId=").append(runId != null ? runId : "");
-		sb.append("&roomId=").append(roomId != null ? roomId : "");
-		sb.append("&toolCallId=").append(action.get("toolCallId"));
-		String toolName = stringValue(action.get("toolName"));
-		if (toolName != null) {
-			sb.append("&toolName=").append(java.net.URLEncoder.encode(toolName, java.nio.charset.StandardCharsets.UTF_8));
-		}
-		// Prefill the tool args as a base64-encoded JSON string
-		Object argsObj = action.get("toolArgs");
-		if (argsObj != null) {
-			String argsJson = argsObj instanceof String ? (String) argsObj : new com.google.gson.Gson().toJson(argsObj);
-			sb.append("&args=").append(java.net.URLEncoder.encode(argsJson, java.nio.charset.StandardCharsets.UTF_8));
-		}
-		return sb.toString();
+		// Strip any leading slash from resourceURI so the path never gets a double slash.
+		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
+		// The URL only carries the actionId. The portal calls GetAgentRunAction on
+		// load to fetch the run context and prefill args from the persisted row.
+		return "/Monolith/public_home/" + engineId + "/portals/" + normalizedURI
+				+ "?actionId=" + action.get("actionId");
 	}
 
 	private static String stringValue(Object value) {
