@@ -167,15 +167,3 @@ class OpenAIResponsesMessage(BaseModel):
             ]
         ],
     ]
-
-
-OPENAI_ENDPOINTS: Literal[
-    "/v1/responses",
-    "/v1/chat/completions",
-    "/v1/embeddings",
-    "/v1/completions",
-    "/v1/moderations",
-    "/v1/images/generations",
-    "/v1/images/edits",
-    "/v1/videos",
-]
