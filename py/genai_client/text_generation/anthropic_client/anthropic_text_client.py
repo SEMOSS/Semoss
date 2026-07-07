@@ -75,10 +75,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
-        # Provider-specific SDKs are imported lazily so a client only pays for
-        # the backend it actually uses. In particular the Google clients pull in
-        # google / google.auth / google.genai (~0.85s) that direct-Anthropic,
-        # Bedrock and Azure providers never need.
         if self.provider == "google":
             from ...clients.google_clients import (
                 GoogleClient,
@@ -98,9 +94,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
-            from anthropic import AnthropicBedrock
+            from anthropic import AnthropicAWS
 
-            return AnthropicBedrock(
+            return AnthropicAWS(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
@@ -968,3 +964,231 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             out.append(text)
 
         return "".join(out)
+
+    # ------------------------------------------------------------------
+    # Batch API (Anthropic native Message Batches)
+    #
+    # Lifecycle: submit -> provider batch id -> poll status -> fetch results.
+    # All methods return plain JSON-serializable dicts so they marshal cleanly
+    # back to the Java engine over the TCP PayloadStruct protocol.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalize_batch_status(status):
+        s = (status or "").lower()
+        mapping = {
+            "in_progress": "IN_PROGRESS",
+            "canceling": "CANCELING",
+            "ended": "COMPLETED",
+        }
+        return mapping.get(s, s.upper() or "UNKNOWN")
+
+    def _ensure_native_batch_supported(self):
+        """Batch is only working for Anthropic provider; raise if not."""
+        if self.provider not in ("anthropic"):
+            raise ValueError(
+                f"Native message batches are not supported for Anthropic provider "
+                f"'{self.provider}'."
+            )
+
+    def _normalize_request_for_batch(self, req: Any, idx: int) -> Dict[str, Any]:
+        """Convert simplified {command, context} format to Anthropic batch wire format."""
+        if not isinstance(req, dict):
+            return req
+        if req.get("message_json"):
+            return self._build_batch_params_from_history(req, idx)
+        if "command" not in req:
+            return req
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        params = {"messages": [{"role": "user", "content": req["command"]}]}
+        if req.get("context"):
+            params["system"] = req["context"]
+        skip = {"command", "context", "custom_id"}
+        for k, v in req.items():
+            if k not in skip:
+                params[k] = v
+        return {"custom_id": custom_id, "params": params}
+
+    def _build_batch_params_from_history(
+        self, req: Dict[str, Any], idx: int
+    ) -> Dict[str, Any]:
+        """Build per-request Anthropic batch params from a full SEMOSS message_json +
+        tools, reusing the same message builder the synchronous ask path uses."""
+        custom_id = req.get("custom_id") or f"req-{idx}"
+        skip = {"command", "context", "custom_id", "message_json"}
+        kwargs = {k: v for k, v in req.items() if k not in skip}
+        semoss_messages = self.build_semoss_messages(
+            model_settings=self.model_settings,
+            message_json=req["message_json"],
+            **kwargs,
+        )
+        msg_builder_response = AnthropicMessageBuilder().build_messages(
+            semoss_messages,
+            self.model_settings,
+            self.model_limits,
+            self.model_name,
+            self.use_beta_header if self.use_beta_header else False,
+            self.beta_feature_name,
+            thinking_signature=self.thinking_signature,
+        )
+        params = msg_builder_response.request_config.model_dump(exclude_none=True)
+
+        params.pop("stream", None)  # no streaming for batch
+        params.pop("betas", None)
+        return {"custom_id": custom_id, "params": params}
+
+    def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
+        """Submit a batch of requests to the Anthropic API."""
+        from anthropic.types.message_create_params import (
+            MessageCreateParamsNonStreaming,
+        )
+        from anthropic.types.messages.batch_create_params import Request
+        from anthropic.types.messages import MessageBatch
+
+        self._ensure_native_batch_supported()
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        requests = [
+            self._normalize_request_for_batch(r, i)
+            for i, r in enumerate(requests or [])
+        ]
+        default_max_tokens = getattr(self.model_settings, "max_tokens", None) or 1024
+        batch_requests = []
+        for req in requests or []:
+            params = dict(req.get("body") or req.get("params") or {})
+            model = params.pop("model", None) or self.model_settings.model_name
+            params.setdefault("max_tokens", default_max_tokens)
+            request = Request(
+                custom_id=str(req.get("custom_id")),
+                params=MessageCreateParamsNonStreaming(
+                    **params,
+                    model=model,
+                ),
+            )
+            batch_requests.append(request)
+        if not batch_requests:
+            raise ValueError("submit_batch requires at least one request")
+
+        batch: MessageBatch = self.client.messages.batches.create(
+            requests=batch_requests
+        )
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(batch.processing_status),
+            "request_count": len(batch_requests),
+            "endpoint": "/v1/messages/batches",
+            "results_url": batch.results_url,
+            "raw": batch.model_dump(),
+        }
+
+    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """Get the status of a previously submitted batch."""
+        self._ensure_native_batch_supported()
+        batch = self.client.messages.batches.retrieve(provider_batch_id)
+        rc = batch.request_counts
+        counts = {
+            "total": rc.processing
+            + rc.succeeded
+            + rc.errored
+            + rc.canceled
+            + rc.expired,
+            "completed": rc.succeeded,
+            "failed": rc.errored + rc.canceled + rc.expired,
+            "in_progress": rc.processing,
+        }
+        return {
+            "provider_batch_id": batch.id,
+            "status": self._normalize_batch_status(batch.processing_status),
+            "counts": counts,
+            "output_ref": None,
+            "error_ref": None,
+            "results_url": batch.results_url,
+            "raw": batch.model_dump(),
+        }
+
+    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """Get the results of a previously submitted batch"""
+        self._ensure_native_batch_supported()
+        items = []
+        raw_lines = []
+        for entry in self.client.messages.batches.results(provider_batch_id):
+            result = entry.result
+            rtype = result.type
+            ok = rtype == "succeeded"
+
+            batch = {
+                "custom_id": entry.custom_id,
+                "ok": ok,
+                "status": rtype,
+                "message": None,
+                "error": None,
+                "error_type": None,
+                "error_message": None,
+                "input_tokens": None,
+                "output_tokens": None,
+            }
+
+            if result.type == "succeeded":
+                msg = result.message
+                batch["message"] = {
+                    "role": msg.role,
+                    "content": msg.content,
+                }
+                batch["input_tokens"] = msg.usage.input_tokens
+                batch["output_tokens"] = msg.usage.output_tokens
+            elif result.type == "errored":
+                batch["error"] = result.error.model_dump()
+                batch["error_type"] = result.error.error.type
+                batch["error_message"] = result.error.error.message
+
+            items.append(batch)
+            raw_lines.append(
+                json.dumps(entry.model_dump(), ensure_ascii=False, default=str)
+            )
+        return {
+            "provider_batch_id": provider_batch_id,
+            "count": len(items),
+            "results": items,
+            "raw_jsonl": "\n".join(raw_lines),
+        }
+
+    def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
+        """List previously submitted batches."""
+        self._ensure_native_batch_supported()
+        list_kwargs: Dict[str, Any] = {"limit": limit}
+        after = kwargs.get("after")
+        if not after:
+            after = kwargs.get("after_id")
+        if after is not None:
+            list_kwargs["after_id"] = after
+        before = kwargs.get("before")
+        if not before:
+            before = kwargs.get("before_id")
+        if before is not None:
+            list_kwargs["before_id"] = before
+        resp = self.client.messages.batches.list(**list_kwargs)
+
+        data = resp.data
+        batches = []
+        for b in data:
+            batches.append(
+                {
+                    "provider_batch_id": b.id,
+                    "status": self._normalize_batch_status(
+                        getattr(b, "processing_status", None)
+                    ),
+                    "request_count": None,
+                    "created_at": getattr(b, "created_at", None),
+                }
+            )
+        return {"batches": batches}
+
+    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """Cancel a previously submitted batch."""
+        self._ensure_native_batch_supported()
+        batch = self.client.messages.batches.cancel(provider_batch_id)
+        return {
+            "provider_batch_id": batch.id,
+            "status": batch.processing_status,
+            "raw": batch.model_dump(),
+        }
