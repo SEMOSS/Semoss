@@ -94,17 +94,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
-            from anthropic import AnthropicAWS
+            from anthropic.lib.bedrock import AnthropicBedrock
 
-            return AnthropicAWS(
+            return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
-                default_headers=self._get_bedrock_guardrail_headers(
-                    kwargs.pop("guardrail_identifier", None),
-                    kwargs.pop("guardrail_version", None),
-                    trace=kwargs.pop("guardrail_trace", True),
-                ),
             )
         elif self.provider == "azure":
             from anthropic import AnthropicFoundry
@@ -123,102 +118,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
-
-    @staticmethod
-    def _get_bedrock_guardrail_headers(
-        guardrail_identifier: Optional[str],
-        guardrail_version: Optional[str],
-        trace: Union[str, bool] = True,
-    ) -> Optional[Dict[str, str]]:
-        """
-        Bedrock's InvokeModel API takes guardrails as request headers rather
-        than the guardrailConfig body field used by the Converse API.
-        """
-        if not guardrail_identifier and not guardrail_version:
-            return None
-        if not (guardrail_identifier and guardrail_version):
-            raise ValueError(
-                "Both guardrail_identifier and guardrail_version are required to apply a Bedrock guardrail."
-            )
-        headers = {
-            "X-Amzn-Bedrock-GuardrailIdentifier": guardrail_identifier,
-            "X-Amzn-Bedrock-GuardrailVersion": guardrail_version,
-        }
-        if string_to_bool(trace) if isinstance(trace, str) else trace:
-            headers["X-Amzn-Bedrock-Trace"] = "ENABLED"
-        return headers
-
-    @staticmethod
-    def _process_guardrail_trace(obj: Any) -> Optional[Dict[str, Any]]:
-        """
-        With the trace header enabled, Bedrock attaches the guardrail trace as
-        extra JSON fields (amazon-bedrock-trace / amazon-bedrock-guardrailAction)
-        on the InvokeModel response body — the final message when non-streaming,
-        the message_stop event when streaming. The Anthropic SDK preserves
-        unknown fields in model_extra.
-
-        Logs the raw trace and, when the guardrail intervened, returns a
-        GUARDRAIL part listing each policy rule that matched so it can be
-        included in the response body.
-        """
-        extra = getattr(obj, "model_extra", None) or {}
-        action = extra.get("amazon-bedrock-guardrailAction")
-        trace = extra.get("amazon-bedrock-trace")
-        if not action and not trace:
-            return None
-
-        print(
-            f"[guardrail] action={action} trace={json.dumps(trace, default=str)}",
-            flush=True,
-        )
-
-        # Trace shape: {"guardrail": {"input": {<guardrailId>: <assessment>},
-        # "outputs": [{<guardrailId>: <assessment>}]}} where each assessment
-        # groups matched rules by policy, e.g. {"topicPolicy": {"topics": [
-        # {"name": ..., "action": "BLOCKED"}]}, "contentPolicy": {"filters": [...]}}
-        violations = []
-        guardrail_trace = trace.get("guardrail", {}) if isinstance(trace, dict) else {}
-        assessments = []
-        input_assessments = guardrail_trace.get("input")
-        if isinstance(input_assessments, dict):
-            assessments.append(("INPUT", input_assessments))
-        for output_assessment in guardrail_trace.get("outputs") or []:
-            if isinstance(output_assessment, dict):
-                assessments.append(("OUTPUT", output_assessment))
-
-        for source, by_guardrail_id in assessments:
-            for assessment in by_guardrail_id.values():
-                if not isinstance(assessment, dict):
-                    continue
-                for policy_name, policy in assessment.items():
-                    if not isinstance(policy, dict):
-                        continue
-                    for rules in policy.values():
-                        if not isinstance(rules, list):
-                            continue
-                        for rule in rules:
-                            if not isinstance(rule, dict):
-                                continue
-                            rule_action = rule.get("action")
-                            if rule_action and rule_action != "NONE":
-                                violations.append(
-                                    {
-                                        "source": source,
-                                        "policy": policy_name,
-                                        "rule": rule.get("name")
-                                        or rule.get("type")
-                                        or rule.get("match", ""),
-                                        "action": rule_action,
-                                    }
-                                )
-
-        if action == "INTERVENED" or violations:
-            return {
-                "type": "GUARDRAIL",
-                "action": action,
-                "violations": violations,
-            }
-        return None
 
     @staticmethod
     def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
@@ -370,8 +269,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     **request_config.model_dump(exclude_none=True),
                 )
 
-            guardrail_part = self._process_guardrail_trace(response)
-
             if response.stop_reason == "refusal":
                 raise AnthropicRefusalError(
                     "The model refused to complete the request."
@@ -434,8 +331,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 parts.append({"type": "TEXT", "text": response_text})
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
-            if guardrail_part:
-                parts.append(guardrail_part)
 
             return AskModelEngineResponse2(
                 response=response_text,
@@ -525,7 +420,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         content_array = []
         this_content_block: Dict[str, Any] = {}
         this_content_block_type = ""
-        guardrail_part: Optional[Dict[str, Any]] = None
 
         tool_result = []
         # Maps server-tool_use id -> the underlying tool name (e.g. "web_search").
@@ -747,9 +641,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     this_content_block = {}
                     this_content_block_type = ""
 
-                elif event.type == "message_stop":
-                    guardrail_part = self._process_guardrail_trace(event)
-
                 elif event.type == "message_delta":
                     output_tokens = event.usage.output_tokens
                     if getattr(event, "delta", None) and getattr(
@@ -886,9 +777,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if current_text_block is not None:
             parts.append(current_text_block)
 
-        if guardrail_part:
-            parts.append(guardrail_part)
-
         if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
             print(
                 f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
@@ -911,8 +799,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         parts.append(
                             {"type": "THINKING", "thinking": thinking_response}
                         )
-                    if guardrail_part:
-                        parts.append(guardrail_part)
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
