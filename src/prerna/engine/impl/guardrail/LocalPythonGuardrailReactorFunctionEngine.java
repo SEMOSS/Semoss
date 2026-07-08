@@ -45,9 +45,11 @@ import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
+import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
+import prerna.util.Constants;
 
 /**
  * Guardrail engine backed by a user supplied python file. Mirrors
@@ -174,9 +176,24 @@ public class LocalPythonGuardrailReactorFunctionEngine extends AbstractPythonGua
 		StringBuilder callMaker = new StringBuilder(this.functionName);
 		callMaker.append("(**").append(PyUtils.determineStringType(kwargs)).append(")");
 
-		Object resultObj = this.pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		Object resultObj = this.pyTranslator.runDirectPyNoCancelTrace(getExecutionInsight(ns), callMaker.toString());
 
 		return hydrateGuardrailResult(resultObj, kwargs);
+	}
+
+	private Insight getExecutionInsight(NounStore ns) {
+		if (ns == null) {
+			return null;
+		}
+		GenRowStruct insightGrs = ns.getGenRowStruct(Constants.INSIGHT);
+		if (insightGrs == null || insightGrs.isEmpty()) {
+			return null;
+		}
+		Object insightObj = insightGrs.get(0);
+		if (insightObj instanceof Insight) {
+			return (Insight) insightObj;
+		}
+		return null;
 	}
 
 	/**
