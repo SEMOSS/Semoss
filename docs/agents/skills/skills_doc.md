@@ -7,6 +7,8 @@ Two reactors surface the skills available on the platform. They answer different
 
 Once you have a skill's identifier, attach it to a workspace with **`AttachSkillToWorkspace`** / **`DetachSkillFromWorkspace`**, or set a workspace's whole skill set with **`EditWorkspace`** - see [Managing skills on a workspace](#managing-skills-on-a-workspace).
 
+You can also list skills through the general project-listing reactor: **`MyProjects(type="SKILL")`** returns the skill-projects the user can view (they are real Projects of `PROJECT.TYPE='SKILL'`) **plus** all platform skills, merged and paged together. Every entry carries a `type` discriminator - `"SKILL"` for a project-backed registry skill (has `project_id`) or `"PLATFORM_SKILL"` for a disk-backed platform skill (no `project_id`; carries `slug` and `origin=PLATFORM`). Because platform skills have no `project_id`, permissions, favorites, or project metadata, they are omitted when the call also sets `onlyFavorites`, `permissionFilters`, or a non-empty `metaFilters`. See [MyProjects and skills](#myprojects-and-skills).
+
 ---
 
 ## ListSkills
@@ -310,3 +312,58 @@ EditWorkspace(
 ```
 
 For a platform skill the `id` is the slug (platform skills have no project id). The full `config_json` is returned alongside, so you can read `skills[]` and `platform_skills[]` directly if you prefer the raw form.
+
+---
+
+## MyProjects and skills
+
+`MyProjects` is the general project-listing reactor (paging, sort, search, favorites, and `metaKeys` metadata). Skill-projects are real Projects, so `MyProjects(type="SKILL")` already lists the registry skills the user can view - and it now also merges in the platform skills so a single project-list surface shows every skill.
+
+### How it differs from a normal listing
+
+- **Registry skills** come from the security DB (like any project) and carry the usual project fields (`project_id`, `project_name`, `project_date_created`, `permission`, requested `metaKeys`, etc.), plus `type = "SKILL"`.
+- **Platform skills** are disk-backed built-ins with no project row, so they carry only `type = "PLATFORM_SKILL"`, `slug`, `project_name`, `project_description`, and `origin = "PLATFORM"` - **no `project_id`**, no permissions, no favorites, no project metadata.
+- On the `SKILL` path, `sort`, `limit`, and `offset` are applied **in Java over the merged set** (registry + platform), not in SQL, so platform skills participate in paging and sorting alongside registry skills (they are interleaved by the sort, not grouped). Sort keys are the same as elsewhere (`PROJECTNAME`, `DATECREATED`, `DATELASTEDITED`); platform skills have no dates, so on a date sort they fall last. Default sort is `PROJECTNAME` ASC.
+- Platform skills are **omitted** when the call scopes on something only projects have: `onlyFavorites=true`, a non-empty `permissionFilters`, or a non-empty `metaFilters`. `filterWord` still applies to platform skills (matched on name/description).
+
+Every other `MyProjects` call (no `type`, or `type="CODE"`/`"INSIGHTS"`, etc.) is unchanged and keeps SQL-side paging.
+
+### Example
+
+```
+MyProjects(
+  metaKeys=["tag","domain","data classification","data restrictions","description"],
+  metaFilters=[{}],
+  filterWord=[""],
+  sort=[{"PROJECTNAME":"ASC"}],
+  type="SKILL",
+  limit=[50],
+  offset=[0]
+);
+```
+
+### Response (abridged)
+
+```json
+[
+  {
+    "type": "SKILL",
+    "project_id": "019eb7d5-4998-76b4-8620-5e9a516816db",
+    "project_name": "pptx",
+    "project_type": "SKILL",
+    "project_date_created": "2026-06-11T17:57:49Z",
+    "permission": 1,
+    "tag": "Skill_Project",
+    "domain": "documents"
+  },
+  {
+    "type": "PLATFORM_SKILL",
+    "slug": "database",
+    "project_name": "database",
+    "project_description": "Use when writing code that queries a relational or graph database on the platform...",
+    "origin": "PLATFORM"
+  }
+]
+```
+
+`GetSkills` remains the skill-centric view (returns `skill_id`/`slug` shaped rows); `MyProjects(type="SKILL")` is the project-list-shaped view of the same skills.
