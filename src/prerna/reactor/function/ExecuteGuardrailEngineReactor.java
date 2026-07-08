@@ -38,9 +38,8 @@ import prerna.util.Utility;
 public class ExecuteGuardrailEngineReactor extends ExecuteReactorFunctionEngineReactor {
 
 	/*
-	 * Just a convenience method
-	 * Works the same as the reactor function engine
-	 * Since guardrail engine is a reactor function engine as well
+	 * Just a convenience method. Works the same as the reactor function engine
+	 * since guardrail engine is a reactor function engine as well
 	 */
 
 	@Override
@@ -72,7 +71,7 @@ public class ExecuteGuardrailEngineReactor extends ExecuteReactorFunctionEngineR
 		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
 		return guardrailEngine.execute(getNounStore(), this.curRow);
 	}
-	
+
 	@Override
 	String getUnableToAccessError(String engineId) {
 		return "Guardrail Engine " + engineId + " does not exist or user does not have access to this guardrail";
