@@ -792,9 +792,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
 
-        citation_index = 1  # start numbering at 1
+        citation_index = 1
         parts = []
-        current_text_block = None  # Track consecutive text blocks to merge them
+        current_text_block = None
         for content in content_array:
             content_type = content.get("type")
 
@@ -1257,9 +1257,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             before = kwargs.get("before_id")
         if before is not None:
             list_kwargs["before_id"] = before
-        resp = self.client.messages.batches.list(**list_kwargs)
+        batches_client = getattr(self.client.messages, "batches", None)
+        resp = batches_client.list(**list_kwargs) if batches_client is not None else None
 
-        data = resp.data
+        data = getattr(resp, "data", []) or []
         batches = []
         for b in data:
             batches.append(
