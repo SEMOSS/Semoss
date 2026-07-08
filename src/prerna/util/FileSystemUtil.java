@@ -80,6 +80,21 @@ public final class FileSystemUtil {
 	 */
 	public static List<Map<String, Object>> browseFileSystem(User user, String filePath, String relativeFilePath,
 			int pathSubstringIndex) {
+		return browseFileSystem(user, filePath, relativeFilePath, pathSubstringIndex, false);
+	}
+
+	/**
+	 * Same as {@link #browseFileSystem(User, String, String, int)} but, when
+	 * {@code publicFolderOnly} is true, the only entry returned is the public
+	 * assets folder (see {@link Constants#PUBLIC_ASSETS_FOLDER}). This is used to
+	 * list the assets root for view-only users, who may see the public folder as a
+	 * node they can traverse into but may not see any other top-level asset.
+	 *
+	 * @param publicFolderOnly when true, restrict the listing to only the public
+	 *                         assets folder directory entry
+	 */
+	public static List<Map<String, Object>> browseFileSystem(User user, String filePath, String relativeFilePath,
+			int pathSubstringIndex, boolean publicFolderOnly) {
 		File directory = new File(filePath);
 		if (!directory.exists()) {
 			throw new IllegalArgumentException(
@@ -103,6 +118,10 @@ public final class FileSystemUtil {
 		File[] allFiles = directory.listFiles();
 		for (File f : allFiles) {
 			if (isHiddenAsset(f)) {
+				continue;
+			}
+			// view-only users listing the assets root may only see the public folder node
+			if (publicFolderOnly && !(f.isDirectory() && Constants.PUBLIC_ASSETS_FOLDER.equals(f.getName()))) {
 				continue;
 			}
 			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
@@ -294,6 +313,116 @@ public final class FileSystemUtil {
 	 */
 	private static boolean isHiddenName(String name) {
 		return name.equals(".git") || name.equals(".admin");
+	}
+
+	/**
+	 * Strips leading/trailing slashes (and normalizes back-slashes) from an
+	 * assets-relative path so it can be compared segment-by-segment. Assumes the
+	 * input has already been run through {@link Utility#normalizePath(String)} so
+	 * that any ".." segments have been resolved away.
+	 *
+	 * @param relativeFilePath the assets-relative path (may be null)
+	 * @return the path without any leading or trailing slash ("" for the root)
+	 */
+	private static String stripAssetPathSlashes(String relativeFilePath) {
+		if (relativeFilePath == null) {
+			return "";
+		}
+		String p = relativeFilePath.replace('\\', '/').trim();
+		while (p.startsWith("/")) {
+			p = p.substring(1);
+		}
+		while (p.endsWith("/")) {
+			p = p.substring(0, p.length() - 1);
+		}
+		return p;
+	}
+
+	/**
+	 * Determines whether an assets-relative path targets the public assets folder
+	 * (see {@link Constants#PUBLIC_ASSETS_FOLDER}) or something inside it. The path
+	 * is expected to already be normalized (see {@link Utility#normalizePath}) so
+	 * that ".." traversal cannot be used to escape the public folder.
+	 *
+	 * @param relativeFilePath the assets-relative path to test (may be null)
+	 * @return true if the path is the public folder itself or lives beneath it
+	 */
+	public static boolean isWithinPublicAssetFolder(String relativeFilePath) {
+		String p = stripAssetPathSlashes(relativeFilePath);
+		return p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/");
+	}
+
+	/**
+	 * Resolves the assets-relative path a user is allowed to read, enforcing the
+	 * public-folder restriction for view-only users. Callers must have already
+	 * verified that the user can at least view the app/engine.
+	 *
+	 * <p>
+	 * Users who can edit have unrestricted access and their path is returned
+	 * unchanged. View-only users are confined to the public assets folder: a
+	 * request for the assets root is scoped down to the public folder, a request
+	 * already within the public folder is allowed, and any other request is
+	 * rejected.
+	 *
+	 * @param canEdit          whether the user can edit the app/engine assets
+	 *                         (unrestricted access)
+	 * @param relativeFilePath the requested assets-relative path (already
+	 *                         normalized); null/empty means the assets root
+	 * @return the assets-relative path to operate on: unchanged for editors,
+	 *         confined to the public folder (with a leading slash, no trailing
+	 *         slash) for view-only users
+	 * @throws IllegalArgumentException if a view-only user requests a path outside
+	 *                                  the public folder
+	 */
+	public static String resolveReadableAssetPath(boolean canEdit, String relativeFilePath) {
+		if (canEdit) {
+			return relativeFilePath;
+		}
+		String p = stripAssetPathSlashes(relativeFilePath);
+		if (p.isEmpty()) {
+			// scope the assets root down to the public folder for view-only users
+			return "/" + Constants.PUBLIC_ASSETS_FOLDER;
+		}
+		if (p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/")) {
+			return "/" + p;
+		}
+		throw new IllegalArgumentException("User only has read access to the '" + Constants.PUBLIC_ASSETS_FOLDER
+				+ "' folder within the assets folder.");
+	}
+
+	/**
+	 * Determines whether a browse of the given assets-relative path should be
+	 * restricted to only showing the public folder node. Callers must have already
+	 * verified that the user can at least view the app/engine.
+	 *
+	 * <p>
+	 * Editors browse freely (returns false). A view-only user browsing the assets
+	 * root sees only the public folder node (returns true), a view-only user
+	 * browsing within the public folder sees its contents (returns false), and any
+	 * other browse request by a view-only user is rejected.
+	 *
+	 * @param canEdit          whether the user can edit the app/engine assets
+	 * @param relativeFilePath the requested assets-relative path (already
+	 *                         normalized); null/empty means the assets root
+	 * @return true if the browse listing should be restricted to only the public
+	 *         folder node; false for an unrestricted listing
+	 * @throws IllegalArgumentException if a view-only user browses a path outside
+	 *                                  the public folder
+	 */
+	public static boolean restrictBrowseToPublicFolder(boolean canEdit, String relativeFilePath) {
+		if (canEdit) {
+			return false;
+		}
+		String p = stripAssetPathSlashes(relativeFilePath);
+		if (p.isEmpty()) {
+			// view-only user at the assets root: only show the public folder node
+			return true;
+		}
+		if (p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/")) {
+			return false;
+		}
+		throw new IllegalArgumentException("User only has read access to the '" + Constants.PUBLIC_ASSETS_FOLDER
+				+ "' folder within the assets folder.");
 	}
 
 	/**
