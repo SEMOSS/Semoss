@@ -48,6 +48,12 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "eks_auto_mode_node_pools" {
+  description = "Node pools for EKS Auto Mode."
+  type        = list(string)
+  default     = ["general-purpose"]
+}
+
 variable "create_cluster_encryption_key" {
   description = "Whether to create a customer-managed KMS key for EKS secrets encryption."
   type        = bool
@@ -58,30 +64,6 @@ variable "cluster_encryption_key_arn" {
   description = "Optional existing KMS key ARN for EKS secrets encryption."
   type        = string
   default     = null
-}
-
-variable "node_instance_types" {
-  description = "Instance types for the managed node group."
-  type        = list(string)
-  default     = ["m6i.large"]
-}
-
-variable "node_desired_size" {
-  description = "Desired node count."
-  type        = number
-  default     = 2
-}
-
-variable "node_min_size" {
-  description = "Minimum node count."
-  type        = number
-  default     = 2
-}
-
-variable "node_max_size" {
-  description = "Maximum node count."
-  type        = number
-  default     = 4
 }
 
 variable "tags" {

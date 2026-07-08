@@ -9,10 +9,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.aws_region
-}
-
 module "eks" {
   source = "../../modules/eks-basic"
 
@@ -25,13 +21,9 @@ module "eks" {
   cluster_endpoint_private_access      = var.cluster_endpoint_private_access
   cluster_endpoint_public_access       = var.cluster_endpoint_public_access
   cluster_endpoint_public_access_cidrs = var.cluster_endpoint_public_access_cidrs
+  eks_auto_mode_node_pools             = var.eks_auto_mode_node_pools
   create_cluster_encryption_key        = var.create_cluster_encryption_key
   cluster_encryption_key_arn           = var.cluster_encryption_key_arn
-
-  node_instance_types = var.node_instance_types
-  node_desired_size   = var.node_desired_size
-  node_min_size       = var.node_min_size
-  node_max_size       = var.node_max_size
 
   tags = var.tags
 }

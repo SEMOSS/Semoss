@@ -22,11 +22,10 @@ cluster_endpoint_public_access_cidrs = [
   "10.0.0.0/8",
 ]
 
-# Node group sizing
-node_instance_types = ["m6i.large"]
-node_desired_size   = 2
-node_min_size       = 2
-node_max_size       = 4
+# EKS Auto Mode
+eks_auto_mode_node_pools = [
+  "general-purpose",
+]
 
 # Common tags
 tags = {

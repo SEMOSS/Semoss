@@ -28,24 +28,9 @@ output "cluster_oidc_issuer_url" {
   value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
 
-output "cluster_oidc_provider_arn" {
-  description = "ARN of the IAM OIDC provider if IRSA is enabled."
-  value       = try(aws_iam_openid_connect_provider.this[0].arn, null)
-}
-
 output "cluster_role_arn" {
   description = "IAM role ARN used by the EKS cluster."
   value       = local.effective_cluster_role_arn
-}
-
-output "node_group_arn" {
-  description = "Managed node group ARN."
-  value       = aws_eks_node_group.this.arn
-}
-
-output "node_group_status" {
-  description = "Managed node group status."
-  value       = aws_eks_node_group.this.status
 }
 
 output "node_role_arn" {

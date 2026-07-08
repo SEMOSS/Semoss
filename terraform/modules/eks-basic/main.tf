@@ -31,16 +31,15 @@ data "aws_iam_policy_document" "node_assume_role" {
 }
 
 locals {
-  tags                         = merge({ Name = var.cluster_name }, var.tags)
-  addon_names                  = var.enable_cluster_addons ? toset([for addon in var.cluster_addon_names : addon if lower(addon) != "coredns"]) : toset([])
-  node_all_tags                = merge(local.tags, var.node_group_tags)
-  effective_encryption_key_arn = coalesce(var.cluster_encryption_key_arn, try(aws_kms_key.cluster_encryption[0].arn, null))
-  bucket_name_base             = coalesce(var.bucket_name, "${lower(replace(var.cluster_name, "/[^a-z0-9-]/", "-"))}-app-files-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}")
-  bucket_name                  = trim(local.bucket_name_base, "-")
-  create_cluster_role          = var.cluster_iam_role_arn == null
-  effective_cluster_role_arn   = var.cluster_iam_role_arn != null ? var.cluster_iam_role_arn : aws_iam_role.cluster[0].arn
-  create_node_role             = var.node_iam_role_arn == null
-  effective_node_role_arn      = var.node_iam_role_arn != null ? var.node_iam_role_arn : aws_iam_role.node[0].arn
+  tags                      = merge({ Name = var.cluster_name }, var.tags)
+  effective_encryption_key_arn           = coalesce(var.cluster_encryption_key_arn, try(aws_kms_key.cluster_encryption[0].arn, null))
+  effective_cluster_sg_ingress_cidr_ipv4 = coalesce(var.cluster_security_group_ingress_cidr_ipv4, data.aws_vpc.selected.cidr_block)
+  sanitized_cluster_name                 = trim(replace(replace(lower(var.cluster_name), "/[^a-z0-9-]/", "-"), "/-+/", "-"), "-")
+  bucket_name                            = coalesce(var.bucket_name, "${local.sanitized_cluster_name}-bucket")
+  create_cluster_role                    = var.cluster_iam_role_arn == null
+  effective_cluster_role_arn             = var.cluster_iam_role_arn != null ? var.cluster_iam_role_arn : aws_iam_role.cluster[0].arn
+  create_node_role                       = var.node_iam_role_arn == null
+  effective_node_role_arn                = var.node_iam_role_arn != null ? var.node_iam_role_arn : aws_iam_role.node[0].arn
 }
 
 resource "aws_s3_bucket" "platform_files" {
@@ -107,6 +106,34 @@ resource "aws_iam_role_policy_attachment" "cluster_vpc_resource_controller" {
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSVPCResourceController"
 }
 
+resource "aws_iam_role_policy_attachment" "cluster_auto_compute" {
+  count = local.create_cluster_role ? 1 : 0
+
+  role       = aws_iam_role.cluster[0].name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSComputePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_auto_block_storage" {
+  count = local.create_cluster_role ? 1 : 0
+
+  role       = aws_iam_role.cluster[0].name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSBlockStoragePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_auto_load_balancing" {
+  count = local.create_cluster_role ? 1 : 0
+
+  role       = aws_iam_role.cluster[0].name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSLoadBalancingPolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "cluster_auto_networking" {
+  count = local.create_cluster_role ? 1 : 0
+
+  role       = aws_iam_role.cluster[0].name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSNetworkingPolicy"
+}
+
 resource "aws_iam_role" "node" {
   count = local.create_node_role ? 1 : 0
 
@@ -115,32 +142,18 @@ resource "aws_iam_role" "node" {
   tags               = local.tags
 }
 
-resource "aws_iam_role_policy_attachment" "node_worker" {
+resource "aws_iam_role_policy_attachment" "node_worker_minimal" {
   count = local.create_node_role ? 1 : 0
 
   role       = aws_iam_role.node[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy"
 }
 
-resource "aws_iam_role_policy_attachment" "node_cni" {
+resource "aws_iam_role_policy_attachment" "node_ecr_pull_only" {
   count = local.create_node_role ? 1 : 0
 
   role       = aws_iam_role.node[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "node_ecr_readonly" {
-  count = local.create_node_role ? 1 : 0
-
-  role       = aws_iam_role.node[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_role_policy_attachment" "node_ssm" {
-  count = (local.create_node_role && var.attach_ssm_policy_to_nodes) ? 1 : 0
-
-  role       = aws_iam_role.node[0].name
-  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
 }
 
 data "aws_iam_policy_document" "cluster_kms_key" {
@@ -200,6 +213,7 @@ resource "aws_eks_cluster" "this" {
   role_arn = local.effective_cluster_role_arn
   version  = var.kubernetes_version
   tags     = local.tags
+  bootstrap_self_managed_addons = false
 
   enabled_cluster_log_types = var.cluster_log_types
 
@@ -213,6 +227,24 @@ resource "aws_eks_cluster" "this" {
     endpoint_private_access = var.cluster_endpoint_private_access
     endpoint_public_access  = var.cluster_endpoint_public_access
     public_access_cidrs     = var.cluster_endpoint_public_access ? var.cluster_endpoint_public_access_cidrs : null
+  }
+
+  compute_config {
+    enabled       = true
+    node_pools    = var.eks_auto_mode_node_pools
+    node_role_arn = local.effective_node_role_arn
+  }
+
+  kubernetes_network_config {
+    elastic_load_balancing {
+      enabled = true
+    }
+  }
+
+  storage_config {
+    block_storage {
+      enabled = true
+    }
   }
 
   dynamic "encryption_config" {
@@ -230,86 +262,25 @@ resource "aws_eks_cluster" "this" {
   depends_on = [
     aws_iam_role_policy_attachment.cluster,
     aws_iam_role_policy_attachment.cluster_vpc_resource_controller,
+    aws_iam_role_policy_attachment.cluster_auto_compute,
+    aws_iam_role_policy_attachment.cluster_auto_block_storage,
+    aws_iam_role_policy_attachment.cluster_auto_load_balancing,
+    aws_iam_role_policy_attachment.cluster_auto_networking,
     aws_kms_alias.cluster_encryption,
   ]
 }
 
-resource "aws_eks_addon" "managed" {
-  for_each = local.addon_names
+resource "aws_vpc_security_group_ingress_rule" "cluster_api_from_cidr" {
+  count = var.manage_cluster_security_group_ingress_rule ? 1 : 0
 
-  cluster_name                = aws_eks_cluster.this.name
-  addon_name                  = each.value
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "OVERWRITE"
-  tags                        = local.tags
+  security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+  description       = "Allow TCP ${var.cluster_security_group_ingress_port} from configured CIDR"
+  cidr_ipv4         = local.effective_cluster_sg_ingress_cidr_ipv4
+  from_port         = var.cluster_security_group_ingress_port
+  ip_protocol       = "tcp"
+  to_port           = var.cluster_security_group_ingress_port
 }
 
-resource "aws_launch_template" "node_custom_ami" {
-  count = var.node_ami_image_id == null ? 0 : 1
-
-  name_prefix = "${var.cluster_name}-${var.node_group_name}-"
-  image_id    = var.node_ami_image_id
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = local.node_all_tags
-  }
-
-  tags = local.node_all_tags
-}
-
-resource "aws_eks_node_group" "this" {
-  cluster_name         = aws_eks_cluster.this.name
-  node_group_name      = var.node_group_name
-  node_role_arn        = local.effective_node_role_arn
-  subnet_ids           = var.subnet_ids
-  capacity_type        = var.node_capacity_type
-  disk_size            = var.node_ami_image_id == null ? var.node_disk_size : null
-  instance_types       = var.node_instance_types
-  ami_type             = var.node_ami_image_id == null ? var.node_ami_type : null
-  force_update_version = true
-  tags                 = local.node_all_tags
-
-  dynamic "launch_template" {
-    for_each = var.node_ami_image_id == null ? [] : [aws_launch_template.node_custom_ami[0]]
-
-    content {
-      id      = launch_template.value.id
-      version = tostring(launch_template.value.latest_version)
-    }
-  }
-
-  scaling_config {
-    desired_size = var.node_desired_size
-    min_size     = var.node_min_size
-    max_size     = var.node_max_size
-  }
-
-  update_config {
-    max_unavailable = 1
-  }
-
-  labels = var.node_labels
-
-  dynamic "taint" {
-    for_each = var.node_taints
-
-    content {
-      key    = taint.value.key
-      value  = taint.value.value
-      effect = taint.value.effect
-    }
-  }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.node_worker,
-    aws_iam_role_policy_attachment.node_cni,
-    aws_iam_role_policy_attachment.node_ecr_readonly,
-    aws_iam_role_policy_attachment.node_ssm,
-    aws_eks_cluster.this,
-    aws_eks_addon.managed,
-  ]
-}
 
 resource "aws_eks_access_entry" "admins" {
   for_each = toset(var.cluster_admin_principal_arns)
@@ -331,18 +302,4 @@ resource "aws_eks_access_policy_association" "admins" {
   }
 
   depends_on = [aws_eks_access_entry.admins]
-}
-
-data "tls_certificate" "oidc" {
-  count = var.enable_irsa ? 1 : 0
-  url   = aws_eks_cluster.this.identity[0].oidc[0].issuer
-}
-
-resource "aws_iam_openid_connect_provider" "this" {
-  count = var.enable_irsa ? 1 : 0
-
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.oidc[0].certificates[0].sha1_fingerprint]
-  url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
-  tags            = local.tags
 }

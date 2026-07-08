@@ -15,7 +15,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  description = "Subnet IDs for the EKS control plane and node group."
+  description = "Subnet IDs for the EKS control plane."
   type        = list(string)
 }
 
@@ -37,6 +37,34 @@ variable "cluster_endpoint_public_access_cidrs" {
   default     = ["0.0.0.0/0"]
 }
 
+variable "cluster_security_group_ingress_port" {
+  description = "TCP port to allow into the EKS cluster security group from cluster_security_group_ingress_cidr_ipv4."
+  type        = number
+  default     = 8443
+
+  validation {
+    condition     = var.cluster_security_group_ingress_port >= 1 && var.cluster_security_group_ingress_port <= 65535
+    error_message = "cluster_security_group_ingress_port must be between 1 and 65535."
+  }
+}
+
+variable "cluster_security_group_ingress_cidr_ipv4" {
+  description = "IPv4 CIDR allowed into the EKS cluster security group on cluster_security_group_ingress_port. When null, uses the VPC CIDR block."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.cluster_security_group_ingress_cidr_ipv4 == null || can(cidrhost(var.cluster_security_group_ingress_cidr_ipv4, 0))
+    error_message = "cluster_security_group_ingress_cidr_ipv4 must be a valid IPv4 CIDR block or null."
+  }
+}
+
+variable "manage_cluster_security_group_ingress_rule" {
+  description = "Whether this module should create the EKS cluster security group ingress rule. Set false when the rule already exists outside Terraform management."
+  type        = bool
+  default     = false
+}
+
 variable "cluster_log_types" {
   description = "Control plane log types to enable."
   type        = list(string)
@@ -49,16 +77,15 @@ variable "cluster_admin_principal_arns" {
   default     = []
 }
 
-variable "cluster_addon_names" {
-  description = "Managed EKS add-ons to install (CoreDNS is intentionally excluded by this module)."
-  type        = set(string)
-  default     = ["kube-proxy", "vpc-cni", "eks-pod-identity-agent"]
-}
+variable "eks_auto_mode_node_pools" {
+  description = "Node pools for EKS Auto Mode. Valid values are general-purpose and system."
+  type        = list(string)
+  default     = ["general-purpose"]
 
-variable "enable_cluster_addons" {
-  description = "Whether managed EKS add-ons should be installed."
-  type        = bool
-  default     = true
+  validation {
+    condition     = alltrue([for pool in var.eks_auto_mode_node_pools : contains(["general-purpose", "system"], pool)])
+    error_message = "eks_auto_mode_node_pools values must be either general-purpose or system."
+  }
 }
 
 variable "create_cluster_encryption_key" {
@@ -85,7 +112,7 @@ variable "create_bucket" {
 }
 
 variable "bucket_name" {
-  description = "Optional name for the application files S3 bucket. If null, a name is generated from cluster name, account ID, and region."
+  description = "Optional name for the application files S3 bucket. If null, a name is generated from the cluster name with a -bucket suffix."
   type        = string
   default     = null
 }
@@ -102,119 +129,16 @@ variable "bucket_force_destroy" {
   default     = false
 }
 
-variable "node_group_name" {
-  description = "Name of the managed node group."
-  type        = string
-  default     = "default"
-}
-
-variable "node_instance_types" {
-  description = "Instance types for the managed node group."
-  type        = list(string)
-  default     = ["m6i.large"]
-}
-
-variable "node_capacity_type" {
-  description = "Capacity type for the managed node group."
-  type        = string
-  default     = "ON_DEMAND"
-
-  validation {
-    condition     = contains(["ON_DEMAND", "SPOT"], var.node_capacity_type)
-    error_message = "node_capacity_type must be ON_DEMAND or SPOT."
-  }
-}
-
-variable "node_ami_type" {
-  description = "AMI type for the managed node group."
-  type        = string
-  default     = "AL2_x86_64"
-}
-
-variable "node_ami_image_id" {
-  description = "Optional custom AMI ID for managed node group instances. When set, the node group uses a launch template with this AMI and ignores node_ami_type."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.node_ami_image_id == null || can(regex("^ami-[0-9a-fA-F]+$", var.node_ami_image_id))
-    error_message = "node_ami_image_id must be a valid AMI ID (for example, ami-0123456789abcdef0) or null."
-  }
-}
-
-variable "node_disk_size" {
-  description = "Root disk size in GiB for worker nodes."
-  type        = number
-  default     = 50
-}
-
-variable "node_desired_size" {
-  description = "Desired number of nodes in the managed node group."
-  type        = number
-  default     = 2
-}
-
-variable "node_min_size" {
-  description = "Minimum number of nodes in the managed node group."
-  type        = number
-  default     = 2
-}
-
-variable "node_max_size" {
-  description = "Maximum number of nodes in the managed node group."
-  type        = number
-  default     = 4
-
-  validation {
-    condition     = var.node_min_size <= var.node_desired_size && var.node_desired_size <= var.node_max_size
-    error_message = "node_min_size must be <= node_desired_size and node_desired_size must be <= node_max_size."
-  }
-}
-
-variable "node_labels" {
-  description = "Labels applied to the managed node group."
-  type        = map(string)
-  default     = {}
-}
-
-variable "node_taints" {
-  description = "Taints applied to the managed node group."
-  type = list(object({
-    key    = string
-    value  = string
-    effect = string
-  }))
-  default = []
-}
-
-variable "node_group_tags" {
-  description = "Additional tags for the managed node group resource."
-  type        = map(string)
-  default     = {}
-}
-
 variable "cluster_iam_role_arn" {
-  description = "ARN of an existing IAM role for the EKS cluster. When set, the module will not create a cluster IAM role. The provided role must already have the AmazonEKSClusterPolicy and AmazonEKSVPCResourceController policies attached."
+  description = "ARN of an existing IAM role for the EKS cluster. When set, the module will not create a cluster IAM role. The provided role must already have the required EKS cluster policies attached."
   type        = string
   default     = null
 }
 
 variable "node_iam_role_arn" {
-  description = "ARN of an existing IAM role to attach to worker nodes. When set, the module will not create a node IAM role and will not attach any managed policies to it. The provided role must already have the permissions required by your workloads."
+  description = "ARN of an existing IAM role for EKS Auto Mode managed instances. When set, the module will not create a node IAM role."
   type        = string
   default     = null
-}
-
-variable "attach_ssm_policy_to_nodes" {
-  description = "Whether to attach the SSM managed instance policy to worker nodes. Has no effect when node_iam_role_arn is provided."
-  type        = bool
-  default     = false
-}
-
-variable "enable_irsa" {
-  description = "Whether to create an OIDC provider for IAM roles for service accounts."
-  type        = bool
-  default     = true
 }
 
 variable "tags" {
