@@ -228,7 +228,22 @@ public class RemoteBrowserRecordingService {
 		if (isModifierKey(event.getKey())) {
 			return;
 		}
-		PlaywrightStep previous = session.getPendingTypeStep(selectorSignature(event));
+		String signature = selectorSignature(event);
+		PlaywrightStep previous = session.getPendingTypeStep(signature);
+		if (previous == null) {
+			previous = session.getPendingTypeStep();
+		}
+		if (previous != null && isTextDeletingKey(event.getKey())) {
+			String currentValue = RemoteBrowserSelectorService.focusedValueIfMatches(session.getPage(),
+					selectorOrPrevious(event, previous));
+			if (currentValue != null) {
+				PlaywrightStep updated = withText(previous, Boolean.TRUE.equals(event.getIsPassword()) ? "" : currentValue,
+						event);
+				session.replaceLastRemoteBrowserRecordedStep(DEFAULT_TAB_ID, updated);
+				session.setPendingTypeStep(selectorSignatureForStep(updated), updated);
+			}
+			return;
+		}
 		if (previous != null && "Enter".equalsIgnoreCase(event.getKey())) {
 			PlaywrightStep updated = new PlaywrightStep(previous.id(), previous.type(), previous.url(),
 					previous.coords(), previous.multiCoords(), previous.prompt(), previous.text(), true,
@@ -241,6 +256,19 @@ public class RemoteBrowserRecordingService {
 			return;
 		}
 		session.clearPendingTypeStep();
+	}
+
+	private static boolean isTextDeletingKey(String key) {
+		return "Backspace".equalsIgnoreCase(key) || "Delete".equalsIgnoreCase(key);
+	}
+
+	private static PlaywrightStep withText(PlaywrightStep previous, String text, RemoteBrowserInputEvent event) {
+		return new PlaywrightStep(previous.id(), previous.type(), previous.url(), coordsOrPrevious(event, previous),
+				previous.multiCoords(), previous.prompt(), text, previous.pressEnter(), previous.deltaY(),
+				previous.waitUntil(), previous.waitAfterMs(), previous.viewport(), previous.timestamp(),
+				label(event, previous), description(event, previous), previous.isPassword(), storeValue(event, previous),
+				selectorOrPrevious(event, previous), previous.isTriggerNewTab(), shouldRun(event), required(event),
+				sendToPlayground(event), tag(event, previous));
 	}
 
 	private static boolean isModifierKey(String key) {
@@ -302,6 +330,22 @@ public class RemoteBrowserRecordingService {
 					nullToEmpty(selector.frameSelector()));
 		}
 		Coords c = coords(event);
+		if (c != null) {
+			return "coords|" + c.x() + "|" + c.y();
+		}
+		return "unknown";
+	}
+
+	private static String selectorSignatureForStep(PlaywrightStep step) {
+		if (step == null) {
+			return "unknown";
+		}
+		Selector selector = step.selector();
+		if (selector != null && selector.value() != null && !selector.value().isBlank()) {
+			return String.join("|", nullToEmpty(selector.strategy()), selector.value(),
+					nullToEmpty(selector.frameSelector()));
+		}
+		Coords c = step.coords();
 		if (c != null) {
 			return "coords|" + c.x() + "|" + c.y();
 		}

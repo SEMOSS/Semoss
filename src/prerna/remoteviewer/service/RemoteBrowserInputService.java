@@ -330,7 +330,7 @@ public class RemoteBrowserInputService {
 				if (loc != null) {
 					classLogger.info("Remote viewer type attempt method=selector selector={} textLength={}",
 							describeSelector(sel), event.getText() != null ? event.getText().length() : null);
-					loc.fill(event.getText(), new Locator.FillOptions().setTimeout(5_000));
+					loc.pressSequentially(event.getText(), new Locator.PressSequentiallyOptions().setTimeout(5_000));
 					classLogger.info("Remote viewer type success method=selector selector={}", describeSelector(sel));
 					return;
 				}

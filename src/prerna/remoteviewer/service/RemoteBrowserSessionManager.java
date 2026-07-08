@@ -217,6 +217,7 @@ public class RemoteBrowserSessionManager {
 					if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
+						RemoteBrowserSelectorService.enrich(session, event);
 						RemoteBrowserInputService.dispatch(session, event);
 						RemoteBrowserRecordingService.record(session, event);
 					}
