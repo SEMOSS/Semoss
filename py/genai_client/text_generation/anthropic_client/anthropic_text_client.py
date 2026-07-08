@@ -94,7 +94,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
-            from anthropic.lib.bedrock import AnthropicBedrock
+            from anthropic import AnthropicBedrock
 
             return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
