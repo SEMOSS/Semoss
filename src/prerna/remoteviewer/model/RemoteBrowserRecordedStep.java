@@ -33,10 +33,10 @@ import prerna.reactor.playwright.Viewport;
  * A recorded interaction step captured during a remote browser session. Steps
  * are stored in memory and can be persisted for later replay.
  */
-public class RecordedStep {
+public class RemoteBrowserRecordedStep {
 
 	/**
-	 * Device scale factor for remote browser sessions (see BrowserSessionManager).
+	 * Device scale factor for remote browser sessions (see RemoteBrowserSessionManager).
 	 */
 	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
@@ -68,42 +68,42 @@ public class RecordedStep {
 	}
 
 	// Builder-style setters
-	public RecordedStep type(String type) {
+	public RemoteBrowserRecordedStep type(String type) {
 		this.type = type;
 		return this;
 	}
 
-	public RecordedStep url(String url) {
+	public RemoteBrowserRecordedStep url(String url) {
 		this.url = url;
 		return this;
 	}
 
-	public RecordedStep selector(String selector) {
+	public RemoteBrowserRecordedStep selector(String selector) {
 		this.selector = selector;
 		return this;
 	}
 
-	public RecordedStep text(String text) {
+	public RemoteBrowserRecordedStep text(String text) {
 		this.text = text;
 		return this;
 	}
 
-	public RecordedStep role(String role) {
+	public RemoteBrowserRecordedStep role(String role) {
 		this.role = role;
 		return this;
 	}
 
-	public RecordedStep coordinates(double x, double y) {
+	public RemoteBrowserRecordedStep coordinates(double x, double y) {
 		this.coordinates = new CoordinatesInfo(x, y);
 		return this;
 	}
 
-	public RecordedStep viewport(int width, int height) {
+	public RemoteBrowserRecordedStep viewport(int width, int height) {
 		this.viewport = new Viewport(width, height, DEVICE_SCALE_FACTOR);
 		return this;
 	}
 
-	public RecordedStep timestamp(long ts) {
+	public RemoteBrowserRecordedStep timestamp(long ts) {
 		this.timestamp = ts;
 		return this;
 	}

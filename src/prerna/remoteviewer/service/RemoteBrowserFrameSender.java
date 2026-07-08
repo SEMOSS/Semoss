@@ -35,7 +35,7 @@ package prerna.remoteviewer.service;
  * {@code Session.getBasicRemote().sendText(json)}.
  */
 @FunctionalInterface
-public interface FrameSender {
+public interface RemoteBrowserFrameSender {
 	/**
 	 * Send a JSON string to the connected WebSocket client. Implementations must be
 	 * thread-safe.

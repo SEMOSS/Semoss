@@ -49,10 +49,11 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.ScreenshotType;
 
+import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
 import prerna.reactor.playwright.PlaywrightSession;
-import prerna.remoteviewer.model.BrowserInputEvent;
-import prerna.remoteviewer.security.UrlSafetyValidator;
+import prerna.remoteviewer.model.RemoteBrowserInputEvent;
+import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
 /**
  * Singleton that manages all active remote browser sessions.
@@ -63,89 +64,115 @@ import prerna.remoteviewer.security.UrlSafetyValidator;
  * browser ({@link prerna.reactor.playwright.PlaywrightBrowserProvider}).
  * Sessions are cleaned up on explicit close or TTL expiry.
  */
-public class BrowserSessionManager {
+public class RemoteBrowserSessionManager {
 
-	private static final Logger classLogger = LogManager.getLogger(BrowserSessionManager.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserSessionManager.class);
 
-	private static final BrowserSessionManager INSTANCE = new BrowserSessionManager();
+	private static final RemoteBrowserSessionManager INSTANCE = new RemoteBrowserSessionManager();
 
 	/** All active sessions keyed by sessionId. */
-	private final Map<String, BrowserSession> sessions = new ConcurrentHashMap<>();
+	private final Map<String, RemoteBrowserSession> sessions = new ConcurrentHashMap<>();
+
+	/** Canonical remote PlaywrightSession id per logged-in user. */
+	private final Map<String, String> userRemoteSessionIds = new ConcurrentHashMap<>();
 
 	/** TTL in seconds before an idle session is reaped. */
 	private final long ttlSeconds;
 	private final int defaultViewportWidth;
 	private final int defaultViewportHeight;
 	private final int maxSessionsPerUser;
-	/**
-	 * Absolute max lifetime (minutes) enforced by the wrapped PlaywrightSession as
-	 * a backstop; idle TTL governs normal cleanup.
-	 */
-	private final long sessionMaxMinutes;
-
 	private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
-		Thread t = new Thread(r, "BrowserSessionReaper");
+		Thread t = new Thread(r, "RemoteBrowserSessionReaper");
 		t.setDaemon(true);
 		return t;
 	});
 
-	private BrowserSessionManager() {
+	private RemoteBrowserSessionManager() {
 		this.ttlSeconds = parseLong("REMOTE_BROWSER_SESSION_TTL_SECONDS", 900);
 		this.defaultViewportWidth = parseInt("REMOTE_BROWSER_VIEWPORT_WIDTH", 1365);
 		this.defaultViewportHeight = parseInt("REMOTE_BROWSER_VIEWPORT_HEIGHT", 768);
 		this.maxSessionsPerUser = parseInt("REMOTE_BROWSER_MAX_SESSIONS_PER_USER", 10);
-		this.sessionMaxMinutes = parseLong("REMOTE_BROWSER_SESSION_MAX_MINUTES", 720);
 
 		// Reap expired sessions every 60 seconds
 		reaper.scheduleAtFixedRate(this::closeExpiredSessions, 60, 60, TimeUnit.SECONDS);
 	}
 
-	public static BrowserSessionManager getInstance() {
+	public static RemoteBrowserSessionManager getInstance() {
 		return INSTANCE;
 	}
 
 	/**
-	 * Creates a new isolated browser session for the given user and navigates to
-	 * {@code url}.
+	 * Creates or reopens the user's canonical remote browser session and navigates
+	 * to {@code url}. The returned {@link RemoteBrowserSession} is the socket/viewer
+	 * transport wrapper; the underlying {@link PlaywrightSession} is stored on the
+	 * {@link User} and survives viewer close/TTL until that PlaywrightSession is
+	 * closed by normal user-session cleanup.
 	 *
-	 * @param userId the authenticated SEMOSS user id
-	 * @param url    the target URL (must pass {@link UrlSafetyValidator})
+	 * @param user   the authenticated SEMOSS user
+	 * @param url    the target URL (must pass {@link RemoteBrowserUrlSafetyValidator})
 	 * @param width  requested viewport width (or 0 to use default)
 	 * @param height requested viewport height (or 0 to use default)
-	 * @return the newly created {@link BrowserSession}
+	 * @return the active viewer/control {@link RemoteBrowserSession}
 	 */
-	public BrowserSession createSession(String userId, String url, int width, int height) {
-		UrlSafetyValidator.validate(url);
+	public RemoteBrowserSession createSession(User user, String url, int width, int height) {
+		RemoteBrowserUrlSafetyValidator.validate(url);
+		String userId = user.getPrimaryLoginToken().getId();
 
-		// Enforce per-user session limit
-		long userCount = sessions.values().stream().filter(s -> !s.isClosed() && userId.equals(s.getUserId())).count();
-		if (userCount >= maxSessionsPerUser) {
-			throw new IllegalStateException(
-					"Maximum concurrent sessions (" + maxSessionsPerUser + ") reached for this user");
-		}
-
+		String sessionId = userRemoteSessionIds.get(userId);
+		PlaywrightSession playwrightSession = sessionId == null ? null : user.getPlaywrightSession(sessionId);
 		int vpWidth = width > 0 ? width : defaultViewportWidth;
 		int vpHeight = height > 0 ? height : defaultViewportHeight;
+		Page page = null;
 
-		// Reuse the shared, lazily-launched browser (chromium, headless) and isolate
-		// each session with its own BrowserContext instead of a per-session Playwright
-		// instance.
-		Browser browser = PlaywrightBrowserProvider.getBrowser();
+		if (playwrightSession != null) {
+			try {
+				page = playwrightSession.getPage();
+				if (page == null || page.isClosed()) {
+					playwrightSession = null;
+				}
+			} catch (Exception e) {
+				classLogger.debug("User remote Playwright session {} is not reusable: {}", sessionId, e.getMessage());
+				playwrightSession = null;
+			}
+		}
 
-		Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions().setViewportSize(vpWidth, vpHeight)
-				.setDeviceScaleFactor(1.0);
-		BrowserContext context = browser.newContext(ctxOpts);
-		context.setDefaultTimeout(30_000);
-		context.setDefaultNavigationTimeout(30_000);
+		if (playwrightSession == null) {
+			long userCount = sessions.values().stream()
+					.filter(s -> !s.isClosed() && userId.equals(s.getUserId()))
+					.count();
+			if (userCount >= maxSessionsPerUser) {
+				throw new IllegalStateException(
+						"Maximum concurrent sessions (" + maxSessionsPerUser + ") reached for this user");
+			}
 
-		Page page = context.newPage();
+			// Reuse the shared, lazily-launched browser and isolate each user-owned
+			// PlaywrightSession with its own BrowserContext.
+			Browser browser = PlaywrightBrowserProvider.getBrowser();
 
-		String sessionId = UUID.randomUUID().toString();
-		// Wrap a PlaywrightSession (owns context/page/network tracking); the viewer
-		// adds the streaming transport state and manages idle-based cleanup via this
-		// manager.
-		PlaywrightSession playwrightSession = PlaywrightSession.forRemoteViewer(context, page, sessionMaxMinutes);
-		BrowserSession session = new BrowserSession(sessionId, userId, playwrightSession, vpWidth, vpHeight);
+			Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions().setViewportSize(vpWidth, vpHeight)
+					.setDeviceScaleFactor(1.0);
+			BrowserContext context = browser.newContext(ctxOpts);
+			context.setDefaultTimeout(30_000);
+			context.setDefaultNavigationTimeout(30_000);
+			page = context.newPage();
+
+			sessionId = UUID.randomUUID().toString();
+			playwrightSession = PlaywrightSession.forRemoteViewer(user, sessionId, context, page);
+			userRemoteSessionIds.put(userId, sessionId);
+		} else {
+			try {
+				page.setViewportSize(vpWidth, vpHeight);
+			} catch (Exception e) {
+				classLogger.debug("Could not update viewport for reused browser session {}: {}", sessionId,
+						e.getMessage());
+			}
+			RemoteBrowserSession existingViewer = sessions.get(sessionId);
+			if (existingViewer != null && !existingViewer.isClosed()) {
+				closeSession(existingViewer);
+			}
+		}
+
+		RemoteBrowserSession session = new RemoteBrowserSession(sessionId, userId, playwrightSession, vpWidth, vpHeight);
 
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);
@@ -156,6 +183,7 @@ public class BrowserSessionManager {
 			// Navigation failure is non-fatal — the client will see an error frame
 			classLogger.warn("Initial navigation to '{}' failed for session {}: {}", url, sessionId, e.getMessage());
 		}
+		RemoteBrowserRecordingService.recordInitialNavigation(session, url);
 
 		// Start the event-processing loop immediately so that injected events
 		// (e.g. from the Chrome extension mock) are processed even before a
@@ -165,7 +193,7 @@ public class BrowserSessionManager {
 		session.setSessionThread(loopThread);
 		loopThread.start();
 
-		classLogger.info("Created remote browser session {} for user {} -> {}", sessionId, userId, url);
+		classLogger.info("Opened remote browser viewer {} for user {} -> {}", sessionId, userId, url);
 		return session;
 	}
 
@@ -175,19 +203,23 @@ public class BrowserSessionManager {
 	 */
 	private static final Gson LOOP_GSON = new Gson();
 
-	private void runEventLoop(BrowserSession session) {
+	private void runEventLoop(RemoteBrowserSession session) {
 		Page page = session.getPage();
 		String lastUrl = "";
 		while (!session.isClosed() && !Thread.currentThread().isInterrupted()) {
 			long start = System.currentTimeMillis();
 			try {
 				// Process all queued events (from WebSocket or inject endpoint)
-				BrowserInputEvent event;
+				RemoteBrowserInputEvent event;
 				while ((event = session.eventQueue.poll()) != null) {
 					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
 							session.getSessionId(), session.eventQueue.size(), event.getType());
-					BrowserInputService.dispatch(session, event);
-					BrowserRecordingService.record(session, event);
+					if (isRecordingControl(event)) {
+						RemoteBrowserRecordingService.record(session, event);
+					} else {
+						RemoteBrowserInputService.dispatch(session, event);
+						RemoteBrowserRecordingService.record(session, event);
+					}
 					session.touchActivity();
 				}
 
@@ -196,7 +228,7 @@ public class BrowserSessionManager {
 				}
 
 				// Send frame and navigated notification only when a viewer is connected
-				FrameSender sender = session.getFrameSender();
+				RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
 				if (sender != null && session.isWsConnected()) {
 					// Notify URL changes
 					try {
@@ -238,8 +270,8 @@ public class BrowserSessionManager {
 	/**
 	 * Returns the session, or empty if not found or already closed.
 	 */
-	public Optional<BrowserSession> getSession(String sessionId) {
-		BrowserSession s = sessions.get(sessionId);
+	public Optional<RemoteBrowserSession> getSession(String sessionId) {
+		RemoteBrowserSession s = sessions.get(sessionId);
 		if (s == null || s.isClosed()) {
 			return Optional.empty();
 		}
@@ -247,23 +279,23 @@ public class BrowserSessionManager {
 	}
 
 	/**
-	 * Closes the session with the given id and releases all Playwright resources.
+	 * Closes the socket/viewer wrapper with the given id. The user-owned
+	 * PlaywrightSession and browser cache are intentionally left open.
 	 */
 	public void closeSession(String sessionId) {
 		closeSession(sessions.get(sessionId));
 	}
 
 	/**
-	 * Closes the given session and releases all Playwright resources. Idempotent
-	 * and null-safe.
+	 * Closes the given socket/viewer wrapper. Idempotent and null-safe.
 	 */
-	public void closeSession(BrowserSession session) {
+	public void closeSession(RemoteBrowserSession session) {
 		if (session == null) {
 			return;
 		}
 		sessions.remove(session.getSessionId(), session);
 		if (session.markClosed()) {
-			safeClose(session);
+			closeViewerTransport(session);
 		}
 	}
 
@@ -274,8 +306,8 @@ public class BrowserSessionManager {
 		Instant cutoff = Instant.now().minusSeconds(ttlSeconds);
 		List<String> toRemove = new ArrayList<>();
 
-		for (Map.Entry<String, BrowserSession> entry : sessions.entrySet()) {
-			BrowserSession s = entry.getValue();
+		for (Map.Entry<String, RemoteBrowserSession> entry : sessions.entrySet()) {
+			RemoteBrowserSession s = entry.getValue();
 			if (s.isClosed() || s.getLastActivityAt().isBefore(cutoff)) {
 				toRemove.add(entry.getKey());
 			}
@@ -291,37 +323,37 @@ public class BrowserSessionManager {
 	 * Closes all sessions (called on application shutdown).
 	 */
 	public void shutdownAll() {
-		for (Iterator<Map.Entry<String, BrowserSession>> it = sessions.entrySet().iterator(); it.hasNext();) {
-			Map.Entry<String, BrowserSession> entry = it.next();
+		for (Iterator<Map.Entry<String, RemoteBrowserSession>> it = sessions.entrySet().iterator(); it.hasNext();) {
+			Map.Entry<String, RemoteBrowserSession> entry = it.next();
 			it.remove();
-			safeClose(entry.getValue());
+			RemoteBrowserSession session = entry.getValue();
+			if (session.markClosed()) {
+				closeViewerTransport(session);
+			}
 		}
 		reaper.shutdownNow();
 	}
 
 	// ---- helpers ----
 
-	private void safeClose(BrowserSession s) {
+	private static boolean isRecordingControl(RemoteBrowserInputEvent event) {
+		if (event == null) {
+			return false;
+		}
+		return "recording".equals(event.getType()) || "recording-control".equals(event.getType());
+	}
+
+	private void closeViewerTransport(RemoteBrowserSession s) {
 		// Interrupt the session loop thread if running
 		Thread t = s.getSessionThread();
 		if (t != null && t.isAlive()) {
 			t.interrupt();
 		}
-		// Close the wrapped PlaywrightSession (closes its pages; idempotent, so the
-		// backstop expiry task becomes a no-op).
-		try {
-			s.getPlaywrightSession().close();
-		} catch (Exception e) {
-			classLogger.debug("Error closing playwright session {}: {}", s.getSessionId(), e.getMessage());
-		}
-		// Each viewer owns its context, so close it here. The browser and Playwright
-		// instance are shared (owned by PlaywrightBrowserProvider) and must not be
-		// closed.
-		try {
-			s.getContext().close();
-		} catch (Exception e) {
-			classLogger.debug("Error closing browser context for session {}: {}", s.getSessionId(), e.getMessage());
-		}
+		RemoteBrowserRecordingService.discardRecording(s);
+		s.setRemoteBrowserFrameSender(null);
+		s.setWsConnected(false);
+		classLogger.info("Closed remote browser viewer transport {}; Playwright session remains user-owned",
+				s.getSessionId());
 	}
 
 	private static long parseLong(String envKey, long def) {

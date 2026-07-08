@@ -42,8 +42,8 @@ import com.microsoft.playwright.options.MouseButton;
 import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.reactor.playwright.Selector;
-import prerna.remoteviewer.model.BrowserInputEvent;
-import prerna.remoteviewer.security.UrlSafetyValidator;
+import prerna.remoteviewer.model.RemoteBrowserInputEvent;
+import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
 /**
  * Maps validated frontend input events onto Playwright browser actions. For
@@ -52,15 +52,13 @@ import prerna.remoteviewer.security.UrlSafetyValidator;
  *
  * All calls must be made from the session's dedicated Playwright thread.
  */
-public class BrowserInputService {
+public class RemoteBrowserInputService {
 
-	private static final Logger classLogger = LogManager.getLogger(BrowserInputService.class);
-	private static final int DEFAULT_WAIT_AFTER_MS = 300;
-
-	private BrowserInputService() {
+	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
+	private RemoteBrowserInputService() {
 	}
 
-	public static void dispatch(BrowserSession session, BrowserInputEvent event) {
+	public static void dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		Page page = session.getPage();
 		if (page == null || page.isClosed()) {
 			return;
@@ -98,13 +96,13 @@ public class BrowserInputService {
 				navigate(page, event);
 				break;
 			case "navigate-back":
-				page.goBack();
+				goBack(page, event);
 				break;
 			case "navigate-forward":
-				page.goForward();
+				goForward(page, event);
 				break;
 			case "reload":
-				page.reload();
+				reload(page, event);
 				break;
 			default:
 				classLogger.warn("Unhandled input event type: {}", type);
@@ -123,19 +121,24 @@ public class BrowserInputService {
 
 	// ---- Click with 3-tier fallback ----
 
-	private static void clickWithNavigationWait(Page page, BrowserInputEvent event) {
+	private static void clickWithNavigationWait(Page page, RemoteBrowserInputEvent event) {
+		if (isLiveEvent(event)) {
+			clickWithFallback(page, event, true);
+			return;
+		}
+
 		boolean likelyNavigation = isLikelyNavigationClick(page, event);
 		classLogger.info("Remote viewer click navigationProbe likelyNavigation={} event={}", likelyNavigation,
 				describeEvent(event));
 		if (!likelyNavigation) {
-			clickWithFallback(page, event);
+			clickWithFallback(page, event, false);
 			return;
 		}
 
 		try {
 			page.waitForNavigation(
 					new Page.WaitForNavigationOptions().setTimeout(8_000).setWaitUntil(WaitUntilState.NETWORKIDLE),
-					() -> clickWithFallback(page, event));
+					() -> clickWithFallback(page, event, false));
 			classLogger.info("Remote viewer click navigation observed urlAfter={}", safeUrl(page));
 		} catch (PlaywrightException e) {
 			classLogger.info("Remote viewer click navigation wait timed out; continuing urlAfter={} reason={}",
@@ -143,7 +146,7 @@ public class BrowserInputService {
 		}
 	}
 
-	private static boolean isLikelyNavigationClick(Page page, BrowserInputEvent event) {
+	private static boolean isLikelyNavigationClick(Page page, RemoteBrowserInputEvent event) {
 		try {
 			Map<String, Object> payload = new HashMap<>();
 			payload.put("x", event.getX());
@@ -180,7 +183,7 @@ public class BrowserInputService {
 		return payload;
 	}
 
-	private static void clickWithFallback(Page page, BrowserInputEvent event) {
+	private static void clickWithFallback(Page page, RemoteBrowserInputEvent event, boolean noWaitAfter) {
 		Selector sel = event.getSelector();
 
 		// 1) Try CSS/ID selector (most reliable, survives minor layout changes)
@@ -189,7 +192,7 @@ public class BrowserInputService {
 				Locator loc = resolveLocator(page, sel);
 				if (loc != null) {
 					classLogger.info("Remote viewer click attempt method=selector selector={}", describeSelector(sel));
-					loc.click(new Locator.ClickOptions().setTimeout(2000));
+					loc.click(new Locator.ClickOptions().setTimeout(2000).setNoWaitAfter(noWaitAfter));
 					classLogger.info("Remote viewer click success method=selector selector={} urlAfter={}",
 							describeSelector(sel), safeUrl(page));
 					return;
@@ -247,17 +250,17 @@ public class BrowserInputService {
 
 	// ---- Post-action wait ----
 
-	private static void postActionWait(Page page, BrowserInputEvent event, String urlBefore) {
+	private static void postActionWait(Page page, RemoteBrowserInputEvent event, String urlBefore) {
 		String type = event.getType();
 		// Always skip wait for mouse-move (high frequency, no meaningful wait)
 		if ("mouse-move".equals(type)) {
 			return;
 		}
+		if (isLiveEvent(event)) {
+			return;
+		}
 
-		int waitMs = event.getWaitAfterMs() != null ? event.getWaitAfterMs() : DEFAULT_WAIT_AFTER_MS;
-		classLogger.debug("Remote viewer postActionWait start type={} waitMs={} urlBefore={}", type, waitMs, urlBefore);
-
-		// For navigate/navigate-back/forward: wait for page load
+		// Replay navigation waits for the page to settle before the next action.
 		if ("navigate".equals(type) || "navigate-back".equals(type) || "navigate-forward".equals(type)
 				|| "reload".equals(type)) {
 			try {
@@ -275,6 +278,9 @@ public class BrowserInputService {
 			}
 			return;
 		}
+
+		int waitMs = event.getWaitAfterMs();
+		classLogger.debug("Remote viewer postActionWait start type={} waitMs={} urlBefore={}", type, waitMs, urlBefore);
 
 		// For clicks: honour waitAfterMs then check if URL changed (navigation
 		// triggered)
@@ -309,14 +315,14 @@ public class BrowserInputService {
 
 	// ---- Other actions ----
 
-	private static void wheel(Page page, BrowserInputEvent event) {
+	private static void wheel(Page page, RemoteBrowserInputEvent event) {
 		classLogger.info("Remote viewer wheel x={} y={} deltaX={} deltaY={}", round(event.getX()), round(event.getY()),
 				event.getDeltaX(), event.getDeltaY());
 		page.mouse().wheel(event.getDeltaX() != null ? event.getDeltaX() : 0,
 				event.getDeltaY() != null ? event.getDeltaY() : 0);
 	}
 
-	private static void typeText(Page page, BrowserInputEvent event) {
+	private static void typeText(Page page, RemoteBrowserInputEvent event) {
 		Selector sel = event.getSelector();
 		if (sel != null && sel.value() != null && !sel.value().isBlank()) {
 			try {
@@ -350,16 +356,48 @@ public class BrowserInputService {
 				event.getText() != null ? event.getText().length() : null);
 	}
 
-	private static void key(Page page, BrowserInputEvent event) {
+	private static void key(Page page, RemoteBrowserInputEvent event) {
 		String keyCombo = buildKeyCombo(event);
 		classLogger.info("Remote viewer key press combo={}", keyCombo);
 		page.keyboard().press(keyCombo);
 	}
 
-	private static void navigate(Page page, BrowserInputEvent event) {
-		UrlSafetyValidator.validate(event.getUrl());
+	private static void navigate(Page page, RemoteBrowserInputEvent event) {
+		RemoteBrowserUrlSafetyValidator.validate(event.getUrl());
 		classLogger.info("Remote viewer navigate url={}", event.getUrl());
-		page.navigate(event.getUrl());
+		if (isLiveEvent(event)) {
+			page.navigate(event.getUrl(), new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
+		} else {
+			page.navigate(event.getUrl());
+		}
+	}
+
+	private static void goBack(Page page, RemoteBrowserInputEvent event) {
+		if (isLiveEvent(event)) {
+			page.goBack(new Page.GoBackOptions().setWaitUntil(WaitUntilState.COMMIT));
+		} else {
+			page.goBack();
+		}
+	}
+
+	private static void goForward(Page page, RemoteBrowserInputEvent event) {
+		if (isLiveEvent(event)) {
+			page.goForward(new Page.GoForwardOptions().setWaitUntil(WaitUntilState.COMMIT));
+		} else {
+			page.goForward();
+		}
+	}
+
+	private static void reload(Page page, RemoteBrowserInputEvent event) {
+		if (isLiveEvent(event)) {
+			page.reload(new Page.ReloadOptions().setWaitUntil(WaitUntilState.COMMIT));
+		} else {
+			page.reload();
+		}
+	}
+
+	private static boolean isLiveEvent(RemoteBrowserInputEvent event) {
+		return event.getWaitAfterMs() == null;
 	}
 
 	private static String safeUrl(Page page) {
@@ -386,19 +424,19 @@ public class BrowserInputService {
 		}
 	}
 
-	private static Mouse.DownOptions buildMouseDownOptions(BrowserInputEvent event) {
+	private static Mouse.DownOptions buildMouseDownOptions(RemoteBrowserInputEvent event) {
 		Mouse.DownOptions opts = new Mouse.DownOptions();
 		opts.setButton(resolveButton(event.getButton()));
 		return opts;
 	}
 
-	private static Mouse.UpOptions buildMouseUpOptions(BrowserInputEvent event) {
+	private static Mouse.UpOptions buildMouseUpOptions(RemoteBrowserInputEvent event) {
 		Mouse.UpOptions opts = new Mouse.UpOptions();
 		opts.setButton(resolveButton(event.getButton()));
 		return opts;
 	}
 
-	private static String buildKeyCombo(BrowserInputEvent event) {
+	private static String buildKeyCombo(RemoteBrowserInputEvent event) {
 		Map<String, Boolean> mods = event.getModifiers();
 		StringBuilder sb = new StringBuilder();
 		if (mods != null) {
@@ -419,7 +457,7 @@ public class BrowserInputService {
 		return sb.toString();
 	}
 
-	private static String describeEvent(BrowserInputEvent event) {
+	private static String describeEvent(RemoteBrowserInputEvent event) {
 		if (event == null) {
 			return "null";
 		}

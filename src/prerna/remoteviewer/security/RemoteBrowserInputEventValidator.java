@@ -31,13 +31,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import prerna.remoteviewer.model.BrowserInputEvent;
+import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 
 /**
  * Validates incoming WebSocket input events from the React frontend. Prevents
  * injection of arbitrary browser commands or excessively large payloads.
  */
-public class InputEventValidator {
+public class RemoteBrowserInputEventValidator {
 
 	private static final int MAX_TYPE_TEXT_LENGTH = 2000;
 	private static final int MAX_KEY_LENGTH = 64;
@@ -45,11 +45,12 @@ public class InputEventValidator {
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
-					"navigate", "close-session", "navigate-back", "navigate-forward", "reload"));
+					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
+					"recording-control"));
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
-	private InputEventValidator() {
+	private RemoteBrowserInputEventValidator() {
 
 	}
 
@@ -61,7 +62,7 @@ public class InputEventValidator {
 	 * @param vpWidth  the browser session viewport width (for coordinate clamping)
 	 * @param vpHeight the browser session viewport height (for coordinate clamping)
 	 */
-	public static void validate(BrowserInputEvent event, int vpWidth, int vpHeight) {
+	public static void validate(RemoteBrowserInputEvent event, int vpWidth, int vpHeight) {
 		if (event == null) {
 			throw new IllegalArgumentException("Event must not be null");
 		}
@@ -121,7 +122,14 @@ public class InputEventValidator {
 			if (event.getUrl().length() > MAX_URL_LENGTH) {
 				throw new IllegalArgumentException("navigate URL exceeds max length");
 			}
-			UrlSafetyValidator.validate(event.getUrl());
+			RemoteBrowserUrlSafetyValidator.validate(event.getUrl());
+			break;
+
+		case "recording":
+		case "recording-control":
+			if (event.getRecording() == null && event.getRecord() == null) {
+				throw new IllegalArgumentException("recording-control event requires 'recording' or 'record'");
+			}
 			break;
 
 		// close-session, navigate-back, navigate-forward, reload — no payload to
@@ -131,7 +139,7 @@ public class InputEventValidator {
 		}
 	}
 
-	private static void requireCoordinates(BrowserInputEvent event, int vpWidth, int vpHeight) {
+	private static void requireCoordinates(RemoteBrowserInputEvent event, int vpWidth, int vpHeight) {
 		if (event.getX() == null || event.getY() == null) {
 			throw new IllegalArgumentException("Event type '" + event.getType() + "' requires x and y");
 		}
@@ -141,7 +149,7 @@ public class InputEventValidator {
 		event.setY(Math.max(0, Math.min(event.getY(), vpHeight)));
 	}
 
-	private static boolean hasSelector(BrowserInputEvent event) {
+	private static boolean hasSelector(RemoteBrowserInputEvent event) {
 		return event.getSelector() != null && event.getSelector().value() != null
 				&& !event.getSelector().value().isBlank();
 	}

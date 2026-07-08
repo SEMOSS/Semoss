@@ -48,9 +48,9 @@ import prerna.util.Utility;
  * restrictions on top — allowed schemes, and blocking private networks,
  * loopback, and metadata services.
  */
-public class UrlSafetyValidator {
+public class RemoteBrowserUrlSafetyValidator {
 
-	private static final Logger classLogger = LogManager.getLogger(UrlSafetyValidator.class);
+	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserUrlSafetyValidator.class);
 
 	private static final List<String> ALLOWED_SCHEMES = Arrays.asList("http", "https");
 
@@ -63,7 +63,7 @@ public class UrlSafetyValidator {
 			Pattern.compile("^::1$"), // IPv6 loopback
 			Pattern.compile("^fc00:.*", Pattern.CASE_INSENSITIVE), Pattern.compile("^fd.*", Pattern.CASE_INSENSITIVE));
 
-	private UrlSafetyValidator() {
+	private RemoteBrowserUrlSafetyValidator() {
 	}
 
 	/**

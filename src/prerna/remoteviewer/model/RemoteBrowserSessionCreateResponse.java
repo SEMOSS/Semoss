@@ -27,33 +27,34 @@
  *******************************************************************************/
 package prerna.remoteviewer.model;
 
-public class BrowserSessionCreateRequest {
+import prerna.reactor.playwright.Viewport;
 
-	private String url;
-	private Integer viewportWidth;
-	private Integer viewportHeight;
+public class RemoteBrowserSessionCreateResponse {
 
-	public String getUrl() {
-		return url;
+	/**
+	 * Device scale factor for remote browser sessions (see RemoteBrowserSessionManager).
+	 */
+	private static final double DEVICE_SCALE_FACTOR = 1.0;
+
+	private String sessionId;
+	private String webSocketUrl;
+	private Viewport viewport;
+
+	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
+		this.sessionId = sessionId;
+		this.webSocketUrl = webSocketUrl;
+		this.viewport = new Viewport(vpWidth, vpHeight, DEVICE_SCALE_FACTOR);
 	}
 
-	public void setUrl(String url) {
-		this.url = url;
+	public String getSessionId() {
+		return sessionId;
 	}
 
-	public Integer getViewportWidth() {
-		return viewportWidth;
+	public String getWebSocketUrl() {
+		return webSocketUrl;
 	}
 
-	public void setViewportWidth(Integer viewportWidth) {
-		this.viewportWidth = viewportWidth;
-	}
-
-	public Integer getViewportHeight() {
-		return viewportHeight;
-	}
-
-	public void setViewportHeight(Integer viewportHeight) {
-		this.viewportHeight = viewportHeight;
+	public Viewport getViewport() {
+		return viewport;
 	}
 }

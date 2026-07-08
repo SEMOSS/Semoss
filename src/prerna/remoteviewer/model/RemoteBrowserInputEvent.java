@@ -38,7 +38,7 @@ import prerna.reactor.playwright.Selector;
  * Supported types: mouse-click, mouse-move, mouse-down, mouse-up, wheel,
  * type-text, key, navigate, close-session
  */
-public class BrowserInputEvent {
+public class RemoteBrowserInputEvent {
 
 	// ---- common fields ----
 	private String type;
@@ -68,6 +68,30 @@ public class BrowserInputEvent {
 	private Integer recordedViewportWidth;
 	/** Viewport height used when the action was recorded. */
 	private Integer recordedViewportHeight;
+	/** Toggle future recording for this browser session. */
+	private Boolean recording;
+	/** Per-event recording override. */
+	private Boolean record;
+	/** Whether disabling recording should discard the unsaved temporary buffer. */
+	private Boolean discard;
+	/** Optional action label captured by the frontend recorder. */
+	private String label;
+	/** Optional action description captured by the frontend recorder. */
+	private String description;
+	/** Whether this event targets a password/sensitive field. */
+	private Boolean isPassword;
+	/** Whether a TYPE value should be stored in the replay JSON. */
+	private Boolean storeValue;
+	/** Optional HTML tag name of the target element. */
+	private String tag;
+	/** Optional replay navigation wait condition. */
+	private String waitUntil;
+	/** Optional replay shouldRun flag. */
+	private Boolean shouldRun;
+	/** Optional replay required flag. */
+	private Boolean required;
+	/** Optional replay playground flag. */
+	private Boolean sendToPlayground;
 
 	// ---- getters & setters ----
 
@@ -189,5 +213,101 @@ public class BrowserInputEvent {
 
 	public void setRecordedViewportHeight(Integer recordedViewportHeight) {
 		this.recordedViewportHeight = recordedViewportHeight;
+	}
+
+	public Boolean getRecording() {
+		return recording;
+	}
+
+	public void setRecording(Boolean recording) {
+		this.recording = recording;
+	}
+
+	public Boolean getRecord() {
+		return record;
+	}
+
+	public void setRecord(Boolean record) {
+		this.record = record;
+	}
+
+	public Boolean getDiscard() {
+		return discard;
+	}
+
+	public void setDiscard(Boolean discard) {
+		this.discard = discard;
+	}
+
+	public String getLabel() {
+		return label;
+	}
+
+	public void setLabel(String label) {
+		this.label = label;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public Boolean getIsPassword() {
+		return isPassword;
+	}
+
+	public void setIsPassword(Boolean isPassword) {
+		this.isPassword = isPassword;
+	}
+
+	public Boolean getStoreValue() {
+		return storeValue;
+	}
+
+	public void setStoreValue(Boolean storeValue) {
+		this.storeValue = storeValue;
+	}
+
+	public String getTag() {
+		return tag;
+	}
+
+	public void setTag(String tag) {
+		this.tag = tag;
+	}
+
+	public String getWaitUntil() {
+		return waitUntil;
+	}
+
+	public void setWaitUntil(String waitUntil) {
+		this.waitUntil = waitUntil;
+	}
+
+	public Boolean getShouldRun() {
+		return shouldRun;
+	}
+
+	public void setShouldRun(Boolean shouldRun) {
+		this.shouldRun = shouldRun;
+	}
+
+	public Boolean getRequired() {
+		return required;
+	}
+
+	public void setRequired(Boolean required) {
+		this.required = required;
+	}
+
+	public Boolean getSendToPlayground() {
+		return sendToPlayground;
+	}
+
+	public void setSendToPlayground(Boolean sendToPlayground) {
+		this.sendToPlayground = sendToPlayground;
 	}
 }
