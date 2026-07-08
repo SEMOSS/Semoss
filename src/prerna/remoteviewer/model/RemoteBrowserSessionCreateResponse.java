@@ -39,11 +39,18 @@ public class RemoteBrowserSessionCreateResponse {
 	private String sessionId;
 	private String webSocketUrl;
 	private Viewport viewport;
+	private String currentUrl;
 
 	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
+		this(sessionId, webSocketUrl, vpWidth, vpHeight, null);
+	}
+
+	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
+			String currentUrl) {
 		this.sessionId = sessionId;
 		this.webSocketUrl = webSocketUrl;
 		this.viewport = new Viewport(vpWidth, vpHeight, DEVICE_SCALE_FACTOR);
+		this.currentUrl = currentUrl;
 	}
 
 	public String getSessionId() {
@@ -56,5 +63,9 @@ public class RemoteBrowserSessionCreateResponse {
 
 	public Viewport getViewport() {
 		return viewport;
+	}
+
+	public String getCurrentUrl() {
+		return currentUrl;
 	}
 }

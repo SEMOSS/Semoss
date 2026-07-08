@@ -81,6 +81,7 @@ public class RemoteBrowserSessionManager {
 	private final int defaultViewportWidth;
 	private final int defaultViewportHeight;
 	private final int maxSessionsPerUser;
+	private static final String DEFAULT_START_URL = "https://example.com";
 	private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "RemoteBrowserSessionReaper");
 		t.setDaemon(true);
@@ -115,8 +116,12 @@ public class RemoteBrowserSessionManager {
 	 * @return the active viewer/control {@link RemoteBrowserSession}
 	 */
 	public RemoteBrowserSession createSession(User user, String url, int width, int height) {
-		RemoteBrowserUrlSafetyValidator.validate(url);
 		String userId = user.getPrimaryLoginToken().getId();
+		String requestedUrl = url == null ? "" : url.trim();
+		boolean hasRequestedUrl = !requestedUrl.isBlank();
+		if (hasRequestedUrl) {
+			RemoteBrowserUrlSafetyValidator.validate(requestedUrl);
+		}
 
 		String sessionId = userRemoteSessionIds.get(userId);
 		PlaywrightSession playwrightSession = sessionId == null ? null : user.getPlaywrightSession(sessionId);
@@ -159,6 +164,10 @@ public class RemoteBrowserSessionManager {
 			sessionId = UUID.randomUUID().toString();
 			playwrightSession = PlaywrightSession.forRemoteViewer(user, sessionId, context, page);
 			userRemoteSessionIds.put(userId, sessionId);
+			if (!hasRequestedUrl) {
+				requestedUrl = DEFAULT_START_URL;
+				hasRequestedUrl = true;
+			}
 		} else {
 			try {
 				page.setViewportSize(vpWidth, vpHeight);
@@ -177,13 +186,16 @@ public class RemoteBrowserSessionManager {
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);
 
-		try {
-			page.navigate(url);
-		} catch (Exception e) {
-			// Navigation failure is non-fatal — the client will see an error frame
-			classLogger.warn("Initial navigation to '{}' failed for session {}: {}", url, sessionId, e.getMessage());
+		if (hasRequestedUrl) {
+			try {
+				page.navigate(requestedUrl);
+			} catch (Exception e) {
+				// Navigation failure is non-fatal — the client will see an error frame
+				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
+						e.getMessage());
+			}
 		}
-		RemoteBrowserRecordingService.recordInitialNavigation(session, url);
+		RemoteBrowserRecordingService.recordInitialNavigation(session, safeUrl(page));
 
 		// Start the event-processing loop immediately so that injected events
 		// (e.g. from the Chrome extension mock) are processed even before a
@@ -195,6 +207,14 @@ public class RemoteBrowserSessionManager {
 
 		classLogger.info("Opened remote browser viewer {} for user {} -> {}", sessionId, userId, url);
 		return session;
+	}
+
+	private static String safeUrl(Page page) {
+		try {
+			return page.url();
+		} catch (Exception e) {
+			return "";
+		}
 	}
 
 	/**

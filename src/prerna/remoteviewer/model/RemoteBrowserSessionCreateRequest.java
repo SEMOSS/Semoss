@@ -32,6 +32,7 @@ public class RemoteBrowserSessionCreateRequest {
 	private String url;
 	private Integer viewportWidth;
 	private Integer viewportHeight;
+	private Boolean preserveExisting;
 
 	public String getUrl() {
 		return url;
@@ -55,5 +56,13 @@ public class RemoteBrowserSessionCreateRequest {
 
 	public void setViewportHeight(Integer viewportHeight) {
 		this.viewportHeight = viewportHeight;
+	}
+
+	public Boolean getPreserveExisting() {
+		return preserveExisting;
+	}
+
+	public void setPreserveExisting(Boolean preserveExisting) {
+		this.preserveExisting = preserveExisting;
 	}
 }
