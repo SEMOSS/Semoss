@@ -270,7 +270,7 @@ public class RunAgentReactor extends AbstractReactor {
                 .withParamMap(paramMap != null ? paramMap : new HashMap<>()).build();
 
         ResponseMessage prebuilt = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
-        ResponseMessage response = room.ask(msg, modelEngine, parentMessageId, prebuilt);
+        ResponseMessage response = room.commitPrebuiltTurn(msg, modelEngine, parentMessageId, prebuilt);
 
         List<AbstractMessage> extraMessages = new ArrayList<>();
         if (hiddenMessage != null && !hiddenMessage.isEmpty()) {

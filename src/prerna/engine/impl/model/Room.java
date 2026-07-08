@@ -223,40 +223,29 @@ public class Room implements Serializable {
 	}
 
 	/**
-	 * Overload for the cancel-persistence path. When {@code prebuiltResponse} is
-	 * non-null, the LLM call is skipped and the caller-supplied response is
-	 * slotted in as the assistant turn. Otherwise delegates to the live
-	 * {@link #ask(InputMessage, IModelEngine, String)} path.
+	 * Persist a caller-provided input + prebuilt response as a completed turn.
+	 * Skips the LLM call; everything else matches the live {@link #ask} tail
+	 * (mutation lock, latest projection refresh, orphan tool normalization,
+	 * parent-id resolution, append, room-name inference, persist) so the
+	 * persisted turn is indistinguishable from an LLM-generated one.
 	 *
-	 * <p>On the prebuilt path this method mirrors the surrounding scaffold of
-	 * the live ask (mutation lock, latest projection refresh, orphan tool
-	 * normalization, parent-id resolution, append, room-name inference,
-	 * persist) so the persisted turn looks identical to a live one.
+	 * <p>Used by the cancel-persistence path — callers assemble
+	 * {@code prebuiltResponse} from whatever the FE saw on the wire before the
+	 * user hit stop.
 	 *
-	 * @param msg              input message to send
-	 * @param modelEngine      model engine used for follow-up inference
+	 * @param msg              input message
+	 * @param modelEngine      model engine (used for model-type/room stamping)
 	 * @param parentMessageId  explicit parent id; when null/blank the latest
 	 *                         message is used
-	 * @param prebuiltResponse when non-null, used as the assistant response
-	 *                         instead of invoking the LLM
-	 * @return the assistant response persisted to the room (either LLM-generated
-	 *         or {@code prebuiltResponse})
+	 * @param prebuiltResponse assistant response to slot in place of an LLM
+	 *                         call; required (non-null)
+	 * @return {@code prebuiltResponse}, after linkage + persistence
 	 */
-	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
-			ResponseMessage prebuiltResponse) {
-		if (prebuiltResponse == null) {
-			return ask(msg, modelEngine, parentMessageId);
-		}
-		return commitPrebuiltTurn(msg, modelEngine, parentMessageId, prebuiltResponse);
-	}
-
-	/**
-	 * Persist a caller-provided input + prebuilt response as a completed turn.
-	 * Skips the LLM call; everything else matches the live ask tail so the
-	 * persisted turn is indistinguishable from an LLM-generated one.
-	 */
-	private synchronized ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine,
+	public synchronized ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine,
 			String parentMessageId, ResponseMessage prebuiltResponse) {
+		if (prebuiltResponse == null) {
+			throw new IllegalArgumentException("prebuiltResponse is required for commitPrebuiltTurn");
+		}
 		prebuiltResponse.setModel(modelEngine);
 		prebuiltResponse.setRoom(this);
 

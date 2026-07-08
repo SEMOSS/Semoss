@@ -142,7 +142,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			// ---- FE-supplied response (cancel flow): skip the LLM call and persist
 			// the input + a response built from the caller-supplied parts.
 			ResponseMessage prebuilt = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
-			response = room.ask(msg, modelEngine, parentMessageId, prebuilt);
+			response = room.commitPrebuiltTurn(msg, modelEngine, parentMessageId, prebuilt);
 			if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
 				PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
 						insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
