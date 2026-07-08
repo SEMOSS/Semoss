@@ -35,6 +35,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
@@ -75,15 +76,26 @@ public class PlaygroundUtils {
 
 	/**
 	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
-	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
-	 * and the matching payload field. Always returns a message — empty when no
-	 * usable parts came through — so the caller's input/response pair stays
-	 * balanced. Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are intentionally
-	 * ignored: a cancelled stream shouldn't have them, and any half-formed
-	 * TOOL_CALL from a chained tool-use turn would be an orphan.
+	 * element is expected to be a Map with {@code type} = "THINKING", "TEXT", or
+	 * "TOOL_CALL" and the matching payload field. Always returns a message —
+	 * empty when no usable parts came through — so the caller's input/response
+	 * pair stays balanced.
+	 *
+	 * <p>TOOL_CALL parts are persisted as-is so the assistant response reflects
+	 * whatever the FE saw on the wire when the user hit stop. Cancelled streams
+	 * often carry tool_calls whose {@code arguments} JSON was still assembling —
+	 * these are persisted anyway and left orphaned (no matching tool_result will
+	 * ever arrive). Room-level provider-payload normalization is responsible for
+	 * scrubbing orphan tool_use blocks on the next turn's outbound request so
+	 * providers do not reject the payload; this method does not attempt to
+	 * validate or repair partial tool_call arguments.
+	 *
+	 * <p>Other part types (TOOL_RESULT/MEDIA) are ignored — a cancelled response
+	 * stream shouldn't produce them.
 	 */
 	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
 		ResponseMessage.Builder builder = ResponseMessage.builder();
+		boolean hasToolCall = false;
 		if (responseParts != null) {
 			for (Map<String, Object> part : responseParts) {
 				if (part == null) {
@@ -103,8 +115,19 @@ public class PlaygroundUtils {
 					if (text != null && !text.isEmpty()) {
 						builder.withText(text);
 					}
+				} else if ("TOOL_CALL".equals(type)) {
+					Object toolCallObj = part.get("toolCall");
+					if (toolCallObj instanceof Map) {
+						@SuppressWarnings("unchecked")
+						Map<String, Object> toolCall = (Map<String, Object>) toolCallObj;
+						builder.withToolResponse(toolCall);
+						hasToolCall = true;
+					}
 				}
 			}
+		}
+		if (hasToolCall) {
+			builder.withType(MessageType.RESPONSE_TOOL);
 		}
 		return builder.build();
 	}
