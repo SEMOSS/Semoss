@@ -223,6 +223,78 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Persist a caller-provided input + prebuilt response as a completed turn.
+	 * Skips the LLM call; everything else matches the live {@link #ask} tail
+	 * (mutation lock, latest projection refresh, orphan tool normalization,
+	 * parent-id resolution, append, room-name inference, persist) so the
+	 * persisted turn is indistinguishable from an LLM-generated one.
+	 *
+	 * <p>Used by the cancel-persistence path — callers assemble
+	 * {@code prebuiltResponse} from whatever the FE saw on the wire before the
+	 * user hit stop.
+	 *
+	 * @param msg              input message
+	 * @param modelEngine      model engine (used for model-type/room stamping)
+	 * @param parentMessageId  explicit parent id; when null/blank the latest
+	 *                         message is used
+	 * @param prebuiltResponse assistant response to slot in place of an LLM
+	 *                         call; required (non-null)
+	 * @return {@code prebuiltResponse}, after linkage + persistence
+	 */
+	public synchronized ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine,
+			String parentMessageId, ResponseMessage prebuiltResponse) {
+		if (prebuiltResponse == null) {
+			throw new IllegalArgumentException("prebuiltResponse is required for commitPrebuiltTurn");
+		}
+		prebuiltResponse.setModel(modelEngine);
+		prebuiltResponse.setRoom(this);
+
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			RoomMessageStore.refreshFromLatestProjection(this, userId);
+			RoomMessageStore.normalizeForProviderPayload(this);
+
+			msg.setModel(modelEngine);
+
+			if (!messages.isEmpty()) {
+				if (parentMessageId != null && !parentMessageId.isEmpty()) {
+					msg.setParentMessageId(parentMessageId);
+				} else {
+					AbstractMessage lastMsg = messages.get(messages.size() - 1);
+					msg.setParentMessageId(lastMsg.getMessageId());
+				}
+			} else {
+				msg.setParentMessageId(null);
+			}
+			prebuiltResponse.setParentMessageId(msg.getMessageId());
+
+			messages.add(msg);
+			messages.add(prebuiltResponse);
+
+			String prevRoomName = this.roomName;
+			if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+				for (AbstractMessage m : this.messages) {
+					if (m instanceof InputMessage) {
+						String prompt = ((InputMessage) m).getInputUIPrompt();
+						if (prompt != null && !prompt.trim().isEmpty()) {
+							this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+							break;
+						}
+					}
+				}
+			}
+
+			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+					&& !this.roomName.trim().isEmpty()) {
+				RoomMessageStore.persist(this, userId, this.roomName, modelEngine.getEngineId());
+			} else {
+				RoomMessageStore.persist(this, userId);
+			}
+		}
+		return prebuiltResponse;
+	}
+
+	/**
 	 * Core room ask flow.
 	 * <p>
 	 * Builds message payload, applies tool metadata, executes model inference, and

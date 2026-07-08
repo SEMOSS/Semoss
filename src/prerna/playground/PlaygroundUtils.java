@@ -30,6 +30,12 @@ package prerna.playground;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
@@ -70,15 +76,26 @@ public class PlaygroundUtils {
 
 	/**
 	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
-	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
-	 * and the matching payload field. Always returns a message — empty when no
-	 * usable parts came through — so the caller's input/response pair stays
-	 * balanced. Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are intentionally
-	 * ignored: a cancelled stream shouldn't have them, and any half-formed
-	 * TOOL_CALL from a chained tool-use turn would be an orphan.
+	 * element is expected to be a Map with {@code type} = "THINKING", "TEXT", or
+	 * "TOOL_CALL" and the matching payload field. Always returns a message —
+	 * empty when no usable parts came through — so the caller's input/response
+	 * pair stays balanced.
+	 *
+	 * <p>TOOL_CALL parts are persisted as-is so the assistant response reflects
+	 * whatever the FE saw on the wire when the user hit stop. Cancelled streams
+	 * often carry tool_calls whose {@code arguments} JSON was still assembling —
+	 * these are persisted anyway and left orphaned (no matching tool_result will
+	 * ever arrive). Room-level provider-payload normalization is responsible for
+	 * scrubbing orphan tool_use blocks on the next turn's outbound request so
+	 * providers do not reject the payload; this method does not attempt to
+	 * validate or repair partial tool_call arguments.
+	 *
+	 * <p>Other part types (TOOL_RESULT/MEDIA) are ignored — a cancelled response
+	 * stream shouldn't produce them.
 	 */
 	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
 		ResponseMessage.Builder builder = ResponseMessage.builder();
+		boolean hasToolCall = false;
 		if (responseParts != null) {
 			for (Map<String, Object> part : responseParts) {
 				if (part == null) {
@@ -98,9 +115,68 @@ public class PlaygroundUtils {
 					if (text != null && !text.isEmpty()) {
 						builder.withText(text);
 					}
+				} else if ("TOOL_CALL".equals(type)) {
+					Object toolCallObj = part.get("toolCall");
+					if (toolCallObj instanceof Map) {
+						@SuppressWarnings("unchecked")
+						Map<String, Object> toolCall = (Map<String, Object>) toolCallObj;
+						builder.withToolResponse(toolCall);
+						hasToolCall = true;
+					}
 				}
 			}
 		}
+		if (hasToolCall) {
+			builder.withType(MessageType.RESPONSE_TOOL);
+		}
 		return builder.build();
+	}
+
+	/**
+	 * Append a hidden user note + canned assistant ack to the room history.
+	 * Both are invisible to the FE (visible=false, platformGenerated=true) but
+	 * ride along to the model on the next turn via
+	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
+	 * role-alternating and telling the model its prior response was cut short.
+	 *
+	 * <p>Persists the room inside the same mutation lock, so callers do not need
+	 * to persist again. When {@code extrasOut} is non-null the two appended
+	 * messages are added to it (in order) so callers can surface them back to
+	 * the FE via {@code extraMessages}.
+	 *
+	 * @param room           room to append into
+	 * @param modelEngine    model engine (used for model-type stamping on the
+	 *                       hidden input)
+	 * @param hiddenMessage  text of the hidden user note
+	 * @param hiddenParentId parent id for the hidden user note (typically the
+	 *                       just-persisted assistant response's message id)
+	 * @param userId         user id used for persistence
+	 * @param extrasOut      optional accumulator; when non-null receives the
+	 *                       hidden user note followed by the hidden ack
+	 */
+	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+			InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
+					.withModelType(modelEngine.getModelType()).build();
+			hiddenUserNote.setPlatformGenerated(true);
+			hiddenUserNote.setVisible(false);
+			hiddenUserNote.setParentMessageId(hiddenParentId);
+
+			ResponseMessage hiddenAck = ResponseMessage.text(HIDDEN_MESSAGE_ACK);
+			hiddenAck.setPlatformGenerated(true);
+			hiddenAck.setVisible(false);
+			hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
+
+			room.getMessages().add(hiddenUserNote);
+			room.getMessages().add(hiddenAck);
+
+			RoomMessageStore.persist(room, userId);
+
+			if (extrasOut != null) {
+				extrasOut.add(hiddenUserNote);
+				extrasOut.add(hiddenAck);
+			}
+		}
 	}
 }

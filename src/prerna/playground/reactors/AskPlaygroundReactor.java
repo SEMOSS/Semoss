@@ -140,11 +140,13 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		ResponseMessage response;
 		if (responseParts != null) {
 			// ---- FE-supplied response (cancel flow): skip the LLM call and persist
-			// the input + a response built from the caller-supplied parts. Mirrors
-			// the surrounding scaffold of Room.ask so the persisted turn looks
-			// identical to a live one.
-			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage,
-					extraMessages);
+			// the input + a response built from the caller-supplied parts.
+			ResponseMessage prebuilt = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
+			response = room.commitPrebuiltTurn(msg, modelEngine, parentMessageId, prebuilt);
+			if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
+				PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
+						insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
+			}
 		} else {
 			// ---- Actually run LLM call
 			response = room.ask(msg, modelEngine, parentMessageId);
@@ -189,102 +191,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		pixelReturn.put("extraMessages", extraMessagesList);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
-	}
-
-	/**
-	 * Persist a caller-provided input + response as a completed turn. Mirrors
-	 * the surrounding scaffold of {@link Room#ask} (mutation lock, latest
-	 * projection refresh, orphan-tool normalization, parent-id resolution,
-	 * append, room-name inference, persist) but skips the LLM call — the
-	 * response is built from {@code responseParts}. Optionally appends a hidden
-	 * user-note / assistant-ack pair after the visible turn.
-	 */
-	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
-			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage,
-			List<AbstractMessage> extrasOut) {
-		ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
-		response.setModel(modelEngine);
-
-		String userId = insight.getUser().getPrimaryLoginToken().getId();
-		synchronized (room) {
-			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
-				RoomMessageStore.refreshFromLatestProjection(room, userId);
-				RoomMessageStore.normalizeForProviderPayload(room);
-
-				msg.setModel(modelEngine);
-
-				// Parent-id resolution mirrors Room.ask: explicit param wins, otherwise
-				// hang off the latest message, otherwise this is the first message.
-				if (!room.getMessages().isEmpty()) {
-					if (parentMessageId != null && !parentMessageId.isEmpty()) {
-						msg.setParentMessageId(parentMessageId);
-					} else {
-						AbstractMessage lastMsg = room.getMessages().get(room.getMessages().size() - 1);
-						msg.setParentMessageId(lastMsg.getMessageId());
-					}
-				} else {
-					msg.setParentMessageId(null);
-				}
-				response.setParentMessageId(msg.getMessageId());
-
-				room.getMessages().add(msg);
-				room.getMessages().add(response);
-
-				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(), extrasOut);
-				}
-
-				// Room-name inference + 4-arg/2-arg persist switch (from Room.ask's tail).
-				String prevRoomName = room.getRoomName();
-				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-					for (AbstractMessage m : room.getMessages()) {
-						if (m instanceof InputMessage) {
-							String prompt = ((InputMessage) m).getInputUIPrompt();
-							if (prompt != null && !prompt.trim().isEmpty()) {
-								room.setRoomName(prompt.substring(0, Math.min(prompt.length(), 100)));
-								break;
-							}
-						}
-					}
-				}
-				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && room.getRoomName() != null
-						&& !room.getRoomName().trim().isEmpty()) {
-					RoomMessageStore.persist(room, userId, room.getRoomName(), modelEngine.getEngineId());
-				} else {
-					RoomMessageStore.persist(room, userId);
-				}
-			}
-		}
-		return response;
-	}
-
-	/**
-	 * Append a hidden user note + canned assistant ack to the room history.
-	 * Both are invisible to the FE (visible=false, platformGenerated=true) but
-	 * ride along to the model on the next turn via
-	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
-	 * role-alternating and telling the model its prior response was cut short.
-	 */
-	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
-			List<AbstractMessage> extrasOut) {
-		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
-				.withModelType(modelEngine.getModelType()).build();
-		hiddenUserNote.setPlatformGenerated(true);
-		hiddenUserNote.setVisible(false);
-		hiddenUserNote.setParentMessageId(hiddenParentId);
-
-		ResponseMessage hiddenAck = ResponseMessage.text(PlaygroundUtils.HIDDEN_MESSAGE_ACK);
-		hiddenAck.setPlatformGenerated(true);
-		hiddenAck.setVisible(false);
-		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
-
-		room.getMessages().add(hiddenUserNote);
-		room.getMessages().add(hiddenAck);
-
-		if (extrasOut != null) {
-			extrasOut.add(hiddenUserNote);
-			extrasOut.add(hiddenAck);
-		}
 	}
 
 	@Override
