@@ -7,6 +7,10 @@ if TYPE_CHECKING:
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
 
+    from anthropic import Anthropic, AnthropicFoundry
+    from anthropic.lib.bedrock import AnthropicBedrock
+    from anthropic.lib.vertex import AnthropicVertex
+
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
@@ -74,7 +78,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.client = self._get_client(**kwargs)
         self.thinking_signature = None
 
-    def _get_client(self, **kwargs):
+    def _get_client(self, **kwargs) -> Union[
+        "Anthropic",
+        "AnthropicBedrock",
+        "AnthropicFoundry",
+        "AnthropicVertex",
+    ]:
         if self.provider == "google":
             from ...clients.google_clients import (
                 GoogleClient,
@@ -92,9 +101,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 project=kwargs.pop("project", None),
                 api_key=kwargs.pop("api_key", None),
             )
-            return GoogleClient(config=self.client_config).client
+            return GoogleClient(config=self.client_config).anthropic_client
         elif self.provider == "bedrock":
-            from anthropic import AnthropicBedrock
+            from anthropic.lib.bedrock import AnthropicBedrock
 
             return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
@@ -149,7 +158,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         return headers
 
     @staticmethod
-    def _process_guardrail_trace(obj: Any) -> Optional[Dict[str, Any]]:
+    def _process_bedrock_guardrail_trace(obj: Any) -> Optional[Dict[str, Any]]:
         """
         With the trace header enabled, Bedrock attaches the guardrail trace as
         extra JSON fields (amazon-bedrock-trace / amazon-bedrock-guardrailAction)
@@ -167,15 +176,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if not action and not trace:
             return None
 
-        print(
-            f"[guardrail] action={action} trace={json.dumps(trace, default=str)}",
-            flush=True,
-        )
-
-        # Trace shape: {"guardrail": {"input": {<guardrailId>: <assessment>},
-        # "outputs": [{<guardrailId>: <assessment>}]}} where each assessment
-        # groups matched rules by policy, e.g. {"topicPolicy": {"topics": [
-        # {"name": ..., "action": "BLOCKED"}]}, "contentPolicy": {"filters": [...]}}
         violations = []
         guardrail_trace = trace.get("guardrail", {}) if isinstance(trace, dict) else {}
         assessments = []
@@ -302,10 +302,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
         try:
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
+            if self.model_settings.global_param_override:
                 kwargs.update(self.model_settings.global_param_override)
 
             built_in_tools = kwargs.get("built_in_tools", []) or []
@@ -334,7 +331,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     self.model_name,
                     self.use_beta_header,
                     self.beta_feature_name,
-                    thinking_signature=self.thinking_signature,
+                    self.thinking_signature,
                 )
             except Exception as e:
                 raise RuntimeError(
@@ -369,8 +366,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 response = self.client.messages.create(
                     **request_config.model_dump(exclude_none=True),
                 )
-
-            guardrail_part = self._process_guardrail_trace(response)
 
             if response.stop_reason == "refusal":
                 raise AnthropicRefusalError(
@@ -434,8 +429,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 parts.append({"type": "TEXT", "text": response_text})
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
-            if guardrail_part:
-                parts.append(guardrail_part)
+
+            metadata = {}
+            if self.provider == "bedrock":
+                metadata["guardrail_response"] = self._process_bedrock_guardrail_trace(
+                    response
+                )
 
             return AskModelEngineResponse2(
                 response=response_text,
@@ -528,30 +527,25 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         guardrail_part: Optional[Dict[str, Any]] = None
 
         tool_result = []
-        # Maps server-tool_use id -> the underlying tool name (e.g. "web_search").
-        # Populated when a server_tool_use block closes, read when its result block
-        # arrives so the persisted TOOL_RESULT carries the real tool name instead
-        # of an Anthropic-specific block-type string.
         server_tool_use_names: Dict[str, str] = {}
+        metadata = {}
 
         use_beta_stream = self.use_beta_header and hasattr(
             self.client.beta.messages, "stream"
         )
         stream_method = (
-            self.client.beta.messages.stream
+            self.client.beta.messages.create
             if use_beta_stream
-            else self.client.messages.stream
+            else self.client.messages.create
         )
 
         stream_kwargs = request_config.model_dump(exclude_none=True)
+        stream_kwargs["stream"] = True
         if self.use_beta_header and not use_beta_stream:
-            # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
-            # the Bedrock SDK converts anthropic-beta header -> anthropic_beta body field
             stream_kwargs.pop("betas", None)
             stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
 
         with stream_method(**stream_kwargs) as stream:
-            final_message = None
             for event in stream:
                 if event.type == "message_start":
                     input_tokens = event.message.usage.input_tokens
@@ -665,7 +659,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                 elif event.type == "content_block_delta":
                     if this_content_block_type == "text":
-                        if hasattr(event.delta, "text"):
+                        if getattr(event.delta, "type", None) == "citations_delta":
+                            item = event.delta.citation
+                            this_content_block.setdefault("citations", []).append(
+                                {
+                                    "type": getattr(item, "type", None),
+                                    "url": getattr(item, "url", None),
+                                    "title": getattr(item, "title", None),
+                                    "encrypted_index": getattr(
+                                        item, "encrypted_index", None
+                                    ),
+                                    "cited_text": getattr(item, "cited_text", None),
+                                }
+                            )
+                        elif hasattr(event.delta, "text"):
                             text_chunk = event.delta.text
                             this_content_block["final_response"] += text_chunk
 
@@ -729,26 +736,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 }
                             )
 
-                    elif this_content_block_type == "text":
-                        if event.content_block.citations:
-                            this_content_block["citations"] = []
-                            for item in event.content_block.citations:
-                                this_content_block["citations"].append(
-                                    {
-                                        "type": item.type,
-                                        "url": item.url,
-                                        "title": item.title,
-                                        "encrypted_index": item.encrypted_index,
-                                        "cited_text": item.cited_text,
-                                    }
-                                )
-
                     content_array.append(this_content_block)
                     this_content_block = {}
                     this_content_block_type = ""
 
-                elif event.type == "message_stop":
-                    guardrail_part = self._process_guardrail_trace(event)
+                elif event.type == "message_stop" and self.provider == "bedrock":
+                    metadata["guardrail_response"] = (
+                        self._process_bedrock_guardrail_trace(event)
+                    )
 
                 elif event.type == "message_delta":
                     output_tokens = event.usage.output_tokens
@@ -761,19 +756,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         StreamUtil.create_usage_chunk(output_tokens=output_tokens),
                         stream_type="usage",
                     )
-
-            if stop_reason is None:
-                try:
-                    final_message = stream.get_final_message()
-                    stop_reason = final_message.stop_reason
-                except Exception:
-                    stop_reason = None
-                    final_message = None
-            else:
-                try:
-                    final_message = stream.get_final_message()
-                except Exception:
-                    final_message = None
 
         if stop_reason == "refusal":
             data = StreamUtil.create_finish_reason_chunk("refusal")
@@ -839,17 +821,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 if current_text_block is not None:
                     current_text_block["text"] += text_content
                 else:
-                    # Start a new text block
                     current_text_block = {
                         "type": "TEXT",
                         "text": text_content,
                     }
 
             elif content_type == "function":
-                # Parse the function arguments JSON
                 try:
                     arguments = content.get("function", {}).get("arguments")
-                    # Return empty dict if no arguments
                     if arguments == "":
                         arguments = {}
                     else:
@@ -882,7 +861,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     }
                 )
 
-        # Don't forget to flush any remaining text at the end
         if current_text_block is not None:
             parts.append(current_text_block)
 
@@ -896,7 +874,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 flush=True,
             )
 
-        # input_tokens was already normalized to include cache at message_start
         total_input_tokens = input_tokens
 
         if tool_result:
