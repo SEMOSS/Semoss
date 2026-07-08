@@ -25,55 +25,54 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.function;
+package prerna.reactor.model.batch;
 
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.Gson;
+
+import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
-public class ExecuteGuardrailEngineReactor extends ExecuteReactorFunctionEngineReactor {
+/**
+ * Shared helpers for the batch model-call reactors. Each call carries an ENGINE
+ * (the routing + security key) and delegates to {@link prerna.engine.impl.model.batch.ModelBatchManager}.
+ */
+public abstract class AbstractModelBatchReactor extends AbstractReactor {
 
-	/*
-	 * Just a convenience method. Works the same as the reactor function engine
-	 * since guardrail engine is a reactor function engine as well
-	 */
+	protected static final Gson GSON = GsonUtility.getDefaultGson();
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException(getUnableToAccessError(engineId));
-		}
-
-		// remove the engine id from the reactor noun store so it is not passed to the
-		// guardrail engine
-		if (this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey()) != null) {
-			this.store.removeNoun(ReactorKeysEnum.ENGINE.getKey());
-		} else {
-			for (int i = 0; i < this.curRow.size(); i++) {
-				if (engineId.equals(this.curRow.get(i))) {
-					this.curRow.remove(i);
-					break;
-				}
-			}
-		}
-
-		if (this.insight != null) {
-			GenRowStruct insightGrs = this.store.makeGenRowStruct(Constants.INSIGHT);
-			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
-		}
-
-		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
-		return guardrailEngine.execute(getNounStore(), this.curRow);
+	protected User getUser() {
+		return this.insight.getUser();
 	}
 
-	@Override
-	String getUnableToAccessError(String engineId) {
-		return "Guardrail Engine " + engineId + " does not exist or user does not have access to this guardrail";
+	/**
+	 * @return a fresh, mutable copy of the optional caller-supplied param map
+	 */
+	@SuppressWarnings("unchecked")
+	protected Map<String, Object> baseParams() {
+		Map<String, Object> out = new HashMap<>();
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		List<NounMetadata> mapInputs = null;
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+		}
+		if (mapInputs == null || mapInputs.isEmpty()) {
+			mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		}
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			Object val = mapInputs.get(0).getValue();
+			if (val instanceof Map) {
+				out.putAll((Map<String, Object>) val);
+			}
+		}
+		return out;
 	}
 }
