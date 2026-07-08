@@ -322,7 +322,7 @@ For a platform skill the `id` is the slug (platform skills have no project id). 
 ### How it differs from a normal listing
 
 - **Registry skills** come from the security DB (like any project) and carry the usual project fields (`project_id`, `project_name`, `project_date_created`, `permission`, requested `metaKeys`, etc.), plus `type = "SKILL"`.
-- **Platform skills** are disk-backed built-ins with no project row, so they carry only `type = "PLATFORM_SKILL"`, `slug`, `project_name`, `project_description`, and `origin = "PLATFORM"` - **no `project_id`**, no permissions, no favorites, no project metadata.
+- **Platform skills** are disk-backed built-ins with no project row, so they carry `type = "PLATFORM_SKILL"`, `slug`, `project_name`, `project_description`, `origin = "PLATFORM"`, and `tag = "PLATFORM"` - but no permissions, no favorites, no project metadata. The reactor stamps a **synthetic `project_id` of `SYSTEM_<slug>`** (e.g. `SYSTEM_build-and-publish`) so every entry has a stable, non-null id; it is not a real project and does not resolve in the security DB.
 - On the `SKILL` path, `sort`, `limit`, and `offset` are applied **in Java over the merged set** (registry + platform), not in SQL, so platform skills participate in paging and sorting alongside registry skills (they are interleaved by the sort, not grouped). Sort keys are the same as elsewhere (`PROJECTNAME`, `DATECREATED`, `DATELASTEDITED`); platform skills have no dates, so on a date sort they fall last. Default sort is `PROJECTNAME` ASC.
 - Platform skills are **omitted** when the call scopes on something only projects have: `onlyFavorites=true`, a non-empty `permissionFilters`, or a non-empty `metaFilters`. `filterWord` still applies to platform skills (matched on name/description).
 
@@ -359,9 +359,11 @@ MyProjects(
   {
     "type": "PLATFORM_SKILL",
     "slug": "database",
+    "project_id": "SYSTEM_database",
     "project_name": "database",
     "project_description": "Use when writing code that queries a relational or graph database on the platform...",
-    "origin": "PLATFORM"
+    "origin": "PLATFORM",
+    "tag": "PLATFORM"
   }
 ]
 ```

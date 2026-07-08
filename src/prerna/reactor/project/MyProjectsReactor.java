@@ -58,6 +58,17 @@ public class MyProjectsReactor extends AbstractReactor {
 	 */
 	private static final String SKILL_TYPE = "SKILL";
 
+	/**
+	 * Synthetic {@code project_id} prefix stamped onto platform-skill entries (which have
+	 * no real project row), e.g. {@code SYSTEM_build-and-publish}. Added purely at the
+	 * reactor level so callers get a stable, non-null id per platform skill; it is not a
+	 * real project and does not resolve in the security DB.
+	 */
+	private static final String PLATFORM_PROJECT_ID_PREFIX = "SYSTEM_";
+
+	/** {@code tag} value stamped onto platform-skill entries in a SKILL listing. */
+	private static final String PLATFORM_TAG = "PLATFORM";
+
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
@@ -214,9 +225,12 @@ public class MyProjectsReactor extends AbstractReactor {
 				Map<String, Object> entry = new LinkedHashMap<>();
 				entry.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
 				entry.put("slug", ps.get("slug"));
+				// synthetic, non-DB id so callers always get a stable project_id per platform skill
+				entry.put("project_id", PLATFORM_PROJECT_ID_PREFIX + stringOf(ps.get("slug")));
 				entry.put("project_name", name);
 				entry.put("project_description", description);
 				entry.put("origin", ps.get("origin"));
+				entry.put("tag", PLATFORM_TAG);
 				merged.add(entry);
 			}
 		}
@@ -325,8 +339,8 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		JSONObject itemProperties = new JSONObject();
 
-		itemProperties.put("project_id",
-				new JSONObject().put("type", "string").put("description", "Unique project identifier (UUID)"));
+		itemProperties.put("project_id", new JSONObject().put("type", "string").put("description",
+				"Unique project identifier (UUID) for a project-backed entry. For a platform skill it is a synthetic id 'SYSTEM_<slug>' (e.g. SYSTEM_build-and-publish) that does not resolve in the security DB."));
 
 		itemProperties.put("project_name",
 				new JSONObject().put("type", "string").put("description", "Display name of the project"));
@@ -388,8 +402,8 @@ public class MyProjectsReactor extends AbstractReactor {
 		itemProperties.put("project_cost",
 				new JSONObject().put("type", "string").put("description", "Cost metadata, may be empty string"));
 
-		itemProperties.put("tag",
-				new JSONObject().put("type", "string").put("description", "Metadata tag associated with the project"));
+		itemProperties.put("tag", new JSONObject().put("type", "string").put("description",
+				"Metadata tag associated with the project. Platform-skill entries carry the literal tag 'PLATFORM'."));
 
 		itemProperties.put("low_project_name",
 				new JSONObject().put("type", "string").put("description", "Lowercase version of project_name"));
