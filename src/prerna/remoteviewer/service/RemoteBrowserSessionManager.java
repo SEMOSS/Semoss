@@ -59,10 +59,11 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
  * Singleton that manages all active remote browser sessions.
  *
  * <p>
- * Each call to {@link #createSession} isolates a session with its own
- * {@link com.microsoft.playwright.BrowserContext} created from the shared
- * browser ({@link prerna.reactor.playwright.PlaywrightBrowserProvider}).
- * Sessions are cleaned up on explicit close or TTL expiry.
+ * Each logged-in user gets a shared {@link com.microsoft.playwright.BrowserContext}
+ * from the same user-owned context used by the older Playwright reactors. The
+ * remote viewer adds a short-lived socket/viewer wrapper around a user-owned
+ * {@link PlaywrightSession}; socket close/TTL only closes that wrapper, not the
+ * browser context/cache.
  */
 public class RemoteBrowserSessionManager {
 
@@ -124,7 +125,17 @@ public class RemoteBrowserSessionManager {
 		}
 
 		String sessionId = userRemoteSessionIds.get(userId);
-		PlaywrightSession playwrightSession = sessionId == null ? null : user.getPlaywrightSession(sessionId);
+		PlaywrightSession playwrightSession = null;
+		if (sessionId != null) {
+			try {
+				playwrightSession = user.getPlaywrightSession(sessionId);
+			} catch (IllegalArgumentException e) {
+				classLogger.debug("User remote Playwright session {} was not found/reusable: {}", sessionId,
+						e.getMessage());
+				userRemoteSessionIds.remove(userId, sessionId);
+				sessionId = null;
+			}
+		}
 		int vpWidth = width > 0 ? width : defaultViewportWidth;
 		int vpHeight = height > 0 ? height : defaultViewportHeight;
 		Page page = null;
@@ -150,15 +161,14 @@ public class RemoteBrowserSessionManager {
 						"Maximum concurrent sessions (" + maxSessionsPerUser + ") reached for this user");
 			}
 
-			// Reuse the shared, lazily-launched browser and isolate each user-owned
-			// PlaywrightSession with its own BrowserContext.
+			// Reuse the same shared BrowserContext that the older Playwright reactors use
+			// for this SEMOSS user. This is what makes cookies/login state visible between
+			// the old Playwright app and the socket remote-browser app.
 			Browser browser = PlaywrightBrowserProvider.getBrowser();
 
 			Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions().setViewportSize(vpWidth, vpHeight)
 					.setDeviceScaleFactor(1.0);
-			BrowserContext context = browser.newContext(ctxOpts);
-			context.setDefaultTimeout(30_000);
-			context.setDefaultNavigationTimeout(30_000);
+			BrowserContext context = user.getOrCreateSharedPlaywrightContext(browser, ctxOpts);
 			page = context.newPage();
 
 			sessionId = UUID.randomUUID().toString();

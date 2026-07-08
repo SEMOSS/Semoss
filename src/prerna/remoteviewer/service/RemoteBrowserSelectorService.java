@@ -118,11 +118,6 @@ public final class RemoteBrowserSelectorService {
 
 			  function bestSelector(doc, el) {
 			    if (!el || !el.tagName) return null;
-			    const id = el.getAttribute("id") || "";
-			    if (id && /^[a-zA-Z0-9_-]+$/.test(id) && uniqueCss(doc, "#" + escCss(id))) {
-			      return { strategy: "id", value: id };
-			    }
-
 			    const css = cssPath(el);
 			    if (uniqueCss(doc, css)) {
 			      return { strategy: "css", value: css };
@@ -197,19 +192,22 @@ public final class RemoteBrowserSelectorService {
 			  if (!el) return null;
 
 			  const selector = bestSelector(target.doc, el);
-			  if (!selector) return null;
 
 			  const frames = target.frames || [];
-			  if (frames.length) {
+			  if (selector && frames.length) {
 			    const frameSelector = cssPath(frames[frames.length - 1]);
-			    if (!uniqueCss(document, frameSelector)) return null;
-			    selector.frameSelector = frameSelector;
+			    if (uniqueCss(document, frameSelector)) {
+			      selector.frameSelector = frameSelector;
+			    }
 			  }
 
 			  const tag = el.tagName.toLowerCase();
 			  const inputType = (el.type || "").toLowerCase();
+			  const rect = el.getBoundingClientRect();
 			  return {
 			    selector,
+			    x: Math.round(rect.left + rect.width / 2),
+			    y: Math.round(rect.top + rect.height / 2),
 			    tag,
 			    label: labelText(el),
 			    isPassword: tag === "input" && inputType === "password",
@@ -350,23 +348,23 @@ public final class RemoteBrowserSelectorService {
 			}
 
 			Map<String, Object> selectorMap = (Map<String, Object>) data.get("selector");
-			if (selectorMap == null) {
-				return;
+			if (selectorMap != null) {
+				String strategy = stringValue(selectorMap.get("strategy"));
+				String value = stringValue(selectorMap.get("value"));
+				String frameSelector = stringValue(selectorMap.get("frameSelector"));
+				if ("css".equals(strategy) && value != null && !value.isBlank()) {
+					Selector selector = new Selector(strategy, value, frameSelector);
+					if (isUniqueSelector(page, selector)) {
+						event.setSelector(selector);
+					}
+				}
 			}
-
-			String strategy = stringValue(selectorMap.get("strategy"));
-			String value = stringValue(selectorMap.get("value"));
-			String frameSelector = stringValue(selectorMap.get("frameSelector"));
-			if (strategy == null || value == null || value.isBlank()) {
-				return;
+			if (event.getX() == null && data.get("x") instanceof Number) {
+				event.setX(((Number) data.get("x")).doubleValue());
 			}
-
-			Selector selector = new Selector(strategy, value, frameSelector);
-			if (!isUniqueSelector(page, selector)) {
-				return;
+			if (event.getY() == null && data.get("y") instanceof Number) {
+				event.setY(((Number) data.get("y")).doubleValue());
 			}
-
-			event.setSelector(selector);
 			if (event.getTag() == null) {
 				event.setTag(stringValue(data.get("tag")));
 			}

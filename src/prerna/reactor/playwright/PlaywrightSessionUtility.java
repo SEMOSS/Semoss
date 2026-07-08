@@ -271,6 +271,30 @@ public class PlaywrightSessionUtility {
 		Locator loc = resolveLocator(page, step.selector());
 		boolean typed = focusAndType(loc, step.text());
 
+		// Try healed selector / coordinates when the recorded selector is stale.
+		if (!typed && step.coords() != null) {
+			Locator healed = null;
+			try {
+				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
+			} catch (Exception ignore) {
+			}
+			typed = focusAndType(healed, step.text());
+		}
+
+		if (!typed && step.coords() != null) {
+			try {
+				page.mouse().click(step.coords().x(), step.coords().y());
+				typed = typeFocusedTextControl(page, step.text());
+			} catch (Exception ignore) {
+			}
+		}
+
+		// Last resort for old recordings where TYPE has no coords: use the currently
+		// focused input/textarea/contentEditable that a prior CLICK likely focused.
+		if (!typed) {
+			typed = typeFocusedTextControl(page, step.text());
+		}
+
 		if (typed && Boolean.TRUE.equals(step.pressEnter())) {
 			try {
 				page.keyboard().press("Enter");
@@ -278,6 +302,53 @@ public class PlaywrightSessionUtility {
 			}
 		}
 		return typed;
+	}
+
+	private static boolean typeFocusedTextControl(Page page, String text) {
+		try {
+			return Boolean.TRUE.equals(page.evaluate("""
+					(value) => {
+					  function active(win) {
+					    let el = win.document.activeElement;
+					    if (!el) return null;
+					    if (el.shadowRoot && el.shadowRoot.activeElement) {
+					      el = el.shadowRoot.activeElement;
+					    }
+					    if (el.tagName === "IFRAME") {
+					      try {
+					        return active(el.contentWindow);
+					      } catch (e) {
+					        return null;
+					      }
+					    }
+					    return el;
+					  }
+					  const el = active(window);
+					  if (!el) return false;
+					  const tag = (el.tagName || "").toLowerCase();
+					  const type = (el.type || "").toLowerCase();
+					  const isInput = tag === "textarea" ||
+					    (tag === "input" && ["text", "password", "email", "search", "tel", "url", "number"].includes(type));
+					  const nextValue = value == null ? "" : String(value);
+					  if (isInput) {
+					    el.focus();
+					    el.value = nextValue;
+					    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+					    el.dispatchEvent(new Event("change", { bubbles: true }));
+					    return true;
+					  }
+					  if (el.isContentEditable) {
+					    el.focus();
+					    el.textContent = nextValue;
+					    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+					    return true;
+					  }
+					  return false;
+					}
+					""", text));
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -699,10 +770,9 @@ public class PlaywrightSessionUtility {
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match - don't drop to coords; surface as SELECTOR_NOT_FOUND
-				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+				classLogger.warn("TYPE selector not found for step {}; falling back to coords/focused element: {}",
+						step.id(), step.selector().value());
 			}
-			// otherwise proceed with the clickable path above
 		}
 		boolean ok = typeWithFallback(page, step);
 		if (!ok) {
