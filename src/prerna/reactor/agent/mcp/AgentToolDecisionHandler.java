@@ -156,9 +156,16 @@ public final class AgentToolDecisionHandler {
 		}
 
 		String resultStr = toolOutput != null ? toolOutput.toString() : "";
-		writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr,
-				toolStatus != null ? toolStatus : "success", actionId, normalizedDecision, paramMap, pendingAction,
-				userId, true);
+		try {
+			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr,
+					toolStatus != null ? toolStatus : "success", actionId, normalizedDecision, paramMap, pendingAction,
+					userId, true);
+		} catch (RuntimeException e) {
+			// release the claim so a retry is not wedged on EXECUTING; the tool already
+			// ran, so the retry replays via the decided/claim-race path if it was marked
+			actionStore.releaseExecutionClaim(actionId, runId, userId);
+			throw e;
+		}
 		return resultStr;
 	}
 
