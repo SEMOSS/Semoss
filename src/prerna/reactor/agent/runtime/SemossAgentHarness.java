@@ -204,30 +204,38 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			if (ctx.isResumeMode()) {
 				// --- Resume mode ---
-				// The tool results were already written to the room by
-				// RunMCPToolReactor (via addToolExecutionResult). If all tool
-				// calls were answered, addToolExecutionResult auto-called the
-				// model and the latest message is a ResponseMessage. Pick up
-				// from there and continue the loop.
+				// The tool results were already written to the room by RunMCPToolReactor.
+				// If an older path already produced an assistant response, pick it up.
+				// Otherwise continue from the completed tool-result message here so the
+				// worker owns the post-HITL model call and harness prompt/tool context.
 				List<AbstractMessage> messages = room.getMessages();
 				AbstractMessage last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
 				if (last instanceof ResponseMessage) {
 					response = (ResponseMessage) last;
 					logger.info("SemossAgentHarness: resume mode room={} picking up from messageId={}",
 							room.getId(), response.getMessageId());
-				} else {
-					// Not all tools were answered or the model hasn't responded yet.
-					// Re-feed the message history to get a response.
-					logger.info("SemossAgentHarness: resume mode room={} re-feeding to get model response",
-							room.getId());
+				} else if (last instanceof InputMessage && last.hasToolResultPart()) {
+					logger.info("SemossAgentHarness: resume mode room={} continuing from tool results messageId={}",
+							room.getId(), last.getMessageId());
 					Map<String, Object> resumeParams = new HashMap<>(paramMap);
 					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
-					InputMessage resumeMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-							.withText(ctx.getInput()).withModelType(ctx.getModelEngine().getModelType())
-							.withParamMap(resumeParams).build();
-					tagAgentRun(resumeMsg, ctx.getRunId(), RUN_ROLE_INPUT);
-					inputMessageId = resumeMsg.getMessageId();
-					response = room.ask(resumeMsg, ctx.getModelEngine(), null);
+					Object resumeModelResponse = room.continueAfterToolExecutionResults(resumeParams, last.getParentMessageId(),
+							ctx.getModelEngine(), ctx.getInsight());
+					if (resumeModelResponse == null) {
+						throw new IllegalStateException("Cannot resume agent run because tool results are incomplete");
+					}
+					AbstractMessage continuedLast = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+					if (!(continuedLast instanceof ResponseMessage)) {
+						throw new IllegalStateException("Cannot resume agent run because model continuation did not "
+								+ "produce an assistant response");
+					}
+					response = (ResponseMessage) continuedLast;
+				} else {
+					throw new IllegalStateException("Cannot resume agent run because latest room message is not a "
+							+ "tool result or assistant response room=" + room.getId());
+				}
+				if (response == null) {
+					throw new IllegalStateException("Cannot resume agent run because no assistant response was produced");
 				}
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 			} else {

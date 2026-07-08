@@ -301,10 +301,9 @@ public class RunMCPToolReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Write the tool result to the agent's room via
-	 * {@code Room.addToolExecutionResult}. If all tool calls from the paused
-	 * batch are now answered, this auto-calls the model. Then marks the agent
-	 * run as SUBMITTED so the worker picks it up and resumes the harness loop.
+	 * Write the tool result to the agent's room without calling the model. When all
+	 * paused actions are answered, mark the run SUBMITTED so the worker owns the
+	 * follow-up model call and resumes the harness loop.
 	 */
 	private void writeToRoomAndResume(String runId, String roomId, String toolCallId, String parentMessageId,
 			String toolResult, String toolStatus, String actionId, String decision, Map<String, Object> toolParams,
@@ -351,21 +350,27 @@ public class RunMCPToolReactor extends AbstractReactor {
 		Map<String, Object> paramMapForRoom = new HashMap<>();
 		String roomToolName = stringValue(pendingAction.get("toolName"));
 		if (!toolResultAlreadyInRoom(room, parentMessageId, toolCallId)) {
-			room.addToolExecutionResult(toolCallId, roomToolName,
-					toolResult, toolParams != null ? toolParams : new HashMap<>(),
-					paramMapForRoom, parentMessageId, modelEngine, this.insight, toolStatus);
+			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName,
+					toolResult, toolParams != null ? toolParams : paramMapForRoom,
+					parentMessageId, modelEngine, this.insight, toolStatus);
 		}
 
 		// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
 		// actions in the batch are decided. For N>1 tool calls, the run must
-		// not re-queue until every tool has a result; addToolExecutionResult
-		// already guards the model auto-call on the same condition.
+		// not re-queue until every tool has a result; the resumed harness performs
+		// the model continuation once the batch is complete.
 		if (actionStore.allActionsDecided(runId)) {
 			AgentRunStore runStore = new AgentRunStore();
 			boolean resumed = runStore.markResumed(runId, runId);
 			if (!resumed) {
-				throw new IllegalStateException("Agent run was not resumed because it is no longer INPUT_REQUIRED: "
-						+ runId);
+				prerna.reactor.agent.run.AgentRunRecord record = runStore.getRun(runId, this.insight);
+				AgentRunStatus status = record != null ? record.getStatus() : null;
+				if (status == AgentRunStatus.INPUT_REQUIRED) {
+					throw new IllegalStateException("Agent run was not resumed because it is still INPUT_REQUIRED: "
+							+ runId);
+				}
+				logger.info("RunMCPToolReactor: runId={} already resumed or terminal status={}", runId, status);
+				return;
 			}
 			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.SUBMITTED, false);
 			AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
