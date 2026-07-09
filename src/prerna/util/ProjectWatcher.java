@@ -98,11 +98,13 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 
 		if (!ClusterUtil.IS_CLUSTER) {
+			List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
-				if (!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
+				if (!ArrayUtilityMethods.arrayContainsValue(projectIds, project)
+						&& !defaultPlatforms.contains(project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}
