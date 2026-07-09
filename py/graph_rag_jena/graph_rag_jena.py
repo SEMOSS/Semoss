@@ -399,14 +399,19 @@ class JenaGraphRAG:
         if not isinstance(payload, dict):
             raise ValueError("structured ingest payload must be a JSON object")
 
-        # Nodes
+        # Nodes. URIs are minted from the node's own id (entity identity), NOT
+        # the document, so the same entity referenced by multiple documents
+        # collapses to a single shared node -- that shared-entity density is
+        # what makes multi-hop GraphRAG useful. Provenance is preserved via the
+        # (multi-valued) smss:belongsToDocument edge.
         for node in payload.get("nodes") or []:
-            n_uri = node.get("uri") or self._mint_entity_uri(
-                f"node|{source}|{node.get('id', '')}"
-            )
-            n_type = node.get("type") or "smss:Entity"
-            if not n_type.startswith("<") and ":" not in n_type:
-                n_type = f'"{n_type}"'
+            n_uri = node.get("uri") or self._entity_uri(node.get("id", ""))
+            n_type_raw = node.get("type") or "Entity"
+            # rdf:type object must be an IRI/class -- never a string literal.
+            if n_type_raw.startswith("<") or ":" in n_type_raw:
+                n_type = n_type_raw
+            else:
+                n_type = f"smss:{_local_name(n_type_raw)}"
             turtle_lines.append("")
             turtle_lines.append(f"<{n_uri}> a {n_type} ;")
             if node.get("label"):
@@ -420,14 +425,26 @@ class JenaGraphRAG:
                 turtle_lines[-1] = turtle_lines[-1][:-1] + "."
             nodes_added += 1
 
-        # Edges — (subject, predicate, object) triples
+        # Edges. Preferred shape is {source, target, relation} where source and
+        # target are node ids (resolved to the same entity URIs minted above)
+        # and relation is a short predicate name (-> smss:<relation>). Falls
+        # back to raw {s, p, o} URI triples.
         for edge in payload.get("edges") or []:
-            s = edge.get("s") or edge.get("subject")
-            p = edge.get("p") or edge.get("predicate")
-            o = edge.get("o") or edge.get("object")
-            if not (s and p and o):
+            s_id = edge.get("source") or edge.get("s") or edge.get("subject")
+            rel = edge.get("relation") or edge.get("p") or edge.get("predicate")
+            o_id = edge.get("target") or edge.get("o") or edge.get("object")
+            if not (s_id and rel and o_id):
                 continue
-            turtle_lines.append(f"<{s}> <{p}> <{o}> .")
+            s_uri = s_id if str(s_id).startswith("http") else self._entity_uri(s_id)
+            o_uri = o_id if str(o_id).startswith("http") else self._entity_uri(o_id)
+            rel_s = str(rel)
+            if rel_s.startswith("http"):
+                pred = f"<{rel_s}>"
+            elif ":" in rel_s:
+                pred = rel_s  # already a prefixed name
+            else:
+                pred = f"smss:{_local_name(rel_s)}"
+            turtle_lines.append(f"<{s_uri}> {pred} <{o_uri}> .")
             edges_added += 1
 
         turtle_body = "\n".join(turtle_lines)
@@ -638,6 +655,17 @@ class JenaGraphRAG:
         return _DEFAULT_ENTITY_NS + str(uuid.uuid5(_URI_NAMESPACE, seed))
 
     @staticmethod
+    def _entity_uri(entity_id: str) -> str:
+        """Deterministic URI keyed on the entity's identity (not the document).
+
+        The same ``entity_id`` always yields the same URI, so an entity
+        referenced from many documents collapses to one shared graph node.
+        """
+        return _DEFAULT_ENTITY_NS + str(
+            uuid.uuid5(_URI_NAMESPACE, f"entity|{entity_id}")
+        )
+
+    @staticmethod
     def _build_hop_chain(hop_distance: int, anchor: str) -> str:
         """Return a triple-pattern BGP for exactly ``hop_distance`` steps.
 
@@ -666,6 +694,16 @@ class JenaGraphRAG:
 def _slugify(s: Any) -> str:
     txt = re.sub(r"[^A-Za-z0-9]+", "_", str(s)).strip("_")
     return txt or "field"
+
+
+def _local_name(s: Any) -> str:
+    """Turn a type/relation name into a safe RDF local name (predicate/class).
+
+    Keeps alphanumerics, drops separators so ``"Boxed Warning"`` -> ``BoxedWarning``
+    and ``"hasActiveIngredient"`` is preserved. Used to build ``smss:<name>``.
+    """
+    txt = re.sub(r"[^A-Za-z0-9]+", "", str(s))
+    return txt or "Entity"
 
 
 def _ttl_literal(value: Any) -> str:
