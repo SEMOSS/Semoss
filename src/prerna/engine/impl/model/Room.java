@@ -484,7 +484,43 @@ public class Room implements Serializable {
 				}
 			}
 
-			if (toolResultsMessage == null) {
+			// Idempotency guard: if this toolCallId is already present in some
+			// tool_result InputMessage in the branch, skip the append entirely
+			// and reuse that message. Duplicate tool_result blocks with the same
+			// id cause providers to reject the next askRoom payload with
+			// "each tool_use must have a single result." This can happen when a
+			// live AddPlaygroundToolExecution call and a cancel-commit call
+			// (feat-cancel-llm-stream) both fire for the same tool, or on any
+			// FE retry / refresh-then-resend path.
+			InputMessage existingCarrier = null;
+			for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
+				AbstractMessage m = messages.get(i);
+				if (m instanceof ResponseMessage) {
+					break;
+				}
+				if (m instanceof InputMessage && m.hasToolResultPart()) {
+					for (MessagePart p : m.getParts()) {
+						if (p instanceof ToolResultMessagePart) {
+							ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+							if (tr != null && toolCallId.equals(tr.getToolCallId())) {
+								existingCarrier = (InputMessage) m;
+								break;
+							}
+						}
+					}
+					if (existingCarrier != null) {
+						break;
+					}
+				}
+			}
+
+			if (existingCarrier != null) {
+				// Duplicate submission — the tool_result for this call is already
+				// recorded. Reuse it so downstream code (all-answered checks,
+				// logging, transaction id propagation) still has a message to
+				// reference, but don't add a second ToolResultMessagePart.
+				toolResultsMessage = existingCarrier;
+			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
 				toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getSystemPromptForModel())
 						.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus,
@@ -592,7 +628,8 @@ public class Room implements Serializable {
 					} catch (Exception e) {
 						// remove the entire input message since it failed
 						messages.removeLast();
-						classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						classLogger.error(
+								"Error adding the tool result message and getting a model response. Error: {}",
 								e.getMessage(), e);
 						throw e;
 					}

@@ -163,11 +163,18 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
 
-			// Two null-return cases: live LLM call short-circuits when more tools
-			// are still pending (existing behavior), and the cancel-persistence
-			// path always returns null because there is no llmResponse to hand
-			// back. Route on prebuiltResponse to disambiguate.
-			if (response == null && prebuiltResponse == null) {
+			// Three "no assistant follow-up appended" cases we need to handle:
+			// (1) live LLM path, more tools pending (existing behavior)
+			// (2) cancel-persistence path with a live-race dedupe hit — the
+			//     Room dedupe found the toolCallId already recorded, so nothing
+			//     new was added
+			// (3) cancel-persistence path where the caller sent responseParts
+			//     but not all tool_call_ids are answered yet
+			// In all three cases, Room did not append a ResponseMessage as the
+			// tail. Detect that by inspecting the tail directly rather than
+			// relying on the two-way null return.
+			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			if (!(tail instanceof ResponseMessage)) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
 				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
@@ -175,7 +182,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
 			// parse the response for code blocks
 			AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
-			ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
+			ResponseMessage lastMessage = (ResponseMessage) tail;
 
 			if (prebuiltResponse != null) {
 				// Cancel path: the FE-supplied response is already persisted by
