@@ -67,7 +67,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             api_key=api_key,
             base_url=base_url,
         )
-        self.google_client = GoogleClient(config=self.client_config).client
+        self.google_client = GoogleClient(config=self.client_config).genai_client
         self.video_client = GoogleGenAiVideoClient(parent_client=self)
 
         self.safety_settings = safety_settings
