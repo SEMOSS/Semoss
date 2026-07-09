@@ -50,7 +50,10 @@ def _default_pixel_loader() -> PixelLoader:
         # `raw=True` returns the full pixelReturn envelope.
         outputs = result[0].get("pixelReturn") if result else None
         if not outputs:
-            return {}
+            raise RuntimeError(
+                f"Pixel returned no output: {pixel!r}. This usually means the "
+                "workspace/engine id is wrong or the current user lacks access."
+            )
         first = outputs[-1].get("output")
         return first if isinstance(first, dict) else {"value": first}
 
@@ -85,10 +88,19 @@ def _parse_config_json(raw: Any) -> dict:
     if isinstance(raw, str):
         try:
             return json.loads(raw) or {}
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.warning(
+                "Workspace CONFIG_JSON failed to parse (%s); subagents/mode "
+                "from it will be ignored. Raw prefix: %r",
+                e, raw[:120] if len(raw) > 120 else raw,
+            )
             return {}
     if isinstance(raw, dict):
         return raw
+    logger.warning(
+        "Workspace CONFIG_JSON has unexpected type %s; expected str or dict.",
+        type(raw).__name__,
+    )
     return {}
 
 
@@ -162,7 +174,12 @@ class SemossAgent:
     """Namespace of factory methods that return LangGraph ``CompiledGraph``s."""
 
     @staticmethod
-    def from_config(config: SemossAgentConfig, *, _depth: int = 0) -> Any:
+    def from_config(
+        config: SemossAgentConfig,
+        *,
+        pixel_loader: Optional[PixelLoader] = None,
+        _depth: int = 0,
+    ) -> Any:
         if config.model is None:
             raise ValueError("SemossAgentConfig.model is required.")
         model = _wrap_model(config.model)
@@ -184,12 +201,13 @@ class SemossAgent:
                     secret_key=config.secret_key,
                     room_id=config.room_id,
                     max_subagent_depth=config.max_subagent_depth,
+                    pixel_loader=pixel_loader,
                     _depth=_depth + 1,
                 )
                 tools.append(_build_subagent_tool(ref, child))
 
         if config.mode == "deep":
-            return _build_deep_graph(config, model, tools)
+            return _build_deep_graph(config, model, tools, pixel_loader)
 
         return create_react_agent(
             model=model,
@@ -239,11 +257,14 @@ class SemossAgent:
             room_id=room_id,
             max_subagent_depth=max_subagent_depth,
         )
-        return SemossAgent.from_config(cfg, _depth=_depth)
+        return SemossAgent.from_config(cfg, pixel_loader=pixel_loader, _depth=_depth)
 
 
 def _build_deep_graph(
-    config: SemossAgentConfig, model: BaseChatModel, tools: List[BaseTool]
+    config: SemossAgentConfig,
+    model: BaseChatModel,
+    tools: List[BaseTool],
+    pixel_loader: Optional[PixelLoader] = None,
 ) -> Any:
     try:
         from deepagents import create_deep_agent
@@ -255,7 +276,7 @@ def _build_deep_graph(
 
     deep_subagents = _build_deep_subagents(
         config.subagents,
-        _default_pixel_loader(),
+        pixel_loader or _default_pixel_loader(),
         config.access_key,
         config.secret_key,
         config.room_id,
