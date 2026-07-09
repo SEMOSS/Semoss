@@ -383,6 +383,16 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
     }
 
     @Override
+    public List<prerna.engine.impl.vector.FileEmbeddingStatus> addEmbeddings(
+            prerna.engine.impl.vector.VectorDatabaseCSVTable vectorCsvTable,
+            Insight insight,
+            Map<String, Object> parameters) throws Exception {
+        throw new UnsupportedOperationException(
+                "Jena GraphRAG does not accept CSV-based embedding uploads directly -- "
+                + "use JenaIngestDoc for structured JSON payloads or paired-vector routing");
+    }
+
+    @Override
     public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
         if (fileNames == null || fileNames.isEmpty()) {
             return;
