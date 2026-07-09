@@ -574,6 +574,14 @@ public class Room implements Serializable {
 			// 5. If all tool_call_ids fulfilled, trigger next model.ask
 			// otherwise, we add the message and save the result
 			if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
+				// Cancel-commit stranding the pending tools: sanitize orphan
+				// tool_use blocks (and their trailing tool_results) so the FE
+				// sees a clean room on refresh and the next askRoom payload
+				// stays valid. Only runs on the cancel-commit path; the live
+				// multi-tool turn intentionally keeps unanswered ids in place.
+				if (prebuiltResponse != null) {
+					RoomMessageStore.normalizeForProviderPayload(this);
+				}
 				// persist the new message (or just the part) into the room
 				RoomMessageStore.persist(this, userId);
 			} else {
