@@ -29,6 +29,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class QdrantAddPointsReactor extends AbstractReactor {
@@ -52,7 +53,13 @@ public class QdrantAddPointsReactor extends AbstractReactor {
 					"Vector db " + engineId + " does not exist or user does not have edit access.");
 		}
 
-		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
+		// Utility.getVectorDatabase returns a Proxy exposing only the
+		// IVectorDatabaseEngine interface; Qdrant-specific methods and the
+		// instanceof check need the raw engine from DIHelper (force-load first).
+		Utility.getVectorDatabase(engineId);
+		Object rawEng = DIHelper.getInstance().getEngineProperty(engineId);
+		IVectorDatabaseEngine eng = (rawEng instanceof IVectorDatabaseEngine)
+				? (IVectorDatabaseEngine) rawEng : null;
 		if (eng == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
