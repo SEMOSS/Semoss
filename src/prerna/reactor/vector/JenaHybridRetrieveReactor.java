@@ -24,6 +24,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class JenaHybridRetrieveReactor extends AbstractReactor {
@@ -54,13 +55,16 @@ public class JenaHybridRetrieveReactor extends AbstractReactor {
 			throw new IllegalArgumentException(
 					"Vector db " + engineId + " does not exist or user does not have access.");
 		}
-		IVectorDatabaseEngine eng = Utility.getVectorDatabase(engineId);
-		if (eng == null) {
+		IVectorDatabaseEngine wrapped = Utility.getVectorDatabase(engineId);
+		if (wrapped == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
-		if (!(eng instanceof JenaGraphRAGEngine)) {
-			throw new IllegalArgumentException("Engine " + engineId + " is not a Jena GraphRAG database");
+		Object raw = DIHelper.getInstance().getEngineProperty(engineId);
+		if (!(raw instanceof JenaGraphRAGEngine)) {
+			throw new IllegalArgumentException("Engine " + engineId + " is not a Jena GraphRAG database (actual: "
+					+ (raw == null ? "null" : raw.getClass().getName()) + ")");
 		}
+		JenaGraphRAGEngine eng = (JenaGraphRAGEngine) raw;
 
 		String question = getString(QUESTION_KEY);
 		if (question == null || question.trim().isEmpty()) {
