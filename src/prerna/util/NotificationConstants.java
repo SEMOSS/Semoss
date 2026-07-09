@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.util.Set;
+
 public final class NotificationConstants {
 
 	private NotificationConstants() {
@@ -46,6 +48,20 @@ public final class NotificationConstants {
 	public static final class Kind {
 		public static final String INFO = "INFO";
 		public static final String ACTION = "ACTION";
+	}
+
+	// in-app render surface (NOT external delivery - that is DeliveryChannel)
+	public static final class DisplaySurface {
+		public static final String BELL = "BELL";
+		public static final String MODAL = "MODAL";
+		public static final String TOAST = "TOAST";
+		public static final String BANNER = "BANNER";
+
+		private static final Set<String> VALUES = Set.of(BELL, MODAL, TOAST, BANNER);
+
+		public static boolean isValid(String displaySurface) {
+			return VALUES.contains(displaySurface);
+		}
 	}
 
 	public static final class Type {

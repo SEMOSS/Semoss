@@ -184,7 +184,7 @@ public class NotificationDbUtils {
 	 */
 	public static void createNotification(User loggedInUser, String affectedUserId, String affectedUserType,
 			String catalogId, String notificationType, String notificationSource, String priority,
-			String affectedUserPreviousRole, String affectedUserNewRole) {
+			String affectedUserPreviousRole, String affectedUserNewRole, String displaySurface) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		List<Map<String, Object>> authorRecipients = NotificationConstants.APP_CATALOG
 				.equalsIgnoreCase(notificationSource) ? SecurityProjectUtils.getProjectAuthors(catalogId)
@@ -224,7 +224,7 @@ public class NotificationDbUtils {
 		String metadataJson = buildLegacyMetadata(affectedUserId, affectedUserType, affectedUserPreviousRole,
 				affectedUserNewRole, notificationType, notificationSource);
 
-		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,KIND,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,TARGET_URL,ACTION_LABEL,STATUS,GROUP_ID,METADATA_JSON,CREATED_BY,CREATED_AT,RESOLVED_AT,EXPIRES_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,KIND,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,TARGET_URL,ACTION_LABEL,STATUS,GROUP_ID,METADATA_JSON,CREATED_BY,CREATED_AT,RESOLVED_AT,EXPIRES_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		for (Map<String, Object> recipient : recipients) {
 			if (recipient == null || recipient.get("userId") == null) {
 				continue;
@@ -245,6 +245,7 @@ public class NotificationDbUtils {
 				ps.setString(parameterIndex++, "NOTIFICATION");
 				ps.setString(parameterIndex++, null);
 				ps.setString(parameterIndex++, normalizePriority(priority));
+				ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
 				ps.setString(parameterIndex++, sourceType);
 				ps.setString(parameterIndex++, catalogId);
 				ps.setString(parameterIndex++, targetType);
@@ -288,7 +289,7 @@ public class NotificationDbUtils {
 
 		StringBuilder query = new StringBuilder();
 		query.append("SELECT n.NOTIFICATION_ID, n.KIND, n.TYPE, n.SCOPE_TYPE, n.SCOPE_ID, n.AUDIENCE_TYPE, ")
-				.append("n.AUDIENCE_ID, n.AUDIENCE_USER_TYPE, n.TITLE, n.MESSAGE, n.PRIORITY, n.SOURCE_TYPE, ")
+				.append("n.AUDIENCE_ID, n.AUDIENCE_USER_TYPE, n.TITLE, n.MESSAGE, n.PRIORITY, n.DISPLAY_SURFACE, n.SOURCE_TYPE, ")
 				.append("n.SOURCE_ID, n.TARGET_TYPE, n.TARGET_ID, n.TARGET_URL, n.ACTION_LABEL, n.STATUS, ")
 				.append("n.GROUP_ID, n.METADATA_JSON, n.CREATED_BY, n.CREATED_AT, n.RESOLVED_AT, n.EXPIRES_AT, ")
 				.append("CASE WHEN EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
@@ -471,6 +472,7 @@ public class NotificationDbUtils {
 		row.put("notification_actiontarget", getString(rs, "TARGET_URL"));
 		row.put("notification_isread", rs.getBoolean("IS_READ"));
 		row.put("notification_priority", getString(rs, "PRIORITY"));
+		row.put("display_surface", normalizeDisplaySurface(getString(rs, "DISPLAY_SURFACE")));
 		row.put("notification_type", legacyType == null ? getString(rs, "TYPE") : legacyType);
 		row.put("catalog_id", catalogId);
 		row.put("notification_createddate", rs.getTimestamp("CREATED_AT"));
@@ -762,6 +764,17 @@ public class NotificationDbUtils {
 			return NotificationConstants.Priority.NORMAL;
 		}
 		return priority.toUpperCase();
+	}
+
+	private static String normalizeDisplaySurface(String displaySurface) {
+		if (displaySurface == null || displaySurface.trim().isEmpty()) {
+			return NotificationConstants.DisplaySurface.BELL;
+		}
+		String normalized = displaySurface.trim().toUpperCase();
+		if (NotificationConstants.DisplaySurface.isValid(normalized)) {
+			return normalized;
+		}
+		return NotificationConstants.DisplaySurface.BELL;
 	}
 
 	private static String buildLegacyMetadata(String affectedUserId, String affectedUserType,

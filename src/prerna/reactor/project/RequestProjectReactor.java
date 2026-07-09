@@ -103,9 +103,9 @@ public class RequestProjectReactor extends AbstractReactor {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String priority = AccessPermissionEnum.isOwner(requestPermission) ? NotificationConstants.Priority.HIGH
 						: NotificationConstants.Priority.MEDIUM;
-				NotificationDbUtils.createNotification(user, userId, userType, projectId,
-						NotificationConstants.Type.USER_REQUEST, NotificationConstants.APP_CATALOG, priority, null,
-						permission);
+					NotificationDbUtils.createNotification(user, userId, userType, projectId,
+							NotificationConstants.Type.USER_REQUEST, NotificationConstants.APP_CATALOG, priority, null,
+							permission, NotificationConstants.DisplaySurface.BELL);
 
 				EmailUtility.sendAccessRequestEmailNotification(user, projectId, permission, requestComment,
 						EmailUtility.RESOURCE_TYPE.PROJECT);

@@ -62,6 +62,7 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 				Pair.with("TITLE", VARCHAR_255),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("PRIORITY", "VARCHAR(20)"),
+				Pair.with("DISPLAY_SURFACE", "VARCHAR(20)"),
 				Pair.with("SOURCE_TYPE", "VARCHAR(20)"),
 				Pair.with("SOURCE_ID", "VARCHAR(50)"),
 				Pair.with("TARGET_TYPE", "VARCHAR(30)"),
