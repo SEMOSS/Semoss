@@ -273,15 +273,75 @@ public class NotificationDbUtils {
 		}
 	}
 
+	static String insertNotificationEvent(String kind, String type, String scopeType, String scopeId,
+			String audienceType, String audienceId, String audienceUserType, String title, String message,
+			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
+			String targetId, String targetUrl, String actionLabel, String status, String groupId, String metadataJson,
+			String createdBy) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
+		String notificationId = GUID.v7().toUUID().toString();
+		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,KIND,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,TARGET_URL,ACTION_LABEL,STATUS,GROUP_ID,METADATA_JSON,CREATED_BY,CREATED_AT,RESOLVED_AT,EXPIRES_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		try {
+			ps = notificationDb.getPreparedStatement(query);
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, notificationId);
+			ps.setString(parameterIndex++, kind);
+			ps.setString(parameterIndex++, type);
+			ps.setString(parameterIndex++, scopeType);
+			ps.setString(parameterIndex++, scopeId);
+			ps.setString(parameterIndex++, audienceType);
+			ps.setString(parameterIndex++, audienceId);
+			ps.setString(parameterIndex++, audienceUserType);
+			ps.setString(parameterIndex++, title);
+			ps.setString(parameterIndex++, message);
+			ps.setString(parameterIndex++, priority);
+			ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+			ps.setString(parameterIndex++, sourceType);
+			ps.setString(parameterIndex++, sourceId);
+			ps.setString(parameterIndex++, targetType);
+			ps.setString(parameterIndex++, targetId);
+			ps.setString(parameterIndex++, targetUrl);
+			ps.setString(parameterIndex++, actionLabel);
+			ps.setString(parameterIndex++, status);
+			ps.setString(parameterIndex++, groupId);
+			ps.setString(parameterIndex++, metadataJson);
+			ps.setString(parameterIndex++, createdBy);
+			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			ps.setTimestamp(parameterIndex++, null);
+			ps.setTimestamp(parameterIndex++, null);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return notificationId;
+		} catch (SQLException e) {
+			classLogger.error("Failed to insert notification event [type={}, scopeType={}, scopeId={}]", type,
+					scopeType, scopeId, e);
+			throw new IllegalStateException("Unable to create notification", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
+		}
+	}
+
 	public static List<Map<String, Object>> fetchAllNotifications(User user, String limit, String offset) {
+		return fetchNotifications(user, NotificationConstants.FetchScope.ALL, null, limit, offset);
+	}
+
+	public static List<Map<String, Object>> fetchNotifications(User user, String scopeType, String scopeId, String limit,
+			String offset) {
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
 		if (userIdAndTypeList.isEmpty()) {
 			return new ArrayList<>();
 		}
+		List<String> accessibleProjectIds = getAccessibleProjectIds(user);
 		List<Object> audienceParameters = new ArrayList<>();
+		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
 		List<Object> readParameters = new ArrayList<>();
-		String audienceCondition = buildVisibleAudienceSqlCondition(userIdAndTypeList, audienceParameters);
+		String audienceCondition = buildVisibleAudienceSqlCondition(userIdAndTypeList, accessibleProjectIds,
+				audienceParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", userIdAndTypeList, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		String readCondition = buildStateExistsSqlCondition("urs", userIdAndTypeList, readParameters,
@@ -295,12 +355,14 @@ public class NotificationDbUtils {
 				.append("CASE WHEN EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(readCondition).append(") THEN TRUE ELSE FALSE END AS IS_READ ")
 				.append("FROM NOTIFICATION_EVENT n WHERE (").append(audienceCondition).append(") ")
+				.append("AND (").append(scopeCondition).append(") ")
 				.append("AND n.STATUS <> ? ").append("AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) ")
 				.append("AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(dismissedCondition).append(") ").append("ORDER BY n.CREATED_AT DESC");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(readParameters);
 		parameters.addAll(audienceParameters);
+		parameters.addAll(scopeParameters);
 		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 
@@ -328,17 +390,27 @@ public class NotificationDbUtils {
 		return deleteNotification(recipientPairs, notificationId);
 	}
 
+	public static int deleteNotification(User user, String notificationId) {
+		return deleteNotification(User.getUserIdAndType(user), getAccessibleProjectIds(user), notificationId);
+	}
+
 	public static int deleteNotification(List<Pair<String, String>> recipientPairs, String notificationId) {
+		return deleteNotification(recipientPairs, new ArrayList<>(), notificationId);
+	}
+
+	private static int deleteNotification(List<Pair<String, String>> recipientPairs, List<String> accessibleProjectIds,
+			String notificationId) {
 		if (recipientPairs == null || recipientPairs.isEmpty()) {
 			return 0;
 		}
 		List<String> notificationIds = new ArrayList<>();
 		if (notificationId != null) {
-			if (isNotificationVisibleToUser(notificationId, recipientPairs)) {
+			if (isNotificationVisibleToUser(notificationId, recipientPairs, accessibleProjectIds)) {
 				notificationIds.add(notificationId);
 			}
 		} else {
-			notificationIds.addAll(fetchVisibleNotificationIds(recipientPairs));
+			notificationIds.addAll(fetchVisibleNotificationIds(recipientPairs, accessibleProjectIds,
+					NotificationConstants.FetchScope.ALL, null));
 		}
 		int count = 0;
 		Timestamp dismissedAt = Utility.getCurrentSqlTimestampUTC();
@@ -353,6 +425,10 @@ public class NotificationDbUtils {
 	}
 
 	public static void resetNotificationActionType(User user) {
+		resetNotificationActionType(user, NotificationConstants.FetchScope.ALL, null);
+	}
+
+	public static void resetNotificationActionType(User user, String scopeType, String scopeId) {
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
 		if (userIdAndTypeList.isEmpty()) {
 			return;
@@ -362,7 +438,8 @@ public class NotificationDbUtils {
 			return;
 		}
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		for (String notificationId : fetchVisibleNotificationIds(userIdAndTypeList)) {
+		for (String notificationId : fetchVisibleNotificationIds(userIdAndTypeList, getAccessibleProjectIds(user),
+				scopeType, scopeId)) {
 			upsertNotificationState(notificationId, statePair, true, readAt, null, null);
 		}
 	}
@@ -373,8 +450,17 @@ public class NotificationDbUtils {
 
 	public static int markNotificationRead(String notificationId, Timestamp readDate,
 			List<Pair<String, String>> recipientPairs) {
+		return markNotificationRead(notificationId, readDate, recipientPairs, new ArrayList<>());
+	}
+
+	public static int markNotificationRead(User user, String notificationId, Timestamp readDate) {
+		return markNotificationRead(notificationId, readDate, User.getUserIdAndType(user), getAccessibleProjectIds(user));
+	}
+
+	private static int markNotificationRead(String notificationId, Timestamp readDate,
+			List<Pair<String, String>> recipientPairs, List<String> accessibleProjectIds) {
 		if (notificationId == null || recipientPairs == null || recipientPairs.isEmpty()
-				|| !isNotificationVisibleToUser(notificationId, recipientPairs)) {
+				|| !isNotificationVisibleToUser(notificationId, recipientPairs, accessibleProjectIds)) {
 			return 0;
 		}
 		Pair<String, String> statePair = firstValidPair(recipientPairs);
@@ -392,25 +478,39 @@ public class NotificationDbUtils {
 		return fetchNewNotificationCount(recipientPairs);
 	}
 
+	public static int fetchNewNotificationCount(User user, String scopeType, String scopeId) {
+		return fetchNewNotificationCount(User.getUserIdAndType(user), getAccessibleProjectIds(user), scopeType, scopeId);
+	}
+
 	public static int fetchNewNotificationCount(List<Pair<String, String>> recipientPairs) {
+		return fetchNewNotificationCount(recipientPairs, new ArrayList<>(), NotificationConstants.FetchScope.ALL, null);
+	}
+
+	private static int fetchNewNotificationCount(List<Pair<String, String>> recipientPairs,
+			List<String> accessibleProjectIds, String scopeType, String scopeId) {
 		if (recipientPairs == null || recipientPairs.isEmpty()) {
 			return 0;
 		}
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		List<Object> audienceParameters = new ArrayList<>();
+		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
 		List<Object> readParameters = new ArrayList<>();
-		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, audienceParameters);
+		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
+				audienceParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", recipientPairs, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		String readCondition = buildStateExistsSqlCondition("urs", recipientPairs, readParameters,
 				"urs.IS_READ = TRUE");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
+		parameters.addAll(scopeParameters);
 		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		parameters.addAll(readParameters);
 		String query = "SELECT COUNT(n.NOTIFICATION_ID) FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
+				+ "AND (" + scopeCondition + ") "
 				+ "AND n.STATUS <> ? " + "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ") "
@@ -535,17 +635,23 @@ public class NotificationDbUtils {
 		}
 	}
 
-	private static List<String> fetchVisibleNotificationIds(List<Pair<String, String>> recipientPairs) {
+	private static List<String> fetchVisibleNotificationIds(List<Pair<String, String>> recipientPairs,
+			List<String> accessibleProjectIds, String scopeType, String scopeId) {
 		List<Object> audienceParameters = new ArrayList<>();
+		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
-		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, audienceParameters);
+		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
+				audienceParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", recipientPairs, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
+		parameters.addAll(scopeParameters);
 		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		String query = "SELECT n.NOTIFICATION_ID FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
+				+ "AND (" + scopeCondition + ") "
 				+ "AND n.STATUS <> ? " + "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
@@ -569,19 +675,24 @@ public class NotificationDbUtils {
 	}
 
 	private static boolean isNotificationVisibleToUser(String notificationId,
-			List<Pair<String, String>> recipientPairs) {
+			List<Pair<String, String>> recipientPairs, List<String> accessibleProjectIds) {
 		List<Object> audienceParameters = new ArrayList<>();
+		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
-		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, audienceParameters);
+		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
+				audienceParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(NotificationConstants.FetchScope.ALL, null,
+				accessibleProjectIds, scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", recipientPairs, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
+		parameters.addAll(scopeParameters);
 		parameters.add(notificationId);
 		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		String query = "SELECT 1 FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
-				+ "AND n.NOTIFICATION_ID = ? AND n.STATUS <> ? "
+				+ "AND (" + scopeCondition + ") " + "AND n.NOTIFICATION_ID = ? AND n.STATUS <> ? "
 				+ "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
@@ -661,7 +772,7 @@ public class NotificationDbUtils {
 	}
 
 	private static String buildVisibleAudienceSqlCondition(List<Pair<String, String>> recipientPairs,
-			List<Object> parameters) {
+			List<String> accessibleProjectIds, List<Object> parameters) {
 		List<String> conditions = new ArrayList<>();
 		for (Pair<String, String> pair : recipientPairs) {
 			if (pair == null || pair.getValue0() == null) {
@@ -673,9 +784,53 @@ public class NotificationDbUtils {
 			parameters.add(pair.getValue0());
 			parameters.add(pair.getValue1());
 		}
+		if (accessibleProjectIds != null && !accessibleProjectIds.isEmpty()) {
+			conditions.add("(n.AUDIENCE_TYPE = ? AND n.SCOPE_TYPE = ? AND n.SCOPE_ID IN ("
+					+ String.join(",", java.util.Collections.nCopies(accessibleProjectIds.size(), "?")) + "))");
+			parameters.add(NotificationConstants.Audience.APP_MEMBERS);
+			parameters.add(NotificationConstants.Scope.APP);
+			parameters.addAll(accessibleProjectIds);
+		}
 		conditions.add("(n.AUDIENCE_TYPE = ?)");
 		parameters.add(NotificationConstants.Audience.GLOBAL);
 		return String.join(" OR ", conditions);
+	}
+
+	private static String buildVisibleScopeSqlCondition(String scopeType, String scopeId,
+			List<String> accessibleProjectIds, List<Object> parameters) {
+		String normalizedScopeType = scopeType == null ? NotificationConstants.FetchScope.ALL : scopeType.trim().toUpperCase();
+		if (!NotificationConstants.FetchScope.isValid(normalizedScopeType)) {
+			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
+		}
+		if (NotificationConstants.FetchScope.SYSTEM.equals(normalizedScopeType)) {
+			parameters.add(NotificationConstants.Scope.SYSTEM);
+			return "n.SCOPE_TYPE = ?";
+		}
+		if (NotificationConstants.FetchScope.APP.equals(normalizedScopeType)) {
+			if (scopeId == null || scopeId.trim().isEmpty()) {
+				throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
+			}
+			parameters.add(NotificationConstants.Scope.APP);
+			parameters.add(scopeId.trim());
+			return "n.SCOPE_TYPE = ? AND n.SCOPE_ID = ?";
+		}
+		if (accessibleProjectIds == null || accessibleProjectIds.isEmpty()) {
+			parameters.add(NotificationConstants.Scope.SYSTEM);
+			return "n.SCOPE_TYPE = ?";
+		}
+		parameters.add(NotificationConstants.Scope.SYSTEM);
+		parameters.add(NotificationConstants.Scope.APP);
+		parameters.addAll(accessibleProjectIds);
+		return "n.SCOPE_TYPE = ? OR (n.SCOPE_TYPE = ? AND n.SCOPE_ID IN ("
+				+ String.join(",", java.util.Collections.nCopies(accessibleProjectIds.size(), "?")) + "))";
+	}
+
+	private static List<String> getAccessibleProjectIds(User user) {
+		if (user == null) {
+			return new ArrayList<>();
+		}
+		return SecurityProjectUtils.getUserProjectIdList(user, true, false, true).stream().distinct()
+				.collect(java.util.stream.Collectors.toList());
 	}
 
 	private static String buildStateExistsSqlCondition(String alias, List<Pair<String, String>> recipientPairs,

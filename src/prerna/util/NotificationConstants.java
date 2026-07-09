@@ -43,6 +43,12 @@ public final class NotificationConstants {
 		public static final String NORMAL = "NORMAL";
 		public static final String MEDIUM = "MEDIUM";
 		public static final String LOW = "LOW";
+
+		private static final Set<String> VALUES = Set.of(URGENT, HIGH, NORMAL, LOW);
+
+		public static boolean isValid(String priority) {
+			return VALUES.contains(priority);
+		}
 	}
 
 	public static final class Kind {
@@ -80,6 +86,19 @@ public final class NotificationConstants {
 	public static final class Scope {
 		public static final String SYSTEM = "SYSTEM";
 		public static final String APP = "APP";
+	}
+
+	/** Scope selectors accepted by notification read APIs. ALL is never persisted. */
+	public static final class FetchScope {
+		public static final String ALL = "ALL";
+		public static final String SYSTEM = Scope.SYSTEM;
+		public static final String APP = Scope.APP;
+
+		private static final Set<String> VALUES = Set.of(ALL, SYSTEM, APP);
+
+		public static boolean isValid(String scope) {
+			return VALUES.contains(scope);
+		}
 	}
 
 	public static final class Audience {

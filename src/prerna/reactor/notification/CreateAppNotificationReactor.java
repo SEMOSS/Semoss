@@ -6,8 +6,6 @@
  * 	you may not use this file except in compliance with the License.
  * 	You may obtain a copy of the License at
  *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
- *
  * 	Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,23 +25,28 @@
  *******************************************************************************/
 package prerna.reactor.notification;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.notifications.NotificationDbUtils;
+import prerna.notifications.NotificationService;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.NotificationConstants;
 import prerna.util.Utility;
 
-public class PollNotificationsReactor extends AbstractReactor {
-	private static final String SCOPE_TYPE = "scopeType";
-	private static final String SCOPE_ID = "scopeId";
+/** Creates an app-wide announcement for the authenticated app editor/owner. */
+public class CreateAppNotificationReactor extends AbstractReactor {
 
-	public PollNotificationsReactor() {
-		this.keysToGet = new String[] { SCOPE_TYPE, SCOPE_ID };
-		this.keyRequired = new int[] { 0, 0 };
+	private static final String TITLE = "title";
+	private static final String PRIORITY = "priority";
+
+	public CreateAppNotificationReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), TITLE, ReactorKeysEnum.MESSAGE.getKey(),
+				PRIORITY };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -57,32 +60,18 @@ public class PollNotificationsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String scopeType = normalizeScopeType(this.keyValue.get(SCOPE_TYPE));
-		String scopeId = this.keyValue.get(SCOPE_ID);
-		if (NotificationConstants.FetchScope.APP.equals(scopeType)
-				&& !SecurityProjectUtils.userCanViewProject(user, scopeId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-		}
-
-		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(user, scopeType, scopeId);
-		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
+		String notificationId = NotificationService.createAppAnnouncement(user,
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(TITLE),
+				this.keyValue.get(ReactorKeysEnum.MESSAGE.getKey()), this.keyValue.get(PRIORITY));
+		Map<String, Object> response = new HashMap<>();
+		response.put("notificationId", notificationId);
+		response.put("scopeType", "APP");
+		response.put("audienceType", "APP_MEMBERS");
+		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the number of new notifications for the user";
-	}
-
-	private String normalizeScopeType(String scopeType) {
-		String normalized = scopeType == null || scopeType.trim().isEmpty() ? NotificationConstants.FetchScope.ALL
-				: scopeType.trim().toUpperCase();
-		if (!NotificationConstants.FetchScope.isValid(normalized)) {
-			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
-		}
-		if (NotificationConstants.FetchScope.APP.equals(normalized)
-				&& (this.keyValue.get(SCOPE_ID) == null || this.keyValue.get(SCOPE_ID).trim().isEmpty())) {
-			throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
-		}
-		return normalized;
+		return "Create an announcement for all users of an app";
 	}
 }
