@@ -481,6 +481,11 @@ public final class CentralCloudStorage implements ICloudClient {
 			engineType = (CATALOG_TYPE) typeAndSubtype[0];
 		}
 
+		if (!SecurityEngineUtils.engineExists(engineId)) {
+			classLogger.warn("Engine id '{}' is being requested but does not exist", engineId);
+			return;
+		}
+
 		// We need to pull the folder alias__databaseId and the file
 		// alias__databaseId.smss
 		String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
@@ -1263,6 +1268,11 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (project == null) {
 				throw new IllegalArgumentException("Project not found...");
 			}
+		}
+
+		if (!SecurityProjectUtils.projectExists(projectId)) {
+			classLogger.warn("Project id '{}' is being requested but does not exist", projectId);
+			return;
 		}
 
 		// We need to pull the folder alias__projectId and the file
