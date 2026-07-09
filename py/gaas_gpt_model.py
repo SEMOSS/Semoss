@@ -820,6 +820,15 @@ class ModelEngine(AbstractModelEngine):
                 if "logprobs" in response.keys():
                     generation_info["logprobs"] = response.pop("logprobs", {})
 
+                # Some providers (e.g. Anthropic here) return tool_use as the
+                # response CONTENT itself -- a list of tool-call dicts -- rather
+                # than under a tool_calls/tool_uses key. Surface those as real
+                # tool_calls so langgraph's react loop routes to the tools
+                # instead of ending with the tool-call list as the answer.
+                if isinstance(message, list):
+                    response["tool_calls"] = message
+                    message = ""
+
                 tool_calls = self._extract_tool_calls(response)
                 ai_kwargs: Dict[str, Any] = {"content": message}
                 if tool_calls:
