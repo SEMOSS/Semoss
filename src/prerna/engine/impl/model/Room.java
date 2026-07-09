@@ -634,8 +634,27 @@ public class Room implements Serializable {
 						nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine,
 								toolResultsMessage);
 					} catch (Exception e) {
-						// remove the entire input message since it failed
-						messages.removeLast();
+						// Rollback: only remove what THIS call added.
+						//   isToolResultsInputMessage = true  → we created & appended a fresh
+						//     InputMessage this call; pop it wholesale.
+						//   false → we appended a part to an existing InputMessage that
+						//     already carried tool_results from prior calls. Removing the
+						//     whole message would nuke that prior data (bug seen on cancel
+						//     mid-batch where AMZN's result gets discarded because GOOGL's
+						//     append triggered the failing askRoom). Revert only the part
+						//     we added for this toolCallId.
+						if (isToolResultsInputMessage) {
+							messages.removeLast();
+						} else {
+							toolResultsMessage.getParts().removeIf(p -> {
+								if (p instanceof ToolResultMessagePart) {
+									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+									return tr != null && toolCallId.equals(tr.getToolCallId());
+								}
+								return false;
+							});
+							toolResultsMessage.normalizeForWrite();
+						}
 						classLogger.error(
 								"Error adding the tool result message and getting a model response. Error: {}",
 								e.getMessage(), e);
