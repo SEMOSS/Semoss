@@ -382,6 +382,26 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
         return (Map<String, Object>) pyTranslator.runDirectPy(insight, script.toString());
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
+        checkSocketStatus();
+        StringBuilder script = new StringBuilder();
+        script.append(this.vectorDatabaseSearcher).append(".list_documents()");
+        Object result = pyTranslator.runDirectPy(script.toString());
+        return result instanceof List ? (List<Map<String, Object>>) result : new ArrayList<>();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
+        checkSocketStatus();
+        StringBuilder script = new StringBuilder();
+        script.append(this.vectorDatabaseSearcher).append(".list_all_records()");
+        Object result = pyTranslator.runDirectPy(script.toString());
+        return result instanceof List ? (List<Map<String, Object>>) result : new ArrayList<>();
+    }
+
     // ------------------------------------------------------------------
     // Accessors — used by reactors and by Phase 3b Python bridge builders
     // ------------------------------------------------------------------

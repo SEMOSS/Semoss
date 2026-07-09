@@ -466,6 +466,53 @@ class JenaGraphRAG:
             "diagnostics": {"mode": "structured", "source": source},
         }
 
+    def list_documents(
+        self,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """List distinct smss:Document nodes with core metadata.
+
+        Satisfies the IVectorDatabaseEngine.listDocuments contract for the
+        graph-backed store. Each row is one document.
+        """
+        sparql = (
+            "PREFIX smss: <https://semoss.org/ontology/> "
+            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
+            "SELECT ?doc ?source ?title "
+            "(COUNT(?chunk) AS ?chunkCount) "
+            "WHERE { "
+            "  ?doc a smss:Document . "
+            "  OPTIONAL { ?doc smss:source ?source . } "
+            "  OPTIONAL { ?doc smss:title ?title . } "
+            "  OPTIONAL { ?chunk a smss:Chunk ; smss:belongsToDocument ?doc . } "
+            "} GROUP BY ?doc ?source ?title "
+            f"LIMIT {self.row_cap}"
+        )
+        result = self.client.select(sparql)
+        return rows_from_select(result)
+
+    def list_all_records(
+        self,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """List all smss:Chunk records with text + parent document URI.
+
+        Satisfies the IVectorDatabaseEngine.listAllRecords contract.
+        """
+        sparql = (
+            "PREFIX smss: <https://semoss.org/ontology/> "
+            "SELECT ?chunk ?text ?chunkIndex ?doc "
+            "WHERE { "
+            "  ?chunk a smss:Chunk . "
+            "  OPTIONAL { ?chunk smss:text ?text . } "
+            "  OPTIONAL { ?chunk smss:chunkIndex ?chunkIndex . } "
+            "  OPTIONAL { ?chunk smss:belongsToDocument ?doc . } "
+            "} "
+            f"LIMIT {self.row_cap}"
+        )
+        result = self.client.select(sparql)
+        return rows_from_select(result)
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
