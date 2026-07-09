@@ -25,55 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.function;
+package prerna.reactor.model.batch;
 
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IGuardrailReactorFunctionEngine;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.batch.ModelBatchManager;
+import prerna.engine.impl.model.responses.BatchStatusResponse;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.Utility;
 
-public class ExecuteGuardrailEngineReactor extends ExecuteReactorFunctionEngineReactor {
+/**
+ * Fetch the live status of a previously submitted batch.
+ */
+public class GetModelBatchStatusReactor extends AbstractModelBatchReactor {
 
-	/*
-	 * Just a convenience method. Works the same as the reactor function engine
-	 * since guardrail engine is a reactor function engine as well
-	 */
+	public GetModelBatchStatusReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.BATCH_ID.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
+	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException(getUnableToAccessError(engineId));
-		}
-
-		// remove the engine id from the reactor noun store so it is not passed to the
-		// guardrail engine
-		if (this.store.getGenRowStruct(ReactorKeysEnum.ENGINE.getKey()) != null) {
-			this.store.removeNoun(ReactorKeysEnum.ENGINE.getKey());
-		} else {
-			for (int i = 0; i < this.curRow.size(); i++) {
-				if (engineId.equals(this.curRow.get(i))) {
-					this.curRow.remove(i);
-					break;
-				}
-			}
-		}
-
-		if (this.insight != null) {
-			GenRowStruct insightGrs = this.store.makeGenRowStruct(Constants.INSIGHT);
-			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
-		}
-
-		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
-		return guardrailEngine.execute(getNounStore(), this.curRow);
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
+		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
+		BatchStatusResponse response = engine.getBatchStatus(batchId, baseParams());
+		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
-	String getUnableToAccessError(String engineId) {
-		return "Guardrail Engine " + engineId + " does not exist or user does not have access to this guardrail";
+	public String getReactorDescription() {
+		return "Fetch the live status of a previously submitted model batch";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.BATCH_ID.getKey())) {
+			return "The provider batch id returned when the batch was submitted";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

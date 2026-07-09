@@ -46,6 +46,8 @@ public enum ReactorKeysEnum {
 	ARRAY("array", 												"An array of input values"),
 	ATTRIBUTES("attributes", 									"List of columns used as properties/characteristics to describe an instance/object"),
 	BASE_URL("baseUrl",                                     	"The base SEMOSS url"),
+	BATCH_ID("batchId",                                     	"The provider batch id returned when a batch was submitted"),
+	BATCH_REQUESTS("requests",                              	"List of batch requests; each entry is a map with custom_id and body"),
 	BREAKS("breaks", 											"Number of divisions"),
 	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
