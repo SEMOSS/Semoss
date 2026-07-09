@@ -7,6 +7,10 @@ if TYPE_CHECKING:
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
 
+    from anthropic import Anthropic, AnthropicFoundry
+    from anthropic.lib.bedrock import AnthropicBedrock
+    from anthropic.lib.vertex import AnthropicVertex
+
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
@@ -74,7 +78,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.client = self._get_client(**kwargs)
         self.thinking_signature = None
 
-    def _get_client(self, **kwargs):
+    def _get_client(self, **kwargs) -> Union[
+        "Anthropic",
+        "AnthropicBedrock",
+        "AnthropicFoundry",
+        "AnthropicVertex",
+    ]:
         if self.provider == "google":
             from ...clients.google_clients import (
                 GoogleClient,
@@ -92,7 +101,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 project=kwargs.pop("project", None),
                 api_key=kwargs.pop("api_key", None),
             )
-            return GoogleClient(config=self.client_config).client
+            return GoogleClient(config=self.client_config).anthropic_client
         elif self.provider == "bedrock":
             from anthropic.lib.bedrock import AnthropicBedrock
 
@@ -100,6 +109,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
+                default_headers=self._get_bedrock_guardrail_headers(
+                    kwargs.pop("guardrail_identifier", None),
+                    kwargs.pop("guardrail_version", None),
+                    trace=kwargs.pop("guardrail_trace", True),
+                ),
             )
         elif self.provider == "azure":
             from anthropic import AnthropicFoundry
@@ -118,6 +132,93 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
+
+    @staticmethod
+    def _get_bedrock_guardrail_headers(
+        guardrail_identifier: Optional[str],
+        guardrail_version: Optional[str],
+        trace: Union[str, bool] = True,
+    ) -> Optional[Dict[str, str]]:
+        """
+        Bedrock's InvokeModel API takes guardrails as request headers rather
+        than the guardrailConfig body field used by the Converse API.
+        """
+        if not guardrail_identifier and not guardrail_version:
+            return None
+        if not (guardrail_identifier and guardrail_version):
+            raise ValueError(
+                "Both guardrail_identifier and guardrail_version are required to apply a Bedrock guardrail."
+            )
+        headers = {
+            "X-Amzn-Bedrock-GuardrailIdentifier": guardrail_identifier,
+            "X-Amzn-Bedrock-GuardrailVersion": guardrail_version,
+        }
+        if string_to_bool(trace) if isinstance(trace, str) else trace:
+            headers["X-Amzn-Bedrock-Trace"] = "ENABLED"
+        return headers
+
+    @staticmethod
+    def _process_bedrock_guardrail_trace(obj: Any) -> Optional[Dict[str, Any]]:
+        """
+        With the trace header enabled, Bedrock attaches the guardrail trace as
+        extra JSON fields (amazon-bedrock-trace / amazon-bedrock-guardrailAction)
+        on the InvokeModel response body — the final message when non-streaming,
+        the message_stop event when streaming. The Anthropic SDK preserves
+        unknown fields in model_extra.
+
+        Logs the raw trace and, when the guardrail intervened, returns a
+        GUARDRAIL part listing each policy rule that matched so it can be
+        included in the response body.
+        """
+        extra = getattr(obj, "model_extra", None) or {}
+        action = extra.get("amazon-bedrock-guardrailAction")
+        trace = extra.get("amazon-bedrock-trace")
+        if not action and not trace:
+            return None
+
+        violations = []
+        guardrail_trace = trace.get("guardrail", {}) if isinstance(trace, dict) else {}
+        assessments = []
+        input_assessments = guardrail_trace.get("input")
+        if isinstance(input_assessments, dict):
+            assessments.append(("INPUT", input_assessments))
+        for output_assessment in guardrail_trace.get("outputs") or []:
+            if isinstance(output_assessment, dict):
+                assessments.append(("OUTPUT", output_assessment))
+
+        for source, by_guardrail_id in assessments:
+            for assessment in by_guardrail_id.values():
+                if not isinstance(assessment, dict):
+                    continue
+                for policy_name, policy in assessment.items():
+                    if not isinstance(policy, dict):
+                        continue
+                    for rules in policy.values():
+                        if not isinstance(rules, list):
+                            continue
+                        for rule in rules:
+                            if not isinstance(rule, dict):
+                                continue
+                            rule_action = rule.get("action")
+                            if rule_action and rule_action != "NONE":
+                                violations.append(
+                                    {
+                                        "source": source,
+                                        "policy": policy_name,
+                                        "rule": rule.get("name")
+                                        or rule.get("type")
+                                        or rule.get("match", ""),
+                                        "action": rule_action,
+                                    }
+                                )
+
+        if action == "INTERVENED" or violations:
+            return {
+                "type": "GUARDRAIL",
+                "action": action,
+                "violations": violations,
+            }
+        return None
 
     @staticmethod
     def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
@@ -201,10 +302,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if self.client is None:
             raise ValueError("Anthropic client is not initialized.")
         try:
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
+            if self.model_settings.global_param_override:
                 kwargs.update(self.model_settings.global_param_override)
 
             built_in_tools = kwargs.get("built_in_tools", []) or []
@@ -233,7 +331,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     self.model_name,
                     self.use_beta_header,
                     self.beta_feature_name,
-                    thinking_signature=self.thinking_signature,
+                    self.thinking_signature,
                 )
             except Exception as e:
                 raise RuntimeError(
@@ -332,6 +430,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
 
+            metadata = {}
+            if self.provider == "bedrock":
+                metadata["guardrail_response"] = self._process_bedrock_guardrail_trace(
+                    response
+                )
+
             return AskModelEngineResponse2(
                 response=response_text,
                 response_tokens=usage.output_tokens,
@@ -342,6 +446,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="CHAT",
+                metadata=metadata,
             )
         except Exception as e:
             return ModelEngineException(
@@ -422,30 +527,25 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         this_content_block_type = ""
 
         tool_result = []
-        # Maps server-tool_use id -> the underlying tool name (e.g. "web_search").
-        # Populated when a server_tool_use block closes, read when its result block
-        # arrives so the persisted TOOL_RESULT carries the real tool name instead
-        # of an Anthropic-specific block-type string.
         server_tool_use_names: Dict[str, str] = {}
+        metadata = {}
 
         use_beta_stream = self.use_beta_header and hasattr(
             self.client.beta.messages, "stream"
         )
         stream_method = (
-            self.client.beta.messages.stream
+            self.client.beta.messages.create
             if use_beta_stream
-            else self.client.messages.stream
+            else self.client.messages.create
         )
 
         stream_kwargs = request_config.model_dump(exclude_none=True)
+        stream_kwargs["stream"] = True
         if self.use_beta_header and not use_beta_stream:
-            # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
-            # the Bedrock SDK converts anthropic-beta header -> anthropic_beta body field
             stream_kwargs.pop("betas", None)
             stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
 
         with stream_method(**stream_kwargs) as stream:
-            final_message = None
             for event in stream:
                 if event.type == "message_start":
                     input_tokens = event.message.usage.input_tokens
@@ -559,7 +659,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                 elif event.type == "content_block_delta":
                     if this_content_block_type == "text":
-                        if hasattr(event.delta, "text"):
+                        if getattr(event.delta, "type", None) == "citations_delta":
+                            item = event.delta.citation
+                            this_content_block.setdefault("citations", []).append(
+                                {
+                                    "type": getattr(item, "type", None),
+                                    "url": getattr(item, "url", None),
+                                    "title": getattr(item, "title", None),
+                                    "encrypted_index": getattr(
+                                        item, "encrypted_index", None
+                                    ),
+                                    "cited_text": getattr(item, "cited_text", None),
+                                }
+                            )
+                        elif hasattr(event.delta, "text"):
                             text_chunk = event.delta.text
                             this_content_block["final_response"] += text_chunk
 
@@ -623,23 +736,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                                 }
                             )
 
-                    elif this_content_block_type == "text":
-                        if event.content_block.citations:
-                            this_content_block["citations"] = []
-                            for item in event.content_block.citations:
-                                this_content_block["citations"].append(
-                                    {
-                                        "type": item.type,
-                                        "url": item.url,
-                                        "title": item.title,
-                                        "encrypted_index": item.encrypted_index,
-                                        "cited_text": item.cited_text,
-                                    }
-                                )
-
                     content_array.append(this_content_block)
                     this_content_block = {}
                     this_content_block_type = ""
+
+                elif event.type == "message_stop" and self.provider == "bedrock":
+                    metadata["guardrail_response"] = (
+                        self._process_bedrock_guardrail_trace(event)
+                    )
 
                 elif event.type == "message_delta":
                     output_tokens = event.usage.output_tokens
@@ -652,19 +756,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         StreamUtil.create_usage_chunk(output_tokens=output_tokens),
                         stream_type="usage",
                     )
-
-            if stop_reason is None:
-                try:
-                    final_message = stream.get_final_message()
-                    stop_reason = final_message.stop_reason
-                except Exception:
-                    stop_reason = None
-                    final_message = None
-            else:
-                try:
-                    final_message = stream.get_final_message()
-                except Exception:
-                    final_message = None
 
         if stop_reason == "refusal":
             data = StreamUtil.create_finish_reason_chunk("refusal")
@@ -701,9 +792,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
 
-        citation_index = 1  # start numbering at 1
+        citation_index = 1
         parts = []
-        current_text_block = None  # Track consecutive text blocks to merge them
+        current_text_block = None
         for content in content_array:
             content_type = content.get("type")
 
@@ -730,17 +821,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 if current_text_block is not None:
                     current_text_block["text"] += text_content
                 else:
-                    # Start a new text block
                     current_text_block = {
                         "type": "TEXT",
                         "text": text_content,
                     }
 
             elif content_type == "function":
-                # Parse the function arguments JSON
                 try:
                     arguments = content.get("function", {}).get("arguments")
-                    # Return empty dict if no arguments
                     if arguments == "":
                         arguments = {}
                     else:
@@ -773,7 +861,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     }
                 )
 
-        # Don't forget to flush any remaining text at the end
         if current_text_block is not None:
             parts.append(current_text_block)
 
@@ -784,7 +871,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 flush=True,
             )
 
-        # input_tokens was already normalized to include cache at message_start
         total_input_tokens = input_tokens
 
         if tool_result:
@@ -809,6 +895,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         io="OUTPUT",
                         parts=parts,
                         messageType="CHAT",
+                        metadata=metadata,
                     )
 
             return AskModelEngineResponse2(
@@ -821,6 +908,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="TOOL",
+                metadata=metadata,
             )
 
         return AskModelEngineResponse2(
@@ -833,6 +921,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
             messageType="CHAT",
+            metadata=metadata,
         )
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
@@ -1166,9 +1255,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             before = kwargs.get("before_id")
         if before is not None:
             list_kwargs["before_id"] = before
-        resp = self.client.messages.batches.list(**list_kwargs)
+        batches_client = getattr(self.client.messages, "batches", None)
+        resp = (
+            batches_client.list(**list_kwargs) if batches_client is not None else None
+        )
 
-        data = resp.data
+        data = getattr(resp, "data", []) or []
         batches = []
         for b in data:
             batches.append(
