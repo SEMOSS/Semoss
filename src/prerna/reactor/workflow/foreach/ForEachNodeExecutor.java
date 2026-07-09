@@ -114,7 +114,7 @@ public final class ForEachNodeExecutor {
 
 		int succeeded = 0;
 		int failed = 0;
-		int timeoutSeconds = getNodeTimeout(node);
+		int timeoutSeconds = prerna.reactor.workflow.WorkflowExecutionUtils.getNodeTimeout(node);
 		List<ForEachRowResult> batchBuffer = new ArrayList<>();
 		long lastHeartbeat = System.currentTimeMillis();
 
@@ -156,9 +156,9 @@ public final class ForEachNodeExecutor {
 				batchBuffer.clear();
 			}
 
-			// Update heartbeat every 30 seconds
+			// Update heartbeat every 30 seconds (timestamp only — node count is tracked at workflow level)
 			if (System.currentTimeMillis() - lastHeartbeat > WorkflowConstants.HEARTBEAT_INTERVAL_SECONDS * 1000L) {
-				WorkflowDatabaseUtility.updateHeartbeat(runId, -1);
+				WorkflowDatabaseUtility.touchHeartbeat(runId);
 				lastHeartbeat = System.currentTimeMillis();
 			}
 		}
@@ -203,7 +203,7 @@ public final class ForEachNodeExecutor {
 				continue;
 			}
 
-			String resolved = resolve(builtPixel, subScope, configMap);
+			String resolved = prerna.reactor.workflow.WorkflowExecutionUtils.resolve(builtPixel, subScope, configMap);
 			Object result = PixelExecutionUtils.runAndCollect(insight, resolved, timeoutSeconds);
 
 			// Store inner node output in sub-scope for downstream inner nodes
@@ -264,25 +264,5 @@ public final class ForEachNodeExecutor {
 		return lastProcessed; // -1 means start from beginning
 	}
 
-	private static int getNodeTimeout(Map<String, Object> node) {
-		Object timeout = node.get("timeoutSeconds");
-		if (timeout instanceof Number) {
-			return ((Number) timeout).intValue();
-		}
-		return WorkflowConstants.DEFAULT_TIMEOUT_SECONDS;
-	}
-
-	private static String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
-		if (template == null) return "";
-		String result = template;
-		for (Map.Entry<String, String> e : configMap.entrySet()) {
-			result = result.replace("${config." + e.getKey() + "}", e.getValue());
-		}
-		for (Map.Entry<String, String> e : scope.entrySet()) {
-			if (e.getValue() != null) {
-				result = result.replace("${" + e.getKey() + "}", e.getValue());
-			}
-		}
-		return result;
-	}
+	// (resolve, getNodeTimeout moved to WorkflowExecutionUtils)
 }

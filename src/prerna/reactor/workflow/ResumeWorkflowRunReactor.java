@@ -97,7 +97,13 @@ public class ResumeWorkflowRunReactor extends AbstractReactor {
 
 		classLogger.info("Resuming workflow run {} for project {}", runId, projectId);
 
-		// Delegate to TriggerWorkflow with resumeRunId
+		// Both values come from validated/DB sources (projectId from testUserProjectIdForAlias,
+		// runId from WORKFLOW_RUNS), so injection is not expected — guard defensively.
+		if (projectId.contains("\"") || projectId.contains("]") ||
+				runId.contains("\"") || runId.contains("]")) {
+			throw new IllegalArgumentException("Invalid characters in project ID or run ID");
+		}
+
 		String pixel = "TriggerWorkflow(project=[\"" + projectId + "\"], "
 				+ "manual=[\"true\"], resumeRunId=[\"" + runId + "\"]);";
 		return new NounMetadata(

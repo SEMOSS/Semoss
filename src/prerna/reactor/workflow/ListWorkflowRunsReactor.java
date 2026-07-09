@@ -52,7 +52,7 @@ public class ListWorkflowRunsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(ListWorkflowRunsReactor.class);
 
 	public ListWorkflowRunsReactor() {
-		this.keysToGet = new String[]{ "app", "limit" };
+		this.keysToGet = new String[]{ "project", "limit" };
 		this.keyRequired = new int[]{ 1, 0 };
 	}
 

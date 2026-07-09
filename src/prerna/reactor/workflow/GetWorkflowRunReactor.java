@@ -54,7 +54,7 @@ public class GetWorkflowRunReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetWorkflowRunReactor.class);
 
 	public GetWorkflowRunReactor() {
-		this.keysToGet = new String[]{ "app", "runId" };
+		this.keysToGet = new String[]{ "project", "runId" };
 		this.keyRequired = new int[]{ 1, 1 };
 	}
 

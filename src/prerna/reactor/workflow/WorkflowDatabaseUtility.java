@@ -100,6 +100,9 @@ public final class WorkflowDatabaseUtility {
 	private static final String UPDATE_HEARTBEAT =
 			"UPDATE WORKFLOW_RUNS SET LAST_HEARTBEAT = ?, COMPLETED_NODES = ? WHERE RUN_ID = ?";
 
+	private static final String TOUCH_HEARTBEAT =
+			"UPDATE WORKFLOW_RUNS SET LAST_HEARTBEAT = ? WHERE RUN_ID = ?";
+
 	private static final String MARK_STALE_INTERRUPTED = """
 			UPDATE WORKFLOW_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
 			ERROR_MESSAGE = ? WHERE RUN_ID = ?""";
@@ -363,6 +366,34 @@ public final class WorkflowDatabaseUtility {
 			return true;
 		} catch (SQLException e) {
 			classLogger.error("Failed to update heartbeat for run '{}': {}", runId, e.getMessage(), e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Updates only the heartbeat timestamp for a running workflow.
+	 * Used during long-running for-each batches where completed node count hasn't changed.
+	 */
+	public static boolean touchHeartbeat(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(TOUCH_HEARTBEAT)) {
+				ps.setTimestamp(1, toTimestamp(Instant.now()));
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to touch heartbeat for run '{}': {}", runId, e.getMessage(), e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);

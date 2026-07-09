@@ -40,12 +40,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.workflow.WorkflowConstants;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 /**
  * Creates a workflow from a template, saving it to the project's portals folder.
@@ -97,25 +101,30 @@ public class CreateWorkflowFromTemplateReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Template has no workflow definition");
 		}
 
-		// Write workflow.json
+		// Write workflow.json and workflow-config.json
+		IProject project = Utility.getProject(projectId);
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
 		File workflowFile = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_FILE_NAME);
 
 		try {
+			workflowFile.getParentFile().mkdirs();
 			java.nio.file.Files.writeString(workflowFile.toPath(),
 					GSON.toJson(workflow), java.nio.charset.StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to write workflow.json: " + e.getMessage(), e);
 		}
 
-		// Write workflow-config.json with template defaults
+		List<String> filesToCommit = new ArrayList<>();
+		filesToCommit.add(workflowFile.getAbsolutePath());
+
 		List<Map<String, Object>> configKeys = (List<Map<String, Object>>) template.get("configKeys");
 		if (configKeys != null && !configKeys.isEmpty()) {
 			List<Map<String, String>> configEntries = new ArrayList<>();
 			for (Map<String, Object> keyDef : configKeys) {
 				Map<String, String> entry = new HashMap<>();
 				entry.put("key", (String) keyDef.get("key"));
-				entry.put("value", keyDef.get("default") != null ? (String) keyDef.get("default") : "");
+				// Use String.valueOf to safely convert non-string defaults (booleans, numbers, etc.)
+				entry.put("value", keyDef.get("default") != null ? String.valueOf(keyDef.get("default")) : "");
 				entry.put("label", (String) keyDef.get("label"));
 				entry.put("description", (String) keyDef.get("description"));
 				configEntries.add(entry);
@@ -125,8 +134,25 @@ public class CreateWorkflowFromTemplateReactor extends AbstractReactor {
 			try {
 				java.nio.file.Files.writeString(configFile.toPath(),
 						GSON.toJson(configEntries), java.nio.charset.StandardCharsets.UTF_8);
+				filesToCommit.add(configFile.getAbsolutePath());
 			} catch (Exception e) {
 				classLogger.warn("Failed to write workflow-config.json: {}", e.getMessage(), e);
+			}
+		}
+
+		// Git-commit the written files (consistent with SaveWorkflowReactor)
+		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+		try {
+			GitRepoUtils.addSpecificFiles(versionFolder, filesToCommit);
+			GitRepoUtils.commitAddedFiles(versionFolder, "Apply workflow template: " + templateId, this.insight.getUser());
+		} catch (Exception e) {
+			classLogger.warn("Git commit failed after template apply: {}", e.getMessage(), e);
+		}
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				ClusterUtil.pushProjectFolder(project, versionFolder);
+			} catch (Exception e) {
+				classLogger.warn("Cluster push failed after template apply: {}", e.getMessage(), e);
 			}
 		}
 

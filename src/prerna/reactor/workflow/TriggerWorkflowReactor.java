@@ -44,7 +44,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -94,16 +97,20 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	private static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
 
 	/**
-	 * Background pool that actually runs {@link #executeNodes} for a triggered workflow.
-	 * Node execution can take hours (e.g. large for-each ingestion jobs), so it must never
-	 * run on the calling request thread — {@code execute()} only kicks the run off here and
-	 * returns immediately with a RUNNING status; the FE polls {@code GetWorkflowRun} for progress.
+	 * Background pool for workflow execution. Bounded at 20 concurrent runs with a small queue
+	 * for brief spikes. Rejects beyond capacity so the caller gets an immediate error rather than
+	 * unbounded thread growth.
 	 */
-	private static final ExecutorService WORKFLOW_EXECUTOR = Executors.newCachedThreadPool(r -> {
-		Thread t = new Thread(r, "workflow-run-" + System.nanoTime());
-		t.setDaemon(true);
-		return t;
-	});
+	private static final ExecutorService WORKFLOW_EXECUTOR = new ThreadPoolExecutor(
+			2, 20, 60L, TimeUnit.SECONDS,
+			new LinkedBlockingQueue<>(10),
+			r -> {
+				Thread t = new Thread(r, "workflow-run-" + System.nanoTime());
+				t.setDaemon(true);
+				return t;
+			},
+			new ThreadPoolExecutor.AbortPolicy()
+	);
 
 	public TriggerWorkflowReactor() {
 		this.keysToGet = new String[]{ "project", "manual", "resumeRunId" };
@@ -137,7 +144,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> edges = (List<Map<String, Object>>) graph.get("edges");
-		Map<String, String> configMap = loadConfig(projectId);
+		Map<String, String> configMap = WorkflowExecutionUtils.loadConfig(projectId);
 
 		// Topological sort
 		List<Map<String, Object>> ordered = topoSort(nodes, edges);
@@ -157,15 +164,21 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		// ingestion jobs), so it must never block the calling request/websocket thread.
 		// Progress is checkpointed to WORKFLOW_RUNS/WORKFLOW_NODE_OUTPUTS per node; the caller
 		// (FE) polls GetWorkflowRun(runId) for live status instead of awaiting this call.
-		WORKFLOW_EXECUTOR.submit(() -> {
-			try {
-				executeNodes(runId, projectId, ordered, configMap, priorOutputs);
-			} catch (Exception e) {
-				classLogger.error("Unhandled error executing workflow run {}: {}", runId, e.getMessage(), e);
-				WorkflowDatabaseUtility.updateRunStatus(runId,
-						WorkflowConstants.STATUS_FAILED, null, e.getMessage());
-			}
-		});
+		try {
+			WORKFLOW_EXECUTOR.submit(() -> {
+				try {
+					executeNodes(runId, projectId, ordered, configMap, priorOutputs);
+				} catch (Exception e) {
+					classLogger.error("Unhandled error executing workflow run {}: {}", runId, e.getMessage(), e);
+					WorkflowDatabaseUtility.updateRunStatus(runId,
+							WorkflowConstants.STATUS_FAILED, null, e.getMessage());
+				}
+			});
+		} catch (RejectedExecutionException e) {
+			WorkflowDatabaseUtility.updateRunStatus(runId, WorkflowConstants.STATUS_FAILED,
+					null, "Server is at capacity — too many concurrent workflow runs");
+			throw new IllegalStateException("Too many concurrent workflow runs. Please try again shortly.");
+		}
 
 		Map<String, Object> result = buildRunResult(runId, projectId, WorkflowConstants.STATUS_RUNNING,
 				ordered.size(), 0, null, new ArrayList<>());
@@ -200,7 +213,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		// Start heartbeat
 		ScheduledExecutorService heartbeat = startHeartbeat(runId);
 
-		Map<String, String> scope = buildInitialScope();
+		Map<String, String> scope = buildInitialScope(runId);
 		if (extraInitialScope != null) {
 			scope.putAll(extraInitialScope);
 		}
@@ -304,7 +317,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
-			String transformed = applyOutputTransform(rawOutput, transformConfig);
+			String transformed = WorkflowExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 
 			long durationMs = System.currentTimeMillis() - startMs;
 			String preview = PixelExecutionUtils.generatePreview(transformed);
@@ -382,7 +395,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		Map<String, Object> childGraph = (Map<String, Object>) childDoc.get("graph");
 		List<Map<String, Object>> childNodes = (List<Map<String, Object>>) childGraph.get("nodes");
 		List<Map<String, Object>> childEdges = (List<Map<String, Object>>) childGraph.get("edges");
-		Map<String, String> childConfigMap = loadConfig(targetProjectId);
+		Map<String, String> childConfigMap = WorkflowExecutionUtils.loadConfig(targetProjectId);
 
 		List<Map<String, Object>> childOrdered = topoSort(childNodes, childEdges);
 		if (childOrdered.isEmpty()) {
@@ -394,7 +407,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		Map<String, Object> inputMapping = coerceToMap(inputMappingRaw);
 		for (Map.Entry<String, Object> e : inputMapping.entrySet()) {
 			String template = e.getValue() != null ? e.getValue().toString() : "";
-			childInitialScope.put(e.getKey(), resolve(template, scope, java.util.Collections.emptyMap()));
+			childInitialScope.put(e.getKey(), WorkflowExecutionUtils.resolve(template, scope, java.util.Collections.emptyMap()));
 		}
 
 		String childRunId = UUID.randomUUID().toString();
@@ -440,8 +453,8 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 					"\" has no compiled pixel — please Save the workflow before running");
 		}
 
-		int timeoutSeconds = getNodeTimeout(node);
-		String resolvedPixel = resolve(builtPixel, scope, configMap);
+		int timeoutSeconds = WorkflowExecutionUtils.getNodeTimeout(node);
+		String resolvedPixel = WorkflowExecutionUtils.resolve(builtPixel, scope, configMap);
 
 		return PixelExecutionUtils.runAndCollect(this.insight, resolvedPixel, timeoutSeconds);
 	}
@@ -488,10 +501,11 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			t.setDaemon(true);
 			return t;
 		});
-		// Heartbeat fires every 30 seconds — just updates the timestamp in DB
+		// Heartbeat fires every 30 seconds — just proves liveness; per-node count updates
+		// happen in executeNodes() after each node completes.
 		scheduler.scheduleAtFixedRate(() -> {
 			try {
-				WorkflowDatabaseUtility.updateHeartbeat(runId, -1);
+				WorkflowDatabaseUtility.touchHeartbeat(runId);
 			} catch (Exception e) {
 				classLogger.warn("Heartbeat update failed for run {}: {}", runId, e.getMessage());
 			}
@@ -515,118 +529,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return false;
 	}
 
-	// ── Output Transform ──────────────────────────────────────────────────────────
-
-	@SuppressWarnings("unchecked")
-	private String applyOutputTransform(Object rawResult, Map<String, Object> transformConfig) {
-		String rawStr = serializeRawResult(rawResult);
-		if (transformConfig == null) return rawStr;
-
-		String mode = (String) transformConfig.getOrDefault("mode", "raw");
-		switch (mode) {
-			case "rows-as-objects":
-				return transformRowsAsObjects(rawStr);
-			case "first-row":
-				return transformFirstRow(rawStr);
-			case "column":
-				return transformColumn(rawStr, (String) transformConfig.get("column"));
-			case "jsonpath":
-				return transformJsonPath(rawStr, (String) transformConfig.get("path"));
-			default:
-				return rawStr;
-		}
-	}
-
-	private String serializeRawResult(Object rawResult) {
-		if (rawResult == null) return "";
-		if (rawResult instanceof String) return (String) rawResult;
-		return GSON.toJson(rawResult);
-	}
-
-	@SuppressWarnings("unchecked")
-	private String transformRowsAsObjects(String rawStr) {
-		Map<String, Object> data = getFormattedDataSetData(parseJsonToMap(rawStr));
-		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
-		if (headers == null || rows == null) return rawStr;
-
-		List<Map<String, Object>> result = new ArrayList<>();
-		for (List<Object> row : rows) {
-			Map<String, Object> rowMap = new HashMap<>();
-			for (int i = 0; i < headers.size() && i < row.size(); i++) {
-				rowMap.put(headers.get(i), row.get(i));
-			}
-			result.add(rowMap);
-		}
-		return GSON.toJson(result);
-	}
-
-	@SuppressWarnings("unchecked")
-	private String transformFirstRow(String rawStr) {
-		Map<String, Object> data = getFormattedDataSetData(parseJsonToMap(rawStr));
-		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
-		if (headers == null || rows == null || rows.isEmpty()) return rawStr;
-
-		Map<String, Object> rowMap = new HashMap<>();
-		List<Object> firstRow = rows.get(0);
-		for (int i = 0; i < headers.size() && i < firstRow.size(); i++) {
-			rowMap.put(headers.get(i), firstRow.get(i));
-		}
-		return GSON.toJson(rowMap);
-	}
-
-	@SuppressWarnings("unchecked")
-	private String transformColumn(String rawStr, String colName) {
-		if (colName == null || colName.isEmpty()) return rawStr;
-		Map<String, Object> data = getFormattedDataSetData(parseJsonToMap(rawStr));
-		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
-		if (headers == null || rows == null) return rawStr;
-
-		int colIdx = headers.indexOf(colName);
-		if (colIdx < 0) return rawStr;
-		List<Object> col = new ArrayList<>();
-		for (List<Object> row : rows) {
-			col.add(colIdx < row.size() ? row.get(colIdx) : null);
-		}
-		return GSON.toJson(col);
-	}
-
-	@SuppressWarnings("unchecked")
-	private String transformJsonPath(String rawStr, String path) {
-		if (path == null || path.isEmpty()) return rawStr;
-		try {
-			Object current = parseJsonToMap(rawStr);
-			for (String segment : path.split("\\.")) {
-				if (!(current instanceof Map)) break;
-				current = ((Map<String, Object>) current).get(segment);
-			}
-			if (current == null) return "";
-			return current instanceof String ? (String) current : GSON.toJson(current);
-		} catch (Exception e) {
-			return rawStr;
-		}
-	}
-
-	// ── Variable Resolution ───────────────────────────────────────────────────────
-
-	private String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
-		if (template == null) return "";
-		String result = template;
-		for (Map.Entry<String, String> e : configMap.entrySet()) {
-			result = result.replace("${config." + e.getKey() + "}", e.getValue());
-		}
-		for (Map.Entry<String, String> e : scope.entrySet()) {
-			if (e.getValue() != null) {
-				result = result.replace("${" + e.getKey() + "}", e.getValue());
-			}
-		}
-		return result;
-	}
+	// (resolve, getNodeTimeout, applyOutputTransform moved to WorkflowExecutionUtils)
 
 	// ── Topological Sort ──────────────────────────────────────────────────────────
 
@@ -706,43 +609,15 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return WorkflowConstants.TRIGGER_SCHEDULED;
 	}
 
-	private Map<String, String> buildInitialScope() {
+	private Map<String, String> buildInitialScope(String runId) {
 		Map<String, String> scope = new HashMap<>();
 		String now = Instant.now().toString();
 		scope.put("date", now.substring(0, 10));
 		scope.put("triggered_at", now);
-		scope.put("run_id", UUID.randomUUID().toString());
+		scope.put("run_id", runId);
 		return scope;
 	}
 
-	private int getNodeTimeout(Map<String, Object> node) {
-		Object timeout = node.get("timeoutSeconds");
-		if (timeout instanceof Number) {
-			return ((Number) timeout).intValue();
-		}
-		return WorkflowConstants.DEFAULT_TIMEOUT_SECONDS;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> getFormattedDataSetData(Map<String, Object> parsed) {
-		if (parsed == null) return null;
-		if (parsed.containsKey("data") && parsed.get("data") instanceof Map) {
-			return (Map<String, Object>) parsed.get("data");
-		}
-		if (parsed.containsKey("headers") && parsed.containsKey("values")) {
-			return parsed;
-		}
-		return null;
-	}
-
-	private Map<String, Object> parseJsonToMap(String json) {
-		if (json == null || json.isBlank()) return null;
-		try {
-			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
-		} catch (Exception e) {
-			return null;
-		}
-	}
 
 	/**
 	 * Config values that are conceptually maps (e.g. sub-workflow {@code inputMapping}) may
@@ -761,6 +636,15 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			if (parsed != null) return parsed;
 		}
 		return new HashMap<>();
+	}
+
+	private Map<String, Object> parseJsonToMap(String json) {
+		try {
+			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+		} catch (Exception e) {
+			classLogger.warn("Could not parse config value as JSON map: {}", e.getMessage());
+			return null;
+		}
 	}
 
 	private Timestamp toTimestamp(Instant instant) {
@@ -785,28 +669,6 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private Map<String, String> loadConfig(String projectId) {
-		Map<String, String> map = new HashMap<>();
-		try {
-			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-			File f = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_CONFIG_FILE_NAME);
-			if (!f.exists()) return map;
-			String json = java.nio.file.Files.readString(f.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-			List<Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
-			if (entries != null) {
-				for (Map<String, Object> entry : entries) {
-					String key = (String) entry.get("key");
-					String value = (String) entry.get("value");
-					if (key != null && value != null) map.put(key, value);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to load workflow config: {}", e.getMessage(), e);
-		}
-		return map;
-	}
-
 	// ── Result Building ───────────────────────────────────────────────────────────
 
 	private Map<String, Object> buildNodeResult(String nodeId, String nodeLabel,
@@ -828,14 +690,18 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	private Map<String, Object> buildRunResult(String runId, String projectId, String status,
 			int totalNodes, int completedNodes, String failedNodeId,
 			List<Map<String, Object>> nodeResults) {
+		// Read actual timestamps from DB rather than synthesizing "now" on every call.
+		Map<String, Object> stored = WorkflowDatabaseUtility.getRunDetail(runId);
 		Map<String, Object> result = new HashMap<>();
 		result.put(WorkflowConstants.RUN_ID, runId);
 		result.put(WorkflowConstants.PROJECT_ID, projectId);
 		result.put(WorkflowConstants.STATUS, status);
 		result.put(WorkflowConstants.TOTAL_NODES, totalNodes);
 		result.put(WorkflowConstants.COMPLETED_NODES, completedNodes);
-		result.put(WorkflowConstants.STARTED_AT, Instant.now().toString());
-		result.put(WorkflowConstants.COMPLETED_AT, Instant.now().toString());
+		if (stored != null) {
+			result.put(WorkflowConstants.STARTED_AT, stored.get(WorkflowConstants.STARTED_AT));
+			result.put(WorkflowConstants.COMPLETED_AT, stored.get(WorkflowConstants.COMPLETED_AT));
+		}
 		if (failedNodeId != null) {
 			result.put(WorkflowConstants.FAILED_NODE_ID, failedNodeId);
 		}

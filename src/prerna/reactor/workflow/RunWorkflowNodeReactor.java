@@ -47,6 +47,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
+// WorkflowExecutionUtils used for resolve, loadConfig, applyOutputTransform
+
 /**
  * Executes a single workflow node for testing purposes.
  *
@@ -97,7 +99,7 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 
 		// Build scope from context run (if provided)
 		Map<String, String> scope = buildScope(contextRunId);
-		Map<String, String> configMap = loadConfig(projectId);
+		Map<String, String> configMap = WorkflowExecutionUtils.loadConfig(projectId);
 
 		// Execute the node
 		long startMs = System.currentTimeMillis();
@@ -105,7 +107,7 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 			Object rawOutput = executeNodePixel(node, scope, configMap);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
-			String transformed = applyOutputTransform(rawOutput, transformConfig);
+			String transformed = WorkflowExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
 
 			Map<String, Object> result = new HashMap<>();
@@ -189,56 +191,10 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 			throw new IllegalStateException("Node has no compiled pixel — save the workflow first");
 		}
 
-		String resolved = resolve(builtPixel, scope, configMap);
+		String resolved = WorkflowExecutionUtils.resolve(builtPixel, scope, configMap);
 		return PixelExecutionUtils.runAndCollect(this.insight, resolved,
 				WorkflowConstants.DEFAULT_TIMEOUT_SECONDS);
 	}
 
-	private String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
-		if (template == null) return "";
-		String result = template;
-		for (Map.Entry<String, String> e : configMap.entrySet()) {
-			result = result.replace("${config." + e.getKey() + "}", e.getValue());
-		}
-		for (Map.Entry<String, String> e : scope.entrySet()) {
-			if (e.getValue() != null) {
-				result = result.replace("${" + e.getKey() + "}", e.getValue());
-			}
-		}
-		return result;
-	}
-
-	private String applyOutputTransform(Object rawResult, Map<String, Object> transformConfig) {
-		String rawStr;
-		if (rawResult == null) rawStr = "";
-		else if (rawResult instanceof String) rawStr = (String) rawResult;
-		else rawStr = GSON.toJson(rawResult);
-
-		if (transformConfig == null) return rawStr;
-		// Delegate to the same transform logic — but since this is a test,
-		// raw output is sufficient. Full transform is in TriggerWorkflowReactor.
-		return rawStr;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Map<String, String> loadConfig(String projectId) {
-		Map<String, String> map = new HashMap<>();
-		try {
-			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-			File f = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_CONFIG_FILE_NAME);
-			if (!f.exists()) return map;
-			String json = java.nio.file.Files.readString(f.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-			List<Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
-			if (entries != null) {
-				for (Map<String, Object> entry : entries) {
-					String key = (String) entry.get("key");
-					String value = (String) entry.get("value");
-					if (key != null && value != null) map.put(key, value);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to load workflow config: {}", e.getMessage(), e);
-		}
-		return map;
-	}
+	// (resolve, loadConfig, applyOutputTransform moved to WorkflowExecutionUtils)
 }
