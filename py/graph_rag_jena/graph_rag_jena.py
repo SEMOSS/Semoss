@@ -466,6 +466,36 @@ class JenaGraphRAG:
             "diagnostics": {"mode": "structured", "source": source},
         }
 
+    def remove_document(
+        self,
+        sources: List[str],
+    ) -> Dict[str, Any]:
+        """Delete all triples belonging to documents matching any of ``sources``.
+
+        Matches on ``smss:source`` on smss:Document nodes; cascades to
+        smss:Chunk and smss:Entity nodes anchored via smss:belongsToDocument.
+        """
+        if not sources:
+            return {"removed": 0, "diagnostics": {"reason": "no sources supplied"}}
+
+        source_literals = ", ".join(_ttl_literal(s) for s in sources)
+        update = (
+            "PREFIX smss: <https://semoss.org/ontology/> "
+            "DELETE { "
+            "  ?child ?cp ?cv . "
+            "  ?doc ?dp ?dv . "
+            "} WHERE { "
+            f"  ?doc a smss:Document ; smss:source ?src . FILTER (?src IN ({source_literals})) "
+            "  OPTIONAL { ?child smss:belongsToDocument ?doc ; ?cp ?cv . } "
+            "  ?doc ?dp ?dv . "
+            "}"
+        )
+        self.client.update(update)
+        return {
+            "removed": len(sources),
+            "diagnostics": {"sources": sources, "verb": "DELETE"},
+        }
+
     def list_documents(
         self,
         parameters: Optional[Dict[str, Any]] = None,

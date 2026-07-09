@@ -383,6 +383,20 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
     }
 
     @Override
+    public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
+        if (fileNames == null || fileNames.isEmpty()) {
+            return;
+        }
+        checkSocketStatus();
+        StringBuilder script = new StringBuilder();
+        script.append(this.vectorDatabaseSearcher).append(".remove_document(sources = ")
+                .append(GSON.toJson(fileNames))
+                .append(")");
+        classLogger.info("Running >>> {}", script);
+        pyTranslator.runDirectPy(script.toString());
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
         checkSocketStatus();
