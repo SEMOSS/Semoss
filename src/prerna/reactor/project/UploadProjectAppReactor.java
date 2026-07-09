@@ -90,6 +90,14 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		File zipFile = zipFilePath == null ? null : new File(Utility.normalizePath(zipFilePath));
+		if (zipFile == null || !zipFile.exists() || !zipFile.isFile()) {
+			String fileName = zipFile == null ? zipFilePath : zipFile.getName();
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to find the file to upload: " + fileName));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		// do we want this project to be accessible to everyone
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 		// check security
@@ -128,8 +136,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
-		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
-		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
+		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
 
 		// gotta keep track of the smssFile and files unzipped
@@ -179,6 +186,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				cleanUpFolders(randomTempUnzipF);
 			}
 		}
+
+		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
 
 		boolean replace = deleteIfExisting();
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
