@@ -40,6 +40,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
@@ -144,6 +145,11 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			} else {
 				nounGrs.add(NounMetadata.predictNounMetadata(paramValue));
 			}
+		}
+
+		if (this.insight != null) {
+			GenRowStruct insightGrs = guardrailInputNounStore.makeGenRowStruct(Constants.INSIGHT);
+			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
 		}
 
 		// Call the guardrail engine's execute method
