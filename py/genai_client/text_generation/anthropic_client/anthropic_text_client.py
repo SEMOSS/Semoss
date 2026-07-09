@@ -446,6 +446,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="CHAT",
+                metadata=metadata,
             )
         except Exception as e:
             return ModelEngineException(
@@ -524,7 +525,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         content_array = []
         this_content_block: Dict[str, Any] = {}
         this_content_block_type = ""
-        guardrail_part: Optional[Dict[str, Any]] = None
 
         tool_result = []
         server_tool_use_names: Dict[str, str] = {}
@@ -864,9 +864,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if current_text_block is not None:
             parts.append(current_text_block)
 
-        if guardrail_part:
-            parts.append(guardrail_part)
-
         if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
             print(
                 f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
@@ -888,8 +885,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         parts.append(
                             {"type": "THINKING", "thinking": thinking_response}
                         )
-                    if guardrail_part:
-                        parts.append(guardrail_part)
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
@@ -900,6 +895,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         io="OUTPUT",
                         parts=parts,
                         messageType="CHAT",
+                        metadata=metadata,
                     )
 
             return AskModelEngineResponse2(
@@ -912,6 +908,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="TOOL",
+                metadata=metadata,
             )
 
         return AskModelEngineResponse2(
@@ -924,6 +921,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
             messageType="CHAT",
+            metadata=metadata,
         )
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
@@ -1258,7 +1256,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if before is not None:
             list_kwargs["before_id"] = before
         batches_client = getattr(self.client.messages, "batches", None)
-        resp = batches_client.list(**list_kwargs) if batches_client is not None else None
+        resp = (
+            batches_client.list(**list_kwargs) if batches_client is not None else None
+        )
 
         data = getattr(resp, "data", []) or []
         batches = []
