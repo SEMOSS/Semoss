@@ -63,7 +63,10 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 		String rawTerm = keyValue.get(ReactorKeysEnum.SEARCH.getKey());
 		List<String> optionsList = getNounAsStringList(ReactorKeysEnum.OPTIONS.getKey());
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+		// editors/owners can search everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityEngineUtils.userCanEditEngine(user, engineId);
+		if (!canEdit && !SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Engine " + engineId + " does not exist or user does not have access to this engine");
 		}
@@ -76,6 +79,8 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 				relativeFilePath = "/" + relativeFilePath;
 			}
 		}
+		// confine view-only users to the public folder (throws if outside it)
+		relativeFilePath = FileSystemUtil.resolveReadableAssetPath(canEdit, relativeFilePath);
 
 		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
