@@ -130,6 +130,41 @@ services:
     networks:
       - mynetwork
 
+  # Apache Jena Fuseki — SPARQL 1.1 server backed by TDB2.
+  # Powers the Jena GraphRAG engine (see RemoteJenaEngine). Reached from the
+  # semoss container at http://fuseki:3030/<dataset>/sparql|update.
+  #
+  # Container image: stain/jena-fuseki is the most widely-used community image,
+  # built on eclipse-temurin:21-jre-alpine from the official Apache Fuseki
+  # tarball (checksum-verified). Swap for a self-built Fuseki image if
+  # enterprise policy requires only official Apache binaries.
+  fuseki:
+    image: stain/jena-fuseki:5
+    container_name: fuseki
+    restart: always
+    ports:
+      - "3030:3030"
+    environment:
+      # Local dev credentials — OVERRIDE for any deployment outside your laptop.
+      ADMIN_PASSWORD: "admin"
+      # TDB2 storage engine (matches jena-arq 5.x used inside SEMOSS).
+      TDB: "2"
+      # Auto-provision a default dataset "kb" on first boot. The Jena GraphRAG
+      # engine points at http://fuseki:3030/kb/sparql for queries and
+      # http://fuseki:3030/kb/update for writes.
+      FUSEKI_DATASET_1: "kb"
+      JVM_ARGS: "-Xmx2g"
+    volumes:
+      - fuseki_data:/fuseki
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3030/$$/ping || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mynetwork
+
 volumes:
   semoss_db:
   semoss_project:
@@ -139,6 +174,7 @@ volumes:
   semoss_function:
   semoss_guardrail:
   pgdata:
+  fuseki_data:
 
 networks:
   mynetwork:
