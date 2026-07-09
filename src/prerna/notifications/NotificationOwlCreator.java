@@ -52,7 +52,6 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 		// @formatter:off
 		addTable("NOTIFICATION_EVENT", Arrays.asList(
 				Pair.with("NOTIFICATION_ID", "VARCHAR(50)"),
-				Pair.with("KIND", "VARCHAR(20)"),
 				Pair.with("TYPE", "VARCHAR(50)"),
 				Pair.with("SCOPE_TYPE", "VARCHAR(20)"),
 				Pair.with("SCOPE_ID", "VARCHAR(50)"),
@@ -67,15 +66,9 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SOURCE_ID", "VARCHAR(50)"),
 				Pair.with("TARGET_TYPE", "VARCHAR(30)"),
 				Pair.with("TARGET_ID", "VARCHAR(50)"),
-				Pair.with("TARGET_URL", CLOB_DATATYPE_NAME),
-				Pair.with("ACTION_LABEL", "VARCHAR(50)"),
-				Pair.with("STATUS", "VARCHAR(20)"),
-				Pair.with("GROUP_ID", "VARCHAR(50)"),
 				Pair.with("METADATA_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("CREATED_BY", VARCHAR_255),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("RESOLVED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("EXPIRES_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("NOTIFICATION_USER_STATE", Arrays.asList(
 				Pair.with("NOTIFICATION_ID", "VARCHAR(50)"),
 				Pair.with("USER_ID", VARCHAR_255),
@@ -84,17 +77,6 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 				Pair.with("READ_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("IS_DISMISSED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DISMISSED_AT", TIMESTAMP_DATATYPE_NAME)));
-		addTable("NOTIFICATION_DELIVERY", Arrays.asList(
-				Pair.with("DELIVERY_ID", "VARCHAR(50)"),
-				Pair.with("NOTIFICATION_ID", "VARCHAR(50)"),
-				Pair.with("USER_ID", VARCHAR_255),
-				Pair.with("USER_TYPE", "VARCHAR(50)"),
-				Pair.with("CHANNEL", "VARCHAR(20)"),
-				Pair.with("STATUS", "VARCHAR(20)"),
-				Pair.with("ATTEMPTS", "INT"),
-				Pair.with("LAST_ERROR", CLOB_DATATYPE_NAME),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("SENT_AT", TIMESTAMP_DATATYPE_NAME)));
 		// @formatter:on
 	}
 }

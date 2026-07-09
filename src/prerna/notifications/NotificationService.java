@@ -93,12 +93,11 @@ public final class NotificationService {
 		}
 		String normalizedMessage = requireValue(message, "message");
 		String normalizedPriority = normalizePriority(priority);
-		return NotificationDbUtils.insertNotificationEvent(NotificationConstants.Kind.INFO,
-				NotificationConstants.Type.ANNOUNCEMENT, NotificationConstants.Scope.APP, normalizedProjectId,
+		return NotificationDbUtils.insertNotificationEvent(NotificationConstants.Type.ANNOUNCEMENT,
+				NotificationConstants.Scope.APP, normalizedProjectId,
 				audienceType, audienceId, audienceUserType, normalizedTitle, normalizedMessage, normalizedPriority,
 				NotificationConstants.DisplaySurface.BELL, NotificationConstants.Source.PROJECT, normalizedProjectId,
-				NotificationConstants.Target.APP, normalizedProjectId, null, null, NotificationConstants.Status.ACTIVE,
-				null, null, createdBy);
+				NotificationConstants.Target.APP, normalizedProjectId, null, createdBy);
 	}
 
 	private static String normalizePriority(String priority) {

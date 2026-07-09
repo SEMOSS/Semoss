@@ -129,15 +129,11 @@ public class NotificationDbUtils {
 			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
 					"NOTIFICATION_EVENT_TARGET_INDEX", "NOTIFICATION_EVENT", Arrays.asList("TARGET_TYPE", "TARGET_ID"));
 			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_EVENT_GROUP_INDEX", "NOTIFICATION_EVENT", "GROUP_ID");
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
 					"NOTIFICATION_USER_STATE_NOTIFICATION_USER_INDEX", "NOTIFICATION_USER_STATE",
 					Arrays.asList("NOTIFICATION_ID", "USER_ID", "USER_TYPE"));
 			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
 					"NOTIFICATION_USER_STATE_USER_INDEX", "NOTIFICATION_USER_STATE",
 					Arrays.asList("USER_ID", "USER_TYPE"));
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_DELIVERY_NOTIFICATION_INDEX", "NOTIFICATION_DELIVERY", "NOTIFICATION_ID");
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -214,7 +210,6 @@ public class NotificationDbUtils {
 
 		String createdBy = loggedInUser.getAccessToken(loggedInUser.getLogins().get(0)).getId();
 		Timestamp createdAt = Utility.getCurrentSqlTimestampUTC();
-		String kind = deriveKind(notificationType);
 		String type = deriveType(notificationType);
 		String scopeType = deriveScopeType(notificationSource);
 		String scopeId = NotificationConstants.Scope.APP.equals(scopeType) ? catalogId : null;
@@ -224,7 +219,7 @@ public class NotificationDbUtils {
 		String metadataJson = buildLegacyMetadata(affectedUserId, affectedUserType, affectedUserPreviousRole,
 				affectedUserNewRole, notificationType, notificationSource);
 
-		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,KIND,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,TARGET_URL,ACTION_LABEL,STATUS,GROUP_ID,METADATA_JSON,CREATED_BY,CREATED_AT,RESOLVED_AT,EXPIRES_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		for (Map<String, Object> recipient : recipients) {
 			if (recipient == null || recipient.get("userId") == null) {
 				continue;
@@ -234,7 +229,6 @@ public class NotificationDbUtils {
 				ps = notificationDb.getPreparedStatement(query);
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
-				ps.setString(parameterIndex++, kind);
 				ps.setString(parameterIndex++, type);
 				ps.setString(parameterIndex++, scopeType);
 				ps.setString(parameterIndex++, scopeId);
@@ -250,15 +244,9 @@ public class NotificationDbUtils {
 				ps.setString(parameterIndex++, catalogId);
 				ps.setString(parameterIndex++, targetType);
 				ps.setString(parameterIndex++, catalogId);
-				ps.setString(parameterIndex++, null);
-				ps.setString(parameterIndex++, NotificationConstants.Kind.ACTION.equals(kind) ? "Review" : null);
-				ps.setString(parameterIndex++, NotificationConstants.Status.ACTIVE);
-				ps.setString(parameterIndex++, null);
 				ps.setString(parameterIndex++, metadataJson);
 				ps.setString(parameterIndex++, createdBy);
 				ps.setTimestamp(parameterIndex++, createdAt);
-				ps.setTimestamp(parameterIndex++, null);
-				ps.setTimestamp(parameterIndex++, null);
 
 				ps.execute();
 				if (!ps.getConnection().getAutoCommit()) {
@@ -273,20 +261,18 @@ public class NotificationDbUtils {
 		}
 	}
 
-	static String insertNotificationEvent(String kind, String type, String scopeType, String scopeId,
+	static String insertNotificationEvent(String type, String scopeType, String scopeId,
 			String audienceType, String audienceId, String audienceUserType, String title, String message,
 			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
-			String targetId, String targetUrl, String actionLabel, String status, String groupId, String metadataJson,
-			String createdBy) {
+			String targetId, String metadataJson, String createdBy) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String notificationId = GUID.v7().toUUID().toString();
-		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,KIND,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,TARGET_URL,ACTION_LABEL,STATUS,GROUP_ID,METADATA_JSON,CREATED_BY,CREATED_AT,RESOLVED_AT,EXPIRES_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = notificationDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, notificationId);
-			ps.setString(parameterIndex++, kind);
 			ps.setString(parameterIndex++, type);
 			ps.setString(parameterIndex++, scopeType);
 			ps.setString(parameterIndex++, scopeId);
@@ -301,15 +287,9 @@ public class NotificationDbUtils {
 			ps.setString(parameterIndex++, sourceId);
 			ps.setString(parameterIndex++, targetType);
 			ps.setString(parameterIndex++, targetId);
-			ps.setString(parameterIndex++, targetUrl);
-			ps.setString(parameterIndex++, actionLabel);
-			ps.setString(parameterIndex++, status);
-			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, metadataJson);
 			ps.setString(parameterIndex++, createdBy);
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			ps.setTimestamp(parameterIndex++, null);
-			ps.setTimestamp(parameterIndex++, null);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -348,22 +328,19 @@ public class NotificationDbUtils {
 				"urs.IS_READ = TRUE");
 
 		StringBuilder query = new StringBuilder();
-		query.append("SELECT n.NOTIFICATION_ID, n.KIND, n.TYPE, n.SCOPE_TYPE, n.SCOPE_ID, n.AUDIENCE_TYPE, ")
+		query.append("SELECT n.NOTIFICATION_ID, n.TYPE, n.SCOPE_TYPE, n.SCOPE_ID, n.AUDIENCE_TYPE, ")
 				.append("n.AUDIENCE_ID, n.AUDIENCE_USER_TYPE, n.TITLE, n.MESSAGE, n.PRIORITY, n.DISPLAY_SURFACE, n.SOURCE_TYPE, ")
-				.append("n.SOURCE_ID, n.TARGET_TYPE, n.TARGET_ID, n.TARGET_URL, n.ACTION_LABEL, n.STATUS, ")
-				.append("n.GROUP_ID, n.METADATA_JSON, n.CREATED_BY, n.CREATED_AT, n.RESOLVED_AT, n.EXPIRES_AT, ")
+				.append("n.SOURCE_ID, n.TARGET_TYPE, n.TARGET_ID, n.METADATA_JSON, n.CREATED_BY, n.CREATED_AT, ")
 				.append("CASE WHEN EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(readCondition).append(") THEN TRUE ELSE FALSE END AS IS_READ ")
 				.append("FROM NOTIFICATION_EVENT n WHERE (").append(audienceCondition).append(") ")
 				.append("AND (").append(scopeCondition).append(") ")
-				.append("AND n.STATUS <> ? ").append("AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) ")
 				.append("AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(dismissedCondition).append(") ").append("ORDER BY n.CREATED_AT DESC");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(readParameters);
 		parameters.addAll(audienceParameters);
 		parameters.addAll(scopeParameters);
-		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 
 		Long longLimit = parseLong(limit);
@@ -506,12 +483,10 @@ public class NotificationDbUtils {
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
 		parameters.addAll(scopeParameters);
-		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		parameters.addAll(readParameters);
 		String query = "SELECT COUNT(n.NOTIFICATION_ID) FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
 				+ "AND (" + scopeCondition + ") "
-				+ "AND n.STATUS <> ? " + "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ") "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
@@ -569,7 +544,7 @@ public class NotificationDbUtils {
 		row.put("notification_title", getString(rs, "TITLE"));
 		row.put("notification_message", getString(rs, "MESSAGE"));
 		row.put("notification_actiontype", Boolean.TRUE.equals(rs.getObject("IS_READ")) ? "NONE" : "NEW");
-		row.put("notification_actiontarget", getString(rs, "TARGET_URL"));
+		row.put("notification_actiontarget", null);
 		row.put("notification_isread", rs.getBoolean("IS_READ"));
 		row.put("notification_priority", getString(rs, "PRIORITY"));
 		row.put("display_surface", normalizeDisplaySurface(getString(rs, "DISPLAY_SURFACE")));
@@ -583,16 +558,11 @@ public class NotificationDbUtils {
 		row.put("user_existingrole", getMetadataString(metadata, "affectedUserPreviousRole"));
 		row.put("user_newrole", getMetadataString(metadata, "affectedUserNewRole"));
 		row.put("notification_createdby", getString(rs, "CREATED_BY"));
-		row.put("kind", getString(rs, "KIND"));
 		row.put("type", getString(rs, "TYPE"));
 		row.put("scope_type", getString(rs, "SCOPE_TYPE"));
 		row.put("scope_id", getString(rs, "SCOPE_ID"));
 		row.put("target_type", getString(rs, "TARGET_TYPE"));
 		row.put("target_id", targetId);
-		row.put("target_url", getString(rs, "TARGET_URL"));
-		row.put("action_label", getString(rs, "ACTION_LABEL"));
-		row.put("status", getString(rs, "STATUS"));
-		row.put("group_id", getString(rs, "GROUP_ID"));
 		return row;
 	}
 
@@ -648,11 +618,9 @@ public class NotificationDbUtils {
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
 		parameters.addAll(scopeParameters);
-		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		String query = "SELECT n.NOTIFICATION_ID FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
 				+ "AND (" + scopeCondition + ") "
-				+ "AND n.STATUS <> ? " + "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
 		List<String> ids = new ArrayList<>();
@@ -689,11 +657,9 @@ public class NotificationDbUtils {
 		parameters.addAll(audienceParameters);
 		parameters.addAll(scopeParameters);
 		parameters.add(notificationId);
-		parameters.add(NotificationConstants.Status.EXPIRED);
 		parameters.addAll(dismissedParameters);
 		String query = "SELECT 1 FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
-				+ "AND (" + scopeCondition + ") " + "AND n.NOTIFICATION_ID = ? AND n.STATUS <> ? "
-				+ "AND (n.EXPIRES_AT IS NULL OR n.EXPIRES_AT > CURRENT_TIMESTAMP) "
+				+ "AND (" + scopeCondition + ") " + "AND n.NOTIFICATION_ID = ? "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
@@ -870,13 +836,6 @@ public class NotificationDbUtils {
 			return null;
 		}
 		return ((Number) Double.parseDouble(value)).longValue();
-	}
-
-	private static String deriveKind(String notificationType) {
-		if (NotificationConstants.Type.USER_REQUEST.equalsIgnoreCase(notificationType)) {
-			return NotificationConstants.Kind.ACTION;
-		}
-		return NotificationConstants.Kind.INFO;
 	}
 
 	private static String deriveType(String notificationType) {

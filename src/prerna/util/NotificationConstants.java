@@ -51,12 +51,7 @@ public final class NotificationConstants {
 		}
 	}
 
-	public static final class Kind {
-		public static final String INFO = "INFO";
-		public static final String ACTION = "ACTION";
-	}
-
-	// in-app render surface (NOT external delivery - that is DeliveryChannel)
+	// In-app render surface; external channels are modeled separately in Phase 5.
 	public static final class DisplaySurface {
 		public static final String BELL = "BELL";
 		public static final String MODAL = "MODAL";
@@ -78,7 +73,6 @@ public final class NotificationConstants {
 		public static final String REQUEST_DENIAL = "REQUEST_DENIAL";
 		public static final String SMSS_UPDATE = "SMSS_UPDATE";
 		public static final String ACCESS_REQUEST = "ACCESS_REQUEST";
-		public static final String AGENT_ACTION_REQUIRED = "AGENT_ACTION_REQUIRED";
 		public static final String ANNOUNCEMENT = "ANNOUNCEMENT";
 		public static final String APP_TASK_COMPLETE = "APP_TASK_COMPLETE";
 	}
@@ -112,7 +106,6 @@ public final class NotificationConstants {
 	public static final class Source {
 		public static final String SYSTEM = "SYSTEM";
 		public static final String USER = "USER";
-		public static final String AGENT = "AGENT";
 		public static final String ENGINE = "ENGINE";
 		public static final String PROJECT = "PROJECT";
 	}
@@ -121,29 +114,6 @@ public final class NotificationConstants {
 		public static final String NONE = "NONE";
 		public static final String ROUTE = "ROUTE";
 		public static final String APP = "APP";
-		public static final String ROOM = "ROOM";
-		public static final String AGENT_RUN = "AGENT_RUN";
-		public static final String AGENT_ACTION = "AGENT_ACTION";
-	}
-
-	public static final class Status {
-		public static final String ACTIVE = "ACTIVE";
-		public static final String RESOLVED = "RESOLVED";
-		public static final String EXPIRED = "EXPIRED";
-	}
-
-	public static final class DeliveryChannel {
-		public static final String EMAIL = "EMAIL";
-		public static final String SLACK = "SLACK";
-		public static final String TEAMS = "TEAMS";
-		public static final String WEBHOOK = "WEBHOOK";
-	}
-
-	public static final class DeliveryStatus {
-		public static final String PENDING = "PENDING";
-		public static final String SENT = "SENT";
-		public static final String FAILED = "FAILED";
-		public static final String SKIPPED = "SKIPPED";
 	}
 
 }
