@@ -175,9 +175,26 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			// relying on the two-way null return.
 			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
 			if (!(tail instanceof ResponseMessage)) {
+				// Cancel-commit still needs to land the hidden pair so the next
+				// turn's provider payload gets the "user stopped you" context —
+				// even though we don't have a visible ResponseMessage to hang
+				// off of. Parent it on whatever the sanitized tail is (the
+				// user's INPUT_TEXT).
+				if (prebuiltResponse != null && hiddenMessage != null && !hiddenMessage.isEmpty() && tail != null) {
+					appendHiddenPair(room, modelEngine, hiddenMessage, tail.getMessageId(),
+							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
+				}
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
-				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
+				List<Map<String, Object>> shortCircuitExtras = new ArrayList<>();
+				for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+					Map<String, Object> pair = new LinkedHashMap<>();
+					pair.put("inputMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i))));
+					pair.put("responseMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i + 1))));
+					shortCircuitExtras.add(pair);
+				}
+				pixelReturn.put("extraMessages", shortCircuitExtras);
+				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 
 			// parse the response for code blocks
