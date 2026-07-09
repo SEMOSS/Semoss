@@ -395,6 +395,9 @@ public class Constants {
 	public static final String PROJECT_FOLDER = "project";
 	public static final String APP_ROOT_FOLDER = "app_root";
 	public static final String ASSETS_FOLDER = "assets";
+	// folder within the assets folder whose contents are visible to users with only
+	// read/view access
+	public static final String PUBLIC_ASSETS_FOLDER = "public";
 	public static final String PORTALS_FOLDER = "portals";
 	public static final String VERSION_FOLDER = "version";
 	public static final String USER_FOLDER = "user";
