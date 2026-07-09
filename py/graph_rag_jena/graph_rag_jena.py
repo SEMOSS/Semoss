@@ -58,9 +58,12 @@ class JenaGraphRAG:
             timeout_ms: "<first>,<overall>" ms — forwarded to the client
             ontology_ttl: optional TTL string, parsed for PREFIX declarations
                 that get injected into every guarded query
-            paired_vector_search: optional callable ``(query, k) -> list``
-                for chunk retrieval. If None, hybrid_retrieve falls back to
-                graph-only retrieval.
+            paired_vector_search: optional paired vector-store searcher.
+                Accepts either the SEMOSS Python searcher object (with
+                ``add_points`` / ``nearestNeighbor`` methods, e.g. a
+                QdrantDatabase instance) or a legacy ``(query, k) -> list``
+                callable. If None, hybrid_retrieve falls back to graph-only
+                retrieval and chunks land only as smss:Chunk RDF nodes.
         """
         self.client = JenaClient(
             query_url=query_url,
@@ -168,7 +171,7 @@ class JenaGraphRAG:
         # Optional paired-vector-engine boost.
         if self.paired_vector_search is not None:
             try:
-                vec_hits = self.paired_vector_search(text, limit) or []
+                vec_hits = self._invoke_paired_search(text, limit) or []
                 seen_uris = {c["uri"] for c in candidates}
                 for hit in vec_hits:
                     uri = hit.get("uri") or hit.get("id")
@@ -307,16 +310,13 @@ class JenaGraphRAG:
         passages: List[Dict[str, Any]] = []
         if self.paired_vector_search is not None:
             try:
-                params: Dict[str, Any] = {"k": limit}
-                if section_filter:
-                    params["section_filter"] = section_filter
-                vec_hits = self.paired_vector_search(question, **params) or []
+                vec_hits = self._invoke_paired_search(question, limit) or []
                 for hit in vec_hits:
                     passages.append(
                         {
                             "text": hit.get("Content") or hit.get("text") or "",
                             "source": hit.get("Source") or hit.get("source"),
-                            "score": float(hit.get("Score", 0.0)),
+                            "score": float(hit.get("Score", hit.get("score", 0.0))),
                             "uri": hit.get("uri") or hit.get("id"),
                         }
                     )
@@ -435,12 +435,7 @@ class JenaGraphRAG:
 
         # Chunks — pushed to paired vector engine if configured.
         chunks = payload.get("chunks") or []
-        if chunks and self.paired_vector_search is not None:
-            # If we have a paired vector engine, upsert chunks via its API.
-            # This assumes the paired retriever also has an ingest hook —
-            # v1 lands the chunks into the graph as smss:Chunk nodes too so
-            # even without a paired retriever, they're queryable.
-            pass
+        paired_items: List[Dict[str, Any]] = []
         for i, chunk in enumerate(chunks):
             chunk_text = chunk.get("text") if isinstance(chunk, dict) else str(chunk)
             if not chunk_text:
@@ -458,13 +453,65 @@ class JenaGraphRAG:
             self.client.post_turtle(chunk_ttl)
             chunks_indexed += 1
 
+            chunk_source = chunk.get("source") if isinstance(chunk, dict) else None
+            paired_items.append(
+                {
+                    "text": chunk_text,
+                    "payload": {
+                        "Source": chunk_source or source or "unknown",
+                        "chunkUri": chunk_uri,
+                        "documentUri": doc_uri,
+                        "chunkIndex": i,
+                    },
+                }
+            )
+
+        # Push chunks to the paired vector store (e.g. Qdrant) if configured.
+        paired_pushed = 0
+        if paired_items and self.paired_vector_search is not None:
+            try:
+                self._invoke_paired_add(paired_items)
+                paired_pushed = len(paired_items)
+            except Exception as e:
+                logger.warning("paired_vector_search push failed: %s", e)
+
         return {
             "nodesAdded": nodes_added,
             "edgesAdded": edges_added,
             "chunksIndexed": chunks_indexed,
+            "pairedVectorPushed": paired_pushed,
             "documentUri": doc_uri,
             "diagnostics": {"mode": "structured", "source": source},
         }
+
+    # ------------------------------------------------------------------
+    # Paired-vector adapter — Qdrant/FAISS/etc. searcher object OR callable
+    # ------------------------------------------------------------------
+
+    def _invoke_paired_search(self, question: str, limit: int) -> List[Dict[str, Any]]:
+        pvs = self.paired_vector_search
+        if pvs is None:
+            return []
+        # Preferred: SEMOSS Python searcher object with nearestNeighbor method
+        if hasattr(pvs, "nearestNeighbor"):
+            return pvs.nearestNeighbor(question, limit=limit) or []
+        # Legacy: plain callable (question, k=N) -> list
+        if callable(pvs):
+            return pvs(question, k=limit) or []
+        logger.warning("paired_vector_search has no nearestNeighbor and is not callable")
+        return []
+
+    def _invoke_paired_add(self, items: List[Dict[str, Any]]) -> None:
+        pvs = self.paired_vector_search
+        if pvs is None or not items:
+            return
+        if hasattr(pvs, "add_points"):
+            pvs.add_points(items=items)
+            return
+        if hasattr(pvs, "addPoints"):
+            pvs.addPoints(items=items)
+            return
+        logger.warning("paired_vector_search has no add_points method; skipping push")
 
     def remove_document(
         self,

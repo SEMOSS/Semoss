@@ -166,6 +166,46 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
 
     @Override
     protected String[] getServerStartCommands() {
+        // Resolve the paired vector engine's Python searcher variable name
+        // (unquoted, so Python treats it as a live object reference in the
+        // shared JEP context). If unset or resolution fails, pass None and
+        // let the module fall back to graph-only retrieval.
+        String pairedSearcherExpr = "None";
+        if (this.pairedVectorEngineId != null && !this.pairedVectorEngineId.isEmpty()) {
+            try {
+                // Force-load the paired engine so its Python searcher variable exists.
+                Utility.getVectorDatabase(this.pairedVectorEngineId);
+                Object pairedRaw = prerna.util.DIHelper.getInstance()
+                        .getEngineProperty(this.pairedVectorEngineId);
+                if (pairedRaw != null) {
+                    java.lang.reflect.Field f = null;
+                    Class<?> cls = pairedRaw.getClass();
+                    while (cls != null && f == null) {
+                        try {
+                            f = cls.getDeclaredField("vectorDatabaseSearcher");
+                        } catch (NoSuchFieldException ignore) {
+                            cls = cls.getSuperclass();
+                        }
+                    }
+                    if (f != null) {
+                        f.setAccessible(true);
+                        Object name = f.get(pairedRaw);
+                        if (name instanceof String && !((String) name).isEmpty()) {
+                            pairedSearcherExpr = (String) name;
+                        }
+                    }
+                }
+                if ("None".equals(pairedSearcherExpr)) {
+                    classLogger.warn("Paired vector engine {} loaded but could not read its "
+                            + "vectorDatabaseSearcher name -- passages will be empty",
+                            this.pairedVectorEngineId);
+                }
+            } catch (Exception e) {
+                classLogger.warn("Could not resolve paired vector engine {}: {}",
+                        this.pairedVectorEngineId, e.toString());
+            }
+        }
+
         StringBuilder init = new StringBuilder();
         init.append("import graph_rag_jena;");
         init.append(this.vectorDatabaseSearcher).append(" = graph_rag_jena.JenaGraphRAG(")
@@ -179,6 +219,7 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
                 .append(", timeout_ms = ").append(PyUtils.determineStringType(this.queryTimeoutMs))
                 .append(", ontology_ttl = ").append(this.ontologyTtl != null
                         ? PyUtils.determineStringType(this.ontologyTtl) : "None")
+                .append(", paired_vector_search = ").append(pairedSearcherExpr)
                 .append(")");
         return init.toString().split(PyUtils.PY_COMMAND_SEPARATOR);
     }
