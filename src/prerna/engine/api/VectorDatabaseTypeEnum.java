@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.engine.impl.graphrag.JenaGraphRAGEngine;
 import prerna.engine.impl.vector.AwsS3VectorDatabaseEngine;
 import prerna.engine.impl.vector.AzureAISearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.ChromaVectorDatabaseEngine;
@@ -46,6 +47,7 @@ public enum VectorDatabaseTypeEnum {
 	CHROMA("CHROMA", ChromaVectorDatabaseEngine.class.getName()),
 	ELASTIC_SEARCH("ELASTIC_SEARCH", ElasticSearchRestVectorDatabaseEngine.class.getName()),
 	FAISS("FAISS", FaissDatabaseEngine.class.getName()),
+	JENA_GRAPH_RAG("JENA_GRAPH_RAG", JenaGraphRAGEngine.class.getName()),
 	MILVUS("MILVUS", MilvusVectorDatabaseEngine.class.getName()),
 	OPEN_SEARCH("OPEN_SEARCH", OpenSearchRestVectorDatabaseEngine.class.getName()),
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
