@@ -38,6 +38,7 @@ import prerna.engine.impl.vector.OpenSearchRestVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.engine.impl.vector.PineConeVectorDatabaseEngine;
 import prerna.engine.impl.vector.ProxyVectorDatabaseEngine;
+import prerna.engine.impl.vector.QdrantVectorDatabaseEngine;
 import prerna.engine.impl.vector.WeaviateVectorDatabaseEngine;
 
 public enum VectorDatabaseTypeEnum {
@@ -53,6 +54,7 @@ public enum VectorDatabaseTypeEnum {
 	PGVECTOR("PGVECTOR", PGVectorDatabaseEngine.class.getName()),
 	PINECONE("PINECONE", PineConeVectorDatabaseEngine.class.getName()),
 	PROXY("PROXY", ProxyVectorDatabaseEngine.class.getName()),
+	QDRANT("QDRANT", QdrantVectorDatabaseEngine.class.getName()),
 	WEAVIATE("WEAVIATE", WeaviateVectorDatabaseEngine.class.getName()),
 	;
 		

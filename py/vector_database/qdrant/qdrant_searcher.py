@@ -1,0 +1,807 @@
+import logging
+import os
+import uuid
+from typing import Any, Dict, List, Optional, Union
+
+import pandas as pd
+
+from ..constants import ENCODING_OPTIONS
+
+logger = logging.getLogger(__name__)
+
+_NAMESPACE = uuid.UUID("4f7c0c3a-c0f4-5b25-9e7e-1a5d4d2c8e7a")
+
+DENSE_VECTOR_NAME = "dense"
+SPARSE_VECTOR_NAME = "sparse"
+DEFAULT_SPARSE_MODEL = "Qdrant/bm25"
+
+_PAYLOAD_SCHEMA_MAP = {
+    "keyword": "KEYWORD",
+    "integer": "INTEGER",
+    "float": "FLOAT",
+    "bool": "BOOL",
+    "boolean": "BOOL",
+    "geo": "GEO",
+    "text": "TEXT",
+    "datetime": "DATETIME",
+    "uuid": "UUID",
+}
+
+
+class QdrantSearcher:
+
+    def __init__(
+        self,
+        client,
+        collection_name: str,
+        embeddings_engine,
+        tokenizer,
+        distance: str = "Cosine",
+        metric_type_is_cosine_similarity: bool = True,
+        default_sort_direction: bool = False,
+        keyword_engine=None,
+        quantization: str = "none",
+        hnsw_m: Optional[int] = None,
+        hnsw_ef_construct: Optional[int] = None,
+        on_disk_payload: bool = False,
+        base_path: Optional[str] = None,
+        enable_hybrid_search: bool = False,
+        sparse_model_name: str = DEFAULT_SPARSE_MODEL,
+        fusion: str = "rrf",
+        indexed_fields: Optional[List[Dict[str, str]]] = None,
+        **kwargs: Any,
+    ) -> None:
+        from qdrant_client import models
+
+        self._models = models
+        self.client = client
+        self.collection_name = collection_name
+        self.embeddings_engine = embeddings_engine
+        self.keyword_engine = keyword_engine
+        self.tokenizer = tokenizer
+        self.distance_name = distance
+        self.metric_type_is_cosine_similarity = metric_type_is_cosine_similarity
+        self.default_sort_direction = default_sort_direction
+        self.quantization = (quantization or "none").lower()
+        self.hnsw_m = hnsw_m
+        self.hnsw_ef_construct = hnsw_ef_construct
+        self.on_disk_payload = on_disk_payload
+        self.base_path = base_path
+        self.enable_hybrid_search = bool(enable_hybrid_search)
+        self.sparse_model_name = sparse_model_name or DEFAULT_SPARSE_MODEL
+        self.fusion = (fusion or "rrf").lower()
+        self.indexed_fields = list(indexed_fields) if indexed_fields else [
+            {"field": "Source", "schema": "keyword"}
+        ]
+        self.vector_size: Optional[int] = None
+        self._sources: set = set()
+        self._collection_ready = False
+        self._sparse_encoder = None
+        self._is_hybrid_collection = False
+        self._attach_existing_collection_if_present()
+
+    def _resolve_distance(self):
+        m = self._models.Distance
+        return {
+            "Cosine": m.COSINE, "Dot": m.DOT, "Euclid": m.EUCLID, "Manhattan": m.MANHATTAN,
+        }.get(self.distance_name, m.COSINE)
+
+    def _quantization_config(self):
+        if self.quantization == "scalar":
+            return self._models.ScalarQuantization(
+                scalar=self._models.ScalarQuantizationConfig(
+                    type=self._models.ScalarType.INT8, always_ram=True))
+        if self.quantization == "binary":
+            return self._models.BinaryQuantization(
+                binary=self._models.BinaryQuantizationConfig(always_ram=True))
+        return None
+
+    def _hnsw_config(self):
+        if self.hnsw_m is None and self.hnsw_ef_construct is None:
+            return None
+        kwargs = {}
+        if self.hnsw_m is not None: kwargs["m"] = int(self.hnsw_m)
+        if self.hnsw_ef_construct is not None: kwargs["ef_construct"] = int(self.hnsw_ef_construct)
+        return self._models.HnswConfigDiff(**kwargs)
+
+    def _get_sparse_encoder(self):
+        if self._sparse_encoder is not None:
+            return self._sparse_encoder
+        from fastembed import SparseTextEmbedding
+        self._sparse_encoder = SparseTextEmbedding(model_name=self.sparse_model_name)
+        return self._sparse_encoder
+
+    def _encode_sparse_batch(self, texts: List[str]):
+        encoder = self._get_sparse_encoder()
+        return list(encoder.embed(texts))
+
+    def _encode_sparse_query(self, text: str):
+        encoder = self._get_sparse_encoder()
+        return list(encoder.query_embed([text]))[0]
+
+    def _to_sparse_vector(self, sparse_embedding):
+        indices = sparse_embedding.indices.tolist() if hasattr(sparse_embedding.indices, "tolist") \
+            else list(sparse_embedding.indices)
+        values = sparse_embedding.values.tolist() if hasattr(sparse_embedding.values, "tolist") \
+            else list(sparse_embedding.values)
+        return self._models.SparseVector(indices=indices, values=values)
+
+    def _ensure_collection(self, vector_size: int) -> None:
+        if self._collection_ready:
+            return
+        existing = {c.name for c in self.client.get_collections().collections}
+        if self.collection_name in existing:
+            if self._attach_existing_collection():
+                return
+        self.vector_size = vector_size
+        self._create_collection(vector_size)
+        self._collection_ready = True
+        self._refresh_sources_from_qdrant()
+
+    def _create_collection(self, vector_size: int) -> None:
+        dense_params = self._models.VectorParams(
+            size=vector_size, distance=self._resolve_distance())
+
+        if self.enable_hybrid_search:
+            vectors_config = {DENSE_VECTOR_NAME: dense_params}
+            sparse_vectors_config = {
+                SPARSE_VECTOR_NAME: self._models.SparseVectorParams(
+                    modifier=self._models.Modifier.IDF)
+            }
+        else:
+            vectors_config = dense_params
+            sparse_vectors_config = None
+
+        create_kwargs: Dict[str, Any] = {
+            "collection_name": self.collection_name,
+            "vectors_config": vectors_config,
+            "on_disk_payload": self.on_disk_payload,
+        }
+        if sparse_vectors_config is not None:
+            create_kwargs["sparse_vectors_config"] = sparse_vectors_config
+        quant = self._quantization_config()
+        if quant is not None: create_kwargs["quantization_config"] = quant
+        hnsw = self._hnsw_config()
+        if hnsw is not None: create_kwargs["hnsw_config"] = hnsw
+
+        self.client.create_collection(**create_kwargs)
+        self._is_hybrid_collection = self.enable_hybrid_search
+        self._ensure_payload_indexes()
+
+    def _ensure_payload_indexes(self) -> None:
+        for spec in self.indexed_fields:
+            field = spec.get("field")
+            if not field:
+                continue
+            schema_key = (spec.get("schema") or "keyword").lower()
+            schema_enum = _PAYLOAD_SCHEMA_MAP.get(schema_key, "KEYWORD")
+            try:
+                field_schema = getattr(self._models.PayloadSchemaType, schema_enum)
+                self.client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field,
+                    field_schema=field_schema,
+                )
+            except Exception as e:
+                msg = str(e).lower()
+                if "already exists" in msg or "already indexed" in msg:
+                    logger.debug(
+                        "payload index for %s already exists (%s)",
+                        field, schema_key,
+                    )
+                else:
+                    logger.warning(
+                        "create_payload_index failed for %s (%s): %s",
+                        field, schema_key, e,
+                    )
+
+    def _attach_existing_collection_if_present(self) -> bool:
+        try:
+            existing = {c.name for c in self.client.get_collections().collections}
+        except Exception as e:
+            logger.debug(
+                "Could not inspect Qdrant collections while initializing %s: %s",
+                self.collection_name, e,
+            )
+            return False
+        if self.collection_name not in existing:
+            return False
+        return self._attach_existing_collection()
+
+    def _attach_existing_collection(self) -> bool:
+        try:
+            info = self.client.get_collection(self.collection_name)
+            params = info.config.params
+            self._is_hybrid_collection = self._has_sparse_vector(params)
+            self.vector_size = self._extract_dense_vector_size(params)
+            self._collection_ready = True
+            self._ensure_payload_indexes()
+            self._refresh_sources_from_qdrant()
+            return True
+        except Exception as e:
+            logger.warning(
+                "Could not attach Qdrant collection %s: %s",
+                self.collection_name, e,
+            )
+            self._collection_ready = False
+            self.vector_size = None
+            return False
+
+    def _has_sparse_vector(self, params: Any) -> bool:
+        sparse_cfg = self._get_config_value(params, "sparse_vectors")
+        if sparse_cfg is None:
+            return False
+        if isinstance(sparse_cfg, dict):
+            return SPARSE_VECTOR_NAME in sparse_cfg
+        try:
+            return SPARSE_VECTOR_NAME in sparse_cfg
+        except TypeError:
+            return True
+
+    def _extract_dense_vector_size(self, params: Any) -> Optional[int]:
+        vectors = self._get_config_value(params, "vectors")
+        if vectors is None:
+            return None
+        dense_vector = self._get_config_value(vectors, DENSE_VECTOR_NAME)
+        if dense_vector is not None:
+            size = self._get_config_value(dense_vector, "size")
+            return int(size) if size is not None else None
+        size = self._get_config_value(vectors, "size")
+        return int(size) if size is not None else None
+
+    @staticmethod
+    def _get_config_value(config: Any, key: str) -> Any:
+        if config is None:
+            return None
+        if isinstance(config, dict):
+            return config.get(key)
+        if hasattr(config, "get"):
+            try:
+                return config.get(key)
+            except Exception:
+                pass
+        return getattr(config, key, None)
+
+    def _refresh_sources_from_qdrant(self) -> None:
+        try:
+            offset = None
+            sources: set = set()
+            while True:
+                points, offset = self.client.scroll(
+                    collection_name=self.collection_name, limit=512,
+                    with_payload=True, with_vectors=False, offset=offset)
+                for p in points:
+                    src = (p.payload or {}).get("Source")
+                    if src: sources.add(src)
+                if offset is None: break
+            self._sources = sources
+        except Exception as e:
+            logger.warning(
+                "Could not refresh Qdrant source list for %s: %s (keeping prior cache)",
+                self.collection_name, e,
+            )
+
+    def _read_csv(self, path: str) -> pd.DataFrame:
+        last_err: Optional[Exception] = None
+        for enc in ENCODING_OPTIONS:
+            try: return pd.read_csv(path, encoding=enc)
+            except UnicodeDecodeError as e: last_err = e
+            except Exception as e: last_err = e; break
+        if last_err is not None: raise last_err
+        return pd.read_csv(path)
+
+    def _embed_batch(self, texts: List[str], insight_id: Optional[str]) -> List[List[float]]:
+        response = self.embeddings_engine.embeddings(strings_to_embed=list(texts), insight_id=insight_id)
+        if isinstance(response, list):
+            if not response: return []
+            first = response[0]
+            if isinstance(first, dict) and "response" in first:
+                return first["response"]
+            return response
+        if isinstance(response, dict) and "response" in response:
+            return response["response"]
+        return response
+
+    def _point_id_for(self, source: str, divider: Any, part: Any) -> str:
+        key = f"{self.collection_name}|{source}|{divider}|{part}"
+        return str(uuid.uuid5(_NAMESPACE, key))
+
+    def _build_point_vector(self, dense_vec: List[float], sparse_embedding=None):
+        if self._is_hybrid_collection:
+            if sparse_embedding is None:
+                raise ValueError(
+                    "Hybrid Qdrant direct ingest requires text; vector-only points are unsupported."
+                )
+            return {
+                DENSE_VECTOR_NAME: dense_vec,
+                SPARSE_VECTOR_NAME: self._to_sparse_vector(sparse_embedding),
+            }
+        return dense_vec
+
+    def addDocument(
+        self,
+        documentFileLocation: List[str],
+        insight_id: Optional[str] = None,
+        columns_to_index: Optional[List[str]] = None,
+        columns_to_remove: Optional[List[str]] = None,
+        batch_size: int = 64,
+    ) -> Dict[str, Any]:
+        columns_to_index = columns_to_index or ["Content"]
+        created_documents: List[str] = []
+
+        for csv_path in documentFileLocation:
+            if not os.path.isfile(csv_path): continue
+            df = self._read_csv(csv_path)
+            if df.empty: continue
+            if columns_to_remove:
+                for col in columns_to_remove:
+                    if col in df.columns: df = df.drop(columns=[col])
+
+            text_col = columns_to_index[0] if columns_to_index[0] in df.columns else None
+            if text_col is None and "Content" in df.columns: text_col = "Content"
+            if text_col is None: continue
+
+            source_default = os.path.basename(csv_path)
+            if "Source" not in df.columns: df["Source"] = source_default
+
+            payloads, ids, texts = [], [], []
+            for _, row in df.iterrows():
+                content = row[text_col]
+                if pd.isna(content): continue
+                content_str = str(content)
+                src = str(row.get("Source", source_default))
+                divider = row.get("Divider", 0)
+                part = row.get("Part", 0)
+                pid = self._point_id_for(src, divider, part)
+                payload = {k: (None if pd.isna(v) else v) for k, v in row.to_dict().items()}
+                ids.append(pid); texts.append(content_str); payloads.append(payload)
+
+            if not texts: continue
+
+            for start in range(0, len(texts), batch_size):
+                batch_texts = texts[start:start + batch_size]
+                batch_ids = ids[start:start + batch_size]
+                batch_payloads = payloads[start:start + batch_size]
+                vectors = self._embed_batch(batch_texts, insight_id)
+                if not vectors: continue
+                if self.vector_size is None: self._ensure_collection(len(vectors[0]))
+
+                sparse_vectors = None
+                if self._is_hybrid_collection:
+                    sparse_vectors = self._encode_sparse_batch(batch_texts)
+
+                points = []
+                for idx, (pid, vec, payload) in enumerate(zip(batch_ids, vectors, batch_payloads)):
+                    sparse_emb = sparse_vectors[idx] if sparse_vectors is not None else None
+                    point_vec = self._build_point_vector(vec, sparse_emb)
+                    points.append(self._models.PointStruct(id=pid, vector=point_vec, payload=payload))
+                self.client.upsert(collection_name=self.collection_name, points=points)
+
+                for payload in batch_payloads:
+                    src = payload.get("Source")
+                    if src: self._sources.add(str(src))
+            created_documents.append(csv_path)
+
+        return {"createdDocuments": created_documents}
+
+    def add_points(
+        self,
+        items: Any,
+        insight_id: Optional[str] = None,
+        batch_size: int = 64,
+    ) -> Dict[str, Any]:
+        """Direct-ingest path: bypass the CSV pipeline entirely.
+
+        Each item is one point. Accepts either:
+          - ``{"text": "...", "payload": {...}}`` — text is embedded server-side.
+          - ``{"vector": [...], "payload": {...}}`` — pre-embedded, used as-is.
+
+        Optional fields per item: ``id`` (stable point id, auto-generated
+        from source/divider/part hash if omitted), ``source`` (mirrored
+        into ``payload["Source"]``), ``divider``, ``part``.
+
+        Returns a summary dict with ingest counts. Payload keys become
+        server-side filterable fields (indexed keys benefit most).
+        """
+        if isinstance(items, str):
+            import json as _json
+
+            try:
+                items = _json.loads(items)
+            except _json.JSONDecodeError:
+                return {"upserted": 0, "skipped": 0, "error": "invalid_json"}
+        if not items:
+            return {"upserted": 0, "skipped": 0}
+
+        prepared: List[Dict[str, Any]] = []
+        pre_skipped = 0
+        for item in items:
+            if not isinstance(item, dict):
+                pre_skipped += 1
+                logger.warning(
+                    "QdrantAddPoints ignoring non-object item (%s) at index %d",
+                    type(item).__name__, len(prepared) + pre_skipped - 1,
+                )
+                continue
+            payload = dict(item.get("payload") or {})
+            if "source" in item and "Source" not in payload:
+                payload["Source"] = item["source"]
+            divider = item.get("divider", payload.get("Divider", 0))
+            part = item.get("part", payload.get("Part", 0))
+            if "Divider" not in payload:
+                payload["Divider"] = divider
+            if "Part" not in payload:
+                payload["Part"] = part
+            pid = item.get("id")
+            if not pid:
+                pid = self._point_id_for(
+                    str(payload.get("Source", "")), divider, part
+                )
+            prepared.append(
+                {
+                    "id": pid,
+                    "text": item.get("text"),
+                    "vector": item.get("vector"),
+                    "payload": payload,
+                }
+            )
+
+        upserted = 0
+        skipped = pre_skipped
+        for start in range(0, len(prepared), batch_size):
+            batch = prepared[start : start + batch_size]
+
+            texts_to_embed: List[str] = []
+            embed_indexes: List[int] = []
+            resolved_vectors: List[Optional[List[float]]] = [None] * len(batch)
+            for i, entry in enumerate(batch):
+                if entry.get("vector") is not None:
+                    resolved_vectors[i] = list(entry["vector"])
+                elif entry.get("text"):
+                    texts_to_embed.append(str(entry["text"]))
+                    embed_indexes.append(i)
+                else:
+                    skipped += 1
+
+            if texts_to_embed:
+                embedded = self._embed_batch(texts_to_embed, insight_id)
+                if not embedded:
+                    skipped += len(texts_to_embed)
+                elif len(embedded) != len(texts_to_embed):
+                    raise ValueError(
+                        f"Embedder returned {len(embedded)} vectors for "
+                        f"{len(texts_to_embed)} texts; refusing to upsert a "
+                        "misaligned batch. Check the embedder's response shape."
+                    )
+                else:
+                    for j, vec in enumerate(embedded):
+                        resolved_vectors[embed_indexes[j]] = vec
+
+            if self.vector_size is None:
+                first = next(
+                    (v for v in resolved_vectors if v is not None), None
+                )
+                if first is None:
+                    continue
+                self._ensure_collection(len(first))
+
+            sparse_texts: List[Optional[str]] = [None] * len(batch)
+            if self._is_hybrid_collection:
+                for i, entry in enumerate(batch):
+                    if entry.get("text"):
+                        sparse_texts[i] = str(entry["text"])
+                    elif entry.get("vector") is not None:
+                        raise ValueError(
+                            "Hybrid Qdrant direct ingest requires text; vector-only points are unsupported."
+                        )
+            sparse_encoded: List[Any] = [None] * len(batch)
+            if self._is_hybrid_collection:
+                to_encode = [(i, t) for i, t in enumerate(sparse_texts) if t]
+                if to_encode:
+                    encoded = self._encode_sparse_batch([t for _, t in to_encode])
+                    for k, (i, _) in enumerate(to_encode):
+                        sparse_encoded[i] = encoded[k]
+
+            points = []
+            for i, entry in enumerate(batch):
+                vec = resolved_vectors[i]
+                if vec is None:
+                    skipped += 1
+                    continue
+                point_vec = self._build_point_vector(vec, sparse_encoded[i])
+                points.append(
+                    self._models.PointStruct(
+                        id=entry["id"], vector=point_vec, payload=entry["payload"]
+                    )
+                )
+
+            if not points:
+                continue
+            self.client.upsert(collection_name=self.collection_name, points=points)
+            upserted += len(points)
+
+            for entry in batch:
+                src = entry["payload"].get("Source")
+                if src:
+                    self._sources.add(str(src))
+
+        return {"upserted": upserted, "skipped": skipped}
+
+    def delete_by_filter(self, qdrant_filter: Dict[str, Any]) -> int:
+        """Remove all points matching a Qdrant filter. Returns the operation id."""
+        if not self._collection_ready:
+            return 0
+        flt = self._build_filter(qdrant_filter)
+        if flt is None:
+            return 0
+        result = self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=self._models.FilterSelector(filter=flt),
+        )
+        for src in list(self._sources):
+            try:
+                info = self.client.count(
+                    collection_name=self.collection_name,
+                    count_filter=self._models.Filter(
+                        must=[
+                            self._models.FieldCondition(
+                                key="Source", match=self._models.MatchValue(value=src)
+                            )
+                        ]
+                    ),
+                )
+                if getattr(info, "count", 0) == 0:
+                    self._sources.discard(src)
+            except Exception:
+                pass
+        return getattr(result, "operation_id", 0) or 0
+
+    def list_points(
+        self,
+        qdrant_filter: Optional[Dict[str, Any]] = None,
+        limit: int = 100,
+        offset: Optional[Any] = None,
+        columns_to_return: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Scroll points with an optional native filter. Paginate via ``next_offset``."""
+        if not self._collection_ready:
+            return {"points": [], "next_offset": None}
+        flt = self._build_filter(qdrant_filter)
+        scroll_kwargs: Dict[str, Any] = {
+            "collection_name": self.collection_name,
+            "limit": int(limit),
+            "with_payload": True,
+            "with_vectors": False,
+        }
+        if flt is not None:
+            scroll_kwargs["scroll_filter"] = flt
+        if offset is not None:
+            scroll_kwargs["offset"] = offset
+        points, next_offset = self.client.scroll(**scroll_kwargs)
+        out: List[Dict[str, Any]] = []
+        for p in points:
+            payload = dict(p.payload or {})
+            record: Dict[str, Any] = {"id": p.id}
+            if columns_to_return:
+                for col in columns_to_return:
+                    if col in payload:
+                        record[col] = payload[col]
+            else:
+                record.update(payload)
+            out.append(record)
+        return {"points": out, "next_offset": next_offset}
+
+    def create_payload_index(
+        self, field: str, schema: str = "keyword"
+    ) -> bool:
+        """Add a payload index on an existing collection. Idempotent."""
+        if not field:
+            return False
+        schema_enum = _PAYLOAD_SCHEMA_MAP.get((schema or "keyword").lower(), "KEYWORD")
+        try:
+            field_schema = getattr(self._models.PayloadSchemaType, schema_enum)
+            self.client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name=field,
+                field_schema=field_schema,
+            )
+            self.indexed_fields.append({"field": field, "schema": schema})
+            return True
+        except Exception as e:
+            logger.warning("create_payload_index failed for %s: %s", field, e)
+            return False
+
+    def datasetsLoaded(self) -> bool:
+        if not self._collection_ready: return False
+        try:
+            info = self.client.get_collection(self.collection_name)
+            return (info.points_count or 0) > 0
+        except Exception:
+            return False
+
+    def list_documents(self) -> List[str]:
+        if not self._collection_ready: self._refresh_sources_from_qdrant()
+        return sorted(self._sources)
+
+    def list_all_records(self) -> List[Dict[str, Any]]:
+        if not self._collection_ready: return []
+        results: List[Dict[str, Any]] = []
+        offset = None
+        while True:
+            points, offset = self.client.scroll(
+                collection_name=self.collection_name, limit=512,
+                with_payload=True, with_vectors=False, offset=offset)
+            for p in points:
+                record = dict(p.payload or {})
+                record["id"] = p.id
+                results.append(record)
+            if offset is None: break
+        return results
+
+    def removeDocument(self, source: str) -> int:
+        if not self._collection_ready: return 0
+        flt = self._models.Filter(must=[
+            self._models.FieldCondition(key="Source", match=self._models.MatchValue(value=source))])
+        result = self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=self._models.FilterSelector(filter=flt))
+        self._sources.discard(source)
+        return getattr(result, "operation_id", 0) or 0
+
+    def removePoints(self, point_ids: List[str]) -> int:
+        if not self._collection_ready or not point_ids: return 0
+        self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=self._models.PointIdsList(points=point_ids))
+        return len(point_ids)
+
+    def drop_collection(self) -> None:
+        try: self.client.delete_collection(self.collection_name)
+        except Exception: pass
+        self._collection_ready = False
+        self._is_hybrid_collection = False
+        self._sources.clear()
+
+    def _build_filter(self, qdrant_filter: Optional[Dict[str, Any]]):
+        if not qdrant_filter:
+            return None
+        try:
+            return self._models.Filter(**qdrant_filter)
+        except Exception as e:
+            raise ValueError(
+                f"Malformed qdrant_filter on {self.collection_name}: {e}. "
+                "Refusing to proceed to avoid silently returning unfiltered "
+                "results or a zero-op delete."
+            ) from e
+
+    def _embed_query(self, question: str, insight_id: Optional[str]) -> Optional[List[float]]:
+        vectors = self._embed_batch([question], insight_id)
+        return vectors[0] if vectors else None
+
+    def _format_hit(self, hit, columns_to_return: Optional[List[str]]) -> Dict[str, Any]:
+        payload = dict(hit.payload or {})
+        out: Dict[str, Any] = {
+            "Score": float(hit.score) if hit.score is not None else 0.0,
+            "id": hit.id,
+        }
+        if columns_to_return:
+            for col in columns_to_return:
+                if col in payload: out[col] = payload[col]
+        else:
+            out.update(payload)
+        return out
+
+    def _should_use_hybrid(self, use_hybrid_search_override: Optional[bool]) -> bool:
+        if use_hybrid_search_override is True and not self._is_hybrid_collection:
+            raise ValueError(
+                "Hybrid search was explicitly requested, but this Qdrant "
+                "collection was not created with hybrid enabled. Recreate "
+                "the engine with QDRANT_ENABLE_HYBRID_SEARCH=true to use it."
+            )
+        if not self._is_hybrid_collection:
+            return False
+        if use_hybrid_search_override is None:
+            return self.enable_hybrid_search
+        return bool(use_hybrid_search_override)
+
+    def _resolve_fusion(self):
+        fusions = self._models.Fusion
+        if self.fusion == "dbsf" and hasattr(fusions, "DBSF"):
+            return fusions.DBSF
+        return fusions.RRF
+
+    def nearestNeighbor(
+        self,
+        question: str,
+        limit: Optional[int] = 5,
+        columns_to_return: Optional[List[str]] = None,
+        score_threshold: Optional[Union[int, float]] = None,
+        qdrant_filter: Optional[Dict[str, Any]] = None,
+        insight_id: Optional[str] = None,
+        use_hybrid_search: Optional[bool] = None,
+        hybrid_prefetch_limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        if not self._collection_ready:
+            return []
+        query_vector = self._embed_query(question, insight_id)
+        if query_vector is None:
+            return []
+
+        effective_limit = int(limit) if limit is not None else 5
+        flt = self._build_filter(qdrant_filter)
+        hybrid = self._should_use_hybrid(use_hybrid_search)
+
+        if hybrid:
+            fetch_limit = int(hybrid_prefetch_limit) if hybrid_prefetch_limit is not None \
+                else max(effective_limit * 4, 20)
+            sparse_emb = self._encode_sparse_query(question)
+            sparse_vec = self._to_sparse_vector(sparse_emb)
+            dense_prefetch_kwargs: Dict[str, Any] = {
+                "query": query_vector, "using": DENSE_VECTOR_NAME, "limit": fetch_limit,
+            }
+            sparse_prefetch_kwargs: Dict[str, Any] = {
+                "query": sparse_vec, "using": SPARSE_VECTOR_NAME, "limit": fetch_limit,
+            }
+            if flt is not None:
+                dense_prefetch_kwargs["filter"] = flt
+                sparse_prefetch_kwargs["filter"] = flt
+            fusion_enum = self._resolve_fusion()
+            query_kwargs: Dict[str, Any] = {
+                "collection_name": self.collection_name,
+                "prefetch": [
+                    self._models.Prefetch(**dense_prefetch_kwargs),
+                    self._models.Prefetch(**sparse_prefetch_kwargs),
+                ],
+                "query": self._models.FusionQuery(fusion=fusion_enum),
+                "limit": effective_limit,
+                "with_payload": True,
+                "with_vectors": False,
+            }
+        else:
+            query_arg = query_vector
+            using = DENSE_VECTOR_NAME if self._is_hybrid_collection else None
+            query_kwargs = {
+                "collection_name": self.collection_name,
+                "query": query_arg,
+                "limit": effective_limit,
+                "with_payload": True,
+                "with_vectors": False,
+            }
+            if using is not None:
+                query_kwargs["using"] = using
+            if flt is not None:
+                query_kwargs["query_filter"] = flt
+
+        if score_threshold is not None: query_kwargs["score_threshold"] = float(score_threshold)
+
+        response = self.client.query_points(**query_kwargs)
+        return [self._format_hit(h, columns_to_return) for h in response.points]
+
+    def recommend(
+        self,
+        positive_ids: List[str],
+        negative_ids: Optional[List[str]] = None,
+        limit: Optional[int] = 5,
+        columns_to_return: Optional[List[str]] = None,
+        score_threshold: Optional[Union[int, float]] = None,
+        qdrant_filter: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        if not self._collection_ready or not positive_ids: return []
+        flt = self._build_filter(qdrant_filter)
+        recommend_input = self._models.RecommendInput(
+            positive=list(positive_ids),
+            negative=list(negative_ids) if negative_ids else [],
+        )
+        query_kwargs: Dict[str, Any] = {
+            "collection_name": self.collection_name,
+            "query": self._models.RecommendQuery(recommend=recommend_input),
+            "limit": int(limit) if limit is not None else 5,
+            "with_payload": True,
+            "with_vectors": False,
+        }
+        if self._is_hybrid_collection:
+            query_kwargs["using"] = DENSE_VECTOR_NAME
+        if flt is not None: query_kwargs["query_filter"] = flt
+        if score_threshold is not None: query_kwargs["score_threshold"] = float(score_threshold)
+        response = self.client.query_points(**query_kwargs)
+        return [self._format_hit(h, columns_to_return) for h in response.points]

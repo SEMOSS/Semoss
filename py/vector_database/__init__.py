@@ -7,6 +7,10 @@ def __getattr__(name: str) -> Any:
         from .faiss.faiss_database import FAISSDatabase
 
         return FAISSDatabase
+    elif name == "QdrantDatabase":
+        from .qdrant.qdrant_database import QdrantDatabase
+
+        return QdrantDatabase
     elif name == "extract_text":
         from .utils.extraction.text_extractor import extract_text
 

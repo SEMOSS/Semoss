@@ -73,6 +73,11 @@ import prerna.reactor.vector.JenaHybridRetrieveReactor;
 import prerna.reactor.vector.JenaIngestDocReactor;
 import prerna.reactor.vector.JenaSparqlQueryReactor;
 import prerna.reactor.vector.ListDocumentsInVectorDatabaseReactor;
+import prerna.reactor.vector.QdrantAddPointsReactor;
+import prerna.reactor.vector.QdrantDeleteByFilterReactor;
+import prerna.reactor.vector.QdrantHybridSearchReactor;
+import prerna.reactor.vector.QdrantListPointsReactor;
+import prerna.reactor.vector.QdrantRecommendReactor;
 import prerna.reactor.vector.RemoveDocumentFromVectorDatabaseReactor;
 import prerna.reactor.vector.VectorDatabaseQueryReactor;
 import prerna.reactor.vector.VectorFileDownloadReactor;
@@ -128,6 +133,18 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					JenaIngestDocReactor.class,
 					ListDocumentsInVectorDatabaseReactor.class,
 					RemoveDocumentFromVectorDatabaseReactor.class
+			)));
+			put(VectorDatabaseTypeEnum.QDRANT, new ArrayList<>(Arrays.asList(
+					ListDocumentsInVectorDatabaseReactor.class,
+					CreateEmbeddingsFromDocumentsReactor.class,
+					VectorDatabaseQueryReactor.class,
+					RemoveDocumentFromVectorDatabaseReactor.class,
+					VectorFileDownloadReactor.class,
+					QdrantAddPointsReactor.class,
+					QdrantHybridSearchReactor.class,
+					QdrantRecommendReactor.class,
+					QdrantDeleteByFilterReactor.class,
+					QdrantListPointsReactor.class
 			)));
 		}
 	};
