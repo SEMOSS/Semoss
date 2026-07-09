@@ -139,7 +139,7 @@ services:
   # tarball (checksum-verified). Swap for a self-built Fuseki image if
   # enterprise policy requires only official Apache binaries.
   fuseki:
-    image: stain/jena-fuseki:5
+    image: stain/jena-fuseki:5.1.0
     container_name: fuseki
     restart: always
     ports:
