@@ -47,7 +47,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 /**
  * Attaches a skill to a workspace. Handles both skill kinds through one entry
@@ -127,7 +126,7 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 		try {
 			ModelInferenceLogsUtils.addPlatformSkillToWorkspaceConfigJson(workspaceId, slug);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to attach platform skill '{}' to workspace '{}'", slug, workspaceId, e);
 			throw new IllegalArgumentException("Failed to attach platform skill to workspace: " + e.getMessage(), e);
 		}
 
@@ -212,7 +211,7 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to attach skill '{}' to workspace '{}'", skillId, workspaceId, e);
 			throw new IllegalArgumentException("Failed to attach skill to workspace: " + e.getMessage(), e);
 		}
 	}

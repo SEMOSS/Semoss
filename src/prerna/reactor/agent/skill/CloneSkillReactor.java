@@ -52,38 +52,44 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 /**
  * Clones an existing skill into a new skill-project owned by the calling user.
  *
- * <p>The clone is always {@code ORIGIN='USER'} regardless of the source's origin
- * (cloning a {@code PLATFORM} skill produces a personal copy, not another platform
- * skill - the latter would require admin and isn't the point of cloning). The
- * caller becomes the {@code CREATED_BY} and the owner of the underlying project.
+ * <p>
+ * The clone is always {@code ORIGIN='USER'} regardless of the source's origin
+ * (cloning a {@code PLATFORM} skill produces a personal copy, not another
+ * platform skill - the latter would require admin and isn't the point of
+ * cloning). The caller becomes the {@code CREATED_BY} and the owner of the
+ * underlying project.
  *
- * <p>What gets copied:
+ * <p>
+ * What gets copied:
  * <ul>
- *   <li>Every file under the source's {@code version/assets/skill/} folder
- *       (SKILL.md + any helpers).</li>
- *   <li>The description, carried into the clone's {@code SKILL__} row.</li>
+ * <li>Every file under the source's {@code version/assets/skill/} folder
+ * (SKILL.md + any helpers).</li>
+ * <li>The description, carried into the clone's {@code SKILL__} row.</li>
  * </ul>
  *
- * <p>What does <em>not</em> carry over:
+ * <p>
+ * What does <em>not</em> carry over:
  * <ul>
- *   <li>Git history - the new project starts fresh.</li>
- *   <li>Workspace attachments - the cloner can attach the clone wherever they
- *       want via {@code AttachSkillToWorkspace}.</li>
- *   <li>The source's owner / sharing.</li>
+ * <li>Git history - the new project starts fresh.</li>
+ * <li>Workspace attachments - the cloner can attach the clone wherever they
+ * want via {@code AttachSkillToWorkspace}.</li>
+ * <li>The source's owner / sharing.</li>
  * </ul>
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code skillId} - source skill identifier (required)</li>
- *   <li>{@code name}    - name for the new skill. Defaults to {@code "Copy of <original>"}.</li>
+ * <li>{@code skillId} - source skill identifier (required)</li>
+ * <li>{@code name} - name for the new skill. Defaults to
+ * {@code "Copy of <original>"}.</li>
  * </ul>
  *
- * <p>Authorization: caller must be able to view the source skill-project
+ * <p>
+ * Authorization: caller must be able to view the source skill-project
  * ({@link SecurityProjectUtils#userCanViewProject}).
  */
 public class CloneSkillReactor extends AbstractReactor {
@@ -102,7 +108,7 @@ public class CloneSkillReactor extends AbstractReactor {
 		organizeKeys();
 
 		String sourceSkillId = this.keyValue.get(SKILL_ID);
-		String nameInput     = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String nameInput = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 
 		if (sourceSkillId == null || sourceSkillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
@@ -121,9 +127,7 @@ public class CloneSkillReactor extends AbstractReactor {
 		String sourceName = (String) sourceRow.get("name");
 		String sourceDescription = (String) sourceRow.get("description");
 
-		String newName = (nameInput != null && !nameInput.isEmpty())
-				? nameInput
-				: "Copy of " + sourceName;
+		String newName = (nameInput != null && !nameInput.isEmpty()) ? nameInput : "Copy of " + sourceName;
 		if (newName.contains("/") || newName.contains("\\") || newName.contains("..")) {
 			throw new IllegalArgumentException("Skill name must not contain path separators or '..'");
 		}
@@ -134,14 +138,13 @@ public class CloneSkillReactor extends AbstractReactor {
 		String sourceAssetsFolder = AssetUtility.getProjectAssetsFolder(sourceSkillId);
 		Path sourceSkillDir = new File(sourceAssetsFolder, Skill.SKILL_ASSET_SUBFOLDER).toPath();
 		if (!Files.isDirectory(sourceSkillDir)) {
-			throw new IllegalStateException(
-					"Source skill content folder does not exist: " + sourceSkillDir);
+			throw new IllegalStateException("Source skill content folder does not exist: " + sourceSkillDir);
 		}
 
 		try {
 			// Clones are always personal copies - never carry origin=PLATFORM forward.
-			ProjectHelper.createSkillProject(newSkillId, newName, /* global */ false,
-					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
+			ProjectHelper.createSkillProject(newSkillId, newName, /* global */ false, /* gitProvider */ null,
+					/* gitCloneUrl */ null, user, classLogger);
 
 			String newAssetsFolder = AssetUtility.getProjectAssetsFolder(newSkillId);
 			File newSkillDir = new File(newAssetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
@@ -161,10 +164,10 @@ public class CloneSkillReactor extends AbstractReactor {
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
 
-			ModelInferenceLogsUtils.createNewSkill(newSkillId, newSlug, newName, sourceDescription,
-					createdBy, Skill.ORIGIN_USER, /* configJson */ null);
+			ModelInferenceLogsUtils.createNewSkill(newSkillId, newSlug, newName, sourceDescription, createdBy,
+					Skill.ORIGIN_USER, /* configJson */ null);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);
 		}
 

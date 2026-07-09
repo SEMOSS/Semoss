@@ -42,33 +42,39 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 /**
- * Detaches a skill from a workspace. Mirrors {@link AttachSkillToWorkspaceReactor}
- * and handles both skill kinds, keyed by which identifier you pass:
+ * Detaches a skill from a workspace. Mirrors
+ * {@link AttachSkillToWorkspaceReactor} and handles both skill kinds, keyed by
+ * which identifier you pass:
  *
  * <ul>
- *   <li>{@code skillId} - a registry skill: removes the {@code WORKSPACE_RESOURCE__}
- *       row and the matching {@code CONFIG_JSON.skills[]} entry.</li>
- *   <li>{@code slug} - a platform skill: removes the slug from
- *       {@code CONFIG_JSON.platform_skills[]} (see {@link PlatformSkills}).</li>
+ * <li>{@code skillId} - a registry skill: removes the
+ * {@code WORKSPACE_RESOURCE__} row and the matching
+ * {@code CONFIG_JSON.skills[]} entry.</li>
+ * <li>{@code slug} - a platform skill: removes the slug from
+ * {@code CONFIG_JSON.platform_skills[]} (see {@link PlatformSkills}).</li>
  * </ul>
  *
- * <p>Exactly one of {@code skillId} / {@code slug} must be supplied. No-op when
+ * <p>
+ * Exactly one of {@code skillId} / {@code slug} must be supplied. No-op when
  * the attachment does not exist. Does not delete the skill itself; use
  * {@code DeleteSkillReactor} for registry skills (platform skills are read-only
  * built-ins and are never deleted through reactors).
  *
- * <p>Authorization: user must have edit access to the workspace
+ * <p>
+ * Authorization: user must have edit access to the workspace
  * ({@link SecurityProjectUtils#userCanEditProject}). No skill-side check -
  * detaching is always allowed for someone who can edit the workspace.
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code workspaceId} - workspace identifier (required)</li>
- *   <li>{@code skillId}     - registry skill to detach (required unless {@code slug} given)</li>
- *   <li>{@code slug}        - platform skill to detach (required unless {@code skillId} given)</li>
+ * <li>{@code workspaceId} - workspace identifier (required)</li>
+ * <li>{@code skillId} - registry skill to detach (required unless {@code slug}
+ * given)</li>
+ * <li>{@code slug} - platform skill to detach (required unless {@code skillId}
+ * given)</li>
  * </ul>
  */
 public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
@@ -76,7 +82,7 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(DetachSkillFromWorkspaceReactor.class);
 
 	private static final String SKILL_ID = "skillId";
-	private static final String SLUG     = "slug";
+	private static final String SLUG = "slug";
 
 	public DetachSkillFromWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID, SLUG };
@@ -88,8 +94,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 		organizeKeys();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		String skillId     = nullIfBlank(this.keyValue.get(SKILL_ID));
-		String slug        = nullIfBlank(this.keyValue.get(SLUG));
+		String skillId = nullIfBlank(this.keyValue.get(SKILL_ID));
+		String slug = nullIfBlank(this.keyValue.get(SLUG));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
@@ -115,9 +121,9 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 			try {
 				ModelInferenceLogsUtils.removePlatformSkillFromWorkspaceConfigJson(workspaceId, slug);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Failed to detach platform skill from workspace: " + e.getMessage(), e);
+				classLogger.error("Failed to detach platform skill '{}' from workspace '{}'", slug, workspaceId, e);
+				throw new IllegalArgumentException("Failed to detach platform skill from workspace: " + e.getMessage(),
+						e);
 			}
 			response.put("slug", slug);
 			response.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
@@ -134,7 +140,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 		try {
 			ModelInferenceLogsUtils.removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
 		} catch (Exception mirrorEx) {
-			classLogger.warn("Detached skill '{}' from workspace '{}' but failed to mirror removal out of CONFIG_JSON.skills",
+			classLogger.warn(
+					"Detached skill '{}' from workspace '{}' but failed to mirror removal out of CONFIG_JSON.skills",
 					skillId, workspaceId, mirrorEx);
 			response.put("warning", "Skill detached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
 		}
@@ -143,7 +150,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 			try {
 				SecurityProjectUtils.removeProjectDependency(user, workspaceId, skillId);
 			} catch (Exception depEx) {
-				classLogger.warn("Detached skill '{}' from workspace '{}' but failed to remove PROJECTDEPENDENCIES entry",
+				classLogger.warn(
+						"Detached skill '{}' from workspace '{}' but failed to remove PROJECTDEPENDENCIES entry",
 						skillId, workspaceId, depEx);
 				response.put("dependency_warning",
 						"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());

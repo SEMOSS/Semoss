@@ -30,6 +30,7 @@ package prerna.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -40,9 +41,36 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 
 public class ProjectWatcher extends AbstractFileWatcher {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ProjectWatcher.class);
-	
+
+	private static List<String> INIT_LIST = new ArrayList<>();
+
+	@Override
+	public void process(String fileName) {
+		catalogProject(fileName, folderToWatch);
+	}
+
+	@Override
+	public void init() {
+		// we will load the platform skills
+		List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
+		for (String engineId : defaultPlatforms) {
+			// find the local master
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					// set all as global
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					return;
+				}
+			}
+		}
+	}
+
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -51,81 +79,90 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		String[] projectIds = new String[fileNames.length];
-		
+
 		// loop through and load all the projects
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-//				//we need to add projects to security db
+				if (INIT_LIST.contains(fileName)) {
+					// ignore - we have already loaded these
+					continue;
+				}
+
+				// we need to add projects to security db
 				String loadedProject = catalogProject(fileName, folderToWatch);
 				projectIds[fileIdx] = loadedProject;
 			} catch (RuntimeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-				classLogger.fatal("Project Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error("Project failed to load: {}/{}", folderToWatch, fileNames[fileIdx], ex);
 			}
 		}
-		
+
 		if (!ClusterUtil.IS_CLUSTER) {
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
-			for(String project : projects) {
-				if(!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
+			for (String project : projects) {
+				if (!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}
 		}
 	}
-	
-	// this is an alternate method.. which will not load the database but would merely keep the name of the engine
-	// and the SMSS file
+
 	/**
-	 * Loads a new database by setting a specific engine with associated properties.
-	 * @param 	Specifies properties to load 
-	 */	
+	 * Loads a new project by setting a specific engine with associated properties.
+	 * 
+	 * @param Specifies properties to load
+	 */
 	public static String catalogProject(String newFile, String folderToWatch) {
+		return catalogProject(newFile, folderToWatch, false);
+	}
+
+	/**
+	 * Loads a new project by setting a specific engine with associated properties.
+	 * 
+	 * @param Specifies properties to load
+	 */
+	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
 		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
 		FileInputStream fileIn = null;
 		String projectId = null;
-		try{
+		try {
 			Properties prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/"  +  Utility.normalizePath(newFile));
+			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
 			prop.load(fileIn);
-			
+
 			projectId = prop.getProperty(Constants.PROJECT);
-			
-			if(projects.startsWith(projectId) || projects.contains(";"+projectId+";") || projects.endsWith(";"+projectId)) {
-				classLogger.debug("Project " + folderToWatch + "<>" + newFile + " is already loaded...");
+
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId)) {
+				classLogger.debug("Project {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
 				DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, fileName);
-				
-				String projectNames = (String)DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-				if(!(projects.startsWith(projectId) || projects.contains(";"+projectId+";") || projects.endsWith(";"+projectId))) {
+
+				String projectNames = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+						|| projects.endsWith(";" + projectId))) {
 					projectNames = projectNames + ";" + projectId;
 					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
 				}
-				
-				SecurityProjectUtils.addProject(projectId, null);
+
+				SecurityProjectUtils.addProject(projectId, global, null);
 			}
-		} catch(Exception e){
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
 		} finally {
-			try{
-				if(fileIn != null) {
+			try {
+				if (fileIn != null) {
 					fileIn.close();
 				}
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} catch (IOException e) {
+				classLogger.error("Failed to close input stream for smss file {}/{}", folderToWatch, newFile, e);
 			}
 		}
-		
+
 		return projectId;
 	}
 
-	@Override
-	public void process(String fileName) {
-		catalogProject(fileName, folderToWatch);
-	}
-	
 }
