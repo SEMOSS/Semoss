@@ -147,6 +147,11 @@ public class JenaIngestDocReactor extends AbstractReactor {
 				Map<String, Object> payloadMap = new HashMap<>();
 				payloadMap.put("Source", chunkSource != null ? chunkSource : "unknown");
 				payloadMap.put("chunkIndex", i);
+				// Store the text in the payload as Content so it survives the
+				// round-trip: Qdrant add_points embeds `text` but only persists
+				// `payload`, so nearestNeighbor can't return the text unless it
+				// lives in the payload.
+				payloadMap.put("Content", text);
 				if (docUri != null) {
 					payloadMap.put("documentUri", docUri);
 				}

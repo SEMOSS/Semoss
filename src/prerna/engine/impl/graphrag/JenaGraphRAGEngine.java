@@ -23,7 +23,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
+import prerna.engine.impl.vector.QdrantVectorDatabaseEngine;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
@@ -189,120 +191,78 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
     }
 
     /**
-     * Invoke the paired vector engine's Python-side add_points(items=[...])
-     * in the paired engine's OWN PyTranslator scope. Returns the number of
-     * items pushed (best-effort — 0 if paired engine isn't configured or
-     * reflection failed).
+     * Push chunk items into the paired vector engine via its public Java API.
+     *
+     * We call the paired engine's own public method (QdrantVectorDatabaseEngine
+     * .addPoints) rather than reaching into its Python translator: the public
+     * method calls checkSocketStatus() internally, which lazily starts the
+     * paired engine's Python process if it hasn't run yet. (Reaching for the
+     * paired engine's pyTranslator directly fails when that process has never
+     * started -- pyTranslator is still null and its searcher variable doesn't
+     * exist.) Returns the number of items pushed; 0 if unpaired or on error.
      */
-    @SuppressWarnings("unchecked")
     public int callPairedIngest(Insight insight, List<Map<String, Object>> items) {
         if (this.pairedVectorEngineId == null || this.pairedVectorEngineId.isEmpty()
                 || items == null || items.isEmpty()) {
             return 0;
         }
-        Object[] pair = resolvePairedSearcher();
-        if (pair == null) {
+        Object rawPaired = resolveRawPairedEngine();
+        if (rawPaired == null) {
             return 0;
         }
-        Object pairedRaw = pair[0];
-        String pairedSearcher = (String) pair[1];
         try {
-            prerna.ds.py.PyTranslator translator = readPyTranslator(pairedRaw);
-            if (translator == null) {
-                return 0;
+            if (rawPaired instanceof QdrantVectorDatabaseEngine) {
+                ((QdrantVectorDatabaseEngine) rawPaired).addPoints(insight, items, new HashMap<>());
+                return items.size();
             }
-            String script = pairedSearcher + ".add_points(items = " + GSON.toJson(items) + ")";
-            classLogger.info("Paired-ingest >>> {}", script);
-            translator.runDirectPy(insight, script);
-            return items.size();
+            classLogger.warn("Paired engine {} is a {} -- direct chunk push only supported for Qdrant; "
+                    + "chunks remain queryable as smss:Chunk RDF nodes",
+                    this.pairedVectorEngineId, rawPaired.getClass().getSimpleName());
+            return 0;
         } catch (Exception e) {
-            classLogger.warn("Paired ingest into {} failed: {}", this.pairedVectorEngineId, e.toString());
+            classLogger.warn("Paired ingest into " + this.pairedVectorEngineId + " failed", e);
             return 0;
         }
     }
 
     /**
-     * Invoke the paired vector engine's Python-side nearestNeighbor for
-     * passage retrieval. Returns list of hit maps or empty list if paired
-     * engine isn't configured / lookup fails.
+     * Retrieve passages from the paired vector engine for the given question.
+     *
+     * Uses the interface-level nearestNeighbor (available on every vector
+     * engine and self-starting via checkSocketStatus), so this works for any
+     * paired vector store, not just Qdrant. Returns hit maps (payload keys +
+     * Score/id) or an empty list.
      */
-    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> callPairedSearch(Insight insight, String question, int limit) {
         if (this.pairedVectorEngineId == null || this.pairedVectorEngineId.isEmpty()
                 || question == null || question.trim().isEmpty()) {
             return new ArrayList<>();
         }
-        Object[] pair = resolvePairedSearcher();
-        if (pair == null) {
-            return new ArrayList<>();
-        }
-        Object pairedRaw = pair[0];
-        String pairedSearcher = (String) pair[1];
         try {
-            prerna.ds.py.PyTranslator translator = readPyTranslator(pairedRaw);
-            if (translator == null) {
+            // The proxy from getVectorDatabase implements nearestNeighbor and
+            // delegates to the real engine (which starts its Python server).
+            IVectorDatabaseEngine paired = Utility.getVectorDatabase(this.pairedVectorEngineId);
+            if (paired == null) {
                 return new ArrayList<>();
             }
-            String script = pairedSearcher + ".nearestNeighbor(question = "
-                    + PyUtils.determineStringType(question)
-                    + ", limit = " + limit + ")";
-            classLogger.info("Paired-search >>> {}", script);
-            Object result = translator.runDirectPy(insight, script);
-            return result instanceof List ? (List<Map<String, Object>>) result : new ArrayList<>();
+            List<Map<String, Object>> hits = paired.nearestNeighbor(
+                    insight, question, limit, new HashMap<>());
+            return hits != null ? hits : new ArrayList<>();
         } catch (Exception e) {
-            classLogger.warn("Paired search on {} failed: {}", this.pairedVectorEngineId, e.toString());
+            classLogger.warn("Paired search on " + this.pairedVectorEngineId + " failed", e);
             return new ArrayList<>();
         }
     }
 
-    private Object[] resolvePairedSearcher() {
+    /** Resolve the raw (unwrapped) paired engine from DIHelper, force-loading it first. */
+    private Object resolveRawPairedEngine() {
         try {
             Utility.getVectorDatabase(this.pairedVectorEngineId);
-            Object pairedRaw = prerna.util.DIHelper.getInstance()
-                    .getEngineProperty(this.pairedVectorEngineId);
-            if (pairedRaw == null) {
-                return null;
-            }
-            java.lang.reflect.Field f = findDeclaredField(pairedRaw.getClass(), "vectorDatabaseSearcher");
-            if (f == null) {
-                return null;
-            }
-            f.setAccessible(true);
-            Object name = f.get(pairedRaw);
-            if (!(name instanceof String) || ((String) name).isEmpty()) {
-                return null;
-            }
-            return new Object[] { pairedRaw, name };
+            return prerna.util.DIHelper.getInstance().getEngineProperty(this.pairedVectorEngineId);
         } catch (Exception e) {
-            classLogger.warn("resolvePairedSearcher({}) failed: {}", this.pairedVectorEngineId, e.toString());
+            classLogger.warn("Could not resolve paired engine " + this.pairedVectorEngineId, e);
             return null;
         }
-    }
-
-    private prerna.ds.py.PyTranslator readPyTranslator(Object pairedRaw) {
-        try {
-            java.lang.reflect.Field f = findDeclaredField(pairedRaw.getClass(), "pyTranslator");
-            if (f == null) {
-                return null;
-            }
-            f.setAccessible(true);
-            Object t = f.get(pairedRaw);
-            return t instanceof prerna.ds.py.PyTranslator ? (prerna.ds.py.PyTranslator) t : null;
-        } catch (Exception e) {
-            classLogger.warn("readPyTranslator failed: {}", e.toString());
-            return null;
-        }
-    }
-
-    private static java.lang.reflect.Field findDeclaredField(Class<?> cls, String name) {
-        while (cls != null) {
-            try {
-                return cls.getDeclaredField(name);
-            } catch (NoSuchFieldException ignore) {
-                cls = cls.getSuperclass();
-            }
-        }
-        return null;
     }
 
     @Override
