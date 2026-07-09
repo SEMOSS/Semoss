@@ -9,11 +9,16 @@
  *******************************************************************************/
 package prerna.reactor.vector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -30,6 +35,7 @@ import prerna.util.Utility;
 public class JenaIngestDocReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JenaIngestDocReactor.class);
+	private static final Gson GSON = new Gson();
 
 	private static final String BODY_KEY = "body";
 	private static final String METADATA_KEY = "metadata";
@@ -80,9 +86,79 @@ public class JenaIngestDocReactor extends AbstractReactor {
 			paramMap.put("extractionMode", extractionMode);
 		}
 
-		Map<String, Object> result = ((JenaGraphRAGEngine) eng).ingestDoc(this.insight, body, metadata, paramMap);
+		Map<String, Object> result = eng.ingestDoc(this.insight, body, metadata, paramMap);
+
+		// If a paired vector engine is configured and this was structured
+		// ingest, push the chunks (if any) into the paired engine using ITS
+		// own PyTranslator scope — cross-scope variable refs don't work.
+		int pushed = 0;
+		if (eng.isPairedVectorMode()
+				&& (extractionMode == null || "structured".equals(extractionMode))) {
+			List<Map<String, Object>> pairedItems = buildPairedItems(body, metadata, result);
+			if (!pairedItems.isEmpty()) {
+				pushed = eng.callPairedIngest(this.insight, pairedItems);
+			}
+		}
+		result.put("pairedVectorPushed", pushed);
+
 		classLogger.info("JenaIngestDoc result: {}", result);
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	}
+
+	/**
+	 * Parse chunks out of the structured body and shape them as {@code {text, payload}}
+	 * items suitable for a Qdrant/FAISS/etc. searcher's {@code add_points} API.
+	 */
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> buildPairedItems(String body, Map<String, Object> docMeta,
+			Map<String, Object> ingestResult) {
+		List<Map<String, Object>> items = new ArrayList<>();
+		try {
+			Map<String, Object> payload = GSON.fromJson(body,
+					new TypeToken<Map<String, Object>>() {}.getType());
+			if (payload == null) {
+				return items;
+			}
+			Object chunksObj = payload.get("chunks");
+			if (!(chunksObj instanceof List)) {
+				return items;
+			}
+			List<Object> chunks = (List<Object>) chunksObj;
+			String docSource = docMeta != null && docMeta.get("source") != null
+					? String.valueOf(docMeta.get("source")) : null;
+			String docUri = ingestResult != null && ingestResult.get("documentUri") != null
+					? String.valueOf(ingestResult.get("documentUri")) : null;
+			for (int i = 0; i < chunks.size(); i++) {
+				Object c = chunks.get(i);
+				String text;
+				String chunkSource = docSource;
+				if (c instanceof Map) {
+					Map<String, Object> cm = (Map<String, Object>) c;
+					text = cm.get("text") != null ? String.valueOf(cm.get("text")) : null;
+					if (cm.get("source") != null) {
+						chunkSource = String.valueOf(cm.get("source"));
+					}
+				} else {
+					text = String.valueOf(c);
+				}
+				if (text == null || text.trim().isEmpty()) {
+					continue;
+				}
+				Map<String, Object> payloadMap = new HashMap<>();
+				payloadMap.put("Source", chunkSource != null ? chunkSource : "unknown");
+				payloadMap.put("chunkIndex", i);
+				if (docUri != null) {
+					payloadMap.put("documentUri", docUri);
+				}
+				Map<String, Object> item = new HashMap<>();
+				item.put("text", text);
+				item.put("payload", payloadMap);
+				items.add(item);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not parse chunks for paired ingest: {}", e.toString());
+		}
+		return items;
 	}
 
 	@Override

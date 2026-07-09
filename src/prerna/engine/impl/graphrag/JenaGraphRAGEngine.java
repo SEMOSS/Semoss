@@ -166,46 +166,11 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
 
     @Override
     protected String[] getServerStartCommands() {
-        // Resolve the paired vector engine's Python searcher variable name
-        // (unquoted, so Python treats it as a live object reference in the
-        // shared JEP context). If unset or resolution fails, pass None and
-        // let the module fall back to graph-only retrieval.
-        String pairedSearcherExpr = "None";
-        if (this.pairedVectorEngineId != null && !this.pairedVectorEngineId.isEmpty()) {
-            try {
-                // Force-load the paired engine so its Python searcher variable exists.
-                Utility.getVectorDatabase(this.pairedVectorEngineId);
-                Object pairedRaw = prerna.util.DIHelper.getInstance()
-                        .getEngineProperty(this.pairedVectorEngineId);
-                if (pairedRaw != null) {
-                    java.lang.reflect.Field f = null;
-                    Class<?> cls = pairedRaw.getClass();
-                    while (cls != null && f == null) {
-                        try {
-                            f = cls.getDeclaredField("vectorDatabaseSearcher");
-                        } catch (NoSuchFieldException ignore) {
-                            cls = cls.getSuperclass();
-                        }
-                    }
-                    if (f != null) {
-                        f.setAccessible(true);
-                        Object name = f.get(pairedRaw);
-                        if (name instanceof String && !((String) name).isEmpty()) {
-                            pairedSearcherExpr = (String) name;
-                        }
-                    }
-                }
-                if ("None".equals(pairedSearcherExpr)) {
-                    classLogger.warn("Paired vector engine {} loaded but could not read its "
-                            + "vectorDatabaseSearcher name -- passages will be empty",
-                            this.pairedVectorEngineId);
-                }
-            } catch (Exception e) {
-                classLogger.warn("Could not resolve paired vector engine {}: {}",
-                        this.pairedVectorEngineId, e.toString());
-            }
-        }
-
+        // Cross-engine Python variable references don't work: each engine's
+        // PyTranslator has its own Python namespace, so a paired engine's
+        // searcher variable isn't in scope here. Paired-vector routing is
+        // handled at the Java reactor level via callPairedIngest / callPairedSearch
+        // below instead.
         StringBuilder init = new StringBuilder();
         init.append("import graph_rag_jena;");
         init.append(this.vectorDatabaseSearcher).append(" = graph_rag_jena.JenaGraphRAG(")
@@ -219,9 +184,125 @@ public class JenaGraphRAGEngine extends AbstractGraphRAGEngine {
                 .append(", timeout_ms = ").append(PyUtils.determineStringType(this.queryTimeoutMs))
                 .append(", ontology_ttl = ").append(this.ontologyTtl != null
                         ? PyUtils.determineStringType(this.ontologyTtl) : "None")
-                .append(", paired_vector_search = ").append(pairedSearcherExpr)
                 .append(")");
         return init.toString().split(PyUtils.PY_COMMAND_SEPARATOR);
+    }
+
+    /**
+     * Invoke the paired vector engine's Python-side add_points(items=[...])
+     * in the paired engine's OWN PyTranslator scope. Returns the number of
+     * items pushed (best-effort — 0 if paired engine isn't configured or
+     * reflection failed).
+     */
+    @SuppressWarnings("unchecked")
+    public int callPairedIngest(Insight insight, List<Map<String, Object>> items) {
+        if (this.pairedVectorEngineId == null || this.pairedVectorEngineId.isEmpty()
+                || items == null || items.isEmpty()) {
+            return 0;
+        }
+        Object[] pair = resolvePairedSearcher();
+        if (pair == null) {
+            return 0;
+        }
+        Object pairedRaw = pair[0];
+        String pairedSearcher = (String) pair[1];
+        try {
+            prerna.ds.py.PyTranslator translator = readPyTranslator(pairedRaw);
+            if (translator == null) {
+                return 0;
+            }
+            String script = pairedSearcher + ".add_points(items = " + GSON.toJson(items) + ")";
+            classLogger.info("Paired-ingest >>> {}", script);
+            translator.runDirectPy(insight, script);
+            return items.size();
+        } catch (Exception e) {
+            classLogger.warn("Paired ingest into {} failed: {}", this.pairedVectorEngineId, e.toString());
+            return 0;
+        }
+    }
+
+    /**
+     * Invoke the paired vector engine's Python-side nearestNeighbor for
+     * passage retrieval. Returns list of hit maps or empty list if paired
+     * engine isn't configured / lookup fails.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> callPairedSearch(Insight insight, String question, int limit) {
+        if (this.pairedVectorEngineId == null || this.pairedVectorEngineId.isEmpty()
+                || question == null || question.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        Object[] pair = resolvePairedSearcher();
+        if (pair == null) {
+            return new ArrayList<>();
+        }
+        Object pairedRaw = pair[0];
+        String pairedSearcher = (String) pair[1];
+        try {
+            prerna.ds.py.PyTranslator translator = readPyTranslator(pairedRaw);
+            if (translator == null) {
+                return new ArrayList<>();
+            }
+            String script = pairedSearcher + ".nearestNeighbor(question = "
+                    + PyUtils.determineStringType(question)
+                    + ", limit = " + limit + ")";
+            classLogger.info("Paired-search >>> {}", script);
+            Object result = translator.runDirectPy(insight, script);
+            return result instanceof List ? (List<Map<String, Object>>) result : new ArrayList<>();
+        } catch (Exception e) {
+            classLogger.warn("Paired search on {} failed: {}", this.pairedVectorEngineId, e.toString());
+            return new ArrayList<>();
+        }
+    }
+
+    private Object[] resolvePairedSearcher() {
+        try {
+            Utility.getVectorDatabase(this.pairedVectorEngineId);
+            Object pairedRaw = prerna.util.DIHelper.getInstance()
+                    .getEngineProperty(this.pairedVectorEngineId);
+            if (pairedRaw == null) {
+                return null;
+            }
+            java.lang.reflect.Field f = findDeclaredField(pairedRaw.getClass(), "vectorDatabaseSearcher");
+            if (f == null) {
+                return null;
+            }
+            f.setAccessible(true);
+            Object name = f.get(pairedRaw);
+            if (!(name instanceof String) || ((String) name).isEmpty()) {
+                return null;
+            }
+            return new Object[] { pairedRaw, name };
+        } catch (Exception e) {
+            classLogger.warn("resolvePairedSearcher({}) failed: {}", this.pairedVectorEngineId, e.toString());
+            return null;
+        }
+    }
+
+    private prerna.ds.py.PyTranslator readPyTranslator(Object pairedRaw) {
+        try {
+            java.lang.reflect.Field f = findDeclaredField(pairedRaw.getClass(), "pyTranslator");
+            if (f == null) {
+                return null;
+            }
+            f.setAccessible(true);
+            Object t = f.get(pairedRaw);
+            return t instanceof prerna.ds.py.PyTranslator ? (prerna.ds.py.PyTranslator) t : null;
+        } catch (Exception e) {
+            classLogger.warn("readPyTranslator failed: {}", e.toString());
+            return null;
+        }
+    }
+
+    private static java.lang.reflect.Field findDeclaredField(Class<?> cls, String name) {
+        while (cls != null) {
+            try {
+                return cls.getDeclaredField(name);
+            } catch (NoSuchFieldException ignore) {
+                cls = cls.getSuperclass();
+            }
+        }
+        return null;
     }
 
     @Override

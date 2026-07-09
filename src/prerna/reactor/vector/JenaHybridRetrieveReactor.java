@@ -9,7 +9,9 @@
  *******************************************************************************/
 package prerna.reactor.vector;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -94,11 +96,48 @@ public class JenaHybridRetrieveReactor extends AbstractReactor {
 			}
 		}
 
-		Map<String, Object> result = ((JenaGraphRAGEngine) eng).hybridRetrieve(this.insight, question, limit,
-				paramMap);
+		Map<String, Object> result = eng.hybridRetrieve(this.insight, question, limit, paramMap);
+
+		// Merge passages from the paired vector engine (its own PyTranslator
+		// scope). Jena's Python module can't see the paired searcher variable
+		// directly, so we invoke the paired engine's Python from Java here.
+		if (eng.isPairedVectorMode() && result != null) {
+			List<Map<String, Object>> hits = eng.callPairedSearch(this.insight, question, limit);
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> passages = (List<Map<String, Object>>) result
+					.getOrDefault("passages", new ArrayList<Map<String, Object>>());
+			for (Map<String, Object> hit : hits) {
+				Map<String, Object> p = new HashMap<>();
+				Object text = firstNonNull(hit.get("Content"), hit.get("text"));
+				p.put("text", text != null ? String.valueOf(text) : "");
+				Object source = firstNonNull(hit.get("Source"), hit.get("source"));
+				p.put("source", source);
+				Object score = firstNonNull(hit.get("Score"), hit.get("score"));
+				try {
+					p.put("score", score == null ? 0.0 : Double.parseDouble(String.valueOf(score)));
+				} catch (NumberFormatException e) {
+					p.put("score", 0.0);
+				}
+				Object uri = firstNonNull(hit.get("uri"), hit.get("id"));
+				if (uri != null) {
+					p.put("uri", uri);
+				}
+				passages.add(p);
+			}
+			result.put("passages", passages);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> diag = (Map<String, Object>) result.getOrDefault("diagnostics", new HashMap<>());
+			diag.put("passages_returned", passages.size());
+			result.put("diagnostics", diag);
+		}
+
 		classLogger.info("JenaHybridRetrieve diagnostics: {}",
 				result != null ? result.get("diagnostics") : "null");
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	}
+
+	private static Object firstNonNull(Object a, Object b) {
+		return a != null ? a : b;
 	}
 
 	@Override
