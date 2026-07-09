@@ -59,9 +59,7 @@ public class PollNotificationsReactor extends AbstractReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		}
 
-		String recipientId = userIdAndTypeList.get(0).getValue0();
-		String recipientType = userIdAndTypeList.get(0).getValue1();
-		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(recipientId, recipientType);
+		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(userIdAndTypeList);
 		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
 	}
 

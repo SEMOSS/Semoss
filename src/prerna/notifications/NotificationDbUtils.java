@@ -33,6 +33,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +55,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
@@ -123,21 +126,10 @@ public class NotificationDbUtils {
 			}
 
 			// NOTIFICATION index (kept)
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-						"NOTIFICATIONID");
-				classLogger.info("Running sql {}", sql);
-				notificationDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(notificationDb, "NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-						database, schema)) {
-					String sql = queryUtil.createIndex("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-							"NOTIFICATIONID");
-					classLogger.info("Running sql {}", sql);
-					notificationDb.insertData(sql);
-				}
-			}
+			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
+					"NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION", "NOTIFICATIONID");
+			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
+					"NOTIFICATION_RECIPIENT_INDEX", "NOTIFICATION", Arrays.asList("RECIPIENTID", "RECIPIENTTYPE"));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -147,6 +139,27 @@ public class NotificationDbUtils {
 			if (conn != null && notificationDb.isConnectionPooling()) {
 				conn.close();
 			}
+		}
+	}
+
+	private static void createIndexIfMissing(IRDBMSEngine notificationDb, AbstractSqlQueryUtil queryUtil,
+			boolean allowIfExistsIndexs, String database, String schema, String indexName, String tableName,
+			String columnName) throws Exception {
+		createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema, indexName, tableName,
+				Arrays.asList(columnName));
+	}
+
+	private static void createIndexIfMissing(IRDBMSEngine notificationDb, AbstractSqlQueryUtil queryUtil,
+			boolean allowIfExistsIndexs, String database, String schema, String indexName, String tableName,
+			Collection<String> columns) throws Exception {
+		if (allowIfExistsIndexs) {
+			String sql = queryUtil.createIndexIfNotExists(indexName, tableName, columns);
+			classLogger.info("Running sql {}", sql);
+			notificationDb.insertData(sql);
+		} else if (!queryUtil.indexExists(notificationDb, indexName, tableName, database, schema)) {
+			String sql = queryUtil.createIndex(indexName, tableName, columns);
+			classLogger.info("Running sql {}", sql);
+			notificationDb.insertData(sql);
 		}
 	}
 
@@ -288,17 +301,7 @@ public class NotificationDbUtils {
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__CREATEDBY", "notification_createdby"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERTYPE", "notification_usertype"));
 
-		Pair<String, String> userPair = userIdAndTypeList.get(0);
-		String userId = userPair.getValue0();
-		String userType = userPair.getValue1();
-
-		List<IQueryFilter> andFilters = new ArrayList<>();
-		andFilters.add(SimpleQueryFilter.makeColToValFilter("NOTIFICATION__RECIPIENTID", "==", userId));
-		andFilters.add(SimpleQueryFilter.makeColToValFilter("NOTIFICATION__RECIPIENTTYPE", "==", userType));
-
-		// (RECIPIENTID == userId AND RECIPIENTTYPE == userType)
-		AndQueryFilter andCombined = new AndQueryFilter(andFilters);
-		qs.addExplicitFilter(andCombined);
+		qs.addExplicitFilter(buildRecipientFilter(userIdAndTypeList));
 		qs.addOrderBy("NOTIFICATION__CREATEDDATE", "desc");
 
 		Long long_limit = -1L;
@@ -371,6 +374,14 @@ public class NotificationDbUtils {
 	 * @return
 	 */
 	public static int deleteNotification(String recipientId, String recipientType, String notificationId) {
+		List<Pair<String, String>> recipientPairs = new ArrayList<>();
+		if (recipientId != null && recipientType != null) {
+			recipientPairs.add(Pair.with(recipientId, recipientType));
+		}
+		return deleteNotification(recipientPairs, notificationId);
+	}
+
+	public static int deleteNotification(List<Pair<String, String>> recipientPairs, String notificationId) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM NOTIFICATION WHERE ");
 		List<String> conditions = new ArrayList<>();
@@ -379,12 +390,12 @@ public class NotificationDbUtils {
 		if (notificationId != null) {
 			conditions.add("NOTIFICATIONID = ?");
 			parameters.add(notificationId);
-		} else if (recipientId != null && recipientType != null) {
-			conditions.add("RECIPIENTID = ?");
-			parameters.add(recipientId);
-			conditions.add("RECIPIENTTYPE = ?");
-			parameters.add(recipientType);
-		} else {
+		}
+		String recipientCondition = buildRecipientSqlCondition(recipientPairs, parameters);
+		if (recipientCondition != null) {
+			conditions.add(recipientCondition);
+		}
+		if (conditions.isEmpty() || (notificationId == null && recipientCondition == null)) {
 			return 0; // nothing to delete
 		}
 
@@ -404,8 +415,8 @@ public class NotificationDbUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to delete notification(s) [notificationId={}, recipientId={}, recipientType={}]",
-					notificationId, recipientId, recipientType, e);
+			classLogger.error("Failed to delete notification(s) [notificationId={}, recipientPairs={}]",
+					notificationId, recipientPairs, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -455,23 +466,39 @@ public class NotificationDbUtils {
 	 * @param readDate       -the timestamp when the notification was read
 	 */
 	public static void markNotificationRead(String notificationId, Timestamp readDate) {
+		markNotificationRead(notificationId, readDate, null);
+	}
+
+	public static int markNotificationRead(String notificationId, Timestamp readDate,
+			List<Pair<String, String>> recipientPairs) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=? WHERE NOTIFICATIONID=?";
+		List<Object> parameters = new ArrayList<>();
+		parameters.add(readDate);
+		parameters.add(notificationId);
+		StringBuilder query = new StringBuilder("UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=? WHERE NOTIFICATIONID=?");
+		String recipientCondition = buildRecipientSqlCondition(recipientPairs, parameters);
+		if (recipientCondition != null) {
+			query.append(" AND ").append(recipientCondition);
+		}
 		PreparedStatement ps = null;
 		try {
-			ps = notificationDb.getPreparedStatement(query);
+			ps = notificationDb.getPreparedStatement(query.toString());
 			int parameterIndex = 1;
-			ps.setTimestamp(parameterIndex++, readDate);
-			ps.setString(parameterIndex++, notificationId);
-			ps.executeUpdate();
+			for (Object param : parameters) {
+				ps.setObject(parameterIndex++, param);
+			}
+			int updatedCount = ps.executeUpdate();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			return updatedCount;
 		} catch (SQLException e) {
-			classLogger.error("Failed to mark notification {} as read (readDate={})", notificationId, readDate, e);
+			classLogger.error("Failed to mark notification {} as read (readDate={}, recipientPairs={})", notificationId,
+					readDate, recipientPairs, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
+		return 0;
 	}
 
 	/**
@@ -482,27 +509,70 @@ public class NotificationDbUtils {
 	 * @return the count of new notifications
 	 */
 	public static int fetchNewNotificationCount(String recipientId, String recipientType) {
+		List<Pair<String, String>> recipientPairs = new ArrayList<>();
+		if (recipientId != null && recipientType != null) {
+			recipientPairs.add(Pair.with(recipientId, recipientType));
+		}
+		return fetchNewNotificationCount(recipientPairs);
+	}
+
+	public static int fetchNewNotificationCount(List<Pair<String, String>> recipientPairs) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		PreparedStatement ps = null;
-		String query = "SELECT COUNT(NOTIFICATIONID) FROM NOTIFICATION "
-				+ "WHERE RECIPIENTID = ? AND RECIPIENTTYPE = ? AND ACTIONTYPE = 'NEW'";
+		List<Object> parameters = new ArrayList<>();
+		String recipientCondition = buildRecipientSqlCondition(recipientPairs, parameters);
+		if (recipientCondition == null) {
+			return 0;
+		}
+		String query = "SELECT COUNT(NOTIFICATIONID) FROM NOTIFICATION WHERE ACTIONTYPE = 'NEW' AND "
+				+ recipientCondition;
 		try {
 			ps = notificationDb.getPreparedStatement(query);
 			int parameterIndex = 1;
-			ps.setString(parameterIndex++, recipientId);
-			ps.setString(parameterIndex++, recipientType);
+			for (Object param : parameters) {
+				ps.setObject(parameterIndex++, param);
+			}
 			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					return rs.getInt(1);
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to fetch new notification count for recipient {} (type {})", recipientId,
-					recipientType, e);
+			classLogger.error("Failed to fetch new notification count for recipient pairs {}", recipientPairs, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 		return 0;
+	}
+
+	private static IQueryFilter buildRecipientFilter(List<Pair<String, String>> recipientPairs) {
+		OrQueryFilter orCombined = new OrQueryFilter();
+		for (Pair<String, String> pair : recipientPairs) {
+			List<IQueryFilter> andFilters = new ArrayList<>();
+			andFilters.add(SimpleQueryFilter.makeColToValFilter("NOTIFICATION__RECIPIENTID", "==", pair.getValue0()));
+			andFilters.add(SimpleQueryFilter.makeColToValFilter("NOTIFICATION__RECIPIENTTYPE", "==", pair.getValue1()));
+			orCombined.addFilter(new AndQueryFilter(andFilters));
+		}
+		return orCombined;
+	}
+
+	private static String buildRecipientSqlCondition(List<Pair<String, String>> recipientPairs, List<Object> parameters) {
+		if (recipientPairs == null || recipientPairs.isEmpty()) {
+			return null;
+		}
+		List<String> recipientConditions = new ArrayList<>();
+		for (Pair<String, String> pair : recipientPairs) {
+			if (pair == null || pair.getValue0() == null || pair.getValue1() == null) {
+				continue;
+			}
+			recipientConditions.add("(RECIPIENTID = ? AND RECIPIENTTYPE = ?)");
+			parameters.add(pair.getValue0());
+			parameters.add(pair.getValue1());
+		}
+		if (recipientConditions.isEmpty()) {
+			return null;
+		}
+		return "(" + String.join(" OR ", recipientConditions) + ")";
 	}
 
 }

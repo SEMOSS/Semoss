@@ -68,13 +68,11 @@ public class DeleteNotificationReactor extends AbstractReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		}
 
-		String recipientId = userIdAndTypeList.get(0).getValue0();
-		String recipientType = userIdAndTypeList.get(0).getValue1();
 		int deleteCount;
 		if (notificationId != null) {
-			deleteCount = NotificationDbUtils.deleteNotification(null, null, notificationId);
+			deleteCount = NotificationDbUtils.deleteNotification(userIdAndTypeList, notificationId);
 		} else {
-			deleteCount = NotificationDbUtils.deleteNotification(recipientId, recipientType, null);
+			deleteCount = NotificationDbUtils.deleteNotification(userIdAndTypeList, null);
 		}
 		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
 	}

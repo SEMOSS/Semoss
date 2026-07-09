@@ -28,11 +28,18 @@
 package prerna.reactor.notification;
 
 import java.sql.Timestamp;
+import java.util.List;
 
+import org.javatuples.Pair;
+
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -56,7 +63,12 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		NotificationDbUtils.markNotificationRead(notificationId, readAt);
+		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(this.insight.getUser());
+		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
+			throw new SemossPixelException(new NounMetadata("Unable to determine user type for notification update",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
+		}
+		NotificationDbUtils.markNotificationRead(notificationId, readAt, userIdAndTypeList);
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
