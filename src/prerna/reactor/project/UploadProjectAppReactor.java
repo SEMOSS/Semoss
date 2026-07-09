@@ -136,8 +136,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
-		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
-		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
+		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
 
 		// gotta keep track of the smssFile and files unzipped
@@ -187,6 +186,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				cleanUpFolders(randomTempUnzipF);
 			}
 		}
+
+		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
 
 		boolean replace = deleteIfExisting();
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
