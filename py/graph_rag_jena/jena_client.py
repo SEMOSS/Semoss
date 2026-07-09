@@ -9,14 +9,39 @@ JSON results on the way back.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+
+from .ontology import DEFAULT_PREFIXES
 
 logger = logging.getLogger(__name__)
 
 _JSON_ACCEPT = "application/sparql-results+json"
 _TURTLE_ACCEPT = "text/turtle"
+
+_TTL_PREFIX_LINE = re.compile(r"^\s*@prefix\s+", re.IGNORECASE | re.MULTILINE)
+
+
+def _ensure_ttl_prefixes(turtle_body: str, prefixes: Dict[str, str]) -> str:
+    """Prepend @prefix declarations for any prefix the body uses but hasn't declared.
+
+    Callers assemble Turtle bodies inline (chunks, doc metadata, nodes) using
+    short qnames like ``smss:Chunk`` and ``xsd:integer``. Fuseki's Graph Store
+    Protocol parser rejects the body if those prefixes aren't declared -> 400.
+    """
+    declared = {m.group(1) for m in re.finditer(r"@prefix\s+([A-Za-z][\w\-]*):", turtle_body)}
+    needed = []
+    for name, iri in prefixes.items():
+        if name in declared:
+            continue
+        # Only add prefixes actually referenced in the body (cheap heuristic).
+        if re.search(rf"\b{re.escape(name)}:", turtle_body):
+            needed.append(f"@prefix {name}: <{iri}> .")
+    if not needed:
+        return turtle_body
+    return "\n".join(needed) + "\n" + turtle_body
 
 
 class JenaClient:
@@ -96,7 +121,13 @@ class JenaClient:
         response.raise_for_status()
 
     def post_turtle(self, turtle_body: str, graph: Optional[str] = None) -> None:
-        """Insert triples via the Graph Store Protocol (POST /data)."""
+        """Insert triples via the Graph Store Protocol (POST /data).
+
+        Auto-prepends declarations for any DEFAULT_PREFIXES qname that the
+        body references but hasn't declared -- Fuseki's parser rejects
+        undeclared prefixes with a 400.
+        """
+        turtle_body = _ensure_ttl_prefixes(turtle_body, DEFAULT_PREFIXES)
         params = {"graph": graph} if graph else None
         response = requests.post(
             self.data_url,
@@ -106,6 +137,12 @@ class JenaClient:
             auth=self._auth,
             timeout=self._timeout,
         )
+        if response.status_code >= 400:
+            logger.error(
+                "Fuseki POST /data returned %s. Body head: %r",
+                response.status_code,
+                turtle_body[:500],
+            )
         response.raise_for_status()
 
     def ping(self) -> bool:
