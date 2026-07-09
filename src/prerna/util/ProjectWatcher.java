@@ -31,7 +31,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.project.impl.ProjectHelper;
 
 public class ProjectWatcher extends AbstractFileWatcher {
 
@@ -63,11 +67,44 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					// set all as global
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
+					ensureSkillTag(engineId);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Makes sure a platform skill project carries the PROJECTMETA tag marking it as
+	 * a skill. addProject early-returns when the project already exists in the
+	 * security db, so this runs on every boot; it is idempotent and preserves any
+	 * other tag values already on the project. Never blocks project load.
+	 */
+	private static void ensureSkillTag(String projectId) {
+		try {
+			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId,
+					Arrays.asList("tag"), false);
+			List<Object> tags = new ArrayList<>();
+			Object existing = meta.get("tag");
+			if (existing instanceof List) {
+				tags.addAll((List<?>) existing);
+			} else if (existing != null) {
+				tags.add(existing);
+			}
+			for (Object t : tags) {
+				if (ProjectHelper.SKILL_PROJECT_TAG.equals(t)) {
 					return;
 				}
 			}
+			tags.add(ProjectHelper.SKILL_PROJECT_TAG);
+			Map<String, Object> update = new HashMap<>();
+			update.put("tag", tags);
+			SecurityProjectUtils.updateProjectMetadata(projectId, update);
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure skill tag on platform skill project '{}': {}", projectId,
+					e.getMessage());
 		}
 	}
 

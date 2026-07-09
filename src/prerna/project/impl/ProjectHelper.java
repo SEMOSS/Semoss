@@ -89,6 +89,14 @@ public final class ProjectHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
 
+	/**
+	 * PROJECTMETA tag value marking a SKILL-type project. Written by
+	 * {@link #createSkillProject} for user skills and by ProjectWatcher for the
+	 * built-in platform skill projects. (Legacy rows may carry the old value
+	 * "Skill_Project"; PROJECT.TYPE is the authoritative marker.)
+	 */
+	public static final String SKILL_PROJECT_TAG = "SKILL";
+
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
@@ -614,7 +622,7 @@ public final class ProjectHelper {
 		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, false, null,
 				gitProvider, gitCloneUrl, user, logger);
 		Map<String, Object> metadata = new HashMap<>();
-		metadata.put("tag", ModelInferenceLogsUtils.SKILL_PROJECT_TAG);
+		metadata.put("tag", SKILL_PROJECT_TAG);
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		return project;
 	}

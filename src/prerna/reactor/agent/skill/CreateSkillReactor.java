@@ -39,9 +39,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,7 +49,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
 /**
- * Creates a new skill in the registry.
+ * Creates a new skill.
  *
  * <p>
  * A skill is a Project of type {@code SKILL}. This reactor:
@@ -60,8 +58,6 @@ import prerna.util.AssetUtility;
  * {@link ProjectHelper#createSkillProject}.</li>
  * <li>Writes {@code SKILL.md} (and helper files, if any) into
  * {@code <project>/version/assets/skill/}.</li>
- * <li>Inserts a slim {@code SKILL__} row tying the skill identity (id, slug,
- * origin) to the project.</li>
  * </ol>
  *
  * <p>
@@ -73,9 +69,6 @@ import prerna.util.AssetUtility;
  * omits one. When both are supplied, frontmatter wins.</li>
  * <li>{@code description} - same rule as {@code name}: required only when
  * frontmatter omits it.</li>
- * <li>{@code origin} - provenance, default {@link Skill#ORIGIN_USER}. Accepts
- * USER, IMPORTED, or GENERATED; {@link Skill#ORIGIN_PLATFORM} is rejected
- * (platform skills ship as folders, not Projects). (optional)</li>
  * </ul>
  *
  * <p>
@@ -92,12 +85,11 @@ public class CreateSkillReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateSkillReactor.class);
 
 	private static final String SKILL_CONTENT = "skillContent";
-	private static final String ORIGIN = "origin";
 
 	public CreateSkillReactor() {
 		this.keysToGet = new String[] { SKILL_CONTENT, ReactorKeysEnum.NAME.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(), ORIGIN, };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+				ReactorKeysEnum.DESCRIPTION.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -107,7 +99,6 @@ public class CreateSkillReactor extends AbstractReactor {
 		String skillContent = this.keyValue.get(SKILL_CONTENT);
 		String nameInput = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String descInput = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
-		String origin = orDefault(this.keyValue.get(ORIGIN), Skill.ORIGIN_USER);
 
 		if (skillContent == null || skillContent.isEmpty()) {
 			throw new IllegalArgumentException("skillContent is required");
@@ -133,12 +124,6 @@ public class CreateSkillReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		String createdBy = resolveUserId(user);
-		if (Skill.ORIGIN_PLATFORM.equals(origin)) {
-			throw new IllegalArgumentException(
-					"origin=PLATFORM is not supported here - platform skills ship as folders under "
-							+ "<BASE_FOLDER>/skills/. Use origin USER, IMPORTED, or GENERATED.");
-		}
 
 		String skillId = GUID.v7().toString();
 		String slug = Skill.slugify(name);
@@ -156,9 +141,6 @@ public class CreateSkillReactor extends AbstractReactor {
 			}
 			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
-
-			ModelInferenceLogsUtils.createNewSkill(skillId, slug, name, description, createdBy, origin,
-					/* configJson */ null);
 		} catch (Exception e) {
 			classLogger.error("Failed to create skill '{}' (id {})", name, skillId, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);
@@ -169,20 +151,7 @@ public class CreateSkillReactor extends AbstractReactor {
 		response.put("project_id", skillId);
 		response.put("slug", slug);
 		response.put("name", name);
-		response.put("origin", origin);
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static String resolveUserId(User user) {
-		if (user == null || user.getLogins() == null || user.getLogins().isEmpty()) {
-			return null;
-		}
-		AuthProvider login = user.getLogins().get(0);
-		return user.getAccessToken(login) == null ? null : user.getAccessToken(login).getId();
-	}
-
-	private static String orDefault(String s, String defaultValue) {
-		return (s == null || s.isEmpty()) ? defaultValue : s;
 	}
 
 	private static String firstNonEmpty(String a, String b) {
@@ -213,10 +182,6 @@ public class CreateSkillReactor extends AbstractReactor {
 		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
 			return "Description. Required only when the SKILL.md frontmatter omits 'description'. "
 					+ "Frontmatter wins when both are supplied";
-		}
-		if (ORIGIN.equals(key)) {
-			return "Provenance: USER | IMPORTED | GENERATED. Default USER. "
-					+ "PLATFORM is rejected - platform skills ship as folders under <BASE_FOLDER>/skills/.";
 		}
 		return super.getDescriptionForKey(key);
 	}

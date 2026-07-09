@@ -41,10 +41,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -55,20 +53,15 @@ import prerna.util.AssetUtility;
 
 /**
  * Clones an existing skill into a new skill-project owned by the calling user.
- *
- * <p>
- * The clone is always {@code ORIGIN='USER'} regardless of the source's origin
- * (cloning a {@code PLATFORM} skill produces a personal copy, not another
- * platform skill - the latter would require admin and isn't the point of
- * cloning). The caller becomes the {@code CREATED_BY} and the owner of the
- * underlying project.
+ * Cloning a built-in platform skill produces a personal copy the caller can
+ * edit. The caller becomes the owner of the underlying project.
  *
  * <p>
  * What gets copied:
  * <ul>
- * <li>Every file under the source's {@code version/assets/skill/} folder
- * (SKILL.md + any helpers).</li>
- * <li>The description, carried into the clone's {@code SKILL__} row.</li>
+ * <li>Every file under the source's skill content folder (SKILL.md + any
+ * helpers).</li>
+ * <li>The description, re-synthesized into the clone's SKILL.md frontmatter.</li>
  * </ul>
  *
  * <p>
@@ -120,12 +113,12 @@ public class CloneSkillReactor extends AbstractReactor {
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
 		}
 
-		Map<String, Object> sourceRow = ModelInferenceLogsUtils.getSkillEntry(sourceSkillId);
-		if (sourceRow == null) {
+		if (!SkillProjects.isSkillProject(sourceSkillId)) {
 			throw new IllegalArgumentException("Skill not found: " + sourceSkillId);
 		}
-		String sourceName = (String) sourceRow.get("name");
-		String sourceDescription = (String) sourceRow.get("description");
+		SkillProjects.SkillInfo source = SkillProjects.resolve(sourceSkillId);
+		String sourceName = source.name;
+		String sourceDescription = source.description;
 
 		String newName = (nameInput != null && !nameInput.isEmpty()) ? nameInput : "Copy of " + sourceName;
 		if (newName.contains("/") || newName.contains("\\") || newName.contains("..")) {
@@ -133,16 +126,14 @@ public class CloneSkillReactor extends AbstractReactor {
 		}
 		String newSkillId = GUID.v7().toString();
 		String newSlug = Skill.slugify(newName);
-		String createdBy = resolveUserId(user);
 
-		String sourceAssetsFolder = AssetUtility.getProjectAssetsFolder(sourceSkillId);
-		Path sourceSkillDir = new File(sourceAssetsFolder, Skill.SKILL_ASSET_SUBFOLDER).toPath();
-		if (!Files.isDirectory(sourceSkillDir)) {
-			throw new IllegalStateException("Source skill content folder does not exist: " + sourceSkillDir);
+		Path sourceSkillDir = source.skillDir;
+		if (sourceSkillDir == null || !Files.isDirectory(sourceSkillDir)) {
+			throw new IllegalStateException("Source skill content folder does not exist for skill: " + sourceSkillId);
 		}
 
 		try {
-			// Clones are always personal copies - never carry origin=PLATFORM forward.
+			// Clones are always personal copies owned by the caller.
 			ProjectHelper.createSkillProject(newSkillId, newName, /* global */ false, /* gitProvider */ null,
 					/* gitCloneUrl */ null, user, classLogger);
 
@@ -156,16 +147,13 @@ public class CloneSkillReactor extends AbstractReactor {
 			copyTree(sourceSkillDir, newSkillDir.toPath());
 
 			// Re-synthesize the frontmatter so the file on disk matches the clone's
-			// name (which may differ from the source) and stays in sync with the row.
+			// name (which may differ from the source).
 			Path newSkillFile = newSkillDir.toPath().resolve(Skill.SKILL_FILE);
 			String bodyOnly = Files.exists(newSkillFile)
 					? Skill.stripFrontmatter(new String(Files.readAllBytes(newSkillFile), StandardCharsets.UTF_8))
 					: "";
 			String finalContent = Skill.buildFrontmatter(newName, sourceDescription) + bodyOnly;
 			Files.write(newSkillFile, finalContent.getBytes(StandardCharsets.UTF_8));
-
-			ModelInferenceLogsUtils.createNewSkill(newSkillId, newSlug, newName, sourceDescription, createdBy,
-					Skill.ORIGIN_USER, /* configJson */ null);
 		} catch (Exception e) {
 			classLogger.error("Failed to clone skill into '{}' (id {})", newName, newSkillId, e);
 			throw new IllegalArgumentException("Failed to clone skill: " + e.getMessage(), e);
@@ -176,7 +164,6 @@ public class CloneSkillReactor extends AbstractReactor {
 		response.put("project_id", newSkillId);
 		response.put("name", newName);
 		response.put("slug", newSlug);
-		response.put("origin", Skill.ORIGIN_USER);
 		response.put("source_skill_id", sourceSkillId);
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -199,17 +186,9 @@ public class CloneSkillReactor extends AbstractReactor {
 		}
 	}
 
-	private static String resolveUserId(User user) {
-		if (user == null || user.getLogins() == null || user.getLogins().isEmpty()) {
-			return null;
-		}
-		AuthProvider login = user.getLogins().get(0);
-		return user.getAccessToken(login) == null ? null : user.getAccessToken(login).getId();
-	}
-
 	@Override
 	public String getReactorDescription() {
-		return "Clones a skill into a new skill-project owned by the caller (origin=USER)";
+		return "Clones a skill into a new skill-project owned by the caller";
 	}
 
 	@Override

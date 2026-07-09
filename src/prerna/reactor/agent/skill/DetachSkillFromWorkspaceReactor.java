@@ -45,22 +45,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Detaches a skill from a workspace. Mirrors
- * {@link AttachSkillToWorkspaceReactor} and handles both skill kinds, keyed by
- * which identifier you pass:
- *
- * <ul>
- * <li>{@code skillId} - a registry skill: removes the
- * {@code WORKSPACE_RESOURCE__} row and the matching
- * {@code CONFIG_JSON.skills[]} entry.</li>
- * <li>{@code slug} - a platform skill: removes the slug from
- * {@code CONFIG_JSON.platform_skills[]} (see {@link PlatformSkills}).</li>
- * </ul>
+ * {@link AttachSkillToWorkspaceReactor}: removes the
+ * {@code WORKSPACE_RESOURCE__} row, the matching {@code CONFIG_JSON.skills[]}
+ * entry, and the {@code PROJECTDEPENDENCIES} entry.
  *
  * <p>
- * Exactly one of {@code skillId} / {@code slug} must be supplied. No-op when
- * the attachment does not exist. Does not delete the skill itself; use
- * {@code DeleteSkillReactor} for registry skills (platform skills are read-only
- * built-ins and are never deleted through reactors).
+ * No-op when the attachment does not exist. Does not delete the skill itself;
+ * use {@code DeleteSkillReactor} for that.
  *
  * <p>
  * Authorization: user must have edit access to the workspace
@@ -71,10 +62,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Inputs:
  * <ul>
  * <li>{@code workspaceId} - workspace identifier (required)</li>
- * <li>{@code skillId} - registry skill to detach (required unless {@code slug}
- * given)</li>
- * <li>{@code slug} - platform skill to detach (required unless {@code skillId}
- * given)</li>
+ * <li>{@code skillId} - skill project to detach (required)</li>
  * </ul>
  */
 public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
@@ -82,11 +70,10 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(DetachSkillFromWorkspaceReactor.class);
 
 	private static final String SKILL_ID = "skillId";
-	private static final String SLUG = "slug";
 
 	public DetachSkillFromWorkspaceReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID, SLUG };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -95,16 +82,12 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String skillId = nullIfBlank(this.keyValue.get(SKILL_ID));
-		String slug = nullIfBlank(this.keyValue.get(SLUG));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
 		}
-		if (skillId == null && slug == null) {
-			throw new IllegalArgumentException("either skillId or slug is required");
-		}
-		if (skillId != null && slug != null) {
-			throw new IllegalArgumentException("provide exactly one of skillId or slug (slug => platform skill)");
+		if (skillId == null) {
+			throw new IllegalArgumentException("skillId is required");
 		}
 
 		User user = this.insight.getUser();
@@ -116,22 +99,6 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 		Map<String, Object> response = new HashMap<>();
 		response.put("workspace_id", workspaceId);
 
-		// A slug (and no id) means a disk-backed platform skill.
-		if (slug != null) {
-			try {
-				ModelInferenceLogsUtils.removePlatformSkillFromWorkspaceConfigJson(workspaceId, slug);
-			} catch (Exception e) {
-				classLogger.error("Failed to detach platform skill '{}' from workspace '{}'", slug, workspaceId, e);
-				throw new IllegalArgumentException("Failed to detach platform skill from workspace: " + e.getMessage(),
-						e);
-			}
-			response.put("slug", slug);
-			response.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
-			response.put("removed", true);
-			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-		}
-
-		// Registry skill path.
 		int deleted = ModelInferenceLogsUtils.deleteWorkspaceResource(workspaceId, skillId,
 				AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE);
 		response.put("skill_id", skillId);
@@ -171,8 +138,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Detaches a skill from a workspace. Pass skillId for a registry skill (removes WORKSPACE_RESOURCE__ + "
-				+ "CONFIG_JSON.skills[]) or slug for a platform skill (removes from CONFIG_JSON.platform_skills[]).";
+		return "Detaches a skill from a workspace: removes the WORKSPACE_RESOURCE__ row and the matching "
+				+ "CONFIG_JSON.skills[] entry. No-op when the skill is not attached.";
 	}
 
 	@Override
@@ -181,10 +148,7 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 			return "Workspace identifier";
 		}
 		if (SKILL_ID.equals(key)) {
-			return "Identifier of the registry skill to detach (omit when detaching a platform skill by slug)";
-		}
-		if (SLUG.equals(key)) {
-			return "Folder name (slug) of the platform skill to detach (omit when detaching a registry skill by id)";
+			return "Identifier of the skill project to detach";
 		}
 		return super.getDescriptionForKey(key);
 	}

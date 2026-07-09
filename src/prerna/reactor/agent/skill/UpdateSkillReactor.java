@@ -33,14 +33,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -58,8 +56,8 @@ import prerna.util.AssetUtility;
  * rename, delete the skill and re-create it.
  *
  * <p>
- * Frontmatter on disk is kept in sync with the {@code SKILL__} row: every write
- * synthesizes a fresh frontmatter block from the canonical name and the
+ * The SKILL.md frontmatter is the source of truth for name/description: every
+ * write synthesizes a fresh frontmatter block from the canonical name and the
  * resolved description, then appends the body. The caller's frontmatter (if
  * any) is read for its description but otherwise discarded.
  *
@@ -121,18 +119,21 @@ public class UpdateSkillReactor extends AbstractReactor {
 					"Skill " + skillId + " does not exist or user does not have permission to edit it");
 		}
 
-		Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(skillId);
-		if (skillRow == null) {
+		if (!SkillProjects.isSkillProject(skillId)) {
 			throw new IllegalArgumentException("Skill not found: " + skillId);
 		}
-		String canonicalName = (String) skillRow.get("name");
-		String currentDescription = (String) skillRow.get("description");
+		SkillProjects.SkillInfo info = SkillProjects.resolve(skillId);
+		String canonicalName = info.name;
+		String currentDescription = info.description;
 
 		Skill.Frontmatter incomingFm = hasContent ? Skill.parseFrontmatter(skillContent) : new Skill.Frontmatter();
 
 		// Name is immutable - if the caller supplied a name in frontmatter that
 		// disagrees with the canonical name, that's almost certainly a mistake.
-		if (incomingFm.name != null && !incomingFm.name.isEmpty() && !incomingFm.name.equals(canonicalName)) {
+		// Only enforceable when the current SKILL.md was actually readable; when
+		// it is missing/unparseable the incoming content IS the repair path.
+		if (info.found && incomingFm.name != null && !incomingFm.name.isEmpty()
+				&& !incomingFm.name.equals(canonicalName)) {
 			throw new IllegalArgumentException(
 					"Skill name is immutable. Frontmatter declares '" + incomingFm.name + "' but the skill's name is '"
 							+ canonicalName + "'. " + "Delete and recreate the skill to rename it.");
@@ -148,8 +149,11 @@ public class UpdateSkillReactor extends AbstractReactor {
 					+ "supply 'description' or include it in the frontmatter");
 		}
 
-		String assetsFolder = AssetUtility.getProjectAssetsFolder(canonicalName, skillId);
-		File skillDir = new File(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
+		// Write back into the folder the SKILL.md actually lives in (skill/ or the
+		// legacy public/ used by the shipped platform skill projects); when the file
+		// is missing entirely, (re)create the standard skill/ folder.
+		File skillDir = info.skillDir != null ? info.skillDir.toFile()
+				: new File(AssetUtility.getProjectAssetsFolder(skillId), Skill.SKILL_ASSET_SUBFOLDER);
 		Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 
 		try {
@@ -169,11 +173,6 @@ public class UpdateSkillReactor extends AbstractReactor {
 				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());
 			}
 			Files.write(skillFile, finalContent.getBytes(StandardCharsets.UTF_8));
-
-			if (!Objects.equals(newDescription, currentDescription)) {
-				ModelInferenceLogsUtils.updateSkillMetadata(skillId, /* name */ null, newDescription,
-						/* configJson */ null);
-			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update skill '{}'", skillId, e);
 			throw new IllegalArgumentException("Failed to update skill: " + e.getMessage(), e);
