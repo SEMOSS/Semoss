@@ -855,12 +855,35 @@ class ModelEngine(AbstractModelEngine):
                 """
 
                 if self.model_type in ["OPEN_AI", "VERTEX", "ANTHROPIC", "BEDROCK"]:
+                    import json as _json
+
                     full_prompt: List[Dict[str, Any]]
                     from langchain_community.adapters.openai import (
                         convert_message_to_dict,
                     )
 
-                    full_prompt = [convert_message_to_dict(m) for m in messages]
+                    full_prompt = []
+                    for m in messages:
+                        d = convert_message_to_dict(m)
+                        # convert_message_to_dict only serializes tool calls from
+                        # additional_kwargs, NOT the structured AIMessage.tool_calls
+                        # that langgraph populates -- so on multi-turn tool loops the
+                        # assistant's tool_use vanishes and SEMOSS rejects the paired
+                        # tool_result. Re-attach tool_calls in OpenAI shape.
+                        tcs = getattr(m, "tool_calls", None)
+                        if tcs and not d.get("tool_calls"):
+                            d["tool_calls"] = [
+                                {
+                                    "id": tc.get("id"),
+                                    "type": "function",
+                                    "function": {
+                                        "name": tc.get("name"),
+                                        "arguments": _json.dumps(tc.get("args", {})),
+                                    },
+                                }
+                                for tc in tcs
+                            ]
+                        full_prompt.append(d)
                     return full_prompt
                 else:
                     full_prompt: str
