@@ -62,9 +62,12 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		// editors/owners can download everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityEngineUtils.userCanEditEngine(user, engineId);
+		if (!canEdit && !SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+					"Engine " + engineId + " does not exist or user does not have access to view assets.");
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
@@ -78,6 +81,8 @@ public class DownloadEngineAssetReactor extends AbstractReactor {
 				}
 			}
 		}
+		// confine view-only users to the public folder (throws if outside it)
+		relativeFilePath = FileSystemUtil.resolveReadableAssetPath(canEdit, relativeFilePath);
 
 		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
