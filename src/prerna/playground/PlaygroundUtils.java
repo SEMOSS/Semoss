@@ -30,6 +30,10 @@ package prerna.playground;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 
 public class PlaygroundUtils {
@@ -102,5 +106,38 @@ public class PlaygroundUtils {
 			}
 		}
 		return builder.build();
+	}
+
+	/**
+	 * Build a hidden user-note + canned assistant-ack pair, parent it under
+	 * {@code hiddenParentId}, append both to the room's message list, and (if
+	 * {@code extrasOut} is non-null) record them for the pixel return.
+	 * Both messages are marked {@code visible=false, platformGenerated=true}
+	 * so they don't render but still ride along to the model on the next turn
+	 * via {@code RoomMessageStore.providerMessageHistory}.
+	 *
+	 * The caller is responsible for holding the room's mutation lock and
+	 * persisting after this call.
+	 */
+	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, List<AbstractMessage> extrasOut) {
+		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
+				.withModelType(modelEngine.getModelType()).build();
+		hiddenUserNote.setPlatformGenerated(true);
+		hiddenUserNote.setVisible(false);
+		hiddenUserNote.setParentMessageId(hiddenParentId);
+
+		ResponseMessage hiddenAck = ResponseMessage.text(HIDDEN_MESSAGE_ACK);
+		hiddenAck.setPlatformGenerated(true);
+		hiddenAck.setVisible(false);
+		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
+
+		room.getMessages().add(hiddenUserNote);
+		room.getMessages().add(hiddenAck);
+
+		if (extrasOut != null) {
+			extrasOut.add(hiddenUserNote);
+			extrasOut.add(hiddenAck);
+		}
 	}
 }

@@ -45,7 +45,6 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -181,7 +180,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				// off of. Parent it on whatever the sanitized tail is (the
 				// user's INPUT_TEXT).
 				if (prebuiltResponse != null && hiddenMessage != null && !hiddenMessage.isEmpty() && tail != null) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, tail.getMessageId(),
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, tail.getMessageId(),
 							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
 				}
 				pixelReturn.put("responseMessage",
@@ -207,7 +206,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				// user-note / assistant-ack pair after it so the model sees on
 				// the next turn that its response was cut short.
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
 							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
 				}
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -245,36 +244,17 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Append a hidden user note + canned assistant ack to the room history
-	 * after the visible tool follow-up. Both are invisible to the FE
-	 * (visible=false, platformGenerated=true) but ride along to the model on
-	 * the next turn via {@link RoomMessageStore#providerMessageHistory}, keeping
-	 * the payload role-alternating and telling the model its prior response was
-	 * cut short.
+	 * Wrap {@link PlaygroundUtils#appendHiddenPair} in its own mutation lock +
+	 * persist step. AskPlayground's cancel path invokes the shared helper
+	 * directly (it's already inside a lock/persist scope); this reactor calls
+	 * it after {@code Room.addToolExecutionResult} has returned, so it needs
+	 * its own boundary.
 	 */
-	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
-			String userId, List<AbstractMessage> extrasOut) {
+	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
-			InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
-					.withModelType(modelEngine.getModelType()).build();
-			hiddenUserNote.setPlatformGenerated(true);
-			hiddenUserNote.setVisible(false);
-			hiddenUserNote.setParentMessageId(hiddenParentId);
-
-			ResponseMessage hiddenAck = ResponseMessage.text(PlaygroundUtils.HIDDEN_MESSAGE_ACK);
-			hiddenAck.setPlatformGenerated(true);
-			hiddenAck.setVisible(false);
-			hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
-
-			room.getMessages().add(hiddenUserNote);
-			room.getMessages().add(hiddenAck);
-
+			PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
 			RoomMessageStore.persist(room, userId);
-
-			if (extrasOut != null) {
-				extrasOut.add(hiddenUserNote);
-				extrasOut.add(hiddenAck);
-			}
 		}
 	}
 

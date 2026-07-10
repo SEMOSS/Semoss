@@ -231,7 +231,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				room.getMessages().add(response);
 
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
-					appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(), extrasOut);
+					PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
+							extrasOut);
 				}
 
 				// Room-name inference + 4-arg/2-arg persist switch (from Room.ask's tail).
@@ -256,35 +257,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			}
 		}
 		return response;
-	}
-
-	/**
-	 * Append a hidden user note + canned assistant ack to the room history.
-	 * Both are invisible to the FE (visible=false, platformGenerated=true) but
-	 * ride along to the model on the next turn via
-	 * {@link RoomMessageStore#providerMessageHistory}, keeping the payload
-	 * role-alternating and telling the model its prior response was cut short.
-	 */
-	private void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage, String hiddenParentId,
-			List<AbstractMessage> extrasOut) {
-		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
-				.withModelType(modelEngine.getModelType()).build();
-		hiddenUserNote.setPlatformGenerated(true);
-		hiddenUserNote.setVisible(false);
-		hiddenUserNote.setParentMessageId(hiddenParentId);
-
-		ResponseMessage hiddenAck = ResponseMessage.text(PlaygroundUtils.HIDDEN_MESSAGE_ACK);
-		hiddenAck.setPlatformGenerated(true);
-		hiddenAck.setVisible(false);
-		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
-
-		room.getMessages().add(hiddenUserNote);
-		room.getMessages().add(hiddenAck);
-
-		if (extrasOut != null) {
-			extrasOut.add(hiddenUserNote);
-			extrasOut.add(hiddenAck);
-		}
 	}
 
 	@Override
