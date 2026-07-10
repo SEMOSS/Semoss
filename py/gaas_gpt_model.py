@@ -712,11 +712,19 @@ class ModelEngine(AbstractModelEngine):
                 # Fetch chat history from ModelEngine
                 history = self.model_engine.get_conversation_history()
                 messages = []
-                for msg in sorted(history, key=lambda x: x["DATE_CREATED"]):
-                    if msg["MESSAGE_TYPE"] == "INPUT":
-                        messages.append(HumanMessage(content=msg["MESSAGE_DATA"]))
-                    elif msg["MESSAGE_TYPE"] == "RESPONSE":
-                        messages.append(AIMessage(content=msg["MESSAGE_DATA"]))
+                for msg in sorted(history or [], key=lambda x: x.get("DATE_CREATED") or ""):
+                    # Tool-call / tool-result turns are logged without plain-text
+                    # MESSAGE_DATA (the blob is null). Skip them -- replaying them
+                    # as Human/AIMessages both breaks (KeyError) and corrupts the
+                    # multi-turn tool loop that langgraph already owns.
+                    data = msg.get("MESSAGE_DATA")
+                    if not data:
+                        continue
+                    mtype = msg.get("MESSAGE_TYPE")
+                    if mtype == "INPUT":
+                        messages.append(HumanMessage(content=data))
+                    elif mtype == "RESPONSE":
+                        messages.append(AIMessage(content=data))
                 return messages
 
             class Config:
