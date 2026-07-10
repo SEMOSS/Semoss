@@ -170,6 +170,8 @@ public interface Analysis extends Switch
     void caseTNumber(TNumber node);
     void caseTBoolean(TBoolean node);
     void caseTMeta(TMeta node);
+    void caseTAndComparator(TAndComparator node);
+    void caseTOrComparator(TOrComparator node);
     void caseTId(TId node);
     void caseTDot(TDot node);
     void caseTSemicolon(TSemicolon node);
@@ -184,8 +186,6 @@ public interface Analysis extends Switch
     void caseTComma(TComma node);
     void caseTDiv(TDiv node);
     void caseTComparator(TComparator node);
-    void caseTAndComparator(TAndComparator node);
-    void caseTOrComparator(TOrComparator node);
     void caseTEqual(TEqual node);
     void caseTLPar(TLPar node);
     void caseTRPar(TRPar node);

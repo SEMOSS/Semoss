@@ -28,7 +28,6 @@
 package prerna.reactor.engine.fs;
 
 import java.io.File;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -48,8 +47,6 @@ import prerna.util.Utility;
 
 public class SearchEngineAssetsReactor extends AbstractReactor {
 
-	private DateTimeFormatter dateTimeFormatter;
-
 	public SearchEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
@@ -60,14 +57,16 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		this.dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String relativeFilePath = keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		String rawTerm = keyValue.get(ReactorKeysEnum.SEARCH.getKey());
 		List<String> optionsList = getNounAsStringList(ReactorKeysEnum.OPTIONS.getKey());
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+		// editors/owners can search everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityEngineUtils.userCanEditEngine(user, engineId);
+		if (!canEdit && !SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Engine " + engineId + " does not exist or user does not have access to this engine");
 		}
@@ -80,6 +79,8 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 				relativeFilePath = "/" + relativeFilePath;
 			}
 		}
+		// confine view-only users to the public folder (throws if outside it)
+		relativeFilePath = FileSystemUtil.resolveReadableAssetPath(canEdit, relativeFilePath);
 
 		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
@@ -110,7 +111,7 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String, Object>> results = FileSystemUtil.search(rootDir, pattern, baseLen, dateTimeFormatter);
+		List<Map<String, Object>> results = FileSystemUtil.search(user, rootDir, pattern, baseLen);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

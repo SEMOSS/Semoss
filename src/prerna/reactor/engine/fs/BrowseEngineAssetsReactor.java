@@ -61,9 +61,12 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		// editors/owners can browse everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityEngineUtils.userCanEditEngine(user, engineId);
+		if (!canEdit && !SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+					"Engine " + engineId + " does not exist or user does not have access to view assets.");
 		}
 		IEngine engine = Utility.getEngine(engineId);
 
@@ -78,6 +81,10 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 			}
 		}
 
+		// throws if a view-only user browses outside the public folder; true if we
+		// should only expose the public folder node (view-only user at the assets root)
+		boolean publicFolderOnly = FileSystemUtil.restrictBrowseToPublicFolder(canEdit, relativeFilePath);
+
 		String filePath = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
 		int pathSubstringIndex = filePath.length();
@@ -86,7 +93,7 @@ public class BrowseEngineAssetsReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> retObj = FileSystemUtil.browseFileSystem(user, filePath, relativeFilePath,
-				pathSubstringIndex);
+				pathSubstringIndex, publicFolderOnly);
 
 		return new NounMetadata(retObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

@@ -49,6 +49,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,15 +59,42 @@ public final class FileSystemUtil {
 	private static final Logger classLogger = LogManager.getLogger(FileSystemUtil.class);
 
 	/**
-	 * 
-	 * @param user
-	 * @param filePath
-	 * @param relativeFilePath
-	 * @param pathSubstringIndex
-	 * @return
+	 * Lists the immediate (non-recursive) contents of an asset directory. Hidden
+	 * assets (see {@link #isHiddenAsset(File)}) are excluded; if the requested
+	 * directory itself is hidden, the access is logged and an empty list is
+	 * returned. Results are sorted with directories first, then files, each group
+	 * ordered case-insensitively by name.
+	 *
+	 * @param user               the user performing the browse, used for the time
+	 *                           zone of the {@code lastModified} field and for
+	 *                           logging unauthorized access attempts
+	 * @param filePath           the absolute path of the directory to list
+	 * @param relativeFilePath   the assets-relative path of the directory, used for
+	 *                           error/log messages
+	 * @param pathSubstringIndex the index at which to trim each entry's absolute
+	 *                           path down to its assets-relative {@code path} value
+	 * @return a sorted list of maps, one per visible entry, each containing
+	 *         {@code name}, {@code path} (directories end with a trailing
+	 *         {@code "/"}), {@code type} ({@code "directory"} or the file
+	 *         extension), and {@code lastModified}
 	 */
 	public static List<Map<String, Object>> browseFileSystem(User user, String filePath, String relativeFilePath,
 			int pathSubstringIndex) {
+		return browseFileSystem(user, filePath, relativeFilePath, pathSubstringIndex, false);
+	}
+
+	/**
+	 * Same as {@link #browseFileSystem(User, String, String, int)} but, when
+	 * {@code publicFolderOnly} is true, the only entry returned is the public
+	 * assets folder (see {@link Constants#PUBLIC_ASSETS_FOLDER}). This is used to
+	 * list the assets root for view-only users, who may see the public folder as a
+	 * node they can traverse into but may not see any other top-level asset.
+	 *
+	 * @param publicFolderOnly when true, restrict the listing to only the public
+	 *                         assets folder directory entry
+	 */
+	public static List<Map<String, Object>> browseFileSystem(User user, String filePath, String relativeFilePath,
+			int pathSubstringIndex, boolean publicFolderOnly) {
 		File directory = new File(filePath);
 		if (!directory.exists()) {
 			throw new IllegalArgumentException(
@@ -76,29 +104,28 @@ public final class FileSystemUtil {
 			throw new IllegalArgumentException(
 					"The path " + relativeFilePath + " exists within the assets folder but is not a directory");
 		}
-
+		if (isWithinHiddenAsset(directory, pathSubstringIndex)) {
+			// user is trying to access from a starting point that is hidden
+			AccessToken token = user == null ? null : user.getPrimaryLoginToken();
+			classLogger.warn("User id={} provider={} is trying to access hidden asset {}",
+					token == null ? null : token.getId(), token == null ? null : token.getProvider(), relativeFilePath);
+			return new ArrayList<>();
+		}
 		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
 				.withZone(user.getZoneId());
 
 		List<Map<String, Object>> retObj = new ArrayList<>();
 		File[] allFiles = directory.listFiles();
 		for (File f : allFiles) {
-			if (f.getName().startsWith(".") && f.isDirectory()) {
-				// we dont want to show this
+			if (isHiddenAsset(f)) {
 				continue;
 			}
-			Map<String, Object> fileMap = new HashMap<>();
-			fileMap.put("name", f.getName());
-			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
-			if (f.isDirectory()) {
-				fileMap.put("type", "directory");
-				path = path + "/";
-			} else {
-				fileMap.put("type", FilenameUtils.getExtension(f.getName()));
+			// view-only users listing the assets root may only see the public folder node
+			if (publicFolderOnly && !(f.isDirectory() && Constants.PUBLIC_ASSETS_FOLDER.equals(f.getName()))) {
+				continue;
 			}
-			fileMap.put("path", path);
-			fileMap.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
-			retObj.add(fileMap);
+			String path = f.getAbsolutePath().substring(pathSubstringIndex).replace("\\", "/");
+			retObj.add(createMeta(f, path, f.isDirectory(), dateTimeFormatter));
 		}
 
 		// Sort directories first, then files, each group sorted by name
@@ -119,17 +146,39 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * Searches for files and directories recursively and returns a sorted list of
-	 * results.
-	 * 
-	 * @param dir               The directory to start the search from.
-	 * @param pattern           The pattern to match file/directory names against.
-	 * @param baseLen           The base length for calculating relative paths.
-	 * @param dateTimeFormatter The date time formatter for last modified dates.
-	 * @return A sorted list of maps, where each map represents a file or directory.
+	 * Recursively searches an asset directory for entries whose name matches the
+	 * given pattern and returns a sorted list of results. Hidden assets (see
+	 * {@link #isHiddenAsset(File)}) are skipped and not descended into; if the
+	 * starting directory itself is hidden, the access is logged and an empty list
+	 * is returned. Results are sorted with directories first, then files, each
+	 * group ordered case-insensitively by name.
+	 *
+	 * @param user    the user performing the search, used for the time zone of the
+	 *                {@code lastModified} field and for logging unauthorized access
+	 *                attempts
+	 * @param dir     the directory to start the search from
+	 * @param pattern the pattern matched (via
+	 *                {@link java.util.regex.Matcher#find()}) against each entry's
+	 *                name
+	 * @param baseLen the absolute-path prefix length to trim when building each
+	 *                entry's relative {@code path} value
+	 * @return a sorted list of maps, one per matching entry, each containing
+	 *         {@code name}, {@code path} (directories end with a trailing
+	 *         {@code "/"}), {@code type} ({@code "directory"} or the file
+	 *         extension), and {@code lastModified}
 	 */
-	public static List<Map<String, Object>> search(File dir, Pattern pattern, int baseLen,
-			DateTimeFormatter dateTimeFormatter) {
+	public static List<Map<String, Object>> search(User user, File dir, Pattern pattern, int baseLen) {
+		if (isWithinHiddenAsset(dir, baseLen)) {
+			// user is trying to access from a starting point that is hidden
+			AccessToken token = user == null ? null : user.getPrimaryLoginToken();
+			classLogger.warn("User id={} provider={} is trying to access hidden asset {}",
+					token == null ? null : token.getId(), token == null ? null : token.getProvider(), dir.getName());
+			return new ArrayList<>();
+		}
+
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+				.withZone(user.getZoneId());
+
 		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
 
@@ -150,12 +199,20 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * 
-	 * @param dir
-	 * @param pattern
-	 * @param baseLen
-	 * @param results
-	 * @param dateTimeFormatter
+	 * Walks {@code dir} depth-first, appending a metadata map for every entry whose
+	 * name matches {@code pattern} into {@code results}. Hidden assets (see
+	 * {@link #isHiddenAsset(File)}) are skipped and not descended into. Unreadable
+	 * directories (those for which {@link File#listFiles()} returns {@code null})
+	 * are silently ignored. The {@code results} list is mutated in place and is
+	 * left unsorted; callers are responsible for any ordering.
+	 *
+	 * @param dir               the directory to recurse into
+	 * @param pattern           the pattern matched against each entry's name
+	 * @param baseLen           the absolute-path prefix length to trim when
+	 *                          building each entry's relative {@code path} value
+	 * @param results           the accumulator that matching entries are added to
+	 * @param dateTimeFormatter the formatter used to render each entry's
+	 *                          {@code lastModified} value
 	 */
 	public static void searchRecursive(File dir, Pattern pattern, int baseLen, List<Map<String, Object>> results,
 			DateTimeFormatter dateTimeFormatter) {
@@ -166,8 +223,8 @@ public final class FileSystemUtil {
 
 		for (File f : entries) {
 			String name = f.getName();
-			// skip hidden directory
-			if (f.isDirectory() && name.startsWith(".")) {
+			// hide .git directory and .admin directory
+			if (isHiddenAsset(f)) {
 				continue;
 			}
 			// build relative path
@@ -185,21 +242,187 @@ public final class FileSystemUtil {
 	}
 
 	/**
-	 * 
-	 * @param f
-	 * @param relativePath
-	 * @param isDir
-	 * @param dateTimeFormatter
-	 * @return
+	 * Builds the metadata map describing a single file or directory entry, as
+	 * returned by {@link #browseFileSystem} and {@link #search}.
+	 *
+	 * @param f                 the file or directory being described
+	 * @param relativePath      the entry's assets-relative path; a trailing
+	 *                          {@code "/"} is appended when {@code isDir} is true
+	 * @param isDir             whether the entry is a directory
+	 * @param dateTimeFormatter the formatter used to render the
+	 *                          {@code lastModified} value
+	 * @return a map containing {@code name}, {@code path} (directories end with a
+	 *         trailing {@code "/"}), {@code lastModified}, and {@code type}
+	 *         ({@code "directory"} or the file extension)
 	 */
 	private static Map<String, Object> createMeta(File f, String relativePath, boolean isDir,
 			DateTimeFormatter dateTimeFormatter) {
 		Map<String, Object> map = new HashMap<>();
 		map.put("name", f.getName());
+		if (isDir && !relativePath.endsWith("/")) {
+			relativePath = relativePath + "/";
+		}
 		map.put("path", relativePath);
 		map.put("lastModified", dateTimeFormatter.format(Instant.ofEpochMilli(f.lastModified())));
 		map.put("type", isDir ? "directory" : FilenameUtils.getExtension(f.getName()));
 		return map;
+	}
+
+	/**
+	 * Determine whether an asset should be hidden from file explorer listings.
+	 * Hides the ".git" directory and the ".admin" directory. Only the leaf name is
+	 * inspected, so this is suitable for filtering the direct children of an
+	 * already-validated directory; to also reject entries that live <em>inside</em>
+	 * a hidden directory, use {@link #isWithinHiddenAsset(File, int)}.
+	 *
+	 * @param f the file or directory being considered
+	 * @return true if the entry should be excluded from the results
+	 */
+	private static boolean isHiddenAsset(File f) {
+		return f.isDirectory() && isHiddenName(f.getName());
+	}
+
+	/**
+	 * Determine whether a file or directory sits at or beneath a hidden asset
+	 * (".git" or ".admin") by inspecting every segment of its assets-relative path.
+	 * Unlike {@link #isHiddenAsset(File)}, which only looks at the leaf name, this
+	 * also blocks access when an <em>ancestor</em> segment is hidden — e.g. a
+	 * caller targeting ".git/hooks" or ".admin/secrets" as the starting point of a
+	 * browse or search.
+	 *
+	 * @param f       the file or directory being considered
+	 * @param baseLen the absolute-path prefix length marking where the
+	 *                assets-relative portion of {@code f}'s path begins
+	 * @return true if any segment of the entry's relative path is a hidden asset
+	 */
+	private static boolean isWithinHiddenAsset(File f, int baseLen) {
+		String absPath = f.getAbsolutePath();
+		String relativePath = (baseLen < absPath.length() ? absPath.substring(baseLen) : "").replace('\\', '/');
+		for (String segment : relativePath.split("/")) {
+			if (isHiddenName(segment)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * @param name a single path-segment name
+	 * @return true if the name is one of the hidden asset directories (".git" or
+	 *         ".admin")
+	 */
+	private static boolean isHiddenName(String name) {
+		return name.equals(".git") || name.equals(".admin");
+	}
+
+	/**
+	 * Strips leading/trailing slashes (and normalizes back-slashes) from an
+	 * assets-relative path so it can be compared segment-by-segment. Assumes the
+	 * input has already been run through {@link Utility#normalizePath(String)} so
+	 * that any ".." segments have been resolved away.
+	 *
+	 * @param relativeFilePath the assets-relative path (may be null)
+	 * @return the path without any leading or trailing slash ("" for the root)
+	 */
+	private static String stripAssetPathSlashes(String relativeFilePath) {
+		if (relativeFilePath == null) {
+			return "";
+		}
+		String p = relativeFilePath.replace('\\', '/').trim();
+		while (p.startsWith("/")) {
+			p = p.substring(1);
+		}
+		while (p.endsWith("/")) {
+			p = p.substring(0, p.length() - 1);
+		}
+		return p;
+	}
+
+	/**
+	 * Determines whether an assets-relative path targets the public assets folder
+	 * (see {@link Constants#PUBLIC_ASSETS_FOLDER}) or something inside it. The path
+	 * is expected to already be normalized (see {@link Utility#normalizePath}) so
+	 * that ".." traversal cannot be used to escape the public folder.
+	 *
+	 * @param relativeFilePath the assets-relative path to test (may be null)
+	 * @return true if the path is the public folder itself or lives beneath it
+	 */
+	public static boolean isWithinPublicAssetFolder(String relativeFilePath) {
+		String p = stripAssetPathSlashes(relativeFilePath);
+		return p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/");
+	}
+
+	/**
+	 * Resolves the assets-relative path a user is allowed to read, enforcing the
+	 * public-folder restriction for view-only users. Callers must have already
+	 * verified that the user can at least view the app/engine.
+	 *
+	 * <p>
+	 * Users who can edit have unrestricted access and their path is returned
+	 * unchanged. View-only users are confined to the public assets folder: a
+	 * request for the assets root is scoped down to the public folder, a request
+	 * already within the public folder is allowed, and any other request is
+	 * rejected.
+	 *
+	 * @param canEdit          whether the user can edit the app/engine assets
+	 *                         (unrestricted access)
+	 * @param relativeFilePath the requested assets-relative path (already
+	 *                         normalized); null/empty means the assets root
+	 * @return the assets-relative path to operate on: unchanged for editors,
+	 *         confined to the public folder (with a leading slash, no trailing
+	 *         slash) for view-only users
+	 * @throws IllegalArgumentException if a view-only user requests a path outside
+	 *                                  the public folder
+	 */
+	public static String resolveReadableAssetPath(boolean canEdit, String relativeFilePath) {
+		if (canEdit) {
+			return relativeFilePath;
+		}
+		String p = stripAssetPathSlashes(relativeFilePath);
+		if (p.isEmpty()) {
+			// scope the assets root down to the public folder for view-only users
+			return "/" + Constants.PUBLIC_ASSETS_FOLDER;
+		}
+		if (p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/")) {
+			return "/" + p;
+		}
+		throw new IllegalArgumentException("User only has read access to the '" + Constants.PUBLIC_ASSETS_FOLDER
+				+ "' folder within the assets folder.");
+	}
+
+	/**
+	 * Determines whether a browse of the given assets-relative path should be
+	 * restricted to only showing the public folder node. Callers must have already
+	 * verified that the user can at least view the app/engine.
+	 *
+	 * <p>
+	 * Editors browse freely (returns false). A view-only user browsing the assets
+	 * root sees only the public folder node (returns true), a view-only user
+	 * browsing within the public folder sees its contents (returns false), and any
+	 * other browse request by a view-only user is rejected.
+	 *
+	 * @param canEdit          whether the user can edit the app/engine assets
+	 * @param relativeFilePath the requested assets-relative path (already
+	 *                         normalized); null/empty means the assets root
+	 * @return true if the browse listing should be restricted to only the public
+	 *         folder node; false for an unrestricted listing
+	 * @throws IllegalArgumentException if a view-only user browses a path outside
+	 *                                  the public folder
+	 */
+	public static boolean restrictBrowseToPublicFolder(boolean canEdit, String relativeFilePath) {
+		if (canEdit) {
+			return false;
+		}
+		String p = stripAssetPathSlashes(relativeFilePath);
+		if (p.isEmpty()) {
+			// view-only user at the assets root: only show the public folder node
+			return true;
+		}
+		if (p.equals(Constants.PUBLIC_ASSETS_FOLDER) || p.startsWith(Constants.PUBLIC_ASSETS_FOLDER + "/")) {
+			return false;
+		}
+		throw new IllegalArgumentException("User only has read access to the '" + Constants.PUBLIC_ASSETS_FOLDER
+				+ "' folder within the assets folder.");
 	}
 
 	/**
@@ -640,7 +863,7 @@ public final class FileSystemUtil {
 	/**
 	 * Deletes a file
 	 * 
-	 * @param fileLocation The location fo the file
+	 * @param fileLocation The location of the file
 	 */
 	public static void deleteFileIfExists(String fileLocation) {
 		deleteFileIfExists(new File(fileLocation));

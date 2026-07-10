@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
@@ -138,6 +139,10 @@ public final class AgentRunner {
 	 *                         rounds.
 	 * @param paramMap         Optional. Extra model parameters (temperature,
 	 *                         max_tokens, etc.).
+	 * @param mediaInputPaths  Optional room-local media filenames for the initial
+	 *                         user message.
+	 * @param mediaUrls        Optional direct media URLs for the initial user
+	 *                         message.
 	 * @param runId            Optional durable AGENT_RUN id used to tag room
 	 *                         messages.
 	 * @param insight          Required. Current insight context (user, project,
@@ -148,7 +153,21 @@ public final class AgentRunner {
 	 */
 	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
-			String runId, Insight insight) throws Exception {
+			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight) throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				mediaInputPaths, mediaUrls, runId, insight, false);
+	}
+
+	/**
+	 * Overload that accepts a {@code resumeMode} flag. When {@code true}, the
+	 * harness skips the initial model ask and continues from the room's latest
+	 * message - used when resuming a run that was paused on
+	 * {@code SMSS_MCP_EXECUTION=ask} tools.
+	 */
+	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight,
+			boolean resumeMode) throws Exception {
 
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("roomId is required");
@@ -174,10 +193,19 @@ public final class AgentRunner {
 			Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
 					: RoomUtils.getOrLoadRoom(roomId, insight);
 
-			String modelId = resolveModelId(room, runtimeModelId);
+			Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+			Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
+
+			// Resolve and strip any per-run workspace override before model + working-dir lookup.
+			String explicitWorkspaceId = extractExplicitWorkspaceId(params);
+			String effectiveWorkspaceId = explicitWorkspaceId != null ? explicitWorkspaceId
+					: extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
+
+			String modelId = resolveModelId(room, runtimeModelId, effectiveWorkspaceId);
 			if (modelId == null || modelId.trim().isEmpty()) {
 				throw new IllegalArgumentException("No model engine found for room '" + roomId + "'. "
-						+ "Set MODEL_ID on the room or pass engine= to the reactor.");
+						+ "Set MODEL_ID on the room, pass engine= to the reactor, or set model_id on the "
+						+ "workspace/agent config (CONFIG_JSON).");
 			}
 			logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
 
@@ -192,14 +220,6 @@ public final class AgentRunner {
 
 			insight.setRoomForInsight(room);
 
-			Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
-			Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
-
-			// Resolve and strip any per-run workspace override before working-dir lookup.
-			String explicitWorkspaceId = extractExplicitWorkspaceId(params);
-			String effectiveWorkspaceId = explicitWorkspaceId != null ? explicitWorkspaceId
-					: extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
-
 			String filePath = resolveWorkingDir(room, params, effectiveWorkspaceId);
 			if (filePath != null && !filePath.trim().isEmpty()) {
 				params.put(FILE_PATH_PARAM_KEY, filePath);
@@ -211,7 +231,11 @@ public final class AgentRunner {
 			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 					maxReflections, explicitWorkspaceId);
 
-			// Best-effort skill staging for harnesses that discover local skills from disk.
+			try {
+				SkillStager.stagePlatform(filePath, agentConfig.getPlatformSkills());
+			} catch (Exception e) {
+				logger.warn("AgentRunner: platform skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+			}
 			try {
 				SkillStager.stage(filePath, agentConfig.getSkills());
 			} catch (Exception e) {
@@ -220,14 +244,21 @@ public final class AgentRunner {
 
 			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
 					.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
+					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls)
 					// Root runs are not registered as subagents and resolve to depth 0.
 					// Child runs are recorded by AgentSubAgentRegistry before their
 					// virtual thread starts, so this lookup can classify the run without
 					// storing transient spawn state on the durable room options.
-					.spawnDepth(resolveSpawnDepth()).agentConfig(agentConfig).build();
+					.spawnDepth(resolveSpawnDepth())
+					.resumeMode(resumeMode)
+					.agentConfig(agentConfig).build();
 
 			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
 			logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
+			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
+				throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
+						+ harness.getName() + "'");
+			}
 
 			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
 			List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
@@ -292,6 +323,13 @@ public final class AgentRunner {
 		} finally {
 			ACTIVE_ROOMS.remove(roomId);
 		}
+	}
+
+	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			String runId, Insight insight) throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				null, null, runId, insight);
 	}
 
 	// workspace_id overlay helpers
@@ -426,6 +464,10 @@ public final class AgentRunner {
 			return AgentRunContext.ROOT_SPAWN_DEPTH;
 		}
 		return AgentSubAgentRegistry.getManager().getDepthForJob(jobId);
+	}
+
+	private static boolean hasMediaInput(AgentRunContext ctx) {
+		return ctx != null && (!ctx.getMediaInputPaths().isEmpty() || !ctx.getMediaUrls().isEmpty());
 	}
 
 	/**
@@ -645,7 +687,7 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Resolves the model/engine ID using a three-tier priority:
+	 * Resolves the model/engine ID using a four-tier priority:
 	 *
 	 * <ol>
 	 * <li>Runtime override - {@code engine=} passed explicitly to
@@ -654,10 +696,16 @@ public final class AgentRunner {
 	 * <li>Room {@code options} map - legacy keys ({@code engine}, {@code model},
 	 * etc.) used by older rooms that stored the model id in options rather than the
 	 * column.
+	 * <li>Workspace/agent config - {@code WORKSPACE.CONFIG_JSON.model_id}, the
+	 * per-agent default that lets callers run an agent without binding a model to
+	 * the room or passing {@code engine=}.
 	 * </ol>
+	 *
+	 * @param workspaceId effective workspace id for this run (may be null); used to
+	 *                    look up the CONFIG_JSON default in tier 4.
 	 */
 	@SuppressWarnings("unchecked")
-	private static String resolveModelId(Room room, String runtimeOverride) {
+	private static String resolveModelId(Room room, String runtimeOverride, String workspaceId) {
 		// Tier 1: explicit runtime engine= param wins.
 		if (runtimeOverride != null && !runtimeOverride.trim().isEmpty()) {
 			logger.info("AgentRunner: using runtime engine override={}", runtimeOverride);
@@ -680,6 +728,25 @@ public final class AgentRunner {
 					logger.info("AgentRunner: resolved modelId from options['{}']={}", key, val);
 					return ((String) val).trim();
 				}
+			}
+		}
+
+		// Tier 4: workspace/agent CONFIG_JSON default model. Best-effort - a missing
+		// workspace, empty column, or parse failure just falls through to null.
+		if (workspaceId != null && !workspaceId.trim().isEmpty()) {
+			try {
+				JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId.trim());
+				if (cfg != null) {
+					String cfgModelId = cfg.optString("model_id", null);
+					if (cfgModelId != null && !cfgModelId.trim().isEmpty()) {
+						logger.info("AgentRunner: resolved modelId from CONFIG_JSON.model_id={} (workspace={})",
+								cfgModelId, workspaceId);
+						return cfgModelId.trim();
+					}
+				}
+			} catch (Exception e) {
+				logger.warn("AgentRunner: CONFIG_JSON model_id lookup failed for workspace '{}': {}", workspaceId,
+						e.getMessage());
 			}
 		}
 

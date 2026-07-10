@@ -25,37 +25,42 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.engine.impl.model.responses;
 
-import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Creates a skill under {@code <project>/client/.claude/skills/<slug>/SKILL.md}.
- *
- * <p>Skill files live at {@code <project>/client/.claude/skills/<slug>/SKILL.md}.
- * The backing static is on {@link AppBuilderHarnessConfiguration}.
+ * A page of batches for an engine, as reported by the provider.
  */
-public class CreateAppSkillReactor extends AbstractReactor {
+public class BatchListResponse {
 
-	public CreateAppSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	private List<Map<String, Object>> batches = new ArrayList<>();
+
+	public List<Map<String, Object>> getBatches() {
+		return batches;
 	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId    = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName    = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
+	public Map<String, Object> toMap() {
+		Map<String, Object> out = new HashMap<>();
+		out.put("batches", batches);
+		return out;
+	}
 
-		User user = this.insight.getUser();
-		Boolean response = AppBuilderHarnessConfiguration.createSkill(user, projectId, skillName, skillContent);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	@SuppressWarnings("unchecked")
+	public static BatchListResponse fromObject(Object responseObject) {
+		Map<String, Object> map = BatchModelEngineResponseUtil.asMap(responseObject);
+		BatchListResponse r = new BatchListResponse();
+		Object batchesObj = map.get("batches");
+		if (batchesObj instanceof List) {
+			for (Object b : (List<Object>) batchesObj) {
+				if (b instanceof Map) {
+					r.batches.add((Map<String, Object>) b);
+				}
+			}
+		}
+		return r;
 	}
 }

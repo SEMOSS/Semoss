@@ -8,7 +8,7 @@ ARG CODEX_VERSION=0.80.0
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.118
+ARG TOMCAT_VERSION=9.0.119
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 

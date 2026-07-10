@@ -25,36 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.model.batch;
 
-import java.util.Map;
-
-import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.batch.ModelBatchManager;
+import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns a map of {@code CLAUDE.MD} + every skill's {@code SKILL.md} content.
- *
- * <p>Replaces {@code ClaudeCodeGetSkillsReactor}.
+ * Best-effort cancel of a submitted batch.
  */
-public class GetAppSkillsReactor extends AbstractReactor {
+public class CancelModelBatchReactor extends AbstractModelBatchReactor {
 
-	public GetAppSkillsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1 };
+	public CancelModelBatchReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.BATCH_ID.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
+		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
+		BatchStatusResponse response = engine.cancelBatch(batchId, baseParams());
+		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-		User user = this.insight.getUser();
-		Map<String, String> response = AppBuilderHarnessConfiguration.getSkills(user, projectId);
-		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Best-effort cancel of a submitted model batch";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.BATCH_ID.getKey())) {
+			return "The provider batch id returned when the batch was submitted";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

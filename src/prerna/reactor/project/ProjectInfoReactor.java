@@ -29,7 +29,6 @@ package prerna.reactor.project;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -86,8 +85,11 @@ public class ProjectInfoReactor extends AbstractReactor {
 		// append any gh keys with gh_ into the project info map
 		Map<String, Object> githubConnector = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (githubConnector != null && !githubConnector.isEmpty()) {
-			projectInfo.putAll(githubConnector.entrySet().stream()
-					.collect(Collectors.toMap(entry -> "gh_" + entry.getKey(), entry -> entry.getValue())));
+			githubConnector.forEach((key, value) -> {
+				if (value != null) {
+					projectInfo.put("gh_" + key, value);
+				}
+			});
 		}
 
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
@@ -100,6 +102,42 @@ public class ProjectInfoReactor extends AbstractReactor {
 		}
 
 		return null;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns the full settings/metadata record for a single project.
+
+				Access: the project must be one the current user can view, or the project must be marked discoverable. \
+				If neither is true the reactor throws "Project does not exist or user does not have access to the project". \
+				Use AdminProjectInfo if you need to read a project without regard to the caller's permissions.
+
+				Inputs:
+				  project  (required) - the project id.
+				  metaKeys (optional) - restrict the returned metadata tags to this list; omit to return all metadata.
+
+				Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
+				  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
+				    project_global, project_discoverable, project_catalog_name, project_created_by, project_created_by_type,
+				    project_date_created, project_date_last_edited, low_project_name, project_description.
+				  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
+				    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
+				    project_reactors_compiled_user_type. When project_has_portal is true, project_portal_url is also returned.
+				  Permission fields (relative to the calling user): user_permission, group_permission, permission, project_favorite.
+				  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
+				  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "Id of the project to look up";
+		} else if (ReactorKeysEnum.META_KEYS.getKey().equals(key)) {
+			return "Optional list of metadata tag names to return for the project; omit to return all metadata tags";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

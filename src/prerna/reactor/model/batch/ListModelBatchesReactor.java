@@ -25,36 +25,55 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.model.batch;
 
-import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Overwrites {@code SKILL.md} for an existing skill (creates the directory if missing).
- *
- * <p>Replaces {@code ClaudeCodeUpdateSkillReactor}.
+ * List the batches visible to a model engine's provider credentials.
  */
-public class UpdateAppSkillReactor extends AbstractReactor {
+public class ListModelBatchesReactor extends AbstractModelBatchReactor {
 
-	public UpdateAppSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	public ListModelBatchesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId    = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName    = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (!SecurityEngineUtils.userCanViewEngine(getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
+		}
+		int limit = 20;
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		if (limitStr != null && !limitStr.isEmpty()) {
+			try {
+				limit = Integer.parseInt(limitStr.trim());
+			} catch (NumberFormatException ignore) {
+				// keep default
+			}
+		}
+		List<Map<String, Object>> batches = ModelBatchManager.listUserBatches(getUser(), engineId, limit);
+		Map<String, Object> result = new HashMap<>();
+		result.put("batches", batches);
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-		User user = this.insight.getUser();
-		Boolean response = AppBuilderHarnessConfiguration.updateSkill(user, projectId, skillName, skillContent);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "List the batches visible to a model engine's provider credentials";
 	}
 }

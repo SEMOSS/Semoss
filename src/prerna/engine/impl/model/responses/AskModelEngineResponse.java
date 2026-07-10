@@ -28,6 +28,7 @@
 package prerna.engine.impl.model.responses;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +60,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 	public static final String SCHEMA_VERSION = "schemaVersion";
 	public static final String IO = "io";
 	public static final String PARTS = "parts";
+	public static final String METADATA = "metadata";
 	public static final String CHAT = "CHAT";
 	public static final String TOOL = "TOOL";
 	public static final String IMAGE = "IMAGE";
@@ -78,6 +80,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 	protected Integer schemaVersion;
 	protected MessageIO io;
 	protected List<MessagePart> parts;
+	protected Map<String, Object> metadata;
 
 	public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
 		super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
@@ -135,6 +138,14 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		this.parts = (parts == null) ? null : new ArrayList<>(parts);
 	}
 
+	public Map<String, Object> getMetadata() {
+		return metadata == null ? null : new HashMap<>(metadata);
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = (metadata == null) ? null : new HashMap<>(metadata);
+	}
+
 	@Override
 	public Map<String, Object> toMap() {
 		Map<String, Object> responseMap = super.toMap();
@@ -152,6 +163,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		if (this.thinking != null) {
 			responseMap.put(THINKING, this.thinking);
+		}
+		if (this.metadata != null && !this.metadata.isEmpty()) {
+			responseMap.put(METADATA, this.metadata);
 		}
 		return responseMap;
 	}
@@ -182,6 +196,14 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 			}
 		}
 		List<MessagePart> parts = parseParts(modelResponse.get(PARTS));
+
+		Map<String, Object> metadata = null;
+		Object metadataObj = modelResponse.get(METADATA);
+		if (metadataObj instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> md = (Map<String, Object>) metadataObj;
+			metadata = md;
+		}
 
 		// Set default messageType
 		String messageType = CHAT;
@@ -219,6 +241,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 			}
 			if (parts != null && !parts.isEmpty()) {
 				errorResponse.setParts(parts);
+			}
+			if (metadata != null) {
+				errorResponse.setMetadata(metadata);
 			}
 
 			Object thinkingObj = modelResponse.get(THINKING);
@@ -303,6 +328,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		if (parts != null && !parts.isEmpty()) {
 			askResponse.setParts(parts);
+		}
+		if (metadata != null) {
+			askResponse.setMetadata(metadata);
 		}
 		if (cacheReadTokens != null) {
 			askResponse.setNumberOfCacheReadTokens(cacheReadTokens);

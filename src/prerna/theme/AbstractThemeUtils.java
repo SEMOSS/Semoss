@@ -27,21 +27,17 @@
  *******************************************************************************/
 package prerna.theme;
 
-import java.io.IOException;
-import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -60,9 +56,9 @@ public abstract class AbstractThemeUtils {
 
 	public static void loadThemingDatabase() throws Exception {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
-		ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb.getQueryUtil());
+		if (owlCreator.needsRemake(themeDb)) {
+			owlCreator.remakeOwl(themeDb);
 		}
 		initialize();
 		initialized = true;
@@ -142,20 +138,15 @@ public abstract class AbstractThemeUtils {
 	}
 
 	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+		List<Map<String, Object>> result = new ArrayList<>();
 		while (wrapper.hasNext()) {
 			IHeadersDataRow headerRow = wrapper.next();
 			String[] headers = headerRow.getHeaders();
 			Object[] values = headerRow.getValues();
-			Map<String, Object> map = new HashMap<String, Object>();
+			Map<String, Object> map = new HashMap<>();
 			for (int i = 0; i < headers.length; i++) {
 				if (values[i] instanceof java.sql.Clob) {
-					try {
-						map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
-					} catch (IOException | SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Error occurred trying to read theme map");
-					}
+					map.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
 				} else {
 					map.put(headers[i], values[i]);
 				}
@@ -165,18 +156,4 @@ public abstract class AbstractThemeUtils {
 		return result;
 	}
 
-	static Object flushRsToObject(IRawSelectWrapper wrapper) {
-		Object obj = null;
-		if (wrapper.hasNext()) {
-			obj = wrapper.next().getValues()[0];
-			if (obj instanceof java.sql.Clob) {
-				try {
-					obj = IOUtils.toString(((java.sql.Clob) obj).getAsciiStream());
-				} catch (IOException | SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-		return obj;
-	}
 }
