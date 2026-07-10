@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.redis;
 
-import prerna.util.Utility;
+import prerna.cluster.util.clients.AppCloudClientProperties;
 
 /**
  * Shared Redis connection settings resolved from DI/RDF properties.
@@ -43,6 +43,8 @@ public final class RedisConnectionConfig {
 	public static final String REDIS_POOL_MAX_IDLE = "REDIS_POOL_MAX_IDLE";
 	public static final String REDIS_POOL_MIN_IDLE = "REDIS_POOL_MIN_IDLE";
 
+	private static final AppCloudClientProperties PROPS = AppCloudClientProperties.build();
+
 	private final String host;
 	private final int port;
 	private final String password;
@@ -51,8 +53,8 @@ public final class RedisConnectionConfig {
 	private final int poolMaxIdle;
 	private final int poolMinIdle;
 
-	private RedisConnectionConfig(String host, int port, String password, int timeoutMs,
-			int poolMaxTotal, int poolMaxIdle, int poolMinIdle) {
+	private RedisConnectionConfig(String host, int port, String password, int timeoutMs, int poolMaxTotal,
+			int poolMaxIdle, int poolMinIdle) {
 		this.host = host;
 		this.port = port;
 		this.password = password;
@@ -70,16 +72,13 @@ public final class RedisConnectionConfig {
 		int port = (int) getLongProperty(REDIS_PORT, 6379L);
 		int timeoutMs = (int) getLongProperty(REDIS_TIMEOUT_MS, 2000L);
 		String password = trimToNull(property(REDIS_PASSWORD));
-		int poolMaxTotal = Math.max(1,
-				(int) getLongProperty(REDIS_POOL_MAX_TOTAL, 64L));
-		int poolMaxIdle = Math.max(1,
-				(int) getLongProperty(REDIS_POOL_MAX_IDLE, 16L));
+		int poolMaxTotal = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_TOTAL, 64L));
+		int poolMaxIdle = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_IDLE, 16L));
 		poolMaxIdle = Math.min(poolMaxIdle, poolMaxTotal);
-		int poolMinIdle = Math.max(0,
-				(int) getLongProperty(REDIS_POOL_MIN_IDLE, 1L));
+		int poolMinIdle = Math.max(0, (int) getLongProperty(REDIS_POOL_MIN_IDLE, 1L));
 		poolMinIdle = Math.min(poolMinIdle, poolMaxIdle);
-		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs,
-				poolMaxTotal, poolMaxIdle, poolMinIdle);
+		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle,
+				poolMinIdle);
 	}
 
 	public String getHost() {
@@ -111,8 +110,8 @@ public final class RedisConnectionConfig {
 	}
 
 	public String cacheKey() {
-		return host + "|" + port + "|" + timeoutMs + "|" + nullToEmpty(password)
-				+ "|" + poolMaxTotal + "|" + poolMaxIdle + "|" + poolMinIdle;
+		return host + "|" + port + "|" + timeoutMs + "|" + nullToEmpty(password) + "|" + poolMaxTotal + "|"
+				+ poolMaxIdle + "|" + poolMinIdle;
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {
@@ -131,7 +130,8 @@ public final class RedisConnectionConfig {
 		if (key == null || key.trim().isEmpty()) {
 			return null;
 		}
-		return Utility.getDIHelperProperty(key);
+		// checks DIHelper (RDF_Map) first, then falls back to environment variables
+		return PROPS.get(key);
 	}
 
 	private static String trimToNull(String value) {
