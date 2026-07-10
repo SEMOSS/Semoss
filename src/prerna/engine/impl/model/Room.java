@@ -385,8 +385,8 @@ public class Room implements Serializable {
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
-		return addToolExecutionResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, paramValuesMap,
-				parentMessageId, modelEngine, insight, toolStatus, null);
+		return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
+				paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, null);
 	}
 
 	/**
@@ -403,6 +403,28 @@ public class Room implements Serializable {
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
 			ResponseMessage prebuiltResponse) {
+		return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
+				paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, prebuiltResponse);
+	}
+
+	/**
+	 * Adds a tool execution result to the active tool-call context and persists it
+	 * without invoking the model. Used by durable agent HITL resumes so the worker
+	 * owns the follow-up model call.
+	 */
+	public synchronized void addToolExecutionResultWithoutModel(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
+			IModelEngine modelEngine, Insight insight, String toolStatus) {
+		addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues, null,
+				parentMessageId, modelEngine, insight, toolStatus, false, null);
+	}
+
+	/**
+	 * Continues from a completed tool-result input message. Returns {@code null}
+	 * when the tool-call batch is still incomplete.
+	 */
+	public synchronized AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
@@ -410,79 +432,38 @@ public class Room implements Serializable {
 				throw new IllegalStateException("No messages to match tool call context");
 			}
 
-			String lastMessageId = null;
-			if (parentMessageId != null && !parentMessageId.isEmpty()) {
-				lastMessageId = parentMessageId;
-			} else {
-				// if no parent message id is passed in, use the last message as the parent.
-				AbstractMessage lastMsg = messages.get(messages.size() - 1);
-				lastMessageId = lastMsg.getMessageId();
+			String lastMessageId = resolveToolContinuationMessageId(parentMessageId);
+			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
+			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
+			if (toolResultsMessage == null) {
+				throw new IllegalStateException("No tool execution result message found to continue.");
+			}
+			if (!allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, null)) {
+				RoomMessageStore.persist(this, userId);
+				return null;
+			}
+			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
+					modelEngine, userId, false);
+		}
+	}
+
+	private AskModelEngineResponse addToolExecutionResultInternal(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
+			boolean continueWhenReady, ResponseMessage prebuiltResponse) {
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			RoomMessageStore.refreshFromLatestProjection(this, userId);
+			if (messages.isEmpty()) {
+				throw new IllegalStateException("No messages to match tool call context");
 			}
 
-			// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
-			ResponseMessage toolResponse = null;
-			List<AbstractMessage> branchMessages = MessageUtils.getMessageBranchFromParent(messages, lastMessageId);
-			for (int i = branchMessages.size() - 1; i >= 0; --i) {
-				AbstractMessage m = branchMessages.get(i);
-				// Stop if a user or assistant non-tool-response appears
-				if (m instanceof ResponseMessage) {
-					if (((ResponseMessage) m).hasToolResponses() || m.hasToolCallPart()) {
-						toolResponse = (ResponseMessage) m;
-						break;
-					} else if (m.hasTextPart()) {
-						break;
-					}
-				} else if (m instanceof InputMessage) {
-					if (m.hasToolResultPart()) {
-						continue;
-					}
-					break;
-				}
-			}
-			if (toolResponse == null) {
-				throw new IllegalStateException(
-						"No previous assistant tool_calls (RESPONSE_TOOL) message found immediately before tool execution(s).");
-			}
+			String lastMessageId = resolveToolContinuationMessageId(parentMessageId);
+			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
+			validateToolCallId(context.toolResponse, toolCallId);
 
-			// 2. Confirm tool_call_id is present in that RESPONSE_TOOL message's tool_calls
-			Map<String, Object> matchingToolCall = null;
-			for (Map<String, Object> toolCall : toolResponse.getToolResponses()) {
-				String thisId = String.valueOf(toolCall.get("id"));
-				if (toolCallId.equals(thisId)) {
-					matchingToolCall = toolCall;
-					break;
-				}
-			}
-			if (matchingToolCall == null) {
-				throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
-			}
-
-			// 3. Add tool execution result as a part to a single pending input message
-			int toolResponseIdx = -1;
-			for (int i = messages.size() - 1; i >= 0; --i) {
-				AbstractMessage m = messages.get(i);
-				if (m != null && toolResponse.getMessageId().equals(m.getMessageId())) {
-					toolResponseIdx = i;
-					break;
-				}
-			}
-			if (toolResponseIdx < 0) {
-				throw new IllegalStateException("Unable to locate tool response message in room history.");
-			}
-
+			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
-			InputMessage toolResultsMessage = null;
-			for (int i = messages.size() - 1; i > toolResponseIdx; --i) {
-				AbstractMessage m = messages.get(i);
-				if (m instanceof ResponseMessage) {
-					break;
-				}
-				if (m instanceof InputMessage && m.hasToolResultPart()
-						&& toolResponse.getMessageId().equals(m.getParentMessageId())) {
-					toolResultsMessage = (InputMessage) m;
-					break;
-				}
-			}
 
 			// Idempotency guard: if this toolCallId is already present in some
 			// tool_result InputMessage in the branch, skip the append entirely
@@ -490,10 +471,10 @@ public class Room implements Serializable {
 			// id cause providers to reject the next askRoom payload with
 			// "each tool_use must have a single result." This can happen when a
 			// live AddPlaygroundToolExecution call and a cancel-commit call
-			// (feat-cancel-llm-stream) both fire for the same tool, or on any
-			// FE retry / refresh-then-resend path.
+			// both fire for the same tool, or on any FE retry / refresh-then-
+			// resend path.
 			InputMessage existingCarrier = null;
-			for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
+			for (int i = context.toolResponseIdx + 1; i < messages.size(); ++i) {
 				AbstractMessage m = messages.get(i);
 				if (m instanceof ResponseMessage) {
 					break;
@@ -526,7 +507,7 @@ public class Room implements Serializable {
 						.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus,
 								false)
 						.withModelType(modelEngine.getModelType()).build();
-				toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
+				toolResultsMessage.setParentMessageId(context.toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
 				toolResultsMessage.setVisible(false);
 			} else {
@@ -535,45 +516,10 @@ public class Room implements Serializable {
 				toolResultsMessage.normalizeForWrite();
 			}
 
-			// 4. After the last RESPONSE_TOOL, gather all tool execution messages for that
-			// context
-			Set<String> allIds = new HashSet<>();
-			for (Map<String, Object> tc : toolResponse.getToolResponses()) {
-				allIds.add(String.valueOf(tc.get("id")));
-			}
-
-			Set<String> answeredIds = new HashSet<>();
-			// add this new tool call id
-			answeredIds.add(toolCallId);
-			// scan forward from toolResponse idx+1 to the end
-			for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
-				AbstractMessage m = messages.get(i);
-				if (m instanceof InputMessage && m.hasToolResultPart()) {
-					for (MessagePart p : m.getParts()) {
-						if (p instanceof ToolResultMessagePart) {
-							ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
-							if (tr != null && tr.getToolCallId() != null) {
-								answeredIds.add(tr.getToolCallId());
-							}
-						}
-					}
-					// legacy fallback
-					if (m instanceof InputMessage) {
-						String legacyId = ((InputMessage) m).getToolCallId();
-						if (legacyId != null) {
-							answeredIds.add(legacyId);
-						}
-					}
-				}
-			}
-
 			if (isToolResultsInputMessage) {
-				// add to the messages array if it is new
 				messages.add(toolResultsMessage);
 			}
-			// 5. If all tool_call_ids fulfilled, trigger next model.ask
-			// otherwise, we add the message and save the result
-			if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
+			if (!continueWhenReady || !allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
 				// Cancel-commit stranding the pending tools: sanitize orphan
 				// tool_use blocks (and their trailing tool_results) so the FE
 				// sees a clean room on refresh and the next askRoom payload
@@ -582,117 +528,222 @@ public class Room implements Serializable {
 				if (prebuiltResponse != null) {
 					RoomMessageStore.normalizeForProviderPayload(this);
 				}
-				// persist the new message (or just the part) into the room
 				RoomMessageStore.persist(this, userId);
-			} else {
-				// we have to add the tool results into the message history
-				// so that we can track for multiple tools
-				// so we are calling getting the current message history as the messages array
-				// already has the result
-				// as opposed to the normal
-				// getMessageHistoryWithNewMessage(List<AbstractMessage> messages,
-				// AbstractMessage newMessage) method
-				String messageJsonString = RoomMessageStore.currentMessageHistory(this);
-				if (paramValuesMap == null) {
-					paramValuesMap = new HashMap<>();
-				}
-				paramValuesMap.put("message_json", messageJsonString);
-				appendToolsToParams(paramValuesMap, modelEngine);
-
-				// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
-				// message row stores the actual tool output instead of null.
-				StringBuilder toolResultsForLogging = new StringBuilder();
-				for (MessagePart part : toolResultsMessage.getParts()) {
-					if (part instanceof ToolResultMessagePart) {
-						ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
-						if (tr != null && tr.getOutput() != null) {
-							if (toolResultsForLogging.length() > 0) {
-								toolResultsForLogging.append("\n");
-							}
-							toolResultsForLogging.append(tr.getOutput());
-						}
-					}
-				}
-
-				AskModelEngineResponse llmResponse = null;
-				ResponseMessage nextAssistant = null;
-				if (prebuiltResponse != null) {
-					// Cancel-persistence path: caller supplied the follow-up response
-					// (assembled from FE-streamed parts). Skip the LLM call and slot
-					// the pre-built message in as the next assistant message. Model /
-					// room / parent linkage still gets applied so downstream reads
-					// see a fully-formed message.
-					nextAssistant = prebuiltResponse;
-					nextAssistant.setModel(modelEngine);
-					nextAssistant.setRoom(this);
-					nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
-				} else {
-					try {
-						llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
-								paramValuesMap);
-						applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
-						nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine,
-								toolResultsMessage);
-					} catch (Exception e) {
-						// Rollback: only remove what THIS call added.
-						//   isToolResultsInputMessage = true  → we created & appended a fresh
-						//     InputMessage this call; pop it wholesale.
-						//   false → we appended a part to an existing InputMessage that
-						//     already carried tool_results from prior calls. Removing the
-						//     whole message would nuke that prior data (bug seen on cancel
-						//     mid-batch where AMZN's result gets discarded because GOOGL's
-						//     append triggered the failing askRoom). Revert only the part
-						//     we added for this toolCallId.
-						if (isToolResultsInputMessage) {
-							messages.removeLast();
-						} else {
-							toolResultsMessage.getParts().removeIf(p -> {
-								if (p instanceof ToolResultMessagePart) {
-									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
-									return tr != null && toolCallId.equals(tr.getToolCallId());
-								}
-								return false;
-							});
-							toolResultsMessage.normalizeForWrite();
-						}
-						classLogger.error(
-								"Error adding the tool result message and getting a model response. Error: {}",
-								e.getMessage(), e);
-						throw e;
-					}
-				}
-				// we have already added to the messages above
-				// we dont need to add again, only the response
-				// messages.add(toolResultsMessage);
-				messages.add(nextAssistant);
-
-				// --------- BEGIN TRANSACTION ID PROPAGATION ---------
-				// Step 1: retrieve or create transactionId from nextAssistant
-				String transactionId = nextAssistant.getTransactionId();
-				if (transactionId == null || transactionId.isEmpty()) {
-					transactionId = GUID.v7().toUUID().toString();
-					nextAssistant.setTransactionId(transactionId);
-				}
-
-				// Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant
-				// (exclusive)
-				for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
-					AbstractMessage m = messages.get(i);
-					if (m == nextAssistant) {
-						break; // Stop at nextAssistant (exclusive)
-					}
-					if (m == toolResultsMessage) {
-						m.setTransactionId(transactionId);
-					}
-				}
-				// --------- END TRANSACTION ID PROPAGATION ---------
-
-				RoomMessageStore.persist(this, userId);
-
-				return llmResponse;
+				return null;
 			}
-			// Not all tool_calls fulfilled yet
-			return null;
+			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
+					modelEngine, userId, true, prebuiltResponse, toolCallId, isToolResultsInputMessage);
+		}
+	}
+
+	private String resolveToolContinuationMessageId(String parentMessageId) {
+		if (parentMessageId != null && !parentMessageId.isEmpty()) {
+			return parentMessageId;
+		}
+		AbstractMessage lastMsg = messages.get(messages.size() - 1);
+		return lastMsg.getMessageId();
+	}
+
+	private ToolExecutionContext findToolExecutionContext(String lastMessageId) {
+		ResponseMessage toolResponse = null;
+		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranchFromParent(messages, lastMessageId);
+		for (int i = branchMessages.size() - 1; i >= 0; --i) {
+			AbstractMessage m = branchMessages.get(i);
+			if (m instanceof ResponseMessage) {
+				if (((ResponseMessage) m).hasToolResponses() || m.hasToolCallPart()) {
+					toolResponse = (ResponseMessage) m;
+					break;
+				} else if (m.hasTextPart()) {
+					break;
+				}
+			} else if (m instanceof InputMessage) {
+				if (m.hasToolResultPart()) {
+					continue;
+				}
+				break;
+			}
+		}
+		if (toolResponse == null) {
+			throw new IllegalStateException(
+					"No previous assistant tool_calls (RESPONSE_TOOL) message found immediately before tool execution(s).");
+		}
+
+		int toolResponseIdx = -1;
+		for (int i = messages.size() - 1; i >= 0; --i) {
+			AbstractMessage m = messages.get(i);
+			if (m != null && toolResponse.getMessageId().equals(m.getMessageId())) {
+				toolResponseIdx = i;
+				break;
+			}
+		}
+		if (toolResponseIdx < 0) {
+			throw new IllegalStateException("Unable to locate tool response message in room history.");
+		}
+		return new ToolExecutionContext(toolResponse, toolResponseIdx);
+	}
+
+	private static void validateToolCallId(ResponseMessage toolResponse, String toolCallId) {
+		for (Map<String, Object> toolCall : toolResponse.getToolResponses()) {
+			String thisId = String.valueOf(toolCall.get("id"));
+			if (toolCallId.equals(thisId)) {
+				return;
+			}
+		}
+		throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
+	}
+
+	private InputMessage findToolResultsMessage(ResponseMessage toolResponse, int toolResponseIdx) {
+		for (int i = messages.size() - 1; i > toolResponseIdx; --i) {
+			AbstractMessage m = messages.get(i);
+			if (m instanceof ResponseMessage) {
+				break;
+			}
+			if (m instanceof InputMessage && m.hasToolResultPart()
+					&& toolResponse.getMessageId().equals(m.getParentMessageId())) {
+				return (InputMessage) m;
+			}
+		}
+		return null;
+	}
+
+	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
+		Set<String> allIds = new HashSet<>();
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			allIds.add(String.valueOf(tc.get("id")));
+		}
+		if (allIds.isEmpty()) {
+			return false;
+		}
+
+		Set<String> answeredIds = new HashSet<>();
+		if (newToolCallId != null) {
+			answeredIds.add(newToolCallId);
+		}
+		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
+			AbstractMessage m = messages.get(i);
+			if (m instanceof InputMessage && m.hasToolResultPart()) {
+				for (MessagePart p : m.getParts()) {
+					if (p instanceof ToolResultMessagePart) {
+						ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+						if (tr != null && tr.getToolCallId() != null) {
+							answeredIds.add(tr.getToolCallId());
+						}
+					}
+				}
+				String legacyId = ((InputMessage) m).getToolCallId();
+				if (legacyId != null) {
+					answeredIds.add(legacyId);
+				}
+			}
+		}
+		return answeredIds.containsAll(allIds);
+	}
+
+	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
+			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
+			boolean removeToolResultsOnFailure) {
+		return continueFromToolResultsMessage(toolResponseIdx, toolResultsMessage, paramValuesMap, modelEngine, userId,
+				removeToolResultsOnFailure, null, null, false);
+	}
+
+	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
+			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
+			boolean removeToolResultsOnFailure, ResponseMessage prebuiltResponse, String toolCallId,
+			boolean isToolResultsInputMessage) {
+		String messageJsonString = RoomMessageStore.currentMessageHistory(this);
+		if (paramValuesMap == null) {
+			paramValuesMap = new HashMap<>();
+		}
+		paramValuesMap.put("message_json", messageJsonString);
+		appendToolsToParams(paramValuesMap, modelEngine);
+
+		StringBuilder toolResultsForLogging = new StringBuilder();
+		for (MessagePart part : toolResultsMessage.getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+				if (tr != null && tr.getOutput() != null) {
+					if (toolResultsForLogging.length() > 0) {
+						toolResultsForLogging.append("\n");
+					}
+					toolResultsForLogging.append(tr.getOutput());
+				}
+			}
+		}
+
+		AskModelEngineResponse llmResponse = null;
+		ResponseMessage nextAssistant = null;
+		if (prebuiltResponse != null) {
+			// Cancel-persistence path: caller supplied the follow-up response
+			// (assembled from FE-streamed parts). Skip the LLM call and slot the
+			// pre-built message in as the next assistant message.
+			nextAssistant = prebuiltResponse;
+			nextAssistant.setModel(modelEngine);
+			nextAssistant.setRoom(this);
+			nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
+		} else {
+			try {
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
+				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
+				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
+			} catch (Exception e) {
+				// Rollback: only remove what THIS call added.
+				//   isToolResultsInputMessage = true  → we created & appended a fresh
+				//     InputMessage this call; pop it wholesale.
+				//   false → we appended a part to an existing InputMessage that
+				//     already carried tool_results from prior calls. Removing the
+				//     whole message would nuke that prior data. Revert only the
+				//     part we added for this toolCallId.
+				if (removeToolResultsOnFailure && !messages.isEmpty()) {
+					if (isToolResultsInputMessage) {
+						messages.removeLast();
+					} else if (toolCallId != null) {
+						toolResultsMessage.getParts().removeIf(p -> {
+							if (p instanceof ToolResultMessagePart) {
+								ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+								return tr != null && toolCallId.equals(tr.getToolCallId());
+							}
+							return false;
+						});
+						toolResultsMessage.normalizeForWrite();
+					} else {
+						messages.removeLast();
+					}
+				}
+				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						e.getMessage(), e);
+				throw e;
+			}
+		}
+		messages.add(nextAssistant);
+
+		String transactionId = nextAssistant.getTransactionId();
+		if (transactionId == null || transactionId.isEmpty()) {
+			transactionId = GUID.v7().toUUID().toString();
+			nextAssistant.setTransactionId(transactionId);
+		}
+
+		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
+			AbstractMessage m = messages.get(i);
+			if (m == nextAssistant) {
+				break;
+			}
+			if (m == toolResultsMessage) {
+				m.setTransactionId(transactionId);
+			}
+		}
+
+		RoomMessageStore.persist(this, userId);
+		return llmResponse;
+	}
+
+	private static final class ToolExecutionContext {
+		private final ResponseMessage toolResponse;
+		private final int toolResponseIdx;
+
+		private ToolExecutionContext(ResponseMessage toolResponse, int toolResponseIdx) {
+			this.toolResponse = toolResponse;
+			this.toolResponseIdx = toolResponseIdx;
 		}
 	}
 
