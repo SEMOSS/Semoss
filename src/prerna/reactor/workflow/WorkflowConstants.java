@@ -117,6 +117,7 @@ public class WorkflowConstants {
     public static final String NODE_FOR_EACH = "for-each";
     public static final String NODE_TRANSFORM = "transform";
     public static final String NODE_SUB_WORKFLOW = "sub-workflow";
+    public static final String NODE_CONDITIONAL = "conditional";
 
     // ── Sub-workflow node config keys ─────────────────────────────────────────────
 

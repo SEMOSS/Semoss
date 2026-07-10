@@ -97,6 +97,21 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	private static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
 
 	/**
+	 * Per-thread JS engine cache — avoids the expensive SPI classpath scan that
+	 * ScriptEngineManager performs on every construction. Each thread in WORKFLOW_EXECUTOR
+	 * initialises its own engine once and reuses it for all subsequent evaluations.
+	 * The value is null when no JS engine is available on this JVM.
+	 */
+	private static final ThreadLocal<javax.script.ScriptEngine> JS_ENGINE_CACHE =
+			ThreadLocal.withInitial(() -> {
+				javax.script.ScriptEngineManager m = new javax.script.ScriptEngineManager();
+				javax.script.ScriptEngine e = m.getEngineByName("js");
+				if (e == null) e = m.getEngineByName("JavaScript");
+				if (e == null) e = m.getEngineByName("nashorn");
+				return e;
+			});
+
+	/**
 	 * Background pool for workflow execution. Bounded at 20 concurrent runs with a small queue
 	 * for brief spikes. Rejects beyond capacity so the caller gets an immediate error rather than
 	 * unbounded thread growth.
@@ -311,6 +326,8 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				rowCount = (Integer) forEachResult.get("totalRows");
 			} else if (WorkflowConstants.NODE_SUB_WORKFLOW.equals(type)) {
 				rawOutput = executeSubWorkflowNode(runId, nodeId, node, scope, ancestorProjectIds);
+			} else if (WorkflowConstants.NODE_CONDITIONAL.equals(type)) {
+				rawOutput = executeConditionalNode(runId, node, scope, configMap, ancestorProjectIds);
 			} else {
 				rawOutput = executeNodePixel(node, scope, configMap);
 			}
@@ -429,6 +446,120 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 					childResult.get(WorkflowConstants.ERROR_MESSAGE));
 		}
 		return childResult;
+	}
+
+	// ── Conditional Node Execution ────────────────────────────────────────────────
+
+	/**
+	 * Executes a "conditional" node: evaluates the condition expression against the
+	 * current scope, then runs the chosen branch (trueGraph or falseGraph) synchronously.
+	 * Branch node outputs are merged into the parent scope so downstream nodes can
+	 * reference them. Returns the last branch node's output, or the string "true"/"false"
+	 * if the chosen branch has no nodes.
+	 */
+	@SuppressWarnings("unchecked")
+	private Object executeConditionalNode(String runId, Map<String, Object> node,
+			Map<String, String> scope, Map<String, String> configMap,
+			Set<String> ancestorProjectIds) {
+
+		// Fix: null-safe label extraction (node.get("label") can be null/absent)
+		String nodeLabel = node.get("label") != null ? node.get("label").toString() : "unnamed";
+
+		Map<String, Object> config = (Map<String, Object>) node.get("config");
+		if (config == null) {
+			throw new IllegalArgumentException("Conditional node \"" + nodeLabel + "\" has no config");
+		}
+
+		String conditionTemplate = (String) config.get("condition");
+		if (conditionTemplate == null || conditionTemplate.isBlank()) {
+			throw new IllegalArgumentException("Conditional node \"" + nodeLabel + "\" has no condition set");
+		}
+
+		// Substitute scope variables into the condition expression, then evaluate as JS
+		String condition = WorkflowExecutionUtils.resolve(conditionTemplate, scope, configMap);
+		if (condition.equals(conditionTemplate)) {
+			classLogger.warn("Conditional node \"{}\": condition template unchanged after resolve — " +
+					"check that variable names match outputVar fields. Available scope keys: {}",
+					nodeLabel, scope.keySet());
+		}
+		boolean result = evaluateCondition(condition, nodeLabel);
+
+		// Pick the appropriate branch graph
+		Map<String, Object> branchGraph = (Map<String, Object>) config.get(result ? "trueGraph" : "falseGraph");
+		List<Map<String, Object>> branchNodes = branchGraph != null
+				? (List<Map<String, Object>>) branchGraph.get("nodes") : null;
+		List<Map<String, Object>> branchEdges = branchGraph != null
+				? (List<Map<String, Object>>) branchGraph.get("edges") : null;
+
+		if (branchNodes == null || branchNodes.isEmpty()) {
+			return result ? "true" : "false";
+		}
+
+		// Sort and execute branch nodes, inheriting (and writing back into) the parent scope
+		List<Map<String, Object>> ordered = topoSort(branchNodes, branchEdges);
+
+		// Fix: pre-insert branch node rows so markNodeRunning/updateNodeSuccess land correctly
+		WorkflowDatabaseUtility.insertAllNodeOutputs(runId, ordered);
+
+		// Fix: honour cancellation between branch steps
+		AtomicBoolean cancelFlag = CANCELLATION_FLAGS.get(runId);
+		String lastOutput = result ? "true" : "false";
+		for (Map<String, Object> branchNode : ordered) {
+			if (cancelFlag != null && cancelFlag.get()) {
+				throw new IllegalStateException("Run cancelled by user");
+			}
+			String branchNodeId = (String) branchNode.get("id");
+			String branchOutputVar = (String) branchNode.get("outputVar");
+			Map<String, Object> branchResult = executeSingleNode(
+					runId, branchNode, scope, configMap, 0, ancestorProjectIds);
+			String status = (String) branchResult.get(WorkflowConstants.STATUS);
+			if (!WorkflowConstants.NODE_STATUS_SUCCESS.equals(status)) {
+				String errorMsg = (String) branchResult.get(WorkflowConstants.ERROR_MESSAGE);
+				throw new IllegalStateException("Conditional branch node " + branchNodeId +
+						" failed: " + errorMsg);
+			}
+			// Fix: update lastOutput whenever a value is produced, regardless of outputVar
+			String outputValue = (String) branchResult.get("outputValue");
+			if (outputValue != null) {
+				lastOutput = outputValue;
+				if (branchOutputVar != null && !branchOutputVar.isEmpty()) {
+					scope.put(branchOutputVar, outputValue);
+				}
+			}
+		}
+		return lastOutput;
+	}
+
+	/**
+	 * Evaluates a condition expression string as JavaScript. After scope variable
+	 * substitution the expression is passed to the JS engine — e.g. {@code "0.85 > 0.8"},
+	 * {@code '"hello" === "hello"'}, {@code "null != null"}.
+	 *
+	 * <p>Falls back to a truthy string check if no JS engine is available.
+	 */
+	private boolean evaluateCondition(String expression, String nodeLabel) {
+		javax.script.ScriptEngine engine = JS_ENGINE_CACHE.get();
+
+		if (engine == null) {
+			// No JS engine — fall back to simple truthy check
+			String trimmed = expression.trim();
+			return !trimmed.isEmpty() && !"false".equalsIgnoreCase(trimmed)
+					&& !"null".equalsIgnoreCase(trimmed) && !"0".equals(trimmed);
+		}
+
+		try {
+			Object evalResult = engine.eval(expression);
+			if (evalResult instanceof Boolean) return (Boolean) evalResult;
+			if (evalResult instanceof Number) return ((Number) evalResult).doubleValue() != 0;
+			if (evalResult == null) return false;
+			String s = evalResult.toString().trim();
+			return !s.isEmpty() && !"false".equalsIgnoreCase(s)
+					&& !"null".equalsIgnoreCase(s) && !"0".equals(s);
+		} catch (javax.script.ScriptException e) {
+			throw new IllegalArgumentException("Conditional node \"" + nodeLabel +
+					"\" — condition evaluation failed: " + e.getMessage() +
+					"\n  Expression: " + expression);
+		}
 	}
 
 	// ── Node Pixel Execution ──────────────────────────────────────────────────────
