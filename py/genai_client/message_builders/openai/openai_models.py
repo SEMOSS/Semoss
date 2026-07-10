@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Literal, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field, field_validator
 from ...utils import StringEnum
 import json

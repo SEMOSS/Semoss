@@ -84,6 +84,11 @@ public class DeleteProjectReactor extends AbstractReactor {
 
 			IProject project = Utility.getProject(projectId);
 			deleteProject(project);
+			// also remove this project in case it is the current insight's project id
+			if (projectId.equals(this.insight.getContextProjectId())) {
+				this.insight.setContextProjectId(null);
+				this.insight.setContextProjectName(null);
+			}
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {

@@ -58,9 +58,12 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 		}
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		// editors/owners can read everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityEngineUtils.userCanEditEngine(user, engineId);
+		if (!canEdit && !SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
-					"Engine " + engineId + " does not exist or user does not have access to edit assets.");
+					"Engine " + engineId + " does not exist or user does not have access to view assets.");
 		}
 		// force to pull it from cloud if not in the container
 		IEngine engine = Utility.getEngine(engineId);
@@ -74,6 +77,8 @@ public class GetEngineAssetsBase64Reactor extends AbstractReactor {
 			filePath = "/" + filePath;
 		}
 		filePath = Utility.normalizePath(filePath);
+		// confine view-only users to the public folder (throws if outside it)
+		filePath = FileSystemUtil.resolveReadableAssetPath(canEdit, filePath);
 
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
