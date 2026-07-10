@@ -75,6 +75,14 @@ public final class AgentRunContext {
     // Resolved agent spec shared across harnesses.
     private final AgentConfig   agentConfig;
 
+    /**
+     * When {@code true}, the harness skips the initial model ask and picks up
+     * from the latest message in the room. Set when resuming a run that was
+     * paused on {@code SMSS_MCP_EXECUTION=ask} tools — the tool results have
+     * already been written to the room by {@code RunMCPToolReactor}.
+     */
+    private final boolean       resumeMode;
+
     private AgentRunContext(Builder b) {
         this.room          = b.room;
         this.modelEngine   = b.modelEngine;
@@ -87,6 +95,7 @@ public final class AgentRunContext {
         this.mediaUrls       = immutableStringList(b.mediaUrls);
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
+        this.resumeMode    = b.resumeMode;
     }
 
     // Live per-call state
@@ -153,6 +162,15 @@ public final class AgentRunContext {
     /** 0 = root run; checked against {@code agentConfig.getSpawnPolicy().getMaxSubagentDepth()}. */
     public int getSpawnDepth() {
         return spawnDepth;
+    }
+
+    /**
+     * @return {@code true} when this is a resumed run — the harness should
+     *         skip the initial model ask and continue from the room's latest
+     *         message.
+     */
+    public boolean isResumeMode() {
+        return resumeMode;
     }
 
     // Compatibility accessors (delegate to AgentConfig)
@@ -224,6 +242,8 @@ public final class AgentRunContext {
         // Either supplied directly or assembled from the legacy setters below.
         private AgentConfig   agentConfig;
 
+        private boolean       resumeMode = false;
+
         // Legacy field holders (used only when agentConfig is not supplied directly)
         private String              legacyFilePath;
         private Map<String, Object> legacyParamMap;
@@ -241,6 +261,8 @@ public final class AgentRunContext {
         public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
+
+        public Builder resumeMode(boolean resumeMode)        { this.resumeMode = resumeMode;       return this; }
 
         /** Sets the canonical agent spec. Preferred path. */
         public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }

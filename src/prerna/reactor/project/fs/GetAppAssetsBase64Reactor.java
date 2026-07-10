@@ -30,13 +30,14 @@ package prerna.reactor.project.fs;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
@@ -58,9 +59,12 @@ public class GetAppAssetsBase64Reactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+		// editors/owners can read everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
+		if (!canEdit && !SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit assets.");
+					"Project " + projectId + " does not exist or user does not have access to view assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
@@ -73,8 +77,11 @@ public class GetAppAssetsBase64Reactor extends AbstractReactor {
 			filePath = "/" + filePath;
 		}
 		filePath = Utility.normalizePath(filePath);
+		// confine view-only users to the public folder (throws if outside it)
+		filePath = FileSystemUtil.resolveReadableAssetPath(canEdit, filePath);
 
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		String output = FileSystemUtil.getAssetAsBase64(assetFolder, filePath);
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}

@@ -68,6 +68,8 @@ class AskModelEngineResponse2(BaseModel):
     parts: Optional[List[Dict[str, Any]]] = None
     messageType: str = "CHAT"
 
+    metadata: Optional[Dict[str, Any]] = None
+
     model_config = {"populate_by_name": True, "serialize_by_alias": True}
 
 
