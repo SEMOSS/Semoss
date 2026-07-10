@@ -32,9 +32,12 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -395,18 +398,20 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
-	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
+	 * Remove only the specific message(s) that carry a TOOL_CALL id which never gets a matching TOOL_RESULT.
+	 * Providers reject unpaired tool_use, but truncating the entire tail throws away perfectly good subsequent
+	 * turns (and breaks any caller that references a later message via parentMessageId). Instead, drop just
+	 * the offending message(s) and re-link the parentMessageId of any surviving child to the removed message's
+	 * parent so the branch chain stays intact.
 	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
 	 */
 	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
 		if (messages == null || messages.size() < 2) {
 			return messages != null ? messages : new ArrayList<>();
 		}
-		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
-		List<int[]> toolCallSlots = new ArrayList<>();
-		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
-		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
+		// pass 1: collect tool_use ids grouped by message index, and the full set of tool_result ids seen
+		Map<Integer, List<String>> toolCallIdsByIndex = new HashMap<>();
+		Set<String> resultIdsSeen = new HashSet<>();
 		for (int i = 0; i < messages.size(); i++) {
 			AbstractMessage m = messages.get(i);
 			if (m == null) continue;
@@ -415,11 +420,7 @@ public class MessageUtils {
 					Map<String, Object> tc = tcp.getToolCall();
 					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
 					if (id != null && !id.isBlank()) {
-						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
-							toolCallSlots.add(new int[] { i });
-							toolCallIdsPerSlot.add(new ArrayList<>());
-						}
-						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
+						toolCallIdsByIndex.computeIfAbsent(i, k -> new ArrayList<>()).add(id);
 					}
 				} else if (part instanceof ToolResultMessagePart trp) {
 					ToolResultPart tr = trp.getToolResult();
@@ -428,31 +429,55 @@ public class MessageUtils {
 				}
 			}
 		}
-		if (toolCallSlots.isEmpty()) return messages;
+		if (toolCallIdsByIndex.isEmpty()) return messages;
 
-		// pass 2: first slot with any unanswered id is the truncation point
-		int truncateAt = -1;
-		List<String> orphanIds = null;
-		for (int s = 0; s < toolCallSlots.size(); s++) {
-			List<String> unmatched = null;
-			for (String id : toolCallIdsPerSlot.get(s)) {
+		// pass 2: any message index with at least one unmatched tool_use id is offending
+		Set<Integer> offendingIndices = new TreeSet<>();
+		List<String> orphanIds = new ArrayList<>();
+		for (Map.Entry<Integer, List<String>> e : toolCallIdsByIndex.entrySet()) {
+			for (String id : e.getValue()) {
 				if (!resultIdsSeen.contains(id)) {
-					if (unmatched == null) unmatched = new ArrayList<>();
-					unmatched.add(id);
+					offendingIndices.add(e.getKey());
+					orphanIds.add(id);
 				}
 			}
-			if (unmatched != null && !unmatched.isEmpty()) {
-				truncateAt = toolCallSlots.get(s)[0];
-				orphanIds = unmatched;
-				break;
+		}
+		if (offendingIndices.isEmpty()) return messages;
+
+		// Build removedMessageId -> parentMessageId mapping for re-linking children
+		Map<String, String> removedIdToParentId = new HashMap<>();
+		for (int i : offendingIndices) {
+			AbstractMessage removed = messages.get(i);
+			if (removed != null && removed.getMessageId() != null) {
+				removedIdToParentId.put(removed.getMessageId(), removed.getParentMessageId());
 			}
 		}
-		if (truncateAt < 0) return messages;
+		// Resolve transitively so consecutive removals collapse into the nearest surviving ancestor
+		for (String id : new ArrayList<>(removedIdToParentId.keySet())) {
+			String parent = removedIdToParentId.get(id);
+			Set<String> guard = new HashSet<>();
+			while (parent != null && removedIdToParentId.containsKey(parent) && guard.add(parent)) {
+				parent = removedIdToParentId.get(parent);
+			}
+			removedIdToParentId.put(id, parent);
+		}
+
+		// Build sanitized list; re-link parentMessageId for any surviving child of a removed message
+		List<AbstractMessage> sanitized = new ArrayList<>(messages.size() - offendingIndices.size());
+		for (int i = 0; i < messages.size(); i++) {
+			if (offendingIndices.contains(i)) continue;
+			AbstractMessage m = messages.get(i);
+			if (m != null && m.getParentMessageId() != null
+					&& removedIdToParentId.containsKey(m.getParentMessageId())) {
+				m.setParentMessageId(removedIdToParentId.get(m.getParentMessageId()));
+			}
+			sanitized.add(m);
+		}
 
 		String roomId = room != null ? room.getId() : "<unknown>";
-		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
-				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
-		return new ArrayList<>(messages.subList(0, truncateAt));
+		classLogger.warn("sanitizeOrphanToolCalls: room {} removed {} message(s) at indices {} -- unpaired tool_use ids: {}",
+				roomId, offendingIndices.size(), offendingIndices, orphanIds);
+		return sanitized;
 	}
 
 	// --- Core two serialization methods ---
