@@ -327,7 +327,9 @@ public class ToDocxReactor extends AbstractReactor {
 		configureSecureXmlParsers(xHTMLImporter);
 		xHTMLImporter.setHyperlinkStyle("Hyperlink");
 
-		List<Object> convertedContent = xHTMLImporter.convert(sanitizedHtml, insightFolder);
+		// docx4j requires a URI (not a raw path) to resolve relative resources
+		String baseUri = new File(insightFolder).toURI().toString();
+		List<Object> convertedContent = xHTMLImporter.convert(sanitizedHtml, baseUri);
 		wordMLPackage.getMainDocumentPart().getContent().addAll(convertedContent);
 
 		File outputFile = new File(outputPath);
