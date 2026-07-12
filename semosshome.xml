@@ -15,13 +15,6 @@
 			<outputDirectory>config/docx4j</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>skills</directory>
-			<outputDirectory>skills</outputDirectory>
-			<excludes>
-				<exclude>**/.DS_Store</exclude>
-			</excludes>
-		</fileSet>
-		<fileSet>
 			<directory>db</directory>
 			<outputDirectory>db</outputDirectory>
 			<includes>

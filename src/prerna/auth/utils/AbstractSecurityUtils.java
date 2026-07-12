@@ -68,7 +68,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.SystemDefaultDatabases;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -2719,7 +2719,7 @@ public abstract class AbstractSecurityUtils {
 
 	public static boolean ignoreDatabase(String databaseId) {
 		// dont add default semoss databases to security
-		if (SystemDefaultDatabases.getDatabaseIgnoreSecurity().contains(databaseId)) {
+		if (SystemDefaultEngines.getDatabaseIgnoreSecurity().contains(databaseId)) {
 			return true;
 		}
 		// engine is an asset
