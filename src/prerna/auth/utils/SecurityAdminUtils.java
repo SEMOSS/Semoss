@@ -280,8 +280,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserEngines(String userId, List<String> engineTypes)
-			throws IllegalArgumentException {
+	public List<Map<String, Object>> getAllUserEngines(String userId, List<String> engineTypes, String searchTerm,
+			long limit, long offset) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID", "user_id"));
@@ -302,8 +302,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
 				"ENGINE__ENGINEDISPLAYNAME", "low_engine_name"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
@@ -370,7 +383,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUserProjects(String userId) throws IllegalArgumentException {
+	public List<Map<String, Object>> getAllUserProjects(String userId, List<String> projectTypes, String searchTerm,
+			long limit, long offset) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID", "user_id"));
@@ -378,10 +392,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "project_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", projectTypes));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTDISPLAYNAME", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
 		qs.addRelation("PROJECTPERMISSION", "PROJECT", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
 				"PROJECT__PROJECTDISPLAYNAME", "low_project_name"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
@@ -399,13 +430,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getUserProjectsNoCredentials(String userId, String searchTerm, long limit,
-			long offset) {
+	public List<Map<String, Object>> getUserProjectsNoCredentials(String userId, List<String> projectTypes,
+			String searchTerm, long limit, long offset) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		// Anti-join: exclude projects this user already has a PROJECTPERMISSION for
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
@@ -414,6 +446,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
 					PixelDataType.NULL_VALUE));
+		}
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", projectTypes));
 		}
 		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
 			OrQueryFilter or = new OrQueryFilter();
