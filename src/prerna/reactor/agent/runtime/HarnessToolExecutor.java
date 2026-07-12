@@ -28,6 +28,7 @@
 package prerna.reactor.agent.runtime;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,6 +55,7 @@ import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -109,6 +111,45 @@ final class HarnessToolExecutor {
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
 
+		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
+		// Non-ask tools still execute immediately and write their tool results to the
+		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
+		List<Map<String, Object>> askToolCalls = getAskToolCalls(toolCalls);
+		if (!askToolCalls.isEmpty()) {
+			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
+			for (Map<String, Object> toolCall : toolCalls) {
+				if (!isAskTool(toolCall)) {
+					autoToolCalls.add(toolCall);
+				}
+			}
+			if (!autoToolCalls.isEmpty()) {
+				logger.info("HarnessToolExecutor: executing {} non-ask tool(s) before pausing for {} ask tool(s) iter={} room={}",
+						autoToolCalls.size(), askToolCalls.size(), state.getIterations(), room.getId());
+				executeToolCalls(autoToolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+			}
+			throw new AgentInputRequiredException(parentMsgId, askToolCalls);
+		}
+
+		nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
+				spawnsRemainingInBatch);
+
+		if (nextModelResp == null) {
+			return null;
+		}
+		Object lastMsg = room.getMessages().getLast();
+		if (lastMsg instanceof ResponseMessage) {
+			return (ResponseMessage) lastMsg;
+		}
+		logger.warn("HarnessToolExecutor: last message after tool batch is not ResponseMessage: {}",
+				lastMsg == null ? "null" : lastMsg.getClass().getName());
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static AskModelEngineResponse<?> executeToolCalls(List<Map<String, Object>> toolCalls, AgentLoopState state,
+			Map<String, Object> paramMap, String parentMsgId, AgentRunContext ctx, String jobId,
+			AtomicInteger spawnsRemainingInBatch) {
+		AskModelEngineResponse<?> nextModelResp = null;
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
 			ToolExecResult r = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
@@ -118,7 +159,7 @@ final class HarnessToolExecutor {
 
 		} else {
 			logger.info("HarnessToolExecutor: {} tools in parallel iter={} room={}", toolCalls.size(),
-					state.getIterations(), room.getId());
+					state.getIterations(), ctx.getRoom().getId());
 
 			try (ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size())) {
 				CompletableFuture<ToolExecResult>[] futures = new CompletableFuture[toolCalls.size()];
@@ -167,17 +208,7 @@ final class HarnessToolExecutor {
 				}
 			}
 		}
-
-		if (nextModelResp == null) {
-			return null;
-		}
-		Object lastMsg = room.getMessages().getLast();
-		if (lastMsg instanceof ResponseMessage) {
-			return (ResponseMessage) lastMsg;
-		}
-		logger.warn("HarnessToolExecutor: last message after tool batch is not ResponseMessage: {}",
-				lastMsg == null ? "null" : lastMsg.getClass().getName());
-		return null;
+		return nextModelResp;
 	}
 
 	/**
@@ -217,6 +248,39 @@ final class HarnessToolExecutor {
 				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
 
 		return new ToolExecResult(record, modelResp);
+	}
+
+	/**
+	 * Return only the tool calls in the batch with
+	 * {@code SMSS_MCP_EXECUTION=ask}.
+	 * The enriched {@code _meta} is attached by
+	 * {@code Room.updateToolResponseMeta()} before this method is called.
+	 */
+	private static List<Map<String, Object>> getAskToolCalls(List<Map<String, Object>> toolCalls) {
+		List<Map<String, Object>> askToolCalls = new ArrayList<>();
+		if (toolCalls == null || toolCalls.isEmpty()) {
+			return askToolCalls;
+		}
+		for (Map<String, Object> toolCall : toolCalls) {
+			if (isAskTool(toolCall)) {
+				askToolCalls.add(toolCall);
+			}
+		}
+		return askToolCalls;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static boolean isAskTool(Map<String, Object> toolCall) {
+		if (toolCall == null) {
+			return false;
+		}
+		Object metaObj = toolCall.get("_meta");
+		if (!(metaObj instanceof Map)) {
+			return false;
+		}
+		Map<String, Object> meta = (Map<String, Object>) metaObj;
+		Object execValue = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
+		return "ask".equalsIgnoreCase(String.valueOf(execValue));
 	}
 
 	private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,

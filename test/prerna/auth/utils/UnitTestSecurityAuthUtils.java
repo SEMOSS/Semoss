@@ -271,7 +271,7 @@ public class UnitTestSecurityAuthUtils {
 
 	static void createProject(String id, String name, User user, boolean hasPortal) {
 		String userId = user.getPrimaryLoginToken().getId();
-		SecurityProjectUtils.addProject(id, name, "APP", null, hasPortal, null, false, user);
+		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
 		SecurityProjectUtils.addProjectOwner(user, id, userId);
 	}
 

@@ -88,7 +88,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			}
 
 			ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, IProject.PROJECT_TYPE.WORKSPACE, false,
-					false, null, null, null, user, logger);
+					null, null, user, logger);
 		}
 
 		String permission = null;

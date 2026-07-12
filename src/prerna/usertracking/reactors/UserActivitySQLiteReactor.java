@@ -68,4 +68,9 @@ public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
 		this.qs.merge(sQs);
 		return this.qs;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Builds a query struct returning user login counts by day from the SQLite user tracking database.";
+	}
 }
