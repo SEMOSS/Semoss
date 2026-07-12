@@ -724,6 +724,32 @@ class ModelEngine(AbstractModelEngine):
 
                 allow_population_by_field_name = True
 
+            def bind_tools(
+                self,
+                tools: List[Any],
+                *,
+                tool_choice: Optional[Any] = None,
+                **kwargs: Any,
+            ):
+                """Bind LangChain tools onto the chat model.
+
+                Tools are converted to the OpenAI function-schema shape SEMOSS
+                already normalizes on (see ``semoss_base.semoss_message_builder``
+                for the canonical tool_call dict). This is what makes the model
+                usable inside ``langgraph.prebuilt.create_react_agent`` and any
+                downstream framework that speaks LangChain's tool-calling
+                protocol.
+                """
+                from langchain_core.utils.function_calling import (
+                    convert_to_openai_tool,
+                )
+
+                formatted = [convert_to_openai_tool(t) for t in tools]
+                bind_kwargs: Dict[str, Any] = {"tools": formatted, **kwargs}
+                if tool_choice is not None:
+                    bind_kwargs["tool_choice"] = tool_choice
+                return self.bind(**bind_kwargs)
+
             def _generate(
                 self,
                 messages: List[BaseMessage],
@@ -746,6 +772,46 @@ class ModelEngine(AbstractModelEngine):
 
                 return self._create_chat_result(response=response[0])
 
+            def _extract_tool_calls(self, response: Dict[str, Any]) -> List[Dict[str, Any]]:
+                """Return LangChain-shaped tool_calls from a raw model response.
+
+                Handles the three shapes SEMOSS providers commonly return:
+                openai-style ``tool_calls``, anthropic-style ``tool_use``
+                blocks, and gemini-style ``function_calls``. Returns ``[]``
+                when nothing tool-shaped is present.
+                """
+                import json as _json
+
+                raw = (
+                    response.pop("tool_calls", None)
+                    or response.pop("tool_uses", None)
+                    or response.pop("function_calls", None)
+                )
+                if not raw:
+                    return []
+
+                normalized: List[Dict[str, Any]] = []
+                for i, item in enumerate(raw):
+                    fn = item.get("function") or item
+                    name = fn.get("name") or item.get("name")
+                    args = fn.get("arguments") or item.get("input") or {}
+                    if isinstance(args, str):
+                        try:
+                            args = _json.loads(args)
+                        except Exception:
+                            args = {"_raw": args}
+                    if not name:
+                        continue
+                    normalized.append(
+                        {
+                            "name": name,
+                            "args": args,
+                            "id": str(item.get("id") or f"call_{i}"),
+                            "type": "tool_call",
+                        }
+                    )
+                return normalized
+
             def _create_chat_result(self, response: Dict[str, Any]) -> ChatResult:
                 generations = []
 
@@ -753,8 +819,14 @@ class ModelEngine(AbstractModelEngine):
                 generation_info = dict()
                 if "logprobs" in response.keys():
                     generation_info["logprobs"] = response.pop("logprobs", {})
+
+                tool_calls = self._extract_tool_calls(response)
+                ai_kwargs: Dict[str, Any] = {"content": message}
+                if tool_calls:
+                    ai_kwargs["tool_calls"] = tool_calls
+
                 gen = ChatGeneration(
-                    message=AIMessage(content=message),
+                    message=AIMessage(**ai_kwargs),
                     generation_info=generation_info,
                 )
 
