@@ -194,10 +194,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EMAIL", "email"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "ADMIN", "admin"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PUBLISHER", "publisher"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EXPORTER", "EXPORTER"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EXPORTER", "exporter"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONE", "phone"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONEEXTENSION", "phoneextension"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "ountrycode"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "countrycode"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
@@ -244,10 +244,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EMAIL", "email"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "ADMIN", "admin"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PUBLISHER", "publisher"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EXPORTER", "EXPORTER"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "EXPORTER", "exporter"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONE", "phone"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "PHONEEXTENSION", "phoneextension"));
-		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "ountrycode"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "COUNTRYCODE", "countrycode"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
