@@ -209,7 +209,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 
 	@Test
 	void testGetAllUserEngines_empty() {
-		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", null);
+		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", null, null, -1, -1);
 		assertNotNull(engines);
 		assertTrue(engines.isEmpty());
 	}
@@ -218,7 +218,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testGetAllUserEngines_hasEngines() {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 
-		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", null);
+		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", null, null, -1, -1);
 		assertNotNull(engines);
 		assertEquals(1, engines.size());
 	}
@@ -229,7 +229,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		UnitTestSecurityAuthUtils.createEngine("model1", "Model One", IEngine.CATALOG_TYPE.MODEL, adminUser);
 
 		List<String> types = List.of("DATABASE");
-		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", types);
+		List<Map<String, Object>> engines = instance.getAllUserEngines("adminid", types, null, -1, -1);
 		assertNotNull(engines);
 		assertEquals(1, engines.size());
 	}
@@ -240,7 +240,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 
 	@Test
 	void testGetAllUserProjects_empty() {
-		List<Map<String, Object>> projects = instance.getAllUserProjects("adminid");
+		List<Map<String, Object>> projects = instance.getAllUserProjects("adminid", null, null, -1, -1);
 		assertNotNull(projects);
 		assertTrue(projects.isEmpty());
 	}
@@ -249,7 +249,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testGetAllUserProjects_hasProjects() {
 		UnitTestSecurityAuthUtils.createProject("project1", "Project One", adminUser);
 
-		List<Map<String, Object>> projects = instance.getAllUserProjects("adminid");
+		List<Map<String, Object>> projects = instance.getAllUserProjects("adminid", null, null, -1, -1);
 		assertNotNull(projects);
 		assertEquals(1, projects.size());
 	}
