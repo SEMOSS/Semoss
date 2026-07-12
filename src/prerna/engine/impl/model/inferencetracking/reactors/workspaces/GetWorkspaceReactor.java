@@ -89,7 +89,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			}
 
 			ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, IProject.PROJECT_TYPE.WORKSPACE, false,
-					false, null, null, null, user, logger);
+					null, null, user, logger);
 		}
 
 		String permission = null;
@@ -193,8 +193,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
 	 * slug in {@code CONFIG_JSON.platform_skills[]}) to {@code skills}. Each entry
 	 * carries {@code id} (= slug), {@code slug}, {@code type=PLATFORM_SKILL}, and
 	 * {@code name}/{@code description} resolved from the on-disk catalog - falling
-	 * back to the slug for name when a slug is no longer present on disk so it stays
-	 * visible (and detachable) in the UI.
+	 * back to the slug for name when a slug is no longer present on disk so it
+	 * stays visible (and detachable) in the UI.
 	 */
 	private void mergePlatformSkills(String workspaceId, List<Map<String, String>> skills) {
 		try {

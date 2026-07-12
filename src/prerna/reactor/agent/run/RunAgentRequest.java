@@ -51,10 +51,19 @@ public final class RunAgentRequest {
 	private final List<String> mediaInputPaths;
 	private final List<String> mediaUrls;
 	private final Insight insight;
+	private final boolean resumeMode;
 
 	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
+		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
+				agentParamMap, mediaInputPaths, mediaUrls, insight, false);
+	}
+
+	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
+			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
+			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
+			boolean resumeMode) {
 		this.roomId = roomId;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -70,6 +79,7 @@ public final class RunAgentRequest {
 			this.paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, workspaceId);
 		}
 		this.insight = insight;
+		this.resumeMode = resumeMode;
 	}
 
 	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
@@ -127,6 +137,10 @@ public final class RunAgentRequest {
 		return insight;
 	}
 
+	public boolean isResumeMode() {
+		return resumeMode;
+	}
+
 	public Map<String, Object> toPersistedMap() {
 		Map<String, Object> map = new HashMap<>();
 		map.put("roomId", roomId);
@@ -140,6 +154,7 @@ public final class RunAgentRequest {
 		map.put("agentParamMap", getAgentParamMap());
 		map.put("mediaInputPaths", getMediaInputPaths());
 		map.put("mediaUrls", getMediaUrls());
+		map.put("resumeMode", resumeMode);
 		return map;
 	}
 
@@ -160,7 +175,8 @@ public final class RunAgentRequest {
 				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
 				listValue(map.get("mediaInputPaths")),
 				listValue(map.get("mediaUrls")),
-				insight);
+				insight,
+				booleanValue(map.get("resumeMode")));
 	}
 
 	private static List<String> immutableStringList(List<String> values) {
@@ -212,5 +228,12 @@ public final class RunAgentRequest {
 			}
 		}
 		return defaultValue;
+	}
+
+	private static boolean booleanValue(Object value) {
+		if (value == null) {
+			return false;
+		}
+		return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value));
 	}
 }

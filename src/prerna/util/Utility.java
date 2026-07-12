@@ -1967,25 +1967,6 @@ public final class Utility {
 				}
 			}
 
-			// clean up the SMSS files
-			{
-				try {
-					Properties props = Utility.loadProperties(smssFilePath);
-					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP) + "");
-					if (!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
-						classLogger.info("Updating project smss to include public home property");
-						Map<String, String> mods = new HashMap<>();
-						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
-						Utility.addKeysAtLocationIntoPropertiesFile(smssFilePath, Constants.CONNECTION_URL, mods);
-						// push to cloud
-						ClusterUtil.pushProjectSmss(projectId);
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
-					// ignore
-				}
-			}
-
 			// we store the smss location in DIHelper
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
 

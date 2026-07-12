@@ -173,6 +173,24 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));
+
+		addTable("AGENT_RUN_ACTION", Arrays.asList(
+				Pair.with("ACTION_ID", VARCHAR_50),
+				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("PARENT_MESSAGE_ID", VARCHAR_50),
+				Pair.with("TOOL_CALL_ID", VARCHAR_255),
+				Pair.with("TOOL_NAME", VARCHAR_255),
+				Pair.with("TOOL_ARGS", CLOB_DATATYPE_NAME),
+				Pair.with("EDITED_ARGS", CLOB_DATATYPE_NAME),
+				Pair.with("TOOL_META", CLOB_DATATYPE_NAME),
+				Pair.with("HAS_UI", VARCHAR_50),
+				Pair.with("UI_URL", CLOB_DATATYPE_NAME),
+				Pair.with("STATUS", VARCHAR_50),
+				Pair.with("RESULT", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255)));
 		// @formatter:on
 	}
 
