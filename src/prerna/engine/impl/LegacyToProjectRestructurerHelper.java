@@ -44,7 +44,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -370,15 +369,11 @@ public class LegacyToProjectRestructurerHelper {
 		Properties prop = null;
 		RdbmsTypeEnum existingRdbmsType = null;
 		IProject.PROJECT_TYPE projectEnumType = IProject.PROJECT_TYPE.INSIGHTS;
-		boolean hasPortal = false;
-		String portalName = null;
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
 		try {
 			prop = Utility.loadProperties(dbSmssFile);
 			existingRdbmsType = RdbmsTypeEnum.valueOf(prop.get(Constants.RDBMS_INSIGHTS_TYPE) + "");
-			hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
-			portalName = prop.getProperty(Settings.PORTAL_NAME);
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
 			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 		} catch (Exception e) {
@@ -386,7 +381,7 @@ public class LegacyToProjectRestructurerHelper {
 		}
 
 		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectEnumType,
-				hasPortal, portalName, projectGitProvider, projectGitCloneUrl, existingRdbmsType);
+				projectGitProvider, projectGitCloneUrl, existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);

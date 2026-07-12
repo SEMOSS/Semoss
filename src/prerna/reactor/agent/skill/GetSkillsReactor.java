@@ -46,26 +46,29 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Lists skills the caller can see, with an optional scope filter.
  *
- * <p>Skills are Projects of type {@code SKILL}. Access is determined entirely by
- * project permissions: the {@code accessible} filter returns every skill-project
- * the user can view via {@code PROJECTUSER} / {@code GROUPPROJECTPERMISSION} (the
- * same machinery that gates workspaces).
+ * <p>
+ * Skills are Projects of type {@code SKILL}. Access is determined entirely by
+ * project permissions: the {@code accessible} filter returns every
+ * skill-project the user can view via {@code PROJECTUSER} /
+ * {@code GROUPPROJECTPERMISSION} (the same machinery that gates workspaces).
  *
- * <p>Inputs (all optional):
+ * <p>
+ * Inputs (all optional):
  * <ul>
- *   <li>{@code filter} - one of {@code mine | platform | accessible}.
- *       Default {@code accessible}.
- *     <ul>
- *       <li>{@code mine}       - skills where {@code CREATED_BY = me}</li>
- *       <li>{@code platform}   - built-in platform skills (disk-backed folders under
- *           {@code <BASE_FOLDER>/skills/}; keyed by slug, no {@code skill_id})</li>
- *       <li>{@code accessible} - every skill-project the user can view, plus all
- *           platform skills (this is the default when no {@code filter} is given)</li>
- *     </ul>
- *   </li>
+ * <li>{@code filter} - one of {@code mine | platform | accessible}. Default
+ * {@code accessible}.
+ * <ul>
+ * <li>{@code mine} - skills where {@code CREATED_BY = me}</li>
+ * <li>{@code platform} - built-in platform skills (disk-backed folders under
+ * {@code <BASE_FOLDER>/skills/}; keyed by slug, no {@code skill_id})</li>
+ * <li>{@code accessible} - every skill-project the user can view, plus all
+ * platform skills (this is the default when no {@code filter} is given)</li>
+ * </ul>
+ * </li>
  * </ul>
  *
- * <p>Returns a list of skill maps; each map has the same shape as
+ * <p>
+ * Returns a list of skill maps; each map has the same shape as
  * {@code ModelInferenceLogsUtils.getSkillEntry}. Rows are sorted by
  * {@code DATE_UPDATED} desc.
  */
@@ -73,8 +76,8 @@ public class GetSkillsReactor extends AbstractReactor {
 
 	private static final String FILTER = "filter";
 
-	private static final String FILTER_MINE       = "mine";
-	private static final String FILTER_PLATFORM   = "platform";
+	private static final String FILTER_MINE = "mine";
+	private static final String FILTER_PLATFORM = "platform";
 	private static final String FILTER_ACCESSIBLE = "accessible";
 
 	public GetSkillsReactor() {
@@ -87,8 +90,7 @@ public class GetSkillsReactor extends AbstractReactor {
 		organizeKeys();
 
 		String filterInput = this.keyValue.get(FILTER);
-		String filter = (filterInput == null || filterInput.isEmpty())
-				? FILTER_ACCESSIBLE
+		String filter = (filterInput == null || filterInput.isEmpty()) ? FILTER_ACCESSIBLE
 				: filterInput.trim().toLowerCase();
 
 		User user = this.insight.getUser();
@@ -96,34 +98,35 @@ public class GetSkillsReactor extends AbstractReactor {
 
 		List<Map<String, Object>> rows;
 		switch (filter) {
-			case FILTER_MINE:
-				if (userId == null) {
-					throw new IllegalArgumentException("filter='mine' requires an authenticated user");
+		case FILTER_MINE:
+			if (userId == null) {
+				throw new IllegalArgumentException("filter='mine' requires an authenticated user");
+			}
+			rows = ModelInferenceLogsUtils.listSkills(null, userId);
+			break;
+		case FILTER_PLATFORM:
+			// Platform skills are disk-backed folders under <BASE_FOLDER>/skills/,
+			// not SKILL__ rows - enumerate them from disk (no skill_id; keyed by slug).
+			rows = PlatformSkills.list();
+			break;
+		case FILTER_ACCESSIBLE:
+			Set<String> visibleProjectIds = getVisibleSkillProjectIds(user);
+			List<Map<String, Object>> all = ModelInferenceLogsUtils.listSkills(null, null);
+			rows = new ArrayList<>(all.size());
+			for (Map<String, Object> row : all) {
+				String skillId = stringOf(row.get("skill_id"));
+				if (skillId != null && visibleProjectIds.contains(skillId)) {
+					rows.add(row);
 				}
-				rows = ModelInferenceLogsUtils.listSkills(null, userId);
-				break;
-			case FILTER_PLATFORM:
-				// Platform skills are disk-backed folders under <BASE_FOLDER>/skills/,
-				// not SKILL__ rows - enumerate them from disk (no skill_id; keyed by slug).
-				rows = PlatformSkills.list();
-				break;
-			case FILTER_ACCESSIBLE:
-				Set<String> visibleProjectIds = getVisibleSkillProjectIds(user);
-				List<Map<String, Object>> all = ModelInferenceLogsUtils.listSkills(null, null);
-				rows = new ArrayList<>(all.size());
-				for (Map<String, Object> row : all) {
-					String skillId = stringOf(row.get("skill_id"));
-					if (skillId != null && visibleProjectIds.contains(skillId)) {
-						rows.add(row);
-					}
-				}
-				// Platform skills are global, read-only built-ins available to everyone,
-				// so they are always part of the accessible set (origin=PLATFORM, keyed by slug).
-				rows.addAll(PlatformSkills.list());
-				break;
-			default:
-				throw new IllegalArgumentException(
-						"Unknown filter '" + filterInput + "' - expected one of: mine, platform, accessible");
+			}
+			// Platform skills are global, read-only built-ins available to everyone,
+			// so they are always part of the accessible set (origin=PLATFORM, keyed by
+			// slug).
+			rows.addAll(PlatformSkills.list());
+			break;
+		default:
+			throw new IllegalArgumentException(
+					"Unknown filter '" + filterInput + "' - expected one of: mine, platform, accessible");
 		}
 
 		return new NounMetadata(rows, PixelDataType.VECTOR, PixelOperationType.OPERATION);
@@ -137,7 +140,7 @@ public class GetSkillsReactor extends AbstractReactor {
 	private static Set<String> getVisibleSkillProjectIds(User user) {
 		Map<String, Object> projectMetadataFilter = new HashMap<>();
 		projectMetadataFilter.put("tag", ModelInferenceLogsUtils.SKILL_PROJECT_TAG);
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, null, false, false,
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, null, false,
 				projectMetadataFilter, null, null, null, null);
 		Set<String> ids = new HashSet<>();
 		for (Map<String, Object> project : projectInfo) {

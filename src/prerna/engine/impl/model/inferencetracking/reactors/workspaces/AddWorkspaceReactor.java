@@ -54,8 +54,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 	private static final String CLASS_NAME = AddWorkspaceReactor.class.getName();
 
 	public AddWorkspaceReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
-				SKILLS, PLATFORM_SKILLS };
+		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS,
+				PLATFORM_SKILLS };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -94,7 +94,7 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		IProject workspaceProject = null;
 		try {
 			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName,
-					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
+					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, user, logger);
 			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);

@@ -202,6 +202,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "LOCKED", "locked"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "TYPE"));
 		if (hasSearchTerm) {
@@ -289,19 +290,82 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
+		// Additive engine_* keys (keep app_* above so legacy BI keeps working) +
+		// type/subtype
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "engine_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
 		}
 		qs.addRelation("ENGINEPERMISSION", "ENGINE", "inner.join");
 		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+				"ENGINE__ENGINEDISPLAYNAME", "low_engine_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get the engines a given user does NOT have access to (the inverse of
+	 * getAllUserEngines). Used by admins to grant a user new engine access.
+	 *
+	 * @param userId
+	 * @param engineTypes optional list of engine types to constrain to
+	 * @param searchTerm  optional search across engine id/name/display name
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<Map<String, Object>> getUserEnginesNoCredentials(String userId, List<String> engineTypes,
+			String searchTerm, long limit, long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		// Anti-join: exclude engines this user already has an ENGINEPERMISSION for
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.NULL_VALUE));
+		}
+		if (engineTypes != null && !engineTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+				"ENGINE__ENGINEDISPLAYNAME", "low_engine_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
 	 * Get all user projects
-	 * 
+	 *
 	 * @param userId
 	 * @return
 	 * @throws IllegalArgumentException
@@ -318,13 +382,62 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
 		qs.addRelation("PROJECTPERMISSION", "PROJECT", "inner.join");
 		qs.addRelation("PROJECTPERMISSION", "PERMISSION", "inner.join");
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+				"PROJECT__PROJECTDISPLAYNAME", "low_project_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get the projects a given user does NOT have access to (the inverse of
+	 * getAllUserProjects). Used by admins to grant a user new project access.
+	 *
+	 * @param userId
+	 * @param searchTerm optional search across project id/name/display name
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<Map<String, Object>> getUserProjectsNoCredentials(String userId, String searchTerm, long limit,
+			long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
+		// Anti-join: exclude projects this user already has a PROJECTPERMISSION for
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
+			subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.NULL_VALUE));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTDISPLAYNAME", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+				"PROJECT__PROJECTDISPLAYNAME", "low_project_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 	/**
 	 * Get all user insights
-	 * 
+	 *
 	 * @param user
 	 * @param searchTerm
 	 * @param limit
@@ -1380,8 +1493,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector(projectPrefix + "HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALNAME", "project_portal_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHED", "project_portal_published_date"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDUSER", "project_published_user"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDTYPE", "project_published_user_type"));
@@ -1539,40 +1650,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		return true;
-	}
-
-	/**
-	 * Change if this project has a portal or not
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
-	 */
-	public void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?");
-			int parameterIndex = 1;
-			ps.setBoolean(parameterIndex++, hasPortal);
-			if (portalName != null) {
-				ps.setString(parameterIndex++, portalName);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update project portal availability setting", e);
-			throw new IllegalArgumentException("An error occurred setting the project portal active");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
 	}
 
 	/**
