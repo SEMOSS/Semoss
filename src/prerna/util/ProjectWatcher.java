@@ -33,9 +33,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,8 +86,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	 */
 	private static void ensureSkillTag(String projectId) {
 		try {
-			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId,
-					Arrays.asList("tag"), false);
+			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
+					false);
 			List<Object> tags = new ArrayList<>();
 			Object existing = meta.get("tag");
 			if (existing instanceof List) {
@@ -115,8 +117,11 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] projectIds = new String[fileNames.length];
+		if (fileNames == null || fileNames.length == 0) {
+			return;
+		}
 
+		Set<String> projectIds = new HashSet<>(fileNames.length);
 		// loop through and load all the projects
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
@@ -128,7 +133,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 
 				// we need to add projects to security db
 				String loadedProject = catalogProject(fileName, folderToWatch);
-				projectIds[fileIdx] = loadedProject;
+				projectIds.add(loadedProject);
 			} catch (RuntimeException ex) {
 				classLogger.error("Project failed to load: {}/{}", folderToWatch, fileNames[fileIdx], ex);
 			}
@@ -140,8 +145,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
-				if (!ArrayUtilityMethods.arrayContainsValue(projectIds, project)
-						&& !defaultPlatforms.contains(project)) {
+				if (!projectIds.contains(project) && !defaultPlatforms.contains(project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}
