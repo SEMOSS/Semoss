@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public class SystemDefaultDatabases {
+public class SystemDefaultEngines {
 
 	private static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
@@ -51,6 +51,10 @@ public class SystemDefaultDatabases {
 	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
+	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_MEMORY,
+			Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS,
+			Constants.SKILL_MODEL, Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
+
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
 	}
@@ -67,9 +71,13 @@ public class SystemDefaultDatabases {
 		return DATABASE_IGNORE_SECURITY;
 	}
 
+	public static List<String> getSystemSkills() {
+		return SYSTEM_SKILLS;
+	}
+
 	/**
 	 * Check if a string starts with any value within a collection
-	 * 
+	 *
 	 * @param strValue
 	 * @param collection
 	 * @return

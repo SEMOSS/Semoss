@@ -34,16 +34,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
-
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.util.AssetUtility;
 
 /**
  * Materializes attached skills into a working directory so Claude Code's
@@ -52,9 +51,10 @@ import prerna.util.AssetUtility;
  * <p>For each skill ref in the merged {@code agentConfig.getSkills()} list,
  * this stager:
  * <ol>
- *   <li>Loads the {@code SKILL__} row to resolve the slug.</li>
- *   <li>Resolves the underlying Project's assets folder
- *       ({@code <project>/version/assets/skill/}).</li>
+ *   <li>Resolves the skill project's identity and content folder via
+ *       {@link SkillProjects#resolve} (SKILL.md frontmatter under the
+ *       project's {@code version/assets/skill/} or legacy
+ *       {@code version/assets/public/} folder).</li>
  *   <li>Checks the existing {@code .skill-meta} sidecar at
  *       {@code <workingDir>/.claude/skills/<slug>/.skill-meta}. If the source
  *       folder's last-modified time matches what we previously staged, the
@@ -70,9 +70,8 @@ import prerna.util.AssetUtility;
  * <p>On-disk layout matches what
  * {@link prerna.reactor.agent.AppBuilderHarnessConfiguration} writes for
  * project-local skills, so Claude Code's skill discovery treats both
- * sources identically. When both a project-local skill and a registry
- * skill share a slug, the registry skill wins (it's staged last in the
- * AgentRunner flow) and a warning is logged.
+ * sources identically. When two attached skills resolve to the same slug,
+ * the first one staged wins and the duplicate is skipped with a warning.
  */
 public final class SkillStager {
 
@@ -111,7 +110,9 @@ public final class SkillStager {
 
 		int staged = 0;
 		int skipped = 0;
+		int duplicates = 0;
 		int failed = 0;
+		Set<String> stagedSlugs = new HashSet<>();
 		for (Map<String, String> ref : skillRefs) {
 			if (ref == null) continue;
 			String skillId = ref.get("skill_id");
@@ -121,7 +122,21 @@ public final class SkillStager {
 				continue;
 			}
 			try {
-				StageOutcome outcome = stageOne(skillsRoot, skillId);
+				SkillProjects.SkillInfo info = SkillProjects.resolve(skillId);
+				if (info.skillDir == null) {
+					logger.warn("SkillStager: skill '{}' has no skill content folder; skipping", skillId);
+					failed++;
+					continue;
+				}
+				if (!stagedSlugs.add(info.slug)) {
+					// two attached skills resolved to the same slug - first one staged wins,
+					// otherwise the identity mismatch would wipe-and-copy on every run
+					logger.warn("SkillStager: skill '{}' resolves to slug '{}' which is already staged this run; "
+							+ "skipping duplicate", skillId, info.slug);
+					duplicates++;
+					continue;
+				}
+				StageOutcome outcome = stageFromSource(skillsRoot, info.slug, info.skillDir, skillId);
 				if (outcome == StageOutcome.STAGED) staged++;
 				else if (outcome == StageOutcome.CACHED) skipped++;
 				else failed++;
@@ -130,111 +145,18 @@ public final class SkillStager {
 				failed++;
 			}
 		}
-		logger.info("SkillStager: workingDir='{}' total={} staged={} cached={} failed={}",
-				workingDir, skillRefs.size(), staged, skipped, failed);
+		logger.info("SkillStager: workingDir='{}' total={} staged={} cached={} duplicates={} failed={}",
+				workingDir, skillRefs.size(), staged, skipped, duplicates, failed);
 	}
 
 	private enum StageOutcome { STAGED, CACHED, FAILED }
-
-	private static StageOutcome stageOne(Path skillsRoot, String skillId) throws Exception {
-		Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(skillId);
-		if (skillRow == null) {
-			logger.warn("SkillStager: skill '{}' not found in SKILL__; skipping", skillId);
-			return StageOutcome.FAILED;
-		}
-		String slug = (String) skillRow.get("slug");
-		if (slug == null || slug.isEmpty()) {
-			logger.warn("SkillStager: skill '{}' has no slug; skipping", skillId);
-			return StageOutcome.FAILED;
-		}
-
-		// SKILL_ID == the underlying Project ID; resolve the source folder via
-		// the Project's assets directory.
-		String assetsFolder;
-		try {
-			assetsFolder = AssetUtility.getProjectAssetsFolder(skillId);
-		} catch (Exception e) {
-			logger.warn("SkillStager: could not resolve assets folder for skill/project '{}': {}",
-					skillId, e.getMessage());
-			return StageOutcome.FAILED;
-		}
-		Path sourceDir = Paths.get(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
-		if (!Files.isDirectory(sourceDir)) {
-			logger.warn("SkillStager: skill '{}' source folder '{}' does not exist; skipping",
-					skillId, sourceDir);
-			return StageOutcome.FAILED;
-		}
-
-		return stageFromSource(skillsRoot, slug, sourceDir, skillId);
-	}
-
-	/**
-	 * Stage every platform skill named in {@code slugs} under
-	 * {@code <workingDir>/.claude/skills/}. Platform skills are disk-backed folders
-	 * (see {@link PlatformSkills}); each slug resolves to
-	 * {@code <BASE_FOLDER>/skills/<slug>/}. Skipped silently when {@code workingDir}
-	 * is blank or {@code slugs} is empty.
-	 *
-	 * <p>Call this BEFORE {@link #stage} so that a user's own registry skill of the
-	 * same slug, staged last, shadows the built-in one.
-	 *
-	 * @param workingDir agent's working directory
-	 * @param slugs      platform skill folder names to stage
-	 */
-	public static void stagePlatform(String workingDir, List<String> slugs) {
-		if (workingDir == null || workingDir.trim().isEmpty()) {
-			return;
-		}
-		if (slugs == null || slugs.isEmpty()) {
-			return;
-		}
-
-		Path skillsRoot = Paths.get(workingDir, CLAUDE_DIR, SKILLS_DIR);
-		try {
-			Files.createDirectories(skillsRoot);
-		} catch (IOException e) {
-			logger.warn("SkillStager: failed to create skills root '{}': {}", skillsRoot, e.getMessage());
-			return;
-		}
-
-		int staged = 0;
-		int skipped = 0;
-		int failed = 0;
-		for (String slug : slugs) {
-			if (slug == null || slug.trim().isEmpty()) {
-				failed++;
-				continue;
-			}
-			try {
-				StageOutcome outcome = stagePlatformOne(skillsRoot, slug.trim());
-				if (outcome == StageOutcome.STAGED) staged++;
-				else if (outcome == StageOutcome.CACHED) skipped++;
-				else failed++;
-			} catch (Exception e) {
-				logger.warn("SkillStager: failed to stage platform skill '{}': {}", slug, e.getMessage(), e);
-				failed++;
-			}
-		}
-		logger.info("SkillStager: [platform] workingDir='{}' total={} staged={} cached={} failed={}",
-				workingDir, slugs.size(), staged, skipped, failed);
-	}
-
-	private static StageOutcome stagePlatformOne(Path skillsRoot, String slug) throws Exception {
-		Path sourceDir = PlatformSkills.resolveDir(slug);
-		if (sourceDir == null) {
-			logger.warn("SkillStager: platform skill '{}' not found under '{}'; skipping", slug,
-					PlatformSkills.baseDir());
-			return StageOutcome.FAILED;
-		}
-		return stageFromSource(skillsRoot, slug, sourceDir, "platform:" + slug);
-	}
 
 	/**
 	 * Shared staging core: fingerprint the source, short-circuit on an unchanged
 	 * cache, otherwise wipe-and-copy and refresh the {@code .skill-meta} sidecar.
 	 * The {@code identity} is the cache key written into (and matched against) the
-	 * sidecar - the project id for registry skills, {@code "platform:<slug>"} for
-	 * platform skills - so the two source kinds never alias on a shared slug.
+	 * sidecar - the skill's project id - so different skills never alias on a
+	 * shared slug.
 	 */
 	private static StageOutcome stageFromSource(Path skillsRoot, String slug, Path sourceDir, String identity)
 			throws IOException {

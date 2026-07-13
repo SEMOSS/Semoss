@@ -1905,7 +1905,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
 				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					if (!SystemDefaultDatabases.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+					if (!SystemDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -2384,8 +2384,8 @@ public final class Utility {
 					}
 
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SystemDefaultDatabases.valueStartsWith(engineId,
-							SystemDefaultDatabases.getDatabaseIgnoreSecurity())) {
+					if (!SystemDefaultEngines.valueStartsWith(engineId,
+							SystemDefaultEngines.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {

@@ -866,6 +866,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get the catalog type (PROJECT.TYPE, e.g. SKILL / WORKSPACE / CODE) for a
+	 * project id. Returns null when the project row does not exist. This is a
+	 * single securitydb query - unlike {@code Utility.getProject(id)} it never
+	 * force-loads the project, so it is safe for validation loops.
+	 *
+	 * @param id project id
+	 * @return the PROJECT.TYPE value, or null when the project is not cataloged
+	 */
+	public static String getProjectTypeForId(String id) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", id));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+
+	/**
 	 * Set the display name for a project. Only the project owner can perform this
 	 * action.
 	 *
