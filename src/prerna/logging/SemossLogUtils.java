@@ -64,6 +64,9 @@ public class SemossLogUtils {
 	public static final String MESSAGE_TYPE = "messageType";
 	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
 	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	// cached-token breakdown (subsets of prompt tokens) for cost tracking
+	public static final String NUMBER_OF_CACHE_READ_TOKENS = "numberOfCacheReadTokens";
+	public static final String NUMBER_OF_CACHE_CREATION_TOKENS = "numberOfCacheCreationTokens";
 	public static final String REQUEST = "request";
 	public static final String RESPONSE = "response";
 	public static final String METHOD_NAME = "methodName";
@@ -75,6 +78,9 @@ public class SemossLogUtils {
 	public static final String SPAN_ID = "spanId";
 	public static final String INPUT_REACTOR_NAME = "inputReactorName";
 	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
+	// notable action a guardrail took on a row: MASK / BLOCK (null when it ran
+	// clean)
+	public static final String GUARDRAIL_ACTION = "guardrailAction";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
 

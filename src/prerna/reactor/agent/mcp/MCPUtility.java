@@ -56,6 +56,7 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
@@ -64,9 +65,12 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.api.IMCP;
+import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -1200,6 +1204,53 @@ public final class MCPUtility {
 				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
 			} else {
 				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+			}
+		}
+	}
+
+	/**
+	 * Resolves the engine or project, enforces user access, normalizes the tool
+	 * name, and executes the tool. Shared by RunMCPToolReactor (direct calls) and
+	 * AgentToolDecisionHandler (HITL approve/edit).
+	 */
+	public static Object executeTool(String engineId, String toolName, Map<String, Object> paramMap, Insight insight) {
+		IEngine engine = null;
+		try {
+			engine = Utility.getEngine(engineId);
+		} catch (Exception ex) {
+			// fall through to the project lookup
+		}
+		if (engine == null) {
+			engine = Utility.getProject(engineId);
+		}
+		checkEngineAccess(engine, insight.getUser());
+
+		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
+		}
+		toolName = removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
+
+		IMCP mcp = MCPFactory.build(engine);
+		return mcp.callTool(toolName, paramMap, insight);
+	}
+
+	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
+	private static void checkEngineAccess(IEngine engine, User user) {
+		if (engine == null) {
+			throw new NullPointerException("Engine/Project is null");
+		}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			AbstractReactor.throwAnonymousUserError();
+		}
+		if (engine instanceof IProject) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Project " + engine.getEngineId() + " does not exist or user does not have access");
+			}
+		} else {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Engine " + engine.getEngineId() + " does not exist or user does not have access");
 			}
 		}
 	}

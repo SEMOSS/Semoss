@@ -45,7 +45,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.skill.PlatformSkills;
+import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -76,8 +76,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
 	static final String SKILLS = "skills";
-	/** Request key for platform-skill (slug) collection input. */
-	static final String PLATFORM_SKILLS = "platformSkills";
 	/** Request key for active/inactive workspace state. */
 	static final String IS_ACTIVE = "isActive";
 
@@ -167,10 +165,9 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Mirrors the workspace's {@code system_prompt}, MCP refs, skill refs, and
-	 * (optionally) platform-skill refs into {@code WORKSPACE.CONFIG_JSON},
-	 * preserving any other fields already present (hooks, subagents, budgets,
-	 * etc.).
+	 * Mirrors the workspace's {@code system_prompt}, MCP refs, and skill refs
+	 * into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
+	 * present (hooks, subagents, budgets, etc.).
 	 *
 	 * <p>Empty {@code engines} + empty {@code projects} writes an empty
 	 * {@code mcps} array, and empty {@code skills} writes an empty {@code skills}
@@ -184,21 +181,16 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * No {@code pinned_version} is emitted because the edit/add inputs carry only
 	 * ids.
 	 *
-	 * <p>{@code platformSkills} differs from {@code skills}/{@code mcps}: a
-	 * {@code null} value leaves any existing {@code platform_skills} array
-	 * untouched (callers that omit the input never clobber it), while a non-null
-	 * value is a full replace (an empty set clears it). Entries are plain slug
-	 * strings, matching {@code CONFIG_JSON.platform_skills[]}.
+	 * <p>Any legacy {@code platform_skills} array is dropped on write: platform
+	 * skills are ordinary SKILL-type projects now and live in {@code skills[]}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects, Set<String> skills, Set<String> platformSkills) throws Exception {
-		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, platformSkills, false,
-				null);
+			Set<String> projects, Set<String> skills) throws Exception {
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
-			Set<String> projects, Set<String> skills, Set<String> platformSkills, boolean modelIdProvided,
-			String modelId) throws Exception {
+			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -210,8 +202,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			cfg.remove("system_prompt");
 		}
 
-		// model_id mirrors platform_skills semantics: omitted leaves existing config,
-		// provided blank clears it, and provided non-blank sets the default model.
 		if (modelIdProvided) {
 			if (modelId != null && !modelId.trim().isEmpty()) {
 				cfg.put("model_id", modelId.trim());
@@ -243,47 +233,34 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		}
 		cfg.put("skills", skillsJson);
 
-		if (platformSkills != null) {
-			JSONArray platformSkillsJson = new JSONArray();
-			for (String slug : platformSkills) {
-				platformSkillsJson.put(slug);
-			}
-			cfg.put("platform_skills", platformSkillsJson);
-		}
+		// legacy key from when platform skills were disk-backed built-ins; never
+		// honored anymore, so scrub it whenever the config is rewritten
+		cfg.remove("platform_skills");
 
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
 	/**
-	 * Reads the MCP / prompt / skill / platform-skill nouns from the request,
-	 * validates them, and populates the caller-owned accumulators in place.
-	 * Throws {@link IllegalArgumentException} with a human-readable message on
+	 * Reads the MCP / prompt / skill nouns from the request, validates them, and
+	 * populates the caller-owned accumulators in place. Throws
+	 * {@link IllegalArgumentException} with a human-readable message on
 	 * validation failure (callers catch and convert to {@code getError(...)}).
 	 *
 	 * <p>{@code existingDependencies} and {@code existingSkills} are the
-	 * workspace's pre-existing attachments — ids already in
+	 * workspace's pre-existing attachments - ids already in
 	 * {@code PROJECTDEPENDENCIES} and skill ids already in
 	 * {@code WORKSPACE_RESOURCE} respectively. They carry the "existing
 	 * attachment" escape hatch Edit uses: an id already attached passes the
 	 * permission check even if the caller has lost view rights since. Add
 	 * passes {@code null} for both, since on create there are no prior
 	 * attachments to preserve.
-	 *
-	 * <p>{@code platformSkills} encodes "did the caller supply
-	 * {@code PLATFORM_SKILLS}?": pass a fresh empty {@code LinkedHashSet} when
-	 * the noun was supplied (helper fills it), or {@code null} to skip
-	 * platform-skill validation. The mirror reads this same null-vs-empty
-	 * signal — null leaves existing {@code CONFIG_JSON.platform_skills}
-	 * untouched, empty/populated replaces the array — so the caller does the
-	 * one-line gate {@code getGenRowStruct(PLATFORM_SKILLS) != null ? new
-	 * LinkedHashSet<>() : null} before calling.
 	 */
 	protected void validateWorkspaceInputs(User user, String workspaceId,
 			Set<String> existingDependencies, Set<String> existingSkills,
 			Set<String> engines, Set<String> projectDependencies,
 			List<Map<String, Object>> dependencyList,
 			List<Map<String, String>> workspaceResources,
-			Set<String> skillIds, Set<String> platformSkills) {
+			Set<String> skillIds) {
 		boolean hasExistingDeps = existingDependencies != null;
 		boolean hasExistingSkills = existingSkills != null;
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
@@ -341,7 +318,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 		skillIds.addAll(getNounAsStringList(SKILLS));
 		for (String skillId : skillIds) {
-			if (ModelInferenceLogsUtils.getSkillEntry(skillId) == null) {
+			if (!SkillProjects.isSkillProject(skillId)) {
 				throw new IllegalArgumentException("Skill not found: " + skillId);
 			}
 			if (!SecurityProjectUtils.userCanViewProject(user, skillId)
@@ -356,22 +333,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			skillDep.put("ENGINEID", skillId);
 			skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
 			dependencyList.add(skillDep);
-		}
-
-		if (platformSkills != null) {
-			for (String slug : getNounAsStringList(PLATFORM_SKILLS)) {
-				if (slug == null) {
-					continue;
-				}
-				String trimmed = slug.trim();
-				if (trimmed.isEmpty()) {
-					continue;
-				}
-				if (!PlatformSkills.exists(trimmed)) {
-					throw new IllegalArgumentException("Platform skill not found: " + trimmed);
-				}
-				platformSkills.add(trimmed);
-			}
 		}
 	}
 

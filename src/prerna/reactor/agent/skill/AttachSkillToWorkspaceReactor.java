@@ -47,33 +47,19 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 /**
- * Attaches a skill to a workspace. Handles both skill kinds through one entry
- * point, keyed by which identifier you pass:
- *
- * <ul>
- *   <li>{@code skillId} - a registry skill (a Project of type {@code SKILL}).
- *       Inserts a {@code WORKSPACE_RESOURCE__} row with
- *       {@code RESOURCE_TYPE='SKILL'} and mirrors it into
- *       {@code CONFIG_JSON.skills[]}. Authorization piggybacks on project
- *       permissions: edit on the workspace, view on the skill.</li>
- *   <li>{@code slug} - a platform skill (a disk-backed built-in under
- *       {@code <BASE_FOLDER>/skills/}; see {@link PlatformSkills}). Adds the slug
- *       to {@code CONFIG_JSON.platform_skills[]}. Platform skills are not Projects
- *       and carry no permissions, so only workspace-edit rights are required.</li>
- * </ul>
- *
- * <p>Exactly one of {@code skillId} / {@code slug} must be supplied - a
- * {@code slug} (no id) is the signal that you mean a platform skill. Idempotent
- * in both modes.
+ * Attaches a skill to a workspace. A skill is a Project of type {@code SKILL}
+ * (this includes the built-in platform skill projects, whose ids are their
+ * folder names, e.g. {@code database}). Inserts a {@code WORKSPACE_RESOURCE__}
+ * row with {@code RESOURCE_TYPE='SKILL'} and mirrors it into
+ * {@code CONFIG_JSON.skills[]}. Authorization piggybacks on project
+ * permissions: edit on the workspace, view on the skill. Idempotent.
  *
  * <p>Inputs:
  * <ul>
  *   <li>{@code workspaceId} - target workspace (required)</li>
- *   <li>{@code skillId}     - registry skill to attach (required unless {@code slug} given)</li>
- *   <li>{@code slug}        - platform skill to attach (required unless {@code skillId} given)</li>
+ *   <li>{@code skillId}     - skill project to attach (required)</li>
  * </ul>
  */
 public class AttachSkillToWorkspaceReactor extends AbstractReactor {
@@ -81,11 +67,10 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AttachSkillToWorkspaceReactor.class);
 
 	private static final String SKILL_ID = "skillId";
-	private static final String SLUG     = "slug";
 
 	public AttachSkillToWorkspaceReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID, SLUG };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), SKILL_ID };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -94,16 +79,12 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String skillId     = nullIfBlank(this.keyValue.get(SKILL_ID));
-		String slug        = nullIfBlank(this.keyValue.get(SLUG));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
 		}
-		if (skillId == null && slug == null) {
-			throw new IllegalArgumentException("either skillId or slug is required");
-		}
-		if (skillId != null && slug != null) {
-			throw new IllegalArgumentException("provide exactly one of skillId or slug (slug => platform skill)");
+		if (skillId == null) {
+			throw new IllegalArgumentException("skillId is required");
 		}
 
 		User user = this.insight.getUser();
@@ -112,36 +93,12 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 					"Workspace " + workspaceId + " does not exist or user does not have permission to edit it");
 		}
 
-		// A slug (and no id) means a disk-backed platform skill.
-		if (slug != null) {
-			return attachPlatformSkill(workspaceId, slug);
-		}
-		return attachRegistrySkill(user, workspaceId, skillId);
+		return attachSkill(user, workspaceId, skillId);
 	}
 
-	/** Platform skill: add the slug to CONFIG_JSON.platform_skills[]. */
-	private NounMetadata attachPlatformSkill(String workspaceId, String slug) {
-		if (!PlatformSkills.exists(slug)) {
-			throw new IllegalArgumentException("Platform skill not found: " + slug);
-		}
-		try {
-			ModelInferenceLogsUtils.addPlatformSkillToWorkspaceConfigJson(workspaceId, slug);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to attach platform skill to workspace: " + e.getMessage(), e);
-		}
-
-		Map<String, Object> response = new HashMap<>();
-		response.put("workspace_id", workspaceId);
-		response.put("slug", slug);
-		response.put("type", PlatformSkills.PLATFORM_SKILL_TYPE);
-		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	/** Registry skill: insert the WORKSPACE_RESOURCE__ row and mirror into CONFIG_JSON.skills[]. */
-	private NounMetadata attachRegistrySkill(User user, String workspaceId, String skillId) {
-		Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(skillId);
-		if (skillRow == null) {
+	/** Insert the WORKSPACE_RESOURCE__ row and mirror into CONFIG_JSON.skills[]. */
+	private NounMetadata attachSkill(User user, String workspaceId, String skillId) {
+		if (!SkillProjects.isSkillProject(skillId)) {
 			throw new IllegalArgumentException("Skill not found: " + skillId);
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, skillId)) {
@@ -212,7 +169,7 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to attach skill '{}' to workspace '{}'", skillId, workspaceId, e);
 			throw new IllegalArgumentException("Failed to attach skill to workspace: " + e.getMessage(), e);
 		}
 	}
@@ -227,8 +184,8 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Attaches a skill to a workspace. Pass skillId for a registry skill (WORKSPACE_RESOURCE__ + "
-				+ "CONFIG_JSON.skills[]) or slug for a platform skill (CONFIG_JSON.platform_skills[]). Idempotent.";
+		return "Attaches a skill (a SKILL-type project) to a workspace: inserts the WORKSPACE_RESOURCE__ row and "
+				+ "mirrors it into CONFIG_JSON.skills[]. Idempotent.";
 	}
 
 	@Override
@@ -237,10 +194,7 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			return "Target workspace identifier";
 		}
 		if (SKILL_ID.equals(key)) {
-			return "Identifier of the registry skill to attach (omit when attaching a platform skill by slug)";
-		}
-		if (SLUG.equals(key)) {
-			return "Folder name (slug) of the platform skill to attach (omit when attaching a registry skill by id)";
+			return "Identifier of the skill project to attach (== the skill's project id)";
 		}
 		return super.getDescriptionForKey(key);
 	}
