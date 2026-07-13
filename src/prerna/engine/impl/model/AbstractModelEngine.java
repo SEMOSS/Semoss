@@ -151,7 +151,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				} else {
 					room.setMessages(messageList);
 				}
-				String messageJson = RoomMessageStore.providerMessageHistory(room, messageList);
+				String messageJson = RoomMessageStore.serializeMessageHistory(room, messageList);
 				question = messageJson;
 				parameters.put("message_json", messageJson);
 

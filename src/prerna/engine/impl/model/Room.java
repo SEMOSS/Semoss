@@ -289,7 +289,7 @@ public class Room implements Serializable {
 
 			// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
 			// branch so providers do not reject the next payload
-			RoomMessageStore.normalizeForProviderPayload(this);
+			RoomMessageStore.sanitizeRoomMessages(this);
 
 			// Set model type and add message to history
 			msg.setModel(modelEngine);
@@ -298,13 +298,20 @@ public class Room implements Serializable {
 			// first check that messages is not empty. otherwise its the first message of
 			// the thread and parent is null
 			if (!messages.isEmpty()) {
-				// if a parent message id is passed in, validate it exists and use it.
-				if (parentMessageId != null && !parentMessageId.isEmpty()) {
-					msg.setParentMessageId(parentMessageId);
+				String requestedParentMessageId = parentMessageId == null ? null : parentMessageId.trim();
+				boolean requestedParentExists = requestedParentMessageId != null
+						&& !requestedParentMessageId.isEmpty()
+						&& messages.stream().anyMatch(message -> message != null
+								&& requestedParentMessageId.equals(message.getMessageId()));
+				if (requestedParentExists) {
+					msg.setParentMessageId(requestedParentMessageId);
 				} else {
-					// if no parent message id is passed in, use the last message as the parent.
 					AbstractMessage lastMsg = messages.get(messages.size() - 1);
 					msg.setParentMessageId(lastMsg.getMessageId());
+					if (requestedParentMessageId != null && !requestedParentMessageId.isEmpty()) {
+						classLogger.warn("Room {} requested parent message {} was not found after sanitization; using {}",
+								getId(), requestedParentMessageId, lastMsg.getMessageId());
+					}
 				}
 			} else {
 				msg.setParentMessageId(null); // first message

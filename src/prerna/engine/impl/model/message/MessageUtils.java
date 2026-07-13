@@ -398,19 +398,22 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Strip only the specific TOOL_CALL / TOOL_RESULT parts that violate the provider's pairing rule.
-	 * Providers reject unpaired tool_use and unpaired tool_result, but removing the whole message throws away
+	 * Strip only the specific TOOL_CALL / TOOL_RESULT parts that violate the model-history pairing rule.
+	 * Model APIs reject unpaired tool_use and unpaired tool_result, but removing the whole message throws away
 	 * perfectly good sibling parts -- e.g. a parallel batch where one tool_use is answered and another is not
 	 * (HITL ask-one/answer-other, or a crash mid-batch) would otherwise lose the answered call and orphan its
-	 * result. Instead drop just the offending parts; a message that still has meaningful content survives in
-	 * place, and only a message left empty of meaningful parts is removed (with any surviving child re-linked to
+	 * result. Instead drop just the offending parts; a message that still has content survives in place, and only
+	 * a message left without any valid parts is removed (with any surviving child re-linked to
 	 * the removed message's parent so the branch chain stays intact).
 	 * Not pure read-side: surviving messages are mutated in place (parts and/or parentMessageId), and the healed
-	 * state is persisted on the next normal turn via RoomMessageStore.normalizeForProviderPayload.
+	 * state is persisted on the next normal turn via RoomMessageStore.sanitizeRoomMessages.
 	 */
 	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
-		if (messages == null || messages.size() < 2) {
-			return messages != null ? messages : new ArrayList<>();
+		if (messages == null) {
+			return new ArrayList<>();
+		}
+		if (messages.isEmpty()) {
+			return messages;
 		}
 		// pass 1: collect the full set of tool_use ids and tool_result ids seen across the branch
 		Set<String> toolUseIds = new HashSet<>();
@@ -429,7 +432,7 @@ public class MessageUtils {
 				}
 			}
 		}
-		// orphans in both directions -- the provider payload validator enforces this bidirectional pairing
+		// orphans in both directions -- model history requires bidirectional pairing
 		Set<String> orphanUseIds = new HashSet<>(toolUseIds);
 		orphanUseIds.removeAll(toolResultIds);
 		Set<String> orphanResultIds = new HashSet<>(toolResultIds);
@@ -454,9 +457,9 @@ public class MessageUtils {
 
 			List<MessagePart> kept = new ArrayList<>(parts.size());
 			for (MessagePart part : parts) {
-				if (!isOrphanToolPart(part, orphanUseIds, orphanResultIds)) kept.add(part);
+				if (part != null && !isOrphanToolPart(part, orphanUseIds, orphanResultIds)) kept.add(part);
 			}
-			if (hasMeaningfulPart(kept)) {
+			if (hasRemainingPart(kept)) {
 				m.setParts(kept);
 			} else {
 				removedIndices.add(i);
@@ -493,6 +496,30 @@ public class MessageUtils {
 		return sanitized;
 	}
 
+	/**
+	 * Creates an isolated, sanitized copy of a message branch. The source messages
+	 * are not mutated, so branch-specific repair cannot damage shared room
+	 * ancestors that remain valid on a sibling branch.
+	 *
+	 * @param messages message branch to copy
+	 * @param room     room context used to rehydrate copied messages
+	 * @return sanitized copies of the supplied messages
+	 */
+	public static List<AbstractMessage> sanitizedCopy(List<AbstractMessage> messages, Room room) {
+		if (messages == null || messages.isEmpty()) {
+			return new ArrayList<>();
+		}
+		List<AbstractMessage> copies = new ArrayList<>(messages.size());
+		for (AbstractMessage message : messages) {
+			if (message == null) {
+				copies.add(null);
+				continue;
+			}
+			copies.add(fromJson(GSON_FOR_DB.toJson(message), room));
+		}
+		return sanitizeOrphanToolCalls(copies, room);
+	}
+
 	/** An orphan part is a TOOL_CALL whose id has no matching result, or a TOOL_RESULT whose id has no matching call. */
 	private static boolean isOrphanToolPart(MessagePart part, Set<String> orphanUseIds, Set<String> orphanResultIds) {
 		if (part instanceof ToolCallMessagePart tcp) {
@@ -508,12 +535,10 @@ public class MessageUtils {
 		return false;
 	}
 
-	/** A message is worth keeping if it still carries content the model turn depends on -- SYSTEM alone is not. */
-	private static boolean hasMeaningfulPart(List<MessagePart> parts) {
+	/** A message survives whenever at least one valid, non-orphan part remains. */
+	private static boolean hasRemainingPart(List<MessagePart> parts) {
 		for (MessagePart part : parts) {
-			MessagePartType type = part.getType();
-			if (type == MessagePartType.TEXT || type == MessagePartType.THINKING || type == MessagePartType.TOOL_CALL
-					|| type == MessagePartType.TOOL_RESULT || type == MessagePartType.MEDIA) {
+			if (part != null) {
 				return true;
 			}
 		}
