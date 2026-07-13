@@ -253,6 +253,24 @@ public final class AgentRunStore {
 		updateStatus(runId, AgentRunStatus.CANCELLED, jobId, null, errorMessage, false, true);
 	}
 
+	/**
+	 * Transition a run from RUNNING to INPUT_REQUIRED. Called by the worker
+	 * when the harness pauses on {@code SMSS_MCP_EXECUTION=ask} tools.
+	 */
+	public void markInputRequired(String runId, String jobId) {
+		updateStatusIfCurrent(runId, AgentRunStatus.RUNNING, AgentRunStatus.INPUT_REQUIRED, jobId, null, null, false, false);
+	}
+
+	/**
+	 * Transition a run from INPUT_REQUIRED back to SUBMITTED so the worker
+	 * picks it up and resumes. Called by {@code RunMCPToolReactor} after the
+	 * user's decision has been written to the room.
+	 */
+	public boolean markResumed(String runId, String jobId) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.SUBMITTED, jobId, null, null,
+				false, false);
+	}
+
 	public boolean markCancelledIfNotTerminal(String runId, String jobId, String errorMessage) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -413,7 +431,7 @@ public final class AgentRunStore {
 		}
 		return new RunAgentRequest(rs.getString("ROOM_ID"), rs.getString("INPUT"), rs.getString("MODEL_ID"),
 				rs.getString("HARNESS_TYPE"), rs.getString("WORKSPACE_ID"), AgentRunContext.DEFAULT_MAX_TURNS,
-				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, insight);
+				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight);
 	}
 
 	private static AgentRunStatus parseRunStatus(String value) {

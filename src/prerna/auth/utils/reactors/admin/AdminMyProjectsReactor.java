@@ -53,10 +53,10 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 
 	public AdminMyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TYPE.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
-				ReactorKeysEnum.SORT.getKey() };
+				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.PROJECT_TYPE.getKey(), ReactorKeysEnum.META_KEYS.getKey(),
+				ReactorKeysEnum.META_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
+				ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
@@ -199,7 +199,7 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 	 * @return
 	 */
 	private List<String> getProjectTypeFilters() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TYPE.getKey());
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT_TYPE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}

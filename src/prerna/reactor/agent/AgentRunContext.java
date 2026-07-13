@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
@@ -63,12 +66,22 @@ public final class AgentRunContext {
     private final String        input;
     private final SandboxPolicy sandboxPolicy;
     private final String        runId;
+    private final List<String>  mediaInputPaths;
+    private final List<String>  mediaUrls;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
 
     // Resolved agent spec shared across harnesses.
     private final AgentConfig   agentConfig;
+
+    /**
+     * When {@code true}, the harness skips the initial model ask and picks up
+     * from the latest message in the room. Set when resuming a run that was
+     * paused on {@code SMSS_MCP_EXECUTION=ask} tools — the tool results have
+     * already been written to the room by {@code RunMCPToolReactor}.
+     */
+    private final boolean       resumeMode;
 
     private AgentRunContext(Builder b) {
         this.room          = b.room;
@@ -78,8 +91,11 @@ public final class AgentRunContext {
         this.input         = b.input;
         this.sandboxPolicy = b.sandboxPolicy;
         this.runId         = b.runId;
+        this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
+        this.mediaUrls       = immutableStringList(b.mediaUrls);
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
+        this.resumeMode    = b.resumeMode;
     }
 
     // Live per-call state
@@ -113,6 +129,16 @@ public final class AgentRunContext {
         return runId;
     }
 
+    /** Room-local media filenames copied for the initial user turn. */
+    public List<String> getMediaInputPaths() {
+        return mediaInputPaths;
+    }
+
+    /** Direct media URLs to attach to the initial user turn. */
+    public List<String> getMediaUrls() {
+        return mediaUrls;
+    }
+
     /**
      * Filesystem allowlist applied to agent binaries before they {@code execvp}.
      * {@code null} when the caller did not build a policy; harnesses may construct
@@ -136,6 +162,15 @@ public final class AgentRunContext {
     /** 0 = root run; checked against {@code agentConfig.getSpawnPolicy().getMaxSubagentDepth()}. */
     public int getSpawnDepth() {
         return spawnDepth;
+    }
+
+    /**
+     * @return {@code true} when this is a resumed run — the harness should
+     *         skip the initial model ask and continue from the room's latest
+     *         message.
+     */
+    public boolean isResumeMode() {
+        return resumeMode;
     }
 
     // Compatibility accessors (delegate to AgentConfig)
@@ -199,11 +234,15 @@ public final class AgentRunContext {
         private String        input;
         private SandboxPolicy sandboxPolicy;
         private String        runId;
+        private List<String>  mediaInputPaths;
+        private List<String>  mediaUrls;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
         // Either supplied directly or assembled from the legacy setters below.
         private AgentConfig   agentConfig;
+
+        private boolean       resumeMode = false;
 
         // Legacy field holders (used only when agentConfig is not supplied directly)
         private String              legacyFilePath;
@@ -218,8 +257,12 @@ public final class AgentRunContext {
         public Builder input(String input)                   { this.input = input;                 return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
+        public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
+        public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
+
+        public Builder resumeMode(boolean resumeMode)        { this.resumeMode = resumeMode;       return this; }
 
         /** Sets the canonical agent spec. Preferred path. */
         public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }
@@ -261,5 +304,18 @@ public final class AgentRunContext {
             }
             return new AgentRunContext(this);
         }
+    }
+
+    private static List<String> immutableStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> copy = new ArrayList<>();
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                copy.add(value);
+            }
+        }
+        return copy.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copy);
     }
 }

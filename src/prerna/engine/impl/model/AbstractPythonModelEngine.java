@@ -39,12 +39,19 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.BatchListResponse;
+import prerna.engine.impl.model.responses.BatchResultsResponse;
+import prerna.engine.impl.model.responses.BatchStatusResponse;
+import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
@@ -428,6 +435,105 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 		return response;
+	}
+
+	// ------------------------------------------------------------------
+	// Batch model calls -- delegate to the Python client (same hop as askCall).
+	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types;
+	// other Python engines inherit these overrides but reject via supportsBatch().
+	// ------------------------------------------------------------------
+
+	private static final Gson BATCH_GSON = new Gson();
+
+	@Override
+	public boolean supportsBatch() {
+		ModelTypeEnum type = this.getModelType();
+		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI
+				|| type == ModelTypeEnum.ANTHROPIC;
+	}
+
+	private void assertBatchSupported() {
+		if (!supportsBatch()) {
+			throw new UnsupportedOperationException(
+					"Batch model calls are not supported for model type " + this.getModelType());
+		}
+	}
+
+	private void appendKwargs(StringBuilder callMaker, Map<String, Object> parameters, boolean hasPrior) {
+		if (parameters == null || parameters.isEmpty()) {
+			return;
+		}
+		boolean prior = hasPrior;
+		for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+			if (entry.getKey() == null) {
+				continue;
+			}
+			if (prior) {
+				callMaker.append(", ");
+			}
+			callMaker.append(entry.getKey()).append("=").append(PyUtils.determineStringType(entry.getValue()));
+			prior = true;
+		}
+	}
+
+	@Override
+	public BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
+		assertBatchSupported();
+		checkSocketStatus();
+		String requestsJson = BATCH_GSON.toJson(requests);
+		StringBuilder callMaker = new StringBuilder(varName + ".submit_batch(");
+		callMaker.append("requests=").append(PyUtils.determineStringType(requestsJson));
+		appendKwargs(callMaker, parameters, true);
+		callMaker.append(")");
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchSubmissionResponse.fromObject(output);
+	}
+
+	@Override
+	public BatchStatusResponse getBatchStatus(String providerBatchId, Map<String, Object> parameters) {
+		assertBatchSupported();
+		checkSocketStatus();
+		StringBuilder callMaker = new StringBuilder(varName + ".get_batch_status(");
+		callMaker.append("provider_batch_id=").append(PyUtils.determineStringType(providerBatchId));
+		appendKwargs(callMaker, parameters, true);
+		callMaker.append(")");
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchStatusResponse.fromObject(output);
+	}
+
+	@Override
+	public BatchResultsResponse getBatchResults(String providerBatchId, Map<String, Object> parameters) {
+		assertBatchSupported();
+		checkSocketStatus();
+		StringBuilder callMaker = new StringBuilder(varName + ".get_batch_results(");
+		callMaker.append("provider_batch_id=").append(PyUtils.determineStringType(providerBatchId));
+		appendKwargs(callMaker, parameters, true);
+		callMaker.append(")");
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchResultsResponse.fromObject(output);
+	}
+
+	@Override
+	public BatchListResponse listBatches(Map<String, Object> parameters) {
+		assertBatchSupported();
+		checkSocketStatus();
+		StringBuilder callMaker = new StringBuilder(varName + ".list_batches(");
+		appendKwargs(callMaker, parameters, false);
+		callMaker.append(")");
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchListResponse.fromObject(output);
+	}
+
+	@Override
+	public BatchStatusResponse cancelBatch(String providerBatchId, Map<String, Object> parameters) {
+		assertBatchSupported();
+		checkSocketStatus();
+		StringBuilder callMaker = new StringBuilder(varName + ".cancel_batch(");
+		callMaker.append("provider_batch_id=").append(PyUtils.determineStringType(providerBatchId));
+		appendKwargs(callMaker, parameters, true);
+		callMaker.append(")");
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchStatusResponse.fromObject(output);
 	}
 
 	@Override
