@@ -1051,4 +1051,14 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// system (platform) skill names
+	public static final String SKILL_AGENT_MEMORY = "agent-memory";
+	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PYTHON = "python";
+	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_VECTOR = "vector";
 }

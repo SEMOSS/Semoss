@@ -25,33 +25,45 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.skill;
+package prerna.cluster.sync.impl;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
-/**
- * Disabled stub.
- *
- * <p>The previous bootstrap scanned {@code <BASE_FOLDER>/skills/} at startup and
- * upserted each subdirectory into a storage engine via {@code SKILL__} +
- * {@code SKILL_VERSION__}. That model is gone: skills are now Projects of type
- * {@code SKILL} (tagged {@code Skill_Project}), with content under
- * {@code <project>/version/assets/skill/} and versioning handled by the
- * project's git repo.
- *
- * <p>Migration of platform skills from the legacy install tree into the
- * new Skill-Project layout will be done manually (or via a one-off importer)
- * later; this class deliberately no-ops until then.
- */
-public final class PlatformSkillBootstrap {
+class ClusterSyncEvent implements Serializable {
 
-	private static final Logger logger = LogManager.getLogger(PlatformSkillBootstrap.class);
+	private static final long serialVersionUID = 1L;
 
-	private PlatformSkillBootstrap() {}
+	private String nodeId;
+	private String path;
+	private String methodName;
+	private List<Object> params;
 
-	public static void scan() {
-		logger.info("PlatformSkillBootstrap: skill bootstrap is disabled. Platform skills are now Skill-Projects "
-				+ "and must be migrated/seeded explicitly.");
+	public ClusterSyncEvent(String nodeId, String path, String methodName, Object... params) {
+		this(nodeId, path, methodName, Arrays.asList(params));
+	}
+
+	public ClusterSyncEvent(String nodeId, String path, String methodName, List<Object> params) {
+		this.nodeId = nodeId;
+		this.path = path;
+		this.methodName = methodName;
+		this.params = params;
+	}
+
+	public String getNodeId() {
+		return nodeId;
+	}
+
+	public String getMethodName() {
+		return methodName;
+	}
+
+	public List<Object> getParams() {
+		return params;
+	}
+
+	public String getPath() {
+		return path;
 	}
 }

@@ -56,7 +56,6 @@ import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -537,8 +536,8 @@ public class SmssUtilities {
 	 * @throws IOException
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName,
-			IProject.PROJECT_TYPE projectEnumType, boolean hasPortal, String portalName, String gitProvider,
-			String gitCloneUrl, RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
+			IProject.PROJECT_TYPE projectEnumType, String gitProvider, String gitCloneUrl,
+			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String projectTempSmssLoc = Utility.normalizePath(getProjectTempSmssLoc(projectId, projectName));
 
 		// i am okay with deleting the .temp if it exists
@@ -573,13 +572,6 @@ public class SmssUtilities {
 			}
 			if (gitCloneUrl != null && !(gitCloneUrl = gitCloneUrl.trim()).isEmpty()) {
 				bufferedWriter.write(Constants.PROJECT_GIT_CLONE + tab + gitCloneUrl + newLine);
-			}
-			// portal details
-			bufferedWriter.write(Settings.PUBLIC_HOME_ENABLE + tab + hasPortal + newLine);
-			if (portalName != null) {
-				bufferedWriter.write(Settings.PORTAL_NAME + tab + portalName + newLine);
-			} else {
-				bufferedWriter.write(Settings.PORTAL_NAME + tab + "" + newLine);
 			}
 
 			String rdbmsTypeStr = null;

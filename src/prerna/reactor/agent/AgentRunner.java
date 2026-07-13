@@ -232,11 +232,6 @@ public final class AgentRunner {
 					maxReflections, explicitWorkspaceId);
 
 			try {
-				SkillStager.stagePlatform(filePath, agentConfig.getPlatformSkills());
-			} catch (Exception e) {
-				logger.warn("AgentRunner: platform skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
-			}
-			try {
 				SkillStager.stage(filePath, agentConfig.getSkills());
 			} catch (Exception e) {
 				logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
