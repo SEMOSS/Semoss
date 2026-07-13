@@ -58,7 +58,7 @@ public interface IProject extends IEngine, IMCP {
 	String NOTEBOOK_FOLDER = ".notebooks";
 
 	enum PROJECT_TYPE {
-		BLOCKS, CODE, WORKSPACE, INSIGHTS, SKILL
+		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS,
 	};
 
 	/**
@@ -99,20 +99,6 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	String getProjectName();
-
-	/**
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	boolean isHasPortal();
-
-	/**
-	 * 
-	 * @param hasPortal
-	 */
-	@IgnoreEngineLogging
-	void setHasPortal(boolean hasPortal);
 
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
@@ -295,14 +281,6 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	AuthProvider getGitProvider();
-
-	/**
-	 * Get the project's portal name
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	String getPortalName();
 
 	/**
 	 * Clears the class cache

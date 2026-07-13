@@ -108,8 +108,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("COST", VARCHAR_255),
 				Pair.with("CATALOGNAME", VARCHAR_255),
-				Pair.with("HASPORTAL", BOOLEAN_DATATYPE_NAME),
-				Pair.with("PORTALNAME", VARCHAR_255),
 				Pair.with("PORTALPUBLISHED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PORTALPUBLISHEDUSER", VARCHAR_255),
 				Pair.with("PORTALPUBLISHEDTYPE", VARCHAR_255),
@@ -145,11 +143,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME)));
-
-		addTable("WORKSPACEENGINE", Arrays.asList(
-				Pair.with("PROJECTID", VARCHAR_255),
-				Pair.with("USERID", VARCHAR_255),
-				Pair.with("TYPE", VARCHAR_255)));
 
 		addTable("ASSETENGINE", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
