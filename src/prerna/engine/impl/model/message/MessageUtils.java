@@ -398,60 +398,72 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Remove only the specific message(s) that carry a TOOL_CALL id which never gets a matching TOOL_RESULT.
-	 * Providers reject unpaired tool_use, but truncating the entire tail throws away perfectly good subsequent
-	 * turns (and breaks any caller that references a later message via parentMessageId). Instead, drop just
-	 * the offending message(s) and re-link the parentMessageId of any surviving child to the removed message's
-	 * parent so the branch chain stays intact.
-	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 * Strip only the specific TOOL_CALL / TOOL_RESULT parts that violate the provider's pairing rule.
+	 * Providers reject unpaired tool_use and unpaired tool_result, but removing the whole message throws away
+	 * perfectly good sibling parts -- e.g. a parallel batch where one tool_use is answered and another is not
+	 * (HITL ask-one/answer-other, or a crash mid-batch) would otherwise lose the answered call and orphan its
+	 * result. Instead drop just the offending parts; a message that still has meaningful content survives in
+	 * place, and only a message left empty of meaningful parts is removed (with any surviving child re-linked to
+	 * the removed message's parent so the branch chain stays intact).
+	 * Not pure read-side: surviving messages are mutated in place (parts and/or parentMessageId), and the healed
+	 * state is persisted on the next normal turn via RoomMessageStore.normalizeForProviderPayload.
 	 */
 	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
 		if (messages == null || messages.size() < 2) {
 			return messages != null ? messages : new ArrayList<>();
 		}
-		// pass 1: collect tool_use ids grouped by message index, and the full set of tool_result ids seen
-		Map<Integer, List<String>> toolCallIdsByIndex = new HashMap<>();
-		Set<String> resultIdsSeen = new HashSet<>();
-		for (int i = 0; i < messages.size(); i++) {
-			AbstractMessage m = messages.get(i);
+		// pass 1: collect the full set of tool_use ids and tool_result ids seen across the branch
+		Set<String> toolUseIds = new HashSet<>();
+		Set<String> toolResultIds = new HashSet<>();
+		for (AbstractMessage m : messages) {
 			if (m == null) continue;
 			for (MessagePart part : m.getParts()) {
 				if (part instanceof ToolCallMessagePart tcp) {
 					Map<String, Object> tc = tcp.getToolCall();
 					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
-					if (id != null && !id.isBlank()) {
-						toolCallIdsByIndex.computeIfAbsent(i, k -> new ArrayList<>()).add(id);
-					}
+					if (id != null && !id.isBlank()) toolUseIds.add(id);
 				} else if (part instanceof ToolResultMessagePart trp) {
 					ToolResultPart tr = trp.getToolResult();
 					String id = tr != null ? tr.getToolCallId() : null;
-					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+					if (id != null && !id.isBlank()) toolResultIds.add(id);
 				}
 			}
 		}
-		if (toolCallIdsByIndex.isEmpty()) return messages;
+		// orphans in both directions -- the provider payload validator enforces this bidirectional pairing
+		Set<String> orphanUseIds = new HashSet<>(toolUseIds);
+		orphanUseIds.removeAll(toolResultIds);
+		Set<String> orphanResultIds = new HashSet<>(toolResultIds);
+		orphanResultIds.removeAll(toolUseIds);
+		if (orphanUseIds.isEmpty() && orphanResultIds.isEmpty()) return messages;
 
-		// pass 2: any message index with at least one unmatched tool_use id is offending
-		Set<Integer> offendingIndices = new TreeSet<>();
-		List<String> orphanIds = new ArrayList<>();
-		for (Map.Entry<Integer, List<String>> e : toolCallIdsByIndex.entrySet()) {
-			for (String id : e.getValue()) {
-				if (!resultIdsSeen.contains(id)) {
-					offendingIndices.add(e.getKey());
-					orphanIds.add(id);
-				}
-			}
-		}
-		if (offendingIndices.isEmpty()) return messages;
-
-		// Build removedMessageId -> parentMessageId mapping for re-linking children
+		// pass 2: strip orphan parts; a message emptied of meaningful content is marked for removal
+		Set<Integer> removedIndices = new TreeSet<>();
 		Map<String, String> removedIdToParentId = new HashMap<>();
-		for (int i : offendingIndices) {
-			AbstractMessage removed = messages.get(i);
-			if (removed != null && removed.getMessageId() != null) {
-				removedIdToParentId.put(removed.getMessageId(), removed.getParentMessageId());
+		for (int i = 0; i < messages.size(); i++) {
+			AbstractMessage m = messages.get(i);
+			if (m == null) continue;
+			List<MessagePart> parts = m.getParts();
+			boolean hasOrphan = false;
+			for (MessagePart part : parts) {
+				if (isOrphanToolPart(part, orphanUseIds, orphanResultIds)) {
+					hasOrphan = true;
+					break;
+				}
+			}
+			if (!hasOrphan) continue;
+
+			List<MessagePart> kept = new ArrayList<>(parts.size());
+			for (MessagePart part : parts) {
+				if (!isOrphanToolPart(part, orphanUseIds, orphanResultIds)) kept.add(part);
+			}
+			if (hasMeaningfulPart(kept)) {
+				m.setParts(kept);
+			} else {
+				removedIndices.add(i);
+				if (m.getMessageId() != null) removedIdToParentId.put(m.getMessageId(), m.getParentMessageId());
 			}
 		}
+
 		// Resolve transitively so consecutive removals collapse into the nearest surviving ancestor
 		for (String id : new ArrayList<>(removedIdToParentId.keySet())) {
 			String parent = removedIdToParentId.get(id);
@@ -463,9 +475,9 @@ public class MessageUtils {
 		}
 
 		// Build sanitized list; re-link parentMessageId for any surviving child of a removed message
-		List<AbstractMessage> sanitized = new ArrayList<>(messages.size() - offendingIndices.size());
+		List<AbstractMessage> sanitized = new ArrayList<>(messages.size() - removedIndices.size());
 		for (int i = 0; i < messages.size(); i++) {
-			if (offendingIndices.contains(i)) continue;
+			if (removedIndices.contains(i)) continue;
 			AbstractMessage m = messages.get(i);
 			if (m != null && m.getParentMessageId() != null
 					&& removedIdToParentId.containsKey(m.getParentMessageId())) {
@@ -475,9 +487,37 @@ public class MessageUtils {
 		}
 
 		String roomId = room != null ? room.getId() : "<unknown>";
-		classLogger.warn("sanitizeOrphanToolCalls: room {} removed {} message(s) at indices {} -- unpaired tool_use ids: {}",
-				roomId, offendingIndices.size(), offendingIndices, orphanIds);
+		classLogger.warn("sanitizeOrphanToolCalls: room {} stripped orphan tool_use ids {} and tool_result ids {}; "
+				+ "removed {} emptied message(s) at indices {}",
+				roomId, orphanUseIds, orphanResultIds, removedIndices.size(), removedIndices);
 		return sanitized;
+	}
+
+	/** An orphan part is a TOOL_CALL whose id has no matching result, or a TOOL_RESULT whose id has no matching call. */
+	private static boolean isOrphanToolPart(MessagePart part, Set<String> orphanUseIds, Set<String> orphanResultIds) {
+		if (part instanceof ToolCallMessagePart tcp) {
+			Map<String, Object> tc = tcp.getToolCall();
+			String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+			return id != null && orphanUseIds.contains(id);
+		}
+		if (part instanceof ToolResultMessagePart trp) {
+			ToolResultPart tr = trp.getToolResult();
+			String id = tr != null ? tr.getToolCallId() : null;
+			return id != null && orphanResultIds.contains(id);
+		}
+		return false;
+	}
+
+	/** A message is worth keeping if it still carries content the model turn depends on -- SYSTEM alone is not. */
+	private static boolean hasMeaningfulPart(List<MessagePart> parts) {
+		for (MessagePart part : parts) {
+			MessagePartType type = part.getType();
+			if (type == MessagePartType.TEXT || type == MessagePartType.THINKING || type == MessagePartType.TOOL_CALL
+					|| type == MessagePartType.TOOL_RESULT || type == MessagePartType.MEDIA) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// --- Core two serialization methods ---
