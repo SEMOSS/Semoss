@@ -39,14 +39,15 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.project.fs.CopyAppAssetsToInsightReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class CopyAppAssetsToInsightReactor extends AbstractReactor {
@@ -69,9 +70,12 @@ public class CopyAppAssetsToInsightReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+		// editors/owners can copy any asset; view-only users are confined to the public
+		// folder
+		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
+		if (!canEdit && !SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit assets.");
+					"Project " + projectId + " does not exist or user does not have access to view assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
@@ -83,7 +87,8 @@ public class CopyAppAssetsToInsightReactor extends AbstractReactor {
 		}
 
 		String insightFolder = this.insight.getInsightFolder();
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 
@@ -91,6 +96,12 @@ public class CopyAppAssetsToInsightReactor extends AbstractReactor {
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
+
+			// view-only users may only copy files from within the public folder
+			if (!canEdit && !FileSystemUtil.isWithinPublicAssetFolder(fileName)) {
+				throw new IllegalArgumentException(
+						"User only has read access to the 'public' folder within the assets folder.");
+			}
 
 			// limit saving R/Py Files in prod - no new files can be created but they can be
 			// sourced
@@ -122,8 +133,8 @@ public class CopyAppAssetsToInsightReactor extends AbstractReactor {
 			try {
 				FileUtils.copyFile(file, insightFile);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);
+				classLogger.error("Error copying asset file {} to the insight folder", fileName, e);
+				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to copy file: " + fileName);
 				SemossPixelException exception = new SemossPixelException(error);
 				exception.setContinueThreadOfExecution(false);
 				throw exception;

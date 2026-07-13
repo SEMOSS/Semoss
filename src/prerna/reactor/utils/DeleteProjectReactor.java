@@ -49,6 +49,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -82,8 +83,20 @@ public class DeleteProjectReactor extends AbstractReactor {
 				}
 			}
 
+			// built-in platform skills ship with the distribution and reload at boot;
+			// deleting one would remove its folder + smss with no way to restore it
+			if (SystemDefaultEngines.getSystemSkills().contains(projectId)) {
+				throw new IllegalArgumentException("Project " + projectId
+						+ " is a built-in platform skill and cannot be deleted");
+			}
+
 			IProject project = Utility.getProject(projectId);
 			deleteProject(project);
+			// also remove this project in case it is the current insight's project id
+			if (projectId.equals(this.insight.getContextProjectId())) {
+				this.insight.setContextProjectId(null);
+				this.insight.setContextProjectName(null);
+			}
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
@@ -101,13 +114,13 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
-		// skill-projects carry a SKILL__ row + any WORKSPACE_RESOURCE__ refs in
-		// modellogs; clean those up before tearing down the project itself
+		// skill-projects carry WORKSPACE_RESOURCE__ refs + CONFIG_JSON.skills[]
+		// mirrors in modellogs; scrub those before tearing down the project itself
 		if (project.getProjectType() == IProject.PROJECT_TYPE.SKILL) {
 			try {
-				ModelInferenceLogsUtils.deleteSkillEntry(projectId);
+				ModelInferenceLogsUtils.detachSkillFromAllWorkspaces(projectId);
 			} catch (Exception e) {
-				classLogger.error("Failed to delete SKILL__ row for project '{}'.", projectId, e);
+				classLogger.error("Failed to detach skill project '{}' from workspaces.", projectId, e);
 			}
 		}
 		// remove from DIHelper

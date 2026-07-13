@@ -70,8 +70,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	 */
 	public CreateAppFromBlocksReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
-				ReactorKeysEnum.PORTAL_NAME.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.JSON.getKey() };
+				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey() };
 	}
 
 	@Override
@@ -90,7 +89,6 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		}
 
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
-		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 
@@ -102,7 +100,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		// Create new project
 		IProject newProject = ProjectHelper.generateNewProject(newProjectName, IProject.PROJECT_TYPE.BLOCKS, global,
-				true, portalName, gitProvider, gitCloneUrl, user, logger);
+				gitProvider, gitCloneUrl, user, logger);
 
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(newProject.getProjectId());
 		File blocksJsonFile = new File(portalsFolder + "/" + IProject.BLOCK_FILE_NAME);

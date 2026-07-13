@@ -395,6 +395,9 @@ public class Constants {
 	public static final String PROJECT_FOLDER = "project";
 	public static final String APP_ROOT_FOLDER = "app_root";
 	public static final String ASSETS_FOLDER = "assets";
+	// folder within the assets folder whose contents are visible to users with only
+	// read/view access
+	public static final String PUBLIC_ASSETS_FOLDER = "public";
 	public static final String PORTALS_FOLDER = "portals";
 	public static final String VERSION_FOLDER = "version";
 	public static final String USER_FOLDER = "user";
@@ -1048,4 +1051,14 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// system (platform) skill names
+	public static final String SKILL_AGENT_MEMORY = "agent-memory";
+	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PYTHON = "python";
+	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_VECTOR = "vector";
 }

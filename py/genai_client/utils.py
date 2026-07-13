@@ -1,11 +1,8 @@
 from typing import Optional, Tuple
 from enum import Enum
-import re
-import base64
+import re, json, base64, requests
 from urllib.parse import urlparse
-import requests
 from enum import Enum
-import base64
 from pathlib import Path
 from functools import wraps
 
@@ -23,8 +20,6 @@ def deprecated(reason: str = "", version: str = ""):
         try:
             obj.__deprecated__ = {"reason": reason, "version": version}
         except (AttributeError, TypeError):
-            # Some objects (e.g. certain built-ins) disallow attribute set;
-            # the marker is best-effort, so ignore and return unchanged.
             pass
         return obj
 
@@ -237,10 +232,6 @@ def fetch_and_encode_image(url: str) -> Tuple[str, str]:
     image_data = base64.b64encode(response.content).decode("utf-8")
 
     return image_data, media_type
-
-
-import base64
-from pathlib import Path
 
 
 def image_to_base64(image_path: str):

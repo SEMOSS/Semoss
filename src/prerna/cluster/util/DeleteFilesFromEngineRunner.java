@@ -30,9 +30,9 @@ package prerna.cluster.util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.Constants;
 
 public class DeleteFilesFromEngineRunner implements Runnable {
 
@@ -40,31 +40,32 @@ public class DeleteFilesFromEngineRunner implements Runnable {
 
 	private final String ENGINE_ID;
 	private final IEngine.CATALOG_TYPE ENGINE_TYPE;
-	private final String [] FILE_PATHS;
-	
-	public DeleteFilesFromEngineRunner(String engineId, IEngine.CATALOG_TYPE engineType, String [] filePaths) {
+	private final String[] FILE_PATHS;
+
+	public DeleteFilesFromEngineRunner(String engineId, IEngine.CATALOG_TYPE engineType, String[] filePaths) {
 		this.ENGINE_ID = engineId;
 		this.ENGINE_TYPE = engineType;
 		this.FILE_PATHS = filePaths;
 	}
-	
+
 	@Override
 	public void run() {
 		for (int i = 0; i < this.FILE_PATHS.length; i++) {
 			try {
 				ClusterUtil.deleteEngineCloudFile(ENGINE_ID, ENGINE_TYPE, FILE_PATHS[i]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}	
+				classLogger.error("Failed to delete cloud file '{}' for engine '{}'", FILE_PATHS[i], ENGINE_ID, e);
+			}
 		}
-		
-		// once all the files have been deleted for that vec db, issue a pull command on ZK
-		if(ClusterUtil.IS_CLUSTER_ZK) {
+
+		if (ClusterSynchronizerFactory.IS_CLUSTER_SYNC_SETUP) {
 			try {
-				ClusterUtil.getClusterSynchronizer().publishEngineChange(ENGINE_ID, "pullEngine", ENGINE_ID);
+				ClusterUtil.getClusterSynchronizer().publishEngineChange(ENGINE_ID, ClusterSyncMethod.PULL_ENGINE,
+						ENGINE_ID);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				SemossPixelException err = new SemossPixelException("Failed to publish engine '"+ENGINE_ID+"' to sync with ZK cluster");
+				classLogger.error("Failed to publish engine '{}' change to ZK cluster", ENGINE_ID, e);
+				SemossPixelException err = new SemossPixelException(
+						"Failed to publish engine '" + ENGINE_ID + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
 				throw err;
 			}
