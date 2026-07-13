@@ -48,7 +48,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
 				ReactorKeysEnum.SUB_TYPE.getKey(), ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey(),
 				ReactorKeysEnum.META_FILTERS.getKey(), ReactorKeysEnum.PERMISSION_FILTERS.getKey(),
-				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.ONLY_PORTALS.getKey() };
+				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey() };
 	}
 
 	@Override
@@ -67,10 +67,9 @@ public class MyEngineProjectReactor extends AbstractReactor {
 
 		// Common filters
 		Boolean noMeta = Boolean.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())));
-		Boolean portalsOnly = Boolean
-				.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())));
 		Boolean favoritesOnly = Boolean
 				.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())));
+		List<String> projectTypeFilters = getProjectTypeFilters();
 		List<Integer> permissionFilters = getPermissionFilters();
 		Map<String, Object> engineProjectMetadataFilter = getMetaMap();
 
@@ -87,27 +86,11 @@ public class MyEngineProjectReactor extends AbstractReactor {
 
 			List<Map<String, Object>> result;
 			if ("PROJECT".equalsIgnoreCase(currentType)) {
-				result = getProjects(
-						// List.of("CODE", "BLOCKS"),
-						// for right now, do not apply filter on project type since it is not properly
-						// in some smss files
-						null,
-						favoritesOnly,
-						portalsOnly,
-						engineProjectMetadataFilter,
-						permissionFilters,
-						searchTerm,
-						String.valueOf(limitForType),
-						offset);
+				result = getProjects(projectTypeFilters, favoritesOnly, engineProjectMetadataFilter, permissionFilters,
+						searchTerm, String.valueOf(limitForType), offset);
 			} else {
-				result = getEngines(
-						Collections.singletonList(currentType),
-						noMeta,
-						engineProjectMetadataFilter,
-						permissionFilters,
-						searchTerm,
-						String.valueOf(limitForType),
-						offset);
+				result = getEngines(Collections.singletonList(currentType), noMeta, engineProjectMetadataFilter,
+						permissionFilters, searchTerm, String.valueOf(limitForType), offset);
 
 			}
 			combinedInfo.addAll(result);
@@ -122,7 +105,6 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * 
 	 * @param projectTypes
 	 * @param favoritesOnly
-	 * @param portalsOnly
 	 * @param engineProjectMetadataFilter
 	 * @param permissionFilters
 	 * @param searchTerm
@@ -130,13 +112,12 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @param offSet
 	 * @return
 	 */
-	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly, boolean portalsOnly,
+	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly,
 			Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
 			String limit, String offSet) {
 		List<String> projectIdFilters = getProjectIdFilters();
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
-				projectTypes,
-				projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
+				projectTypes, projectIdFilters, favoritesOnly, engineProjectMetadataFilter, permissionFilters,
 				searchTerm, limit, offSet);
 		return projectInfo;
 	}
@@ -157,8 +138,8 @@ public class MyEngineProjectReactor extends AbstractReactor {
 			String limit, String offSet) {
 		List<String> engineIdFilters = getEngineIdFilters();
 		List<Map<String, Object>> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
-				engineTypes, engineIdFilters, noMeta, engineProjectMetadataFilter, permissionFilters, searchTerm,
-				limit, offSet);
+				engineTypes, engineIdFilters, noMeta, engineProjectMetadataFilter, permissionFilters, searchTerm, limit,
+				offSet);
 		return engineInfo;
 	}
 
@@ -192,6 +173,14 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 */
 	private List<String> getProjectIdFilters() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+		return null;
+	}
+
+	private List<String> getProjectTypeFilters() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT_TYPE.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}

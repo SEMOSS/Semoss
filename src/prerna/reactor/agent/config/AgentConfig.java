@@ -74,10 +74,6 @@ public final class AgentConfig {
     // Skill refs (union of WORKSPACE_RESOURCE['SKILL'] + CONFIG_JSON.skills[] + room.options.skills[])
     private final List<Map<String, String>> skills;
 
-    // Platform skill slugs (union of CONFIG_JSON.platform_skills[] + room.options.platform_skills[]);
-    // disk-backed built-in skills referenced by folder name, staged from <BASE_FOLDER>/skills/.
-    private final List<String> platformSkills;
-
     // Budgets (nested)
     private final Budgets budgets;
 
@@ -114,9 +110,6 @@ public final class AgentConfig {
                 : Collections.emptyList();
         this.skills          = b.skills != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.skills))
-                : Collections.emptyList();
-        this.platformSkills  = b.platformSkills != null
-                ? Collections.unmodifiableList(new ArrayList<>(b.platformSkills))
                 : Collections.emptyList();
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
         this.spawnPolicy     = b.spawnPolicy != null ? b.spawnPolicy : SubAgentSpawnPolicy.defaults();
@@ -255,18 +248,6 @@ public final class AgentConfig {
         return skills;
     }
 
-    // Platform skills
-    /**
-     * Resolved platform-skill slugs for this run.
-     *
-     * <p>Disk-backed built-in skills referenced by folder name (no ids).
-     * {@link prerna.reactor.agent.skill.SkillStager#stagePlatform} materializes
-     * each into {@code .claude/skills/<slug>/} from {@code <BASE_FOLDER>/skills/}.
-     */
-    public List<String> getPlatformSkills() {
-        return platformSkills;
-    }
-
     // Budgets
     /** Run-time budgets (turn cap, reflection cap, wall-clock). Never {@code null}. */
     public Budgets getBudgets() {
@@ -318,7 +299,6 @@ public final class AgentConfig {
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
-        private List<String>        platformSkills;
         private Budgets             budgets;
         private SubAgentSpawnPolicy spawnPolicy;
         private List<IAgentRunHook> runHooks;
@@ -337,7 +317,6 @@ public final class AgentConfig {
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }
-        public Builder platformSkills(List<String> v)      { this.platformSkills = v; return this; }
         public Builder budgets(Budgets v)                       { this.budgets = v;             return this; }
         public Builder spawnPolicy(SubAgentSpawnPolicy v)       { this.spawnPolicy = v;         return this; }
         public Builder runHooks(List<IAgentRunHook> v)          { this.runHooks = v;            return this; }
