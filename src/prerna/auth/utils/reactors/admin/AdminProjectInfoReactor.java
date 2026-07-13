@@ -41,6 +41,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class AdminProjectInfoReactor extends AbstractReactor {
 
@@ -71,6 +73,11 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
 		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
+
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
+				+ Constants.PORTALS_FOLDER + "/";
+		projectInfo.put("project_portal_url", url);
+
 		// append any gh keys with gh_ into the project info map
 		Map<String, Object> githubConnector = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (githubConnector != null && !githubConnector.isEmpty()) {

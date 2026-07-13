@@ -61,7 +61,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Settings;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -181,8 +180,6 @@ public class UploadProjectReactor extends AbstractReactor {
 		String projectId = null;
 		String projectName = null;
 		IProject.PROJECT_TYPE projectEnumType = IProject.PROJECT_TYPE.INSIGHTS;
-		boolean hasPortal = false;
-		String portalName = null;
 		String projectGitProvider = null;
 		String projectGitCloneUrl = null;
 
@@ -206,8 +203,6 @@ public class UploadProjectReactor extends AbstractReactor {
 				projectId = prop.getProperty(Constants.PROJECT);
 				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 			}
-			hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
-			portalName = prop.getProperty(Settings.PORTAL_NAME);
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
 			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 
@@ -263,7 +258,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 				// move smss file
 				File tempUnzippedSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-						projectEnumType, hasPortal, portalName, projectGitProvider, projectGitCloneUrl, null);
+						projectEnumType, projectGitProvider, projectGitCloneUrl, null);
 				FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
 				tempUnzippedSmssF.delete();
 				logger.info(step + ") Done");
