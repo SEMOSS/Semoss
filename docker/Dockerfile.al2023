@@ -1,0 +1,176 @@
+# Base image arguments
+ARG BASE_REGISTRY=public.ecr.aws/amazonlinux
+ARG BASE_IMAGE=amazonlinux
+ARG BASE_TAG=2023
+
+# Codex CLI (Linux x86_64) release version (tag format: rust-vX.Y.Z)
+ARG CODEX_VERSION=0.80.0
+ARG COPILOT_VERSION=latest
+
+#global argument for tomcat
+ARG TOMCAT_VERSION=9.0.119
+ARG JAVA_HOME=/usr/lib/jvm/zulu21
+ARG MAVEN_HOME=/opt/apache-maven-3.9.14
+
+#setting up the tomcat builder for later below. this is for env var expansion.
+FROM quay.io/semoss/tomcat-builder-al2023:${TOMCAT_VERSION} AS tomcat_builder
+ARG CODEX_VERSION
+ARG COPILOT_VERSION
+# Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
+# without buildx (TARGETARCH unset). codex uses x86_64/aarch64; copilot uses x64/arm64.
+ARG TARGETARCH
+RUN dnf update -y \
+	&& dnf install -y --setopt=install_weak_deps=False ca-certificates tar zip \
+	&& dnf clean all \
+	&& case "${TARGETARCH:-amd64}" in \
+		arm64) codex_arch="aarch64"; copilot_arch="arm64" ;; \
+		*)     codex_arch="x86_64";  copilot_arch="x64" ;; \
+	   esac \
+	&& tmp="$(mktemp -d)" \
+	&& case "${COPILOT_VERSION}" in \
+		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${copilot_arch}.tar.gz" ;; \
+		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-${copilot_arch}.tar.gz" ;; \
+	   esac \
+	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-${codex_arch}-unknown-linux-musl.tar.gz" \
+	&& tar -xzf "$tmp/codex.tgz" -C "$tmp" \
+	&& install -m 0755 "$tmp/codex-${codex_arch}-unknown-linux-musl" /usr/local/bin/codex \
+	&& curl -fsSL -o "$tmp/copilot.tgz" "$copilot_url" \
+	&& tar -xzf "$tmp/copilot.tgz" -C "$tmp" \
+	&& install -m 0755 "$tmp/copilot" /usr/local/bin/copilot \
+	&& rm -rf "$tmp" \
+	&& chown 1001:0 /usr/local/bin/codex /usr/local/bin/copilot
+
+# FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
+
+# Define environment variables in this stage
+ARG TOMCAT_VERSION
+ARG JAVA_HOME
+ARG MAVEN_HOME
+ARG SEMOSS_VERSION
+ENV JAVA_HOME=${JAVA_HOME}
+ENV TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ENV MAVEN_HOME=${MAVEN_HOME}
+ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
+ENV SEMOSS_VERSION=${SEMOSS_VERSION}
+ENV MAVEN_ARGS="-B -ntp"
+# ENV DEBIAN_FRONTEND=noninteractive
+
+# Get tomcat, maven and java from another image called tomcat-builder
+COPY --from=tomcat_builder /opt /opt
+COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+
+#AL2023 does not need to install curl
+RUN dnf update -y \
+	&& dnf install -y --setopt=install_weak_deps=False git unzip lsof \
+    && dnf clean all \
+	&& mkdir /opt/semosshome \
+	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
+	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh \
+	&& /opt/semoss-artifacts/artifacts/scripts/update_latest_dev.sh \
+	&& rm -rf /root/.m2 \
+	&& chmod 777 /opt/semosshome/config/Chromedriver/* \
+    && sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
+
+
+RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
+-c "Default Application User" default &&                \
+chown -R 1001:0 ${HOME}
+
+RUN mkdir /opt/chroot
+
+RUN chown -R 1001:0 /opt
+
+# - Dedicated stage to build fakechroot — keeps gcc/make out of the final image
+# debootstrap and fakechroot are not available in AL2023, so we will install fakechroot and fakeroot from source to build the chroot template 
+# AL2023 uses glibc 2.34; fakechroot needs CFLAGS="-D_STAT_VER=1" for glibc 2.33+ compatibility
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS fakechroot_builder
+
+RUN dnf install -y --setopt=install_weak_deps=False \
+        autoconf \
+        automake \
+        libtool \
+        gcc \
+        make \
+        git \
+    && dnf clean all
+
+RUN git clone https://github.com/dex4er/fakechroot.git /tmp/fakechroot \
+    && cd /tmp/fakechroot \
+    && ./autogen.sh \
+    && ./configure CFLAGS="-D_STAT_VER=1" \
+    && make \
+    && make install \
+    && rm -rf /tmp/fakechroot
+
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
+
+LABEL maintainer="semoss@semoss.org"
+
+# From JAVA/tomcat
+ARG TOMCAT_VERSION
+ARG JAVA_HOME
+ARG MAVEN_HOME
+ENV JAVA_HOME=${JAVA_HOME}
+ENV TOMCAT_VERSION=${TOMCAT_VERSION}
+ENV TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV PATH=$VIRTUAL_ENV/bin:$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin:/opt/semoss-artifacts/artifacts/scripts
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/local/bin/codex /usr/local/bin/codex
+COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
+COPY --from=fakechroot_builder /usr/local/bin/fakechroot /usr/local/bin/fakechroot
+COPY --from=fakechroot_builder /usr/local/lib/fakechroot /usr/local/lib/fakechroot
+
+#ENV DEBIAN_FRONTEND=noninteractive
+# AL2023 does not need to install curl
+# Locale setup — AL2023 uses glibc-langpack instead of the Ubuntu locales package
+# en_US.UTF-8 comes as the standard.
+# playwright uses apt-get to install dependencies, so they would need to be installed first
+
+# Single consolidated dnf install (without playwright)
+RUN dnf install -y --setopt=install_weak_deps=False \
+        git \
+        unzip \
+        lsof \
+        vim \
+        nano \
+        fakeroot \
+        util-linux \
+        glibc-langpack-en \
+    && dnf clean all
+
+# install rclone
+RUN curl -fsSL https://rclone.org/install.sh | bash \
+	&& chmod 755 /usr/bin/rclone
+
+## TODO - couldnt get the following to work
+# RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+# 	&& echo "deb http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
+# 	&& dnf update \
+# 	&& dnf install -y google-chrome-stable bash
+
+
+COPY --from=mavenpuller --chown=1001:0 /opt /opt
+COPY --from=quay.io/semoss/python-builder-al2023:3.12-cpu /usr/lib/python /usr/lib/python
+
+# AL2023 does not have the steps to install playwright in the dockerfile.
+
+# Bake the shared chroot template at build time (as root) so the running
+# container never builds it. Writes /opt/chroot/.template/.ready, which makes
+# ChrootTemplate.awaitReady() a no-op at startup. Auto-detects Ubuntu/RHEL paths.
+RUN bash /opt/semoss-artifacts/artifacts/scripts/build_chroot_template.sh /opt/chroot
+
+RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
+	-c "Default Application User" default &&                \
+	chown -R 1001:0 ${HOME}
+
+USER 1001
+
+WORKDIR /opt/semoss-artifacts/artifacts/scripts
+CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]

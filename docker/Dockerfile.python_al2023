@@ -1,0 +1,76 @@
+# Based on python-builder:3.12-cpu and modified to use Amazon Linux 2023 as base image
+# docker build --build-arg COMPUTE_TYPE=cpu  --build-arg PYTHON_VERSION=3.12 -t semoss/pybuilder:al2023_py3.12  . -f Dockerfile.python_al2023
+
+# Base image arguments
+ARG BASE_REGISTRY=public.ecr.aws/amazonlinux
+ARG BASE_IMAGE=amazonlinux
+ARG BASE_TAG=2023
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
+
+ENV BASE_REGISTRY=${BASE_REGISTRY}
+ENV BASE_IMAGE=${BASE_IMAGE}
+ENV BASE_TAG=${BASE_TAG}
+
+LABEL maintainer="semoss@semoss.org"
+
+# al2023 already comes with curl
+RUN dnf update && \
+    dnf -y groupinstall "Development Tools" && \
+    dnf install -y --setopt=install_weak_deps=False \
+        ca-certificates \
+        openssl-devel \
+        zlib-devel \
+        bzip2-devel \
+        readline-devel \
+        sqlite-devel \
+        libffi-devel \
+        git \
+        clang && \
+    dnf clean all \
+    && rm -rf /var/cache/dnf
+
+# installing rust as some python packages now require it for compiling
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Set environment variables for uv
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_NO_CACHE=1
+
+# we will install python inside /usr/lib/python/semossvenv
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV UV_PYTHON_INSTALL_DIR="/usr/lib/python"
+ENV UV_INSTALL_DIR="/usr/lib/uv/"
+ENV PATH=$UV_INSTALL_DIR:$PATH
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+ARG PYTHON_VERSION
+ENV PYTHON_VERSION=${PYTHON_VERSION}
+
+ARG COMPUTE_TYPE
+ENV COMPUTE_TYPE=${COMPUTE_TYPE}
+
+RUN uv python install ${PYTHON_VERSION} --default --preview
+RUN uv venv --seed $VIRTUAL_ENV
+
+RUN echo "COMPUTE_TYPE=${COMPUTE_TYPE}" && echo ".[${COMPUTE_TYPE}]"
+
+RUN cd /tmp && \
+    curl -o pyproject.toml https://raw.githubusercontent.com/SEMOSS/Semoss/refs/heads/dev/py/install_config/pyproject.toml && \
+    uv pip install ".[${COMPUTE_TYPE}]" && \
+    uv pip install "levenshtein>=0.27.3"
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS final
+
+COPY --from=builder /usr/lib/python /usr/lib/python
+
+ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
+
+WORKDIR /opt
+CMD ["bash"]

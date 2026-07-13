@@ -1,0 +1,131 @@
+name: Tomcat al2023 Builder
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tomcat Version to deploy'
+        required: true
+        default: '9.0.119'
+  push:
+    branches: [ "dev", "main" ]
+    paths:
+      - 'docker/Dockerfile.tomcat_al2023'
+      - '.github/workflows/tomcat-builder-al2023.yml'
+
+env:
+  IMAGE: quay.io/semoss/tomcat-builder-al2023
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build each architecture on its OWN native runner and push the result to the
+  # registry BY DIGEST (no tag yet). amd64 builds on a GitHub amd64 runner,
+  # arm64 on a GitHub arm64 runner - no QEMU emulation, so each builds at full
+  # speed in parallel.
+  #
+  # PREREQUISITE: the arm64 leg only succeeds once Dockerfile.tomcat is
+  # architecture-aware. Today the Zulu JDK is installed by install_java.sh (in
+  # the semoss-artifacts repo); it must select the aarch64 tarball when
+  # TARGETARCH=arm64 or this leg fails.
+  # ---------------------------------------------------------------------------
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Build and push by digest (${{ matrix.platform }})
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.tomcat_al2023
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
+            BASE_REGISTRY=public.ecr.aws/amazonlinux
+          # push-by-digest: publish the blobs + per-arch manifest, but DO NOT tag.
+          # The merge job stitches the digests into a single tagged manifest list.
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Combine the per-arch digests into ONE manifest list and apply the tag(s).
+  # This does not rebuild anything; it just writes the index that makes the tag
+  # multi-arch, so `docker pull <tag>` auto-selects amd64 or arm64.
+  # ---------------------------------------------------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Compute tags
+        id: meta
+        shell: bash
+        run: |
+          TAGS=( "-t" "${IMAGE}:${TOMCAT_VERSION}" )
+          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
+            TAGS+=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${{ vars.VERSION }}" )
+          fi
+          echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push manifest list
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create ${{ steps.meta.outputs.args }} \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect manifest list
+        run: docker buildx imagetools inspect "${IMAGE}:${TOMCAT_VERSION}"

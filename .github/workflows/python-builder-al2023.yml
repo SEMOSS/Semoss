@@ -1,0 +1,159 @@
+name: Python al2023 Builder
+on:
+  workflow_dispatch:
+    inputs:
+      # IF WE UPDATE THE DEFAULT HERE, MAKE SURE TO UPDATE THE DEFAULT IN THE env WITHIN THE JOB AS WELL
+      python_version:
+        description: 'Python Version to install'
+        required: true
+        default: '3.12'
+      compute_type:
+        description: 'Install either CPU or GPU packages'
+        required: true
+        default: 'cpu'
+      base_registry:
+        description: 'Base registry'
+        required: true
+        default: 'public.ecr.aws/amazonlinux'
+      base_image:
+        description: 'Base Image'
+        required: true
+        default: 'amazonlinux'
+      base_tag:
+        description: 'Base tag'
+        required: true
+        default: '2023'
+  push:
+    branches: [ "dev", "main" ]
+    paths:
+      - 'docker/Dockerfile.python_al2023'
+      - 'py/install_config/pyproject.toml'
+      - '.github/workflows/python-builder.yml'
+
+env:
+  IMAGE: quay.io/semoss/python-builder-al2023
+  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
+  COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
+  BASE_REGISTRY: ${{ github.event.inputs.base_registry || 'public.ecr.aws/amazonlinux' }}
+  BASE_IMAGE: ${{ github.event.inputs.base_image || 'amazonlinux' }}
+  BASE_TAG: ${{ github.event.inputs.base_tag || '2023' }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Decide which architectures to build. CPU is multi-arch (amd64 + arm64); GPU
+  # is amd64-only (no Apple-Silicon CUDA, nvidia/cuda arm64 is server-only).
+  # ---------------------------------------------------------------------------
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        shell: bash
+        run: |
+          AMD64='{"platform":"linux/amd64","arch":"amd64","runner_prefix":"codebuild-semoss-github-runner","container":"quay.io/semoss/test-quay:ubuntu-dind"}'
+          ARM64='{"platform":"linux/arm64","arch":"arm64","runner_prefix":"codebuild-semoss-github-runner-arm64","container":"quay.io/semoss/test-quay:ubuntu-dind-arm64"}'
+          if [[ "${COMPUTE_TYPE}" == "cpu" ]]; then
+            echo "matrix={\"include\":[${AMD64},${ARM64}]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix={\"include\":[${AMD64}]}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Build each architecture natively and push BY DIGEST (no tag).
+  # PREREQUISITE: the arm64 leg needs arm64 wheels for everything in
+  # pyproject.toml [cpu]; torch CPU has them, but verify the full set resolves.
+  # ---------------------------------------------------------------------------
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    runs-on: ${{ matrix.runner_prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Build and push by digest (${{ matrix.platform }})
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.python_al2023
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            COMPUTE_TYPE=${{ env.COMPUTE_TYPE }}
+            BASE_REGISTRY=${{ env.BASE_REGISTRY }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+            BASE_TAG=${{ env.BASE_TAG }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Stitch the per-arch digests into one tagged manifest list.
+  # ---------------------------------------------------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Compute tags
+        id: meta
+        shell: bash
+        run: |
+          TAGS=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}" )
+          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
+            TAGS+=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}-${{ vars.VERSION }}" )
+          fi
+          echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push manifest list
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create ${{ steps.meta.outputs.args }} \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Inspect manifest list
+        run: docker buildx imagetools inspect "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}"
