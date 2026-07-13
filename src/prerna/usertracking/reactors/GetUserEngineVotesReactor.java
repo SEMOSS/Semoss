@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.usertracking.reactors;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.javatuples.Pair;
 
@@ -41,37 +43,53 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.util.Utility;
 
-@Deprecated
-public class UnvoteDatabaseReactor extends AbstractReactor {
-	
-	public UnvoteDatabaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+public class GetUserEngineVotesReactor extends AbstractReactor {
+
+	public GetUserEngineVotesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
-		
-		List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
-		
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		if (databaseId == null) {
-			throw new IllegalArgumentException("Database Id cannot be null.");
-		}
-		
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database cannot be viewed by user.");
-		}
-		
-		UserCatalogVoteUtils.delete(creds, databaseId);
 
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully unvoted for catalog"));
-		return noun;
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Engine Id cannot be null.");
+		}
+
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Engine cannot be viewed by user.");
+		}
+
+		// get the primary login in case of different upvote and downvote for different
+		// authproviders.
+		List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
+		Pair<String, String> primaryCredentials = creds.get(0);
+
+		Map<Pair<String, String>, Integer> userVotes = UserCatalogVoteUtils.getVote(creds, engineId);
+
+		int userVote = 0;
+		if (userVotes.containsKey(primaryCredentials)) {
+			userVote = userVotes.get(primaryCredentials);
+		}
+
+		int total = UserCatalogVoteUtils.getAllVotes(engineId);
+
+		Map<String, Integer> votes = new HashMap<>();
+		votes.put("userVote", userVote);
+		votes.put("total", total);
+
+		return new NounMetadata(votes, PixelDataType.MAP);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns the current user's vote and the total aggregated vote count for an engine.";
 	}
 
 }

@@ -29,8 +29,10 @@ package prerna.util;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +48,6 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
-import prerna.reactor.agent.skill.PlatformSkillBootstrap;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.workflow.WorkflowDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
@@ -237,9 +238,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SystemEngineRegistry
 							.loadSystemEngine(folderToWatch + "/" + fileNames[modelInferenceLogsDBNameIndex]);
 					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
-					// Disabled stub; platform-skill migration to Skill-Projects is handled
-					// out-of-band. Kept here so the call site is documented.
-					PlatformSkillBootstrap.scan();
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the model inference logs database", e);
 				}
@@ -292,7 +290,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] engineIds = new String[fileNames.length];
+		if (fileNames == null || fileNames.length == 0) {
+			return;
+		}
+		Set<String> engineIds = new HashSet<>(fileNames.length);
+
 		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		String themeDBName = Constants.THEMING_DB + this.extension;
@@ -323,7 +325,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// corresponding SMSS files
 				// so we will catalog instead of load
 				String loadedEngineId = catalogEngine(fileName, folderToWatch);
-				engineIds[fileIdx] = loadedEngineId;
+				engineIds.add(loadedEngineId);
 			} catch (RuntimeException ex) {
 				classLogger.error("Failed to catalog database engine from SMSS file {}/{}", folderToWatch,
 						fileNames[fileIdx], ex);
@@ -337,7 +339,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			DeleteFromMasterDB remover = new DeleteFromMasterDB();
 
 			for (String engine : engines) {
-				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+				if (!engineIds.contains(engine)) {
 					classLogger.info("Deleting the database engine from local master..... {}",
 							Utility.cleanLogString(engine));
 					remover.deleteEngineRDBMS(engine);
@@ -346,7 +348,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 
 			engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.toString()));
 			for (String engine : engines) {
-				if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+				if (!engineIds.contains(engine)) {
 					classLogger.info("Deleting the database engine {} from security", Utility.cleanLogString(engine));
 					SecurityEngineUtils.deleteEngine(engine);
 				}

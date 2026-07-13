@@ -100,20 +100,6 @@ public interface IProject extends IEngine, IMCP {
 	@IgnoreEngineLogging
 	String getProjectName();
 
-	/**
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	boolean isHasPortal();
-
-	/**
-	 * 
-	 * @param hasPortal
-	 */
-	@IgnoreEngineLogging
-	void setHasPortal(boolean hasPortal);
-
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
 	@IgnoreEngineLogging
@@ -295,14 +281,6 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	AuthProvider getGitProvider();
-
-	/**
-	 * Get the project's portal name
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	String getPortalName();
 
 	/**
 	 * Clears the class cache
