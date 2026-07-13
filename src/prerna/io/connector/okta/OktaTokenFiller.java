@@ -27,41 +27,33 @@
  *******************************************************************************/
 package prerna.io.connector.okta;
 
-import java.util.HashMap;
-import java.util.Map;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
-import prerna.auth.AccessToken;
-import prerna.io.connector.IAccessTokenFiller;
-import prerna.security.HttpHelperUtility;
-import prerna.util.BeanFiller;
+/**
+ * Okta uses the standard OAuth2 authorization-code flow (authorize URL, token
+ * URL and userinfo URL all configured via social properties) and includes the
+ * scope in the token exchange. Only the userinfo parsing defaults are provided.
+ */
+public class OktaTokenFiller extends AbstractOAuthTokenFiller {
 
-public class OktaTokenFiller implements IAccessTokenFiller {
+	// jsonPattern: JMESPath query projecting values out of the userinfo JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	private static final String DEFAULT_JSON_PATTERN = "[sub,name,email,phone_number]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "id", "name", "email", "phone" };
 
-	private static String jsonPattern = "[sub,name,email,phone_number]";
-	private static String[] beanProps = {"id","name","email","phone"};
-	
 	@Override
-	public void fillAccessToken(AccessToken oktaAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
-		if(params == null) {
-			params = new HashMap<>();
-		}
-		if(jsonPattern == null || (jsonPattern=jsonPattern.trim()).isEmpty()) {
-			jsonPattern = OktaTokenFiller.jsonPattern;
-		}
-		if(beanProps == null || beanProps.length == 0) {
-			beanProps = OktaTokenFiller.beanProps;
-		}
-		
-		String accessToken = oktaAccessToken.getAccess_token();
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-		// fill the bean with the return
-		BeanFiller.fillFromJson(output, jsonPattern, beanProps, oktaAccessToken);
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
 	}
 
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params, boolean sanitizeResponse) {
-		// dont need to sanitize
-		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
 	}
-	
+
+	@Override
+	protected boolean includeScopeInTokenRequest() {
+		return true;
+	}
+
 }

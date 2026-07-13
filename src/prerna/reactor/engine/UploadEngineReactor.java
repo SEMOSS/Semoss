@@ -85,6 +85,14 @@ public class UploadEngineReactor extends AbstractReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		int step = 1;
 		String zipFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		File zipFile = zipFilePath == null ? null : new File(Utility.normalizePath(zipFilePath));
+		if (zipFile == null || !zipFile.exists() || !zipFile.isFile()) {
+			String fileName = zipFile == null ? zipFilePath : zipFile.getName();
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to find the file to upload: " + fileName));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		// do we want this project to be accessible to everyone
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 		// check security
