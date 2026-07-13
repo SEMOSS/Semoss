@@ -154,6 +154,20 @@ public final class AgentRunner {
 	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
 			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight) throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				mediaInputPaths, mediaUrls, runId, insight, false);
+	}
+
+	/**
+	 * Overload that accepts a {@code resumeMode} flag. When {@code true}, the
+	 * harness skips the initial model ask and continues from the room's latest
+	 * message - used when resuming a run that was paused on
+	 * {@code SMSS_MCP_EXECUTION=ask} tools.
+	 */
+	public static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight,
+			boolean resumeMode) throws Exception {
 
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("roomId is required");
@@ -218,11 +232,6 @@ public final class AgentRunner {
 					maxReflections, explicitWorkspaceId);
 
 			try {
-				SkillStager.stagePlatform(filePath, agentConfig.getPlatformSkills());
-			} catch (Exception e) {
-				logger.warn("AgentRunner: platform skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
-			}
-			try {
 				SkillStager.stage(filePath, agentConfig.getSkills());
 			} catch (Exception e) {
 				logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
@@ -235,7 +244,9 @@ public final class AgentRunner {
 					// Child runs are recorded by AgentSubAgentRegistry before their
 					// virtual thread starts, so this lookup can classify the run without
 					// storing transient spawn state on the durable room options.
-					.spawnDepth(resolveSpawnDepth()).agentConfig(agentConfig).build();
+					.spawnDepth(resolveSpawnDepth())
+					.resumeMode(resumeMode)
+					.agentConfig(agentConfig).build();
 
 			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
 			logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
