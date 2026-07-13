@@ -33,6 +33,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -44,6 +47,11 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputReactor.class);
+
+	// default guardrail input param whose mapped argument gets overwritten when masking
+	private static final String DEFAULT_MASK_TARGET_PARAM = "prompt";
 
 	public GenericGuardrailInputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
@@ -70,8 +78,6 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			inputMapping = new HashMap<>();
 		}
 
-		// TODO: how to incorporate masking ... or do we generate a new guardrail
-		// instead...
 		Boolean blockOnGuardrailFailure = helper.getConfigParameter("blockOnGuardrailFailure", Boolean.class);
 		if (blockOnGuardrailFailure == null) {
 			blockOnGuardrailFailure = true; // Default value
@@ -155,10 +161,39 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		// Call the guardrail engine's execute method
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
-		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName());
+		Map<String, Object> processedArguments = helper.getArgumentsMap();
+
+		// If this filter is configured to mask (rather than block) on failure, overwrite
+		// the guarded argument with the masked prompt the engine produced so the masked
+		// text - not the original - flows downstream to the model.
+		boolean masked = false;
+		Boolean maskOnGuardrailFailure = helper.getConfigParameter("maskOnGuardrailFailure", Boolean.class);
+		if (maskOnGuardrailFailure != null && maskOnGuardrailFailure && !output.isPass()) {
+			String maskTargetParam = helper.getConfigParameter("maskTargetParam", String.class);
+			if (maskTargetParam == null || maskTargetParam.isEmpty()) {
+				maskTargetParam = DEFAULT_MASK_TARGET_PARAM;
+			}
+			// inputMapping maps the guardrail param (e.g. "prompt") to the intercepted
+			// method argument name (e.g. "arg0"); that argument is what we overwrite
+			Object mappedArg = inputMapping.get(maskTargetParam);
+			String maskedPrompt = output.getReturnPrompt();
+			if (mappedArg instanceof String && maskedPrompt != null) {
+				processedArguments.put((String) mappedArg, maskedPrompt);
+				masked = true;
+			} else {
+				// cannot safely write the masked value back (e.g. a combined multi-arg
+				// mapping) - leave pass as-is so the request is blocked rather than
+				// leaking unmasked content downstream
+				classLogger.warn(
+						"maskOnGuardrailFailure is enabled but mask target '{}' is not mapped to a single argument; "
+								+ "blocking instead of masking.",
+						maskTargetParam);
+			}
+		}
+
+		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked);
 
 		// Update the processedArguments with the interim result
-		Map<String, Object> processedArguments = helper.getArgumentsMap();
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
 		return new NounMetadata(processedArguments, PixelDataType.MAP);
 	}
@@ -170,11 +205,14 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @param interceptorName
 	 * @return
 	 */
-	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName) {
+	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
+			boolean masked) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
-		resultMap.put(PipelineReactorUtils.PASS, results.isPass());
+		// when we masked the input we neutralized the failure, so let it pass downstream
+		resultMap.put(PipelineReactorUtils.PASS, masked || results.isPass());
 		resultMap.put(PipelineReactorUtils.PASS_DETAILS, results.getValue());
+		resultMap.put(PipelineReactorUtils.MASKED, masked);
 
 		return resultMap;
 	}

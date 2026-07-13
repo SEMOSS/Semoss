@@ -55,7 +55,7 @@ public class MyProjectsReactor extends AbstractReactor {
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
-				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
+				ReactorKeysEnum.PROJECT_TYPE.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
 				ReactorKeysEnum.SORT.getKey() };
 	}
 
@@ -64,11 +64,10 @@ public class MyProjectsReactor extends AbstractReactor {
 		String searchTerm = getString(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = getString(ReactorKeysEnum.LIMIT.getKey());
 		String offset = getString(ReactorKeysEnum.OFFSET.getKey());
-		List<String> projectTypeFilters = getListString(ReactorKeysEnum.TYPE.getKey());
+		List<String> projectTypeFilters = getListString(ReactorKeysEnum.PROJECT_TYPE.getKey());
 		List<String> projectIdFilters = getListString(ReactorKeysEnum.PROJECT.getKey());
 		boolean favoritesOnly = getBoolean(ReactorKeysEnum.ONLY_FAVORITES.getKey(), false);
 		boolean noMeta = getBoolean(ReactorKeysEnum.NO_META.getKey(), false);
-		boolean portalsOnly = getBoolean(ReactorKeysEnum.ONLY_PORTALS.getKey(), false);
 		List<Integer> permissionFilters = getListInteger(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
 		boolean includeUserT = getBoolean(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), false);
 		Map<String, Object> projectMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
@@ -77,8 +76,8 @@ public class MyProjectsReactor extends AbstractReactor {
 		// for right now, do not apply filter on project type since it is not properly
 		// in some smss files
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
-				projectTypeFilters, projectIdFilters, favoritesOnly, portalsOnly, projectMetadataFilter,
-				permissionFilters, searchTerm, limit, offset, sortFields);
+				projectTypeFilters, projectIdFilters, favoritesOnly, projectMetadataFilter, permissionFilters,
+				searchTerm, limit, offset, sortFields);
 
 		if (!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
@@ -227,12 +226,6 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		itemProperties.put("user_permission",
 				new JSONObject().put("type", "integer").put("description", "Same as permission"));
-
-		itemProperties.put("project_has_portal", new JSONObject().put("type", "boolean").put("description",
-				"Whether the project has a portal attached"));
-
-		itemProperties.put("project_portal_name",
-				new JSONObject().put("type", "string").put("description", "Name of the portal, empty string if none"));
 
 		itemProperties.put("project_discoverable", new JSONObject().put("type", "boolean").put("description",
 				"Whether the project is discoverable by other users"));
