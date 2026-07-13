@@ -47,6 +47,7 @@ public final class PipelineReactorUtils {
 	public static final String INTERCEPTOR = "interceptor";
 	public static final String PASS = "pass";
 	public static final String PASS_DETAILS = "passDetails";
+	public static final String MASKED = "masked";
 
 	private PipelineReactorUtils() {
 		// private constructor to prevent instantiation

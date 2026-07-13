@@ -52,8 +52,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, PLATFORM_SKILLS, MODEL_ID };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -107,10 +107,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
-		Set<String> platformSkills = getGenRowStruct(PLATFORM_SKILLS) != null ? new LinkedHashSet<>() : null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
-					dependencyList, workspaceResources, skillIds, platformSkills);
+					dependencyList, workspaceResources, skillIds);
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}
@@ -139,7 +138,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// correctly from those.
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
-					platformSkills, modelIdProvided, workspaceModelId);
+					modelIdProvided, workspaceModelId);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
