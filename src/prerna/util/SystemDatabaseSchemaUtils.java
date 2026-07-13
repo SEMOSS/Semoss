@@ -62,7 +62,7 @@ public class SystemDatabaseSchemaUtils {
 	 *         backed by an OWL creator)
 	 */
 	public static boolean isSystemDatabase(String databaseId) {
-		return databaseId != null && SystemDefaultDatabases.getDatabasesWithGeneratedOwl().contains(databaseId);
+		return databaseId != null && SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(databaseId);
 	}
 
 	/**
@@ -70,14 +70,14 @@ public class SystemDatabaseSchemaUtils {
 	 * per column - for a system default database, sourced from that engine's OWL
 	 * creator.
 	 *
-	 * @param databaseId one of the {@link SystemDefaultDatabases} ids
+	 * @param databaseId one of the {@link SystemDefaultEngines} ids
 	 * @return the flattened table/column/datatype schema
 	 * @throws IllegalArgumentException if the id is not a system default database
 	 */
 	public static List<OwlColumn> getSystemDatabaseSchema(String databaseId) {
 		if (!isSystemDatabase(databaseId)) {
 			throw new IllegalArgumentException("'" + databaseId + "' is not a system default database. Valid ids are: "
-					+ SystemDefaultDatabases.getDatabasesWithGeneratedOwl());
+					+ SystemDefaultEngines.getDatabasesWithGeneratedOwl());
 		}
 
 		IRDBMSEngine engine = SystemEngineRegistry.getSystemEngine(databaseId);

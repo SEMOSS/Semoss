@@ -76,12 +76,11 @@ public class ProjectInfoReactor extends AbstractReactor {
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
 		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
-		// also return the portal url if there is a portal
-		if (Boolean.parseBoolean(projectInfo.get("project_has_portal") + "")) {
-			String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
-					+ Constants.PORTALS_FOLDER + "/";
-			projectInfo.put("project_portal_url", url);
-		}
+
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
+				+ Constants.PORTALS_FOLDER + "/";
+		projectInfo.put("project_portal_url", url);
+
 		// append any gh keys with gh_ into the project info map
 		Map<String, Object> githubConnector = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (githubConnector != null && !githubConnector.isEmpty()) {
