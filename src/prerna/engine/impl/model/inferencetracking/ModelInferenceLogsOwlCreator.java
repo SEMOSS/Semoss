@@ -138,23 +138,6 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("RESOURCE_TYPE", VARCHAR_255),
 				Pair.with("RESOURCE_SUBTYPE", VARCHAR_255)));
 
-		// Skill registry. SKILL_ID == the underlying Project ID (skills are projects
-		// of type SKILL, identified via PROJECTMETA tag = Skill_Project). The Project
-		// owns content, versioning (git in version/), and permissions. This table only
-		// holds the skill-specific metadata used for fast listing and the
-		// platform-vs-user
-		// ORIGIN distinction.
-		addTable("SKILL", Arrays.asList(
-				Pair.with("SKILL_ID", VARCHAR_50),
-				Pair.with("SLUG", VARCHAR_255),
-				Pair.with("NAME", VARCHAR_255),
-				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
-				Pair.with("CREATED_BY", VARCHAR_255),
-				Pair.with("ORIGIN", VARCHAR_50),
-				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
-				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)));
-
 		addTable("AGENT_RUN", Arrays.asList(
 				Pair.with("RUN_ID", VARCHAR_50),
 				Pair.with("ROOM_ID", VARCHAR_50),

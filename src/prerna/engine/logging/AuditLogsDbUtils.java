@@ -270,6 +270,9 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_START_TIME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE_END_TIME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__GUARDRAIL_ACTION"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_READ_TOKENS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_CREATION_TOKENS"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -310,18 +313,23 @@ public class AuditLogsDbUtils {
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
 			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
-			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
-					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			int promptTokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"));
+			int responseTokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			int tokens = promptTokens + responseTokens;
 			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
 			String userNameFromRow = getOrDefault(map.get("USER_NAME"), null);
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			String logTimestamp = toUtcIso(map.get("LOG_TIMESTAMP"));
+			String guardrailAction = getOrDefault(map.get("GUARDRAIL_ACTION"), null);
+			int cacheReadTokens = getIntValue(map.get("NUMBER_OF_CACHE_READ_TOKENS"));
+			int cacheCreationTokens = getIntValue(map.get("NUMBER_OF_CACHE_CREATION_TOKENS"));
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
-					spanIdFromRow, logTimestamp));
+					spanIdFromRow, logTimestamp, guardrailAction, cacheReadTokens, cacheCreationTokens, promptTokens,
+					responseTokens));
 
 		}
 		return activityList;

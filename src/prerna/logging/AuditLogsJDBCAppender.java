@@ -95,15 +95,16 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 		this.INSERT_SQL = """
 				INSERT INTO AUDIT_LOGS (
 				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_NAME, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
-				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME,
+				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME, GUARDRAIL_ACTION,
 				    MESSAGE, REQUEST, RESPONSE,
-				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE,
+				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE, NUMBER_OF_CACHE_READ_TOKENS, NUMBER_OF_CACHE_CREATION_TOKENS,
 				    REQUEST_START_TIME, RESPONSE_END_TIME,
 				    LOG_LEVEL, LOG_TIMESTAMP, LOGGER_NAME, LOGGER_LOCATION
 				) VALUES (
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+				    ?, ?, ?
 				);
 				""";
 
@@ -213,6 +214,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_SUBTYPE, contextData, message)); // engine_subtype
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INPUT_REACTOR_NAME, contextData, message)); // input_reactor_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.OUTPUT_REACTOR_NAME, contextData, message)); // output_reactor_name
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.GUARDRAIL_ACTION, contextData, message)); // guardrail_action
 				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON); // message
 				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.REQUEST, contextData, message),
 						paramIdx++, GSON); // request
@@ -232,6 +234,22 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
 					} else {
 						stmt.setInt(paramIdx++, tokens); // number_of_tokens_in_response
+					}
+				}
+				{
+					Integer tokens = getInteger(SemossLogUtils.NUMBER_OF_CACHE_READ_TOKENS, contextData, message);
+					if (tokens == null) {
+						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
+					} else {
+						stmt.setInt(paramIdx++, tokens); // number_of_cache_read_tokens
+					}
+				}
+				{
+					Integer tokens = getInteger(SemossLogUtils.NUMBER_OF_CACHE_CREATION_TOKENS, contextData, message);
+					if (tokens == null) {
+						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
+					} else {
+						stmt.setInt(paramIdx++, tokens); // number_of_cache_creation_tokens
 					}
 				}
 				stmt.setTimestamp(paramIdx++,
