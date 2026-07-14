@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.engine.impl.guardrail;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,38 +38,27 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
-import prerna.ds.py.PyTranslator;
 import prerna.engine.api.GuardrailTypeEnum;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
-import prerna.om.ClientProcessWrapper;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
-import prerna.util.Constants;
-import prerna.util.EngineUtility;
-import prerna.util.Settings;
-import prerna.util.Utility;
 
-public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
+public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
 	private static final String MODEL_NAME = "MODEL_NAME";
 	private static final String NER_LABELS = "NER_LABELS";
 	private static final String DEFAULT_THRESHOLD_KEY = "DEFAULT_THRESHOLD";
-
-	private String engineDirectoryPath = null;
-	private File cacheFolder;
-	private ClientProcessWrapper cpw = null;
-	private PyTranslator pyTranslator = null;
+	private static final String MASK_TEMPLATE_KEY = "MASK_TEMPLATE";
 
 	private String modelName = null;
 	private List<String> defaultLabels = null;
 	private Double defaultThreshold = .7;
+	// template used when masking a matched entity; {label} is replaced with the entity label
+	private String maskTemplate = "[{label}]";
 
 	public GLiNERGuardrailEngine() {
 		this.keysToGet = new String[] { "prompt", "labels", "threshold" };
@@ -97,15 +85,14 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 				defaultThreshold = Double.parseDouble(defaultThresholdStr);
 			} catch (NumberFormatException e) {
 				classLogger.warn("Invalid default threshold value " + defaultThresholdStr
-						+ ". Revert to default value of " + defaultThreshold);
-				classLogger.error(Constants.STACKTRACE, e);
+						+ ". Revert to default value of " + defaultThreshold, e);
 			}
 		}
 
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(),
-				this.getEngineId(), this.getEngineName());
-		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
-		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
+		String maskTemplateStr = this.smssProp.getProperty(MASK_TEMPLATE_KEY);
+		if (maskTemplateStr != null && !(maskTemplateStr = maskTemplateStr.trim()).isEmpty()) {
+			this.maskTemplate = maskTemplateStr;
+		}
 
 		this.functionDescription = "Applying Named Entity Recognition based on provided user labels";
 		this.parameters = new ArrayList<>();
@@ -148,6 +135,9 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator
 				.runDirectPyNoCancelTrace(script);
 		boolean pass = true;
+		// collect the entities that breach the threshold so we can build a masked
+		// variant of the prompt for interceptors that mask rather than block
+		List<Map<String, Object>> flagged = new ArrayList<>();
 		for (Map<String, Object> category : predictions) {
 			// account if the type is return
 			Object categoryScore = category.get("score");
@@ -160,110 +150,86 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 
 			if (score > threshold) {
 				pass = false;
+				flagged.add(category);
 			}
 		}
+
+		// Build a masked copy of the prompt (each flagged entity span replaced with the
+		// mask template). When nothing breaches the threshold this equals the original
+		// prompt. The interceptor decides whether to use this (mask) or reject (block).
+		String returnPrompt = buildMaskedPrompt(prompt, flagged);
 
 		Map<String, Object> retValue = new HashMap<>();
 		retValue.put("threshold", threshold);
 		retValue.put("return", predictions);
-		// we do not manipulate the prompt
-		// so return as is
-		return new GuardrailNounMetadata(pass, prompt, retValue);
+		return new GuardrailNounMetadata(pass, returnPrompt, retValue);
 	}
 
-	private void checkSocketStatus() {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
+	/**
+	 * Build a masked copy of the prompt where every flagged entity span is replaced
+	 * with the configured mask template (default {@code [label]}). Spans are replaced
+	 * from right to left so the character offsets returned by GLiNER stay valid as the
+	 * string is rewritten. Overlapping spans are skipped defensively. When there are no
+	 * flagged entities the original prompt is returned unchanged.
+	 *
+	 * @param prompt  the original prompt
+	 * @param flagged the entity predictions (each a map with start/end/label) that
+	 *                breached the threshold
+	 * @return the masked prompt
+	 */
+	private String buildMaskedPrompt(String prompt, List<Map<String, Object>> flagged) {
+		if (prompt == null || flagged == null || flagged.isEmpty()) {
+			return prompt;
+		}
+		// sort a copy by start offset descending so right-to-left splicing keeps offsets valid
+		List<Map<String, Object>> ordered = new ArrayList<>(flagged);
+		ordered.sort((a, b) -> Integer.compare(getInt(b.get("start")), getInt(a.get("start"))));
+
+		StringBuilder masked = new StringBuilder(prompt);
+		// tracks the left edge of the last span we replaced; the next span must end at
+		// or before this to be a non-overlapping, still-valid region of the original text
+		int lastStart = prompt.length();
+		for (Map<String, Object> entity : ordered) {
+			int start = getInt(entity.get("start"));
+			int end = getInt(entity.get("end"));
+			if (start < 0 || start >= end || end > lastStart) {
+				continue;
+			}
+			Object label = entity.get("label");
+			String replacement = this.maskTemplate.replace("{label}", label == null ? "" : label.toString());
+			masked.replace(start, end, replacement);
+			lastStart = start;
+		}
+		return masked.toString();
+	}
+
+	/**
+	 * Coerce a value returned from the python translator (Number, or a stringified
+	 * number) into an int, returning -1 when it cannot be parsed.
+	 *
+	 * @param value the raw value
+	 * @return the int value, or -1 if not parseable
+	 */
+	private static int getInt(Object value) {
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		if (value == null) {
+			return -1;
+		}
+		try {
+			return (int) Double.parseDouble(value.toString());
+		} catch (NumberFormatException e) {
+			return -1;
 		}
 	}
 
-	private synchronized void startServer(int port) {
-		// already created by another thread
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way
-		// than the command
-
-		// execute all the basic commands
-		if (!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
-		}
-
-		// check if we have already created a process wrapper
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
-
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-
-		boolean debug = false;
-
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
-				}
-			}
-		}
-
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		// it has to be -- don't change this unless you can send engine calls from
-		// python
-		boolean nativePyServer = true;
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-					debug, timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String execCommand = "from gliner import GLiNER\n" + "model = GLiNER.from_pretrained(\"" + this.modelName
-					+ "\")";
-
-			this.pyTranslator.runScriptNoCancelTrace(execCommand);
-
-			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + execCommand);
-
-			// finally set the cpw in the class
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for detoxify guardrail engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
-				cpwToInit.shutdown(false);
-			}
-			throw e;
-		}
+	@Override
+	protected String getStartupScript() {
+		// @formatter:off
+		return "from gliner import GLiNER\n" 
+				+ "model = GLiNER.from_pretrained(\"" + this.modelName + "\")";
+		// @formatter:on
 	}
 
 	@Override

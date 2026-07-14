@@ -57,10 +57,9 @@ public class AdminGetProjectPortalDetailsReactorApiTests extends AbstractBaseSem
 		Map<String, Object> portalDetails = (Map<String, Object>) nm.getValue();
 		assertNotNull(nm);
 		assertEquals(PixelDataType.MAP, nm.getNounType());
-		assertFalse(Boolean.valueOf(portalDetails.get("project_has_portal").toString()));
+		assertNotNull(portalDetails.get("project_portal_url"));
 		assertFalse(Boolean.valueOf(portalDetails.get("project_is_published").toString()));
-		assertFalse(Boolean.valueOf(portalDetails.get("isPublished").toString()));
+		assertFalse(portalDetails.containsKey("isPublished"));
 	}
-	
 
 }

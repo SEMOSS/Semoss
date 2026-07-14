@@ -33,66 +33,66 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 /**
  * Updates an existing skill's {@code SKILL.md} content and/or description.
  *
- * <p>The skill's <strong>name is immutable</strong> after creation - it backs both
- * the project alias and the on-disk slug used by every working dir that has staged
- * the skill, so renaming would invalidate caches and break stagers. To rename,
- * delete the skill and re-create it.
+ * <p>
+ * The skill's <strong>name is immutable</strong> after creation - it backs both
+ * the project alias and the on-disk slug used by every working dir that has
+ * staged the skill, so renaming would invalidate caches and break stagers. To
+ * rename, delete the skill and re-create it.
  *
- * <p>Frontmatter on disk is kept in sync with the {@code SKILL__} row: every write
- * synthesizes a fresh frontmatter block from the canonical name and the resolved
- * description, then appends the body. The caller's frontmatter (if any) is read
- * for its description but otherwise discarded.
+ * <p>
+ * The SKILL.md frontmatter is the source of truth for name/description: every
+ * write synthesizes a fresh frontmatter block from the canonical name and the
+ * resolved description, then appends the body. The caller's frontmatter (if
+ * any) is read for its description but otherwise discarded.
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code skillId}      - skill identifier, == the underlying project id (required)</li>
- *   <li>{@code skillContent} - new SKILL.md text. Frontmatter is optional - any
- *                              supplied frontmatter is replaced on write with the
- *                              canonical block. (optional)</li>
- *   <li>{@code description}  - new description. Wins over any frontmatter description
- *                              in {@code skillContent}. (optional)</li>
+ * <li>{@code skillId} - skill identifier, == the underlying project id
+ * (required)</li>
+ * <li>{@code skillContent} - new SKILL.md text. Frontmatter is optional - any
+ * supplied frontmatter is replaced on write with the canonical block.
+ * (optional)</li>
+ * <li>{@code description} - new description. Wins over any frontmatter
+ * description in {@code skillContent}. (optional)</li>
  * </ul>
  *
- * <p>At least one of {@code skillContent} / {@code description} must be supplied.
+ * <p>
+ * At least one of {@code skillContent} / {@code description} must be supplied.
  *
- * <p>Authorization: caller must pass
+ * <p>
+ * Authorization: caller must pass
  * {@link SecurityProjectUtils#userCanEditProject} on the skill-project.
  *
- * <p>Does <em>not</em> commit the change to git; the existing project-commit
+ * <p>
+ * Does <em>not</em> commit the change to git; the existing project-commit
  * tooling owns that.
  */
 public class UpdateSkillReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(UpdateSkillReactor.class);
 
-	private static final String SKILL_ID      = "skillId";
+	private static final String SKILL_ID = "skillId";
 	private static final String SKILL_CONTENT = "skillContent";
 
 	public UpdateSkillReactor() {
-		this.keysToGet = new String[] {
-				SKILL_ID,
-				SKILL_CONTENT,
-				ReactorKeysEnum.DESCRIPTION.getKey(),
-		};
+		this.keysToGet = new String[] { SKILL_ID, SKILL_CONTENT, ReactorKeysEnum.DESCRIPTION.getKey(), };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
@@ -100,9 +100,9 @@ public class UpdateSkillReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String skillId      = this.keyValue.get(SKILL_ID);
+		String skillId = this.keyValue.get(SKILL_ID);
 		String skillContent = this.keyValue.get(SKILL_CONTENT);
-		String descInput    = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		String descInput = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 
 		if (skillId == null || skillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
@@ -110,8 +110,7 @@ public class UpdateSkillReactor extends AbstractReactor {
 		boolean hasContent = skillContent != null && !skillContent.isEmpty();
 		boolean hasDescInput = descInput != null && !descInput.isEmpty();
 		if (!hasContent && !hasDescInput) {
-			throw new IllegalArgumentException(
-					"Nothing to update: pass skillContent and/or description");
+			throw new IllegalArgumentException("Nothing to update: pass skillContent and/or description");
 		}
 
 		User user = this.insight.getUser();
@@ -120,41 +119,41 @@ public class UpdateSkillReactor extends AbstractReactor {
 					"Skill " + skillId + " does not exist or user does not have permission to edit it");
 		}
 
-		Map<String, Object> skillRow = ModelInferenceLogsUtils.getSkillEntry(skillId);
-		if (skillRow == null) {
+		if (!SkillProjects.isSkillProject(skillId)) {
 			throw new IllegalArgumentException("Skill not found: " + skillId);
 		}
-		String canonicalName = (String) skillRow.get("name");
-		String currentDescription = (String) skillRow.get("description");
+		SkillProjects.SkillInfo info = SkillProjects.resolve(skillId);
+		String canonicalName = info.name;
+		String currentDescription = info.description;
 
-		Skill.Frontmatter incomingFm = hasContent
-				? Skill.parseFrontmatter(skillContent)
-				: new Skill.Frontmatter();
+		Skill.Frontmatter incomingFm = hasContent ? Skill.parseFrontmatter(skillContent) : new Skill.Frontmatter();
 
 		// Name is immutable - if the caller supplied a name in frontmatter that
 		// disagrees with the canonical name, that's almost certainly a mistake.
-		if (incomingFm.name != null && !incomingFm.name.isEmpty()
+		// Only enforceable when the current SKILL.md was actually readable; when
+		// it is missing/unparseable the incoming content IS the repair path.
+		if (info.found && incomingFm.name != null && !incomingFm.name.isEmpty()
 				&& !incomingFm.name.equals(canonicalName)) {
 			throw new IllegalArgumentException(
-					"Skill name is immutable. Frontmatter declares '" + incomingFm.name
-							+ "' but the skill's name is '" + canonicalName + "'. "
-							+ "Delete and recreate the skill to rename it.");
+					"Skill name is immutable. Frontmatter declares '" + incomingFm.name + "' but the skill's name is '"
+							+ canonicalName + "'. " + "Delete and recreate the skill to rename it.");
 		}
 
 		// Description resolution: explicit param wins, then incoming frontmatter,
 		// then keep the existing value.
 		String newDescription = hasDescInput ? descInput
-				: (incomingFm.description != null && !incomingFm.description.isEmpty())
-						? incomingFm.description
+				: (incomingFm.description != null && !incomingFm.description.isEmpty()) ? incomingFm.description
 						: currentDescription;
 		if (newDescription == null || newDescription.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Skill has no description and one was not provided; "
-							+ "supply 'description' or include it in the frontmatter");
+			throw new IllegalArgumentException("Skill has no description and one was not provided; "
+					+ "supply 'description' or include it in the frontmatter");
 		}
 
-		String assetsFolder = AssetUtility.getProjectAssetsFolder(canonicalName, skillId);
-		File skillDir = new File(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
+		// Write back into the folder the SKILL.md actually lives in (skill/ or the
+		// legacy public/ used by the shipped platform skill projects); when the file
+		// is missing entirely, (re)create the standard skill/ folder.
+		File skillDir = info.skillDir != null ? info.skillDir.toFile()
+				: new File(AssetUtility.getProjectAssetsFolder(skillId), Skill.SKILL_ASSET_SUBFOLDER);
 		Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 
 		try {
@@ -171,17 +170,11 @@ public class UpdateSkillReactor extends AbstractReactor {
 
 			String finalContent = Skill.buildFrontmatter(canonicalName, newDescription) + body;
 			if (!skillDir.exists() && !skillDir.mkdirs()) {
-				throw new IllegalStateException(
-						"Failed to create skill content folder: " + skillDir.getAbsolutePath());
+				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());
 			}
 			Files.write(skillFile, finalContent.getBytes(StandardCharsets.UTF_8));
-
-			if (!Objects.equals(newDescription, currentDescription)) {
-				ModelInferenceLogsUtils.updateSkillMetadata(skillId, /* name */ null, newDescription,
-						/* configJson */ null);
-			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update skill '{}'", skillId, e);
 			throw new IllegalArgumentException("Failed to update skill: " + e.getMessage(), e);
 		}
 

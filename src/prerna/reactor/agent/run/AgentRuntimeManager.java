@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -81,6 +82,28 @@ public final class AgentRuntimeManager {
 		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
 	}
 
+	/**
+	 * Wake up the agent run worker to scan for SUBMITTED runs. Called by
+	 * {@code RunMCPToolReactor} after transitioning a run from
+	 * {@code INPUT_REQUIRED} back to {@code SUBMITTED}.
+	 */
+	public void signalWorker() {
+		worker.signal();
+	}
+
+	/**
+	 * Wake up the worker and remember the insight for a resumed run. Called by
+	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread
+	 * and has a valid Insight. This ensures the worker can resume the run on
+	 * this node without needing cross-node insight reconstruction.
+	 */
+	public void signalWorkerForResume(String runId, prerna.om.Insight insight) {
+		if (runId != null && !runId.trim().isEmpty() && insight != null) {
+			worker.rememberInsight(runId, insight);
+		}
+		worker.signal();
+	}
+
 	public Map<String, Object> getRun(String runId, Insight insight) {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
@@ -88,6 +111,18 @@ public final class AgentRuntimeManager {
 		Map<String, Object> run = store.getRunMap(runId, insight);
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
+		}
+		// When the run is paused for user input, attach the pending actions
+		// so the UI can render approve/decline forms or open portal URLs.
+		String status = String.valueOf(run.get("status"));
+		if (AgentRunStatus.INPUT_REQUIRED.name().equals(status)) {
+			try {
+				AgentRunActionStore actionStore = new AgentRunActionStore();
+				List<Map<String, Object>> pendingActions = actionStore.getPendingActions(runId);
+				run.put("pendingActions", pendingActions);
+			} catch (Exception e) {
+				// best-effort — don't fail the getRun call
+			}
 		}
 		return run;
 	}
@@ -117,8 +152,13 @@ public final class AgentRuntimeManager {
 				AgentRunEventBus.AgentRunEvent event = events.poll(pollMs, TimeUnit.MILLISECONDS);
 				if (event != null && event.isTerminal()) {
 					Map<String, Object> terminalRun = getRun(runId, insight);
-					terminalRun.put("waitTimedOut", false);
-					return terminalRun;
+					// The event can be published just before the worker commits the
+					// corresponding terminal AGENT_RUN status. Do not return a stale
+					// RUNNING/SUBMITTED snapshot as a successful wait result.
+					if (isTerminalStatus(String.valueOf(terminalRun.get("status")))) {
+						terminalRun.put("waitTimedOut", false);
+						return terminalRun;
+					}
 				}
 			}
 		} finally {
