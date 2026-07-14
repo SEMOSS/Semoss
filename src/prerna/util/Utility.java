@@ -1905,7 +1905,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
 				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					if (!SystemDefaultDatabases.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+					if (!SystemDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -1964,25 +1964,6 @@ public final class Utility {
 				// so check to see this
 				if (DIHelper.getInstance().getProjectProperty(projectId) instanceof IProject) {
 					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-				}
-			}
-
-			// clean up the SMSS files
-			{
-				try {
-					Properties props = Utility.loadProperties(smssFilePath);
-					boolean isAsset = Boolean.parseBoolean(props.getProperty(Constants.IS_ASSET_APP) + "");
-					if (!isAsset && props.get(Settings.PUBLIC_HOME_ENABLE) == null) {
-						classLogger.info("Updating project smss to include public home property");
-						Map<String, String> mods = new HashMap<>();
-						mods.put(Settings.PUBLIC_HOME_ENABLE, "false");
-						Utility.addKeysAtLocationIntoPropertiesFile(smssFilePath, Constants.CONNECTION_URL, mods);
-						// push to cloud
-						ClusterUtil.pushProjectSmss(projectId);
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
-					// ignore
 				}
 			}
 
@@ -2403,8 +2384,8 @@ public final class Utility {
 					}
 
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SystemDefaultDatabases.valueStartsWith(engineId,
-							SystemDefaultDatabases.getDatabaseIgnoreSecurity())) {
+					if (!SystemDefaultEngines.valueStartsWith(engineId,
+							SystemDefaultEngines.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {

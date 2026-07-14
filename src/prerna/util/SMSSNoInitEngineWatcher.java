@@ -29,8 +29,10 @@ package prerna.util;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -133,42 +135,43 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 		// and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] engineIds = null;
-		if (fileNames != null) {
-			engineIds = new String[fileNames.length];
+		if (fileNames == null || fileNames.length == 0) {
+			return;
+		}
 
-			// loop through and load all the engines
-			// but we will ignore the local master and security database
-			for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
-				try {
-					String fileName = fileNames[fileIdx];
-					// I really dont want to load anything here
-					// I only want to keep track of what are the engine names and their
-					// corresponding SMSS files
-					// so we will catalog instead of load
-					String loadedEngineId = catalogEngine(fileName, folderToWatch);
-					engineIds[fileIdx] = loadedEngineId;
-				} catch (RuntimeException ex) {
-					classLogger.error("Failed to catalog engine from SMSS file {}/{}", folderToWatch,
-							fileNames[fileIdx], ex);
-					classLogger.fatal("Engine failed to load: {}/{}", folderToWatch, fileNames[fileIdx]);
-				}
+		Set<String> engineIds = new HashSet<>(fileNames.length);
+
+		// loop through and load all the engines
+		// but we will ignore the local master and security database
+		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
+			try {
+				String fileName = fileNames[fileIdx];
+				// I really dont want to load anything here
+				// I only want to keep track of what are the engine names and their
+				// corresponding SMSS files
+				// so we will catalog instead of load
+				String loadedEngineId = catalogEngine(fileName, folderToWatch);
+				engineIds.add(loadedEngineId);
+			} catch (RuntimeException ex) {
+				classLogger.error("Failed to catalog engine from SMSS file {}/{}", folderToWatch, fileNames[fileIdx],
+						ex);
+				classLogger.fatal("Engine failed to load: {}/{}", folderToWatch, fileNames[fileIdx]);
 			}
+		}
 
-			// remove unused databases
-			if (!ClusterUtil.IS_CLUSTER) {
-				if (getEngineType() == null) {
-					classLogger.warn(
-							"This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
-				} else {
-					String engineType = getEngineType().name();
-					List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(engineType));
-					for (String engine : engines) {
-						if (!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-							classLogger.info("Deleting the engine {} of type {} from security",
-									Utility.cleanLogString(engine), engineType);
-							SecurityEngineUtils.deleteEngine(engine);
-						}
+		// remove unused databases
+		if (!ClusterUtil.IS_CLUSTER) {
+			if (getEngineType() == null) {
+				classLogger.warn(
+						"This SMSSNoInitEngineWatcher does not have _ETYPE defined! Will not be editing the engine list from this instance");
+			} else {
+				String engineType = getEngineType().name();
+				List<String> engines = SecurityEngineUtils.getAllEngineIds(Arrays.asList(engineType));
+				for (String engine : engines) {
+					if (!engineIds.contains(engine)) {
+						classLogger.info("Deleting the engine {} of type {} from security",
+								Utility.cleanLogString(engine), engineType);
+						SecurityEngineUtils.deleteEngine(engine);
 					}
 				}
 			}

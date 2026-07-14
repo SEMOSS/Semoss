@@ -69,8 +69,8 @@ import prerna.util.AssetUtility;
  * Discovery is delegated entirely to {@link SkillScanner#scan(String)} -- the same logic the
  * {@link prerna.reactor.agent.runtime.SemossAgentHarness} uses to build its
  * {@code <available_skills>} system-prompt block -- so all paths agree on what is available.
- * Unlike {@link GetSkillsReactor}, this reactor reads the physical filesystem rather than the
- * skill-project records in the DB.
+ * This reactor reads the physical filesystem; skill projects themselves are listed via
+ * {@code MyProjects} (projects with {@code PROJECT.TYPE = SKILL}).
  *
  * <p>Returns a list of skill maps (one per skill), each with {@code name}, {@code path} (the
  * working-dir-relative path to its {@code SKILL.md}), {@code directory} (the relative path to the
@@ -82,7 +82,7 @@ import prerna.util.AssetUtility;
  * {@code directory} relative to the working directory (same shape as the top-level skill, so the
  * tree can be recreated; empty directories are not represented). {@code includeAll} implies
  * {@code includeContent}.
- * Empty list when no skills are found. Mirrors the row shape of {@link GetSkillsReactor}.
+ * Empty list when no skills are found.
  */
 public class ListSkillsReactor extends AbstractReactor {
 
@@ -210,7 +210,8 @@ public class ListSkillsReactor extends AbstractReactor {
 		     + "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
 		     + "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
 		     + "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
-		     + "(implies includeContent). Reads the filesystem, not the DB (see GetSkills for the skill-project listing).";
+		     + "(implies includeContent). Reads the filesystem, not the DB "
+		     + "(skill projects are listed via MyProjects with type=SKILL).";
 	}
 
 	@Override
