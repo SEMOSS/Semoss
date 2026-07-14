@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,7 +103,7 @@ public class User implements Serializable {
 	private transient volatile SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile Map<String, PlaywrightSession> playwrightSessionStore = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
@@ -133,7 +134,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
-		this.playwrightSession = new ConcurrentHashMap<>();
+		this.playwrightSessionStore = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -862,35 +863,46 @@ public class User implements Serializable {
 		return userEmail;
 	}
 
-	public PlaywrightSession getPlaywrightSession(String id) {
-		PlaywrightSession session = getPlaywrightSessionStore().get(id);
-		if (session == null) {
-			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
+	public PlaywrightSession getPlaywrightSession(String sessionId) {
+		PlaywrightSession thisSession = getPlaywrightSessionStore().get(sessionId);
+		if (thisSession == null) {
+			throw new IllegalArgumentException("Invalid/Expired playwright session: " + sessionId);
 		}
-		return session;
+		return thisSession;
 	}
 
-	public void setPlaywrightSession(String id, PlaywrightSession s) {
-		getPlaywrightSessionStore().put(id, s);
+	public void setPlaywrightSession(String sessionId, PlaywrightSession playwrightSession) {
+		getPlaywrightSessionStore().put(sessionId, playwrightSession);
 	}
 
-	public void removePlaywrightSession(String id) {
-		getPlaywrightSessionStore().remove(id);
+	public void removePlaywrightSession(String sessionId) {
+		PlaywrightSession thisSession = getPlaywrightSessionStore().remove(sessionId);
+		if (thisSession != null) {
+			try {
+				thisSession.close();
+			} catch (Exception e) {
+				classLogger.error("Error occurred closing the playwright session {}", sessionId, e);
+			}
+		}
+	}
+
+	public Set<String> getPlaywrightSessionIds() {
+		return getPlaywrightSessionStore().keySet();
 	}
 
 	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
-		if (this.playwrightSession != null) {
-			return this.playwrightSession;
+		if (this.playwrightSessionStore != null) {
+			return this.playwrightSessionStore;
 		}
 
-		if (this.playwrightSession == null) {
+		if (this.playwrightSessionStore == null) {
 			synchronized (this) {
-				if (this.playwrightSession == null) {
-					this.playwrightSession = new ConcurrentHashMap<>();
+				if (this.playwrightSessionStore == null) {
+					this.playwrightSessionStore = new ConcurrentHashMap<>();
 				}
 			}
 		}
-		return this.playwrightSession;
+		return this.playwrightSessionStore;
 	}
 
 	public BrowserContext getSharedPlaywrightContext() {

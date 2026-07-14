@@ -97,6 +97,10 @@ public class PlaywrightSession {
 	 *                      expire.
 	 */
 	PlaywrightSession(BrowserContext ctx, Page page, long expiryMinutes) {
+		this(ctx, page, expiryMinutes, true);
+	}
+
+	private PlaywrightSession(BrowserContext ctx, Page page, long expiryMinutes, boolean scheduleExpiry) {
 		this.CTX = ctx;
 		tabPages.put("tab-1", page);
 		history.steps().put("tab-1", new ArrayList<List<PlaywrightStep>>());
@@ -105,13 +109,102 @@ public class PlaywrightSession {
 		tabCurrentPageIndex.put("tab-1", 0);
 		tabCurrentStepIndex.put("tab-1", 0);
 
-		// Schedule automatic expiry
-		scheduleExpiry(expiryMinutes);
+		if (scheduleExpiry) {
+			scheduleExpiry(expiryMinutes);
+		}
+	}
+
+	/**
+	 * Creates a session for the remote browser viewer. The viewer transport manages
+	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context is not
+	 * closed by that TTL.
+	 *
+	 * @param ctx           The Playwright BrowserContext for this session.
+	 * @param page          The initial Page object for this session.
+	 * @param expiryMinutes The absolute number of minutes after which the session
+	 *                      is closed as a backstop.
+	 * @return A new PlaywrightSession.
+	 */
+	public static PlaywrightSession forRemoteViewer(BrowserContext ctx, Page page, long expiryMinutes) {
+		return new PlaywrightSession(ctx, page, expiryMinutes, false);
+	}
+
+	/**
+	 * Creates a user-owned session for the remote browser viewer and registers it
+	 * under the same user/session store used by the older Playwright reactors. This
+	 * lets socket viewing stop independently while the browser context/cache stays
+	 * alive until the user-owned PlaywrightSession is closed.
+	 *
+	 * @param user      The SEMOSS user that owns the browser session.
+	 * @param sessionId The session id to register under the user.
+	 * @param ctx       The Playwright BrowserContext for this session.
+	 * @param page      The initial Page object for this session.
+	 * @return A new user-owned PlaywrightSession.
+	 */
+	public static PlaywrightSession forRemoteViewer(User user, String sessionId, BrowserContext ctx, Page page) {
+		PlaywrightSession session = new PlaywrightSession(ctx, page, DEFAULT_EXPIRY_MINUTES, false);
+		session.setUserAndSessionId(user, sessionId);
+		user.setPlaywrightSession(sessionId, session);
+		return session;
+	}
+
+	/**
+	 * Returns the replay history envelope for this session.
+	 *
+	 * @return The current {@link StepsEnvelope}.
+	 */
+	public StepsEnvelope getHistory() {
+		return history;
+	}
+
+	/**
+	 * Appends a captured recorder step to the same history shape used by the
+	 * Playwright recorder/reactors.
+	 *
+	 * @param tabId        The tab where the action happened.
+	 * @param step         The captured replay step.
+	 * @param startNewPage Whether to start a new page group before appending.
+	 * @return The appended step with a session-scoped id assigned.
+	 */
+	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step, boolean startNewPage) {
+		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
+		history.steps().computeIfAbsent(resolvedTabId, k -> new ArrayList<List<PlaywrightStep>>());
+
+		int stepId = ++lastStepId;
+		PlaywrightStep newStep = new PlaywrightStep(step, stepId);
+		List<List<PlaywrightStep>> pages = history.steps().get(resolvedTabId);
+		if (startNewPage || pages.isEmpty()) {
+			pages.add(new ArrayList<>(List.of(newStep)));
+		} else {
+			pages.get(pages.size() - 1).add(newStep);
+		}
+		return newStep;
+	}
+
+	/**
+	 * Replaces the most recently appended step in the given tab. Used by live
+	 * recording to aggregate character-by-character TYPE events into one replayable
+	 * TYPE step.
+	 *
+	 * @param tabId The tab where the action happened.
+	 * @param step  The replacement step.
+	 */
+	public synchronized void replaceLastRemoteBrowserRecordedStep(String tabId, PlaywrightStep step) {
+		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
+		List<List<PlaywrightStep>> pages = history.steps().get(resolvedTabId);
+		if (pages == null || pages.isEmpty()) {
+			return;
+		}
+		List<PlaywrightStep> currentPage = pages.get(pages.size() - 1);
+		if (currentPage.isEmpty()) {
+			return;
+		}
+		currentPage.set(currentPage.size() - 1, step);
 	}
 
 	/**
 	 * Retrieves the BrowserContext associated with this session.
-	 * 
+	 *
 	 * @return The BrowserContext.
 	 */
 	public BrowserContext getBrowserContext() {
