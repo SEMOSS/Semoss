@@ -25,44 +25,47 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.playwright;
+package prerna.remoteviewer.model;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Playwright;
+import prerna.reactor.playwright.Viewport;
 
-public final class PlaywrightBrowserProvider {
+public class RemoteBrowserSessionCreateResponse {
 
-	private static volatile Playwright playwright;
-	private static volatile Browser browser;
+	/**
+	 * Device scale factor for remote browser sessions (see RemoteBrowserSessionManager).
+	 */
+	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
-	private PlaywrightBrowserProvider() {
+	private String sessionId;
+	private String webSocketUrl;
+	private Viewport viewport;
+	private String currentUrl;
 
+	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
+		this(sessionId, webSocketUrl, vpWidth, vpHeight, null);
 	}
 
-	public static Browser getBrowser() {
-		Browser localBrowser = browser;
-		if (localBrowser == null) {
-			synchronized (PlaywrightBrowserProvider.class) {
-				if (browser == null) {
-					playwright = Playwright.create();
-					browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-				}
-				localBrowser = browser;
-			}
-		}
-		return localBrowser;
+	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
+			String currentUrl) {
+		this.sessionId = sessionId;
+		this.webSocketUrl = webSocketUrl;
+		this.viewport = new Viewport(vpWidth, vpHeight, DEVICE_SCALE_FACTOR);
+		this.currentUrl = currentUrl;
 	}
 
-	static void shutdown() {
-		try {
-			if (browser != null) {
-				browser.close();
-			}
-		} finally {
-			if (playwright != null) {
-				playwright.close();
-			}
-		}
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public String getWebSocketUrl() {
+		return webSocketUrl;
+	}
+
+	public Viewport getViewport() {
+		return viewport;
+	}
+
+	public String getCurrentUrl() {
+		return currentUrl;
 	}
 }
