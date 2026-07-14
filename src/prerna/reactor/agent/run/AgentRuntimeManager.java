@@ -152,8 +152,13 @@ public final class AgentRuntimeManager {
 				AgentRunEventBus.AgentRunEvent event = events.poll(pollMs, TimeUnit.MILLISECONDS);
 				if (event != null && event.isTerminal()) {
 					Map<String, Object> terminalRun = getRun(runId, insight);
-					terminalRun.put("waitTimedOut", false);
-					return terminalRun;
+					// The event can be published just before the worker commits the
+					// corresponding terminal AGENT_RUN status. Do not return a stale
+					// RUNNING/SUBMITTED snapshot as a successful wait result.
+					if (isTerminalStatus(String.valueOf(terminalRun.get("status")))) {
+						terminalRun.put("waitTimedOut", false);
+						return terminalRun;
+					}
 				}
 			}
 		} finally {
