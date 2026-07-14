@@ -64,6 +64,7 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -851,7 +852,8 @@ public abstract class AbstractReactor implements IReactor {
 		if (mcpMeta != null) {
 			JSONObject meta = new JSONObject();
 			meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
-			meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto"));
+			meta.put(MCPUtility.SMSS_MCP_EXECUTION,
+					mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue()));
 
 			JSONObject uiJson = new JSONObject();
 			String displayLocation = mcpMeta.get(MCPUtility.UI_DISPLAY_LOCATION);
@@ -892,7 +894,16 @@ public abstract class AbstractReactor implements IReactor {
 	 *         tool
 	 */
 	public Map<String, String> getMcpToolMetadata() {
-		return null;
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		// keeping below as comments for custom reactors to override, but we assume no
+		// UI or message by default
+//		meta.put(MCPUtility.UI_LOADING_MESSAGE, "Running tool...");
+//		meta.put(MCPUtility.UI_RESOURCE_URI, "index.html");
+		return meta;
 	}
 
 	/**
