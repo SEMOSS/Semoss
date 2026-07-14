@@ -27,14 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.json.JSONArray;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
@@ -76,7 +84,7 @@ public final class AgentRuntimeManager {
 		store.insertSubmitted(resolvedRunId, request, userId);
 		worker.rememberInsight(resolvedRunId, request.getInsight());
 		worker.signal();
-		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
+		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
 	}
 
 	/**
@@ -121,6 +129,24 @@ public final class AgentRuntimeManager {
 				// best-effort - don't fail the getRun call
 			}
 		}
+		return run;
+	}
+
+	public Map<String, Object> getRun(String runId, Insight insight, boolean includeMessages) {
+		Map<String, Object> run = getRun(runId, insight);
+		if (!includeMessages) {
+			return run;
+		}
+
+		String roomId = trimToNull(run.get("roomId"));
+		String userId = resolveUserId(insight);
+		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
+		if (room == null) {
+			run.put("messages", List.of());
+			return run;
+		}
+
+		run.put("messages", collectRunMessages(room, runId));
 		return run;
 	}
 
@@ -214,6 +240,28 @@ public final class AgentRuntimeManager {
 			return null;
 		}
 		return user.getPrimaryLoginToken().getId();
+	}
+
+	private static List<Object> collectRunMessages(Room room, String runId) {
+		List<AbstractMessage> runMessages = new ArrayList<>();
+		for (AbstractMessage message : room.getMessages()) {
+			if (message == null) {
+				continue;
+			}
+			Object taggedRunId = message.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
+			if (taggedRunId != null && runId.equals(String.valueOf(taggedRunId))) {
+				runMessages.add(message);
+			}
+		}
+		return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
+	}
+
+	private static String trimToNull(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = String.valueOf(value).trim();
+		return text.isEmpty() ? null : text;
 	}
 
 	private String resolveRunId(Insight insight) {
