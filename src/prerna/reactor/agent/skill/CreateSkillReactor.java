@@ -39,9 +39,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,53 +47,49 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 /**
- * Creates a new skill in the registry.
+ * Creates a new skill.
  *
- * <p>A skill is a Project of type {@code SKILL}. This reactor:
+ * <p>
+ * A skill is a Project of type {@code SKILL}. This reactor:
  * <ol>
- *   <li>Creates the underlying Project via {@link ProjectHelper#createSkillProject}.</li>
- *   <li>Writes {@code SKILL.md} (and helper files, if any) into
- *       {@code <project>/version/assets/skill/}.</li>
- *   <li>Inserts a slim {@code SKILL__} row tying the skill identity (id, slug, origin)
- *       to the project.</li>
+ * <li>Creates the underlying Project via
+ * {@link ProjectHelper#createSkillProject}.</li>
+ * <li>Writes {@code SKILL.md} (and helper files, if any) into
+ * {@code <project>/version/assets/skill/}.</li>
  * </ol>
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code skillContent} - SKILL.md body, with or without a YAML frontmatter block (required)</li>
- *   <li>{@code name}         - display name. Required <i>only</i> when the frontmatter omits one. When
- *                              both are supplied, frontmatter wins.</li>
- *   <li>{@code description}  - same rule as {@code name}: required only when frontmatter omits it.</li>
- *   <li>{@code origin}       - provenance, default {@link Skill#ORIGIN_USER}. Accepts USER,
- *                              IMPORTED, or GENERATED; {@link Skill#ORIGIN_PLATFORM} is rejected
- *                              (platform skills ship as folders, not Projects). (optional)</li>
+ * <li>{@code skillContent} - SKILL.md body, with or without a YAML frontmatter
+ * block (required)</li>
+ * <li>{@code name} - display name. Required <i>only</i> when the frontmatter
+ * omits one. When both are supplied, frontmatter wins.</li>
+ * <li>{@code description} - same rule as {@code name}: required only when
+ * frontmatter omits it.</li>
  * </ul>
  *
- * <p>When the supplied {@code skillContent} already starts with a {@code ---} frontmatter
- * block it is written to disk verbatim. When it does not, a frontmatter block is synthesized
- * from {@code name} and {@code description} and prepended before write, so the file on disk
- * is always self-describing.
+ * <p>
+ * When the supplied {@code skillContent} already starts with a {@code ---}
+ * frontmatter block it is written to disk verbatim. When it does not, a
+ * frontmatter block is synthesized from {@code name} and {@code description}
+ * and prepended before write, so the file on disk is always self-describing.
  *
- * <p>Returns the newly assigned {@code skillId} (== the underlying project id).
+ * <p>
+ * Returns the newly assigned {@code skillId} (== the underlying project id).
  */
 public class CreateSkillReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateSkillReactor.class);
 
 	private static final String SKILL_CONTENT = "skillContent";
-	private static final String ORIGIN        = "origin";
 
 	public CreateSkillReactor() {
-		this.keysToGet = new String[] {
-				SKILL_CONTENT,
-				ReactorKeysEnum.NAME.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey(),
-				ORIGIN,
-		};
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keysToGet = new String[] { SKILL_CONTENT, ReactorKeysEnum.NAME.getKey(),
+				ReactorKeysEnum.DESCRIPTION.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -103,9 +97,8 @@ public class CreateSkillReactor extends AbstractReactor {
 		organizeKeys();
 
 		String skillContent = this.keyValue.get(SKILL_CONTENT);
-		String nameInput    = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
-		String descInput    = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
-		String origin       = orDefault(this.keyValue.get(ORIGIN), Skill.ORIGIN_USER);
+		String nameInput = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String descInput = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 
 		if (skillContent == null || skillContent.isEmpty()) {
 			throw new IllegalArgumentException("skillContent is required");
@@ -126,28 +119,20 @@ public class CreateSkillReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Skill name must not contain path separators or '..'");
 		}
 		if (description == null) {
-			throw new IllegalArgumentException(
-					"description is required: provide a 'description' input, "
-							+ "or include 'description' in the SKILL.md frontmatter");
+			throw new IllegalArgumentException("description is required: provide a 'description' input, "
+					+ "or include 'description' in the SKILL.md frontmatter");
 		}
 
 		User user = this.insight.getUser();
-		String createdBy = resolveUserId(user);
-		if (Skill.ORIGIN_PLATFORM.equals(origin)) {
-			throw new IllegalArgumentException(
-					"origin=PLATFORM is not supported here - platform skills ship as folders under "
-							+ "<BASE_FOLDER>/skills/. Use origin USER, IMPORTED, or GENERATED.");
-		}
 
 		String skillId = GUID.v7().toString();
 		String slug = Skill.slugify(name);
-		String contentToWrite = hasFrontmatter
-				? skillContent
+		String contentToWrite = hasFrontmatter ? skillContent
 				: Skill.buildFrontmatter(name, description) + skillContent;
 
 		try {
-			ProjectHelper.createSkillProject(skillId, name, /* global */ false,
-					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
+			ProjectHelper.createSkillProject(skillId, name, /* global */ false, /* gitProvider */ null,
+					/* gitCloneUrl */ null, user, classLogger);
 
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(skillId);
 			File skillDir = new File(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
@@ -156,11 +141,8 @@ public class CreateSkillReactor extends AbstractReactor {
 			}
 			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
-
-			ModelInferenceLogsUtils.createNewSkill(skillId, slug, name, description, createdBy, origin,
-					/* configJson */ null);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create skill '{}' (id {})", name, skillId, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);
 		}
 
@@ -169,20 +151,7 @@ public class CreateSkillReactor extends AbstractReactor {
 		response.put("project_id", skillId);
 		response.put("slug", slug);
 		response.put("name", name);
-		response.put("origin", origin);
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static String resolveUserId(User user) {
-		if (user == null || user.getLogins() == null || user.getLogins().isEmpty()) {
-			return null;
-		}
-		AuthProvider login = user.getLogins().get(0);
-		return user.getAccessToken(login) == null ? null : user.getAccessToken(login).getId();
-	}
-
-	private static String orDefault(String s, String defaultValue) {
-		return (s == null || s.isEmpty()) ? defaultValue : s;
 	}
 
 	private static String firstNonEmpty(String a, String b) {
@@ -213,10 +182,6 @@ public class CreateSkillReactor extends AbstractReactor {
 		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
 			return "Description. Required only when the SKILL.md frontmatter omits 'description'. "
 					+ "Frontmatter wins when both are supplied";
-		}
-		if (ORIGIN.equals(key)) {
-			return "Provenance: USER | IMPORTED | GENERATED. Default USER. "
-					+ "PLATFORM is rejected - platform skills ship as folders under <BASE_FOLDER>/skills/.";
 		}
 		return super.getDescriptionForKey(key);
 	}

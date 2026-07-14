@@ -657,32 +657,6 @@ public class User implements Serializable {
 		return Pair.with(userid, login.getLabel());
 	}
 
-	@Deprecated
-	public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
-
-		List<Pair<String, String>> creds = new ArrayList<>();
-
-		AuthProvider login = user.getPrimaryLogin();
-		if (login == null) {
-			throw new IllegalArgumentException("User must have primary login");
-		}
-		String userid = user.getAccessToken(login).getId();
-		creds.add(Pair.with(userid, login.getLabel()));
-
-		if (creds.size() == 0) {
-			throw new IllegalArgumentException("User needs to be logged in.");
-		}
-
-		return creds;
-	}
-
 	/////////////////////////////////////////////////////
 
 	/**

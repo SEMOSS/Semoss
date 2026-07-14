@@ -66,8 +66,8 @@ class AnthropicMessageBuilder:
         model_settings: ModelSettings,
         model_limits: ModelLimits,
         model_name: str,
-        use_beta_header: bool = False,
-        beta_feature_name: str = "extended_thinking",
+        use_beta_header: Optional[bool] = False,
+        beta_feature_name: Optional[str] = "extended_thinking",
         thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
