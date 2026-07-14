@@ -29,7 +29,9 @@ package prerna.reactor.agent.run;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -119,10 +121,13 @@ public final class AgentRunStore {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
+		Map<String, Object> map;
+		String userId = resolveInsightUserId(insight);
 		try {
-			String userId = resolveInsightUserId(insight);
-			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
-					+ "REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
+			// Keep the high-frequency polling query free of prompt/request/final-output
+			// CLOBs. Terminal text/error are loaded once in a separate query below.
+			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, "
+					+ "INPUT_MESSAGE_ID, FINAL_OUTPUT_MESSAGE_ID, "
 					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
@@ -131,7 +136,7 @@ public final class AgentRunStore {
 			if (!rs.next()) {
 				return null;
 			}
-			Map<String, Object> map = new java.util.HashMap<>();
+			map = new java.util.HashMap<>();
 			map.put("runId", rs.getString("RUN_ID"));
 			map.put("roomId", rs.getString("ROOM_ID"));
 			map.put("workspaceId", rs.getString("WORKSPACE_ID"));
@@ -139,22 +144,79 @@ public final class AgentRunStore {
 			map.put("harnessType", rs.getString("HARNESS_TYPE"));
 			map.put("jobId", rs.getString("JOB_ID"));
 			map.put("status", rs.getString("STATUS"));
-			map.put("input", rs.getString("INPUT"));
 			map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
-			map.put("finalText", rs.getString("FINAL_OUTPUT"));
 			map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
-			map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
 			map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
 			map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
 			map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
 			map.put("userId", rs.getString("USER_ID"));
 			map.put("artifacts", new ArrayList<>());
-			return map;
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		map.put("finalText", null);
+		map.put("errorMessage", null);
+		String status = stringValue(map.get("status"));
+		if (AgentRunStatus.COMPLETED.name().equals(status) || AgentRunStatus.FAILED.name().equals(status)
+				|| AgentRunStatus.CANCELLED.name().equals(status)) {
+			loadTerminalDetails(map, runId, userId);
+		}
+		return map;
+	}
+
+	private static void loadTerminalDetails(Map<String, Object> map, String runId, String userId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(
+					"SELECT FINAL_OUTPUT, ERROR_MESSAGE FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?");
+			ps.setString(1, runId);
+			ps.setString(2, userId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				map.put("finalText", rs.getString("FINAL_OUTPUT"));
+				map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+			}
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load terminal AGENT_RUN details for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Returns the opaque room-message revision without selecting the ROOM.MESSAGES
+	 * CLOB. Callers use this value to decide whether loading the durable transcript
+	 * is necessary.
+	 */
+	public String getRoomRevision(String roomId, Insight insight) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return null;
+		}
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT UPDATED_AT FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, roomId);
+			ps.setString(2, resolveInsightUserId(insight));
+			rs = ps.executeQuery();
+			if (!rs.next()) {
+				return null;
+			}
+			return revisionValue(rs.getTimestamp("UPDATED_AT"));
+		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
+			throw new IllegalStateException("Failed to load ROOM revision for roomId=" + roomId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
@@ -476,5 +538,9 @@ public final class AgentRunStore {
 
 	private static String stringValue(Object value) {
 		return value == null ? null : String.valueOf(value);
+	}
+
+	private static String revisionValue(Timestamp value) {
+		return value == null ? null : value.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
 	}
 }

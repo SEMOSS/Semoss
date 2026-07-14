@@ -43,22 +43,41 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetAgentRunReactor extends AbstractReactor {
 
 	private static final String RUN_ID_KEY = "runId";
+	private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
+	private static final String KNOWN_ROOM_REVISION_KEY = "knownRoomRevision";
 
 	public GetAgentRunReactor() {
-		this.keysToGet = new String[] { RUN_ID_KEY };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { RUN_ID_KEY, INCLUDE_MESSAGES_KEY, KNOWN_ROOM_REVISION_KEY };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
-		Map<String, Object> result = AgentRuntimeManager.get().getRun(runId, this.insight);
+		boolean includeMessages = parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY), false);
+		String knownRoomRevision = StringUtils.trimToNull(this.keyValue.get(KNOWN_ROOM_REVISION_KEY));
+		Map<String, Object> result = AgentRuntimeManager.get().getRun(runId, this.insight, includeMessages,
+				knownRoomRevision);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get durable AgentRun status, output, message ids, error, and pending actions.";
+		return "Get durable AgentRun status, room revision, output, message ids, error, pending actions, and an optional revision-gated message projection.";
+	}
+
+	private static boolean parseBoolean(String value, boolean defaultValue) {
+		if (value == null || value.trim().isEmpty()) {
+			return defaultValue;
+		}
+		String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+		if ("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized)) {
+			return false;
+		}
+		if ("true".equals(normalized) || "1".equals(normalized) || "yes".equals(normalized)) {
+			return true;
+		}
+		return defaultValue;
 	}
 }

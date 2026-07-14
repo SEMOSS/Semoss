@@ -49,6 +49,7 @@ public class AgentInputRequiredException extends RuntimeException {
 
 	private final String parentMessageId;
 	private final List<Map<String, Object>> pendingToolCalls;
+	private final String inputMessageId;
 
 	/**
 	 * @param parentMessageId   the assistant message id that contains the
@@ -61,9 +62,15 @@ public class AgentInputRequiredException extends RuntimeException {
 	 *                          {@code Room.updateToolResponseMeta}
 	 */
 	public AgentInputRequiredException(String parentMessageId, List<Map<String, Object>> pendingToolCalls) {
+		this(parentMessageId, pendingToolCalls, null);
+	}
+
+	public AgentInputRequiredException(String parentMessageId, List<Map<String, Object>> pendingToolCalls,
+			String inputMessageId) {
 		super("Agent run paused: " + (pendingToolCalls != null ? pendingToolCalls.size() : 0)
 				+ " tool call(s) require user input");
 		this.parentMessageId = parentMessageId;
+		this.inputMessageId = inputMessageId;
 		this.pendingToolCalls = pendingToolCalls != null
 				? Collections.unmodifiableList(pendingToolCalls)
 				: Collections.emptyList();
@@ -75,5 +82,9 @@ public class AgentInputRequiredException extends RuntimeException {
 
 	public List<Map<String, Object>> getPendingToolCalls() {
 		return pendingToolCalls;
+	}
+
+	public String getInputMessageId() {
+		return inputMessageId;
 	}
 }

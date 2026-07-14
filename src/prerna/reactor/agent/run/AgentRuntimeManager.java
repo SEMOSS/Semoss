@@ -29,8 +29,6 @@ package prerna.reactor.agent.run;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -76,7 +74,6 @@ public final class AgentRuntimeManager {
 		}
 		String userId = resolveUserId(request.getInsight());
 		store.insertSubmitted(resolvedRunId, request, userId);
-		AgentRunEventBus.get().publishStatus(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, false);
 		worker.rememberInsight(resolvedRunId, request.getInsight());
 		worker.signal();
 		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
@@ -112,8 +109,10 @@ public final class AgentRuntimeManager {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		// When the run is paused for user input, attach the pending actions
-		// so the UI can render approve/decline forms or open portal URLs.
+		run.put("roomRevision", store.getRoomRevision(String.valueOf(run.get("roomId")), insight));
+		// Always expose a stable pendingActions collection. When the run is paused for
+		// user input, populate it so clients can render approve/decline forms or URLs.
+		run.put("pendingActions", new java.util.ArrayList<>());
 		String status = String.valueOf(run.get("status"));
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(status)) {
 			try {
@@ -127,46 +126,44 @@ public final class AgentRuntimeManager {
 		return run;
 	}
 
+	/**
+	 * Returns the current durable run snapshot and conditionally includes its
+	 * ROOM.MESSAGES projection when the caller's room revision is stale.
+	 */
+	public Map<String, Object> getRun(String runId, Insight insight, boolean includeMessages,
+			String knownRoomRevision) {
+		Map<String, Object> run = getRun(runId, insight);
+		if (!includeMessages) {
+			return run;
+		}
+		String revision = normalizeRevision(run.get("roomRevision"));
+		String knownRevision = normalizeRevision(knownRoomRevision);
+		boolean messagesChanged = knownRevision == null || !knownRevision.equals(revision);
+		run.put("messagesChanged", messagesChanged);
+		if (messagesChanged) {
+			run.put("messages", AgentRunMessageProjector.project(run, insight));
+		}
+		return run;
+	}
+
 	public Map<String, Object> waitForRun(String runId, Insight insight, long timeoutMs) throws InterruptedException {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
-		long start = System.currentTimeMillis();
 		long effectiveTimeoutMs = timeoutMs > 0 ? timeoutMs : getLongProperty(WAIT_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS);
-		long deadline = start + effectiveTimeoutMs;
-		LinkedBlockingQueue<AgentRunEventBus.AgentRunEvent> events = new LinkedBlockingQueue<>();
-		AutoCloseable subscription = AgentRunEventBus.get().subscribe(runId, events::offer);
-		try {
-			while (true) {
-				Map<String, Object> run = getRun(runId, insight);
-				if (isTerminalStatus(String.valueOf(run.get("status")))) {
-					run.put("waitTimedOut", false);
-					return run;
-				}
-				long remaining = deadline - System.currentTimeMillis();
-				if (remaining <= 0) {
-					run.put("waitTimedOut", true);
-					return run;
-				}
-				long pollMs = Math.min(1000L, remaining);
-				AgentRunEventBus.AgentRunEvent event = events.poll(pollMs, TimeUnit.MILLISECONDS);
-				if (event != null && event.isTerminal()) {
-					Map<String, Object> terminalRun = getRun(runId, insight);
-					// The event can be published just before the worker commits the
-					// corresponding terminal AGENT_RUN status. Do not return a stale
-					// RUNNING/SUBMITTED snapshot as a successful wait result.
-					if (isTerminalStatus(String.valueOf(terminalRun.get("status")))) {
-						terminalRun.put("waitTimedOut", false);
-						return terminalRun;
-					}
-				}
+		long deadline = System.currentTimeMillis() + effectiveTimeoutMs;
+		while (true) {
+			Map<String, Object> run = getRun(runId, insight);
+			if (isWaitBoundaryStatus(String.valueOf(run.get("status")))) {
+				run.put("waitTimedOut", false);
+				return run;
 			}
-		} finally {
-			try {
-				subscription.close();
-			} catch (Exception ignored) {
-				// best-effort listener cleanup
+			long remaining = deadline - System.currentTimeMillis();
+			if (remaining <= 0) {
+				run.put("waitTimedOut", true);
+				return run;
 			}
+			Thread.sleep(Math.min(1000L, remaining));
 		}
 	}
 
@@ -180,9 +177,7 @@ public final class AgentRuntimeManager {
 		}
 		worker.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
-		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
-			AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
-		}
+		store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled");
 		return getRun(runId, insight);
 	}
 
@@ -192,11 +187,7 @@ public final class AgentRuntimeManager {
 		}
 		String message = reason == null || reason.trim().isEmpty() ? "Agent run cancelled" : reason.trim();
 		worker.cancel(runId);
-		boolean updated = store.markCancelledIfNotTerminal(runId, runId, message);
-		if (updated) {
-			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.CANCELLED, true);
-		}
-		return updated;
+		return store.markCancelledIfNotTerminal(runId, runId, message);
 	}
 
 	boolean isCancelled(Throwable t) {
@@ -266,8 +257,23 @@ public final class AgentRuntimeManager {
 	private static boolean isTerminalStatus(String status) {
 		return AgentRunStatus.COMPLETED.name().equals(status)
 				|| AgentRunStatus.FAILED.name().equals(status)
-				|| AgentRunStatus.CANCELLED.name().equals(status)
-				|| AgentRunStatus.INPUT_REQUIRED.name().equals(status);
+				|| AgentRunStatus.CANCELLED.name().equals(status);
+	}
+
+	/**
+	 * A synchronous waiter returns control when user input is required, while the
+	 * durable run itself remains non-terminal and may resume under the same run id.
+	 */
+	private static boolean isWaitBoundaryStatus(String status) {
+		return isTerminalStatus(status) || AgentRunStatus.INPUT_REQUIRED.name().equals(status);
+	}
+
+	private static String normalizeRevision(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = String.valueOf(value).trim();
+		return text.isEmpty() || "null".equalsIgnoreCase(text) ? null : text;
 	}
 
 }

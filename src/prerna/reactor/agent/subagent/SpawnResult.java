@@ -41,12 +41,14 @@ public final class SpawnResult {
     private final String jobId;
     private final String roomId;
     private final String alias;
+    private final String workspaceId;
     private final AgentRunStatus status;
 
-    public SpawnResult(String jobId, String roomId, String alias, AgentRunStatus status) {
+    public SpawnResult(String jobId, String roomId, String alias, String workspaceId, AgentRunStatus status) {
         this.jobId  = jobId;
         this.roomId = roomId;
         this.alias  = alias;
+        this.workspaceId = workspaceId;
         this.status = status;
     }
 
@@ -68,6 +70,11 @@ public final class SpawnResult {
     /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
     public String getAlias() {
         return alias;
+    }
+
+    /** Workspace selected for the child, or {@code null} for an anonymous clone. */
+    public String getWorkspaceId() {
+        return workspaceId;
     }
 
     /** Initial AgentRun status after submission. */

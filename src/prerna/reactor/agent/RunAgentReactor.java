@@ -29,8 +29,6 @@ package prerna.reactor.agent;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,19 +36,15 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.run.AgentRunMessageProjector;
 import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.run.RunAgentRequest;
 import prerna.reactor.agent.run.RunAgentResult;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -169,7 +163,7 @@ public class RunAgentReactor extends AbstractReactor {
                 output = AgentRuntimeManager.get().waitForRun(handle.getRunId(), this.insight, waitTimeoutMs);
             }
             if (includeMessages) {
-                output.put("messages", collectRunMessages(roomId, handle.getRunId()));
+                output.put("messages", AgentRunMessageProjector.project(output, this.insight));
             }
             AgentHarnessResult result = handle.getResult();
 
@@ -217,46 +211,6 @@ public class RunAgentReactor extends AbstractReactor {
         Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
                 : RoomUtils.getOrLoadRoom(roomId, insight);
         return RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
-    }
-
-    /**
-     * Collect the full message history for a single agent run, in chronological
-     * order. Filters the room's messages by the {@code agentRunId} ornament that the
-     * harness stamps on every message it produces, then serializes each via the same
-     * parts-based projection used for persistence (rich {@code parts}/{@code ornaments}
-     * shape, base64 image data excluded). Returns an empty list when no tagged
-     * messages exist, or {@code null} on a lookup/serialization failure (best-effort).
-     */
-    private List<Object> collectRunMessages(String roomId, String runId) {
-        if (runId == null || runId.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-        try {
-            Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-            List<AbstractMessage> all = room != null ? room.getMessages() : null;
-            if (all == null || all.isEmpty()) {
-                return Collections.emptyList();
-            }
-            List<AbstractMessage> runMessages = new ArrayList<>();
-            for (AbstractMessage m : all) {
-                if (m == null) {
-                    continue;
-                }
-                Object tag = m.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
-                if (tag != null && runId.equals(String.valueOf(tag))) {
-                    runMessages.add(m);
-                }
-            }
-            if (runMessages.isEmpty()) {
-                return Collections.emptyList();
-            }
-            // Parse the serialized projection back into plain Maps/Lists so the value
-            // nests cleanly in the reactor's MAP return (vs. a raw JSON string).
-            return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
-        } catch (Exception e) {
-            logger.warn("RunAgentReactor: failed to collect run messages for runId={}: {}", runId, e.getMessage());
-            return null;
-        }
     }
 
     private void validateMediaSupported(String harnessType, List<String> inputImages, List<String> inputImageURLs) {

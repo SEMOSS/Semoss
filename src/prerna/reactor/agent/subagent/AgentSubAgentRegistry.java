@@ -30,7 +30,6 @@ package prerna.reactor.agent.subagent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,7 +53,6 @@ import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
 import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.run.RunAgentRequest;
 import prerna.reactor.agent.run.RunAgentResult;
-import prerna.sablecc2.comm.PixelJobManager;
 
 /**
  * Process-wide registry for SEMOSS subagent runs.
@@ -62,8 +60,8 @@ import prerna.sablecc2.comm.PixelJobManager;
  * <p>Heavy lifting (queueing, status, execution, interrupt) lives in
  * {@link AgentRuntimeManager}; this registry holds the metadata that lets a parent
  * agent address its children - alias, parent jobId, child room id, target
- * workspace - and emits a {@code subagent-spawned} envelope into the parent
- * stream when a child is launched.
+ * workspace. The persisted spawn tool result is the parent timeline's durable
+ * child reference; this registry is not a UI event transport.
  *
  * <p>Each spawn becomes a normal async {@code AgentRun}. The
  * returned {@link SpawnResult#getJobId() jobId} is the model-facing handle the
@@ -121,8 +119,8 @@ public final class AgentSubAgentRegistry {
      *   <li>Submit an async child {@code AgentRun} via {@link AgentRuntimeManager}.</li>
      *   <li>Stash {@link SubAgentMeta} keyed by the new runId/jobId and append the
      *       jobId to {@code childrenByParent[parentJobId]}.</li>
-     *   <li>Emit a {@code subagent-spawned} envelope into the parent's stream
-     *       queue so a frontend can mount a new sub-pane.</li>
+     *   <li>Return the child identifiers in the spawn tool result so the parent
+     *       timeline can attach to the durable child run.</li>
      * </ol>
      *
      * @return immutable handle the caller (and the LLM, via tool result) uses
@@ -205,11 +203,12 @@ public final class AgentSubAgentRegistry {
                 // Drop inherited mcp[] so the parent's per-room additions don't bleed in.
                 clonedOptions.remove("mcp");
             }
+            String childWorkspaceId = resolveChildWorkspaceId(req.workspaceId, clonedOptions);
 
             // Shared-filesystem mode. When the caller asked for inherit_parent_workdir,
             // we record the override on the CHILD ROOM's own options. AgentRunner reads
             // it from there on every run - RunAgent itself stays oblivious. The child
-            // keeps its own roomId / jobId / stream / history; only the on-disk
+            // keeps its own roomId / runId / history; only the on-disk
             // working dir is shared with the parent.
             if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()) {
                 clonedOptions.put(AgentRunner.ROOM_OPTION_WORKING_DIR, req.workingDirOverride.trim());
@@ -246,7 +245,7 @@ public final class AgentSubAgentRegistry {
                     callerInsight,
                     null,                         // modelEngine - resolved by AgentRunner from room/options/fallback
                     req.prompt,                   // question (used for default room name)
-                    req.workspaceId,
+                    childWorkspaceId,
                     clonedOptions,
                     effectiveContext,
                     parentRoom.getProjectId(),
@@ -280,7 +279,7 @@ public final class AgentSubAgentRegistry {
             //    ctx.spawnDepth from this registry using ThreadStore.getJobId(), so the
             //    child must be able to find its metadata as soon as RunAgent begins.
             SubAgentMeta meta = new SubAgentMeta(
-                    childRunId, req.parentJobId, req.alias, req.workspaceId, childRoomId,
+                    childRunId, req.parentJobId, req.alias, childWorkspaceId, childRoomId,
                     System.currentTimeMillis(), childDepth);
             byJobId.put(childRunId, meta);
             if (rootCtx != null) {
@@ -292,38 +291,14 @@ public final class AgentSubAgentRegistry {
                         .add(childRunId);
             }
             RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
-                    req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
+                    childWorkspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
                     null, null, null, null, childInsight);
             RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
             childStarted = true;
 
-            // 7. Notify the parent's stream so a frontend can mount a child pane.
-            if (req.parentJobId != null && !req.parentJobId.isBlank()) {
-                Map<String, Object> data = new LinkedHashMap<>();
-                data.put("kind", "subagent-spawned");
-                data.put("jobId", childRunId);
-                data.put("runId", childRunId);
-                data.put("alias", req.alias);
-                data.put("workspaceId", req.workspaceId);
-                data.put("roomId", childRoomId);
-                data.put("spawnedAt", meta.getSpawnedAt());
-                data.put("status", runResult.getStatus() == null ? null : runResult.getStatus().name());
-                Map<String, Object> envelope = new LinkedHashMap<>();
-                envelope.put("stream_type", "subagent-spawned");
-                envelope.put("data", data);
-                logger.info("AgentSubAgentRegistry: emitting subagent-spawned envelope to parentJobId={} childJobId={} alias={}",
-                        req.parentJobId, childRunId, req.alias);
-                PixelJobManager.getManager().addStreamOut(req.parentJobId, envelope);
-                logger.info("AgentSubAgentRegistry: emitted subagent-spawned envelope (parentJobId={} childJobId={})",
-                        req.parentJobId, childRunId);
-            } else {
-                logger.warn("AgentSubAgentRegistry: SKIPPING subagent-spawned envelope - parentJobId is null/blank (childJobId={} alias={})",
-                        childRunId, req.alias);
-            }
-
             logger.info("AgentSubAgentRegistry: spawned subagent jobId={} parentJobId={} alias={} workspaceId={} roomId={}",
-                    childRunId, req.parentJobId, req.alias, req.workspaceId, childRoomId);
-            return new SpawnResult(childRunId, childRoomId, req.alias, runResult.getStatus());
+                    childRunId, req.parentJobId, req.alias, childWorkspaceId, childRoomId);
+            return new SpawnResult(childRunId, childRoomId, req.alias, childWorkspaceId, runResult.getStatus());
         } catch (RuntimeException | Error e) {
             if (!childStarted && childJobIdForCleanup != null) {
                 byJobId.remove(childJobIdForCleanup);
@@ -356,6 +331,22 @@ public final class AgentSubAgentRegistry {
         }
     }
 
+    private static String resolveChildWorkspaceId(String explicitWorkspaceId, Map<String, Object> options) {
+        if (explicitWorkspaceId != null && !explicitWorkspaceId.isBlank()) {
+            return explicitWorkspaceId.trim();
+        }
+        Object workspace = options == null ? null : options.get("workspace");
+        if (!(workspace instanceof Map<?, ?>)) {
+            return null;
+        }
+        Object workspaceId = ((Map<?, ?>) workspace).get("workspace_id");
+        if (workspaceId == null) {
+            return null;
+        }
+        String value = String.valueOf(workspaceId).trim();
+        return value.isEmpty() ? null : value;
+    }
+
     private void removeChildLink(String parentJobId, String childJobId) {
         if (parentJobId == null || parentJobId.isBlank() || childJobId == null) return;
         List<String> kids = childrenByParent.get(parentJobId);
@@ -377,11 +368,6 @@ public final class AgentSubAgentRegistry {
         for (String childJobId : kids) {
             // depth-first so grandchildren get signaled before their parent finishes
             count += cascadeCancel(childJobId);
-            try {
-                prerna.sablecc2.comm.JobStreamEnvelopes.jobCancelled(childJobId, "parent-cancelled");
-            } catch (Exception streamErr) {
-                logger.warn("cascadeCancel: stream emit failed childJobId={}: {}", childJobId, streamErr.toString());
-            }
             try {
                 SubAgentMeta meta = lookup(childJobId);
                 boolean cancelled = AgentRuntimeManager.get().cancelRun(childJobId,
@@ -417,26 +403,15 @@ public final class AgentSubAgentRegistry {
     }
 
     /**
-     * Runtime/UI notification that a child finished. The canonical model-facing
-     * result path remains WaitForSubAgent; this only wakes listeners watching the
-     * parent job stream.
+     * Release transient in-process lineage after a child finishes. Durable child
+     * status/output remains in AGENT_RUN and the child room; the parent timeline
+     * discovers the child from its persisted spawn tool result.
      */
     public void emitSubAgentCompleted(String childJobId, String finalText) {
         if (childJobId == null || childJobId.isBlank()) return;
         SubAgentMeta meta = byJobId.get(childJobId);
         if (meta == null || meta.getParentJobId() == null || meta.getParentJobId().isBlank()) return;
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("kind", "subagent-completed");
-        data.put("jobId", childJobId);
-        data.put("childJobId", childJobId);
-        data.put("parentJobId", meta.getParentJobId());
-        data.put("status", "succeeded");
-        data.put("result", finalText);
-        Map<String, Object> envelope = new LinkedHashMap<>();
-        envelope.put("stream_type", "subagent-completed");
-        envelope.put("data", data);
-        PixelJobManager.getManager().addStreamOut(meta.getParentJobId(), envelope);
         byJobId.remove(childJobId);
         rootCtxByChildJobId.remove(childJobId);
         removeChildLink(meta.getParentJobId(), childJobId);

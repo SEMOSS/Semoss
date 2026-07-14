@@ -68,7 +68,8 @@ public final class SubAgentDispatcher {
 
     /**
      * Spawn a named subagent (alias resolved via {@code spec.workspaceId}). Returns a
-     * JSON string {@code {"jobId":..., "runId":..., "roomId":..., "status":..., "alias":...}} for the LLM.
+     * JSON string containing the durable child run, room, alias, and workspace
+     * identifiers for the LLM and the persisted tool-result projection.
      */
     public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args,
             Room parentRoom, Insight callerInsight) {
@@ -262,9 +263,14 @@ public final class SubAgentDispatcher {
         out.put("jobId",  result.getJobId());
         out.put("runId",  result.getRunId());
         out.put("roomId", result.getRoomId());
+        out.put("childRunId", result.getRunId());
+        out.put("childRoomId", result.getRoomId());
         out.put("status", result.getStatus() == null ? null : result.getStatus().name());
         if (result.getAlias() != null) {
             out.put("alias", result.getAlias());
+        }
+        if (result.getWorkspaceId() != null) {
+            out.put("workspaceId", result.getWorkspaceId());
         }
         return out;
     }

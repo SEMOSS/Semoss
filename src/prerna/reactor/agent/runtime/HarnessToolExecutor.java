@@ -27,10 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.agent.runtime;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -52,7 +50,6 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
@@ -64,7 +61,6 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
-import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -86,8 +82,6 @@ final class HarnessToolExecutor {
 	private static final String TOOL_STATUS_ERROR = "error";
 
 	private static final Gson GSON = new Gson();
-	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
-
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
 
@@ -108,8 +102,6 @@ final class HarnessToolExecutor {
 		String parentMsgId = toolResponse.getMessageId();
 		List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
 		String jobId = ThreadStore.getJobId();
-		AskModelEngineResponse<?> nextModelResp = null;
-
 		// Per-turn spawn cap - shared across the batch. Only spawn-kind calls
 		// decrement.
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
@@ -129,14 +121,18 @@ final class HarnessToolExecutor {
 			if (!autoToolCalls.isEmpty()) {
 				logger.info("HarnessToolExecutor: executing {} non-ask tool(s) before pausing for {} ask tool(s) iter={} room={}",
 						autoToolCalls.size(), askToolCalls.size(), state.getIterations(), room.getId());
-				executeToolCalls(autoToolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+				executeToolCalls(autoToolCalls, state, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
 			}
 			throw new AgentInputRequiredException(parentMsgId, askToolCalls);
 		}
 
-		nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
-				spawnsRemainingInBatch);
+		executeToolCalls(toolCalls, state, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
 
+		// Every completed tool result is persisted before the next model call starts.
+		// Agent-mode consumers can therefore reconstruct the completed tool state from
+		// ROOM.MESSAGES while the provider is producing the following assistant response.
+		Object nextModelResp = room.continueAfterToolExecutionResults(new HashMap<>(paramMap), parentMsgId,
+				ctx.getModelEngine(), ctx.getInsight());
 		if (nextModelResp == null) {
 			return null;
 		}
@@ -150,16 +146,14 @@ final class HarnessToolExecutor {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static AskModelEngineResponse<?> executeToolCalls(List<Map<String, Object>> toolCalls, AgentLoopState state,
-			Map<String, Object> paramMap, String parentMsgId, AgentRunContext ctx, String jobId,
+	private static void executeToolCalls(List<Map<String, Object>> toolCalls, AgentLoopState state,
+			String parentMsgId, AgentRunContext ctx, String jobId,
 			AtomicInteger spawnsRemainingInBatch) {
-		AskModelEngineResponse<?> nextModelResp = null;
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-			ToolExecResult r = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+			ToolExecResult r = executeOneTool(tc, state.getIterations(), parentMsgId, ctx, jobId,
 					spawnsRemainingInBatch);
 			state.addToolCallRecord(r.record);
-			nextModelResp = r.modelResponse;
 
 		} else {
 			logger.info("HarnessToolExecutor: {} tools in parallel iter={} room={}", toolCalls.size(),
@@ -171,8 +165,8 @@ final class HarnessToolExecutor {
 				for (int i = 0; i < toolCalls.size(); i++) {
 					final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
 					futures[i] = CompletableFuture.supplyAsync(
-							() -> parentContext.call(() -> executeOneTool(tc, state.getIterations(), paramMap,
-										parentMsgId, ctx, jobId, spawnsRemainingInBatch)),
+							() -> parentContext.call(() -> executeOneTool(tc, state.getIterations(), parentMsgId,
+									ctx, jobId, spawnsRemainingInBatch)),
 							pool);
 				}
 				// Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
@@ -203,9 +197,6 @@ final class HarnessToolExecutor {
 					try {
 						ToolExecResult r = f.get();
 						state.addToolCallRecord(r.record);
-						if (r.modelResponse != null) {
-							nextModelResp = r.modelResponse;
-						}
 					} catch (InterruptedException ie) {
 						Thread.currentThread().interrupt();
 						logger.warn("HarnessToolExecutor: interrupted waiting for tool future");
@@ -215,15 +206,14 @@ final class HarnessToolExecutor {
 				}
 			}
 		}
-		return nextModelResp;
 	}
 
 	/**
 	 * Executes one tool call and submits the result to the Room. Safe to call
-	 * concurrently - Room.addToolExecutionResult() is synchronized.
+	 * concurrently - Room.addToolExecutionResultWithoutModel() is synchronized.
 	 */
-	private static ToolExecResult executeOneTool(ParsedToolCall tc, int currentIter, Map<String, Object> paramMap,
-			String parentMsgId, AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch) {
+	private static ToolExecResult executeOneTool(ParsedToolCall tc, int currentIter, String parentMsgId,
+			AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch) {
 
 		logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}", tc.rawToolName, tc.toolCallId,
 				currentIter);
@@ -234,14 +224,13 @@ final class HarnessToolExecutor {
 
 		long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
-		// forwarded so subagent dispatch can address the parent's stream queue even
-		// when this method runs on a worker thread from the parallel-tool pool.
+		// forwarded so subagent dispatch preserves parent-child lineage even when this
+		// method runs on a worker thread from the parallel-tool pool.
 		ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
 		long durMs = System.currentTimeMillis() - startMs;
 
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
-		publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
 
 		logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}", tc.rawToolName, durMs,
 				outcome.success);
@@ -249,12 +238,13 @@ final class HarnessToolExecutor {
 		AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(tc.rawToolName, tc.toolCallId,
 				outcome.content, durMs, outcome.success);
 
-		// Pass a fresh copy - Room.appendToolsToParams() mutates the map.
-		AskModelEngineResponse<?> modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
-				outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
-				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+		// Persist the completed result without starting the follow-up provider call.
+		// executeToolBatch continues the model once, after the whole batch is durable.
+		ctx.getRoom().addToolExecutionResultWithoutModel(tc.toolCallId, tc.rawToolName, outcome.content,
+				tc.toolParams, parentMsgId, ctx.getModelEngine(), ctx.getInsight(),
+				outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
 
-		return new ToolExecResult(record, modelResp);
+		return new ToolExecResult(record);
 	}
 
 	/**
@@ -288,40 +278,6 @@ final class HarnessToolExecutor {
 		Map<String, Object> meta = (Map<String, Object>) metaObj;
 		Object execValue = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
 		return "ask".equalsIgnoreCase(String.valueOf(execValue));
-	}
-
-	private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,
-			long durationMs, boolean success) {
-		if (jobId == null || jobId.isBlank() || toolCallId == null || toolCallId.isBlank()) {
-			return;
-		}
-		Map<String, Object> data = new LinkedHashMap<>();
-		data.put("kind", "tool-result");
-		data.put("eventId", "semoss-tool-result-" + toolCallId);
-		data.put("toolUseId", toolCallId);
-		if (toolName != null && !toolName.isBlank()) {
-			data.put("toolName", toolName);
-		}
-		data.put("status", success ? "completed" : "error");
-		data.put("isPartial", false);
-		data.put("durationMs", durationMs);
-		String content = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
-		if (content != null && !content.isBlank()) {
-			data.put("content", content);
-		}
-		data.put("timestamp", Instant.now().toString());
-
-		Map<String, Object> envelope = new LinkedHashMap<>();
-		envelope.put("stream_type", "tool");
-		envelope.put("data", data);
-		PixelJobManager.getManager().addStreamOut(jobId, envelope);
-	}
-
-	private static String truncate(String value, int maxChars) {
-		if (value == null || value.length() <= maxChars) {
-			return value;
-		}
-		return value.substring(0, maxChars) + "\n... [truncated for live stream]";
 	}
 
 	// Fire all configured pre-tool hooks. Each hook is isolated so a thrower does
@@ -566,9 +522,8 @@ final class HarnessToolExecutor {
 	// Internal value types
 
 	/**
-	 * Carries request-scoped state into parallel tool threads. The final tool
-	 * result can synchronously trigger the next model ask, so both Log4j MDC and
-	 * ThreadStore must be present on that thread.
+	 * Carries request-scoped state into parallel tool threads so tool execution,
+	 * hooks, and subagent dispatch retain both Log4j MDC and ThreadStore context.
 	 */
 	private static final class AgentThreadContext {
 		private final Map<String, String> log4jContext;
@@ -656,11 +611,9 @@ final class HarnessToolExecutor {
 
 	static final class ToolExecResult {
 		final AgentHarnessResult.ToolCallRecord record;
-		final AskModelEngineResponse<?> modelResponse;
 
-		ToolExecResult(AgentHarnessResult.ToolCallRecord record, AskModelEngineResponse<?> modelResponse) {
+		ToolExecResult(AgentHarnessResult.ToolCallRecord record) {
 			this.record = record;
-			this.modelResponse = modelResponse;
 		}
 	}
 

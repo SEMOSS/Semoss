@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -56,8 +57,6 @@ import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
-import prerna.reactor.agent.run.AgentRunEventBus;
-import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
@@ -123,12 +122,20 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		if (!ctx.getModelEngine().keepInputOutput()) {
+			throw new IllegalStateException(
+					"RunAgent requires model KEEP_INPUT_OUTPUT=true so its durable view can be reconstructed from ROOM.MESSAGES");
+		}
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
 		stripHarnessOnlyParams(paramMap);
-		paramMap.put("stream", true);
+		// RunAgent exposes completed, durable ROOM.MESSAGES snapshots rather than raw
+		// provider token deltas. Override a caller-supplied stream flag as well so a
+		// harness-selected Playground turn has exactly one transport owner.
+		paramMap.put("stream", false);
+		paramMap.put("use_history", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
@@ -307,9 +314,10 @@ public class SemossAgentHarness implements IAgentHarness {
 						// and persist those messages before releasing the worker.
 						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 						persistAgentRunTags(room, ctx);
-						List<Map<String, Object>> pendingActions = persistPendingActions(ctx, room, pauseEx);
-						publishInputRequiredEvent(ctx, room, pendingActions);
-						throw pauseEx;
+						AgentInputRequiredException durablePause = new AgentInputRequiredException(
+								pauseEx.getParentMessageId(), pauseEx.getPendingToolCalls(), inputMessageId);
+						persistPendingActions(ctx, room, durablePause);
+						throw durablePause;
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
@@ -511,24 +519,6 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * Publish an {@code INPUT_REQUIRED} event on the {@link AgentRunEventBus}
-	 * so any subscribed UI can render the pending actions immediately.
-	 */
-	private static void publishInputRequiredEvent(AgentRunContext ctx, Room room, List<Map<String, Object>> pendingActions) {
-		String runId = ctx.getRunId();
-		if (runId == null || runId.trim().isEmpty()) {
-			return;
-		}
-		String roomId = room != null ? room.getId() : null;
-		Map<String, Object> eventData = new HashMap<>();
-		eventData.put("runId", runId);
-		eventData.put("roomId", roomId);
-		eventData.put("status", AgentRunStatus.INPUT_REQUIRED.name());
-		eventData.put("pendingActions", pendingActions);
-		AgentRunEventBus.get().publish(runId, "status", eventData, true);
-	}
-
-	/**
 	 * Resolve the {@code resourceURI} (relative to the app's portals folder)
 	 * into an absolute portal URL carrying only the {@code actionId}. The portal
 	 * calls {@code GetAgentRunAction} on load to fetch the rest from the row.
@@ -577,6 +567,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
 		paramMap.remove(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS);
+		// Full-prompt mode bypasses Room history entirely and cannot satisfy the
+		// snapshot contract used by RunAgent.
+		paramMap.remove(AbstractModelEngine.FULL_PROMPT);
 	}
 
 	private static String buildRuntimeContextPromptBlock(AgentRunContext ctx, Room room, Map<String, Object> paramMap) {

@@ -31,7 +31,7 @@ package prerna.reactor.agent.exceptions;
  * Thrown when a cooperative cancellation signal is detected during the agent loop.
  *
  * <p>The harness polls {@code Thread.currentThread().isInterrupted()} at the top of every
- * iteration. The interrupt is set by {@code PixelJobManager.interruptJob()} when the user
+ * iteration. The durable agent run manager interrupts the worker when the user
  * cancels a running job via the UI or API.
  */
 public class AgentCancelledException extends RuntimeException {

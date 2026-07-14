@@ -244,6 +244,7 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = insight.getUser().getRoomHash().get(roomId);
+				room.setInsight(insight);
 				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
 				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);
