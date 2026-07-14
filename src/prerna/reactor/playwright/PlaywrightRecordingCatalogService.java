@@ -60,9 +60,12 @@ public class PlaywrightRecordingCatalogService {
 	private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
 	private static final Set<String> IGNORED_TOKENS = Set.of("com", "net", "org", "edu", "gov", "www",
 			"http", "https", "html", "json");
-	private static final List<String> META_SEARCH_FIELDS = List.of("title", "description", "intent", "id");
+	private static final List<String> META_SEARCH_FIELDS = List.of("title", "description", "intent", "id",
+			"requestedStartUrl");
 	private static final List<String> STEP_SEARCH_FIELDS = List.of("url", "text", "label", "description", "prompt",
 			"selector", "role");
+	private static final int DEFAULT_CANDIDATE_LIMIT = 20;
+	private static final int MAX_CANDIDATE_LIMIT = 50;
 
 	public Map<String, Object> resolve(Path roomFolder, Path projectRecordingsFolder, String projectId,
 			String recordingNameHint, String recordingFile) {
@@ -72,28 +75,66 @@ public class PlaywrightRecordingCatalogService {
 			throw new IllegalArgumentException("recording_name_hint or recording_file is required");
 		}
 
-		List<Candidate> all = new ArrayList<>();
-		int roomCount = addCandidates(all, roomFolder == null ? null : roomFolder.resolve("playwright"), "room", "",
-				hint, requestedFile);
-		int projectCount = addCandidates(all, projectRecordingsFolder, "project", trim(projectId), hint,
-				requestedFile);
+		Catalog catalog = catalog(roomFolder, projectRecordingsFolder, projectId, hint, requestedFile);
+		List<Candidate> all = catalog.candidates;
 
 		all.removeIf(candidate -> candidate.score <= 0);
-		all.sort(Comparator.comparingInt(Candidate::score).reversed()
-				.thenComparing(candidate -> "room".equals(candidate.source) ? 0 : 1)
-				.thenComparing(candidate -> candidate.fileName.toLowerCase(Locale.ROOT)));
+		sortCandidates(all);
 
 		List<Map<String, Object>> candidates = new ArrayList<>();
-		for (int i = 0; i < Math.min(20, all.size()); i++) {
+		for (int i = 0; i < Math.min(DEFAULT_CANDIDATE_LIMIT, all.size()); i++) {
 			candidates.add(all.get(i).toMap());
 		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("selected", candidates.isEmpty() ? null : candidates.get(0));
 		result.put("candidates", candidates);
-		result.put("searchedProjectRecordings", projectCount);
-		result.put("searchedRoomRecordings", roomCount);
+		result.put("searchedProjectRecordings", catalog.projectCount);
+		result.put("searchedRoomRecordings", catalog.roomCount);
 		return result;
+	}
+
+	/**
+	 * Lists room recordings for model-assisted discovery. Unlike {@link #resolve},
+	 * this includes zero-score recordings so the model can compare their summaries
+	 * when deterministic text matching is inconclusive.
+	 */
+	public Map<String, Object> findRoomRecordings(Path roomFolder, String query, int maxCandidates) {
+		String hint = trim(query);
+		Catalog catalog = catalog(roomFolder, null, "", hint, "");
+		List<Candidate> all = catalog.candidates;
+		sortCandidates(all);
+
+		int limit = maxCandidates <= 0 ? DEFAULT_CANDIDATE_LIMIT
+				: Math.min(maxCandidates, MAX_CANDIDATE_LIMIT);
+		List<Map<String, Object>> recordings = new ArrayList<>();
+		for (int i = 0; i < Math.min(limit, all.size()); i++) {
+			recordings.add(all.get(i).toMap());
+		}
+
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("query", hint);
+		result.put("recordingCount", catalog.roomCount);
+		result.put("recordings", recordings);
+		result.put("selectionGuidance",
+				"Compare filenames, metadata, URLs, hosts, and stepPreview. If the user did not provide an exact filename, identify the closest candidate and ask for confirmation before calling PlayPlaywrightSocketsRoomRecording with recording_file.");
+		return result;
+	}
+
+	private Catalog catalog(Path roomFolder, Path projectRecordingsFolder, String projectId, String hint,
+			String requestedFile) {
+		List<Candidate> candidates = new ArrayList<>();
+		int roomCount = addCandidates(candidates, roomFolder == null ? null : roomFolder.resolve("playwright"),
+				"room", "", hint, requestedFile);
+		int projectCount = addCandidates(candidates, projectRecordingsFolder, "project", trim(projectId), hint,
+				requestedFile);
+		return new Catalog(candidates, roomCount, projectCount);
+	}
+
+	private static void sortCandidates(List<Candidate> candidates) {
+		candidates.sort(Comparator.comparingInt(Candidate::score).reversed()
+				.thenComparing(candidate -> "room".equals(candidate.source) ? 0 : 1)
+				.thenComparing(candidate -> candidate.fileName.toLowerCase(Locale.ROOT)));
 	}
 
 	private int addCandidates(List<Candidate> output, Path directory, String source, String projectId, String hint,
@@ -176,6 +217,9 @@ public class PlaywrightRecordingCatalogService {
 		}
 
 		String firstUrl = firstUrl(steps);
+		if (firstUrl.isEmpty()) {
+			firstUrl = text(recording.path("meta"), "requestedStartUrl");
+		}
 		String host = host(firstUrl);
 		for (String token : hintTokens) {
 			if (!host.isEmpty() && host.contains(token)) {
@@ -221,8 +265,15 @@ public class PlaywrightRecordingCatalogService {
 		for (String field : META_SEARCH_FIELDS) {
 			appendText(text, meta.path(field));
 		}
+		JsonNode searchTerms = meta.path("searchTerms");
+		if (searchTerms.isArray()) {
+			searchTerms.elements().forEachRemaining(term -> appendText(text, term));
+		}
 		for (JsonNode step : steps) {
 			for (String field : STEP_SEARCH_FIELDS) {
+				if ("text".equals(field) && step.path("isPassword").asBoolean(false)) {
+					continue;
+				}
 				appendText(text, step.path(field));
 			}
 		}
@@ -238,6 +289,7 @@ public class PlaywrightRecordingCatalogService {
 	private static Map<String, Object> summarize(String fileName, JsonNode recording, List<JsonNode> steps) {
 		List<String> urls = new ArrayList<>();
 		List<String> typedValues = new ArrayList<>();
+		List<String> stepPreview = new ArrayList<>();
 		LinkedHashSet<String> hosts = new LinkedHashSet<>();
 		for (JsonNode step : steps) {
 			String url = text(step, "url");
@@ -248,11 +300,14 @@ public class PlaywrightRecordingCatalogService {
 					hosts.add(host);
 				}
 			}
-			if ("TYPE".equalsIgnoreCase(text(step, "type"))) {
+			if ("TYPE".equalsIgnoreCase(text(step, "type")) && !step.path("isPassword").asBoolean(false)) {
 				String typed = text(step, "text");
 				if (!typed.isEmpty()) {
 					typedValues.add(typed);
 				}
+			}
+			if (stepPreview.size() < 12) {
+				stepPreview.add(summarizeStep(step));
 			}
 		}
 
@@ -260,14 +315,42 @@ public class PlaywrightRecordingCatalogService {
 		Map<String, Object> summary = new LinkedHashMap<>();
 		summary.put("fileName", fileName);
 		summary.put("stepCount", steps.size());
-		summary.put("firstUrl", urls.isEmpty() ? "" : urls.get(0));
+		String requestedStartUrl = text(meta, "requestedStartUrl");
+		String firstUrl = urls.isEmpty() ? requestedStartUrl : urls.get(0);
+		summary.put("firstUrl", firstUrl);
+		summary.put("requestedStartUrl", requestedStartUrl);
+		summary.put("urls", urls.stream().distinct().limit(10).toList());
 		summary.put("hosts", new ArrayList<>(hosts));
 		String typedPreview = String.join(" ", typedValues);
 		summary.put("typedTextPreview", typedPreview.substring(0, Math.min(240, typedPreview.length())));
 		summary.put("title", text(meta, "title"));
 		summary.put("description", text(meta, "description"));
 		summary.put("intent", text(meta, "intent"));
+		summary.put("stepPreview", stepPreview);
 		return summary;
+	}
+
+	private static String summarizeStep(JsonNode step) {
+		String type = text(step, "type");
+		String detail = firstNonBlank(text(step, "description"), text(step, "label"), text(step, "prompt"),
+				text(step, "url"));
+		if (detail.isEmpty() && !step.path("isPassword").asBoolean(false)) {
+			detail = text(step, "text");
+		}
+		String summary = type.isEmpty() ? "STEP" : type.toUpperCase(Locale.ROOT);
+		if (!detail.isEmpty()) {
+			summary += ": " + detail;
+		}
+		return summary.substring(0, Math.min(240, summary.length()));
+	}
+
+	private static String firstNonBlank(String... values) {
+		for (String value : values) {
+			if (value != null && !value.isBlank()) {
+				return value;
+			}
+		}
+		return "";
 	}
 
 	private static String firstUrl(List<JsonNode> steps) {
@@ -323,6 +406,18 @@ public class PlaywrightRecordingCatalogService {
 
 	private static String trim(String value) {
 		return value == null ? "" : value.trim();
+	}
+
+	private static final class Catalog {
+		private final List<Candidate> candidates;
+		private final int roomCount;
+		private final int projectCount;
+
+		private Catalog(List<Candidate> candidates, int roomCount, int projectCount) {
+			this.candidates = candidates;
+			this.roomCount = roomCount;
+			this.projectCount = projectCount;
+		}
 	}
 
 	private static final class Candidate {
