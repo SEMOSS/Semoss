@@ -35,6 +35,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
+
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -50,7 +52,12 @@ import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentBudgetException;
 import prerna.reactor.agent.exceptions.AgentBudgetException.BudgetKind;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.AgentRunEventBus;
+import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
@@ -193,17 +200,59 @@ public class SemossAgentHarness implements IAgentHarness {
 			String finalOutputMessageId = null;
 			int runMessageStartIndex = room.getMessages().size();
 
-			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
-					.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
-					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
-			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
-			inputMessageId = firstMsg.getMessageId();
+			ResponseMessage response;
 
-			logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
-					ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+			if (ctx.isResumeMode()) {
+				// --- Resume mode ---
+				// The tool results were already written to the room by RunMCPToolReactor.
+				// If an older path already produced an assistant response, pick it up.
+				// Otherwise continue from the completed tool-result message here so the
+				// worker owns the post-HITL model call and harness prompt/tool context.
+				List<AbstractMessage> messages = room.getMessages();
+				AbstractMessage last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+				if (last instanceof ResponseMessage) {
+					response = (ResponseMessage) last;
+					logger.info("SemossAgentHarness: resume mode room={} picking up from messageId={}",
+							room.getId(), response.getMessageId());
+				} else if (last instanceof InputMessage && last.hasToolResultPart()) {
+					logger.info("SemossAgentHarness: resume mode room={} continuing from tool results messageId={}",
+							room.getId(), last.getMessageId());
+					Map<String, Object> resumeParams = new HashMap<>(paramMap);
+					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
+					Object resumeModelResponse = room.continueAfterToolExecutionResults(resumeParams, last.getParentMessageId(),
+							ctx.getModelEngine(), ctx.getInsight());
+					if (resumeModelResponse == null) {
+						throw new IllegalStateException("Cannot resume agent run because tool results are incomplete");
+					}
+					AbstractMessage continuedLast = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+					if (!(continuedLast instanceof ResponseMessage)) {
+						throw new IllegalStateException("Cannot resume agent run because model continuation did not "
+								+ "produce an assistant response");
+					}
+					response = (ResponseMessage) continuedLast;
+				} else {
+					throw new IllegalStateException("Cannot resume agent run because latest room message is not a "
+							+ "tool result or assistant response room=" + room.getId());
+				}
+				if (response == null) {
+					throw new IllegalStateException("Cannot resume agent run because no assistant response was produced");
+				}
+				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+			} else {
+				// --- Normal mode: initial ask ---
+				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
+						.withText(ctx.getInput())
+						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
+						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				inputMessageId = firstMsg.getMessageId();
 
-			ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
-			tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
+						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+
+				response = room.ask(firstMsg, ctx.getModelEngine(), null);
+				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+			}
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
 			}
@@ -249,7 +298,19 @@ public class SemossAgentHarness implements IAgentHarness {
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
-					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					ResponseMessage next;
+					try {
+						next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					} catch (AgentInputRequiredException pauseEx) {
+						// One or more tools require user approval (SMSS_MCP_EXECUTION=ask).
+						// Non-ask tools may already have written results to the room, so tag
+						// and persist those messages before releasing the worker.
+						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
+						persistAgentRunTags(room, ctx);
+						List<Map<String, Object>> pendingActions = persistPendingActions(ctx, room, pauseEx);
+						publishInputRequiredEvent(ctx, room, pendingActions);
+						throw pauseEx;
+					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 
@@ -380,6 +441,123 @@ public class SemossAgentHarness implements IAgentHarness {
 			return;
 		}
 		RoomMessageStore.persist(room, userId);
+	}
+
+	/**
+	 * Persist {@code AGENT_RUN_ACTION} rows for each tool call that was paused.
+	 * Each row captures the tool call id, name, original args, enriched
+	 * {@code _meta} (including {@code SMSS_MCP_UI}), and the resolved UI URL
+	 * (when the tool has an associated portal).
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> persistPendingActions(AgentRunContext ctx, Room room,
+			AgentInputRequiredException pauseEx) {
+		String runId = ctx.getRunId();
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalStateException("Cannot persist pending actions without a runId");
+		}
+		String roomId = room != null ? room.getId() : null;
+		String userId = ctx.getUserId();
+		if (userId == null || userId.trim().isEmpty()) {
+			userId = room != null ? room.getUserId() : null;
+		}
+		List<Map<String, Object>> pendingToolCalls = pauseEx.getPendingToolCalls();
+		List<Map<String, Object>> actions = new ArrayList<>();
+		for (Map<String, Object> toolCall : pendingToolCalls) {
+			Map<String, Object> action = new HashMap<>();
+			action.put("actionId", GUID.v7().toUUID().toString());
+			action.put("parentMessageId", pauseEx.getParentMessageId());
+			action.put("toolCallId", String.valueOf(toolCall.get("id")));
+			action.put("toolName", String.valueOf(toolCall.get("name")));
+			// Preserve the original args (either "arguments" or "input")
+			Object argsObj = toolCall.get("arguments");
+			if (argsObj == null) {
+				argsObj = toolCall.get("input");
+			}
+			action.put("toolArgs", argsObj);
+			// The enriched _meta (set by Room.updateToolResponseMeta)
+			action.put("toolMeta", toolCall.get("_meta"));
+			// Derive UI info from SMSS_MCP_UI
+			Map<String, Object> meta = null;
+			Object metaObj = toolCall.get("_meta");
+			if (metaObj instanceof Map) {
+				meta = (Map<String, Object>) metaObj;
+			}
+			Map<String, Object> uiMeta = null;
+			if (meta != null) {
+				Object uiObj = meta.get(MCPUtility.SMSS_MCP_UI);
+				if (uiObj instanceof Map) {
+					uiMeta = (Map<String, Object>) uiObj;
+				}
+				Object execVal = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				if (execVal != null) {
+					action.put("executionMode", execVal);
+				}
+			}
+			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
+			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
+			action.put("hasUi", hasUi);
+			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action) : null);
+			actions.add(action);
+		}
+		try {
+			AgentRunActionStore actionStore = new AgentRunActionStore();
+			actionStore.insertPendingActions(runId, roomId, userId, actions);
+			logger.info("SemossAgentHarness: persisted {} pending action(s) for runId={}", actions.size(), runId);
+			return actions;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to persist pending actions for runId=" + runId, e);
+		}
+	}
+
+	/**
+	 * Publish an {@code INPUT_REQUIRED} event on the {@link AgentRunEventBus}
+	 * so any subscribed UI can render the pending actions immediately.
+	 */
+	private static void publishInputRequiredEvent(AgentRunContext ctx, Room room, List<Map<String, Object>> pendingActions) {
+		String runId = ctx.getRunId();
+		if (runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		String roomId = room != null ? room.getId() : null;
+		Map<String, Object> eventData = new HashMap<>();
+		eventData.put("runId", runId);
+		eventData.put("roomId", roomId);
+		eventData.put("status", AgentRunStatus.INPUT_REQUIRED.name());
+		eventData.put("pendingActions", pendingActions);
+		AgentRunEventBus.get().publish(runId, "status", eventData, true);
+	}
+
+	/**
+	 * Resolve the {@code resourceURI} (relative to the app's portals folder)
+	 * into an absolute portal URL carrying only the {@code actionId}. The portal
+	 * calls {@code GetAgentRunAction} on load to fetch the rest from the row.
+	 */
+	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta,
+			Map<String, Object> action) {
+		String engineId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
+		if (engineId == null) {
+			engineId = toolMeta != null ? stringValue(toolMeta.get("SMSS_PROJECT_ID")) : null;
+		}
+		if (engineId == null) {
+			// Cannot resolve the app context; GetAgentRun.pendingActions still
+			// exposes the action id and tool metadata for UI-driven execution.
+			return null;
+		}
+		// Strip any leading slash from resourceURI so the path never gets a double slash.
+		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
+		// The URL only carries the actionId. The portal calls GetAgentRunAction on
+		// load to fetch the run context and prefill args from the persisted row.
+		return "/Monolith/public_home/" + engineId + "/portals/" + normalizedURI
+				+ "?actionId=" + action.get("actionId");
+	}
+
+	private static String stringValue(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String s = String.valueOf(value).trim();
+		return s.isEmpty() ? null : s;
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {

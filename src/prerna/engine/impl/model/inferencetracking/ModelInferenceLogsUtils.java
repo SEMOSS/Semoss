@@ -99,7 +99,6 @@ public class ModelInferenceLogsUtils {
 			.disableHtmlEscaping().create();
 
 	public static final String WORKSPACE_PROJECT_TAG = "Workspace_Project";
-	public static final String SKILL_PROJECT_TAG = "Skill_Project";
 
 	// Constants for Table
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
@@ -242,7 +241,10 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
 			executeSql(conn, sql);
-		} else {
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
+			executeSql(conn, sql);
+			} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 				executeSql(conn, sql);
@@ -295,6 +297,11 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
 				executeSql(conn, sql);
 			}
 		}
@@ -2666,88 +2673,6 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Adds a platform-skill slug to {@code WORKSPACE.CONFIG_JSON.platform_skills[]}.
-	 * Platform skills are disk-backed folders (see
-	 * {@code prerna.reactor.agent.skill.PlatformSkills}) - they are not Projects,
-	 * have no ids, and carry no {@code WORKSPACE_RESOURCE} row, so CONFIG_JSON is
-	 * the sole store. The array holds plain slug strings. Idempotent: a slug
-	 * already present is left untouched and no write is issued.
-	 *
-	 * @param workspaceId workspace identifier
-	 * @param slug        platform skill slug (folder name) to add
-	 * @throws SQLException if the CONFIG_JSON write fails
-	 */
-	public static void addPlatformSkillToWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
-		if (workspaceId == null || workspaceId.isEmpty()) {
-			throw new IllegalArgumentException("workspaceId is required");
-		}
-		if (slug == null || slug.isEmpty()) {
-			throw new IllegalArgumentException("slug is required");
-		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			cfg = new JSONObject();
-			cfg.put("schema_version", 1);
-		}
-		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
-		if (platformSkills == null) {
-			platformSkills = new JSONArray();
-		}
-		for (int i = 0; i < platformSkills.length(); i++) {
-			if (slug.equals(platformSkills.optString(i, null))) {
-				return;
-			}
-		}
-		platformSkills.put(slug);
-		cfg.put("platform_skills", platformSkills);
-		updateWorkspaceConfigJson(workspaceId, cfg);
-	}
-
-	/**
-	 * Removes a platform-skill slug from
-	 * {@code WORKSPACE.CONFIG_JSON.platform_skills[]}. No-op (no write) when the
-	 * workspace has no CONFIG_JSON, no {@code platform_skills} array, or the slug
-	 * is not present.
-	 *
-	 * @param workspaceId workspace identifier
-	 * @param slug        platform skill slug to remove
-	 * @throws SQLException if the CONFIG_JSON write fails
-	 */
-	public static void removePlatformSkillFromWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
-		if (workspaceId == null || workspaceId.isEmpty()) {
-			throw new IllegalArgumentException("workspaceId is required");
-		}
-		if (slug == null || slug.isEmpty()) {
-			throw new IllegalArgumentException("slug is required");
-		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			return;
-		}
-		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
-		if (platformSkills == null || platformSkills.length() == 0) {
-			return;
-		}
-		JSONArray kept = new JSONArray();
-		boolean removed = false;
-		for (int i = 0; i < platformSkills.length(); i++) {
-			String existing = platformSkills.optString(i, null);
-			if (slug.equals(existing)) {
-				removed = true;
-				continue;
-			}
-			if (existing != null) {
-				kept.put(existing);
-			}
-		}
-		if (!removed) {
-			return;
-		}
-		cfg.put("platform_skills", kept);
-		updateWorkspaceConfigJson(workspaceId, cfg);
-	}
-
-	/**
 	 * Returns paginated room entries for a workspace visible to the requesting
 	 * user.
 	 *
@@ -3706,151 +3631,36 @@ public class ModelInferenceLogsUtils {
 	}
 
 	// ============================================================
-	// SKILL registry
+	// Skills
 	//
-	// SKILL_ID == the underlying Project ID. The Project (type=SKILL, tagged
-	// Skill_Project in PROJECTMETA) owns content (under version/assets/skill/),
-	// versioning (git in version/), and permissions (PROJECTUSER/GROUPPROJECT...).
-	// SKILL__ only holds the skill-specific metadata used for fast listing and the
-	// platform-vs-user ORIGIN distinction. WORKSPACE_RESOURCE__ rows with
-	// RESOURCE_TYPE='SKILL' attach skills to workspaces.
+	// A skill is a Project of type SKILL; the Project owns content (SKILL.md
+	// under version/assets/skill/), versioning (git in version/), and
+	// permissions. WORKSPACE_RESOURCE__ rows with RESOURCE_TYPE='SKILL' attach
+	// skills to workspaces, mirrored into CONFIG_JSON.skills[].
 	// ============================================================
 
 	/**
-	 * Inserts a new skill row. The caller is responsible for having already created
-	 * the underlying Project (via {@code ProjectHelper.createSkillProject}) and for
-	 * writing the SKILL.md into {@code version/assets/skill/}.
-	 *
-	 * @param skillId     skill identifier - must equal the underlying project id
-	 * @param slug        stable slug (used as the staged directory name)
-	 * @param name        display name
-	 * @param description SKILL.md frontmatter description, mirrored for search
-	 * @param createdBy   authoring user id (null/system for platform skills)
-	 * @param origin      USER | PLATFORM | IMPORTED | GENERATED
-	 * @param configJson  optional forward-compat blob
-	 * @throws Exception if insert fails
-	 */
-	public static void createNewSkill(String skillId, String slug, String name, String description, String createdBy,
-			String origin, JSONObject configJson) throws Exception {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-		String configJsonStr = configJson == null ? null : configJson.toString();
-
-		Connection con = null;
-		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con
-					.prepareStatement("INSERT INTO SKILL (SKILL_ID, SLUG, NAME, DESCRIPTION, CREATED_BY, ORIGIN, "
-							+ "CONFIG_JSON, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")) {
-				int index = 1;
-				ps.setString(index++, skillId);
-				ps.setString(index++, slug);
-				ps.setString(index++, name);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
-				ps.setString(index++, createdBy);
-				ps.setString(index++, origin);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, configJsonStr, index++, GSON);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index++, now);
-				ps.execute();
-			}
-
-			if (!con.getAutoCommit()) {
-				con.commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to create skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error creating skill: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
-		}
-	}
-
-	/**
-	 * Updates metadata on a skill. Null arguments leave a field untouched.
-	 *
-	 * @param skillId     skill identifier
-	 * @param name        new display name, or null to skip
-	 * @param description new description, or null to skip
-	 * @param configJson  new CONFIG_JSON, or null to skip
-	 * @throws Exception if update fails
-	 */
-	public static void updateSkillMetadata(String skillId, String name, String description, JSONObject configJson)
-			throws Exception {
-		if (skillId == null || skillId.isEmpty()) {
-			throw new IllegalArgumentException("skillId is required");
-		}
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-
-		StringBuilder sql = new StringBuilder("UPDATE SKILL SET DATE_UPDATED = ?");
-		List<Object> params = new ArrayList<>();
-		List<Boolean> clobFlags = new ArrayList<>();
-		params.add(now);
-		clobFlags.add(false);
-		if (name != null) {
-			sql.append(", NAME = ?");
-			params.add(name);
-			clobFlags.add(false);
-		}
-		if (description != null) {
-			sql.append(", DESCRIPTION = ?");
-			params.add(description);
-			clobFlags.add(true);
-		}
-		if (configJson != null) {
-			sql.append(", CONFIG_JSON = ?");
-			params.add(configJson.toString());
-			clobFlags.add(true);
-		}
-		sql.append(" WHERE SKILL_ID = ?");
-		params.add(skillId);
-		clobFlags.add(false);
-
-		Connection con = null;
-		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
-				for (int i = 0; i < params.size(); i++) {
-					Object val = params.get(i);
-					int bindIdx = i + 1;
-					if (clobFlags.get(i)) {
-						modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, val, bindIdx, GSON);
-					} else if (val instanceof Timestamp) {
-						ps.setTimestamp(bindIdx, (Timestamp) val);
-					} else {
-						ps.setObject(bindIdx, val);
-					}
-				}
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update metadata for skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error updating skill metadata: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
-		}
-	}
-
-	/**
-	 * Removes the SKILL__ row, any WORKSPACE_RESOURCE__ rows pointing at this skill,
-	 * and the matching {@code CONFIG_JSON.skills[]} mirror entry in every workspace
-	 * that referenced it. Does NOT delete the underlying Project - callers (typically
-	 * the project-delete path) own that.
+	 * Detaches a skill project from every workspace that references it: deletes the
+	 * WORKSPACE_RESOURCE__ rows (RESOURCE_TYPE='SKILL') and scrubs the matching
+	 * {@code CONFIG_JSON.skills[]} mirror entry in each affected workspace. Does NOT
+	 * delete the underlying Project - callers (typically the project-delete path)
+	 * own that.
 	 *
 	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
-	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping the
-	 * mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
-	 * still returns, so the run-time {@code SkillStager} fails it every run with
-	 * "not found in SKILL__". The referencing workspaces are captured before the row
-	 * deletes so the mirror can be scrubbed afterward.
+	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
+	 * the mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
+	 * still returns, so the run-time {@code SkillStager} fails it every run. The
+	 * referencing workspaces are captured before the row deletes so the mirror can be
+	 * scrubbed afterward.
 	 *
-	 * @param skillId skill identifier
+	 * @param projectId skill project identifier
 	 */
-	public static void deleteSkillEntry(String skillId) {
+	public static void detachSkillFromAllWorkspaces(String projectId) {
+		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
+			classLogger.warn("Model inference logs db is not loaded; skipping workspace scrub for skill '{}'",
+					projectId);
+			return;
+		}
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		List<String> affectedWorkspaceIds = new ArrayList<>();
@@ -3859,7 +3669,7 @@ public class ModelInferenceLogsUtils {
 			try (PreparedStatement sel = con.prepareStatement(
 					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
 				sel.setString(1, "SKILL");
-				sel.setString(2, skillId);
+				sel.setString(2, projectId);
 				try (ResultSet rs = sel.executeQuery()) {
 					while (rs.next()) {
 						String wsId = rs.getString(1);
@@ -3869,138 +3679,31 @@ public class ModelInferenceLogsUtils {
 					}
 				}
 			}
-			try (PreparedStatement ps1 = con
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
-					PreparedStatement ps2 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
-				ps1.setString(1, "SKILL");
-				ps1.setString(2, skillId);
-				ps2.setString(1, skillId);
-				ps1.execute();
-				ps2.execute();
+			try (PreparedStatement ps = con
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				ps.setString(1, "SKILL");
+				ps.setString(2, projectId);
+				ps.execute();
 				if (!con.getAutoCommit()) {
 					con.commit();
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
+			classLogger.error("Failed to detach skill '{}' from workspaces.", projectId, e);
+			throw new IllegalArgumentException("Error detaching skill from workspaces: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 
 		for (String workspaceId : affectedWorkspaceIds) {
 			try {
-				removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
+				removeSkillFromWorkspaceConfigJson(workspaceId, projectId);
 			} catch (Exception e) {
 				classLogger.warn(
-						"Deleted skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
-						skillId, workspaceId, e.getMessage());
+						"Detached skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
+						projectId, workspaceId, e.getMessage());
 			}
 		}
 	}
 
-	/**
-	 * Fetches one skill row by id.
-	 *
-	 * @param skillId skill identifier
-	 * @return skill row map, or {@code null} when not found
-	 */
-	public static Map<String, Object> getSkillEntry(String skillId) {
-		return fetchSkillRow("SKILL__SKILL_ID", skillId);
-	}
-
-	/**
-	 * Fetches one skill row by its (case-sensitive) slug. Useful when staging
-	 * skills by the directory name on disk.
-	 *
-	 * @param slug slug column value
-	 * @return skill row map, or {@code null} when not found
-	 */
-	public static Map<String, Object> getSkillBySlug(String slug) {
-		return fetchSkillRow("SKILL__SLUG", slug);
-	}
-
-	/**
-	 * Lists skill rows matching the supplied filters, ordered newest update first.
-	 * All filters are AND-combined; pass {@code null} to skip a filter.
-	 *
-	 * @param origin    exact match on {@code ORIGIN}, or {@code null} for any
-	 * @param createdBy exact match on {@code CREATED_BY}, or {@code null} for any
-	 * @return list of skill rows, never null
-	 */
-	public static List<Map<String, Object>> listSkills(String origin, String createdBy) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = buildSkillSelect();
-
-		if (origin != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__ORIGIN", "==", origin));
-		}
-		if (createdBy != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__CREATED_BY", "==", createdBy));
-		}
-		qs.addOrderBy("SKILL__DATE_UPDATED", "desc");
-
-		List<Map<String, Object>> rows = new ArrayList<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			while (wrapper.hasNext()) {
-				rows.add(rowToMap(wrapper.next()));
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to list skills (origin='{}', createdBy='{}').", origin, createdBy, e);
-		}
-		return rows;
-	}
-
-	private static SelectQueryStruct buildSkillSelect() {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SKILL__SKILL_ID", "skill_id"));
-		qs.addSelector(new QueryColumnSelector("SKILL__SLUG", "slug"));
-		qs.addSelector(new QueryColumnSelector("SKILL__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DESCRIPTION", "description"));
-		qs.addSelector(new QueryColumnSelector("SKILL__CREATED_BY", "created_by"));
-		qs.addSelector(new QueryColumnSelector("SKILL__ORIGIN", "origin"));
-		qs.addSelector(new QueryColumnSelector("SKILL__CONFIG_JSON", "config_json"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DATE_CREATED", "date_created"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DATE_UPDATED", "date_updated"));
-		return qs;
-	}
-
-	private static Map<String, Object> fetchSkillRow(String filterColumn, String filterValue) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = buildSkillSelect();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(filterColumn, "==", filterValue));
-		qs.setLimit(1L);
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			if (wrapper.hasNext()) {
-				return rowToMap(wrapper.next());
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to fetch skill row for {} = '{}'.", filterColumn, filterValue, e);
-		}
-		return null;
-	}
-
-	private static Map<String, Object> rowToMap(IHeadersDataRow headerRow) {
-		String[] headers = headerRow.getHeaders();
-		Object[] values = headerRow.getValues();
-		Map<String, Object> map = new HashMap<>();
-		for (int i = 0; i < headers.length; i++) {
-			if (values[i] instanceof java.sql.Clob) {
-				map.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
-			} else if (values[i] instanceof java.sql.Blob) {
-				try {
-					map.put(headers[i], AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]));
-				} catch (java.sql.SQLException | java.io.IOException e) {
-					classLogger.warn("rowToMap: failed to read BLOB for column '{}'", headers[i], e);
-					map.put(headers[i], null);
-				}
-			} else if (values[i] instanceof prerna.date.SemossDate) {
-				map.put(headers[i], ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
-			} else {
-				map.put(headers[i], values[i]);
-			}
-		}
-		return map;
-	}
 }
