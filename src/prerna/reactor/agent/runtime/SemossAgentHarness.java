@@ -62,8 +62,7 @@ import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 
 /**
- * SEMOSS-native agent harness - the canonical replacement for
- * {@link prerna.reactor.agent.RoomAgentHarness}.
+ * SEMOSS-native agent harness.
  *
  * <p>Capabilities:
  * <ul>
