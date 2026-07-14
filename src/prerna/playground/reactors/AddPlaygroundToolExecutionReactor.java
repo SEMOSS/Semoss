@@ -162,38 +162,19 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
 
-			// Three "no assistant follow-up appended" cases we need to handle:
+			// No assistant follow-up was appended. Three ways to get here:
 			// (1) live LLM path, more tools pending (existing behavior)
-			// (2) cancel-persistence path with a live-race dedupe hit — the
-			//     Room dedupe found the toolCallId already recorded, so nothing
-			//     new was added
+			// (2) cancel-persistence path with a live-race dedupe hit
 			// (3) cancel-persistence path where the caller sent responseParts
 			//     but not all tool_call_ids are answered yet
-			// In all three cases, Room did not append a ResponseMessage as the
-			// tail. Detect that by inspecting the tail directly rather than
-			// relying on the two-way null return.
+			// The hidden pair is intentionally NOT appended here — it only
+			// makes sense parented on a real follow-up ResponseMessage, which
+			// doesn't exist in any of these cases.
 			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
 			if (!(tail instanceof ResponseMessage)) {
-				// Cancel-commit still needs to land the hidden pair so the next
-				// turn's provider payload gets the "user stopped you" context —
-				// even though we don't have a visible ResponseMessage to hang
-				// off of. Parent it on whatever the sanitized tail is (the
-				// user's INPUT_TEXT).
-				if (prebuiltResponse != null && hiddenMessage != null && !hiddenMessage.isEmpty() && tail != null) {
-					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, tail.getMessageId(),
-							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
-				}
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
-				List<Map<String, Object>> shortCircuitExtras = new ArrayList<>();
-				for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
-					Map<String, Object> pair = new LinkedHashMap<>();
-					pair.put("inputMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i))));
-					pair.put("responseMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i + 1))));
-					shortCircuitExtras.add(pair);
-				}
-				pixelReturn.put("extraMessages", shortCircuitExtras);
-				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
 			}
 
 			// parse the response for code blocks
