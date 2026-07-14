@@ -28,7 +28,6 @@
 package prerna.usertracking;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +46,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -58,10 +56,22 @@ public class EngineViewsUtils extends UserTrackingUtils {
 	private static String EV_TN = "ENGINE_VIEWS";
 	private static String EV_PRE = "ENGINE_VIEWS__";
 
+	/**
+	 * Records a view of the given engine for the current day, incrementing today's
+	 * view count.
+	 * 
+	 * @param databaseId the id of the engine/database that was viewed
+	 */
 	public static void add(String databaseId) {
 		addOrUpdate(databaseId);
 	}
 
+	/**
+	 * Returns the total number of views recorded for an engine across all dates.
+	 *
+	 * @param engineId the id of the engine/database
+	 * @return the summed view count; 0 if none exist
+	 */
 	public static int getTotal(String engineId) {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 
@@ -79,6 +89,12 @@ public class EngineViewsUtils extends UserTrackingUtils {
 		return longViews.intValue();
 	}
 
+	/**
+	 * Returns the daily view counts for an engine over the past year.
+	 *
+	 * @param engineId the id of the engine/database
+	 * @return a list of (date, view count) pairs within the last year
+	 */
 	public static List<Pair<String, Integer>> getByDate(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
@@ -99,12 +115,18 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				viewsByDate.add(Pair.of(date, view));
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to fetch engine views by date for engine {}", engineId, e);
 		}
 
 		return viewsByDate;
 	}
 
+	/**
+	 * Inserts today's view row for an engine, or increments it if one already
+	 * exists.
+	 *
+	 * @param engineId the id of the engine/database that was viewed
+	 */
 	private static void addOrUpdate(String engineId) {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 
@@ -123,6 +145,13 @@ public class EngineViewsUtils extends UserTrackingUtils {
 		}
 	}
 
+	/**
+	 * Sets the view count for an engine on a specific date.
+	 *
+	 * @param engineId the id of the engine/database
+	 * @param date     the date whose count is being set
+	 * @param i        the new view count
+	 */
 	private static void update(String engineId, LocalDate date, int i) {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 
@@ -140,16 +169,19 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine view count for engine {} on {}", engineId, date, e);
 		} finally {
-			try {
-				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
+	/**
+	 * Inserts a view-count row for an engine on a specific date.
+	 *
+	 * @param engineId the id of the engine/database
+	 * @param date     the date to record
+	 * @param i        the initial view count
+	 */
 	private static void add(String engineId, LocalDate date, int i) {
 		String query = "INSERT INTO " + EV_TN + " VALUES (?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
@@ -166,13 +198,9 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to insert engine view count for engine {} on {}", engineId, date, e);
 		} finally {
-			try {
-				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
