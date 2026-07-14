@@ -40,12 +40,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -160,13 +164,16 @@ final class HarnessToolExecutor {
 		} else {
 			logger.info("HarnessToolExecutor: {} tools in parallel iter={} room={}", toolCalls.size(),
 					state.getIterations(), ctx.getRoom().getId());
+			AgentThreadContext parentContext = AgentThreadContext.capture();
 
 			try (ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size())) {
 				CompletableFuture<ToolExecResult>[] futures = new CompletableFuture[toolCalls.size()];
 				for (int i = 0; i < toolCalls.size(); i++) {
 					final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
-					futures[i] = CompletableFuture.supplyAsync(() -> executeOneTool(tc, state.getIterations(), paramMap,
-							parentMsgId, ctx, jobId, spawnsRemainingInBatch), pool);
+					futures[i] = CompletableFuture.supplyAsync(
+							() -> parentContext.call(() -> executeOneTool(tc, state.getIterations(), paramMap,
+										parentMsgId, ctx, jobId, spawnsRemainingInBatch)),
+							pool);
 				}
 				// Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
 				CompletableFuture<Void> all = CompletableFuture.allOf(futures);
@@ -557,6 +564,58 @@ final class HarnessToolExecutor {
 	}
 
 	// Internal value types
+
+	/**
+	 * Carries request-scoped state into parallel tool threads. The final tool
+	 * result can synchronously trigger the next model ask, so both Log4j MDC and
+	 * ThreadStore must be present on that thread.
+	 */
+	private static final class AgentThreadContext {
+		private final Map<String, String> log4jContext;
+		private final String insightId;
+		private final String sessionId;
+		private final String routeId;
+		private final String jobId;
+		private final User user;
+		private final String localHostname;
+		private final String localProtocol;
+		private final Integer localPort;
+
+		private AgentThreadContext(Map<String, String> log4jContext, String insightId, String sessionId, String routeId,
+				String jobId, User user, String localHostname, String localProtocol, Integer localPort) {
+			this.log4jContext = log4jContext;
+			this.insightId = insightId;
+			this.sessionId = sessionId;
+			this.routeId = routeId;
+			this.jobId = jobId;
+			this.user = user;
+			this.localHostname = localHostname;
+			this.localProtocol = localProtocol;
+			this.localPort = localPort;
+		}
+
+		private static AgentThreadContext capture() {
+			return new AgentThreadContext(new HashMap<>(ThreadContext.getImmutableContext()), ThreadStore.getInsightId(),
+					ThreadStore.getSessionId(), ThreadStore.getRouteId(), ThreadStore.getJobId(), ThreadStore.getUser(),
+					ThreadStore.getLocalHostname(), ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort());
+		}
+
+		private <T> T call(Supplier<T> task) {
+			try (var ignored = CloseableThreadContext.putAll(log4jContext)) {
+				ThreadStore.setInsightId(insightId);
+				ThreadStore.setSessionId(sessionId);
+				ThreadStore.setRouteId(routeId);
+				ThreadStore.setJobId(jobId);
+				ThreadStore.setUser(user);
+				ThreadStore.setLocalHostname(localHostname);
+				ThreadStore.setLocalProtocol(localProtocol);
+				ThreadStore.setLocalPort(localPort);
+				return task.get();
+			} finally {
+				ThreadStore.remove();
+			}
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	static final class ParsedToolCall {
