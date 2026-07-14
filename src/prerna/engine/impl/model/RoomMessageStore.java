@@ -253,7 +253,6 @@ public final class RoomMessageStore {
 			if (!messageIds.contains(parentMessageId)) {
 				String roomId = room != null ? room.getId() : "<unknown>";
 				classLogger.warn("Room {} message parent does not exist: {}", roomId, parentMessageId);
-				break;
 			}
 		}
 	}
