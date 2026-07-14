@@ -14,6 +14,11 @@ on:
     # Publish semver tags as releases.
     #tags: [ 'v*.*.*' ]
   workflow_dispatch:
+    inputs:
+      tomcat_version:
+        description: 'Tomcat-builder version to use'
+        required: true
+        default: '9.0.119'
   schedule:
     - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
 
@@ -58,6 +63,8 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     needs: prepare
+    env:
+      TOMCAT_VERSION: ${{ github.event.inputs.tomcat_version || '9.0.119' }}
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +106,7 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ needs.prepare.outputs.semoss_version }}
             BASE_REGISTRY=public.ecr.aws/amazonlinux
+            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest

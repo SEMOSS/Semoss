@@ -13,15 +13,17 @@ ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
-FROM quay.io/semoss/tomcat-builder-al2023:${TOMCAT_VERSION} AS tomcat_builder
+FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
 ARG CODEX_VERSION
 ARG COPILOT_VERSION
 # Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
 # without buildx (TARGETARCH unset). codex uses x86_64/aarch64; copilot uses x64/arm64.
 ARG TARGETARCH
-RUN dnf update -y \
-	&& dnf install -y --setopt=install_weak_deps=False ca-certificates tar zip \
-	&& dnf clean all \
+
+# Using apt-get since tomcat builder is based on ubuntu:22.04
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
+	&& rm -rf /var/lib/apt/lists/* \
 	&& case "${TARGETARCH:-amd64}" in \
 		arm64) codex_arch="aarch64"; copilot_arch="arm64" ;; \
 		*)     codex_arch="x86_64";  copilot_arch="x64" ;; \
@@ -134,6 +136,7 @@ COPY --from=fakechroot_builder /usr/local/lib/fakechroot /usr/local/lib/fakechro
 # playwright uses apt-get to install dependencies, so they would need to be installed first
 
 # Single consolidated dnf install (without playwright)
+# Adding [procps] to avoid error: "java.io.IOException: Cannot run program "pkill""
 RUN dnf install -y --setopt=install_weak_deps=False \
         git \
         unzip \
@@ -143,6 +146,7 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         fakeroot \
         util-linux \
         glibc-langpack-en \
+		procps \
     && dnf clean all
 
 # install rclone
@@ -157,7 +161,7 @@ RUN curl -fsSL https://rclone.org/install.sh | bash \
 
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
-COPY --from=quay.io/semoss/python-builder-al2023:3.12-cpu /usr/lib/python /usr/lib/python
+COPY --from=quay.io/semoss/python-builder:3.12-cpu /usr/lib/python /usr/lib/python
 
 # AL2023 does not have the steps to install playwright in the dockerfile.
 
