@@ -42,8 +42,6 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_TYPE_TEXT_LENGTH = 2000;
 	private static final int MAX_KEY_LENGTH = 64;
 	private static final int MAX_URL_LENGTH = 2048;
-	private static final int MAX_REQUEST_ID_LENGTH = 128;
-	private static final int MAX_WAIT_AFTER_MS = 60_000;
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
@@ -72,13 +70,6 @@ public class RemoteBrowserInputEventValidator {
 		String type = event.getType();
 		if (type == null || !ALLOWED_EVENT_TYPES.contains(type)) {
 			throw new IllegalArgumentException("Unsupported event type: " + type);
-		}
-		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
-			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
-		}
-		if (event.getWaitAfterMs() != null
-				&& (event.getWaitAfterMs() < 0 || event.getWaitAfterMs() > MAX_WAIT_AFTER_MS)) {
-			throw new IllegalArgumentException("waitAfterMs must be between 0 and " + MAX_WAIT_AFTER_MS);
 		}
 
 		switch (type) {
