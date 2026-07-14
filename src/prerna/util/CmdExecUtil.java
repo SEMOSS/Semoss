@@ -312,14 +312,14 @@ public class CmdExecUtil {
 			executor.setWatchdog(watchdog);
 
 			int exitValue = -1;
-				try {
-					if (environment == null) {
-						exitValue = executor.execute(cmdLine);
-					} else {
-						exitValue = executor.execute(cmdLine, environment);
-					}
-					classLogger.debug("Command executed successfully with exit code: " + exitValue);
-				} catch (Exception ex) {
+			try {
+				if (environment == null) {
+					exitValue = executor.execute(cmdLine);
+				} else {
+					exitValue = executor.execute(cmdLine, environment);
+				}
+				classLogger.debug("Command executed successfully with exit code: " + exitValue);
+			} catch (Exception ex) {
 				success = false;
 				classLogger.error("Command execution failed with exit code: " + exitValue, ex);
 			}
