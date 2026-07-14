@@ -1,16 +1,15 @@
 #Base Properties 
 ENGINE	scheduler
-ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
+ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
 OWL	scheduler_OWL.OWL
 
-RDBMS_TYPE	POSTGRES
-DBDRIVER	POSTGRES
-DATABASE postgres
-SCHEMA scheduler
-DRIVER	org.postgresql.Driver
-USERNAME	postgres
-PASSWORD	postgres
-CONNECTION_URL	jdbc:postgresql://localhost:5432/postgres?currentSchema=scheduler
+RDBMS_TYPE	H2_DB
+DATABASE	
+SCHEMA	PUBLIC
+DRIVER org.h2.Driver
+USERNAME	admin
+PASSWORD	admin
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
 USE_CONNECTION_POOLING	false
 POOL_MIN_SIZE
 POOL_MAX_SIZE
