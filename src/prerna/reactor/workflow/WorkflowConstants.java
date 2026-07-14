@@ -103,6 +103,9 @@ public class WorkflowConstants {
     public static final String TRIGGER_SCHEDULED = "SCHEDULED";
     public static final String TRIGGER_RESUME = "RESUME";
     public static final String TRIGGER_SUB_WORKFLOW = "SUB_WORKFLOW";
+    public static final String TRIGGER_WEBHOOK = "WEBHOOK";
+    public static final String TRIGGER_STORAGE_POLL = "STORAGE_POLL";
+    public static final String TRIGGER_DB_POLL = "DB_POLL";
 
     // ── Node types ────────────────────────────────────────────────────────────────
 
@@ -118,6 +121,16 @@ public class WorkflowConstants {
     public static final String NODE_TRANSFORM = "transform";
     public static final String NODE_SUB_WORKFLOW = "sub-workflow";
     public static final String NODE_CONDITIONAL = "conditional";
+    public static final String NODE_WHILE_LOOP = "while-loop";
+    public static final String NODE_TRY_CATCH = "try-catch";
+    public static final String NODE_WAIT = "wait";
+    public static final String NODE_SET_VARIABLE = "set-variable";
+    public static final String NODE_EMAIL = "email";
+    public static final String NODE_HTTP_REQUEST = "http-request";
+    public static final String NODE_NOTIFICATION = "notification";
+    public static final String NODE_SWITCH = "switch";
+    public static final String NODE_RETRY = "retry";
+    public static final String NODE_PARALLEL = "parallel";
 
     // ── Sub-workflow node config keys ─────────────────────────────────────────────
 
