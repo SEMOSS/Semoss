@@ -46,7 +46,7 @@ public class TestProjectUtils {
 	public static String createBasicProject(String name) {
 		String pixel = ApiSemossTestUtils.buildPixelCall(CreateProjectReactor.class, ReactorKeysEnum.PROJECT.getKey(),
 				name, ReactorKeysEnum.PROJECT_TYPE.getKey(), IProject.PROJECT_TYPE.INSIGHTS,
-				ReactorKeysEnum.GLOBAL.getKey(), true, ReactorKeysEnum.PORTAL.getKey(), false);
+				ReactorKeysEnum.GLOBAL.getKey(), true);
 
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		assertEquals(PixelDataType.UPLOAD_RETURN_MAP, nm.getNounType());
@@ -56,8 +56,8 @@ public class TestProjectUtils {
 
 	public static void setProjectMetadata(String projectId, Map<String, Object> metaMap) {
 		String addMetaPixel = ApiSemossTestUtils.buildPixelCall(SetProjectMetadataReactor.class,
-				ReactorKeysEnum.PROJECT.getKey(), projectId, "meta", metaMap,
-				ReactorKeysEnum.JSON_CLEANUP.getKey(), false);
+				ReactorKeysEnum.PROJECT.getKey(), projectId, "meta", metaMap, ReactorKeysEnum.JSON_CLEANUP.getKey(),
+				false);
 		NounMetadata metaPixelCall = ApiSemossTestUtils.processPixel(addMetaPixel);
 		assertTrue(Boolean.valueOf(metaPixelCall.getValue().toString()));
 	}

@@ -721,14 +721,24 @@ public class Insight implements Serializable {
 		String contextProjectId = getContextProjectId();
 		if (contextProjectId != null) {
 			IProject project = Utility.getProject(contextProjectId);
-			retReac = project.getReactor(className);
+			if (project != null) {
+				retReac = project.getReactor(className);
+			} else {
+				classLogger.warn("Insight has context project id '{}' value that could not be loaded",
+						contextProjectId);
+			}
 		}
 
 		// else try to find it the project the insight is saved in
 		// loading it inside of version/classes
 		if (retReac == null && this.projectId != null) {
 			IProject project = Utility.getProject(this.projectId);
-			retReac = project.getReactor(className);
+			if (project != null) {
+				retReac = project.getReactor(className);
+			} else {
+				classLogger.warn("Insight is saved within project id '{}' value that could not be loaded",
+						this.projectId);
+			}
 		}
 
 		// set the insight into the reactor

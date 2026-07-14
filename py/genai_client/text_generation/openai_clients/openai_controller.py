@@ -12,6 +12,21 @@ class OpenAiClientController:
     def embeddings(self, **kwargs) -> List[float]:
         return self.openai_class.embeddings(**kwargs)
 
+    def submit_batch(self, **kwargs):
+        return self.openai_class.submit_batch(**kwargs)
+
+    def get_batch_status(self, **kwargs):
+        return self.openai_class.get_batch_status(**kwargs)
+
+    def get_batch_results(self, **kwargs):
+        return self.openai_class.get_batch_results(**kwargs)
+
+    def list_batches(self, **kwargs):
+        return self.openai_class.list_batches(**kwargs)
+
+    def cancel_batch(self, **kwargs):
+        return self.openai_class.cancel_batch(**kwargs)
+
 
 class AzureOpenAiClientController:
     def __init__(self, **kwargs):
@@ -24,3 +39,18 @@ class AzureOpenAiClientController:
 
     def embeddings(self, **kwargs) -> List[float]:
         return self.azure_openai_class.embeddings(**kwargs)
+
+    def submit_batch(self, **kwargs):
+        return self.azure_openai_class.submit_batch(**kwargs)
+
+    def get_batch_status(self, **kwargs):
+        return self.azure_openai_class.get_batch_status(**kwargs)
+
+    def get_batch_results(self, **kwargs):
+        return self.azure_openai_class.get_batch_results(**kwargs)
+
+    def list_batches(self, **kwargs):
+        return self.azure_openai_class.list_batches(**kwargs)
+
+    def cancel_batch(self, **kwargs):
+        return self.azure_openai_class.cancel_batch(**kwargs)
