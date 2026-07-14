@@ -46,7 +46,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
-import prerna.cluster.util.ClusterSynchronizer;
+import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -143,8 +143,12 @@ public final class CentralCloudStorage implements ICloudClient {
 				instance = new CentralCloudStorage();
 
 				// instantiate the sync
-				if (ClusterUtil.IS_CLUSTER_ZK) {
-					ClusterSynchronizer.getInstance();
+				if (ClusterSynchronizerFactory.IS_CLUSTER_SYNC_SETUP) {
+					classLogger.info("Cluster synchronization is enabled - initializing the cluster synchronizer");
+					ClusterSynchronizerFactory.getClusterSynchronizer();
+					classLogger.info("Cluster synchronizer initialized");
+				} else {
+					classLogger.info("Cluster synchronization is not enabled - skipping cluster synchronizer setup");
 				}
 			}
 		}
@@ -154,7 +158,7 @@ public final class CentralCloudStorage implements ICloudClient {
 
 	private static synchronized void buildStorageEngine() throws Exception {
 		Properties props = new Properties();
-		AppCloudClientProperties clientProps = new AppCloudClientProperties();
+		AppCloudClientProperties clientProps = AppCloudClientProperties.build();
 
 		propertiesMigratePut(props, AbstractRCloneStorageEngine.RCLONE_KEY, clientProps,
 				AbstractRCloneStorageEngine.RCLONE_KEY);
@@ -479,6 +483,11 @@ public final class CentralCloudStorage implements ICloudClient {
 		} else if (engineType == null) {
 			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 			engineType = (CATALOG_TYPE) typeAndSubtype[0];
+		}
+
+		if (!SecurityEngineUtils.engineExists(engineId)) {
+			classLogger.warn("Engine id '{}' is being requested but does not exist", engineId);
+			return;
 		}
 
 		// We need to pull the folder alias__databaseId and the file
@@ -1263,6 +1272,11 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (project == null) {
 				throw new IllegalArgumentException("Project not found...");
 			}
+		}
+
+		if (!SecurityProjectUtils.projectExists(projectId)) {
+			classLogger.warn("Project id '{}' is being requested but does not exist", projectId);
+			return;
 		}
 
 		// We need to pull the folder alias__projectId and the file

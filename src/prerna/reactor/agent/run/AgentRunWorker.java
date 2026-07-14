@@ -27,19 +27,23 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.logging.SemossLogUtils;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
@@ -69,7 +73,7 @@ final class AgentRunWorker {
 		if (runId == null || insight == null) {
 			return;
 		}
-		insightsByRun.put(runId, cloneInsight(insight));
+		insightsByRun.put(runId, cloneInsight(runId, insight));
 	}
 
 	void signal() {
@@ -145,7 +149,7 @@ final class AgentRunWorker {
 			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.RUNNING, false);
 			final AgentRunQueueCoordinator.ActiveRunLease claimedLease = lease;
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
-				try {
+				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap)) {
 					execute(record, insightHandle);
 				} finally {
 					activeThreadsByRun.remove(runId);
@@ -171,10 +175,14 @@ final class AgentRunWorker {
 		try {
 			seedThreadStore(runId, insightHandle);
 			RunAgentRequest request = record.getRequest();
+			// Detect resume: the persisted request always has resumeMode=false on initial
+			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
+			boolean resumeMode = request.isResumeMode() || new AgentRunActionStore().hasAnyActions(runId);
 			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
 					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
 					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight);
+					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
+					resumeMode);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -200,6 +208,12 @@ final class AgentRunWorker {
 			if (runtime.isCancelled(e)) {
 				store.markCancelled(runId, jobId, runtime.boundedError(e));
 				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
+			} else if (e instanceof prerna.reactor.agent.exceptions.AgentInputRequiredException) {
+				// Harness paused on SMSS_MCP_EXECUTION=ask tools.
+				// The harness already persisted AGENT_RUN_ACTION rows and published
+				// the INPUT_REQUIRED event with pendingActions; only transition the run.
+				store.markInputRequired(runId, jobId);
+				logger.info("AgentRunWorker: runId={} paused for user input", runId);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
 				Map<String, Object> eventData = new java.util.HashMap<>();
@@ -234,7 +248,7 @@ final class AgentRunWorker {
 		}
 	}
 
-	private static InsightHandle cloneInsight(Insight source) {
+	private static InsightHandle cloneInsight(String runId, Insight source) {
 		Insight clone = new Insight();
 		User user = source.getUser();
 		if (user == null) {
@@ -245,8 +259,50 @@ final class AgentRunWorker {
 		clone.setProjectId(source.getProjectId());
 		clone.setContextProjectId(source.getContextProjectId());
 		String insightId = InsightStore.getInstance().put(clone);
-		return new InsightHandle(clone, insightId, ThreadStore.getSessionId(), ThreadStore.getRouteId(),
-				ThreadStore.getLocalHostname(), ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort());
+		Map<String, String> log4jContextMap = captureLog4jContext(runId, user);
+		String sessionId = ThreadStore.getSessionId();
+		if (sessionId == null || sessionId.trim().isEmpty()) {
+			sessionId = log4jContextMap.get(SemossLogUtils.SESSION_ID);
+		}
+		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(),
+				ThreadStore.getLocalHostname(), ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(),
+				log4jContextMap);
+	}
+
+	private static Map<String, String> captureLog4jContext(String runId, User user) {
+		Map<String, String> context = new HashMap<>(ThreadContext.getImmutableContext());
+		putIfBlank(context, SemossLogUtils.REQUEST_ID, runId);
+		putIfBlank(context, SemossLogUtils.SESSION_ID, ThreadStore.getSessionId());
+
+		if (user != null && user.getPrimaryLoginToken() != null) {
+			var token = user.getPrimaryLoginToken();
+			putIfBlank(context, SemossLogUtils.USER_ID, token.getId());
+			String userName = token.getResolvedDisplayName();
+			if (userName == null || userName.trim().isEmpty()) {
+				userName = token.getName();
+			}
+			if (userName == null || userName.trim().isEmpty()) {
+				userName = token.getUsername();
+			}
+			if (userName == null || userName.trim().isEmpty()) {
+				userName = token.getEmail();
+			}
+			putIfBlank(context, SemossLogUtils.USER_NAME, userName);
+			if (token.getProvider() != null) {
+				putIfBlank(context, SemossLogUtils.USER_TYPE, token.getProvider().getLabel());
+			}
+		}
+		return context;
+	}
+
+	private static void putIfBlank(Map<String, String> context, String key, String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return;
+		}
+		String existing = context.get(key);
+		if (existing == null || existing.trim().isEmpty()) {
+			context.put(key, value);
+		}
 	}
 
 	private static void seedThreadStore(String runId, InsightHandle insightHandle) {
@@ -273,9 +329,10 @@ final class AgentRunWorker {
 		private final String localHostname;
 		private final String localProtocol;
 		private final Integer localPort;
+		private final Map<String, String> log4jContextMap;
 
 		private InsightHandle(Insight insight, String insightId, String sessionId, String routeId, String localHostname,
-				String localProtocol, Integer localPort) {
+				String localProtocol, Integer localPort, Map<String, String> log4jContextMap) {
 			this.insight = insight;
 			this.insightId = insightId;
 			this.sessionId = sessionId;
@@ -283,6 +340,7 @@ final class AgentRunWorker {
 			this.localHostname = localHostname;
 			this.localProtocol = localProtocol;
 			this.localPort = localPort;
+			this.log4jContextMap = log4jContextMap;
 		}
 	}
 }
