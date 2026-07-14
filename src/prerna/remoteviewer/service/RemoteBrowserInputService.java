@@ -29,6 +29,7 @@ package prerna.remoteviewer.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,10 +59,13 @@ public class RemoteBrowserInputService {
 	private RemoteBrowserInputService() {
 	}
 
-	public static void dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+	public static Map<String, Object> dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		Map<String, Object> result = new HashMap<>();
 		Page page = session.getPage();
 		if (page == null || page.isClosed()) {
-			return;
+			result.put("success", false);
+			result.put("error", "Remote browser page is unavailable");
+			return result;
 		}
 
 		String urlBefore = safeUrl(page);
@@ -106,24 +110,38 @@ public class RemoteBrowserInputService {
 				break;
 			default:
 				classLogger.warn("Unhandled input event type: {}", type);
-				return;
+				result.put("success", false);
+				result.put("error", "Unhandled input event type: " + type);
+				return result;
 			}
 		} catch (Exception e) {
 			classLogger.warn("Error dispatching event '{}' on session {}: {}", type, session.getSessionId(),
 					e.getMessage());
+			result.put("success", false);
+			result.put("error", e.getMessage() == null ? "Browser action failed" : e.getMessage());
+			return result;
 		}
 
 		// Post-action: wait as specified, then wait for page to settle
-		postActionWait(page, event, urlBefore);
-		classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
-				session.getSessionId(), type, System.currentTimeMillis() - start, safeUrl(page));
+		try {
+			postActionWait(page, event, urlBefore);
+			result.put("success", true);
+			result.put("url", safeUrl(page));
+			classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
+					session.getSessionId(), type, System.currentTimeMillis() - start, result.get("url"));
+		} catch (Exception e) {
+			classLogger.warn("Error settling event '{}' on session {}: {}", type, session.getSessionId(), e.getMessage());
+			result.put("success", false);
+			result.put("error", e.getMessage() == null ? "Browser action did not settle" : e.getMessage());
+		}
+		return result;
 	}
 
 	// ---- Click with 3-tier fallback ----
 
 	private static void clickWithNavigationWait(Page page, RemoteBrowserInputEvent event) {
 		if (isLiveEvent(event)) {
-			clickWithFallback(page, event, true);
+			ensureClickSucceeded(clickWithFallback(page, event, true));
 			return;
 		}
 
@@ -131,18 +149,26 @@ public class RemoteBrowserInputService {
 		classLogger.info("Remote viewer click navigationProbe likelyNavigation={} event={}", likelyNavigation,
 				describeEvent(event));
 		if (!likelyNavigation) {
-			clickWithFallback(page, event, false);
+			ensureClickSucceeded(clickWithFallback(page, event, false));
 			return;
 		}
 
+		AtomicBoolean clicked = new AtomicBoolean(false);
 		try {
 			page.waitForNavigation(
 					new Page.WaitForNavigationOptions().setTimeout(8_000).setWaitUntil(WaitUntilState.NETWORKIDLE),
-					() -> clickWithFallback(page, event, false));
+					() -> clicked.set(clickWithFallback(page, event, false)));
 			classLogger.info("Remote viewer click navigation observed urlAfter={}", safeUrl(page));
 		} catch (PlaywrightException e) {
 			classLogger.info("Remote viewer click navigation wait timed out; continuing urlAfter={} reason={}",
 					safeUrl(page), e.getMessage());
+		}
+		ensureClickSucceeded(clicked.get());
+	}
+
+	private static void ensureClickSucceeded(boolean clicked) {
+		if (!clicked) {
+			throw new PlaywrightException("Click had no actionable target");
 		}
 	}
 
@@ -183,7 +209,7 @@ public class RemoteBrowserInputService {
 		return payload;
 	}
 
-	private static void clickWithFallback(Page page, RemoteBrowserInputEvent event, boolean noWaitAfter) {
+	private static boolean clickWithFallback(Page page, RemoteBrowserInputEvent event, boolean noWaitAfter) {
 		Selector sel = event.getSelector();
 
 		// 1) Try CSS/ID selector (most reliable, survives minor layout changes)
@@ -195,7 +221,7 @@ public class RemoteBrowserInputService {
 					loc.click(new Locator.ClickOptions().setTimeout(2000).setNoWaitAfter(noWaitAfter));
 					classLogger.info("Remote viewer click success method=selector selector={} urlAfter={}",
 							describeSelector(sel), safeUrl(page));
-					return;
+					return true;
 				}
 			} catch (Exception e) {
 				classLogger.info("Remote viewer click failed method=selector selector={} reason={} fallback=coords",
@@ -209,15 +235,16 @@ public class RemoteBrowserInputService {
 				classLogger.info("Remote viewer click attempt method=coords x={} y={}", round(event.getX()),
 						round(event.getY()));
 				page.mouse().click(event.getX(), event.getY());
-				classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
-						round(event.getY()), safeUrl(page));
-				return;
+					classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
+							round(event.getY()), safeUrl(page));
+					return true;
 			} catch (Exception e) {
 				classLogger.warn("Coord click failed at ({}, {}): {}", event.getX(), event.getY(), e.getMessage());
 			}
 		}
 
 		classLogger.warn("Click could not be performed — no selector and no coords");
+		return false;
 	}
 
 	private static Locator resolveLocator(Page page, Selector sel) {
