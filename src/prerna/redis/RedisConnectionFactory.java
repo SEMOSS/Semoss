@@ -44,7 +44,11 @@ public final class RedisConnectionFactory {
 	}
 
 	public static JedisPool getPool() {
-		return getPool(RedisConnectionConfig.fromDIHelper());
+		RedisConnectionConfig config = RedisConnectionConfig.fromDIHelper();
+		if (config == null) {
+			return null;
+		}
+		return getPool(config);
 	}
 
 	public static JedisPool getPool(RedisConnectionConfig config) {

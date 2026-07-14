@@ -65,6 +65,9 @@ public final class RedisConnectionConfig {
 	}
 
 	public static RedisConnectionConfig fromDIHelper() {
+		if (!Boolean.parseBoolean(property(REDIS_ENABLED))) {
+			return null;
+		}
 		String host = trimToNull(property(REDIS_HOST));
 		if (host == null) {
 			host = "localhost";
