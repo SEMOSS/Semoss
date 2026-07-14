@@ -56,8 +56,6 @@ import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
-import prerna.reactor.agent.run.AgentRunEventBus;
-import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
@@ -307,8 +305,7 @@ public class SemossAgentHarness implements IAgentHarness {
 						// and persist those messages before releasing the worker.
 						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 						persistAgentRunTags(room, ctx);
-						List<Map<String, Object>> pendingActions = persistPendingActions(ctx, room, pauseEx);
-						publishInputRequiredEvent(ctx, room, pendingActions);
+						persistPendingActions(ctx, room, pauseEx);
 						throw pauseEx;
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
@@ -508,24 +505,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to persist pending actions for runId=" + runId, e);
 		}
-	}
-
-	/**
-	 * Publish an {@code INPUT_REQUIRED} event on the {@link AgentRunEventBus}
-	 * so any subscribed UI can render the pending actions immediately.
-	 */
-	private static void publishInputRequiredEvent(AgentRunContext ctx, Room room, List<Map<String, Object>> pendingActions) {
-		String runId = ctx.getRunId();
-		if (runId == null || runId.trim().isEmpty()) {
-			return;
-		}
-		String roomId = room != null ? room.getId() : null;
-		Map<String, Object> eventData = new HashMap<>();
-		eventData.put("runId", runId);
-		eventData.put("roomId", roomId);
-		eventData.put("status", AgentRunStatus.INPUT_REQUIRED.name());
-		eventData.put("pendingActions", pendingActions);
-		AgentRunEventBus.get().publish(runId, "status", eventData, true);
 	}
 
 	/**
