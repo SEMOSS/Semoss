@@ -44,7 +44,6 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  *   <li>{@code "room_loop"} -> {@link RoomAgentHarness} - deprecated legacy SEMOSS room loop
  *   <li>{@code "semoss"}    -> {@link SemossAgentHarness} - SEMOSS-native canonical harness
  *   <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
- *   <li>{@code "github_copilot"} -> {@link GitHubCopilotAgentHarness}
  *   <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
@@ -64,12 +63,10 @@ public final class AgentHarnessRegistry {
         IAgentHarness roomLoop        = new RoomAgentHarness();
         IAgentHarness semoss          = new SemossAgentHarness();
         IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
-        IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
         IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
         m.put(roomLoop.getName(),        roomLoop);
         m.put(semoss.getName(),          semoss);
         m.put(claudeCode.getName(),      claudeCode);
-        m.put(githubCopilot.getName(),   githubCopilot);
         m.put(githubCopilotPy.getName(), githubCopilotPy);
         REGISTRY = Collections.synchronizedMap(m);
     }
