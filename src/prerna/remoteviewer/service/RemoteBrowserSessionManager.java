@@ -248,8 +248,9 @@ public class RemoteBrowserSessionManager {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
 						RemoteBrowserSelectorService.enrich(session, event);
-						RemoteBrowserInputService.dispatch(session, event);
+						Map<String, Object> executionResult = RemoteBrowserInputService.dispatch(session, event);
 						RemoteBrowserRecordingService.record(session, event);
+						sendReplayStepResult(session, event, executionResult);
 					}
 					session.touchActivity();
 				}
@@ -296,6 +297,26 @@ public class RemoteBrowserSessionManager {
 			}
 		}
 		classLogger.info("Session loop ended for {}", session.getSessionId());
+	}
+
+	private static void sendReplayStepResult(RemoteBrowserSession session, RemoteBrowserInputEvent event,
+			Map<String, Object> executionResult) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+		Map<String, Object> response = new java.util.HashMap<>();
+		response.put("type", "replay-step-result");
+		response.put("requestId", event.getRequestId());
+		response.put("success", Boolean.TRUE.equals(executionResult.get("success")));
+		response.put("url", executionResult.get("url"));
+		if (executionResult.get("error") != null) {
+			response.put("error", executionResult.get("error"));
+		}
+		sender.send(LOOP_GSON.toJson(response));
 	}
 
 	/**

@@ -42,6 +42,8 @@ public class RemoteBrowserInputEvent {
 
 	// ---- common fields ----
 	private String type;
+	/** Correlates an acknowledged replay event with its client-side caller. */
+	private String requestId;
 
 	// ---- mouse / wheel ----
 	private Double x;
@@ -101,6 +103,14 @@ public class RemoteBrowserInputEvent {
 
 	public void setType(String type) {
 		this.type = type;
+	}
+
+	public String getRequestId() {
+		return requestId;
+	}
+
+	public void setRequestId(String requestId) {
+		this.requestId = requestId;
 	}
 
 	public Double getX() {
