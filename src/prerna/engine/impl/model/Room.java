@@ -444,6 +444,13 @@ public class Room implements Serializable {
 			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
 			validateToolCallId(context.toolResponse, toolCallId);
 
+			if (isToolCallAlreadyAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
+				classLogger.warn("Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
+						toolCallId, toolName, context.toolResponse.getMessageId());
+				RoomMessageStore.persist(this, userId);
+				return null;
+			}
+
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
 			if (toolResultsMessage == null) {
@@ -541,6 +548,30 @@ public class Room implements Serializable {
 			}
 		}
 		return null;
+	}
+
+	private boolean isToolCallAlreadyAnswered(ResponseMessage toolResponse, int toolResponseIdx, String toolCallId) {
+		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
+			AbstractMessage m = messages.get(i);
+			if (!(m instanceof InputMessage) || !m.hasToolResultPart()) {
+				continue;
+			}
+			if (!toolResponse.getMessageId().equals(m.getParentMessageId())) {
+				continue;
+			}
+			for (MessagePart p : m.getParts()) {
+				if (p instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+					if (tr != null && toolCallId.equals(tr.getToolCallId())) {
+						return true;
+					}
+				}
+			}
+			if (toolCallId.equals(((InputMessage) m).getToolCallId())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
