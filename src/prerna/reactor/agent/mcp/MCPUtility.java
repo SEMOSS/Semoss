@@ -43,8 +43,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;

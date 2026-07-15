@@ -39,8 +39,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.fileupload.FileItem;

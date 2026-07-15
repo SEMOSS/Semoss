@@ -43,7 +43,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.StreamingOutput;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
