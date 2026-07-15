@@ -87,7 +87,7 @@ def __getattr__(name: str) -> Any:
 
         return ClaudeCodeClient
     elif name == "LocalWordCountTokenizer":
-        from .tokenizers.local_word_count_tokenizer import LocalWordCountTokenizer
+        from .tokenizers.local_tokenizer import LocalWordCountTokenizer
 
         return LocalWordCountTokenizer
     elif name == "GitHubCopilotClient":
@@ -172,11 +172,10 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    # putting this for now, need to implement vertex tokenizer. this will fall back to WordCountTokenizer
     elif (tokenizer_type == "VERTEX") or (tokenizer_type == "BEDROCK"):
-        from .tokenizers.local_word_count_tokenizer import LocalWordCountTokenizer
+        from .tokenizers.local_tokenizer import LocalWordCountTokenizer
 
-        return LocalWordCountTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
+        return LocalWordCountTokenizer()
     else:
         raise ValueError("Tokenizer type has not been defined.")
 

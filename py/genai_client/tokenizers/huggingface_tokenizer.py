@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Union
 from .abstract_tokenizer import AbstractTokenizer
 
 if TYPE_CHECKING:
     from transformers import AutoTokenizer
-    from .word_count_tokenizer import WordCountTokenizer
+    from .local_tokenizer import LocalWordCountTokenizer
 
 
 class HuggingfaceTokenizer(AbstractTokenizer):
@@ -21,7 +23,7 @@ class HuggingfaceTokenizer(AbstractTokenizer):
 
     def _get_tokenizer(
         self, encoder_name: str
-    ) -> Union[AutoTokenizer, WordCountTokenizer]:
+    ) -> Union[AutoTokenizer, LocalWordCountTokenizer]:
         """
         Returns the appropriate encoding based on the given encoding type (either an encoding string or a model name).
         """
@@ -29,10 +31,10 @@ class HuggingfaceTokenizer(AbstractTokenizer):
             from transformers import AutoTokenizer
 
             return AutoTokenizer.from_pretrained(encoder_name)
-        except:
-            from .word_count_tokenizer import WordCountTokenizer
+        except Exception:
+            from .local_tokenizer import LocalWordCountTokenizer
 
-            return WordCountTokenizer()
+            return LocalWordCountTokenizer()
 
     def count_tokens(self, input_data: str) -> int:
         return len(self.tokenizer.encode(input_data))

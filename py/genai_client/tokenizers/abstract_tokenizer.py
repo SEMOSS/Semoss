@@ -10,7 +10,7 @@ class AbstractTokenizer(ABC):
         max_tokens: Optional[int],
     ):
         self.tokenizer = self._get_tokenizer(encoder_name)
-        self.max_tokens = max_tokens  # Deprecated
+        self.max_tokens = max_tokens
 
     @abstractmethod
     def _get_tokenizer(self, *args: Any, **kwargs: Any) -> Any:
