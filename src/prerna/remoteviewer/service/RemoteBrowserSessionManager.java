@@ -48,7 +48,6 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.ScreenshotType;
-import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
@@ -77,14 +76,6 @@ public class RemoteBrowserSessionManager {
 
 	/** Canonical remote PlaywrightSession id per logged-in user. */
 	private final Map<String, String> userRemoteSessionIds = new ConcurrentHashMap<>();
-
-	/** Serializes access to a user-owned Playwright page across viewer replacements. */
-	private final Map<String, Object> userBrowserLocks = new ConcurrentHashMap<>();
-
-	private static final long SESSION_LOOP_STOP_TIMEOUT_MS = 5_000L;
-	private static final int TRANSIENT_REPLAY_MAX_ATTEMPTS = 2;
-	private static final long TRANSIENT_REPLAY_RETRY_DELAY_MS = 150L;
-	private static final int INITIAL_NAVIGATION_TIMEOUT_MS = 15_000;
 
 	/** TTL in seconds before an idle session is reaped. */
 	private final long ttlSeconds;
@@ -127,12 +118,6 @@ public class RemoteBrowserSessionManager {
 	 */
 	public RemoteBrowserSession createSession(User user, String url, int width, int height) {
 		String userId = user.getPrimaryLoginToken().getId();
-		synchronized (getUserBrowserLock(userId)) {
-			return createSessionLocked(user, userId, url, width, height);
-		}
-	}
-
-	private RemoteBrowserSession createSessionLocked(User user, String userId, String url, int width, int height) {
 		String requestedUrl = url == null ? "" : url.trim();
 		boolean hasRequestedUrl = !requestedUrl.isBlank();
 		if (hasRequestedUrl) {
@@ -203,9 +188,6 @@ public class RemoteBrowserSessionManager {
 			RemoteBrowserSession existingViewer = sessions.get(sessionId);
 			if (existingViewer != null && !existingViewer.isClosed()) {
 				closeSession(existingViewer);
-				if (!awaitSessionLoopStop(existingViewer, SESSION_LOOP_STOP_TIMEOUT_MS)) {
-					throw new IllegalStateException("Previous remote browser viewer is still shutting down");
-				}
 			}
 		}
 
@@ -215,7 +197,13 @@ public class RemoteBrowserSessionManager {
 		sessions.put(sessionId, session);
 
 		if (hasRequestedUrl) {
-			navigateInitialPage(page, requestedUrl, sessionId);
+			try {
+				page.navigate(requestedUrl);
+			} catch (Exception e) {
+				// Navigation failure is non-fatal — the client will see an error frame
+				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
+						e.getMessage());
+			}
 		}
 		RemoteBrowserRecordingService.recordInitialNavigation(session, safeUrl(page));
 
@@ -253,49 +241,46 @@ public class RemoteBrowserSessionManager {
 			try {
 				// Process all queued events (from WebSocket or inject endpoint)
 				RemoteBrowserInputEvent event;
-				while (!session.isClosed() && (event = session.eventQueue.poll()) != null) {
+				while ((event = session.eventQueue.poll()) != null) {
 					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
 							session.getSessionId(), session.eventQueue.size(), event.getType());
 					if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
-						Map<String, Object> executionResult = dispatchReplayEvent(session, event);
+						RemoteBrowserSelectorService.enrich(session, event);
+						Map<String, Object> executionResult = RemoteBrowserInputService.dispatch(session, event);
 						RemoteBrowserRecordingService.record(session, event);
 						sendReplayStepResult(session, event, executionResult);
 					}
 					session.touchActivity();
 				}
 
-				if (session.isClosed()) {
+				if (page.isClosed()) {
 					break;
 				}
 
-				synchronized (getUserBrowserLock(session.getUserId())) {
-					if (page.isClosed()) {
-						break;
+				// Send frame and navigated notification only when a viewer is connected
+				RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+				if (sender != null && session.isWsConnected()) {
+					// Notify URL changes
+					try {
+						String currentUrl = page.url();
+						if (!currentUrl.equals(lastUrl)) {
+							lastUrl = currentUrl;
+							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
+						}
+					} catch (Exception ignored) {
 					}
 
-					// Send frame and navigated notification only when a viewer is connected
-					RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
-					if (sender != null && session.isWsConnected()) {
-						try {
-							String currentUrl = page.url();
-							if (!currentUrl.equals(lastUrl)) {
-								lastUrl = currentUrl;
-								sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
-							}
-						} catch (Exception ignored) {
-						}
-
-						try {
-							byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
-									.setType(ScreenshotType.JPEG).setQuality(75));
-							String b64 = Base64.getEncoder().encodeToString(buf);
-							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
-									Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
-											"pageScaleFactor", 1))));
-						} catch (Exception ignored) {
-						}
+					// Send screenshot frame
+					try {
+						byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
+								.setType(ScreenshotType.JPEG).setQuality(75));
+						String b64 = Base64.getEncoder().encodeToString(buf);
+						sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
+								Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
+										"pageScaleFactor", 1))));
+					} catch (Exception ignored) {
 					}
 				}
 			} catch (Exception e) {
@@ -332,86 +317,6 @@ public class RemoteBrowserSessionManager {
 			response.put("error", executionResult.get("error"));
 		}
 		sender.send(LOOP_GSON.toJson(response));
-	}
-
-	private Map<String, Object> dispatchReplayEvent(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		Map<String, Object> result;
-		for (int attempt = 1; attempt <= TRANSIENT_REPLAY_MAX_ATTEMPTS; attempt++) {
-			synchronized (getUserBrowserLock(session.getUserId())) {
-				RemoteBrowserSelectorService.enrich(session, event);
-				result = RemoteBrowserInputService.dispatch(session, event);
-			}
-			if (Boolean.TRUE.equals(result.get("success")) || !shouldRetryReplayEvent(event, result)
-					|| attempt == TRANSIENT_REPLAY_MAX_ATTEMPTS) {
-				result.put("attempts", attempt);
-				return result;
-			}
-			classLogger.info("Retrying transient remote browser replay failure session={} type={} attempt={}/{} error={}",
-					session.getSessionId(), event.getType(), attempt + 1, TRANSIENT_REPLAY_MAX_ATTEMPTS,
-					result.get("error"));
-			try {
-				Thread.sleep(TRANSIENT_REPLAY_RETRY_DELAY_MS);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				break;
-			}
-		}
-		return Map.of("success", false, "error", "Replay interrupted before retry");
-	}
-
-	private static boolean shouldRetryReplayEvent(RemoteBrowserInputEvent event, Map<String, Object> result) {
-		Object error = result.get("error");
-		if (!(error instanceof String) || !isTransientBrowserError((String) error)) {
-			return false;
-		}
-		return isRetryableReplayEvent(event, result);
-	}
-
-	private static boolean isRetryableReplayEvent(RemoteBrowserInputEvent event, Map<String, Object> result) {
-		if (event == null || event.getType() == null) {
-			return false;
-		}
-		if ("navigate".equals(event.getType()) || "reload".equals(event.getType())
-				|| "mouse-move".equals(event.getType()) || "wheel".equals(event.getType())) {
-			return true;
-		}
-		return "mouse-click".equals(event.getType()) && hasUnchangedUrl(result);
-	}
-
-	private static boolean hasUnchangedUrl(Map<String, Object> result) {
-		Object before = result.get("urlBefore");
-		Object after = result.get("url");
-		return before instanceof String && after instanceof String && before.equals(after);
-	}
-
-	private static boolean isTransientBrowserError(String error) {
-		String message = error.toLowerCase();
-		return message.contains("object doesn't exist") || message.contains("execution context was destroyed")
-				|| message.contains("navigation interrupted") || message.contains("timeout");
-	}
-
-	private void navigateInitialPage(Page page, String requestedUrl, String sessionId) {
-		for (int attempt = 1; attempt <= TRANSIENT_REPLAY_MAX_ATTEMPTS; attempt++) {
-			try {
-				page.navigate(requestedUrl, new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT)
-						.setTimeout(INITIAL_NAVIGATION_TIMEOUT_MS));
-				return;
-			} catch (Exception e) {
-				String error = e.getMessage() == null ? "Browser navigation failed" : e.getMessage();
-				if (attempt == TRANSIENT_REPLAY_MAX_ATTEMPTS || !isTransientBrowserError(error)) {
-					classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId, error);
-					return;
-				}
-				classLogger.info("Retrying initial navigation session={} attempt={}/{} error={}", sessionId,
-						attempt + 1, TRANSIENT_REPLAY_MAX_ATTEMPTS, error);
-				try {
-					Thread.sleep(TRANSIENT_REPLAY_RETRY_DELAY_MS);
-				} catch (InterruptedException interrupted) {
-					Thread.currentThread().interrupt();
-					return;
-				}
-			}
-		}
 	}
 
 	/**
@@ -501,24 +406,6 @@ public class RemoteBrowserSessionManager {
 		s.setWsConnected(false);
 		classLogger.info("Closed remote browser viewer transport {}; Playwright session remains user-owned",
 				s.getSessionId());
-	}
-
-	private static boolean awaitSessionLoopStop(RemoteBrowserSession session, long timeoutMs) {
-		Thread thread = session.getSessionThread();
-		if (thread == null || !thread.isAlive()) {
-			return true;
-		}
-		try {
-			thread.join(timeoutMs);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			return false;
-		}
-		return !thread.isAlive();
-	}
-
-	private Object getUserBrowserLock(String userId) {
-		return userBrowserLocks.computeIfAbsent(userId, ignored -> new Object());
 	}
 
 	private static long parseLong(String envKey, long def) {

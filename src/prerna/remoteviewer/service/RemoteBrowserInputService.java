@@ -56,7 +56,6 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 public class RemoteBrowserInputService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
-	private static final int NAVIGATION_TIMEOUT_MS = 15_000;
 	private RemoteBrowserInputService() {
 	}
 
@@ -70,7 +69,6 @@ public class RemoteBrowserInputService {
 		}
 
 		String urlBefore = safeUrl(page);
-		result.put("urlBefore", urlBefore);
 		String type = event.getType();
 		classLogger.info("Remote viewer dispatch start session={} event={} urlBefore={}", session.getSessionId(),
 				describeEvent(event), urlBefore);
@@ -121,7 +119,6 @@ public class RemoteBrowserInputService {
 					e.getMessage());
 			result.put("success", false);
 			result.put("error", e.getMessage() == null ? "Browser action failed" : e.getMessage());
-			result.put("url", safeUrl(page));
 			return result;
 		}
 
@@ -136,7 +133,6 @@ public class RemoteBrowserInputService {
 			classLogger.warn("Error settling event '{}' on session {}: {}", type, session.getSessionId(), e.getMessage());
 			result.put("success", false);
 			result.put("error", e.getMessage() == null ? "Browser action did not settle" : e.getMessage());
-			result.put("url", safeUrl(page));
 		}
 		return result;
 	}
@@ -396,8 +392,11 @@ public class RemoteBrowserInputService {
 	private static void navigate(Page page, RemoteBrowserInputEvent event) {
 		RemoteBrowserUrlSafetyValidator.validate(event.getUrl());
 		classLogger.info("Remote viewer navigate url={}", event.getUrl());
-		page.navigate(event.getUrl(), new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT)
-				.setTimeout(NAVIGATION_TIMEOUT_MS));
+		if (isLiveEvent(event)) {
+			page.navigate(event.getUrl(), new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
+		} else {
+			page.navigate(event.getUrl());
+		}
 	}
 
 	private static void goBack(Page page, RemoteBrowserInputEvent event) {
