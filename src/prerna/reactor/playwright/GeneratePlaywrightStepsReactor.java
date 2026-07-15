@@ -125,7 +125,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			return result;
 
 		} catch (Exception e) {
-			classLogger.error("Error generating playwright steps: " + e.getMessage(), e);
+			classLogger.error("Error generating playwright steps", e);
 			Map<String, Object> errorResult = new HashMap<>();
 			errorResult.put("success", false);
 			errorResult.put("error", e.getMessage());
@@ -222,7 +222,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							""",
 					elementsJson, extractionData.get("elementCount"), summary.get("hasForm"), userContext);
 		} catch (Exception e) {
-			classLogger.error("Error building prompt for LLM: " + e.getMessage(), e);
+			classLogger.error("Error building prompt for LLM", e);
 			return "Error: Failed to build prompt for LLM. Details: " + e.getMessage();
 		}
 	}

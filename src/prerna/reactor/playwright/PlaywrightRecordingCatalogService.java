@@ -44,11 +44,16 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /** Discovers, summarizes, and ranks Playwright recording JSON files. */
 public class PlaywrightRecordingCatalogService {
+
+	private static final Logger classLogger = LogManager.getLogger(PlaywrightRecordingCatalogService.class);
 
 	static final int MAX_FILES_PER_SOURCE = 500;
 	static final long MAX_RECORDING_BYTES = 5L * 1024L * 1024L;
@@ -58,8 +63,8 @@ public class PlaywrightRecordingCatalogService {
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern JSON_SUFFIX = Pattern.compile("\\.json$", Pattern.CASE_INSENSITIVE);
 	private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
-	private static final Set<String> IGNORED_TOKENS = Set.of("com", "net", "org", "edu", "gov", "www",
-			"http", "https", "html", "json");
+	private static final Set<String> IGNORED_TOKENS = Set.of("com", "net", "org", "edu", "gov", "www", "http", "https",
+			"html", "json");
 	private static final List<String> META_SEARCH_FIELDS = List.of("title", "description", "intent", "id",
 			"requestedStartUrl");
 	private static final List<String> STEP_SEARCH_FIELDS = List.of("url", "text", "label", "description", "prompt",
@@ -105,8 +110,7 @@ public class PlaywrightRecordingCatalogService {
 		List<Candidate> all = catalog.candidates;
 		sortCandidates(all);
 
-		int limit = maxCandidates <= 0 ? DEFAULT_CANDIDATE_LIMIT
-				: Math.min(maxCandidates, MAX_CANDIDATE_LIMIT);
+		int limit = maxCandidates <= 0 ? DEFAULT_CANDIDATE_LIMIT : Math.min(maxCandidates, MAX_CANDIDATE_LIMIT);
 		List<Map<String, Object>> recordings = new ArrayList<>();
 		for (int i = 0; i < Math.min(limit, all.size()); i++) {
 			recordings.add(all.get(i).toMap());
@@ -124,8 +128,8 @@ public class PlaywrightRecordingCatalogService {
 	private Catalog catalog(Path roomFolder, Path projectRecordingsFolder, String projectId, String hint,
 			String requestedFile) {
 		List<Candidate> candidates = new ArrayList<>();
-		int roomCount = addCandidates(candidates, roomFolder == null ? null : roomFolder.resolve("playwright"),
-				"room", "", hint, requestedFile);
+		int roomCount = addCandidates(candidates, roomFolder == null ? null : roomFolder.resolve("playwright"), "room",
+				"", hint, requestedFile);
 		int projectCount = addCandidates(candidates, projectRecordingsFolder, "project", trim(projectId), hint,
 				requestedFile);
 		return new Catalog(candidates, roomCount, projectCount);
@@ -146,9 +150,12 @@ public class PlaywrightRecordingCatalogService {
 		Path normalizedDirectory = directory.toAbsolutePath().normalize();
 		List<Path> files = new ArrayList<>();
 		try (Stream<Path> paths = Files.list(normalizedDirectory)) {
-			paths.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT)
-					.endsWith(".json")).sorted().limit(MAX_FILES_PER_SOURCE).forEach(files::add);
+			paths.filter(Files::isRegularFile)
+					.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json")).sorted()
+					.limit(MAX_FILES_PER_SOURCE).forEach(files::add);
 		} catch (IOException e) {
+			classLogger.warn("Unable to list recording files in directory '{}'; skipping source", normalizedDirectory,
+					e);
 			return 0;
 		}
 
@@ -179,6 +186,7 @@ public class PlaywrightRecordingCatalogService {
 			JsonNode recording = JSON_MAPPER.readTree(json);
 			return recording != null && recording.isObject() ? recording : null;
 		} catch (IOException | RuntimeException e) {
+			classLogger.warn("Unable to read/parse recording file '{}'; skipping it", file, e);
 			return null;
 		}
 	}
@@ -233,10 +241,10 @@ public class PlaywrightRecordingCatalogService {
 		}
 
 		Map<String, Object> summary = summarize(fileName, recording, steps);
-		String reason = reasons.isEmpty() ? "no match" : String.join(", ", new ArrayList<>(reasons).subList(0,
-				Math.min(4, reasons.size())));
-		return new Candidate(source, projectId, fileName,
-				"room".equals(source) ? "/playwright/" + fileName : "", score, reason, firstUrl, summary);
+		String reason = reasons.isEmpty() ? "no match"
+				: String.join(", ", new ArrayList<>(reasons).subList(0, Math.min(4, reasons.size())));
+		return new Candidate(source, projectId, fileName, "room".equals(source) ? "/playwright/" + fileName : "", score,
+				reason, firstUrl, summary);
 	}
 
 	private static List<JsonNode> flattenSteps(JsonNode recording) {
@@ -371,6 +379,7 @@ public class PlaywrightRecordingCatalogService {
 			String host = URI.create(url).getHost();
 			return host == null ? "" : host.toLowerCase(Locale.ROOT).replaceFirst("^www\\.", "");
 		} catch (IllegalArgumentException e) {
+			classLogger.debug("Unable to parse host from URL '{}'", url, e);
 			return "";
 		}
 	}
