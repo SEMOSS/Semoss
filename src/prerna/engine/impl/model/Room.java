@@ -444,7 +444,7 @@ public class Room implements Serializable {
 			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
 			validateToolCallId(context.toolResponse, toolCallId);
 
-			if (isToolCallAlreadyAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
+			if (hasToolCallBeenAnswered(toolCallId)) {
 				classLogger.warn("Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
 						toolCallId, toolName, context.toolResponse.getMessageId());
 				RoomMessageStore.persist(this, userId);
@@ -550,13 +550,9 @@ public class Room implements Serializable {
 		return null;
 	}
 
-	private boolean isToolCallAlreadyAnswered(ResponseMessage toolResponse, int toolResponseIdx, String toolCallId) {
-		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
-			AbstractMessage m = messages.get(i);
+	public synchronized boolean hasToolCallBeenAnswered(String toolCallId) {
+		for (AbstractMessage m : messages) {
 			if (!(m instanceof InputMessage) || !m.hasToolResultPart()) {
-				continue;
-			}
-			if (!toolResponse.getMessageId().equals(m.getParentMessageId())) {
 				continue;
 			}
 			for (MessagePart p : m.getParts()) {
