@@ -128,8 +128,15 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
 		Map<String, Object> pixelReturn = new HashMap<>();
 		try {
-			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
+			AskModelEngineResponse response;
+			try {
+				response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+						toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
+			} catch (Room.DuplicateToolResultException e) {
+				return new NounMetadata(
+						"Tool output not added: duplicate response for toolCallId " + e.getToolCallId(),
+						PixelDataType.CONST_STRING);
+			}
 			if (response == null) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");

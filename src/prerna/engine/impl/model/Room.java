@@ -89,6 +89,26 @@ public class Room implements Serializable {
 
 	private static final Logger classLogger = LogManager.getLogger(Room.class);
 
+	public static class DuplicateToolResultException extends IllegalStateException {
+		private static final long serialVersionUID = 1L;
+		private final String toolCallId;
+		private final String toolName;
+
+		public DuplicateToolResultException(String toolCallId, String toolName) {
+			super("Duplicate tool execution result for toolCallId=" + toolCallId + " (toolName=" + toolName + ")");
+			this.toolCallId = toolCallId;
+			this.toolName = toolName;
+		}
+
+		public String getToolCallId() {
+			return toolCallId;
+		}
+
+		public String getToolName() {
+			return toolName;
+		}
+	}
+
 	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
@@ -445,10 +465,9 @@ public class Room implements Serializable {
 			validateToolCallId(context.toolResponse, toolCallId);
 
 			if (isToolCallAlreadyAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
-				classLogger.warn("Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
+				classLogger.warn("Rejecting duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
 						toolCallId, toolName, context.toolResponse.getMessageId());
-				RoomMessageStore.persist(this, userId);
-				return null;
+				throw new DuplicateToolResultException(toolCallId, toolName);
 			}
 
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
