@@ -164,7 +164,11 @@ public final class RoomMessageStore {
 		if (sanitized != messages) {
 			room.setMessages(sanitized);
 		}
-		validateForPersistence(room, room.getMessages());
+		try {
+			validateForPersistence(room, room.getMessages());
+		} catch (Exception e) {
+			classLogger.warn("Failed to validate messages for provider payload for room={}", room.getId(), e);
+		}
 	}
 
 	public static boolean persist(Room room, String userId) {
@@ -227,7 +231,12 @@ public final class RoomMessageStore {
 
 	private static void validateSerializedProjection(Room room, String messageHistory) {
 		List<AbstractMessage> parsed = parseWithoutSanitizing(room, messageHistory);
-		validateForPersistence(room, parsed);
+		try {
+			validateForPersistence(room, parsed);
+		} catch (Exception e) {
+			classLogger.warn("Failed to validate serialized projection for room={}",
+					room != null ? room.getId() : "<unknown>", e);
+		}
 	}
 
 	private static void validateForPersistence(Room room, List<AbstractMessage> messages) {
@@ -264,7 +273,12 @@ public final class RoomMessageStore {
 	}
 
 	private static void validateProviderPayload(Room room, List<AbstractMessage> messages) {
-		validateForPersistence(room, messages);
+		try {
+			validateForPersistence(room, messages);
+		} catch (Exception e) {
+			classLogger.warn("Failed to validate messages for provider payload for room={}",
+					room != null ? room.getId() : "<unknown>", e);
+		}
 
 		Set<String> toolCallIds = new HashSet<>();
 		Set<String> toolResultIds = new HashSet<>();
