@@ -56,6 +56,7 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 public class RemoteBrowserInputService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
+
 	private RemoteBrowserInputService() {
 	}
 
@@ -130,7 +131,8 @@ public class RemoteBrowserInputService {
 			classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
 					session.getSessionId(), type, System.currentTimeMillis() - start, result.get("url"));
 		} catch (Exception e) {
-			classLogger.warn("Error settling event '{}' on session {}: {}", type, session.getSessionId(), e.getMessage());
+			classLogger.warn("Error settling event '{}' on session {}: {}", type, session.getSessionId(),
+					e.getMessage());
 			result.put("success", false);
 			result.put("error", e.getMessage() == null ? "Browser action did not settle" : e.getMessage());
 		}
@@ -235,9 +237,9 @@ public class RemoteBrowserInputService {
 				classLogger.info("Remote viewer click attempt method=coords x={} y={}", round(event.getX()),
 						round(event.getY()));
 				page.mouse().click(event.getX(), event.getY());
-					classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
-							round(event.getY()), safeUrl(page));
-					return true;
+				classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
+						round(event.getY()), safeUrl(page));
+				return true;
 			} catch (Exception e) {
 				classLogger.warn("Coord click failed at ({}, {}): {}", event.getX(), event.getY(), e.getMessage());
 			}

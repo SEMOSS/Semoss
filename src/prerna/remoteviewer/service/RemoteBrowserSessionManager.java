@@ -59,9 +59,10 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
  * Singleton that manages all active remote browser sessions.
  *
  * <p>
- * Each logged-in user gets a shared {@link com.microsoft.playwright.BrowserContext}
- * from the same user-owned context used by the older Playwright reactors. The
- * remote viewer adds a short-lived socket/viewer wrapper around a user-owned
+ * Each logged-in user gets a shared
+ * {@link com.microsoft.playwright.BrowserContext} from the same user-owned
+ * context used by the older Playwright reactors. The remote viewer adds a
+ * short-lived socket/viewer wrapper around a user-owned
  * {@link PlaywrightSession}; socket close/TTL only closes that wrapper, not the
  * browser context/cache.
  */
@@ -105,13 +106,14 @@ public class RemoteBrowserSessionManager {
 
 	/**
 	 * Creates or reopens the user's canonical remote browser session and navigates
-	 * to {@code url}. The returned {@link RemoteBrowserSession} is the socket/viewer
-	 * transport wrapper; the underlying {@link PlaywrightSession} is stored on the
-	 * {@link User} and survives viewer close/TTL until that PlaywrightSession is
-	 * closed by normal user-session cleanup.
+	 * to {@code url}. The returned {@link RemoteBrowserSession} is the
+	 * socket/viewer transport wrapper; the underlying {@link PlaywrightSession} is
+	 * stored on the {@link User} and survives viewer close/TTL until that
+	 * PlaywrightSession is closed by normal user-session cleanup.
 	 *
 	 * @param user   the authenticated SEMOSS user
-	 * @param url    the target URL (must pass {@link RemoteBrowserUrlSafetyValidator})
+	 * @param url    the target URL (must pass
+	 *               {@link RemoteBrowserUrlSafetyValidator})
 	 * @param width  requested viewport width (or 0 to use default)
 	 * @param height requested viewport height (or 0 to use default)
 	 * @return the active viewer/control {@link RemoteBrowserSession}
@@ -157,8 +159,7 @@ public class RemoteBrowserSessionManager {
 		}
 
 		if (playwrightSession == null) {
-			long userCount = sessions.values().stream()
-					.filter(s -> !s.isClosed() && userId.equals(s.getUserId()))
+			long userCount = sessions.values().stream().filter(s -> !s.isClosed() && userId.equals(s.getUserId()))
 					.count();
 			if (userCount >= maxSessionsPerUser) {
 				throw new IllegalStateException(
@@ -198,7 +199,8 @@ public class RemoteBrowserSessionManager {
 			}
 		}
 
-		RemoteBrowserSession session = new RemoteBrowserSession(sessionId, userId, playwrightSession, vpWidth, vpHeight);
+		RemoteBrowserSession session = new RemoteBrowserSession(sessionId, userId, playwrightSession, vpWidth,
+				vpHeight);
 
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);

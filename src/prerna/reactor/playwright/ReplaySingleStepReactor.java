@@ -119,11 +119,10 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 
 			// If tabId was provided, verify it matches
 			if (tabId != null && !tabId.isEmpty() && !tabId.equals(actualTabId)) {
-				classLogger.warn("Provided tabId " + tabId + " doesn't match step's tabId " + actualTabId);
+				classLogger.warn("Provided tabId {} doesn't match step's tabId {}", tabId, actualTabId);
 			}
 
-			classLogger
-					.info("Found step " + stepId + " in tab " + actualTabId + ": " + json.valueToTree(step).toString());
+			classLogger.info("Found step {} in tab {}: {}", stepId, actualTabId, json.valueToTree(step).toString());
 
 			// Get session
 			PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
@@ -180,7 +179,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 					response.put("isNewTab", true);
 					response.put("newTabId", newTabId);
 					response.put("tabTitle", tabTitle);
-					classLogger.info("Step created new tab: " + newTabId);
+					classLogger.info("Step created new tab: {}", newTabId);
 				} else {
 					response.put("isNewTab", false);
 				}
@@ -190,16 +189,16 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				}
 			} else {
 				response.put("status", "failed");
-				response.put("error", executionResult != null && executionResult.get("error") != null
-						? executionResult.get("error")
-						: "Step execution failed");
+				response.put("error",
+						executionResult != null && executionResult.get("error") != null ? executionResult.get("error")
+								: "Step execution failed");
 				response.put("stepId", stepId);
 				response.put("tabId", actualTabId);
 				response.put("isNewTab", false);
 			}
 
 		} catch (Exception e) {
-			classLogger.error("Error replaying step " + stepId, e);
+			classLogger.error("Error replaying step {}", stepId, e);
 			response.put("status", "failed");
 			response.put("error", e.getMessage());
 			response.put("isNewTab", false);

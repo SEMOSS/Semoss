@@ -120,8 +120,8 @@ public class PlaywrightSession {
 
 	/**
 	 * Creates a session for the remote browser viewer. The viewer transport manages
-	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context is not
-	 * closed by that TTL.
+	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context
+	 * is not closed by that TTL.
 	 *
 	 * @param ctx           The Playwright BrowserContext for this session.
 	 * @param page          The initial Page object for this session.
@@ -170,7 +170,8 @@ public class PlaywrightSession {
 	 * @param startNewPage Whether to start a new page group before appending.
 	 * @return The appended step with a session-scoped id assigned.
 	 */
-	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step, boolean startNewPage) {
+	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step,
+			boolean startNewPage) {
 		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
 		history.steps().computeIfAbsent(resolvedTabId, k -> new ArrayList<List<PlaywrightStep>>());
 
@@ -317,7 +318,6 @@ public class PlaywrightSession {
 						classLogger.error("Error closing page", e);
 					}
 				}
-
 
 				closed = true;
 				classLogger.info("Session closed successfully");
