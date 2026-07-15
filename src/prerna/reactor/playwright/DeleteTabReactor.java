@@ -31,6 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
@@ -38,6 +41,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DeleteTabReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteTabReactor.class);
 
 	public DeleteTabReactor() {
 		this.keysToGet = new String[] { "sessionId", "tabId" };
@@ -85,7 +90,7 @@ public class DeleteTabReactor extends AbstractReactor {
 			try {
 				page.close();
 			} catch (Exception e) {
-				// ignore close errors
+				classLogger.warn("Failed to close page for tab {}; continuing with tab removal", tabId, e);
 			}
 		}
 
