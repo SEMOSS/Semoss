@@ -109,10 +109,6 @@ public class AddToolExecutionReactor extends AbstractReactor {
 		}
 
 		String toolStatus = this.keyValue.get(this.keysToGet[7]);
-		if (room.hasToolCallBeenAnswered(toolId, null)) {
-			return new NounMetadata("Tool output not added: duplicate response for toolCallId " + toolId,
-					PixelDataType.CONST_STRING);
-		}
 		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 				toolParamterValues, null, null, modelEngine, insight, toolStatus);
 

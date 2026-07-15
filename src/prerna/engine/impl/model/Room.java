@@ -550,20 +550,6 @@ public class Room implements Serializable {
 		return null;
 	}
 
-	public synchronized boolean hasToolCallBeenAnswered(String toolCallId, String parentMessageId) {
-		if (messages.isEmpty()) {
-			return false;
-		}
-		String lastMessageId = resolveToolContinuationMessageId(parentMessageId);
-		ToolExecutionContext context;
-		try {
-			context = findToolExecutionContext(lastMessageId);
-		} catch (IllegalStateException e) {
-			return false;
-		}
-		return isToolCallAlreadyAnswered(context.toolResponse, context.toolResponseIdx, toolCallId);
-	}
-
 	private boolean isToolCallAlreadyAnswered(ResponseMessage toolResponse, int toolResponseIdx, String toolCallId) {
 		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
 			AbstractMessage m = messages.get(i);

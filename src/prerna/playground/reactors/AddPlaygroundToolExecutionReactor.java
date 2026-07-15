@@ -43,9 +43,13 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
@@ -126,12 +130,28 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		Map<String, Object> pixelReturn = new HashMap<>();
-		try {
-			if (room.hasToolCallBeenAnswered(toolId, parentMessageId)) {
+		for (AbstractMessage m : room.getMessages()) {
+			if (!(m instanceof InputMessage) || !m.hasToolResultPart()) {
+				continue;
+			}
+			for (MessagePart p : m.getParts()) {
+				if (p instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+					if (tr != null && toolId.equals(tr.getToolCallId())) {
+						return new NounMetadata(
+								"Tool output not added: duplicate response for toolCallId " + toolId,
+								PixelDataType.CONST_STRING);
+					}
+				}
+			}
+			if (toolId.equals(((InputMessage) m).getToolCallId())) {
 				return new NounMetadata("Tool output not added: duplicate response for toolCallId " + toolId,
 						PixelDataType.CONST_STRING);
 			}
+		}
+
+		Map<String, Object> pixelReturn = new HashMap<>();
+		try {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
 			if (response == null) {
