@@ -55,6 +55,8 @@ public interface IProject extends IEngine, IMCP {
 
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
+	String NOTEBOOK_IPYNB_FILE_NAME = "blocks.ipynb";
+	String NOTEBOOK_APP_TAG = "Notebook";
 	String NOTEBOOK_FOLDER = ".notebooks";
 
 	enum PROJECT_TYPE {

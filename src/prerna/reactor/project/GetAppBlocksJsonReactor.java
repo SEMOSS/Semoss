@@ -77,8 +77,13 @@ public class GetAppBlocksJsonReactor extends AbstractReactor {
 		}
 		
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(project.getProjectId());
-		File blocksJsonFile = new File(portalsFolder+"/"+IProject.BLOCK_FILE_NAME);
-		if(!blocksJsonFile.exists() && !blocksJsonFile.isFile()) {
+		
+		// Try blocks.ipynb first (notebook apps), then fall back to blocks.json
+		File blocksJsonFile = new File(portalsFolder + "/" + IProject.NOTEBOOK_IPYNB_FILE_NAME);
+		if (!blocksJsonFile.exists() || !blocksJsonFile.isFile()) {
+			blocksJsonFile = new File(portalsFolder + "/" + IProject.BLOCK_FILE_NAME);
+		}
+		if(!blocksJsonFile.exists() || !blocksJsonFile.isFile()) {
 			throw new IllegalArgumentException("No blocks json file exists for this app");
 		}
 		Map<String, Object> blocksJson;

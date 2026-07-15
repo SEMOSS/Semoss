@@ -257,6 +257,10 @@ public class NotebookHelper implements INotebookHelper {
 		Set<String> validTypes = new HashSet<>(Arrays.asList("model", "database", "vector", "storage", "function"));
 
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		// Jupyter-format (.ipynb) notebooks have no "variables" key - nothing to resolve
+		if (variables == null) {
+			return engineMap;
+		}
 		for (String varName : variables.keySet()) {
 			JsonObject varMap = variables.get(varName).getAsJsonObject();
 			if (varMap.has("type")) {
@@ -279,6 +283,10 @@ public class NotebookHelper implements INotebookHelper {
 		Map<String, String> variableMap = new HashMap<>();
 
 		JsonObject variables = blocksFileJson.getAsJsonObject("variables");
+		// Jupyter-format (.ipynb) notebooks have no "variables" key - nothing to resolve
+		if (variables == null) {
+			return variableMap;
+		}
 		for (String varName : variables.keySet()) {
 			JsonObject varMap = variables.get(varName).getAsJsonObject();
 			String value = INotebookHelper.UNDEFINED_VALUE;

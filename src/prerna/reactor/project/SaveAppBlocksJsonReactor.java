@@ -74,10 +74,12 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SaveAppBlocksJsonReactor.class);
 
 	private static final String CLASS_NAME = SaveAppBlocksJsonReactor.class.getName();
+	
+	private static final String IS_NOTEBOOK_KEY = "isNotebook";
 
 	public SaveAppBlocksJsonReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), IS_NOTEBOOK_KEY };
 	}
 
 	@Override
@@ -105,10 +107,16 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		}
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
+		
+		// Check if this is a notebook app (should save as blocks.ipynb)
+		boolean isNotebook = Boolean.parseBoolean(this.keyValue.get(IS_NOTEBOOK_KEY) + "");
 
 		IProject project = Utility.getProject(projectId);
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-		File blocksJsonFile = new File(portalsFolder + "/" + IProject.BLOCK_FILE_NAME);
+		
+		// Use blocks.ipynb for notebook apps, blocks.json for regular apps
+		String fileName = isNotebook ? IProject.NOTEBOOK_IPYNB_FILE_NAME : IProject.BLOCK_FILE_NAME;
+		File blocksJsonFile = new File(portalsFolder + "/" + fileName);
 		if (blocksJsonFile.exists() && blocksJsonFile.isFile()) {
 			blocksJsonFile.delete();
 		}

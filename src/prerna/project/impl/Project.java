@@ -1309,6 +1309,12 @@ public class Project implements IProject {
 	}
 
 	private File getBlocksF() {
+		// Try blocks.ipynb first (notebook apps), then fall back to blocks.json
+		String ipynbFilePath = this.projectPortalFolder + "/" + IProject.NOTEBOOK_IPYNB_FILE_NAME;
+		File ipynbF = new File(ipynbFilePath);
+		if (ipynbF.exists() && ipynbF.isFile()) {
+			return ipynbF;
+		}
 		String blocksFilePath = this.projectPortalFolder + "/" + IProject.BLOCK_FILE_NAME;
 		File blocksF = new File(blocksFilePath);
 		return blocksF;

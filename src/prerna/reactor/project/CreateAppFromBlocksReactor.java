@@ -62,6 +62,8 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateAppFromBlocksReactor.class);
 
 	private static final String CLASS_NAME = CreateAppFromBlocksReactor.class.getName();
+	
+	private static final String IS_NOTEBOOK_KEY = "isNotebook";
 
 	/*
 	 * This class is used to construct a new project using an existing project as a
@@ -70,7 +72,8 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	 */
 	public CreateAppFromBlocksReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
-				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey() };
+				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey(),
+				IS_NOTEBOOK_KEY };
 	}
 
 	@Override
@@ -96,6 +99,9 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		if (json == null || json.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the blocks JSON");
 		}
+		
+		// Check if this is a notebook app (should save as blocks.ipynb)
+		boolean isNotebook = Boolean.parseBoolean(this.keyValue.get(IS_NOTEBOOK_KEY) + "");
 
 		User user = this.insight.getUser();
 		// Create new project
@@ -103,7 +109,9 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 				gitProvider, gitCloneUrl, user, logger);
 
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(newProject.getProjectId());
-		File blocksJsonFile = new File(portalsFolder + "/" + IProject.BLOCK_FILE_NAME);
+		// Use blocks.ipynb for notebook apps, blocks.json for regular apps
+		String fileName = isNotebook ? IProject.NOTEBOOK_IPYNB_FILE_NAME : IProject.BLOCK_FILE_NAME;
+		File blocksJsonFile = new File(portalsFolder + "/" + fileName);
 		try {
 			GsonUtility.writeObjectToJsonFile(blocksJsonFile,
 					new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), json);
@@ -166,6 +174,8 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 			return "The GIT repository URL to clone for this project";
 		} else if (key.equals(ReactorKeysEnum.JSON.getKey())) {
 			return "The JSON that represents the blocks for the app";
+		} else if (key.equals(IS_NOTEBOOK_KEY)) {
+			return "If true, saves as blocks.ipynb (Jupyter format) instead of blocks.json";
 		}
 		return super.getDescriptionForKey(key);
 	}
