@@ -141,6 +141,8 @@ public class RemoteBrowserSessionManager {
 		Page page = null;
 
 		if (playwrightSession != null) {
+			PlaywrightSession reusableSession = playwrightSession;
+			reusableSession.getOperationLock().lock();
 			try {
 				page = playwrightSession.getPage();
 				if (page == null || page.isClosed()) {
@@ -149,6 +151,8 @@ public class RemoteBrowserSessionManager {
 			} catch (Exception e) {
 				classLogger.debug("User remote Playwright session {} is not reusable: {}", sessionId, e.getMessage());
 				playwrightSession = null;
+			} finally {
+				reusableSession.getOperationLock().unlock();
 			}
 		}
 
@@ -179,11 +183,14 @@ public class RemoteBrowserSessionManager {
 				hasRequestedUrl = true;
 			}
 		} else {
+			playwrightSession.getOperationLock().lock();
 			try {
 				page.setViewportSize(vpWidth, vpHeight);
 			} catch (Exception e) {
 				classLogger.debug("Could not update viewport for reused browser session {}: {}", sessionId,
 						e.getMessage());
+			} finally {
+				playwrightSession.getOperationLock().unlock();
 			}
 			RemoteBrowserSession existingViewer = sessions.get(sessionId);
 			if (existingViewer != null && !existingViewer.isClosed()) {
@@ -197,15 +204,25 @@ public class RemoteBrowserSessionManager {
 		sessions.put(sessionId, session);
 
 		if (hasRequestedUrl) {
+			playwrightSession.getOperationLock().lock();
 			try {
 				page.navigate(requestedUrl);
 			} catch (Exception e) {
 				// Navigation failure is non-fatal — the client will see an error frame
 				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
 						e.getMessage());
+			} finally {
+				playwrightSession.getOperationLock().unlock();
 			}
 		}
-		RemoteBrowserRecordingService.recordInitialNavigation(session, safeUrl(page));
+		String initialPageUrl;
+		playwrightSession.getOperationLock().lock();
+		try {
+			initialPageUrl = safeUrl(page);
+		} finally {
+			playwrightSession.getOperationLock().unlock();
+		}
+		RemoteBrowserRecordingService.recordInitialNavigation(session, initialPageUrl);
 
 		// Start the event-processing loop immediately so that injected events
 		// (e.g. from the Chrome extension mock) are processed even before a
@@ -247,40 +264,57 @@ public class RemoteBrowserSessionManager {
 					if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
-						RemoteBrowserSelectorService.enrich(session, event);
-						Map<String, Object> executionResult = RemoteBrowserInputService.dispatch(session, event);
-						RemoteBrowserRecordingService.record(session, event);
-						sendReplayStepResult(session, event, executionResult);
+						session.getPlaywrightSession().getOperationLock().lock();
+						try {
+							RemoteBrowserSelectorService.enrich(session, event);
+							Map<String, Object> executionResult = RemoteBrowserInputService.dispatch(session, event);
+							RemoteBrowserRecordingService.record(session, event);
+							sendReplayStepResult(session, event, executionResult);
+						} finally {
+							session.getPlaywrightSession().getOperationLock().unlock();
+						}
 					}
 					session.touchActivity();
 				}
 
-				if (page.isClosed()) {
+				boolean pageClosed;
+				session.getPlaywrightSession().getOperationLock().lock();
+				try {
+					pageClosed = page.isClosed();
+				} finally {
+					session.getPlaywrightSession().getOperationLock().unlock();
+				}
+				if (pageClosed) {
 					break;
 				}
 
 				// Send frame and navigated notification only when a viewer is connected
 				RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
 				if (sender != null && session.isWsConnected()) {
-					// Notify URL changes
+					session.getPlaywrightSession().getOperationLock().lock();
 					try {
-						String currentUrl = page.url();
-						if (!currentUrl.equals(lastUrl)) {
-							lastUrl = currentUrl;
-							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
+						// Notify URL changes
+						try {
+							String currentUrl = page.url();
+							if (!currentUrl.equals(lastUrl)) {
+								lastUrl = currentUrl;
+								sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
+							}
+						} catch (Exception ignored) {
 						}
-					} catch (Exception ignored) {
-					}
 
-					// Send screenshot frame
-					try {
-						byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
-								.setType(ScreenshotType.JPEG).setQuality(75));
-						String b64 = Base64.getEncoder().encodeToString(buf);
-						sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
-								Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
-										"pageScaleFactor", 1))));
-					} catch (Exception ignored) {
+						// Send screenshot frame
+						try {
+							byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
+									.setType(ScreenshotType.JPEG).setQuality(75));
+							String b64 = Base64.getEncoder().encodeToString(buf);
+							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
+									Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
+											"pageScaleFactor", 1))));
+						} catch (Exception ignored) {
+						}
+					} finally {
+						session.getPlaywrightSession().getOperationLock().unlock();
 					}
 				}
 			} catch (Exception e) {

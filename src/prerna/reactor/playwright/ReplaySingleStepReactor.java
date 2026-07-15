@@ -153,13 +153,18 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				stepToExecute = new PlaywrightStep(step, inputs.get(step.label()).toString());
 			}
 
-			Map<String, Object> executionResult = PlaywrightSessionUtility.applyStep(s, stepToExecute, actualTabId);
-
-			// Get screenshot after execution attempt
-			ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			Map<String, Object> executionResult;
+			ScreenshotResponse screenshot;
+			s.getOperationLock().lock();
+			try {
+				executionResult = PlaywrightSessionUtility.applyStep(s, stepToExecute, actualTabId);
+				screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			} finally {
+				s.getOperationLock().unlock();
+			}
 			response.put("screenshot", screenshot);
 
-			if (executionResult != null) {
+			if (executionResult != null && !"failed".equals(executionResult.get("status"))) {
 				response.put("status", "success");
 				response.put("stepId", stepId);
 				response.put("tabId", actualTabId);
@@ -185,7 +190,9 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				}
 			} else {
 				response.put("status", "failed");
-				response.put("error", "Step execution failed");
+				response.put("error", executionResult != null && executionResult.get("error") != null
+						? executionResult.get("error")
+						: "Step execution failed");
 				response.put("stepId", stepId);
 				response.put("tabId", actualTabId);
 				response.put("isNewTab", false);

@@ -62,6 +62,8 @@ public class PlaywrightSessionUtility {
 	 * @return true if page changed, false otherwise
 	 */
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
+		session.getOperationLock().lock();
+		try {
 		Map<String, Object> response = new HashMap<String, Object>();
 
 		Page page = session.tabPages.get(tabId);
@@ -102,13 +104,19 @@ public class PlaywrightSessionUtility {
 
 			long elapsed = System.currentTimeMillis() - startTime;
 			classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
+			response.put("status", "success");
 			response.put("isPageChanged", pageChanged);
 			return response;
 
 		} catch (Exception e) {
 			classLogger.error("Failed to apply Playwright step {}", step.type(), e);
+			response.put("status", "failed");
+			response.put("error", e.getMessage());
 			response.put("isPageChanged", true);
 			return response;
+		}
+		} finally {
+			session.getOperationLock().unlock();
 		}
 	}
 

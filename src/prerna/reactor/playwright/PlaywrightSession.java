@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,6 +61,9 @@ public class PlaywrightSession {
 	private static final long DEFAULT_EXPIRY_MINUTES = 120; //
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
+
+	/** Serializes commands and event processing on this Playwright connection. */
+	private final ReentrantLock operationLock = new ReentrantLock(true);
 
 	private Map<String, List<String>> parentChildMap = new HashMap<>();
 
@@ -228,6 +232,14 @@ public class PlaywrightSession {
 	 */
 	public Page getPage(String tabId) {
 		return this.tabPages.get(tabId);
+	}
+
+	/**
+	 * Returns the reentrant gate for operations against this session's Playwright
+	 * connection. Callers may hold it across an action and its screenshot.
+	 */
+	public ReentrantLock getOperationLock() {
+		return operationLock;
 	}
 
 	/**

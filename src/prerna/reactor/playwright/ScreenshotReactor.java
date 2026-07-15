@@ -100,6 +100,8 @@ public class ScreenshotReactor extends AbstractReactor {
 	 *         viewport dimensions, and device pixel ratio.
 	 */
 	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
+		playwrightSession.getOperationLock().lock();
+		try {
 		Page page = playwrightSession.tabPages.get(tabId);
 		waitForStablePage(page);
 		playwrightSession.refreshTrackedUrl(tabId);
@@ -113,6 +115,9 @@ public class ScreenshotReactor extends AbstractReactor {
 		double dpr = (raw instanceof Number) ? ((Number) raw).doubleValue() : 1.0;
 
 		return new ScreenshotResponse(b64, vpW, vpH, dpr);
+		} finally {
+			playwrightSession.getOperationLock().unlock();
+		}
 	}
 
 	/**
@@ -130,6 +135,8 @@ public class ScreenshotReactor extends AbstractReactor {
 	 */
 	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
 			int startY, int endX, int endY) {
+		playwrightSession.getOperationLock().lock();
+		try {
 		Page page = playwrightSession.tabPages.get(tabId);
 		waitForStablePage(page);
 		playwrightSession.refreshTrackedUrl(tabId);
@@ -144,6 +151,9 @@ public class ScreenshotReactor extends AbstractReactor {
 		String b64 = java.util.Base64.getEncoder().encodeToString(buf);
 
 		return new ScreenshotResponse(b64, width, height, 1.0);
+		} finally {
+			playwrightSession.getOperationLock().unlock();
+		}
 	}
 
 	/**
