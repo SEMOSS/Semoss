@@ -32,17 +32,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class StepReactor extends AbstractReactor {
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	/**
+	 * Use Gson instead of Jackson ObjectMapper to avoid Jackson version conflicts
+	 * (NoSuchMethodError on ParserMinimalBase with StreamReadConstraints).
+	 */
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 	private Map<String, Object> response = new HashMap<>();
 
 	/**
@@ -72,7 +77,33 @@ public class StepReactor extends AbstractReactor {
 		String tabId = this.keyValue.get(this.keysToGet[1]);
 
 		Map<String, Object> paramValues = getMap(this.keysToGet[3]);
-		PlaywrightStep step = json.convertValue(paramValues, PlaywrightStep.class);
+		if (paramValues == null) {
+			// Try to read as a list (the Pixel syntax [ {...} ] can land as a list item)
+			GenRowStruct grs = getGenRowStruct(this.keysToGet[3]);
+			if (grs != null && !grs.isEmpty()) {
+				Object val = grs.get(0);
+				if (val instanceof java.util.List) {
+					java.util.List<?> list = (java.util.List<?>) val;
+					if (!list.isEmpty() && list.get(0) instanceof Map) {
+						@SuppressWarnings("unchecked")
+						Map<String, Object> m = (Map<String, Object>) list.get(0);
+						paramValues = m;
+					}
+				}
+			}
+		}
+		if (paramValues == null) {
+			throw new IllegalArgumentException(
+					"Step reactor requires 'paramValues' to be a non-null map of step parameters.");
+		}
+		// Convert Map → JSON string → PlaywrightStep using Gson (avoids Jackson
+		// version conflicts with StreamReadConstraints in Jackson 2.15+)
+		PlaywrightStep step = GSON.fromJson(GSON.toJson(paramValues), PlaywrightStep.class);
+		if (step == null || step.type() == null) {
+			throw new IllegalArgumentException(
+					"Could not deserialize paramValues into a PlaywrightStep. Ensure 'type' is set to a valid value: "
+							+ "NAVIGATE, CLICK, TYPE, SCROLL, WAIT, HOVER, CONTEXT.");
+		}
 
 		ScreenshotResponse screenshotResponse = step.type() == PlaywrightStepType.CONTEXT
 				? executeContextStep(sessionId, step, tabId)
@@ -96,6 +127,10 @@ public class StepReactor extends AbstractReactor {
 	 */
 	public ScreenshotResponse executeContextStep(String sessionId, PlaywrightStep step, String tabId) {
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalArgumentException(
+					"Playwright session '" + sessionId + "' not found. Please start a new session.");
+		}
 
 		int stepId = ++playwrightSession.lastStepId;
 		PlaywrightStep newStep = new PlaywrightStep(step, stepId);
@@ -126,6 +161,10 @@ public class StepReactor extends AbstractReactor {
 	 */
 	public ScreenshotResponse executeStep(String sessionId, PlaywrightStep step, String tabId) {
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
+		if (playwrightSession == null) {
+			throw new IllegalArgumentException(
+					"Playwright session '" + sessionId + "' not found. The session may have expired or the server was restarted. Please start a new session.");
+		}
 		Map<String, Object> stepResult = PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
 		boolean isPageChanged = (Boolean) stepResult.get("isPageChanged");
 		boolean isNewTab = (Boolean) stepResult.get("isNewTab");
