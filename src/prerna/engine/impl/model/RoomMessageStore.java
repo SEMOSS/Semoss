@@ -81,7 +81,12 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		validateForPersistence(room, messages);
+		try {
+			validateForPersistence(room, messages);
+		} catch (Exception e) {
+			classLogger.warn("Failed to validate messages for persistence for room={}", room.getId(), e);
+		}
+
 		warmRedisProjection(room, projection);
 		return messages;
 	}
@@ -252,7 +257,8 @@ public final class RoomMessageStore {
 			}
 			if (!messageIds.contains(parentMessageId)) {
 				String roomId = room != null ? room.getId() : "<unknown>";
-				classLogger.warn("Room {} message parent does not exist: {}", roomId, parentMessageId);
+				throw new IllegalStateException("Room " + roomId + " message parent does not exist: "
+						+ parentMessageId);
 			}
 		}
 	}
