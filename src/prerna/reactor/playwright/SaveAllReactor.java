@@ -30,6 +30,9 @@ package prerna.reactor.playwright;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -40,12 +43,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SaveAllReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(SaveAllReactor.class);
+
 	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public SaveAllReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
-				"description", "intent"};
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title", "description",
+				"intent" };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -58,7 +63,6 @@ public class SaveAllReactor extends AbstractReactor {
 		String title = this.keyValue.get(this.keysToGet[3]);
 		String desc = this.keyValue.get(this.keysToGet[4]);
 		String intent = this.keyValue.get(this.keysToGet[5]);
-		
 
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
@@ -74,13 +78,16 @@ public class SaveAllReactor extends AbstractReactor {
 			try {
 				StepsEnvelope existing = json.readValue(file.toFile(), StepsEnvelope.class);
 				existingMeta = existing.meta();
-			} catch (Exception ignored) {
+			} catch (Exception e) {
+				classLogger.warn("Unable to read existing recording metadata from '{}'; creating fresh metadata", file,
+						e);
 			}
 		}
 
 		RecordingMeta newMeta = new RecordingMeta(
 				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
-				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now, intent);
+				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now,
+				intent);
 
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
@@ -115,7 +122,7 @@ public class SaveAllReactor extends AbstractReactor {
 			return "The title of the recorded file";
 		} else if (key.equals("intent")) {
 			return "The intention or the purpose of the recorded file";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 }
