@@ -225,13 +225,16 @@ def split_by_tokens(
     chunk_size: int,
     chunk_overlap: int,
 ) -> pd.DataFrame:
-    from langchain_text_splitters import TokenTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-    # Initialize text splitter with specified parameters
-    text_splitter = TokenTextSplitter.from_huggingface_tokenizer(
-        cfg_tokenizer.tokenizer,
+    # Measure chunk length in tokens via cfg_tokenizer.count_tokens so this works with
+    # any tokenizer type (tiktoken / HuggingFace / word-count), not only HF tokenizers
+    # that satisfy langchain's from_huggingface_tokenizer PreTrainedTokenizerBase check.
+    text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
+        length_function=cfg_tokenizer.count_tokens,
+        is_separator_regex=False,
     )
     # Audio and Video extensions
     audio_video_extensions = [
