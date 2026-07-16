@@ -78,6 +78,16 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String SKILLS = "skills";
 	/** Request key for active/inactive workspace state. */
 	static final String IS_ACTIVE = "isActive";
+	/** Request key for the agent tool-loop turn cap (CONFIG_JSON.budgets.max_turns). */
+	static final String MAX_TURNS = "maxTurns";
+	/** Request key for the agent self-critique round cap (CONFIG_JSON.budgets.max_reflections). */
+	static final String MAX_REFLECTIONS = "maxReflections";
+	/** Request key for the subagent delegation depth cap (CONFIG_JSON.spawn_policy.max_subagent_depth). */
+	static final String MAX_SUBAGENT_DEPTH = "maxSubagentDepth";
+	/** Request key for the per-run subagent spawn budget (CONFIG_JSON.spawn_policy.max_subagents_per_run). */
+	static final String MAX_SUBAGENTS_PER_RUN = "maxSubagentsPerRun";
+	/** Request key for the per-turn subagent spawn cap (CONFIG_JSON.spawn_policy.max_spawns_per_turn). */
+	static final String MAX_SPAWNS_PER_TURN = "maxSpawnsPerTurn";
 
 	/**
 	 * Builds a workspace resource row for an engine, including engine type metadata.
@@ -186,11 +196,29 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
-		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null);
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
+				null, null);
+	}
+
+	/**
+	 * @param budgetUpdates      {@code CONFIG_JSON.budgets} keys (e.g. {@code max_turns})
+	 *                           to add/overwrite; a {@code null} value removes that key
+	 *                           (falls back to the caller/session-supplied value at run
+	 *                           time). {@code null} or empty leaves {@code budgets}
+	 *                           untouched entirely.
+	 * @param spawnPolicyUpdates same as {@code budgetUpdates}, but for
+	 *                           {@code CONFIG_JSON.spawn_policy} keys (e.g.
+	 *                           {@code max_subagent_depth}); a removed key falls back to
+	 *                           the platform default for that field at run time.
+	 */
+	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
+			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -237,7 +265,36 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		// honored anymore, so scrub it whenever the config is rewritten
 		cfg.remove("platform_skills");
 
+		applyIntegerUpdates(cfg, "budgets", budgetUpdates);
+		applyIntegerUpdates(cfg, "spawn_policy", spawnPolicyUpdates);
+
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Merges caller-provided integer fields into the {@code cfg.<subObjectKey>} sub-object,
+	 * creating it if absent. A {@code null} value in {@code updates} removes that field from
+	 * the sub-object (rather than writing JSON null) so the run-time resolver falls back to
+	 * its own default/cap for that specific field. Leaves the sub-object alone entirely when
+	 * {@code updates} is {@code null} or empty, preserving fields set by other means (e.g. a
+	 * future hooks-style reactor writing {@code max_seconds}).
+	 */
+	private static void applyIntegerUpdates(JSONObject cfg, String subObjectKey, Map<String, Integer> updates) {
+		if (updates == null || updates.isEmpty()) {
+			return;
+		}
+		JSONObject sub = cfg.optJSONObject(subObjectKey);
+		if (sub == null) {
+			sub = new JSONObject();
+		}
+		for (Map.Entry<String, Integer> entry : updates.entrySet()) {
+			if (entry.getValue() == null) {
+				sub.remove(entry.getKey());
+			} else {
+				sub.put(entry.getKey(), entry.getValue().intValue());
+			}
+		}
+		cfg.put(subObjectKey, sub);
 	}
 
 	/**
