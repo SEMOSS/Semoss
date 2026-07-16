@@ -160,8 +160,51 @@ public class NotificationDbUtils {
 	}
 
 	/**
+	 * Insert a single row into the NOTIFICATION table and return the generated notification ID.
+	 * Callers are responsible for catching SQLException and handling it appropriately.
+	 */
+	public static String insertNotification(IRDBMSEngine notificationDb, String recipientId, String recipientType,
+			String title, String message, String priority, String notificationType, String catalogId,
+			String createdBy, String notificationSource, String userId, String userType,
+			String previousRole, String newRole) throws SQLException {
+		String notifId = GUID.v7().toUUID().toString();
+		String sql = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USERTYPE,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		PreparedStatement ps = null;
+		try {
+			ps = notificationDb.getPreparedStatement(sql);
+			Timestamp now = Utility.getCurrentSqlTimestampUTC();
+			ps.setString(1, notifId);
+			ps.setString(2, recipientId);
+			ps.setString(3, recipientType);
+			ps.setString(4, title);
+			ps.setString(5, message);
+			ps.setString(6, "NEW");
+			ps.setString(7, "IN-APP");
+			ps.setBoolean(8, false);
+			ps.setString(9, priority);
+			ps.setString(10, notificationType);
+			ps.setString(11, catalogId);
+			ps.setString(12, createdBy);
+			ps.setTimestamp(13, now);
+			ps.setTimestamp(14, null);
+			ps.setString(15, notificationSource);
+			ps.setString(16, userId);
+			ps.setString(17, userType);
+			ps.setString(18, previousRole);
+			ps.setString(19, newRole);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
+		}
+		return notifId;
+	}
+
+	/**
 	 * Add notification into database
-	 * 
+	 *
 	 * @param loggedInUser             - The logged-in user performing the action
 	 * @param affectedUserId           - The user whose role or permission changed
 	 * @param catalogId
@@ -209,46 +252,18 @@ public class NotificationDbUtils {
 		}
 
 		String createdBy = loggedInUser.getAccessToken(loggedInUser.getLogins().get(0)).getId();
-		Timestamp createdDate = Utility.getCurrentSqlTimestampUTC();
 
 		for (Map<String, Object> author : authors) {
 			String recipientId = (String) author.get("userId");
 			String recipientType = (String) author.get("userType");
-
-			String query = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USERTYPE,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-			PreparedStatement ps = null;
 			try {
-				ps = notificationDb.getPreparedStatement(query);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, GUID.v7().toUUID().toString()); // notificationId
-				ps.setString(parameterIndex++, recipientId);
-				ps.setString(parameterIndex++, recipientType);
-				ps.setString(parameterIndex++, "NOTIFICATION"); // notificationTitle
-				ps.setString(parameterIndex++, null); // message
-				ps.setString(parameterIndex++, "NEW"); // actionType
-				ps.setString(parameterIndex++, "IN-APP");
-				ps.setBoolean(parameterIndex++, false); // isRead
-				ps.setString(parameterIndex++, priority);
-				ps.setString(parameterIndex++, notificationType);
-				ps.setString(parameterIndex++, catalogId);
-				ps.setString(parameterIndex++, createdBy);
-				ps.setTimestamp(parameterIndex++, createdDate);
-				ps.setTimestamp(parameterIndex++, null); // readDate
-				ps.setString(parameterIndex++, notificationSource);
-				ps.setString(parameterIndex++, affectedUserId);
-				ps.setString(parameterIndex++, affectedUserType);// userType
-				ps.setString(parameterIndex++, affectedUserPreviousRole);
-				ps.setString(parameterIndex++, affectedUserNewRole);
-
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
+				insertNotification(notificationDb, recipientId, recipientType,
+						"NOTIFICATION", null, priority, notificationType, catalogId,
+						createdBy, notificationSource, affectedUserId, affectedUserType,
+						affectedUserPreviousRole, affectedUserNewRole);
 			} catch (SQLException e) {
 				classLogger.error("Failed to insert notification for recipient {} (type {}) on catalog {}", recipientId,
 						recipientType, catalogId, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 			}
 		}
 	}

@@ -30,7 +30,6 @@ package prerna.reactor.workflow;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -56,8 +55,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.github.f4b6a3.uuid.alt.GUID;
-
 import org.apache.hc.core5.http.ContentType;
 
 import prerna.engine.api.IRDBMSEngine;
@@ -73,6 +70,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -1186,37 +1184,13 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		IRDBMSEngine notifDb = SystemEngineRegistry.getNotificationDb();
 		if (notifDb == null) throw new IllegalStateException("Notification database is not configured in this SEMOSS instance");
 
-		String sql = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USERTYPE,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-		PreparedStatement ps = null;
-		String notifId = GUID.v7().toUUID().toString();
+		String notifId;
 		try {
-			ps = notifDb.getPreparedStatement(sql);
-			Timestamp now = Utility.getCurrentSqlTimestampUTC();
-			ps.setString(1, notifId);
-			ps.setString(2, recipientId);
-			ps.setString(3, "NATIVE");
-			ps.setString(4, title);
-			ps.setString(5, message);
-			ps.setString(6, "NEW");
-			ps.setString(7, "IN-APP");
-			ps.setBoolean(8, false);
-			ps.setString(9, priority);
-			ps.setString(10, "WORKFLOW");
-			ps.setString(11, null);
-			ps.setString(12, "WORKFLOW");
-			ps.setTimestamp(13, now);
-			ps.setTimestamp(14, null);
-			ps.setString(15, "WORKFLOW");
-			ps.setString(16, recipientId);
-			ps.setString(17, "NATIVE");
-			ps.setString(18, null);
-			ps.setString(19, null);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) ps.getConnection().commit();
+			notifId = NotificationDbUtils.insertNotification(notifDb, recipientId, "NATIVE",
+					title, message, priority, "WORKFLOW", null,
+					"WORKFLOW", "WORKFLOW", recipientId, "NATIVE", null, null);
 		} catch (SQLException e) {
 			throw new IllegalStateException("Failed to create notification: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notifDb, ps);
 		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -1629,7 +1603,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a project id");
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access");
 		}
 		return projectId;
