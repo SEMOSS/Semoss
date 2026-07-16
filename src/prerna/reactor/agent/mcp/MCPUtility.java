@@ -67,6 +67,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -1214,6 +1215,13 @@ public final class MCPUtility {
 	 * AgentToolDecisionHandler (HITL approve/edit).
 	 */
 	public static Object executeTool(String engineId, String toolName, Map<String, Object> paramMap, Insight insight) {
+		// ── Insight MCP: virtual toolbox backed by the room's insight assets ──────
+		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
+			InsightMCP insightMcp = new InsightMCP(insight);
+			String cleaned = removeEngineIdFromToolsMethodName(engineId, toolName);
+			return insightMcp.callTool(cleaned, paramMap, insight);
+		}
+
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
