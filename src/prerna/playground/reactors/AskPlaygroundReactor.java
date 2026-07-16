@@ -60,10 +60,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
-	/** When present, skips the LLM call and persists a turn built from these parts (cancel flow). */
+	// When present, skips the LLM call and persists a turn built from these parts (cancel flow).
 	private static final String RESPONSE_PARTS_KEY = "responseParts";
 
-	/** Cancel-flow only: hidden user note appended after the visible turn, paired with {@link #RESPONSE_PARTS_KEY}. */
+	// Cancel-flow only: hidden user note appended after the visible turn, paired with {@link #RESPONSE_PARTS_KEY}.
 	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
 
 	public AskPlaygroundReactor() {
@@ -169,7 +169,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
-	/** Persists a caller-provided input + response as a completed turn, mirroring {@link Room#ask}'s scaffold minus the LLM call. */
+	// Persists a caller-provided input + response as a completed turn, mirroring {@link Room#ask}'s scaffold minus the LLM call.
 	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
 			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage,
 			List<AbstractMessage> extrasOut) {

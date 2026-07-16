@@ -40,8 +40,8 @@ public class PlaygroundUtils {
 
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 
-	/** Canned assistant ack persisted after a hidden user note, keeping provider payloads role-alternating. */
-	public static final String HIDDEN_MESSAGE_ACK = "Understood — I'll wait for your next instruction.";
+	// Canned assistant ack persisted after a hidden user note, keeping provider payloads role-alternating.
+	public static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
 	public static final String FOLLOW_UP_SUGGESTIONS_PROMPT = """
 			You generate follow-up suggestions only.
@@ -68,7 +68,7 @@ public class PlaygroundUtils {
 			}
 			""";
 
-	/** Builds a ResponseMessage from caller-supplied THINKING/TEXT parts, in order; empty if none are usable. */
+	// Builds a ResponseMessage from caller-supplied THINKING/TEXT parts, in order; empty if none are usable.
 	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
 		ResponseMessage.Builder builder = ResponseMessage.builder();
 		if (responseParts != null) {
@@ -96,7 +96,7 @@ public class PlaygroundUtils {
 		return builder.build();
 	}
 
-	/** Appends a hidden user-note/assistant-ack pair to the room; caller must hold the lock and persist after. */
+	// Appends a hidden user-note/assistant-ack pair to the room; caller must hold the lock and persist after.
 	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
 			String hiddenParentId, List<AbstractMessage> extrasOut) {
 		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)

@@ -61,7 +61,7 @@ public class PixelJobRunner implements Runnable {
 	private List<String> pixel;
 	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
-	/** Fired during cancellation to abort blocking I/O that Thread.interrupt() can't unblock. */
+	// Fired during cancellation to abort blocking I/O that Thread.interrupt() can't unblock.
 	private volatile Runnable cancelHook;
 
 	private Map<String, String> log4jContextMap;
@@ -144,7 +144,7 @@ public class PixelJobRunner implements Runnable {
 		return true;
 	}
 
-	/** Set or clear (pass null) the cancellation hook. */
+	// Set or clear (pass null) the cancellation hook.
 	public void setCancelHook(Runnable hook) {
 		this.cancelHook = hook;
 	}

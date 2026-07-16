@@ -68,10 +68,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
 
-	/** When present, skips the LLM follow-up call and persists a response built from these parts (cancel flow). */
+	// When present, skips the LLM follow-up call and persists a response built from these parts (cancel flow).
 	private static final String RESPONSE_PARTS_KEY = "responseParts";
 
-	/** Cancel-flow only: hidden user note appended after the tool follow-up, paired with {@link #RESPONSE_PARTS_KEY}. */
+	// Cancel-flow only: hidden user note appended after the tool follow-up, paired with {@link #RESPONSE_PARTS_KEY}.
 	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
 
 	public AddPlaygroundToolExecutionReactor() {
@@ -197,7 +197,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 	}
 
-	/** Wraps {@link PlaygroundUtils#appendHiddenPair} with its own mutation lock + persist. */
+	// Wraps {@link PlaygroundUtils#appendHiddenPair} with its own mutation lock + persist.
 	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
 			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {

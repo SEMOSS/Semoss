@@ -156,7 +156,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 								try {
 									responseRef.close();
 								} catch (Exception ignored) {
-									// ignore — we're cancelling anyway
+									// ignore - we're cancelling anyway
 								}
 							});
 						}

@@ -389,7 +389,7 @@ public class Room implements Serializable {
 				paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, null);
 	}
 
-	/** Cancel-persistence overload: when all tools are answered, slots in prebuiltResponse instead of calling the LLM. */
+	// Cancel-persistence overload: when all tools are answered, slots in prebuiltResponse instead of calling the LLM.
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
@@ -480,7 +480,7 @@ public class Room implements Serializable {
 			}
 
 			if (existingCarrier != null) {
-				// Duplicate submission — reuse the existing message instead of appending a second part.
+				// Duplicate submission - reuse the existing message instead of appending a second part.
 				toolResultsMessage = existingCarrier;
 			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
