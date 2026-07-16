@@ -113,7 +113,8 @@ final class PlatformAgentToolHandlers {
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
 		add(tools, handler("ReadFile",
-				"Reads a file from the working directory. Returns content with line numbers.",
+				"Reads a file from the working directory. Returns content with line numbers "
+						+ "and a continuation marker when more lines remain.",
 				objectSchema(props(
 						prop("file_path", stringProp("Path to read, relative to the working directory.")),
 						prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
@@ -280,7 +281,8 @@ final class PlatformAgentToolHandlers {
 		if (!file.isFile()) {
 			return "Error: not a file: " + filePath;
 		}
-		List<String> lines = Files.readAllLines(file.toPath());
+		String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		List<String> lines = content.lines().toList();
 		int start = offset - 1;
 		if (start >= lines.size()) {
 			return "";
@@ -289,6 +291,10 @@ final class PlatformAgentToolHandlers {
 		StringBuilder sb = new StringBuilder();
 		for (int i = start; i < end; i++) {
 			sb.append(String.format("%6d\t%s%n", i + 1, lines.get(i)));
+		}
+		if (end < lines.size()) {
+			sb.append(String.format("%n[--- file continues: showing lines %d-%d of %d; continue with offset=%d. ---]%n",
+					start + 1, end, lines.size(), end + 1));
 		}
 		return sb.toString();
 	}
