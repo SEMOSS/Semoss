@@ -1,9 +1,6 @@
 from typing import Any, Dict, TYPE_CHECKING, Optional, Union
-import typing
 
 if TYPE_CHECKING:
-    from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-    from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
@@ -69,7 +66,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         super().__init__(**parent_kwargs)
 
         self.chat_type = self.model_settings.chat_type
-        self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(is_azure, **client_kwargs)
         self.simplify_messages = string_to_bool(
             parent_kwargs.get("simplify_messages", False)
@@ -80,46 +76,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         )
         self.image_client = OpenAiImageClient(client=self)
         self.audio_client = OpenAiAudioClient(client=self)
-
-    def _get_tokenizer(
-        self, init_args: Dict = {}
-    ) -> "Union[VLLMTokenizer, OpenAiTokenizer]":
-        if not self.is_azure and self.endpoint and self.endpoint.strip():
-            if self.deployment_type == "vllm":
-                from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-
-                return VLLMTokenizer(
-                    model_name=self.model_settings.model_name,
-                    endpoint=self.endpoint,
-                    api_key=init_args.get("api_key", "EMPTY"),
-                )
-            elif self.deployment_type == "tgi":
-                from ...tokenizers.tgi_tokenizer import TGITokenizer
-
-                return TGITokenizer(
-                    endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
-                )
-            else:
-                from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-
-                return HuggingfaceTokenizer(
-                    encoder_name=init_args.get("tokenizer_name", None)
-                    or self.model_settings.model_name,
-                    max_tokens=self.model_settings.max_completion_tokens,
-                    max_input_tokens=self.model_settings.max_input_tokens,
-                    context_window=self.model_settings.context_window,
-                    max_completion_tokens=self.model_settings.max_completion_tokens,
-                )
-        from ...tokenizers.openai_tokenizer import OpenAiTokenizer
-
-        return OpenAiTokenizer(
-            encoder_name=init_args.get("tokenizer_name", None)
-            or self.model_settings.model_name,
-            max_tokens=self.model_settings.max_completion_tokens,
-            max_input_tokens=self.model_settings.max_input_tokens,
-            context_window=self.model_settings.context_window,
-            max_completion_tokens=self.model_settings.max_completion_tokens,
-        )
 
     def _get_client(self, is_azure: bool, **kwargs) -> Union[OpenAI, AzureOpenAI]:
         provider = (kwargs.pop("provider", None) or "").lower()
