@@ -45,9 +45,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -74,7 +71,6 @@ import java.sql.Types;
 public final class WorkflowDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(WorkflowDatabaseUtility.class);
-	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = WorkflowConstants.TABLE_WORKFLOW_RUNS;
@@ -104,6 +100,16 @@ public final class WorkflowDatabaseUtility {
 
 	private static final String TOUCH_HEARTBEAT =
 			"UPDATE WORKFLOW_RUNS SET LAST_HEARTBEAT = ? WHERE RUN_ID = ?";
+
+	private static final String SET_CANCEL_REQUESTED =
+			"UPDATE WORKFLOW_RUNS SET CANCEL_REQUESTED = ? WHERE RUN_ID = ?";
+
+	// WORKFLOW_ACTIVE_RUN - single row per project, PK on PROJECT_ID enforces exclusivity
+	private static final String CLAIM_ACTIVE_RUN =
+			"INSERT INTO WORKFLOW_ACTIVE_RUN (PROJECT_ID, RUN_ID, CLAIMED_AT) VALUES (?, ?, ?)";
+
+	private static final String RELEASE_ACTIVE_RUN =
+			"DELETE FROM WORKFLOW_ACTIVE_RUN WHERE PROJECT_ID = ? AND RUN_ID = ?";
 
 	private static final String MARK_STALE_INTERRUPTED = """
 			UPDATE WORKFLOW_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -168,6 +174,7 @@ public final class WorkflowDatabaseUtility {
 			createWorkflowRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createWorkflowNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createWorkflowForEachRowsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
+			createWorkflowActiveRunTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -192,6 +199,7 @@ public final class WorkflowDatabaseUtility {
 		// Use SelectQueryStruct to find stale runs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__PROJECT_ID", "PROJECT_ID"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__LAST_HEARTBEAT", "LAST_HEARTBEAT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__STATUS", "==", WorkflowConstants.STATUS_RUNNING, PixelDataType.CONST_STRING));
@@ -211,6 +219,7 @@ public final class WorkflowDatabaseUtility {
 			conn = schedulerDb.getConnection();
 			for (Map<String, Object> row : results) {
 				String runId = (String) row.get("RUN_ID");
+				String projectId = (String) row.get("PROJECT_ID");
 
 				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
 				// heartbeat is still alive (e.g. executing on another node in a cluster), so
@@ -233,6 +242,11 @@ public final class WorkflowDatabaseUtility {
 					if (updated > 0) {
 						classLogger.info("Marked stale workflow run {} as INTERRUPTED", runId);
 					}
+				}
+				// Release the active-run slot so the project can be re-triggered - otherwise a
+				// crashed run would permanently block that project from ever running again.
+				if (projectId != null) {
+					releaseActiveRun(projectId, runId);
 				}
 			}
 			if (!conn.getAutoCommit()) {
@@ -273,6 +287,141 @@ public final class WorkflowDatabaseUtility {
 	}
 
 	/**
+	 * Atomically claims the "active run" slot for a project. Backed by a single-row-per-project
+	 * marker table ({@code WORKFLOW_ACTIVE_RUN}, PK on {@code PROJECT_ID}) in the shared scheduler
+	 * DB, so this is correct across every pod in a cluster - not just within one JVM. Unlike
+	 * {@link #getActiveRun(String)} (a plain SELECT), this is a single atomic INSERT: a PK
+	 * violation means another run is already active for that project, closing the check-then-insert
+	 * race where two concurrent triggers for the same project could otherwise both start a run and
+	 * double up any node with side effects (e.g. a database-update node running twice).
+	 *
+	 * <p>If the scheduler DB is unavailable, fails open (returns true) to match the existing
+	 * degraded-mode behavior of the rest of this class (e.g. {@link #insertRun}, which silently
+	 * no-ops when the scheduler DB can't be reached) rather than introduce a new failure mode.
+	 *
+	 * @return true if the slot was claimed (caller may proceed), false if another run already
+	 *         holds it for this project
+	 */
+	public static boolean claimActiveRun(String projectId, String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			classLogger.warn("Scheduler DB not available - cannot enforce single-active-run guard for project {}", projectId);
+			return true;
+		}
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(CLAIM_ACTIVE_RUN)) {
+				int index = 1;
+				ps.setString(index++, projectId);
+				ps.setString(index++, runId);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			// Constraint violation (another run already holds this project's slot) is the
+			// expected/common case here, not an error - log at debug, not error.
+			classLogger.debug("Could not claim active-run slot for project {} (likely already active): {}",
+					projectId, e.getMessage());
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Releases the "active run" slot for a project, allowing a new run to be claimed.
+	 * Must be called on every terminal run status (SUCCESS/FAILED/CANCELLED/INTERRUPTED),
+	 * including the stale-run sweep in {@link #markStaleRunsInterrupted()}.
+	 */
+	public static boolean releaseActiveRun(String projectId, String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(RELEASE_ACTIVE_RUN)) {
+				ps.setString(1, projectId);
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to release active-run slot for project {}, run {}: {}",
+					projectId, runId, e.getMessage(), e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Sets the cluster-safe cancellation flag on a run. Called by {@code CancelWorkflowRunReactor}
+	 * regardless of which pod receives the cancel request - unlike the in-memory
+	 * {@code TriggerWorkflowReactor.CANCELLATION_FLAGS} map (a same-pod-only fast path), this is
+	 * visible to whichever pod is actually executing the run via {@link #isCancelRequested(String)}.
+	 */
+	public static boolean setCancelRequested(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(SET_CANCEL_REQUESTED)) {
+				ps.setBoolean(1, true);
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to set cancel-requested flag for run '{}': {}", runId, e.getMessage(), e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Checks the cluster-safe cancellation flag for a run. Polled by the executing pod's
+	 * between-node cancellation check in addition to the local in-memory flag, so a cancel
+	 * request landing on a different pod than the one executing the run is still honored.
+	 */
+	public static boolean isCancelRequested(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + WorkflowConstants.CANCEL_REQUESTED,
+				WorkflowConstants.CANCEL_REQUESTED));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results == null || results.isEmpty()) {
+			return false;
+		}
+		Object flag = results.get(0).get(WorkflowConstants.CANCEL_REQUESTED);
+		if (flag instanceof Boolean) {
+			return (Boolean) flag;
+		}
+		return flag != null && Boolean.parseBoolean(flag.toString());
+	}
+
+	/**
 	 * Inserts a new workflow run record.
 	 */
 	public static boolean insertRun(String runId, String projectId, String workflowId,
@@ -304,13 +453,13 @@ public final class WorkflowDatabaseUtility {
 				ps.setString(index++, workflowId);
 				ps.setString(index++, WorkflowConstants.STATUS_RUNNING);
 				ps.setString(index++, triggerType);
-				ps.setString(index++, resumedFromRun);
+				setNullableString(ps, index++, resumedFromRun);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
 				ps.setInt(index++, totalNodes);
 				ps.setString(index++, createdBy);
-				ps.setString(index++, parentRunId);
-				ps.setString(index++, parentNodeId);
+				setNullableString(ps, index++, parentRunId);
+				setNullableString(ps, index++, parentNodeId);
 				ps.executeUpdate();
 			}
 
@@ -341,8 +490,8 @@ public final class WorkflowDatabaseUtility {
 				int index = 1;
 				ps.setString(index++, status);
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.setString(index++, failedNodeId);
-				ps.setString(index++, errorMessage);
+				setNullableString(ps, index++, failedNodeId);
+				setNullableString(ps, index++, errorMessage);
 				ps.setString(index++, runId);
 				ps.executeUpdate();
 			}
@@ -604,7 +753,7 @@ public final class WorkflowDatabaseUtility {
 				ps.setLong(index++, durationMs);
 				ps.setString(index++, outputVar);
 				// Handle CLOB for potentially large output values
-				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, GSON);
+				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, WorkflowExecutionUtils.GSON);
 				ps.setString(index++, outputPreview);
 				if (rowCount != null) {
 					ps.setInt(index++, rowCount);
@@ -645,7 +794,7 @@ public final class WorkflowDatabaseUtility {
 				ps.setTimestamp(index++, startedAt);
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setLong(index++, durationMs);
-				ps.setString(index++, errorMessage);
+				setNullableString(ps, index++, errorMessage);
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
 				ps.executeUpdate();
@@ -841,15 +990,15 @@ public final class WorkflowDatabaseUtility {
 		String[] colNames = { "RUN_ID", "PROJECT_ID", "WORKFLOW_ID", "STATUS", "TRIGGER_TYPE",
 				"RESUMED_FROM_RUN", "STARTED_AT", "COMPLETED_AT", "FAILED_NODE_ID",
 				"ERROR_MESSAGE", "LAST_HEARTBEAT", "TOTAL_NODES", "COMPLETED_NODES", "CREATED_BY",
-				"PARENT_RUN_ID", "PARENT_NODE_ID" };
+				"PARENT_RUN_ID", "PARENT_NODE_ID", "CANCEL_REQUESTED" };
 		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(50)", "VARCHAR(50)",
 				"VARCHAR(255)", dateTimeType, dateTimeType, "VARCHAR(255)",
 				clobType, dateTimeType, "INTEGER", "INTEGER", "VARCHAR(255)",
-				"VARCHAR(255)", "VARCHAR(255)" };
+				"VARCHAR(255)", "VARCHAR(255)", queryUtil.getBooleanDataTypeName() };
 		String[] constraints = { "NOT NULL", "NOT NULL", null, "NOT NULL", "NOT NULL",
 				null, "NOT NULL", null, null,
 				null, null, null, null, null,
-				null, null };
+				null, null, null };
 
 		String sql;
 		if (allowIfExists) {
@@ -862,9 +1011,11 @@ public final class WorkflowDatabaseUtility {
 			ps.execute();
 		}
 
-		// Migrate installs whose WORKFLOW_RUNS predates sub-workflow support
+		// Migrate installs whose WORKFLOW_RUNS predates sub-workflow support / cluster-safe cancel
 		addColumnIfNotExists(conn, queryUtil, tableName, "PARENT_RUN_ID", "VARCHAR(255)");
 		addColumnIfNotExists(conn, queryUtil, tableName, "PARENT_NODE_ID", "VARCHAR(255)");
+		addColumnIfNotExists(conn, queryUtil, tableName, "CANCEL_REQUESTED", queryUtil.getBooleanDataTypeName());
+
 
 		// Primary key
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_WORKFLOW_RUNS", new String[]{"RUN_ID"});
@@ -948,6 +1099,40 @@ public final class WorkflowDatabaseUtility {
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_WFR_STATUS", tableName, new String[]{"RUN_ID", "NODE_ID", "STATUS"});
 	}
 
+	/**
+	 * Creates the WORKFLOW_ACTIVE_RUN marker table - a single row per project, keyed on
+	 * PROJECT_ID, used to atomically enforce "at most one active run per project" cluster-wide.
+	 * See {@link #claimActiveRun(String, String)} / {@link #releaseActiveRun(String, String)}.
+	 */
+	private static void createWorkflowActiveRunTable(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
+
+		String tableName = WorkflowConstants.TABLE_WORKFLOW_ACTIVE_RUN;
+
+		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
+			return;
+		}
+
+		String[] colNames = { "PROJECT_ID", "RUN_ID", "CLAIMED_AT" };
+		String[] types = { "VARCHAR(255)", "VARCHAR(255)", dateTimeType };
+		String[] constraints = { "NOT NULL", "NOT NULL", "NOT NULL" };
+
+		String sql;
+		if (allowIfExists) {
+			sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+		} else {
+			sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+		}
+		classLogger.info("Creating table {}: {}", tableName, sql);
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.execute();
+		}
+
+		// Primary key on PROJECT_ID alone (not RUN_ID) is what makes claimActiveRun atomic:
+		// a second INSERT for the same project - from any pod - violates this constraint.
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_WF_ACTIVE_RUN", new String[]{"PROJECT_ID"});
+	}
+
 	// -- Helpers -------------------------------------------------------------------
 
 	private static IRDBMSEngine getSchedulerDb() {
@@ -961,6 +1146,19 @@ public final class WorkflowDatabaseUtility {
 
 	private static void closeConnection(IRDBMSEngine engine, Connection conn) {
 		ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
+	}
+
+	/**
+	 * Binds a nullable VARCHAR column value, using {@code setNull(Types.VARCHAR)} instead of
+	 * {@code setString(index, null)} when the value is absent - some JDBC drivers require an
+	 * explicit SQL type for a null bind rather than inferring it from a null String argument.
+	 */
+	private static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
+		if (value != null) {
+			ps.setString(index, value);
+		} else {
+			ps.setNull(index, Types.VARCHAR);
+		}
 	}
 
 	private static Timestamp toTimestamp(Instant instant) {

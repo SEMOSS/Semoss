@@ -134,6 +134,7 @@ import org.javatuples.Pair;
 
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.reactor.workflow.WorkflowConstants;
 
 public class SchedulerOwlCreator extends AbstractOwlCreator {
 
@@ -278,11 +279,60 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
 
-		// WORKFLOW_RUNS, WORKFLOW_NODE_OUTPUTS, WORKFLOW_FOREACH_ROWS are intentionally
-		// absent here. WorkflowDatabaseUtility.initialize() (called by SMSSWebWatcher) is
-		// the sole authority for those tables — it handles primary keys, indexes, NOT NULL
-		// constraints, and addColumnIfNotExists migrations that this declarative mechanism
-		// does not support.
+		// WORKFLOW_RUNS, WORKFLOW_NODE_OUTPUTS, WORKFLOW_FOREACH_ROWS - table/column DDL
+		// (CREATE TABLE, primary keys, indexes, addColumnIfNotExists migrations) is owned by
+		// WorkflowDatabaseUtility.initialize() (called by SMSSWebWatcher), not this class - but
+		// every column must still be declared here too, or SelectQueryStruct-based reads against
+		// these tables fail with a NullPointerException resolving the conceptual->physical column
+		// name (AbstractSqlQueryUtil.isSelectorKeyword gets a null "selector" argument), since this
+		// OWL creator is this engine's only source of table/column metadata - there is no live
+		// schema-introspection fallback. Keep this column list in sync with WorkflowDatabaseUtility's
+		// CREATE TABLE statements; needsRemake()/remakeOwl() automatically pick up any column added
+		// here on the next server startup, no manual OWL file deletion required.
+		addTable(WorkflowConstants.TABLE_WORKFLOW_RUNS, Arrays.asList(
+				Pair.with(WorkflowConstants.RUN_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.PROJECT_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.WORKFLOW_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.STATUS, VARCHAR_200),
+				Pair.with(WorkflowConstants.TRIGGER_TYPE, VARCHAR_200),
+				Pair.with(WorkflowConstants.RESUMED_FROM_RUN, VARCHAR_255),
+				Pair.with(WorkflowConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.FAILED_NODE_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.ERROR_MESSAGE, CLOB),
+				Pair.with(WorkflowConstants.LAST_HEARTBEAT, TIMESTAMP),
+				Pair.with(WorkflowConstants.TOTAL_NODES, INTEGER),
+				Pair.with(WorkflowConstants.COMPLETED_NODES, INTEGER),
+				Pair.with(WorkflowConstants.CREATED_BY, VARCHAR_255),
+				Pair.with(WorkflowConstants.PARENT_RUN_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.PARENT_NODE_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.CANCEL_REQUESTED, BOOLEAN)));
+
+		addTable(WorkflowConstants.TABLE_WORKFLOW_NODE_OUTPUTS, Arrays.asList(
+				Pair.with(WorkflowConstants.RUN_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.NODE_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.NODE_LABEL, VARCHAR_512),
+				Pair.with(WorkflowConstants.EXECUTION_ORDER, INTEGER),
+				Pair.with(WorkflowConstants.STATUS, VARCHAR_200),
+				Pair.with(WorkflowConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.DURATION_MS, BIGINT),
+				Pair.with(WorkflowConstants.OUTPUT_VAR, VARCHAR_255),
+				Pair.with(WorkflowConstants.OUTPUT_VALUE, CLOB),
+				Pair.with(WorkflowConstants.OUTPUT_PREVIEW, VARCHAR_2000),
+				Pair.with(WorkflowConstants.ROW_COUNT, INTEGER),
+				Pair.with(WorkflowConstants.ERROR_MESSAGE, CLOB)));
+
+		addTable(WorkflowConstants.TABLE_WORKFLOW_FOREACH_ROWS, Arrays.asList(
+				Pair.with(WorkflowConstants.RUN_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.NODE_ID, VARCHAR_255),
+				Pair.with(WorkflowConstants.ROW_INDEX, INTEGER),
+				Pair.with(WorkflowConstants.ROW_KEY, VARCHAR_1000),
+				Pair.with(WorkflowConstants.STATUS, VARCHAR_200),
+				Pair.with(WorkflowConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(WorkflowConstants.DURATION_MS, BIGINT),
+				Pair.with(WorkflowConstants.ERROR_MESSAGE, CLOB)));
 		// @formatter:on
 	}
 

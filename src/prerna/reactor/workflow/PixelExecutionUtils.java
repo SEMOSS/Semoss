@@ -41,9 +41,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -67,7 +64,6 @@ import prerna.sablecc2.om.task.ITask;
 public final class PixelExecutionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelExecutionUtils.class);
-	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	private PixelExecutionUtils() {
 		// static utility - no instantiation
@@ -139,7 +135,7 @@ public final class PixelExecutionUtils {
 		if (result instanceof String) {
 			return (String) result;
 		}
-		return GSON.toJson(result);
+		return WorkflowExecutionUtils.GSON.toJson(result);
 	}
 
 	/**

@@ -40,13 +40,19 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Cancels a running workflow. Takes effect between nodes (cannot interrupt mid-pixel).
+ * Requests cancellation of a running workflow. Takes effect between nodes (cannot interrupt
+ * mid-pixel).
  *
  * <p>Pixel: {@code CancelWorkflowRun(project=["appId"], runId=["running-run-id"])}
  *
- * <p>Sets a cancellation flag that the {@link TriggerWorkflowReactor} executor checks
- * between node executions. If the run is not currently active in this JVM, updates
- * the DB status directly to CANCELLED.
+ * <p>Sets a cluster-safe cancellation flag ({@code WORKFLOW_RUNS.CANCEL_REQUESTED}, via
+ * {@link WorkflowDatabaseUtility#setCancelRequested(String)}) that the executing pod's
+ * between-node check polls regardless of which pod that is - this is the source of truth. Also
+ * attempts an in-memory same-pod signal ({@link TriggerWorkflowReactor#requestCancellation(String)})
+ * as a fast path when the run happens to be executing on the pod that received this request. The
+ * run's {@code STATUS} is transitioned to CANCELLED by whichever pod is actually executing it,
+ * not by this reactor - a truly orphaned run (no pod executing it) is instead caught by the
+ * periodic stale-heartbeat sweep.
  */
 public class CancelWorkflowRunReactor extends AbstractReactor {
 
@@ -88,21 +94,25 @@ public class CancelWorkflowRunReactor extends AbstractReactor {
 					"Can only cancel RUNNING workflows. Current status: " + status);
 		}
 
-		// Try to signal the in-process executor
-		boolean signalled = TriggerWorkflowReactor.requestCancellation(runId);
+		// Signal cancellation. The cluster-safe DB flag is always set - this is what the pod
+		// actually executing the run (which may not be this pod) polls between nodes via
+		// WorkflowDatabaseUtility.isCancelRequested(). The in-memory signal is a same-pod fast
+		// path only. Unlike the prior implementation, we no longer force the run's STATUS to
+		// CANCELLED when the in-memory signal isn't found on this pod - the run may genuinely
+		// still be executing on a different pod in a cluster, and overwriting its status here
+		// would be a lie (see epic #2741 - this is the exact gap that was flagged). The
+		// executing pod transitions STATUS to CANCELLED itself once it observes the flag; a
+		// truly orphaned run (crashed, nobody polling) is caught by the periodic stale-heartbeat
+		// sweep (WorkflowDatabaseUtility.markStaleRunsInterrupted) instead.
+		boolean signalledLocally = TriggerWorkflowReactor.requestCancellation(runId);
+		WorkflowDatabaseUtility.setCancelRequested(runId);
 
-		if (!signalled) {
-			// Run is not active in this JVM (orphaned RUNNING row) - mark directly
-			WorkflowDatabaseUtility.updateRunStatus(runId,
-					WorkflowConstants.STATUS_CANCELLED, null, "Cancelled by user");
-		}
-
-		classLogger.info("Cancel requested for workflow run {}: signalled={}", runId, signalled);
+		classLogger.info("Cancel requested for workflow run {}: signalledLocally={}", runId, signalledLocally);
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(WorkflowConstants.RUN_ID, runId);
-		result.put(WorkflowConstants.STATUS, WorkflowConstants.STATUS_CANCELLED);
-		result.put("signalled", signalled);
+		result.put("cancelRequested", true);
+		result.put("signalledLocally", signalledLocally);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 }

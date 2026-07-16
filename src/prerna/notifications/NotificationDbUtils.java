@@ -203,6 +203,28 @@ public class NotificationDbUtils {
 	}
 
 	/**
+	 * Convenience overload for callers (e.g. the Automation workflow engine's notification node
+	 * executor) that don't already hold a resolved {@code IRDBMSEngine} handle to the
+	 * notification DB. Resolves it internally via {@link SystemEngineRegistry#getNotificationDb()}
+	 * - that call must originate from within this ({@code prerna.notifications}) package, since
+	 * the registry enforces a per-engine caller allowlist; callers outside it (e.g.
+	 * {@code prerna.reactor.workflow}) would get a {@code SecurityException} calling
+	 * {@code getNotificationDb()} directly themselves.
+	 */
+	public static String insertNotification(String recipientId, String recipientType,
+			String title, String message, String priority, String notificationType, String catalogId,
+			String createdBy, String notificationSource, String userId, String userType,
+			String previousRole, String newRole) throws SQLException {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
+		if (notificationDb == null) {
+			throw new IllegalStateException("Notification database is not configured in this SEMOSS instance");
+		}
+		return insertNotification(notificationDb, recipientId, recipientType, title, message, priority,
+				notificationType, catalogId, createdBy, notificationSource, userId, userType,
+				previousRole, newRole);
+	}
+
+	/**
 	 * Add notification into database
 	 *
 	 * @param loggedInUser             - The logged-in user performing the action

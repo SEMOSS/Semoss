@@ -48,6 +48,13 @@ public class WorkflowConstants {
     public static final String TABLE_WORKFLOW_RUNS = "WORKFLOW_RUNS";
     public static final String TABLE_WORKFLOW_NODE_OUTPUTS = "WORKFLOW_NODE_OUTPUTS";
     public static final String TABLE_WORKFLOW_FOREACH_ROWS = "WORKFLOW_FOREACH_ROWS";
+    /**
+     * Single-row-per-project marker table enforcing "at most one active run per project"
+     * cluster-wide, via a primary key on PROJECT_ID. Claiming a row is an atomic INSERT
+     * (fails with a constraint violation if another run already holds it); the row is
+     * released on any terminal run status.
+     */
+    public static final String TABLE_WORKFLOW_ACTIVE_RUN = "WORKFLOW_ACTIVE_RUN";
 
     // -- WORKFLOW_RUNS columns -----------------------------------------------------
 
@@ -67,6 +74,16 @@ public class WorkflowConstants {
     public static final String CREATED_BY = "CREATED_BY";
     public static final String PARENT_RUN_ID = "PARENT_RUN_ID";
     public static final String PARENT_NODE_ID = "PARENT_NODE_ID";
+    /**
+     * Cluster-safe cancellation flag. Set by CancelWorkflowRunReactor regardless of which
+     * pod receives the cancel request; polled by the executing pod's between-node check
+     * alongside the in-memory (same-pod fast path) AtomicBoolean.
+     */
+    public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
+
+    // -- WORKFLOW_ACTIVE_RUN columns ------------------------------------------------
+
+    public static final String CLAIMED_AT = "CLAIMED_AT";
 
     // -- WORKFLOW_NODE_OUTPUTS columns ---------------------------------------------
 

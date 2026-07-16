@@ -41,8 +41,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.util.AssetUtility;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Shared static utilities for the workflow execution engine.
@@ -54,7 +57,15 @@ import java.nio.file.Files;
 public final class WorkflowExecutionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(WorkflowExecutionUtils.class);
-	static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+	/**
+	 * Shared Gson instance for the whole workflow engine (this class, {@code PixelExecutionUtils},
+	 * {@code WorkflowDatabaseUtility}, {@code ForEachNodeExecutor}, and every executor in
+	 * {@code prerna.reactor.workflow.nodes}) - public so the {@code nodes} sub-package, which
+	 * can't see a package-private member of this package, has one shared instance to reuse
+	 * instead of each file declaring its own {@code new GsonBuilder()...create()} copy or
+	 * scattering unconfigured {@code new Gson()} calls.
+	 */
+	public static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	private WorkflowExecutionUtils() {}
 
@@ -231,5 +242,108 @@ public final class WorkflowExecutionUtils {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+
+	// -- Config value coercion -------------------------------------------------------
+
+	/**
+	 * Returns the trimmed string form of a node config value, or {@code null} if the value is
+	 * {@code null} or blank. Used throughout the node executors to read optional string config
+	 * fields without repeating a null/blank check at every call site.
+	 */
+	public static String strCfg(Object v) {
+		return (v != null && !v.toString().isBlank()) ? v.toString() : null;
+	}
+
+	/**
+	 * Config values that are conceptually maps (e.g. sub-workflow {@code inputMapping}) may
+	 * arrive either as an already-parsed JSON object (workflow.json authored programmatically)
+	 * or as a raw JSON string (FE forms that store map-shaped config in a textarea, matching
+	 * the convention used by fields like {@code paramValues}/{@code metaFilters}). Normalize
+	 * either shape to a Map, or an empty map if absent/unparseable.
+	 */
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> coerceToMap(Object raw) {
+		if (raw instanceof Map) {
+			return (Map<String, Object>) raw;
+		}
+		if (raw instanceof String str && !str.isBlank()) {
+			Map<String, Object> parsed = parseJson(str);
+			if (parsed != null) return parsed;
+		}
+		return new HashMap<>();
+	}
+
+	// -- Workflow document loading ---------------------------------------------------
+
+	/**
+	 * Loads and parses a project's {@code workflow.json} (graph + trigger config) into a
+	 * generic map. Throws if the file is missing (the caller is expected to have the user save
+	 * a workflow first) or unreadable.
+	 */
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> loadWorkflowDoc(String projectId) {
+		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
+		File f = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_FILE_NAME);
+		if (!f.exists()) {
+			throw new IllegalArgumentException("No workflow.json found for this project. Save a workflow first.");
+		}
+		try {
+			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
+			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+		} catch (IOException e) {
+			throw new IllegalStateException("Failed to read workflow.json: " + e.getMessage(), e);
+		}
+	}
+
+	// -- Topological sort -------------------------------------------------------------
+
+	/**
+	 * Topologically sorts a node/edge graph (Kahn's algorithm). Nodes with no incoming edges are
+	 * seeded in node-array order, so a linear workflow authored with no edges still runs
+	 * top-to-bottom in the order the nodes were defined.
+	 */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> topoSort(List<Map<String, Object>> nodes,
+			List<Map<String, Object>> edges) {
+		if (nodes == null || nodes.isEmpty()) return new ArrayList<>();
+
+		Map<String, Integer> inDegree = new HashMap<>();
+		Map<String, List<String>> adj = new HashMap<>();
+
+		for (Map<String, Object> n : nodes) {
+			String id = (String) n.get("id");
+			inDegree.put(id, 0);
+			adj.put(id, new ArrayList<>());
+		}
+		if (edges != null) {
+			for (Map<String, Object> e : edges) {
+				String src = (String) e.get("source");
+				String tgt = (String) e.get("target");
+				adj.computeIfAbsent(src, k -> new ArrayList<>()).add(tgt);
+				inDegree.merge(tgt, 1, Integer::sum);
+			}
+		}
+
+		// Seed in nodes-array order so a linear workflow with no edges runs top-to-bottom
+		Queue<String> queue = new LinkedList<>();
+		for (Map<String, Object> n : nodes) {
+			String id = (String) n.get("id");
+			if (inDegree.getOrDefault(id, 0) == 0) queue.add(id);
+		}
+
+		Map<String, Map<String, Object>> nodeById = new HashMap<>();
+		for (Map<String, Object> n : nodes) nodeById.put((String) n.get("id"), n);
+
+		List<Map<String, Object>> sorted = new ArrayList<>();
+		while (!queue.isEmpty()) {
+			String id = queue.poll();
+			sorted.add(nodeById.get(id));
+			for (String neighbor : adj.getOrDefault(id, new ArrayList<>())) {
+				int deg = inDegree.merge(neighbor, -1, Integer::sum);
+				if (deg == 0) queue.add(neighbor);
+			}
+		}
+		return sorted;
 	}
 }

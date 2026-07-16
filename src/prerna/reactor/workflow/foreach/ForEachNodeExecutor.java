@@ -36,16 +36,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import prerna.om.Insight;
 import prerna.reactor.workflow.PixelExecutionUtils;
 import prerna.reactor.workflow.WorkflowConstants;
 import prerna.reactor.workflow.WorkflowDatabaseUtility;
 import prerna.reactor.workflow.WorkflowDatabaseUtility.ForEachRowResult;
 import prerna.reactor.workflow.WorkflowExecutionUtils;
+import prerna.reactor.workflow.nodes.IWorkflowNodeExecutor;
+import prerna.reactor.workflow.nodes.WorkflowNodeContext;
 
 /**
  * Executes a for-each node: iterates over rows of a prior node's output,
@@ -60,35 +58,37 @@ import prerna.reactor.workflow.WorkflowExecutionUtils;
  *   <li>Returns aggregate result: {processed, succeeded, failed}</li>
  * </ul>
  *
- * <p>Called by {@link prerna.reactor.workflow.TriggerWorkflowReactor} when a node
- * has {@code "type": "for-each"}.
+ * <p>Resolved via the {@code IWorkflowNodeExecutor} registry in
+ * {@link prerna.reactor.workflow.TriggerWorkflowReactor} for nodes with
+ * {@code "type": "for-each"}. Note: the aggregate result's {@code totalRows} entry is read by
+ * {@code executeSingleNode} to populate the node checkpoint's {@code ROW_COUNT} column - this is
+ * the one node type that populates it.
  */
-public final class ForEachNodeExecutor {
+public final class ForEachNodeExecutor implements IWorkflowNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(ForEachNodeExecutor.class);
-	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
-
-	private ForEachNodeExecutor() {
-		// static utility
-	}
 
 	/**
 	 * Execute a for-each node.
 	 *
-	 * @param insight    the execution context
-	 * @param node       the for-each node definition from workflow.json
-	 * @param scope      the current execution scope (prior node outputs)
-	 * @param configMap  workflow config key-value pairs
-	 * @param runId      the current run ID (for DB persistence)
-	 * @param cancelled  shared cancellation flag
-	 * @return aggregate result map with keys: processed, succeeded, failed
+	 * @param ctx the node's execution context - {@code runId}, {@code node}, {@code scope},
+	 *            {@code configMap}, {@code insight}, and {@code cancelFlag} are used;
+	 *            {@code nodeDispatcher}/{@code childWorkflowRunner} are not needed by this node
+	 *            type (inner nodes run their compiled Pixel directly, not through the top-level
+	 *            dispatcher)
+	 * @return aggregate result map with keys: processed, succeeded, failed, totalRows
 	 */
+	@Override
 	@SuppressWarnings("unchecked")
-	public static Map<String, Object> execute(Insight insight, Map<String, Object> node,
-			Map<String, String> scope, Map<String, String> configMap,
-			String runId, AtomicBoolean cancelled) {
+	public Map<String, Object> execute(WorkflowNodeContext ctx) {
+		Insight insight = ctx.insight();
+		Map<String, Object> node = ctx.node();
+		Map<String, String> scope = ctx.scope();
+		Map<String, String> configMap = ctx.configMap();
+		String runId = ctx.runId();
+		AtomicBoolean cancelled = ctx.cancelFlag();
 
-		String nodeId = (String) node.get("id");
+		String nodeId = ctx.nodeId();
 		Map<String, Object> config = (Map<String, Object>) node.get("config");
 		if (config == null) {
 			throw new IllegalStateException("For-each node \"" + node.get("label") + "\" has no config");
@@ -195,7 +195,7 @@ public final class ForEachNodeExecutor {
 			subScope.put(key, value);
 		}
 		// Also add the full row as JSON under the iterator variable name
-		subScope.put(iteratorVar, GSON.toJson(row));
+		subScope.put(iteratorVar, WorkflowExecutionUtils.GSON.toJson(row));
 
 		// Run inner nodes sequentially
 		for (Map<String, Object> innerNode : innerNodes) {
@@ -226,7 +226,7 @@ public final class ForEachNodeExecutor {
 		}
 
 		try {
-			Object parsed = GSON.fromJson(sourceJson, Object.class);
+			Object parsed = WorkflowExecutionUtils.GSON.fromJson(sourceJson, Object.class);
 			if (parsed instanceof List) {
 				List<?> list = (List<?>) parsed;
 				List<Map<String, Object>> result = new ArrayList<>();
@@ -264,6 +264,4 @@ public final class ForEachNodeExecutor {
 		int lastProcessed = WorkflowDatabaseUtility.getForEachLastProcessedIndex(runId, nodeId);
 		return lastProcessed; // -1 means start from beginning
 	}
-
-	// (resolve, getNodeTimeout moved to WorkflowExecutionUtils)
 }
