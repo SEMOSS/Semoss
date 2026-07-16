@@ -42,11 +42,12 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_TYPE_TEXT_LENGTH = 2000;
 	private static final int MAX_KEY_LENGTH = 64;
 	private static final int MAX_URL_LENGTH = 2048;
+	private static final int MAX_REQUEST_ID_LENGTH = 128;
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
 					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
-					"recording-control"));
+					"recording-control", "context-snapshot"));
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -129,6 +130,15 @@ public class RemoteBrowserInputEventValidator {
 		case "recording-control":
 			if (event.getRecording() == null && event.getRecord() == null) {
 				throw new IllegalArgumentException("recording-control event requires 'recording' or 'record'");
+			}
+			break;
+
+		case "context-snapshot":
+			if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+				throw new IllegalArgumentException("context-snapshot event requires 'requestId'");
+			}
+			if (event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
+				throw new IllegalArgumentException("context-snapshot requestId exceeds max length");
 			}
 			break;
 
