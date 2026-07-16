@@ -136,7 +136,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				Map<String, String> skillMap = new HashMap<>();
 				skillMap.put("id", resourceId);
 				skillMap.put("type", rType);
-				skillMap.put("name", info.name);
+				skillMap.put("name", info.displayName);
 				skillMap.put("slug", info.slug);
 				if (info.description != null) {
 					skillMap.put("description", info.description);
