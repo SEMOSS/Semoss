@@ -790,8 +790,8 @@ public class Room implements Serializable {
 	 * full tool definition maps for the LLM call.
 	 *
 	 * <p>
-	 * External-CLI harnesses ({@code claude_code}, {@code github_copilot},
-	 * {@code github_copilot_py}) take a sibling path:
+	 * External-CLI harnesses ({@code claude_code}, {@code github_copilot_py}) take
+	 * a sibling path:
 	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
 	 * the same two sources, but returning engine refs ({@code id}/{@code name})
 	 * rather than resolved tool defs - the external CLI does its own MCP handshake
