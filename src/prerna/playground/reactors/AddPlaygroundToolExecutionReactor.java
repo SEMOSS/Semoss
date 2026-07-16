@@ -150,9 +150,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
 
-			// No assistant follow-up appended (more tools pending, or a cancel dedupe/strand hit).
+			// A follow-up assistant turn was appended only when the live LLM returned a response, or the
+			// prebuilt response was slotted in as the room tail (cancel path, all tools answered). Identity on
+			// prebuiltResponse can't be fooled by orphan-tool sanitization leaving a stale ResponseMessage tail.
 			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
-			if (!(tail instanceof ResponseMessage)) {
+			boolean followUpAppended = prebuiltResponse != null ? tail == prebuiltResponse : response != null;
+			if (!followUpAppended) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
 				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
@@ -163,8 +166,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			ResponseMessage lastMessage = (ResponseMessage) tail;
 
 			if (prebuiltResponse != null) {
-				// Cancel path: append the optional hidden user-note/assistant-ack pair after the persisted response.
-				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
+				// Cancel path: append the optional hidden user-note/assistant-ack pair only after a concluding
+				// text response, never between tool calls.
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
 							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
 				}

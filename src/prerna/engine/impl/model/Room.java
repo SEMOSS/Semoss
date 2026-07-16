@@ -455,6 +455,7 @@ public class Room implements Serializable {
 
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
+			boolean appendedPartThisCall = false;
 
 			// Idempotency guard: reuse the existing carrier if toolCallId was already answered, to avoid duplicate tool_result blocks.
 			InputMessage existingCarrier = null;
@@ -495,6 +496,7 @@ public class Room implements Serializable {
 				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
 						toolExecutionResponse, toolParameterValues, toolStatus, false)));
 				toolResultsMessage.normalizeForWrite();
+				appendedPartThisCall = true;
 			}
 
 			if (isToolResultsInputMessage) {
@@ -509,7 +511,8 @@ public class Room implements Serializable {
 				return null;
 			}
 			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-					modelEngine, userId, true, prebuiltResponse, toolCallId, isToolResultsInputMessage);
+					modelEngine, userId, true, prebuiltResponse, toolCallId, isToolResultsInputMessage,
+					appendedPartThisCall);
 		}
 	}
 
@@ -620,13 +623,13 @@ public class Room implements Serializable {
 			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
 			boolean removeToolResultsOnFailure) {
 		return continueFromToolResultsMessage(toolResponseIdx, toolResultsMessage, paramValuesMap, modelEngine, userId,
-				removeToolResultsOnFailure, null, null, false);
+				removeToolResultsOnFailure, null, null, false, false);
 	}
 
 	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
 			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
 			boolean removeToolResultsOnFailure, ResponseMessage prebuiltResponse, String toolCallId,
-			boolean isToolResultsInputMessage) {
+			boolean isToolResultsInputMessage, boolean appendedPartThisCall) {
 		String messageJsonString = RoomMessageStore.currentMessageHistory(this);
 		if (paramValuesMap == null) {
 			paramValuesMap = new HashMap<>();
@@ -667,14 +670,18 @@ public class Room implements Serializable {
 					if (isToolResultsInputMessage) {
 						messages.removeLast();
 					} else if (toolCallId != null) {
-						toolResultsMessage.getParts().removeIf(p -> {
-							if (p instanceof ToolResultMessagePart) {
-								ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
-								return tr != null && toolCallId.equals(tr.getToolCallId());
-							}
-							return false;
-						});
-						toolResultsMessage.normalizeForWrite();
+						// Only strip the part when this call actually appended it; on the dedupe-reuse
+						// path the part pre-existed and must survive the failure.
+						if (appendedPartThisCall) {
+							toolResultsMessage.getParts().removeIf(p -> {
+								if (p instanceof ToolResultMessagePart) {
+									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+									return tr != null && toolCallId.equals(tr.getToolCallId());
+								}
+								return false;
+							});
+							toolResultsMessage.normalizeForWrite();
+						}
 					} else {
 						messages.removeLast();
 					}

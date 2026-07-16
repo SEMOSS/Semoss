@@ -159,6 +159,15 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 									// ignore - we're cancelling anyway
 								}
 							});
+							// Cancel may have fired before the hook was registered; honor it now so the
+							// pending readLine() unblocks instead of waiting for the first streamed line.
+							if (jobRunner.isCancelRequested()) {
+								try {
+									responseRef.close();
+								} catch (Exception ignored) {
+									// ignore - we're cancelling anyway
+								}
+							}
 						}
 						try (BufferedReader reader = new BufferedReader(
 								new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {

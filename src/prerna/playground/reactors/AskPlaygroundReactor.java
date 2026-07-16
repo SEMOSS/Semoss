@@ -200,7 +200,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				room.getMessages().add(msg);
 				room.getMessages().add(response);
 
-				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
+				// Append the hidden pair only after a concluding text response, never between tool calls.
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
 					PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
 							extrasOut);
 				}
