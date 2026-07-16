@@ -389,16 +389,7 @@ public class Room implements Serializable {
 				paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, null);
 	}
 
-	/**
-	 * Overload for the cancel-persistence path. Behaves exactly like
-	 * {@link #addToolExecutionResult(String, String, String, Map, Map, String, IModelEngine, Insight, String)}
-	 * except that when all tool_call_ids are answered and {@code prebuiltResponse}
-	 * is non-null, the LLM follow-up call is skipped and {@code prebuiltResponse}
-	 * is used as the next assistant message. Returns {@code null} in the
-	 * prebuilt path (the appended response is the last message in room history);
-	 * callers should route on the prebuilt-response presence, not the return
-	 * value, when using this overload.
-	 */
+	/** Cancel-persistence overload: when all tools are answered, slots in prebuiltResponse instead of calling the LLM. */
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
@@ -465,14 +456,7 @@ public class Room implements Serializable {
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
 
-			// Idempotency guard: if this toolCallId is already present in some
-			// tool_result InputMessage in the branch, skip the append entirely
-			// and reuse that message. Duplicate tool_result blocks with the same
-			// id cause providers to reject the next askRoom payload with
-			// "each tool_use must have a single result." This can happen when a
-			// live AddPlaygroundToolExecution call and a cancel-commit call
-			// both fire for the same tool, or on any FE retry / refresh-then-
-			// resend path.
+			// Idempotency guard: reuse the existing carrier if toolCallId was already answered, to avoid duplicate tool_result blocks.
 			InputMessage existingCarrier = null;
 			for (int i = context.toolResponseIdx + 1; i < messages.size(); ++i) {
 				AbstractMessage m = messages.get(i);
@@ -496,10 +480,7 @@ public class Room implements Serializable {
 			}
 
 			if (existingCarrier != null) {
-				// Duplicate submission — the tool_result for this call is already
-				// recorded. Reuse it so downstream code (all-answered checks,
-				// logging, transaction id propagation) still has a message to
-				// reference, but don't add a second ToolResultMessagePart.
+				// Duplicate submission — reuse the existing message instead of appending a second part.
 				toolResultsMessage = existingCarrier;
 			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
@@ -520,11 +501,7 @@ public class Room implements Serializable {
 				messages.add(toolResultsMessage);
 			}
 			if (!continueWhenReady || !allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
-				// Cancel-commit stranding the pending tools: sanitize orphan
-				// tool_use blocks (and their trailing tool_results) so the FE
-				// sees a clean room on refresh and the next askRoom payload
-				// stays valid. Only runs on the cancel-commit path; the live
-				// multi-tool turn intentionally keeps unanswered ids in place.
+				// Cancel-commit stranding pending tools: sanitize orphan tool_use blocks before persist.
 				if (prebuiltResponse != null) {
 					RoomMessageStore.normalizeForProviderPayload(this);
 				}
@@ -673,9 +650,7 @@ public class Room implements Serializable {
 		AskModelEngineResponse llmResponse = null;
 		ResponseMessage nextAssistant = null;
 		if (prebuiltResponse != null) {
-			// Cancel-persistence path: caller supplied the follow-up response
-			// (assembled from FE-streamed parts). Skip the LLM call and slot the
-			// pre-built message in as the next assistant message.
+			// Cancel-persistence path: skip the LLM call, slot in the caller-supplied response.
 			nextAssistant = prebuiltResponse;
 			nextAssistant.setModel(modelEngine);
 			nextAssistant.setRoom(this);
@@ -687,13 +662,7 @@ public class Room implements Serializable {
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
-				// Rollback: only remove what THIS call added.
-				//   isToolResultsInputMessage = true  → we created & appended a fresh
-				//     InputMessage this call; pop it wholesale.
-				//   false → we appended a part to an existing InputMessage that
-				//     already carried tool_results from prior calls. Removing the
-				//     whole message would nuke that prior data. Revert only the
-				//     part we added for this toolCallId.
+				// Rollback: remove only what this call added, not the whole message.
 				if (removeToolResultsOnFailure && !messages.isEmpty()) {
 					if (isToolResultsInputMessage) {
 						messages.removeLast();

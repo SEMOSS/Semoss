@@ -61,11 +61,7 @@ public class PixelJobRunner implements Runnable {
 	private List<String> pixel;
 	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
-	/**
-	 * Optional hook invoked during cancellation to abort any in-flight blocking
-	 * I/O (e.g. closing an HTTP response stream) that would not otherwise respond
-	 * to Thread.interrupt().
-	 */
+	/** Fired during cancellation to abort blocking I/O that Thread.interrupt() can't unblock. */
 	private volatile Runnable cancelHook;
 
 	private Map<String, String> log4jContextMap;
@@ -137,7 +133,6 @@ public class PixelJobRunner implements Runnable {
 		if (this.runner != null) {
 			this.runner.cancelRequest();
 		}
-		// run any registered I/O abort hook (e.g. close an SSE HTTP response)
 		Runnable hook = this.cancelHook;
 		if (hook != null) {
 			try {
@@ -149,11 +144,7 @@ public class PixelJobRunner implements Runnable {
 		return true;
 	}
 
-	/**
-	 * Register a hook that will be called during cancellation to abort
-	 * in-flight blocking I/O that cannot be interrupted via Thread.interrupt().
-	 * Pass {@code null} to clear a previously registered hook.
-	 */
+	/** Set or clear (pass null) the cancellation hook. */
 	public void setCancelHook(Runnable hook) {
 		this.cancelHook = hook;
 	}

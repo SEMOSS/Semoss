@@ -68,20 +68,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
 
-	/**
-	 * When present, the LLM follow-up call is skipped and the reactor persists
-	 * the tool-result input plus a follow-up assembled from the caller-supplied
-	 * response parts. Used by the FE cancel flow when the user stopped a stream
-	 * that fired after a tool completed.
-	 */
+	/** When present, skips the LLM follow-up call and persists a response built from these parts (cancel flow). */
 	private static final String RESPONSE_PARTS_KEY = "responseParts";
 
-	/**
-	 * Cancel-flow only. When paired with {@link #RESPONSE_PARTS_KEY}, a hidden
-	 * user note carrying this string is appended after the tool follow-up (plus
-	 * an auto-generated assistant ack) so the model sees on the next turn that
-	 * its previous response was cut short. Ignored on live LLM calls.
-	 */
+	/** Cancel-flow only: hidden user note appended after the tool follow-up, paired with {@link #RESPONSE_PARTS_KEY}. */
 	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
 
 	public AddPlaygroundToolExecutionReactor() {
@@ -151,9 +141,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> pixelReturn = new HashMap<>();
-		// Collects any non-visible messages persisted alongside the visible pair
-		// (currently only the cancel-flow hidden pair) so they can be surfaced
-		// back to the FE via `extraMessages`. Always emitted, empty on live turns.
+		// Non-visible messages (currently only the cancel-flow hidden pair) surfaced via `extraMessages`.
 		List<AbstractMessage> extraMessages = new ArrayList<>();
 		try {
 			ResponseMessage prebuiltResponse = responseParts != null
@@ -162,14 +150,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
 
-			// No assistant follow-up was appended. Three ways to get here:
-			// (1) live LLM path, more tools pending (existing behavior)
-			// (2) cancel-persistence path with a live-race dedupe hit
-			// (3) cancel-persistence path where the caller sent responseParts
-			//     but not all tool_call_ids are answered yet
-			// The hidden pair is intentionally NOT appended here — it only
-			// makes sense parented on a real follow-up ResponseMessage, which
-			// doesn't exist in any of these cases.
+			// No assistant follow-up appended (more tools pending, or a cancel dedupe/strand hit).
 			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
 			if (!(tail instanceof ResponseMessage)) {
 				pixelReturn.put("responseMessage",
@@ -182,10 +163,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			ResponseMessage lastMessage = (ResponseMessage) tail;
 
 			if (prebuiltResponse != null) {
-				// Cancel path: the FE-supplied response is already persisted by
-				// Room#addToolExecutionResult. Append the optional hidden
-				// user-note / assistant-ack pair after it so the model sees on
-				// the next turn that its response was cut short.
+				// Cancel path: append the optional hidden user-note/assistant-ack pair after the persisted response.
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
 					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
 							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
@@ -201,12 +179,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			pixelReturn.put("inputMessage", inputMap);
 			pixelReturn.put("responseMessage", responseMap);
 
-			// Extra (non-visible) input/response pairs — same shape as
-			// {inputMessage, responseMessage} above, repeated per extra turn.
-			// Currently only populated on the cancel path with the hidden
-			// user-note/assistant-ack pair. Assumes extras arrive strictly as
-			// InputMessage+Response couplets in conversation order (which
-			// appendHiddenPair guarantees).
+			// Extra (non-visible) input/response pairs, same shape as inputMessage/responseMessage above.
 			List<Map<String, Object>> extraMessagesList = new ArrayList<>();
 			for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
 				Map<String, Object> pair = new LinkedHashMap<>();
@@ -224,13 +197,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * Wrap {@link PlaygroundUtils#appendHiddenPair} in its own mutation lock +
-	 * persist step. AskPlayground's cancel path invokes the shared helper
-	 * directly (it's already inside a lock/persist scope); this reactor calls
-	 * it after {@code Room.addToolExecutionResult} has returned, so it needs
-	 * its own boundary.
-	 */
+	/** Wraps {@link PlaygroundUtils#appendHiddenPair} with its own mutation lock + persist. */
 	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
 			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {

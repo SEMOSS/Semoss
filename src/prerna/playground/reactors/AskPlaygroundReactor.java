@@ -60,19 +60,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
-	/**
-	 * When present, the LLM call is skipped and the reactor persists a turn
-	 * assembled from the caller-supplied response parts instead. Used by the FE
-	 * cancel flow to commit whatever streamed before the user hit stop.
-	 */
+	/** When present, skips the LLM call and persists a turn built from these parts (cancel flow). */
 	private static final String RESPONSE_PARTS_KEY = "responseParts";
 
-	/**
-	 * Cancel-flow only. When paired with {@link #RESPONSE_PARTS_KEY}, a hidden
-	 * user note carrying this string is appended after the visible turn (plus
-	 * an auto-generated assistant ack) so the model sees on the next turn that
-	 * its previous response was cut short. Ignored on live LLM calls.
-	 */
+	/** Cancel-flow only: hidden user note appended after the visible turn, paired with {@link #RESPONSE_PARTS_KEY}. */
 	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
 
 	public AskPlaygroundReactor() {
@@ -131,22 +122,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				// .withTools(tools)
 				.build();
 
-		// Collects any non-visible messages (e.g. cancel-flow hidden pair) so
-		// they can be surfaced back to the FE via `extraMessages` in the return
-		// map. The FE won't render them, but does need them to stay in sync
-		// with the room's provider history.
+		// Non-visible messages (e.g. cancel-flow hidden pair) surfaced back to the FE via `extraMessages`.
 		List<AbstractMessage> extraMessages = new ArrayList<>();
 
 		ResponseMessage response;
 		if (responseParts != null) {
-			// ---- FE-supplied response (cancel flow): skip the LLM call and persist
-			// the input + a response built from the caller-supplied parts. Mirrors
-			// the surrounding scaffold of Room.ask so the persisted turn looks
-			// identical to a live one.
+			// Cancel flow: skip the LLM call, persist a turn built from the caller-supplied parts.
 			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage,
 					extraMessages);
 		} else {
-			// ---- Actually run LLM call
 			response = room.ask(msg, modelEngine, parentMessageId);
 
 			// parse the response for code blocks
@@ -172,13 +156,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
-		// Extra (non-visible) input/response pairs persisted alongside the
-		// visible pair — same shape as {inputMessage, responseMessage} above,
-		// just repeated for each extra turn. Currently only populated on the
-		// cancel path with the hidden user-note/assistant-ack pair, but always
-		// emitted (as an empty list on normal turns) so the FE contract stays
-		// consistent. Assumes extras arrive strictly as InputMessage+Response
-		// couplets in conversation order (which appendHiddenPair guarantees).
+		// Extra (non-visible) input/response pairs, same shape as inputMessage/responseMessage above.
 		List<Map<String, Object>> extraMessagesList = new ArrayList<>();
 		for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
 			Map<String, Object> pair = new LinkedHashMap<>();
@@ -191,14 +169,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
-	/**
-	 * Persist a caller-provided input + response as a completed turn. Mirrors
-	 * the surrounding scaffold of {@link Room#ask} (mutation lock, latest
-	 * projection refresh, orphan-tool normalization, parent-id resolution,
-	 * append, room-name inference, persist) but skips the LLM call — the
-	 * response is built from {@code responseParts}. Optionally appends a hidden
-	 * user-note / assistant-ack pair after the visible turn.
-	 */
+	/** Persists a caller-provided input + response as a completed turn, mirroring {@link Room#ask}'s scaffold minus the LLM call. */
 	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
 			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage,
 			List<AbstractMessage> extrasOut) {
@@ -213,8 +184,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 				msg.setModel(modelEngine);
 
-				// Parent-id resolution mirrors Room.ask: explicit param wins, otherwise
-				// hang off the latest message, otherwise this is the first message.
+				// Parent-id resolution mirrors Room.ask: explicit param, else latest message, else null.
 				if (!room.getMessages().isEmpty()) {
 					if (parentMessageId != null && !parentMessageId.isEmpty()) {
 						msg.setParentMessageId(parentMessageId);

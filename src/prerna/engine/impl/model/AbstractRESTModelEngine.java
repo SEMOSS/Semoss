@@ -145,16 +145,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 				} else {
 					// Handle streaming response
 					if (entity != null) {
-						// Register a cancel hook on the PixelJobRunner so that
-						// StopPixelExecution can close this response mid-stream.
-						// Closing the response unblocks reader.readLine() with an
-						// IOException, which we detect below and convert to a clean
-						// cancellation exception rather than an error.
-						//
-						// NOTE: insightId != jobId — jobs are keyed by jobId in
-						// PixelJobManager. Use ThreadStore.getJobId() since this
-						// method runs on the PixelJobRunner thread which already
-						// has the correct jobId set in its ThreadLocal.
+						// Closing the response on cancel unblocks reader.readLine() with an IOException below.
 						final CloseableHttpResponse responseRef = response;
 						String threadJobId = ThreadStore.getJobId();
 						PixelJobRunner jobRunner = threadJobId != null
@@ -204,11 +195,7 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 							responseObject.setResponse(responseAssimilator.toString());
 							return responseObject;
 						} catch (Exception e) {
-							// If the user cancelled, the IOException came from us closing
-							// the response — let the upstream pixel cancel handler take
-							// over (it throws SemossPixelException). The FE then calls
-							// AskPlayground with responseParts to persist the visible
-							// partial.
+							// Cancel-triggered close surfaces as IOException here; convert to a clean cancellation.
 							if (Thread.currentThread().isInterrupted()
 									|| (jobRunner != null && jobRunner.isCancelRequested())) {
 								throw new IllegalStateException("LLM stream cancelled by user");

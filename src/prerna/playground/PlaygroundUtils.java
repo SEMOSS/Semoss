@@ -40,11 +40,7 @@ public class PlaygroundUtils {
 
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
 
-	/**
-	 * Canned assistant-side ack persisted after a hidden user note (e.g. the
-	 * "your prior response was cut short" note that follows a cancelled turn).
-	 * Kept so provider payloads stay role-alternating.
-	 */
+	/** Canned assistant ack persisted after a hidden user note, keeping provider payloads role-alternating. */
 	public static final String HIDDEN_MESSAGE_ACK = "Understood — I'll wait for your next instruction.";
 
 	public static final String FOLLOW_UP_SUGGESTIONS_PROMPT = """
@@ -72,15 +68,7 @@ public class PlaygroundUtils {
 			}
 			""";
 
-	/**
-	 * Build a ResponseMessage from a caller-supplied parts list, in order. Each
-	 * element is expected to be a Map with {@code type} = "THINKING" or "TEXT"
-	 * and the matching payload field. Always returns a message — empty when no
-	 * usable parts came through — so the caller's input/response pair stays
-	 * balanced. Other part types (TOOL_CALL/TOOL_RESULT/MEDIA) are intentionally
-	 * ignored: a cancelled stream shouldn't have them, and any half-formed
-	 * TOOL_CALL from a chained tool-use turn would be an orphan.
-	 */
+	/** Builds a ResponseMessage from caller-supplied THINKING/TEXT parts, in order; empty if none are usable. */
 	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
 		ResponseMessage.Builder builder = ResponseMessage.builder();
 		if (responseParts != null) {
@@ -108,17 +96,7 @@ public class PlaygroundUtils {
 		return builder.build();
 	}
 
-	/**
-	 * Build a hidden user-note + canned assistant-ack pair, parent it under
-	 * {@code hiddenParentId}, append both to the room's message list, and (if
-	 * {@code extrasOut} is non-null) record them for the pixel return.
-	 * Both messages are marked {@code visible=false, platformGenerated=true}
-	 * so they don't render but still ride along to the model on the next turn
-	 * via {@code RoomMessageStore.providerMessageHistory}.
-	 *
-	 * The caller is responsible for holding the room's mutation lock and
-	 * persisting after this call.
-	 */
+	/** Appends a hidden user-note/assistant-ack pair to the room; caller must hold the lock and persist after. */
 	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
 			String hiddenParentId, List<AbstractMessage> extrasOut) {
 		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
