@@ -249,7 +249,8 @@ public class SemossAgentHarness implements IAgentHarness {
 				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
 						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
-				response = room.ask(firstMsg, ctx.getModelEngine(), null);
+				response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+						"during initial model call");
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 			}
 			if (Thread.currentThread().isInterrupted()) {
@@ -275,13 +276,6 @@ public class SemossAgentHarness implements IAgentHarness {
 				enforceRunTimeBudget(state, enforcedMaxSeconds,
 						"after " + state.getIterations() + " iterations");
 
-				if (response == null) {
-					logger.warn("SemossAgentHarness: null response from model at iteration={} - treating as terminal",
-							state.getIterations());
-					state.setTerminal(true);
-					break;
-				}
-
 				// Continue the agent loop while the assistant response contains tool calls.
 				// Messages may also contain text/thinking parts; tool-call presence is the
 				// execution signal, not the legacy response-type field.
@@ -305,15 +299,8 @@ public class SemossAgentHarness implements IAgentHarness {
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
-
-					if (next != null) {
-						response = next;
-					} else {
-						logger.warn(
-								"SemossAgentHarness: no model response after tool batch at iteration={} - treating as terminal",
-								state.getIterations());
-						state.setTerminal(true);
-					}
+					response = requireModelResponse(next,
+							"after tool batch at iteration " + state.getIterations());
 
 				} else {
 					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
@@ -327,7 +314,8 @@ public class SemossAgentHarness implements IAgentHarness {
 								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
 								.withParamMap(reflectionParams).build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
-						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+						response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
+								"during reflection " + state.getReflectionsUsed());
 						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 
 					} else {
@@ -791,6 +779,13 @@ public class SemossAgentHarness implements IAgentHarness {
 					"Run-time budget of " + enforcedMaxSeconds + "s exceeded " + phase
 							+ " (" + elapsedMs + "ms elapsed)");
 		}
+	}
+
+	private static ResponseMessage requireModelResponse(ResponseMessage response, String phase) {
+		if (response == null) {
+			throw new IllegalStateException("Agent model returned no response " + phase);
+		}
+		return response;
 	}
 
 }

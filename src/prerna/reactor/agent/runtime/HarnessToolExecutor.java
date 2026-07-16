@@ -333,7 +333,7 @@ final class HarnessToolExecutor {
 		}
 		for (IToolHook hook : hooks) {
 			try {
-				hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, currentIter);
+				hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, new HashMap<>(tc.toolParams), currentIter);
 			} catch (Throwable t) {
 				logger.warn("HarnessToolExecutor: tool hook {}#beforeTool threw for tool '{}': {}",
 						hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
@@ -349,7 +349,7 @@ final class HarnessToolExecutor {
 		}
 		for (IToolHook hook : hooks) {
 			try {
-				hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, outcome.content, durMs,
+				hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, new HashMap<>(tc.toolParams), outcome.content, durMs,
 						outcome.success, currentIter);
 			} catch (Throwable t) {
 				logger.warn("HarnessToolExecutor: tool hook {}#afterTool threw for tool '{}': {}",
