@@ -59,7 +59,13 @@ public final class WorkflowExecutionUtils {
 	private WorkflowExecutionUtils() {}
 
 	/**
-	 * Resolves {@code ${varName}} and {@code ${config.KEY}} placeholders in a template string.
+	 * Resolves {@code ${varName}} and {@code ${config.KEY}} placeholders in a template string
+	 * via plain {@link String#replace} — no validation or escaping is applied.
+	 *
+	 * <p>Any substitution slot whose value can carry user-supplied or LLM-generated text MUST
+	 * be wrapped in {@code <encode>...</encode>} in the Pixel template before this is called —
+	 * {@code PixelPreProcessor} handles decoding after parsing, preventing injected content from
+	 * breaking the surrounding Pixel grammar.
 	 */
 	public static String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
 		if (template == null) return "";
