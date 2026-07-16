@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,6 +61,9 @@ public class PlaywrightSession {
 	private static final long DEFAULT_EXPIRY_MINUTES = 120; //
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
+
+	/** Serializes commands and event processing on this Playwright connection. */
+	private final ReentrantLock operationLock = new ReentrantLock(true);
 
 	private Map<String, List<String>> parentChildMap = new HashMap<>();
 
@@ -116,8 +120,8 @@ public class PlaywrightSession {
 
 	/**
 	 * Creates a session for the remote browser viewer. The viewer transport manages
-	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context is not
-	 * closed by that TTL.
+	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context
+	 * is not closed by that TTL.
 	 *
 	 * @param ctx           The Playwright BrowserContext for this session.
 	 * @param page          The initial Page object for this session.
@@ -166,7 +170,8 @@ public class PlaywrightSession {
 	 * @param startNewPage Whether to start a new page group before appending.
 	 * @return The appended step with a session-scoped id assigned.
 	 */
-	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step, boolean startNewPage) {
+	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step,
+			boolean startNewPage) {
 		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
 		history.steps().computeIfAbsent(resolvedTabId, k -> new ArrayList<List<PlaywrightStep>>());
 
@@ -228,6 +233,14 @@ public class PlaywrightSession {
 	 */
 	public Page getPage(String tabId) {
 		return this.tabPages.get(tabId);
+	}
+
+	/**
+	 * Returns the reentrant gate for operations against this session's Playwright
+	 * connection. Callers may hold it across an action and its screenshot.
+	 */
+	public ReentrantLock getOperationLock() {
+		return operationLock;
 	}
 
 	/**
@@ -305,7 +318,6 @@ public class PlaywrightSession {
 						classLogger.error("Error closing page", e);
 					}
 				}
-
 
 				closed = true;
 				classLogger.info("Session closed successfully");
