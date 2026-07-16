@@ -35,18 +35,21 @@ public class WorkflowConstants {
 
     private WorkflowConstants() {}
 
-    // ── File names ────────────────────────────────────────────────────────────────
+    // -- File names ----------------------------------------------------------------
 
     public static final String WORKFLOW_FILE_NAME = "workflow.json";
     public static final String WORKFLOW_CONFIG_FILE_NAME = "workflow-config.json";
 
-    // ── DB Table names ────────────────────────────────────────────────────────────
+    /** Placeholder returned by GetWorkflowConfig in place of a sensitive value; never persisted back. */
+    public static final String SENSITIVE_MASK = "***";
+
+    // -- DB Table names ------------------------------------------------------------
 
     public static final String TABLE_WORKFLOW_RUNS = "WORKFLOW_RUNS";
     public static final String TABLE_WORKFLOW_NODE_OUTPUTS = "WORKFLOW_NODE_OUTPUTS";
     public static final String TABLE_WORKFLOW_FOREACH_ROWS = "WORKFLOW_FOREACH_ROWS";
 
-    // ── WORKFLOW_RUNS columns ─────────────────────────────────────────────────────
+    // -- WORKFLOW_RUNS columns -----------------------------------------------------
 
     public static final String RUN_ID = "RUN_ID";
     public static final String PROJECT_ID = "PROJECT_ID";
@@ -65,7 +68,7 @@ public class WorkflowConstants {
     public static final String PARENT_RUN_ID = "PARENT_RUN_ID";
     public static final String PARENT_NODE_ID = "PARENT_NODE_ID";
 
-    // ── WORKFLOW_NODE_OUTPUTS columns ─────────────────────────────────────────────
+    // -- WORKFLOW_NODE_OUTPUTS columns ---------------------------------------------
 
     public static final String NODE_ID = "NODE_ID";
     public static final String NODE_LABEL = "NODE_LABEL";
@@ -76,12 +79,12 @@ public class WorkflowConstants {
     public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
     public static final String ROW_COUNT = "ROW_COUNT";
 
-    // ── WORKFLOW_FOREACH_ROWS columns ─────────────────────────────────────────────
+    // -- WORKFLOW_FOREACH_ROWS columns ---------------------------------------------
 
     public static final String ROW_INDEX = "ROW_INDEX";
     public static final String ROW_KEY = "ROW_KEY";
 
-    // ── Run statuses ──────────────────────────────────────────────────────────────
+    // -- Run statuses --------------------------------------------------------------
 
     public static final String STATUS_RUNNING = "RUNNING";
     public static final String STATUS_SUCCESS = "SUCCESS";
@@ -89,7 +92,7 @@ public class WorkflowConstants {
     public static final String STATUS_INTERRUPTED = "INTERRUPTED";
     public static final String STATUS_CANCELLED = "CANCELLED";
 
-    // ── Node statuses ─────────────────────────────────────────────────────────────
+    // -- Node statuses -------------------------------------------------------------
 
     public static final String NODE_STATUS_PENDING = "PENDING";
     public static final String NODE_STATUS_RUNNING = "RUNNING";
@@ -97,7 +100,7 @@ public class WorkflowConstants {
     public static final String NODE_STATUS_FAILED = "FAILED";
     public static final String NODE_STATUS_SKIPPED = "SKIPPED";
 
-    // ── Trigger types ─────────────────────────────────────────────────────────────
+    // -- Trigger types -------------------------------------------------------------
 
     public static final String TRIGGER_MANUAL = "MANUAL";
     public static final String TRIGGER_SCHEDULED = "SCHEDULED";
@@ -107,7 +110,7 @@ public class WorkflowConstants {
     public static final String TRIGGER_STORAGE_POLL = "STORAGE_POLL";
     public static final String TRIGGER_DB_POLL = "DB_POLL";
 
-    // ── Node types ────────────────────────────────────────────────────────────────
+    // -- Node types ----------------------------------------------------------------
 
     public static final String NODE_TRIGGER = "trigger";
     public static final String NODE_DATABASE_ENGINE = "database-engine";
@@ -132,13 +135,13 @@ public class WorkflowConstants {
     public static final String NODE_RETRY = "retry";
     public static final String NODE_PARALLEL = "parallel";
 
-    // ── Sub-workflow node config keys ─────────────────────────────────────────────
+    // -- Sub-workflow node config keys ---------------------------------------------
 
     public static final String SUB_WORKFLOW_TARGET_PROJECT = "targetProjectId";
     public static final String SUB_WORKFLOW_INPUT_MAPPING = "inputMapping";
     public static final int MAX_SUB_WORKFLOW_DEPTH = 10;
 
-    // ── Data type constants (for table creation) ──────────────────────────────────
+    // -- Data type constants (for table creation) ----------------------------------
 
     public static final String VARCHAR_255 = "VARCHAR(255)";
     public static final String VARCHAR_500 = "VARCHAR(500)";
@@ -148,7 +151,7 @@ public class WorkflowConstants {
     public static final String BIGINT = "BIGINT";
     public static final String NOT_NULL = "NOT NULL";
 
-    // ── Defaults ──────────────────────────────────────────────────────────────────
+    // -- Defaults ------------------------------------------------------------------
 
     public static final String DEFAULT_WORKFLOW_ID = "default";
     public static final int DEFAULT_TIMEOUT_SECONDS = 300;
@@ -157,7 +160,7 @@ public class WorkflowConstants {
     public static final int FOREACH_BATCH_SIZE = 100;
     public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;
 
-    // ── Legacy (kept for backward-compat with run-history.json fallback) ──────────
+    // -- Legacy (kept for backward-compat with run-history.json fallback) ----------
 
     /** @deprecated Use TABLE_WORKFLOW_RUNS instead */
     @Deprecated

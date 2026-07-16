@@ -49,9 +49,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import java.net.URLEncoder;
 
 /**
- * Poll-trigger reactor — called on a Quartz cron to check whether storage or
+ * Poll-trigger reactor - called on a Quartz cron to check whether storage or
  * database state has changed since the last run. Fires {@code TriggerWorkflow}
  * if a change is detected, then persists the new "last-seen" hash.
  *
@@ -135,7 +136,7 @@ public class CheckWorkflowPollTriggerReactor extends AbstractReactor {
             return noChange("No change detected");
         }
 
-        // State changed — fire workflow
+        // State changed - fire workflow
         classLogger.info("Poll trigger for project {} ({}): change detected, firing workflow", projectId, pollType);
         state.put(pollType, currentHash);
         savePollState(projectId, state);
@@ -207,7 +208,7 @@ public class CheckWorkflowPollTriggerReactor extends AbstractReactor {
             return null;
         }
         // Encode query to handle special chars
-        String encodedQuery = java.net.URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
         String pixel = "SqlQuery(database=[\"" + engineId + "\"], query=[\"<encode>" + query + "</encode>\"]);";
         try {
             Object out = this.insight.runPixel(pixel);

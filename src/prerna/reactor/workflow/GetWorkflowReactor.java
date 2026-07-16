@@ -47,6 +47,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
 
 public class GetWorkflowReactor extends AbstractReactor {
 
@@ -84,14 +87,14 @@ public class GetWorkflowReactor extends AbstractReactor {
             Map<String, Object> empty = new HashMap<>();
             empty.put("version", 1);
             Map<String, Object> graph = new HashMap<>();
-            graph.put("nodes", new java.util.ArrayList<>());
-            graph.put("edges", new java.util.ArrayList<>());
+            graph.put("nodes", new ArrayList<>());
+            graph.put("edges", new ArrayList<>());
             empty.put("graph", graph);
             return new NounMetadata(empty, PixelDataType.MAP, PixelOperationType.OPERATION);
         }
 
         try {
-            String json = java.nio.file.Files.readString(workflowFile.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            String json = Files.readString(workflowFile.toPath(), StandardCharsets.UTF_8);
             Map<String, Object> doc = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
             return new NounMetadata(doc, PixelDataType.MAP, PixelOperationType.OPERATION);
         } catch (IOException e) {

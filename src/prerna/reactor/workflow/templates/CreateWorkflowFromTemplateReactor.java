@@ -50,6 +50,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Creates a workflow from a template, saving it to the project's portals folder.
@@ -108,8 +110,8 @@ public class CreateWorkflowFromTemplateReactor extends AbstractReactor {
 
 		try {
 			workflowFile.getParentFile().mkdirs();
-			java.nio.file.Files.writeString(workflowFile.toPath(),
-					GSON.toJson(workflow), java.nio.charset.StandardCharsets.UTF_8);
+			Files.writeString(workflowFile.toPath(),
+					GSON.toJson(workflow), StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to write workflow.json: " + e.getMessage(), e);
 		}
@@ -132,8 +134,8 @@ public class CreateWorkflowFromTemplateReactor extends AbstractReactor {
 
 			File configFile = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_CONFIG_FILE_NAME);
 			try {
-				java.nio.file.Files.writeString(configFile.toPath(),
-						GSON.toJson(configEntries), java.nio.charset.StandardCharsets.UTF_8);
+				Files.writeString(configFile.toPath(),
+						GSON.toJson(configEntries), StandardCharsets.UTF_8);
 				filesToCommit.add(configFile.getAbsolutePath());
 			} catch (Exception e) {
 				classLogger.warn("Failed to write workflow-config.json: {}", e.getMessage(), e);

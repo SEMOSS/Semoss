@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.workflow;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +45,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -53,10 +56,10 @@ import prerna.sablecc2.om.task.ITask;
  *
  * <p>Handles the common pitfalls of raw {@code insight.runPixel()} calls:
  * <ul>
- *   <li>{@link ITask} materialization — query reactors return lazy cursors that must be collected</li>
- *   <li>Timeout enforcement — prevents hung queries from blocking pipelines indefinitely</li>
- *   <li>Error extraction — detects {@link PixelOperationType#ERROR} in results</li>
- *   <li>Null-safe return — always returns a usable value</li>
+ *   <li>{@link ITask} materialization - query reactors return lazy cursors that must be collected</li>
+ *   <li>Timeout enforcement - prevents hung queries from blocking pipelines indefinitely</li>
+ *   <li>Error extraction - detects {@link PixelOperationType#ERROR} in results</li>
+ *   <li>Null-safe return - always returns a usable value</li>
  * </ul>
  *
  * <p>Used by {@link TriggerWorkflowReactor} and potentially by the notebook executor.
@@ -67,7 +70,7 @@ public final class PixelExecutionUtils {
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	private PixelExecutionUtils() {
-		// static utility — no instantiation
+		// static utility - no instantiation
 	}
 
 	/**
@@ -156,7 +159,7 @@ public final class PixelExecutionUtils {
 		return serializedOutput.substring(0, maxLength);
 	}
 
-	// ── Private Implementation ────────────────────────────────────────────────────
+	// -- Private Implementation ----------------------------------------------------
 
 	private static NounMetadata executeWithTimeout(Insight insight, String pixel, int timeoutSeconds) {
 		ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
@@ -165,8 +168,24 @@ public final class PixelExecutionUtils {
 			return t;
 		});
 
+		// Propagate the caller thread's ThreadStore (user/session/insight/scheduler) to the
+		// timeout worker thread; ThreadStore is a plain ThreadLocal and is not inherited.
+		Map<String, Object> callerContext = ThreadStore.getTheadMapObject();
+		final Map<String, Object> contextSnapshot =
+				callerContext != null ? new HashMap<>(callerContext) : null;
+
 		try {
-			Callable<NounMetadata> task = () -> executeDirectly(insight, pixel);
+			Callable<NounMetadata> task = () -> {
+				if (contextSnapshot != null && !contextSnapshot.isEmpty()) {
+					ThreadStore.getInsightId(); // force creation of this thread's ThreadStore map
+					ThreadStore.setThreadMapObject(contextSnapshot);
+				}
+				try {
+					return executeDirectly(insight, pixel);
+				} finally {
+					ThreadStore.remove();
+				}
+			};
 			Future<NounMetadata> future = executor.submit(task);
 
 			try {
@@ -227,7 +246,7 @@ public final class PixelExecutionUtils {
 		return value;
 	}
 
-	// ── Exception Types ───────────────────────────────────────────────────────────
+	// -- Exception Types -----------------------------------------------------------
 
 	/**
 	 * Thrown when a pixel execution exceeds its configured timeout.

@@ -45,6 +45,7 @@ import prerna.reactor.workflow.PixelExecutionUtils;
 import prerna.reactor.workflow.WorkflowConstants;
 import prerna.reactor.workflow.WorkflowDatabaseUtility;
 import prerna.reactor.workflow.WorkflowDatabaseUtility.ForEachRowResult;
+import prerna.reactor.workflow.WorkflowExecutionUtils;
 
 /**
  * Executes a for-each node: iterates over rows of a prior node's output,
@@ -114,7 +115,7 @@ public final class ForEachNodeExecutor {
 
 		int succeeded = 0;
 		int failed = 0;
-		int timeoutSeconds = prerna.reactor.workflow.WorkflowExecutionUtils.getNodeTimeout(node);
+		int timeoutSeconds = WorkflowExecutionUtils.getNodeTimeout(node);
 		List<ForEachRowResult> batchBuffer = new ArrayList<>();
 		long lastHeartbeat = System.currentTimeMillis();
 
@@ -156,7 +157,7 @@ public final class ForEachNodeExecutor {
 				batchBuffer.clear();
 			}
 
-			// Update heartbeat every 30 seconds (timestamp only — node count is tracked at workflow level)
+			// Update heartbeat every 30 seconds (timestamp only - node count is tracked at workflow level)
 			if (System.currentTimeMillis() - lastHeartbeat > WorkflowConstants.HEARTBEAT_INTERVAL_SECONDS * 1000L) {
 				WorkflowDatabaseUtility.touchHeartbeat(runId);
 				lastHeartbeat = System.currentTimeMillis();
@@ -180,7 +181,7 @@ public final class ForEachNodeExecutor {
 		return result;
 	}
 
-	// ── Inner Node Execution ──────────────────────────────────────────────────────
+	// -- Inner Node Execution ------------------------------------------------------
 
 	private static void executeRowInnerNodes(Insight insight, List<Map<String, Object>> innerNodes,
 			Map<String, Object> row, String iteratorVar, Map<String, String> parentScope,
@@ -203,7 +204,7 @@ public final class ForEachNodeExecutor {
 				continue;
 			}
 
-			String resolved = prerna.reactor.workflow.WorkflowExecutionUtils.resolve(builtPixel, subScope, configMap);
+			String resolved = WorkflowExecutionUtils.resolve(builtPixel, subScope, configMap);
 			Object result = PixelExecutionUtils.runAndCollect(insight, resolved, timeoutSeconds);
 
 			// Store inner node output in sub-scope for downstream inner nodes
@@ -214,7 +215,7 @@ public final class ForEachNodeExecutor {
 		}
 	}
 
-	// ── Helpers ───────────────────────────────────────────────────────────────────
+	// -- Helpers -------------------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private static List<Map<String, Object>> parseSourceArray(String sourceJson, String sourceVar) {

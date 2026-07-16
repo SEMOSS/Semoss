@@ -79,6 +79,20 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import prerna.om.ThreadStore;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import prerna.reactor.workflow.foreach.ForEachNodeExecutor;
 
 /**
  * Executes a workflow app's graph top-to-bottom with DB-backed state.
@@ -88,11 +102,11 @@ import prerna.util.Utility;
  *
  * <p>Execution model:
  * <ul>
- *   <li>Concurrency guard — rejects if a run is already active for this project</li>
- *   <li>DB checkpoint per node — each completed node is committed immediately</li>
- *   <li>Stop on error — first node failure halts the pipeline</li>
- *   <li>Heartbeat — updated every 30s to prove liveness</li>
- *   <li>Resume — skips nodes that succeeded in a prior run, re-runs from failure</li>
+ *   <li>Concurrency guard - rejects if a run is already active for this project</li>
+ *   <li>DB checkpoint per node - each completed node is committed immediately</li>
+ *   <li>Stop on error - first node failure halts the pipeline</li>
+ *   <li>Heartbeat - updated every 30s to prove liveness</li>
+ *   <li>Resume - skips nodes that succeeded in a prior run, re-runs from failure</li>
  * </ul>
  *
  * <p>State is written to WORKFLOW_RUNS and WORKFLOW_NODE_OUTPUTS in the scheduler DB
@@ -109,21 +123,6 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	 * between nodes.
 	 */
 	private static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
-
-	/**
-	 * Per-thread JS engine cache — avoids the expensive SPI classpath scan that
-	 * ScriptEngineManager performs on every construction. Each thread in WORKFLOW_EXECUTOR
-	 * initialises its own engine once and reuses it for all subsequent evaluations.
-	 * The value is null when no JS engine is available on this JVM.
-	 */
-	private static final ThreadLocal<javax.script.ScriptEngine> JS_ENGINE_CACHE =
-			ThreadLocal.withInitial(() -> {
-				javax.script.ScriptEngineManager m = new javax.script.ScriptEngineManager();
-				javax.script.ScriptEngine e = m.getEngineByName("js");
-				if (e == null) e = m.getEngineByName("JavaScript");
-				if (e == null) e = m.getEngineByName("nashorn");
-				return e;
-			});
 
 	/**
 	 * Background pool for workflow execution. Bounded at 20 concurrent runs with a small queue
@@ -189,23 +188,34 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		// Load prior outputs if resuming
 		Map<String, String> priorOutputs = loadPriorOutputs(resumeRunId);
 
-		// Execute nodes on a background thread — a workflow can run for hours (large for-each
+		// Execute nodes on a background thread - a workflow can run for hours (large for-each
 		// ingestion jobs), so it must never block the calling request/websocket thread.
 		// Progress is checkpointed to WORKFLOW_RUNS/WORKFLOW_NODE_OUTPUTS per node; the caller
 		// (FE) polls GetWorkflowRun(runId) for live status instead of awaiting this call.
+		// Capture the calling thread's ThreadStore (user, session, insight id, scheduler mode)
+		// so it can be re-seeded on the background executor thread. ThreadStore is a plain
+		// ThreadLocal and is NOT inherited by pool threads; without this, reactors that read
+		// ThreadStore during node execution would see null context.
+		Map<String, Object> parentContext = ThreadStore.getTheadMapObject();
+		final Map<String, Object> contextSnapshot =
+				parentContext != null ? new HashMap<>(parentContext) : null;
+
 		try {
 			WORKFLOW_EXECUTOR.submit(() -> {
+				installThreadContext(contextSnapshot);
 				try {
 					executeNodes(runId, projectId, ordered, configMap, priorOutputs);
 				} catch (Exception e) {
 					classLogger.error("Unhandled error executing workflow run {}: {}", runId, e.getMessage(), e);
 					WorkflowDatabaseUtility.updateRunStatus(runId,
 							WorkflowConstants.STATUS_FAILED, null, e.getMessage());
+				} finally {
+					ThreadStore.remove();
 				}
 			});
 		} catch (RejectedExecutionException e) {
 			WorkflowDatabaseUtility.updateRunStatus(runId, WorkflowConstants.STATUS_FAILED,
-					null, "Server is at capacity — too many concurrent workflow runs");
+					null, "Server is at capacity - too many concurrent workflow runs");
 			throw new IllegalStateException("Too many concurrent workflow runs. Please try again shortly.");
 		}
 
@@ -214,13 +224,13 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	// ── Core Execution ────────────────────────────────────────────────────────────
+	// -- Core Execution ------------------------------------------------------------
 
 	private Map<String, Object> executeNodes(String runId, String projectId,
 			List<Map<String, Object>> ordered, Map<String, String> configMap,
 			Map<String, String> priorOutputs) {
 		return executeNodes(runId, projectId, ordered, configMap, priorOutputs,
-				null, java.util.Collections.singleton(projectId));
+				null, Collections.singleton(projectId));
 	}
 
 	/**
@@ -287,7 +297,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				if (WorkflowConstants.NODE_STATUS_SUCCESS.equals(status)) {
 					// Store output in scope for downstream nodes.
 					// set-variable nodes write individual variables directly into scope
-					// inside executeSetVariableNode — skip the generic put to avoid
+					// inside executeSetVariableNode - skip the generic put to avoid
 					// overwriting those keys with the JSON blob.
 					if (outputVar != null && !outputVar.isEmpty()
 							&& !WorkflowConstants.NODE_SET_VARIABLE.equals(nodeType)) {
@@ -339,7 +349,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			if (WorkflowConstants.NODE_FOR_EACH.equals(type)) {
 				// For-each nodes delegate to ForEachNodeExecutor
 				AtomicBoolean cancelFlag = CANCELLATION_FLAGS.get(runId);
-				Map<String, Object> forEachResult = prerna.reactor.workflow.foreach.ForEachNodeExecutor.execute(
+				Map<String, Object> forEachResult = ForEachNodeExecutor.execute(
 						this.insight, node, scope, configMap, runId, cancelFlag);
 				rawOutput = forEachResult;
 				rowCount = (Integer) forEachResult.get("totalRows");
@@ -417,7 +427,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		}
 	}
 
-	// ── Sub-Workflow Execution ─────────────────────────────────────────────────────
+	// -- Sub-Workflow Execution -----------------------------------------------------
 
 	/**
 	 * Executes a "sub-workflow" node: recurses into another project's workflow.json,
@@ -448,18 +458,18 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		if (ancestorProjectIds.contains(targetProjectId)) {
 			throw new IllegalStateException("Cycle detected: workflow " + targetProjectId +
 					" is already running upstream in this call chain (" +
-					String.join(" -> ", ancestorProjectIds) + ") — a workflow cannot call itself, " +
+					String.join(" -> ", ancestorProjectIds) + ") - a workflow cannot call itself, " +
 					"directly or transitively");
 		}
 		if (ancestorProjectIds.size() >= WorkflowConstants.MAX_SUB_WORKFLOW_DEPTH) {
 			throw new IllegalStateException("Sub-workflow call depth exceeded (" +
-					WorkflowConstants.MAX_SUB_WORKFLOW_DEPTH + ") — possible runaway recursion");
+					WorkflowConstants.MAX_SUB_WORKFLOW_DEPTH + ") - possible runaway recursion");
 		}
 
 		String activeRun = WorkflowDatabaseUtility.getActiveRun(targetProjectId);
 		if (activeRun != null) {
 			throw new IllegalStateException("Target workflow " + targetProjectId +
-					" already has an active run (" + activeRun + ") — cannot start a sub-workflow call " +
+					" already has an active run (" + activeRun + ") - cannot start a sub-workflow call " +
 					"while it is busy");
 		}
 
@@ -479,11 +489,11 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		Map<String, Object> inputMapping = coerceToMap(inputMappingRaw);
 		for (Map.Entry<String, Object> e : inputMapping.entrySet()) {
 			String template = e.getValue() != null ? e.getValue().toString() : "";
-			childInitialScope.put(e.getKey(), WorkflowExecutionUtils.resolve(template, scope, java.util.Collections.emptyMap()));
+			childInitialScope.put(e.getKey(), WorkflowExecutionUtils.resolve(template, scope, Collections.emptyMap()));
 		}
 
 		String childRunId = UUID.randomUUID().toString();
-		Set<String> childAncestors = new java.util.HashSet<>(ancestorProjectIds);
+		Set<String> childAncestors = new HashSet<>(ancestorProjectIds);
 		childAncestors.add(targetProjectId);
 
 		WorkflowDatabaseUtility.insertRun(childRunId, targetProjectId, WorkflowConstants.DEFAULT_WORKFLOW_ID,
@@ -503,7 +513,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return childResult;
 	}
 
-	// ── Conditional Node Execution ────────────────────────────────────────────────
+	// -- Conditional Node Execution ------------------------------------------------
 
 	/**
 	 * Executes a "conditional" node: evaluates the condition expression against the
@@ -533,7 +543,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		// Substitute scope variables into the condition expression, then evaluate as JS
 		String condition = WorkflowExecutionUtils.resolve(conditionTemplate, scope, configMap);
 		if (condition.equals(conditionTemplate)) {
-			classLogger.warn("Conditional node \"{}\": condition template unchanged after resolve — " +
+			classLogger.warn("Conditional node \"{}\": condition template unchanged after resolve - " +
 					"check that variable names match outputVar fields. Available scope keys: {}",
 					nodeLabel, scope.keySet());
 		}
@@ -586,38 +596,19 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Evaluates a condition expression string as JavaScript. After scope variable
-	 * substitution the expression is passed to the JS engine — e.g. {@code "0.85 > 0.8"},
-	 * {@code '"hello" === "hello"'}, {@code "null != null"}.
+	 * Evaluates a condition expression string after scope-variable substitution -
+	 * e.g. {@code "0.85 > 0.8"}, {@code '"hello" === "hello"'}, {@code "null != null"}.
 	 *
-	 * <p>Falls back to a truthy string check if no JS engine is available.
+	 * <p>Delegates to {@link WorkflowConditionEvaluator}, a safe in-process expression
+	 * evaluator. This intentionally does NOT use a JavaScript/scripting engine: the
+	 * expression can contain attacker-influenceable data (prior node outputs, HTTP/LLM
+	 * responses), so evaluating it as script would be a remote-code-execution vector.
 	 */
 	private boolean evaluateCondition(String expression, String nodeLabel) {
-		javax.script.ScriptEngine engine = JS_ENGINE_CACHE.get();
-
-		if (engine == null) {
-			// No JS engine — fall back to simple truthy check
-			String trimmed = expression.trim();
-			return !trimmed.isEmpty() && !"false".equalsIgnoreCase(trimmed)
-					&& !"null".equalsIgnoreCase(trimmed) && !"0".equals(trimmed);
-		}
-
-		try {
-			Object evalResult = engine.eval(expression);
-			if (evalResult instanceof Boolean) return (Boolean) evalResult;
-			if (evalResult instanceof Number) return ((Number) evalResult).doubleValue() != 0;
-			if (evalResult == null) return false;
-			String s = evalResult.toString().trim();
-			return !s.isEmpty() && !"false".equalsIgnoreCase(s)
-					&& !"null".equalsIgnoreCase(s) && !"0".equals(s);
-		} catch (javax.script.ScriptException e) {
-			throw new IllegalArgumentException("Conditional node \"" + nodeLabel +
-					"\" — condition evaluation failed: " + e.getMessage() +
-					"\n  Expression: " + expression);
-		}
+		return WorkflowConditionEvaluator.toBoolean(expression);
 	}
 
-	// ── While-Loop Execution ──────────────────────────────────────────────────────
+	// -- While-Loop Execution ------------------------------------------------------
 
 	/**
 	 * Executes a "while-loop" node: evaluates a JS condition before each iteration
@@ -694,7 +685,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 					}
 				}
 				// Capture sub-node summary for history display
-				Map<String, Object> nodeSummary = new java.util.LinkedHashMap<>();
+				Map<String, Object> nodeSummary = new LinkedHashMap<>();
 				nodeSummary.put("label", loopResult.get(WorkflowConstants.NODE_LABEL));
 				nodeSummary.put("status", status);
 				Object dur = loopResult.get(WorkflowConstants.DURATION_MS);
@@ -703,7 +694,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				if (preview != null) nodeSummary.put("preview", preview);
 				iterNodes.add(nodeSummary);
 			}
-			Map<String, Object> iterSummary = new java.util.LinkedHashMap<>();
+			Map<String, Object> iterSummary = new LinkedHashMap<>();
 			iterSummary.put("iteration", iteration);
 			iterSummary.put("nodes", iterNodes);
 			iterationSummaries.add(iterSummary);
@@ -713,7 +704,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			return lastOutput;
 		}
 		// Wrap result so GetWorkflowRunReactor can surface per-iteration data in history
-		Map<String, Object> wrapper = new java.util.LinkedHashMap<>();
+		Map<String, Object> wrapper = new LinkedHashMap<>();
 		wrapper.put("__whileResult", true);
 		wrapper.put("iterationCount", iterationSummaries.size());
 		wrapper.put("lastOutput", lastOutput);
@@ -721,7 +712,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return new Gson().toJson(wrapper);
 	}
 
-	// ── Try-Catch Execution ───────────────────────────────────────────────────────
+	// -- Try-Catch Execution -------------------------------------------------------
 
 	/**
 	 * Executes a "try-catch" node: runs the try-branch; on any failure injects the
@@ -784,7 +775,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				}
 				return lastOutput;
 			} catch (IllegalStateException e) {
-				// Cancellation must always propagate — don't swallow it
+				// Cancellation must always propagate - don't swallow it
 				if (e.getMessage() != null && e.getMessage().contains("cancelled")) throw e;
 				scope.put(errorVar, e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
 			}
@@ -823,7 +814,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return "caught";
 	}
 
-	// ── Wait Execution ────────────────────────────────────────────────────────────
+	// -- Wait Execution ------------------------------------------------------------
 
 	/**
 	 * Executes a "wait" node: sleeps for the configured number of seconds.
@@ -846,7 +837,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			seconds = Integer.parseInt(resolved.trim());
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Wait node \"" + nodeLabel +
-					"\" — seconds value is not a valid integer after resolution: \"" + resolved + "\"");
+					"\" - seconds value is not a valid integer after resolution: \"" + resolved + "\"");
 		}
 		seconds = Math.min(Math.max(seconds, 0), 3600);
 
@@ -860,7 +851,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return seconds + " seconds";
 	}
 
-	// ── Set-Variable Execution ────────────────────────────────────────────────────
+	// -- Set-Variable Execution ----------------------------------------------------
 
 	/**
 	 * Executes a "set-variable" node: resolves each configured variable's value
@@ -870,8 +861,8 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	 * Returns a JSON object of the resolved values.
 	 */
 	/** Matches a resolved value that is a pure numeric arithmetic expression safe to eval. */
-	private static final java.util.regex.Pattern NUMERIC_EXPR_PATTERN =
-			java.util.regex.Pattern.compile("^[\\d\\s+\\-*/%.()]+$");
+	private static final Pattern NUMERIC_EXPR_PATTERN =
+			Pattern.compile("^[\\d\\s+\\-*/%.()]+$");
 
 	@SuppressWarnings("unchecked")
 	private Object executeSetVariableNode(Map<String, Object> node,
@@ -912,21 +903,15 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 	 */
 	private String tryEvalNumeric(String value) {
 		if (value == null || !NUMERIC_EXPR_PATTERN.matcher(value.trim()).matches()) return value;
-		javax.script.ScriptEngine engine = JS_ENGINE_CACHE.get();
-		if (engine == null) return value;
-		try {
-			Object result = engine.eval(value);
-			if (!(result instanceof Number)) return value;
-			double d = ((Number) result).doubleValue();
-			if (Double.isNaN(d) || Double.isInfinite(d)) return value;
-			// Return as integer string when there is no fractional part
-			return d == Math.floor(d) ? String.valueOf((long) d) : String.valueOf(d);
-		} catch (Exception ignored) {
-			return value;
-		}
+		Double result = WorkflowConditionEvaluator.toNumber(value);
+		if (result == null) return value;
+		double d = result;
+		if (Double.isNaN(d) || Double.isInfinite(d)) return value;
+		// Return as integer string when there is no fractional part
+		return d == Math.floor(d) ? String.valueOf((long) d) : String.valueOf(d);
 	}
 
-	// ── Transform Execution ───────────────────────────────────────────────────────
+	// -- Transform Execution -------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeTransformNode(Map<String, Object> node, Map<String, String> scope) {
@@ -943,24 +928,24 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		switch (operation) {
 			case "convert-to-objects":
 				return WorkflowExecutionUtils.applyOutputTransform(raw,
-						java.util.Collections.singletonMap("mode", "rows-as-objects"));
+						Collections.singletonMap("mode", "rows-as-objects"));
 			case "extract-field": {
 				// expression is a dot-notation path like "[0].name" or "data.items"
 				String path = expression != null ? expression.replaceAll("^\\[\\d+\\]\\.", "$0") : "";
 				return WorkflowExecutionUtils.applyOutputTransform(raw,
-						java.util.Map.of("mode", "jsonpath", "path", path));
+						Map.of("mode", "jsonpath", "path", path));
 			}
 			case "map": {
-				// expression like "item.fieldName" — extract named field from each array element
+				// expression like "item.fieldName" - extract named field from each array element
 				if (expression == null || !expression.startsWith("item.")) return raw;
 				String field = expression.substring(5).trim();
 				try {
-					com.google.gson.JsonElement el = new com.google.gson.JsonParser().parse(raw);
+					JsonElement el = new JsonParser().parse(raw);
 					if (!el.isJsonArray()) return raw;
-					java.util.List<Object> out = new java.util.ArrayList<>();
-					for (com.google.gson.JsonElement item : el.getAsJsonArray()) {
+					List<Object> out = new ArrayList<>();
+					for (JsonElement item : el.getAsJsonArray()) {
 						if (item.isJsonObject() && item.getAsJsonObject().has(field)) {
-							com.google.gson.JsonElement val = item.getAsJsonObject().get(field);
+							JsonElement val = item.getAsJsonObject().get(field);
 							out.add(val.isJsonPrimitive() ? val.getAsString() : val.toString());
 						} else {
 							out.add(null);
@@ -970,19 +955,19 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				} catch (Exception e) { return raw; }
 			}
 			case "filter": {
-				// expression like "item.field === \"value\"" — simple equality filter
+				// expression like "item.field === \"value\"" - simple equality filter
 				if (expression == null || !expression.startsWith("item.")) return raw;
-				java.util.regex.Matcher m = java.util.regex.Pattern
+				Matcher m = Pattern
 						.compile("item\\.([\\w]+)\\s*===?\\s*[\"']?([^\"']+)[\"']?")
 						.matcher(expression);
 				if (!m.find()) return raw;
 				String field = m.group(1);
 				String expected = m.group(2).trim();
 				try {
-					com.google.gson.JsonElement el = new com.google.gson.JsonParser().parse(raw);
+					JsonElement el = new JsonParser().parse(raw);
 					if (!el.isJsonArray()) return raw;
-					java.util.List<Object> out = new java.util.ArrayList<>();
-					for (com.google.gson.JsonElement item : el.getAsJsonArray()) {
+					List<Object> out = new ArrayList<>();
+					for (JsonElement item : el.getAsJsonArray()) {
 						if (item.isJsonObject() && item.getAsJsonObject().has(field)) {
 							String actual = item.getAsJsonObject().get(field).getAsString();
 							if (expected.equals(actual)) out.add(new Gson().fromJson(item, Object.class));
@@ -993,12 +978,12 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			}
 			case "flatten": {
 				try {
-					com.google.gson.JsonElement el = new com.google.gson.JsonParser().parse(raw);
+					JsonElement el = new JsonParser().parse(raw);
 					if (!el.isJsonArray()) return raw;
-					java.util.List<Object> out = new java.util.ArrayList<>();
-					for (com.google.gson.JsonElement item : el.getAsJsonArray()) {
+					List<Object> out = new ArrayList<>();
+					for (JsonElement item : el.getAsJsonArray()) {
 						if (item.isJsonArray()) {
-							for (com.google.gson.JsonElement inner : item.getAsJsonArray()) {
+							for (JsonElement inner : item.getAsJsonArray()) {
 								out.add(new Gson().fromJson(inner, Object.class));
 							}
 						} else {
@@ -1013,7 +998,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		}
 	}
 
-	// ── Email Execution ───────────────────────────────────────────────────────────
+	// -- Email Execution -----------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeEmailNode(Map<String, Object> node, Map<String, String> scope,
@@ -1033,7 +1018,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		String bcc = config.get("bcc") != null ? WorkflowExecutionUtils.resolve(strCfg(config.get("bcc")), scope, configMap) : null;
 
 		// URL-encode body so it can be safely embedded in a pixel string
-		String encodedBody = java.net.URLEncoder.encode(body, StandardCharsets.UTF_8);
+		String encodedBody = URLEncoder.encode(body, StandardCharsets.UTF_8);
 
 		StringBuilder pixel = new StringBuilder("SendEmail(");
 		pixel.append("to=[").append(buildEmailAddressParam(to)).append("]");
@@ -1066,7 +1051,48 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return sb.toString();
 	}
 
-	// ── HTTP Request Execution ────────────────────────────────────────────────────
+	// -- HTTP Request Execution ----------------------------------------------------
+
+	/**
+	 * SSRF guard for the HTTP Request node. Rejects non-http(s) schemes and any host that
+	 * resolves to a loopback, link-local (which includes the cloud instance-metadata address
+	 * 169.254.169.254), wildcard, or multicast address. This blocks the classic
+	 * server-side-request-forgery targets while still allowing ordinary external and internal
+	 * corporate hosts.
+	 *
+	 * <p>Note: this validates at resolution time; it does not defend against DNS rebinding
+	 * (a host that resolves to an allowed address here but a blocked one when the request is
+	 * actually made). Pinning the resolved address into the request would be a follow-up.
+	 */
+	private void assertHttpTargetAllowed(String url) {
+		final URI uri;
+		try {
+			uri = new URI(url.trim());
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("HTTP Request node: malformed url: " + url);
+		}
+		String scheme = uri.getScheme();
+		if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+			throw new IllegalArgumentException("HTTP Request node: only http/https urls are allowed");
+		}
+		String host = uri.getHost();
+		if (host == null || host.isBlank()) {
+			throw new IllegalArgumentException("HTTP Request node: url has no host: " + url);
+		}
+		try {
+			for (InetAddress addr : InetAddress.getAllByName(host)) {
+				if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()
+						|| addr.isAnyLocalAddress() || addr.isMulticastAddress()) {
+					throw new IllegalStateException("HTTP Request node: target host '" + host
+							+ "' resolves to a blocked address (" + addr.getHostAddress()
+							+ "). Requests to loopback, link-local (including cloud metadata), "
+							+ "wildcard, and multicast addresses are not permitted.");
+				}
+			}
+		} catch (UnknownHostException e) {
+			throw new IllegalStateException("HTTP Request node: could not resolve host '" + host + "'");
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	private Object executeHttpRequestNode(Map<String, Object> node, Map<String, String> scope,
@@ -1076,13 +1102,14 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		String method = strCfg(config.getOrDefault("method", "GET")).toUpperCase();
 		String url = WorkflowExecutionUtils.resolve(strCfg(config.get("url")), scope, configMap);
 		if (url == null || url.isBlank()) throw new IllegalArgumentException("HTTP Request node: 'url' is required");
+		assertHttpTargetAllowed(url);
 
 		// Parse headers JSON
 		Map<String, String> headers = new LinkedHashMap<>();
 		String headersJson = strCfg(config.get("headers"));
 		if (headersJson != null && !headersJson.isBlank()) {
 			try {
-				Map<String, Object> parsed = new Gson().fromJson(headersJson, new com.google.gson.reflect.TypeToken<Map<String, Object>>(){}.getType());
+				Map<String, Object> parsed = new Gson().fromJson(headersJson, new TypeToken<Map<String, Object>>(){}.getType());
 				if (parsed != null) parsed.forEach((k, v) -> { if (v != null) headers.put(k, v.toString()); });
 			} catch (Exception e) {
 				classLogger.warn("HTTP node: could not parse headers JSON: {}", e.getMessage());
@@ -1140,7 +1167,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		}
 	}
 
-	// ── Notification Execution ────────────────────────────────────────────────────
+	// -- Notification Execution ----------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeNotificationNode(Map<String, Object> node, Map<String, String> scope,
@@ -1199,7 +1226,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return new Gson().toJson(result);
 	}
 
-	// ── Switch Execution ──────────────────────────────────────────────────────────
+	// -- Switch Execution ----------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeSwitchNode(String runId, Map<String, Object> node, Map<String, String> scope,
@@ -1270,7 +1297,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return new Gson().toJson(result);
 	}
 
-	// ── Retry Execution ───────────────────────────────────────────────────────────
+	// -- Retry Execution -----------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeRetryNode(String runId, Map<String, Object> node, Map<String, String> scope,
@@ -1325,7 +1352,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 						if (subOutputVar != null && !subOutputVar.isBlank()) attemptScope.put(subOutputVar, out);
 					}
 				}
-				// Success — promote attempt scope to parent
+				// Success - promote attempt scope to parent
 				scope.putAll(attemptScope);
 				Map<String, Object> r = new LinkedHashMap<>();
 				r.put("attempts", attempt);
@@ -1346,7 +1373,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				(lastError != null ? lastError.getMessage() : "unknown"), lastError);
 	}
 
-	// ── Parallel Execution ────────────────────────────────────────────────────────
+	// -- Parallel Execution --------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Object executeParallelNode(String runId, Map<String, Object> node, Map<String, String> scope,
@@ -1411,7 +1438,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return (v != null && !v.toString().isBlank()) ? v.toString() : null;
 	}
 
-	// ── Node Pixel Execution ──────────────────────────────────────────────────────
+	// -- Node Pixel Execution ------------------------------------------------------
 
 	private Object executeNodePixel(Map<String, Object> node, Map<String, String> scope,
 			Map<String, String> configMap) {
@@ -1423,14 +1450,14 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		}
 
 		if (WorkflowConstants.NODE_FOR_EACH.equals(type)) {
-			// Delegate to ForEachNodeExecutor — handled separately in executeSingleNode
+			// Delegate to ForEachNodeExecutor - handled separately in executeSingleNode
 			throw new IllegalStateException("For-each nodes should not reach executeNodePixel directly");
 		}
 
 		String builtPixel = (String) node.get("builtPixel");
 		if (builtPixel == null || builtPixel.isBlank() || builtPixel.startsWith("//")) {
 			throw new IllegalStateException("Node \"" + node.get("label") +
-					"\" has no compiled pixel — please Save the workflow before running");
+					"\" has no compiled pixel - please Save the workflow before running");
 		}
 
 		int timeoutSeconds = WorkflowExecutionUtils.getNodeTimeout(node);
@@ -1462,7 +1489,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return PixelExecutionUtils.runAndCollect(this.insight, resolvedPixel, timeoutSeconds);
 	}
 
-	// ── Resume Logic ──────────────────────────────────────────────────────────────
+	// -- Resume Logic --------------------------------------------------------------
 
 	private Map<String, String> loadPriorOutputs(String resumeRunId) {
 		Map<String, String> outputs = new HashMap<>();
@@ -1496,7 +1523,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return true;
 	}
 
-	// ── Heartbeat ─────────────────────────────────────────────────────────────────
+	// -- Heartbeat -----------------------------------------------------------------
 
 	private ScheduledExecutorService startHeartbeat(String runId) {
 		ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -1504,7 +1531,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			t.setDaemon(true);
 			return t;
 		});
-		// Heartbeat fires every 30 seconds — just proves liveness; per-node count updates
+		// Heartbeat fires every 30 seconds - just proves liveness; per-node count updates
 		// happen in executeNodes() after each node completes.
 		scheduler.scheduleAtFixedRate(() -> {
 			try {
@@ -1517,7 +1544,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return scheduler;
 	}
 
-	// ── Cancellation Support ──────────────────────────────────────────────────────
+	// -- Cancellation Support ------------------------------------------------------
 
 	/**
 	 * Requests cancellation of a running workflow. Called by CancelWorkflowRunReactor.
@@ -1532,9 +1559,23 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return false;
 	}
 
+	/**
+	 * Seeds the current (background executor) thread's ThreadStore with a snapshot of the
+	 * caller's context. The reading getter forces lazy creation of this thread's map so the
+	 * subsequent putAll has a target. Paired with {@code ThreadStore.remove()} in a finally
+	 * block so pooled threads never leak context between runs.
+	 */
+	private static void installThreadContext(Map<String, Object> snapshot) {
+		if (snapshot == null || snapshot.isEmpty()) {
+			return;
+		}
+		ThreadStore.getInsightId(); // force creation of this thread's ThreadStore map
+		ThreadStore.setThreadMapObject(snapshot);
+	}
+
 	// (resolve, getNodeTimeout, applyOutputTransform moved to WorkflowExecutionUtils)
 
-	// ── Topological Sort ──────────────────────────────────────────────────────────
+	// -- Topological Sort ----------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> topoSort(List<Map<String, Object>> nodes,
@@ -1580,7 +1621,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 		return sorted;
 	}
 
-	// ── Helpers ───────────────────────────────────────────────────────────────────
+	// -- Helpers -------------------------------------------------------------------
 
 	private String getProjectId() {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
@@ -1660,7 +1701,7 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 				LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
 	}
 
-	// ── Workflow Document Loading ─────────────────────────────────────────────────
+	// -- Workflow Document Loading -------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> loadWorkflowDoc(String projectId) {
@@ -1670,14 +1711,14 @@ public class TriggerWorkflowReactor extends AbstractReactor {
 			throw new IllegalArgumentException("No workflow.json found for this project. Save a workflow first.");
 		}
 		try {
-			String json = java.nio.file.Files.readString(f.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
 			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
 		} catch (IOException e) {
 			throw new IllegalStateException("Failed to read workflow.json: " + e.getMessage(), e);
 		}
 	}
 
-	// ── Result Building ───────────────────────────────────────────────────────────
+	// -- Result Building -----------------------------------------------------------
 
 	private Map<String, Object> buildNodeResult(String nodeId, String nodeLabel,
 			String status, long durationMs, String outputPreview, String errorMessage) {

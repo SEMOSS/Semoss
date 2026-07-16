@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import java.sql.Types;
 
 /**
  * Database utility for the Workflow Engine subsystem.
@@ -80,10 +82,10 @@ public final class WorkflowDatabaseUtility {
 	private static final String TABLE_FOREACH = WorkflowConstants.TABLE_WORKFLOW_FOREACH_ROWS;
 
 	private WorkflowDatabaseUtility() {
-		// static utility — no instantiation
+		// static utility - no instantiation
 	}
 
-	// ── SQL Statements (INSERT/UPDATE/DELETE — PreparedStatement per SEMOSS conventions) ──
+	// -- SQL Statements (INSERT/UPDATE/DELETE - PreparedStatement per SEMOSS conventions) --
 
 	// WORKFLOW_RUNS
 	private static final String INSERT_RUN = """
@@ -131,14 +133,14 @@ public final class WorkflowDatabaseUtility {
 			(RUN_ID, NODE_ID, ROW_INDEX, ROW_KEY, STATUS, STARTED_AT, COMPLETED_AT, DURATION_MS, ERROR_MESSAGE) \
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
-	// Aggregate queries (use PreparedStatement — CASE WHEN not easily expressed in SelectQueryStruct)
+	// Aggregate queries (use PreparedStatement - CASE WHEN not easily expressed in SelectQueryStruct)
 	private static final String SELECT_FOREACH_PROGRESS = """
 			SELECT COUNT(*) AS TOTAL, \
 			SUM(CASE WHEN STATUS = 'SUCCESS' THEN 1 ELSE 0 END) AS SUCCEEDED, \
 			SUM(CASE WHEN STATUS = 'FAILED' THEN 1 ELSE 0 END) AS FAILED \
 			FROM WORKFLOW_FOREACH_ROWS WHERE RUN_ID = ? AND NODE_ID = ?""";
 
-	// ── Initialization ────────────────────────────────────────────────────────────
+	// -- Initialization ------------------------------------------------------------
 
 	/**
 	 * Creates workflow tables in the scheduler DB if they don't exist.
@@ -148,7 +150,7 @@ public final class WorkflowDatabaseUtility {
 	public static void initialize() {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
-			classLogger.warn("Scheduler DB not available — workflow tables will not be created");
+			classLogger.warn("Scheduler DB not available - workflow tables will not be created");
 			return;
 		}
 
@@ -190,6 +192,7 @@ public final class WorkflowDatabaseUtility {
 		// Use SelectQueryStruct to find stale runs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__LAST_HEARTBEAT", "LAST_HEARTBEAT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__STATUS", "==", WorkflowConstants.STATUS_RUNNING, PixelDataType.CONST_STRING));
 
@@ -208,6 +211,18 @@ public final class WorkflowDatabaseUtility {
 			conn = schedulerDb.getConnection();
 			for (Map<String, Object> row : results) {
 				String runId = (String) row.get("RUN_ID");
+
+				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
+				// heartbeat is still alive (e.g. executing on another node in a cluster), so
+				// interrupting it would clobber active work. A missing/unparseable heartbeat
+				// is treated as stale (a crashed run that never checkpointed).
+				Timestamp lastHeartbeat = toTimestampSafe(row.get("LAST_HEARTBEAT"));
+				if (lastHeartbeat != null && lastHeartbeat.after(threshold)) {
+					classLogger.debug("Skipping workflow run {} - heartbeat {} is newer than stale threshold {}",
+							runId, lastHeartbeat, threshold);
+					continue;
+				}
+
 				try (PreparedStatement ps = conn.prepareStatement(MARK_STALE_INTERRUPTED)) {
 					int index = 1;
 					ps.setString(index++, WorkflowConstants.STATUS_INTERRUPTED);
@@ -230,7 +245,7 @@ public final class WorkflowDatabaseUtility {
 		}
 	}
 
-	// ── WORKFLOW_RUNS CRUD ────────────────────────────────────────────────────────
+	// -- WORKFLOW_RUNS CRUD --------------------------------------------------------
 
 	/**
 	 * Checks if a workflow already has an active (RUNNING) run for the given project.
@@ -267,7 +282,7 @@ public final class WorkflowDatabaseUtility {
 	}
 
 	/**
-	 * Inserts a new workflow run record, optionally linked to a parent run/node — used when
+	 * Inserts a new workflow run record, optionally linked to a parent run/node - used when
 	 * a sub-workflow node triggers another project's workflow. {@code parentRunId} and
 	 * {@code parentNodeId} are null for top-level (manual/scheduled/resume) runs.
 	 */
@@ -468,7 +483,7 @@ public final class WorkflowDatabaseUtility {
 		return null;
 	}
 
-	// ── WORKFLOW_NODE_OUTPUTS CRUD ────────────────────────────────────────────────
+	// -- WORKFLOW_NODE_OUTPUTS CRUD ------------------------------------------------
 
 	/**
 	 * Inserts a node output record with PENDING status (before execution).
@@ -594,7 +609,7 @@ public final class WorkflowDatabaseUtility {
 				if (rowCount != null) {
 					ps.setInt(index++, rowCount);
 				} else {
-					ps.setNull(index++, java.sql.Types.INTEGER);
+					ps.setNull(index++, Types.INTEGER);
 				}
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
@@ -680,7 +695,7 @@ public final class WorkflowDatabaseUtility {
 		return results != null ? results : new ArrayList<>();
 	}
 
-	// ── WORKFLOW_FOREACH_ROWS CRUD ────────────────────────────────────────────────
+	// -- WORKFLOW_FOREACH_ROWS CRUD ------------------------------------------------
 
 	/**
 	 * Batch-inserts for-each row results. Called with batches of
@@ -812,7 +827,7 @@ public final class WorkflowDatabaseUtility {
 		return -1;
 	}
 
-	// ── Table Creation ────────────────────────────────────────────────────────────
+	// -- Table Creation ------------------------------------------------------------
 
 	private static void createWorkflowRunsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
@@ -933,7 +948,7 @@ public final class WorkflowDatabaseUtility {
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_WFR_STATUS", tableName, new String[]{"RUN_ID", "NODE_ID", "STATUS"});
 	}
 
-	// ── Helpers ───────────────────────────────────────────────────────────────────
+	// -- Helpers -------------------------------------------------------------------
 
 	private static IRDBMSEngine getSchedulerDb() {
 		try {
@@ -951,6 +966,28 @@ public final class WorkflowDatabaseUtility {
 	private static Timestamp toTimestamp(Instant instant) {
 		return Utility.getSqlTimestampUTC(
 				LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
+	}
+
+	/**
+	 * Best-effort conversion of a value read from the result set into a {@link Timestamp}.
+	 * Handles {@link Timestamp}, any {@link Date}, and parseable timestamp strings.
+	 * Returns null when the value is null or cannot be interpreted.
+	 */
+	private static Timestamp toTimestampSafe(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Timestamp) {
+			return (Timestamp) value;
+		}
+		if (value instanceof Date) {
+			return new Timestamp(((Date) value).getTime());
+		}
+		try {
+			return Timestamp.valueOf(value.toString().trim());
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 
 	private static void addPrimaryKeyIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
@@ -978,7 +1015,7 @@ public final class WorkflowDatabaseUtility {
 	}
 
 	/**
-	 * Adds a column to an existing table if it isn't already present — used to migrate
+	 * Adds a column to an existing table if it isn't already present - used to migrate
 	 * WORKFLOW_RUNS for installs that created the table before PARENT_RUN_ID/PARENT_NODE_ID
 	 * existed. Safe to call unconditionally on every startup; errors (column already exists)
 	 * are swallowed just like {@link #addPrimaryKeyIfNotExists}.
@@ -1000,7 +1037,7 @@ public final class WorkflowDatabaseUtility {
 	private static void createIndexIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
 			boolean allowIfExists, String indexName, String tableName, String[] columns) {
 		try {
-			List<String> colList = java.util.Arrays.asList(columns);
+			List<String> colList = Arrays.asList(columns);
 			String sql;
 			if (allowIfExists && queryUtil.allowIfExistsIndexSyntax()) {
 				sql = queryUtil.createIndexIfNotExists(indexName, tableName, colList);
@@ -1017,7 +1054,7 @@ public final class WorkflowDatabaseUtility {
 		}
 	}
 
-	// ── Data Transfer Object ──────────────────────────────────────────────────────
+	// -- Data Transfer Object ------------------------------------------------------
 
 	/**
 	 * Record for a single for-each row result, used in batch inserts.

@@ -46,6 +46,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Instant;
 
 // WorkflowExecutionUtils used for resolve, loadConfig, applyOutputTransform
 
@@ -56,7 +59,7 @@ import prerna.util.AssetUtility;
  *
  * <p>Loads the workflow definition, finds the target node, optionally loads scope from a
  * prior run's outputs, and executes just that one node. The result is NOT persisted to
- * any run — this is a test/preview operation.
+ * any run - this is a test/preview operation.
  *
  * <p>When {@code runId} is provided, prior node outputs from that run are loaded into
  * the scope so that {@code ${varName}} references resolve correctly.
@@ -131,7 +134,7 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 		}
 	}
 
-	// ── Helpers ───────────────────────────────────────────────────────────────────
+	// -- Helpers -------------------------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> findNode(String projectId, String nodeId) {
@@ -141,7 +144,7 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 			throw new IllegalArgumentException("No workflow.json found for this project");
 		}
 		try {
-			String json = java.nio.file.Files.readString(f.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
 			Map<String, Object> doc = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
 			Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
 			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
@@ -160,8 +163,8 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 
 	private Map<String, String> buildScope(String contextRunId) {
 		Map<String, String> scope = new HashMap<>();
-		scope.put("date", java.time.Instant.now().toString().substring(0, 10));
-		scope.put("triggered_at", java.time.Instant.now().toString());
+		scope.put("date", Instant.now().toString().substring(0, 10));
+		scope.put("triggered_at", Instant.now().toString());
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
 			List<Map<String, Object>> nodeOutputs = WorkflowDatabaseUtility.getNodeOutputsForRun(contextRunId);
@@ -188,7 +191,7 @@ public class RunWorkflowNodeReactor extends AbstractReactor {
 
 		String builtPixel = (String) node.get("builtPixel");
 		if (builtPixel == null || builtPixel.isBlank() || builtPixel.startsWith("//")) {
-			throw new IllegalStateException("Node has no compiled pixel — save the workflow first");
+			throw new IllegalStateException("Node has no compiled pixel - save the workflow first");
 		}
 
 		String resolved = WorkflowExecutionUtils.resolve(builtPixel, scope, configMap);

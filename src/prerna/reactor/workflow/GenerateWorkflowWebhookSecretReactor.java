@@ -60,7 +60,7 @@ import prerna.util.AssetUtility;
  *
  * <p>Stores the secret in {@code workflow-config.json} under the key
  * {@code WEBHOOK_SECRET} (marked sensitive=true). Returns the plain-text
- * secret once — it is not retrievable again from the API.
+ * secret once - it is not retrievable again from the API.
  */
 public class GenerateWorkflowWebhookSecretReactor extends AbstractReactor {
 
@@ -147,7 +147,7 @@ public class GenerateWorkflowWebhookSecretReactor extends AbstractReactor {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("secret", secret);
         result.put("projectId", projectId);
-        result.put("note", "Store this secret securely — it cannot be retrieved again. Pass it in the X-Webhook-Secret header when calling the webhook endpoint.");
+        result.put("note", "Store this secret securely - it cannot be retrieved again. Pass it in the X-Webhook-Secret header when calling the webhook endpoint.");
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
 }

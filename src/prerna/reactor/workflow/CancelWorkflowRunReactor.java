@@ -92,7 +92,7 @@ public class CancelWorkflowRunReactor extends AbstractReactor {
 		boolean signalled = TriggerWorkflowReactor.requestCancellation(runId);
 
 		if (!signalled) {
-			// Run is not active in this JVM (orphaned RUNNING row) — mark directly
+			// Run is not active in this JVM (orphaned RUNNING row) - mark directly
 			WorkflowDatabaseUtility.updateRunStatus(runId,
 					WorkflowConstants.STATUS_CANCELLED, null, "Cancelled by user");
 		}

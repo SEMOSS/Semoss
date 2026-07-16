@@ -117,7 +117,7 @@ public class GetWorkflowRunReactor extends AbstractReactor {
 							nodeResult.put("iterationResults", iterations);
 						}
 					} catch (Exception ignored) {
-						// malformed JSON — skip
+						// malformed JSON - skip
 					}
 				}
 			}

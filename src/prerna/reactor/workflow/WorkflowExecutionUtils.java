@@ -41,6 +41,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.util.AssetUtility;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Shared static utilities for the workflow execution engine.
@@ -86,7 +88,7 @@ public final class WorkflowExecutionUtils {
 	}
 
 	/**
-	 * Loads {@code workflow-config.json} for a project and returns key→value pairs.
+	 * Loads {@code workflow-config.json} for a project and returns key->value pairs.
 	 * Returns an empty map if the file does not exist or cannot be parsed.
 	 */
 	@SuppressWarnings("unchecked")
@@ -96,7 +98,7 @@ public final class WorkflowExecutionUtils {
 			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
 			File f = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_CONFIG_FILE_NAME);
 			if (!f.exists()) return map;
-			String json = java.nio.file.Files.readString(f.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
 			List<Map<String, Object>> entries = GSON.fromJson(json,
 					new TypeToken<List<Map<String, Object>>>() {}.getType());
 			if (entries != null) {
@@ -140,7 +142,7 @@ public final class WorkflowExecutionUtils {
 		return GSON.toJson(rawResult);
 	}
 
-	// ── Private transform helpers ─────────────────────────────────────────────────
+	// -- Private transform helpers -------------------------------------------------
 
 	@SuppressWarnings("unchecked")
 	private static String transformRowsAsObjects(String rawStr) {

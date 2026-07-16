@@ -98,7 +98,7 @@ public class ResumeWorkflowRunReactor extends AbstractReactor {
 		classLogger.info("Resuming workflow run {} for project {}", runId, projectId);
 
 		// Both values come from validated/DB sources (projectId from testUserProjectIdForAlias,
-		// runId from WORKFLOW_RUNS), so injection is not expected — guard defensively.
+		// runId from WORKFLOW_RUNS), so injection is not expected - guard defensively.
 		if (projectId.contains("\"") || projectId.contains("]") ||
 				runId.contains("\"") || runId.contains("]")) {
 			throw new IllegalArgumentException("Invalid characters in project ID or run ID");

@@ -29,9 +29,19 @@ package prerna.reactor.workflow;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
@@ -43,6 +53,7 @@ import prerna.util.AssetUtility;
 public class SaveWorkflowConfigReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(SaveWorkflowConfigReactor.class);
+    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     public SaveWorkflowConfigReactor() {
         this.keysToGet = new String[]{ "project", "config" };
@@ -65,7 +76,7 @@ public class SaveWorkflowConfigReactor extends AbstractReactor {
 
         String config;
         try {
-            config = java.net.URLDecoder.decode(configEncoded != null ? configEncoded : "[]", java.nio.charset.StandardCharsets.UTF_8);
+            config = URLDecoder.decode(configEncoded != null ? configEncoded : "[]", StandardCharsets.UTF_8);
         } catch (Exception e) {
             config = configEncoded != null ? configEncoded : "[]";
         }
@@ -73,9 +84,13 @@ public class SaveWorkflowConfigReactor extends AbstractReactor {
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
         File configFile = new File(portalsFolder + "/" + WorkflowConstants.WORKFLOW_CONFIG_FILE_NAME);
 
+        // GetWorkflowConfig masks sensitive values (e.g. WEBHOOK_SECRET) as SENSITIVE_MASK.
+        // Restore the real values from disk so a config round-trip cannot silently destroy them.
+        config = restoreMaskedSensitiveValues(config, configFile);
+
         try {
             configFile.getParentFile().mkdirs();
-            java.nio.file.Files.writeString(configFile.toPath(), config, java.nio.charset.StandardCharsets.UTF_8);
+            Files.writeString(configFile.toPath(), config, StandardCharsets.UTF_8);
         } catch (IOException e) {
             classLogger.error("Error saving workflow config", e);
             throw new IllegalArgumentException("Unable to save workflow config: " + e.getMessage());
@@ -83,5 +98,55 @@ public class SaveWorkflowConfigReactor extends AbstractReactor {
 
         SecurityProjectUtils.updateProjectLastEditedDate(projectId);
         return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+    }
+
+    /**
+     * For every incoming entry marked {@code sensitive} whose value is still the
+     * {@link WorkflowConstants#SENSITIVE_MASK} placeholder, restore the real value from the
+     * existing on-disk config (matched by {@code key}). Prevents a save from the UI - which
+     * only ever received the masked value - from overwriting the stored secret.
+     */
+    @SuppressWarnings("unchecked")
+    private String restoreMaskedSensitiveValues(String incomingJson, File existingFile) {
+        if (existingFile == null || !existingFile.exists()) {
+            return incomingJson;
+        }
+        try {
+            List<Map<String, Object>> incoming = GSON.fromJson(incomingJson,
+                    new TypeToken<List<Map<String, Object>>>() {}.getType());
+            String existingJson = Files.readString(existingFile.toPath(), StandardCharsets.UTF_8);
+            List<Map<String, Object>> existing = GSON.fromJson(existingJson,
+                    new TypeToken<List<Map<String, Object>>>() {}.getType());
+            if (incoming == null || existing == null || existing.isEmpty()) {
+                return incomingJson;
+            }
+
+            Map<String, Object> existingValueByKey = new HashMap<>();
+            for (Map<String, Object> e : existing) {
+                existingValueByKey.put(String.valueOf(e.get("key")), e.get("value"));
+            }
+
+            boolean restoredAny = false;
+            for (Map<String, Object> entry : incoming) {
+                if (Boolean.TRUE.equals(entry.get("sensitive"))
+                        && WorkflowConstants.SENSITIVE_MASK.equals(entry.get("value"))) {
+                    Object real = existingValueByKey.get(String.valueOf(entry.get("key")));
+                    if (real != null) {
+                        entry.put("value", real);
+                        restoredAny = true;
+                    }
+                }
+            }
+            return restoredAny ? GSON.toJson(incoming) : incomingJson;
+        } catch (Exception e) {
+            // Never let a merge problem overwrite good secrets - keep the existing file untouched.
+            classLogger.warn("Could not merge sensitive workflow config; keeping existing file. Cause: {}",
+                    e.getMessage());
+            try {
+                return Files.readString(existingFile.toPath(), StandardCharsets.UTF_8);
+            } catch (IOException io) {
+                return incomingJson;
+            }
+        }
     }
 }

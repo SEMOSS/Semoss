@@ -44,6 +44,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
 
 public class GetWorkflowConfigReactor extends AbstractReactor {
 
@@ -76,14 +80,14 @@ public class GetWorkflowConfigReactor extends AbstractReactor {
         }
 
         try {
-            String json = java.nio.file.Files.readString(configFile.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            String json = Files.readString(configFile.toPath(), StandardCharsets.UTF_8);
             // strip sensitive values before returning
-            java.util.List<java.util.Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<java.util.List<java.util.Map<String, Object>>>() {}.getType());
+            List<Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (entries != null) {
-                for (java.util.Map<String, Object> entry : entries) {
+                for (Map<String, Object> entry : entries) {
                     Object sensitive = entry.get("sensitive");
                     if (Boolean.TRUE.equals(sensitive)) {
-                        entry.put("value", "***");
+                        entry.put("value", WorkflowConstants.SENSITIVE_MASK);
                     }
                 }
             }
