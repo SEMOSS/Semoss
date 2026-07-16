@@ -906,12 +906,22 @@ public class Room implements Serializable {
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
 		// ── Insight MCP: virtual toolbox backed by the room's insight assets ──────
 		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
-			InsightMCP insightMcp = new InsightMCP(this.insight);
+			InsightMCP insightMcp = new InsightMCP(this.getRoomFolderPath());
 			JSONObject toolMap = insightMcp.getMCPTools();
 			if (toolMap == null) {
 				return new ArrayList<>();
 			}
 			Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap() : new HashMap<>();
+			Map<Integer, String> originalNames = new HashMap<>();
+			if (toolMap.has("tools")) {
+				JSONArray toolsBefore = toolMap.getJSONArray("tools");
+				for (int i = 0; i < toolsBefore.length(); i++) {
+					JSONObject toolBefore = toolsBefore.optJSONObject(i);
+					if (toolBefore != null && toolBefore.has("name")) {
+						originalNames.put(i, toolBefore.getString("name"));
+					}
+				}
+			}
 			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(InsightMCP.INSIGHT_MCP_ID, toolMap, maxLength);
 			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
 				return new ArrayList<>();
@@ -930,7 +940,18 @@ public class Room implements Serializable {
 					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
 					Object rawMeta = entry.get("_meta");
 					if (rawMeta instanceof Map) lookupMeta.putAll((Map<String, Object>) rawMeta);
-					toolLookupByLLMName.put(llmName, lookupMeta);
+					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, InsightMCP.INSIGHT_MCP_ID);
+					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
+
+					Map<String, Object> lookupEntry = new HashMap<>();
+					if (entry.containsKey("title")) {
+						lookupEntry.put("title", entry.get("title"));
+					}
+					if (entry.containsKey("description")) {
+						lookupEntry.put("description", entry.get("description"));
+					}
+					lookupEntry.put("_meta", lookupMeta);
+					toolLookupByLLMName.put(llmName, lookupEntry);
 				}
 			}
 			return result;

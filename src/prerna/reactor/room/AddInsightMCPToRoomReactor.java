@@ -64,6 +64,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.engine.impl.InsightMCP;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -112,6 +114,7 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 		}
 
 		String userId = user.getPrimaryLoginToken().getId();
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
 		// ── Read existing options ──────────────────────────────────────────────
 		List<Map<String, Object>> rows = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
@@ -136,6 +139,8 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 				.anyMatch(m -> InsightMCP.INSIGHT_MCP_ID.equals(m.get("id")));
 
 		if (alreadyPresent) {
+			// Repair a stale in-memory Room even when the database is already correct.
+			room.setOptionsMap(options);
 			classLogger.info("AddInsightMCPToRoom: __insight__ already in room '{}' — no change", roomId);
 			Map<String, Object> result = new HashMap<>();
 			result.put("added", false);
@@ -153,6 +158,7 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 
 		// ── Write merged options back ──────────────────────────────────────────
 		ModelInferenceLogsUtils.setRoomOptions(roomId, userId, options);
+		room.setOptionsMap(options);
 
 		classLogger.info("AddInsightMCPToRoom: added __insight__ MCP to room '{}'", roomId);
 		Map<String, Object> result = new HashMap<>();

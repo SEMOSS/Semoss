@@ -43,6 +43,7 @@ import org.json.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -289,8 +290,10 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 		// constructs the correct sidebar iframe URL (public_home/{id}/portals/).
 		if (projectId != null && !projectId.isBlank()) {
 			meta.put("SMSS_PROJECT_ID", projectId);
-			meta.put("SMSS_ENGINE_ID", projectId);
 		}
+		// The room MCP owns definition lookup/execution; the project ID above owns
+		// only the Playwright sidebar portal.
+		meta.put("SMSS_ENGINE_ID", InsightMCP.INSIGHT_MCP_ID);
 
 		// ── Assemble tool — name prefixed with "play_" so the LLM distinguishes
 		// playback tools from recording tools ────────────────────────────────

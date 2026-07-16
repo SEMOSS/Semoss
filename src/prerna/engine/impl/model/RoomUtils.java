@@ -244,6 +244,9 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = insight.getUser().getRoomHash().get(roomId);
+				// A user's room cache outlives individual HTTP Insight instances. Always
+				// attach the current caller before any room operation uses transient context.
+				room.setInsight(insight);
 				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
 				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);

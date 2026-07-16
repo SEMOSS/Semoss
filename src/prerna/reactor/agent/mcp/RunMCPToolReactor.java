@@ -31,6 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.InsightMCP;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -103,6 +106,13 @@ public class RunMCPToolReactor extends AbstractReactor {
 		}
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
+		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
+			String roomId = this.keyValue.get(ROOM_ID_KEY);
+			if (roomId != null && !roomId.isBlank()) {
+				Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+				this.insight.setRoomForInsight(room);
+			}
+		}
 
 		// these are the params
 		Map<String, Object> paramMap = getMap();

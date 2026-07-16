@@ -54,6 +54,8 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -91,21 +93,41 @@ public class InsightMCP implements IMCP {
 	public static final String INSIGHT_MCP_NAME = "Room Recordings";
 
 	/** Relative path within the insight asset folder. */
-	private static final String PIXEL_MCP_REL = "/mcp/pixel_mcp.json";
+	private static final String MCP_FOLDER = "mcp";
+	private static final String PIXEL_MCP_FILE = "pixel_mcp.json";
 
-	private final Insight insight;
+	private final Path insightFolder;
+	private final Insight executionInsight;
 
 	public InsightMCP(Insight insight) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must not be null for InsightMCP");
 		}
-		this.insight = insight;
+		this.insightFolder = validateInsightFolder(insight.getInsightFolder());
+		this.executionInsight = insight;
+	}
+
+	/**
+	 * Creates a room-level MCP backed by an explicit persistent room folder.
+	 * Discovery must use this constructor so it does not depend on whichever
+	 * transient Insight instance is currently attached to a cached Room.
+	 */
+	public InsightMCP(String insightFolder) {
+		this.insightFolder = validateInsightFolder(insightFolder);
+		this.executionInsight = null;
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
 
 	private String pixelMcpPath() {
-		return insight.getInsightFolder() + PIXEL_MCP_REL;
+		return insightFolder.resolve(MCP_FOLDER).resolve(PIXEL_MCP_FILE).toString();
+	}
+
+	private static Path validateInsightFolder(String folder) {
+		if (folder == null || folder.isBlank()) {
+			throw new IllegalArgumentException("Insight folder must not be blank for InsightMCP");
+		}
+		return Paths.get(folder).toAbsolutePath().normalize();
 	}
 
 	// ── IMCP ─────────────────────────────────────────────────────────────────
@@ -185,10 +207,14 @@ public class InsightMCP implements IMCP {
 			throw new IllegalArgumentException("Tool name must not be blank");
 		}
 
-		// The callerInsight is authoritative (it owns the asset folder);
-		// fall back to the constructor insight only if caller is null.
-		Insight effectiveInsight = callerInsight != null ? callerInsight : this.insight;
-		String pixelPath = effectiveInsight.getInsightFolder() + PIXEL_MCP_REL;
+		// The explicit room folder is authoritative for tool definitions. The caller
+		// Insight is only the Pixel execution context and may belong to a different
+		// HTTP/session lifecycle.
+		Insight effectiveInsight = callerInsight != null ? callerInsight : this.executionInsight;
+		if (effectiveInsight == null) {
+			throw new IllegalArgumentException("Caller insight is required to execute an insight MCP tool");
+		}
+		String pixelPath = pixelMcpPath();
 
 		// Find the tool definition
 		JSONArray tools = MCPUtility.getNode(pixelPath, "tools");
