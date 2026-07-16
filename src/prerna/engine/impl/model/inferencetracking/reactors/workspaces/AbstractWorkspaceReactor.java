@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -88,6 +89,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String MAX_SUBAGENTS_PER_RUN = "maxSubagentsPerRun";
 	/** Request key for the per-turn subagent spawn cap (CONFIG_JSON.spawn_policy.max_spawns_per_turn). */
 	static final String MAX_SPAWNS_PER_TURN = "maxSpawnsPerTurn";
+	/** Request key for named subagent slots (CONFIG_JSON.subagents[]). */
+	static final String SUBAGENTS = "subagents";
 
 	/**
 	 * Builds a workspace resource row for an engine, including engine type metadata.
@@ -175,6 +178,70 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Returns named subagent spec entries ({@code {alias, workspaceId, description}}) from the
+	 * incoming reactor request payload.
+	 *
+	 * @return list of subagent maps; each map represents one requested subagent slot
+	 */
+	List<Map<String, Object>> getSubagentMapList() {
+		return getList(SUBAGENTS, List.of());
+	}
+
+	/**
+	 * Validates and normalizes {@code rawSubagents} into the shape
+	 * {@link #mirrorCoreFieldsIntoConfigJson} writes to {@code CONFIG_JSON.subagents[]}.
+	 * Mirrors the read-side rules in {@code AgentConfigLoader.resolveSubagents} (non-blank
+	 * alias + workspaceId, first-wins... except here a duplicate alias is a hard error
+	 * instead of a silent drop, since this is the authoring path and the caller should know).
+	 *
+	 * <p>Also rejects a subagent workspaceId equal to {@code workspaceId} itself (trivial
+	 * self-delegation loop - {@code spawn_policy.max_subagent_depth} bounds it at run time
+	 * regardless, but there's no legitimate reason to author one) and any workspaceId the
+	 * user lacks view permission on.
+	 *
+	 * @throws IllegalArgumentException with a human-readable message on validation failure
+	 *                                   (callers catch and convert to {@code getError(...)})
+	 */
+	protected static List<Map<String, Object>> validateAndNormalizeSubagents(User user, String workspaceId,
+			List<Map<String, Object>> rawSubagents) {
+		List<Map<String, Object>> normalized = new ArrayList<>(rawSubagents.size());
+		Set<String> seenAliases = new LinkedHashSet<>();
+		for (Map<String, Object> raw : rawSubagents) {
+			Object aliasObj = raw.get("alias");
+			Object workspaceIdObj = raw.get("workspaceId");
+			String alias = aliasObj == null ? null : aliasObj.toString().trim();
+			String targetWorkspaceId = workspaceIdObj == null ? null : workspaceIdObj.toString().trim();
+			if (alias == null || alias.isEmpty()) {
+				throw new IllegalArgumentException("Subagent entry is missing an alias");
+			}
+			if (targetWorkspaceId == null || targetWorkspaceId.isEmpty()) {
+				throw new IllegalArgumentException("Subagent '" + alias + "' is missing a target workspaceId");
+			}
+			if (targetWorkspaceId.equals(workspaceId)) {
+				throw new IllegalArgumentException("Subagent '" + alias + "' cannot target its own workspace");
+			}
+			if (!seenAliases.add(alias)) {
+				throw new IllegalArgumentException("Duplicate subagent alias: " + alias);
+			}
+			if (!SecurityProjectUtils.userCanViewProject(user, targetWorkspaceId)) {
+				throw new IllegalArgumentException(
+						"User lacks permission to one of the given subagent workspaces: " + targetWorkspaceId);
+			}
+			Object descriptionObj = raw.get("description");
+			String description = descriptionObj == null ? null : descriptionObj.toString().trim();
+
+			Map<String, Object> entry = new HashMap<>();
+			entry.put("alias", alias);
+			entry.put("workspaceId", targetWorkspaceId);
+			if (description != null && !description.isEmpty()) {
+				entry.put("description", description);
+			}
+			normalized.add(entry);
+		}
+		return normalized;
+	}
+
+	/**
 	 * Mirrors the workspace's {@code system_prompt}, MCP refs, and skill refs
 	 * into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
 	 * present (hooks, subagents, budgets, etc.).
@@ -196,13 +263,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
-		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null);
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
+				false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null);
+				null, null, false, null);
 	}
 
 	/**
@@ -215,10 +283,18 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *                           {@code CONFIG_JSON.spawn_policy} keys (e.g.
 	 *                           {@code max_subagent_depth}); a removed key falls back to
 	 *                           the platform default for that field at run time.
+	 * @param subagentsProvided  whether the caller passed a {@code subagents} key at all;
+	 *                           when {@code false}, {@code CONFIG_JSON.subagents} is left
+	 *                           untouched regardless of {@code subagents}.
+	 * @param subagents          normalized entries (see
+	 *                           {@link #validateAndNormalizeSubagents}) to fully replace
+	 *                           {@code CONFIG_JSON.subagents[]} with; an empty list clears
+	 *                           it. Ignored when {@code subagentsProvided} is {@code false}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
-			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates) throws Exception {
+			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
+			List<Map<String, Object>> subagents) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -267,6 +343,20 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 		applyIntegerUpdates(cfg, "budgets", budgetUpdates);
 		applyIntegerUpdates(cfg, "spawn_policy", spawnPolicyUpdates);
+
+		if (subagentsProvided) {
+			JSONArray subagentsJson = new JSONArray();
+			for (Map<String, Object> entry : subagents) {
+				JSONObject entryJson = new JSONObject();
+				entryJson.put("alias", entry.get("alias"));
+				entryJson.put("workspaceId", entry.get("workspaceId"));
+				if (entry.get("description") != null) {
+					entryJson.put("description", entry.get("description"));
+				}
+				subagentsJson.put(entryJson);
+			}
+			cfg.put("subagents", subagentsJson);
+		}
 
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
 	}
