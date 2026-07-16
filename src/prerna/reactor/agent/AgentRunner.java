@@ -133,7 +133,7 @@ public final class AgentRunner {
 	 * @param engineIdFallback Optional. Engine/model ID to use if the room has no
 	 *                         MODEL_ID set.
 	 * @param harnessType      Optional. Registry key for the harness; defaults to
-	 *                         {@code "room_loop"}.
+	 *                         {@code "semoss"}.
 	 * @param maxTurns         Optional. Maximum SEMOSS harness tool-call rounds.
 	 * @param maxReflections   Optional. Maximum SEMOSS harness self-critique
 	 *                         rounds.

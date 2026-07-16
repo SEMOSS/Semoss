@@ -239,7 +239,6 @@ public final class HttpHelperUtility {
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
-
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
 					httpGet.addHeader(key, headerMap.get(key));

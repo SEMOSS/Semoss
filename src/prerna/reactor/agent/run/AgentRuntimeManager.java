@@ -27,16 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+
+import org.json.JSONArray;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
@@ -76,10 +82,9 @@ public final class AgentRuntimeManager {
 		}
 		String userId = resolveUserId(request.getInsight());
 		store.insertSubmitted(resolvedRunId, request, userId);
-		AgentRunEventBus.get().publishStatus(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, false);
 		worker.rememberInsight(resolvedRunId, request.getInsight());
 		worker.signal();
-		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED, null);
+		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
 	}
 
 	/**
@@ -121,9 +126,27 @@ public final class AgentRuntimeManager {
 				List<Map<String, Object>> pendingActions = actionStore.getPendingActions(runId);
 				run.put("pendingActions", pendingActions);
 			} catch (Exception e) {
-				// best-effort — don't fail the getRun call
+				// best-effort - don't fail the getRun call
 			}
 		}
+		return run;
+	}
+
+	public Map<String, Object> getRun(String runId, Insight insight, boolean includeMessages) {
+		Map<String, Object> run = getRun(runId, insight);
+		if (!includeMessages) {
+			return run;
+		}
+
+		String roomId = trimToNull(run.get("roomId"));
+		String userId = resolveUserId(insight);
+		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
+		if (room == null) {
+			run.put("messages", List.of());
+			return run;
+		}
+
+		run.put("messages", collectRunMessages(room, runId));
 		return run;
 	}
 
@@ -131,37 +154,22 @@ public final class AgentRuntimeManager {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
-		long start = System.currentTimeMillis();
 		long effectiveTimeoutMs = timeoutMs > 0 ? timeoutMs : getLongProperty(WAIT_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS);
-		long deadline = start + effectiveTimeoutMs;
-		LinkedBlockingQueue<AgentRunEventBus.AgentRunEvent> events = new LinkedBlockingQueue<>();
-		AutoCloseable subscription = AgentRunEventBus.get().subscribe(runId, events::offer);
-		try {
-			while (true) {
-				Map<String, Object> run = getRun(runId, insight);
-				if (isTerminalStatus(String.valueOf(run.get("status")))) {
-					run.put("waitTimedOut", false);
-					return run;
-				}
-				long remaining = deadline - System.currentTimeMillis();
-				if (remaining <= 0) {
-					run.put("waitTimedOut", true);
-					return run;
-				}
-				long pollMs = Math.min(1000L, remaining);
-				AgentRunEventBus.AgentRunEvent event = events.poll(pollMs, TimeUnit.MILLISECONDS);
-				if (event != null && event.isTerminal()) {
-					Map<String, Object> terminalRun = getRun(runId, insight);
-					terminalRun.put("waitTimedOut", false);
-					return terminalRun;
-				}
+		long deadline = System.currentTimeMillis() + effectiveTimeoutMs;
+		while (true) {
+			Map<String, Object> run = getRun(runId, insight);
+			// isTerminalStatus also returns true for INPUT_REQUIRED, the synchronous
+			// wait boundary: the run pauses for user input but is not itself terminal.
+			if (isTerminalStatus(String.valueOf(run.get("status")))) {
+				run.put("waitTimedOut", false);
+				return run;
 			}
-		} finally {
-			try {
-				subscription.close();
-			} catch (Exception ignored) {
-				// best-effort listener cleanup
+			long remaining = deadline - System.currentTimeMillis();
+			if (remaining <= 0) {
+				run.put("waitTimedOut", true);
+				return run;
 			}
+			Thread.sleep(Math.min(1000L, remaining));
 		}
 	}
 
@@ -175,9 +183,7 @@ public final class AgentRuntimeManager {
 		}
 		worker.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
-		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
-			AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
-		}
+		store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled");
 		return getRun(runId, insight);
 	}
 
@@ -187,11 +193,7 @@ public final class AgentRuntimeManager {
 		}
 		String message = reason == null || reason.trim().isEmpty() ? "Agent run cancelled" : reason.trim();
 		worker.cancel(runId);
-		boolean updated = store.markCancelledIfNotTerminal(runId, runId, message);
-		if (updated) {
-			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.CANCELLED, true);
-		}
-		return updated;
+		return store.markCancelledIfNotTerminal(runId, runId, message);
 	}
 
 	boolean isCancelled(Throwable t) {
@@ -238,6 +240,28 @@ public final class AgentRuntimeManager {
 			return null;
 		}
 		return user.getPrimaryLoginToken().getId();
+	}
+
+	private static List<Object> collectRunMessages(Room room, String runId) {
+		List<AbstractMessage> runMessages = new ArrayList<>();
+		for (AbstractMessage message : room.getMessages()) {
+			if (message == null) {
+				continue;
+			}
+			Object taggedRunId = message.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
+			if (taggedRunId != null && runId.equals(String.valueOf(taggedRunId))) {
+				runMessages.add(message);
+			}
+		}
+		return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
+	}
+
+	private static String trimToNull(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = String.valueOf(value).trim();
+		return text.isEmpty() ? null : text;
 	}
 
 	private String resolveRunId(Insight insight) {
