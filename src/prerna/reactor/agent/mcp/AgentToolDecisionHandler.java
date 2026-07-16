@@ -47,7 +47,6 @@ import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.reactor.agent.run.AgentRunActionStore;
-import prerna.reactor.agent.run.AgentRunEventBus;
 import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
@@ -255,7 +254,6 @@ public final class AgentToolDecisionHandler {
 				logger.info("AgentToolDecisionHandler: runId={} already resumed or terminal status={}", runId, status);
 				return;
 			}
-			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.SUBMITTED, false);
 			AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
 			logger.info("AgentToolDecisionHandler: resumed agent runId={} roomId={} toolCallId={}",
 					runId, roomId, toolCallId);
