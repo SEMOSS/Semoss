@@ -879,7 +879,11 @@ class FAISSSearcher:
             The unique identifier of the insight from which the call is being made
 
         Returns:
-            `Dict` A dictionary listing which documents have been successfully created
+            `Dict` with `createdDocuments` (artifact paths written) and `documentStatuses`
+            (one SUCCESS/PARTIAL/FAILED entry per input CSV, in input order, with
+            insertedRecords/failedRecords/totalRecords and an error message on failure).
+            Embedding is best-effort: a document that fails is reported FAILED and rolled
+            back while the remaining documents are still processed.
         """
         # make sure they are all in indexed_files dir
         assert {
@@ -887,87 +891,145 @@ class FAISSSearcher:
         } == {"indexed_files"}
 
         # create a list of the documents created so that we can push the files back to the cloud
+        # documentStatuses reports one SUCCESS/PARTIAL/FAILED entry per input CSV so a
+        # single bad document no longer fails the whole batch (best-effort embedding)
         createDocumentsResponse = {
             "createdDocuments": [],
+            "documentStatuses": [],
         }
+        # per-document [(artifact_paths, rows)] aligned with documentStatuses
+        per_document_artifacts = []
 
         # Embed each input CSV in one call, then preserve the existing per-Source
         # dataset/vector artifacts used by removal and master-index rebuilding.
         for document in documentFileLocation:
-            dataset = self._load_dataset(dataset_location=document)
-            sources = dataset["Source"].unique().tolist()
-            directory = os.path.dirname(document)
-            effective_columns = (
-                list(dataset.columns)
-                if columns_to_index is None or len(columns_to_index) == 0
-                else columns_to_index
+            file_name = os.path.basename(document)
+            # _append_vectors always rebinds to new arrays, so holding the previous
+            # references is a complete rollback for a failed document
+            snapshot_vectors = self.encoded_vectors
+            snapshot_dimensions = self.vector_dimensions
+            created_artifacts = []
+            total_rows = 0
+            try:
+                dataset = self._load_dataset(dataset_location=document)
+                total_rows = len(dataset)
+                sources = dataset["Source"].unique().tolist()
+                directory = os.path.dirname(document)
+                effective_columns = (
+                    list(dataset.columns)
+                    if columns_to_index is None or len(columns_to_index) == 0
+                    else columns_to_index
+                )
+                keyword_params = dict(keyword_search_params or {})
+                keyword_search = keyword_params.pop("keywordSearch", None) is True
+                prepared_sources = []
+
+                for source_name in sources:
+                    source_dataset = dataset[
+                        dataset["Source"] == source_name
+                    ].reset_index(drop=True)
+                    if len(source_dataset) == 0:
+                        continue
+                    parts = source_dataset[effective_columns].astype(str)
+                    source_dataset[target_column] = parts.apply(
+                        lambda row: separator.join(row) + separator, axis=1
+                    )
+                    if keyword_search:
+                        source_dataset[target_column] = (
+                            self.keyword_engine.keyword_extraction(
+                                input=list(source_dataset[target_column]),
+                                insight_id=insight_id,
+                                param_dict=keyword_params,
+                            )
+                        )
+                        vectors = self._embed_and_validate(
+                            list(source_dataset[target_column]), insight_id
+                        )
+                        created_artifacts.append(
+                            (
+                                self._persist_source_artifacts(
+                                    directory,
+                                    source_name,
+                                    source_dataset,
+                                    vectors,
+                                    columns_to_remove,
+                                    target_column,
+                                ),
+                                len(source_dataset),
+                            )
+                        )
+                        self._append_vectors(vectors)
+                    else:
+                        prepared_sources.append((source_name, source_dataset))
+
+                if prepared_sources:
+                    all_text = [
+                        value
+                        for _source_name, source_dataset in prepared_sources
+                        for value in source_dataset[target_column].tolist()
+                    ]
+                    all_vectors = self._embed_and_validate(all_text, insight_id)
+                    offset = 0
+                    for source_name, source_dataset in prepared_sources:
+                        source_rows = len(source_dataset)
+                        source_vectors = all_vectors[offset : offset + source_rows]
+                        offset += source_rows
+                        created_artifacts.append(
+                            (
+                                self._persist_source_artifacts(
+                                    directory,
+                                    source_name,
+                                    source_dataset,
+                                    source_vectors,
+                                    columns_to_remove,
+                                    target_column,
+                                ),
+                                source_rows,
+                            )
+                        )
+                    if offset != len(all_vectors):
+                        raise ValueError(
+                            "Embedding rows could not be assigned to their Sources"
+                        )
+                    self._append_vectors(all_vectors)
+            except Exception as error:
+                self.class_logger.exception(
+                    "Embedding failed for document %s", document
+                )
+                for artifact_paths, _rows in created_artifacts:
+                    for artifact_path in artifact_paths:
+                        try:
+                            os.remove(artifact_path)
+                        except OSError:
+                            pass
+                self.encoded_vectors = snapshot_vectors
+                self.vector_dimensions = snapshot_dimensions
+                per_document_artifacts.append([])
+                createDocumentsResponse["documentStatuses"].append(
+                    {
+                        "fileName": file_name,
+                        "status": "FAILED",
+                        "insertedRecords": 0,
+                        "failedRecords": total_rows,
+                        "totalRecords": total_rows,
+                        "error": str(error),
+                    }
+                )
+                continue
+
+            inserted_rows = sum(rows for _paths, rows in created_artifacts)
+            for artifact_paths, _rows in created_artifacts:
+                createDocumentsResponse["createdDocuments"].extend(artifact_paths)
+            per_document_artifacts.append(created_artifacts)
+            createDocumentsResponse["documentStatuses"].append(
+                {
+                    "fileName": file_name,
+                    "status": "SUCCESS",
+                    "insertedRecords": inserted_rows,
+                    "failedRecords": total_rows - inserted_rows,
+                    "totalRecords": total_rows,
+                }
             )
-            keyword_params = dict(keyword_search_params or {})
-            keyword_search = keyword_params.pop("keywordSearch", None) is True
-            prepared_sources = []
-
-            for source_name in sources:
-                source_dataset = dataset[dataset["Source"] == source_name].reset_index(
-                    drop=True
-                )
-                if len(source_dataset) == 0:
-                    continue
-                parts = source_dataset[effective_columns].astype(str)
-                source_dataset[target_column] = parts.apply(
-                    lambda row: separator.join(row) + separator, axis=1
-                )
-                if keyword_search:
-                    source_dataset[target_column] = (
-                        self.keyword_engine.keyword_extraction(
-                            input=list(source_dataset[target_column]),
-                            insight_id=insight_id,
-                            param_dict=keyword_params,
-                        )
-                    )
-                    vectors = self._embed_and_validate(
-                        list(source_dataset[target_column]), insight_id
-                    )
-                    createDocumentsResponse["createdDocuments"].extend(
-                        self._persist_source_artifacts(
-                            directory,
-                            source_name,
-                            source_dataset,
-                            vectors,
-                            columns_to_remove,
-                            target_column,
-                        )
-                    )
-                    self._append_vectors(vectors)
-                else:
-                    prepared_sources.append((source_name, source_dataset))
-
-            if prepared_sources:
-                all_text = [
-                    value
-                    for _source_name, source_dataset in prepared_sources
-                    for value in source_dataset[target_column].tolist()
-                ]
-                all_vectors = self._embed_and_validate(all_text, insight_id)
-                offset = 0
-                for source_name, source_dataset in prepared_sources:
-                    source_rows = len(source_dataset)
-                    source_vectors = all_vectors[offset : offset + source_rows]
-                    offset += source_rows
-                    createDocumentsResponse["createdDocuments"].extend(
-                        self._persist_source_artifacts(
-                            directory,
-                            source_name,
-                            source_dataset,
-                            source_vectors,
-                            columns_to_remove,
-                            target_column,
-                        )
-                    )
-                if offset != len(all_vectors):
-                    raise ValueError(
-                        "Embedding rows could not be assigned to their Sources"
-                    )
-                self._append_vectors(all_vectors)
 
         master_indexClass_files, corrupted_file_sets = self.createMasterFiles(
             path_to_files=os.path.dirname(os.path.dirname(documentFileLocation[0]))
@@ -976,6 +1038,33 @@ class FAISSSearcher:
         for corrupted_set in corrupted_file_sets:
             for file_path in corrupted_set:
                 createDocumentsResponse["createdDocuments"].remove(file_path)
+
+        # downgrade documents whose artifacts failed post-write validation so the
+        # removal is reported instead of silently shrinking createdDocuments
+        corrupted_paths = {
+            file_path
+            for corrupted_set in corrupted_file_sets
+            for file_path in corrupted_set
+        }
+        if corrupted_paths:
+            for status, created_artifacts in zip(
+                createDocumentsResponse["documentStatuses"], per_document_artifacts
+            ):
+                lost_rows = sum(
+                    rows
+                    for artifact_paths, rows in created_artifacts
+                    if corrupted_paths.intersection(artifact_paths)
+                )
+                if status["status"] != "SUCCESS" or lost_rows == 0:
+                    continue
+                status["insertedRecords"] -= lost_rows
+                status["failedRecords"] += lost_rows
+                status["status"] = (
+                    "FAILED" if status["insertedRecords"] == 0 else "PARTIAL"
+                )
+                status["error"] = (
+                    "Source artifacts failed validation after writing and were removed"
+                )
 
         createDocumentsResponse["createdDocuments"].extend(master_indexClass_files)
 

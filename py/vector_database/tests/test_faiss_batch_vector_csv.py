@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import unittest
@@ -42,6 +43,7 @@ class FaissBatchVectorCsvTests(unittest.TestCase):
 
     def searcher(self, dataset, embedder=None, keyword_engine=None):
         searcher = object.__new__(FAISSSearcher)
+        searcher.class_logger = logging.getLogger(__name__)
         searcher.embeddings_engine = embedder or RecordingEmbedder()
         searcher.keyword_engine = keyword_engine or RecordingKeywordEngine()
         searcher.tokenizer = object()
@@ -133,7 +135,7 @@ class FaissBatchVectorCsvTests(unittest.TestCase):
         )
         self.assertEqual(vectors.shape, (row_count, 3))
 
-    def test_invalid_embedding_row_count_writes_no_source_artifacts(self):
+    def test_invalid_embedding_row_count_marks_document_failed(self):
         class ShortEmbedder:
             def embeddings(self, *, strings_to_embed, insight_id):
                 del insight_id
@@ -144,14 +146,16 @@ class FaissBatchVectorCsvTests(unittest.TestCase):
         )
         searcher = self.searcher(dataset, embedder=ShortEmbedder())
 
-        with self.assertRaisesRegex(ValueError, "shape does not match"):
-            searcher._vector_addDocument(
-                [str(self.document)], ["Content"], [], "text", "|", {}, "insight-1"
-            )
+        response = searcher._vector_addDocument(
+            [str(self.document)], ["Content"], [], "text", "|", {}, "insight-1"
+        )
 
+        status = response["documentStatuses"][0]
+        self.assertEqual(status["status"], "FAILED")
+        self.assertIn("shape does not match", status["error"])
         self.assertEqual(list(self.indexed_files.glob("*_dataset.parquet")), [])
         self.assertEqual(list(self.indexed_files.glob("*_vectors.npy")), [])
-        searcher.createMasterFiles.assert_not_called()
+        self.assertEqual(searcher.createMasterFiles.call_count, 1)
 
     def test_keyword_search_remains_a_per_source_fallback(self):
         dataset = pd.DataFrame(
