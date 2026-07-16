@@ -69,7 +69,7 @@ import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
  * <li>Multi-turn tool loop with parallel tool execution
  * <li>Configurable reflection rounds
  * <li>Cooperative cancellation via {@code Thread.isInterrupted()}
- * <li>Run-time budget via {@code max_seconds} paramMap key (0 = unlimited)
+ * <li>Run-time budget from {@link AgentConfig.Budgets} (0 = unlimited)
  * <li>Turn cap, reflection cap, and spawn depth from {@link AgentRunContext#getAgentConfig()}
  * <li>Subagent spawning with per-run and per-turn spawn caps
  * <li>Pre/post tool hooks and run lifecycle hooks via {@link prerna.reactor.agent.IAgentRunHook}
@@ -85,7 +85,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	/** Registry key {@value}. */
 	public static final String NAME = "semoss";
 
-	/** paramMap key for an optional run-time limit in seconds (0 = no limit). */
+	/** Harness-only paramMap key stripped before provider model calls. */
 	public static final String PARAM_MAX_SECONDS = "max_seconds";
 
 	private static final String PARAM_FILE_PATH = "file_path";
@@ -120,9 +120,12 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		AgentConfig agentConfig = ctx.getAgentConfig();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
-		int maxSeconds = resolveMaxSeconds(paramMap);
+		// AgentConfigLoader has already combined the caller's requested limit with
+		// the workspace cap. This is the one wall-clock budget the harness enforces.
+		int enforcedMaxSeconds = agentConfig.getBudgets().getMaxSeconds();
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
@@ -130,7 +133,6 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		// Spawn tools are shown when this run is below the configured depth cap.
 		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root + one level; etc.
-		AgentConfig agentConfig = ctx.getAgentConfig();
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
 		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
@@ -191,7 +193,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		try {
 			String systemPrompt = room.getSystemPromptForModel();
 
-			// Start the clock BEFORE the first model call so it counts against max_seconds.
+			// Start the clock BEFORE the first model call so it counts against the resolved budget.
 			AgentLoopState state = new AgentLoopState();
 			String inputMessageId = null;
 			String finalOutputMessageId = null;
@@ -253,10 +255,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
 			}
-			if (maxSeconds > 0 && state.getElapsedMs() > maxSeconds * 1000L) {
-				throw new AgentBudgetException(BudgetKind.RUN_TIME, "Run-time budget of " + maxSeconds
-						+ "s exceeded during initial model call (" + state.getElapsedMs() + "ms elapsed)");
-			}
+			enforceRunTimeBudget(state, enforcedMaxSeconds, "during initial model call");
 
 			while (!state.isTerminal()) {
 
@@ -273,11 +272,8 @@ public class SemossAgentHarness implements IAgentHarness {
 					throw new AgentMaxTurnsException(ctx.getMaxTurns());
 				}
 
-				if (maxSeconds > 0 && state.getElapsedMs() > maxSeconds * 1000L) {
-					throw new AgentBudgetException(BudgetKind.RUN_TIME,
-							"Run-time budget of " + maxSeconds + "s exceeded after " + state.getIterations()
-									+ " iterations (" + state.getElapsedMs() + "ms elapsed)");
-				}
+				enforceRunTimeBudget(state, enforcedMaxSeconds,
+						"after " + state.getIterations() + " iterations");
 
 				if (response == null) {
 					logger.warn("SemossAgentHarness: null response from model at iteration={} - treating as terminal",
@@ -783,19 +779,18 @@ public class SemossAgentHarness implements IAgentHarness {
 		return sb.toString();
 	}
 
-	private static int resolveMaxSeconds(Map<String, Object> paramMap) {
-		Object val = paramMap.get(PARAM_MAX_SECONDS);
-		if (val == null)
-			return 0;
-		if (val instanceof Number)
-			return ((Number) val).intValue();
-		if (val instanceof String) {
-			try {
-				return Integer.parseInt(((String) val).trim());
-			} catch (NumberFormatException ignored) {
-			}
+	private static void enforceRunTimeBudget(AgentLoopState state, int enforcedMaxSeconds, String phase) {
+		if (enforcedMaxSeconds <= 0) {
+			return;
 		}
-		return 0;
+
+		long elapsedMs = state.getElapsedMs();
+		long budgetMs = enforcedMaxSeconds * 1000L;
+		if (elapsedMs > budgetMs) {
+			throw new AgentBudgetException(BudgetKind.RUN_TIME,
+					"Run-time budget of " + enforcedMaxSeconds + "s exceeded " + phase
+							+ " (" + elapsedMs + "ms elapsed)");
+		}
 	}
 
 }
