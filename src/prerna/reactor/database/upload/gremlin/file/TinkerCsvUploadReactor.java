@@ -72,20 +72,27 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	private CSVFileHelper helper;
 
 	@Override
+	public String getReactorDescription() {
+		return "Uploads a delimited file (CSV, TSV, etc.) to create a new graph database or append to an existing one. "
+				+ "The graph is stored using a TinkerPop-backed engine and is built from a user-defined metamodel "
+				+ "of nodes, properties, and relationships.";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Create metadata for database...");
+		logger.info("{}. Create metadata for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create properties file for database...");
+		logger.info("{}. Create properties file for database...", stepCounter);
 		this.tempSmss = UploadUtilities.createTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile,
 				getTinkerDriverType());
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// get metamodel
@@ -95,15 +102,15 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		/*
 		 * Load data into tinker database
 		 */
-		logger.info(stepCounter + ". Create  Tinker database...");
+		logger.info("{}. Create  Tinker database...", stepCounter);
 		this.database = new TinkerEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		this.database.open(this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start loading data..");
+		logger.info("{}. Start loading data..", stepCounter);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap,
 				(Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap,
@@ -126,10 +133,10 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		}
 		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.database.commit();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Commit database metadata...");
+		logger.info("{}. Commit database metadata...", stepCounter);
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine,
 				(Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP),
@@ -137,7 +144,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete...");
+		logger.info("{}. Complete...", stepCounter);
 		stepCounter++;
 
 		String json = GSON.toJson(((TinkerEngine) this.database).getTypeMap());
@@ -149,12 +156,12 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 //		logger.info(stepCounter + ". Start generating default database insights");
 //		// note, on database creation, we auto create an insights database + add explore an instance
 //		// TODO: should add some new ones...
-//		logger.info(stepCounter + ". Complete");
+//		logger.info("{}. Complete", stepCounter);
 //		stepCounter++;
 
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		logger.info("{}. Save csv metamodel prop file	", stepCounter);
 		UploadUtilities.createPropFile(this.databaseId, newDatabaseName, filePath, metamodelProps);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 	}
 
 	@Override
@@ -164,15 +171,15 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		}
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Get database upload input...");
+		logger.info("{}. Get database upload input...", stepCounter);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 		;
-		logger.info(stepCounter + ". Done...");
+		logger.info("{}. Done...", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + "Parsing file metadata...");
+		logger.info("{}Parsing file metadata...", stepCounter);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap,
 				(Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		// get the user selected datatypes for each header
@@ -181,10 +188,10 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start loading data..");
+		logger.info("{}. Start loading data..", stepCounter);
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
@@ -199,10 +206,10 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		}
 		processRelationships(this.database, owlEngine, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.database.commit();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.warn(stepCounter + ". Committing database metadata....");
+		logger.warn("{}. Committing database metadata....", stepCounter);
 		// add the owl metadata
 		UploadUtilities.insertOwlMetadataToGraphicalEngine(owlEngine,
 				(Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP),
@@ -210,15 +217,15 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// TODO generate new database insights for tinker
 		// TODO update type map and node name map in smss
 
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		logger.info("{}. Save csv metamodel prop file	", stepCounter);
 		UploadUtilities.createPropFile(this.databaseId, this.database.getEngineName(), filePath, metamodelProps);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 	}
 
 	@Override
@@ -404,7 +411,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 			}
 		}
 		metamodel.put(Constants.END_ROW, count);
-		logger.info("FINAL COUNT " + count);
+		logger.info("FINAL COUNT {}", count);
 	}
 
 	public String getInstanceURI(String nodeType) {
