@@ -101,6 +101,12 @@ public class RemoteBrowserSession {
 	/** Last TYPE step currently being aggregated. */
 	private PlaywrightStep pendingTypeStep;
 
+	/** Last SCROLL step currently being aggregated into one wheel burst. */
+	private PlaywrightStep pendingScrollStep;
+
+	/** Processing time of the most recent wheel event in the current burst. */
+	private long pendingScrollEventAt;
+
 	/** Whether the next recorded action should start a new replay page group. */
 	private boolean nextRemoteBrowserRecordedStepStartsNewPage = false;
 
@@ -198,6 +204,7 @@ public class RemoteBrowserSession {
 		this.recordingEnabled = recordingEnabled;
 		if (!recordingEnabled) {
 			clearPendingTypeStep();
+			clearPendingScrollStep();
 		}
 	}
 
@@ -211,6 +218,7 @@ public class RemoteBrowserSession {
 		recordingLastStepId = 0;
 		recordedSteps.clear();
 		clearPendingTypeStep();
+		clearPendingScrollStep();
 		nextRemoteBrowserRecordedStepStartsNewPage = false;
 		ensureRecordingTab();
 	}
@@ -261,6 +269,24 @@ public class RemoteBrowserSession {
 	public synchronized void clearPendingTypeStep() {
 		this.pendingTypeSignature = null;
 		this.pendingTypeStep = null;
+	}
+
+	public synchronized PlaywrightStep getPendingScrollStep() {
+		return pendingScrollStep;
+	}
+
+	public synchronized long getPendingScrollEventAt() {
+		return pendingScrollEventAt;
+	}
+
+	public synchronized void setPendingScrollStep(PlaywrightStep step, long eventAt) {
+		this.pendingScrollStep = step;
+		this.pendingScrollEventAt = eventAt;
+	}
+
+	public synchronized void clearPendingScrollStep() {
+		this.pendingScrollStep = null;
+		this.pendingScrollEventAt = 0;
 	}
 
 	public synchronized void startNextRemoteBrowserRecordedStepOnNewPage() {
