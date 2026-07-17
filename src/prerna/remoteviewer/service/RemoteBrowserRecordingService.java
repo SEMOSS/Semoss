@@ -66,7 +66,6 @@
  *******************************************************************************/
 package prerna.remoteviewer.service;
 
-import java.util.List;
 import java.util.Objects;
 
 import prerna.reactor.playwright.Coords;
@@ -84,14 +83,12 @@ import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
  * <p>
  * The remote viewer sends live typing character-by-character. For replay, those
  * events need to become one TYPE step per target field, so this service merges
- * adjacent TYPE events that share the same selector signature. Continuous
- * same-direction wheel events are likewise stored as one bounded scroll burst.
+ * adjacent TYPE events that share the same selector signature.
  */
 public class RemoteBrowserRecordingService {
 
 	private static final String DEFAULT_TAB_ID = "tab-1";
 	private static final int DEFAULT_CLICK_WAIT_MS = 300;
-	static final long SCROLL_BURST_GAP_MS = 250;
 	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
 	private RemoteBrowserRecordingService() {
@@ -122,27 +119,22 @@ public class RemoteBrowserRecordingService {
 
 		if (!shouldRecord(session, event)) {
 			session.clearPendingTypeStep();
-			session.clearPendingScrollStep();
 			return;
 		}
 
 		switch (event.getType()) {
 		case "mouse-click":
 			session.clearPendingTypeStep();
-			session.clearPendingScrollStep();
 			recordClick(session, event);
 			break;
 		case "type-text":
-			session.clearPendingScrollStep();
 			recordType(session, event);
 			break;
 		case "key":
-			session.clearPendingScrollStep();
 			recordKey(session, event);
 			break;
 		case "navigate":
 			session.clearPendingTypeStep();
-			session.clearPendingScrollStep();
 			appendStep(session, buildStep(session, event, PlaywrightStepType.NAVIGATE, event.getUrl(), null, null,
 					null, null), true);
 			session.startNextRemoteBrowserRecordedStepOnNewPage();
@@ -150,15 +142,12 @@ public class RemoteBrowserRecordingService {
 			break;
 		case "wheel":
 			session.clearPendingTypeStep();
-			recordScroll(session, event);
-			break;
-		case "mouse-move":
-			// Pointer motion is not a replay step and must not split a wheel burst.
-			session.clearPendingTypeStep();
+			appendStep(session, buildStep(session, event, PlaywrightStepType.SCROLL, null, coords(event), null, null,
+					toInteger(event.getDeltaY())), false);
+			addLegacyStep(session, event);
 			break;
 		default:
 			session.clearPendingTypeStep();
-			session.clearPendingScrollStep();
 			break;
 		}
 	}
@@ -206,47 +195,6 @@ public class RemoteBrowserRecordingService {
 				waitAfter(event), null);
 		appendStep(session, step, false);
 		addLegacyStep(session, event);
-	}
-
-	private static void recordScroll(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		Integer eventDeltaY = toInteger(event.getDeltaY());
-		int deltaY = eventDeltaY != null ? eventDeltaY : 0;
-		long eventAt = System.currentTimeMillis();
-		PlaywrightStep previous = session.getPendingScrollStep();
-		if (shouldMergeScroll(previous, deltaY, session.getPendingScrollEventAt(), eventAt)) {
-			int combinedDeltaY = combineScrollDelta(previous.deltaY(), deltaY);
-			PlaywrightStep updated = new PlaywrightStep(previous.id(), previous.type(), previous.url(),
-					coordsOrPrevious(event, previous), previous.multiCoords(), previous.prompt(), previous.text(),
-					previous.pressEnter(), combinedDeltaY, previous.waitUntil(), previous.waitAfterMs(),
-					viewport(session, event), previous.timestamp(), label(event, previous), description(event, previous),
-					previous.isPassword(), storeValue(event, previous), selectorOrPrevious(event, previous),
-					previous.isTriggerNewTab(), shouldRun(event), required(event), sendToPlayground(event),
-					tag(event, previous));
-			session.replaceLastRemoteBrowserRecordedStep(DEFAULT_TAB_ID, updated);
-			session.setPendingScrollStep(updated, eventAt);
-			replaceLastLegacyScroll(session, event, combinedDeltaY);
-			return;
-		}
-
-		PlaywrightStep step = buildStep(session, event, PlaywrightStepType.SCROLL, null, coords(event), null, null,
-				deltaY);
-		PlaywrightStep appended = appendStep(session, step, false);
-		session.setPendingScrollStep(appended, eventAt);
-		addLegacyStep(session, event);
-	}
-
-	static boolean shouldMergeScroll(PlaywrightStep previous, int deltaY, long previousEventAt, long eventAt) {
-		if (previous == null || previous.type() != PlaywrightStepType.SCROLL || previous.deltaY() == null) {
-			return false;
-		}
-		long gap = eventAt - previousEventAt;
-		return gap >= 0 && gap <= SCROLL_BURST_GAP_MS && Integer.signum(previous.deltaY()) != 0
-				&& Integer.signum(previous.deltaY()) == Integer.signum(deltaY);
-	}
-
-	static int combineScrollDelta(Integer previousDeltaY, int deltaY) {
-		long combined = (long) (previousDeltaY != null ? previousDeltaY : 0) + deltaY;
-		return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, combined));
 	}
 
 	private static void recordType(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
@@ -446,14 +394,8 @@ public class RemoteBrowserRecordingService {
 	}
 
 	private static void addLegacyStep(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		RemoteBrowserRecordedStep step = buildLegacyStep(session, event, System.currentTimeMillis());
-		session.getRemoteBrowserRecordedSteps().add(step);
-	}
-
-	private static RemoteBrowserRecordedStep buildLegacyStep(RemoteBrowserSession session,
-			RemoteBrowserInputEvent event, long timestamp) {
 		RemoteBrowserRecordedStep step = new RemoteBrowserRecordedStep().type(event.getType()).url(safeUrl(session))
-				.viewport(session.getViewportWidth(), session.getViewportHeight()).timestamp(timestamp);
+				.viewport(session.getViewportWidth(), session.getViewportHeight()).timestamp(System.currentTimeMillis());
 		if (event.getX() != null && event.getY() != null) {
 			step.coordinates(event.getX(), event.getY());
 		}
@@ -464,25 +406,7 @@ public class RemoteBrowserRecordingService {
 		if (Objects.equals(event.getType(), "type-text")) {
 			step.text(Boolean.TRUE.equals(event.getIsPassword()) ? "" : event.getText());
 		}
-		if (Objects.equals(event.getType(), "wheel")) {
-			step.deltaY(toInteger(event.getDeltaY()));
-		}
-		return step;
-	}
-
-	private static void replaceLastLegacyScroll(RemoteBrowserSession session, RemoteBrowserInputEvent event,
-			int combinedDeltaY) {
-		List<RemoteBrowserRecordedStep> steps = session.getRemoteBrowserRecordedSteps();
-		synchronized (steps) {
-			if (steps.isEmpty() || !"wheel".equals(steps.get(steps.size() - 1).getType())) {
-				RemoteBrowserRecordedStep step = buildLegacyStep(session, event, System.currentTimeMillis())
-						.deltaY(combinedDeltaY);
-				steps.add(step);
-				return;
-			}
-			long firstTimestamp = steps.get(steps.size() - 1).getTimestamp();
-			steps.set(steps.size() - 1, buildLegacyStep(session, event, firstTimestamp).deltaY(combinedDeltaY));
-		}
+		session.getRemoteBrowserRecordedSteps().add(step);
 	}
 
 	private static String safeUrl(RemoteBrowserSession session) {

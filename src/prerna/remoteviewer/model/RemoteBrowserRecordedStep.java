@@ -45,7 +45,6 @@ public class RemoteBrowserRecordedStep {
 	private String selector;
 	private String text;
 	private String role;
-	private Integer deltaY;
 	private CoordinatesInfo coordinates;
 	private Viewport viewport;
 	private long timestamp;
@@ -94,11 +93,6 @@ public class RemoteBrowserRecordedStep {
 		return this;
 	}
 
-	public RemoteBrowserRecordedStep deltaY(Integer deltaY) {
-		this.deltaY = deltaY;
-		return this;
-	}
-
 	public RemoteBrowserRecordedStep coordinates(double x, double y) {
 		this.coordinates = new CoordinatesInfo(x, y);
 		return this;
@@ -132,10 +126,6 @@ public class RemoteBrowserRecordedStep {
 
 	public String getRole() {
 		return role;
-	}
-
-	public Integer getDeltaY() {
-		return deltaY;
 	}
 
 	public CoordinatesInfo getCoordinates() {
