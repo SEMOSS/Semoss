@@ -363,6 +363,9 @@ public class RemoteBrowserSessionManager {
 						}
 						try {
 							RemoteBrowserInputService.dispatch(session, event);
+							if ("mouse-move".equals(event.getType())) {
+								sendCursorState(session, event);
+							}
 						} catch (Exception dispatchError) {
 							if (isTabControl(event)) {
 								sendTabControlResult(session, event, false, dispatchError.getMessage());
@@ -560,6 +563,17 @@ public class RemoteBrowserSessionManager {
 			payload.put("error", error);
 		}
 		sender.send(LOOP_GSON.toJson(payload));
+	}
+
+	private void sendCursorState(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		String cursor = RemoteBrowserInputService.cursorAt(session, event);
+		if (!session.updateBrowserCursor(cursor)) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender != null && session.isWsConnected()) {
+			sender.send(LOOP_GSON.toJson(Map.of("type", "cursor-changed", "cursor", cursor)));
+		}
 	}
 
 	private static void handleSelectedTextContext(RemoteBrowserSession session, RemoteBrowserInputEvent event) {

@@ -29,6 +29,7 @@ package prerna.remoteviewer.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,6 +56,12 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 public class RemoteBrowserInputService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
+	private static final Set<String> SAFE_CURSOR_VALUES = Set.of("auto", "default", "none", "context-menu",
+			"help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias",
+			"copy", "move", "no-drop", "not-allowed", "grab", "grabbing", "e-resize", "n-resize",
+			"ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize",
+			"ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in",
+			"zoom-out");
 	private RemoteBrowserInputService() {
 	}
 
@@ -150,6 +157,25 @@ public class RemoteBrowserInputService {
 		postActionWait(page, event, urlBefore);
 		classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
 				session.getSessionId(), type, System.currentTimeMillis() - start, safeUrl(page));
+	}
+
+	/** Returns the safe computed CSS cursor beneath the remote pointer. */
+	public static String cursorAt(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		Page page = session == null ? null : session.getActivePage();
+		if (page == null || page.isClosed() || event == null || event.getX() == null || event.getY() == null) {
+			return "default";
+		}
+		try {
+			Map<String, Double> point = Map.of("x", event.getX(), "y", event.getY());
+			Object result = page.evaluate("point => {"
+					+ "const element = document.elementFromPoint(point.x, point.y);"
+					+ "return element ? getComputedStyle(element).cursor : 'default';"
+					+ "}", point);
+			String cursor = result == null ? "default" : result.toString().trim().toLowerCase();
+			return SAFE_CURSOR_VALUES.contains(cursor) ? cursor : "default";
+		} catch (Exception ignored) {
+			return "default";
+		}
 	}
 
 	private static void closeLiveTab(RemoteBrowserSession session, String tabId) {

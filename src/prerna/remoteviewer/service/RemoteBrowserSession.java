@@ -118,6 +118,9 @@ public class RemoteBrowserSession {
 	/** A popup observed while dispatching the current input event. */
 	private String newlyOpenedTabId;
 
+	/** Last CSS cursor sent to the remote viewer. */
+	private String browserCursor = "default";
+
 	public RemoteBrowserSession(String sessionId, String userId, PlaywrightSession playwrightSession, int viewportWidth,
 			int viewportHeight) {
 		this.sessionId = sessionId;
@@ -350,6 +353,16 @@ public class RemoteBrowserSession {
 		String tabId = newlyOpenedTabId;
 		newlyOpenedTabId = null;
 		return tabId;
+	}
+
+	/** Updates the remote cursor and reports whether the viewer needs a message. */
+	public synchronized boolean updateBrowserCursor(String cursor) {
+		String resolved = cursor == null || cursor.isBlank() ? "default" : cursor;
+		if (resolved.equals(browserCursor)) {
+			return false;
+		}
+		browserCursor = resolved;
+		return true;
 	}
 
 	/** Resolves a live browser tab to its stable ID in the current recording. */
