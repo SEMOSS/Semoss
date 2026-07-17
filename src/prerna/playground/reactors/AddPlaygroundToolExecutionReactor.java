@@ -140,6 +140,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
+		if (room.hasToolCallBeenAnswered(toolId)) {
+			return new NounMetadata("Tool output not added: duplicate response for toolCallId " + toolId,
+					PixelDataType.CONST_STRING);
+		}
+
 		Map<String, Object> pixelReturn = new HashMap<>();
 		// Non-visible messages (currently only the cancel-flow hidden pair) surfaced via `extraMessages`.
 		List<AbstractMessage> extraMessages = new ArrayList<>();
