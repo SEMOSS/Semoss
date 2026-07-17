@@ -482,7 +482,14 @@ public final class RoomMessageStore {
 		@Override
 		public void close() {
 			closed = true;
-			redis.releaseLock(roomId, token);
+			boolean interrupted = Thread.interrupted();
+			try {
+				redis.releaseLock(roomId, token);
+			} finally {
+				if (interrupted) {
+					Thread.currentThread().interrupt();
+				}
+			}
 		}
 	}
 }

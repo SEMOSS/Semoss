@@ -529,10 +529,6 @@ public class Room implements Serializable {
 				messages.add(toolResultsMessage);
 			}
 			if (!continueWhenReady || !allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
-				// Cancel-commit stranding pending tools: sanitize orphan tool_use blocks before persist.
-				if (prebuiltResponse != null) {
-					RoomMessageStore.normalizeForProviderPayload(this);
-				}
 				RoomMessageStore.persist(this, userId);
 				return null;
 			}
