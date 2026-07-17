@@ -258,19 +258,17 @@ public class Room implements Serializable {
 
 		applyTextModelParams(kwArgMap);
 
-		boolean useHistory = true;
+		boolean persistTurn = shouldPersistTurn(msg, modelEngine);
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
-			useHistory = (Boolean) useHistoryObj;
 			kwArgMap.remove("use_history");
 		} else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
-			useHistory = false;
 			kwArgMap.remove("use_history");
 		}
 
 		// does the model have keep keep input output off or is use_history false? if so
 		// then just ask the model and send the response back.
-		if (!modelEngine.keepInputOutput() || !useHistory) {
+		if (!persistTurn) {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
@@ -358,6 +356,27 @@ public class Room implements Serializable {
 			}
 			return response;
 		}
+	}
+
+	/**
+	 * Returns whether a turn should be appended to room history. This is shared by
+	 * live asks and FE-driven cancel persistence so both paths honor the same
+	 * retention controls.
+	 */
+	public static boolean shouldPersistTurn(InputMessage msg, IModelEngine modelEngine) {
+		Map<String, Object> paramMap = msg.getParamMap();
+		if (paramMap != null && paramMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			return false;
+		}
+		if (!modelEngine.keepInputOutput()) {
+			return false;
+		}
+
+		Object useHistoryObj = paramMap == null ? null : paramMap.get("use_history");
+		if (useHistoryObj instanceof Boolean) {
+			return (Boolean) useHistoryObj;
+		}
+		return useHistoryObj == null || !"false".equalsIgnoreCase(useHistoryObj.toString());
 	}
 
 	/**

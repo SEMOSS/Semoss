@@ -210,9 +210,18 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	// Wraps {@link PlaygroundUtils#appendHiddenPair} with its own mutation lock + persist.
 	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
 			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
-		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
-			PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
-			RoomMessageStore.persist(room, userId);
+		synchronized (room) {
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+				RoomMessageStore.refreshFromLatestProjection(room, userId);
+				boolean parentExists = room.getMessages().stream()
+						.anyMatch(message -> hiddenParentId.equals(message.getMessageId()));
+				if (!parentExists) {
+					throw new IllegalStateException(
+							"Cannot append hidden cancellation messages because the parent response no longer exists");
+				}
+				PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
+				RoomMessageStore.persist(room, userId);
+			}
 		}
 	}
 

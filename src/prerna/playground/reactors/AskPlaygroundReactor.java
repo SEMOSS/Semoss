@@ -175,11 +175,20 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			List<AbstractMessage> extrasOut) {
 		ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
 		response.setModel(modelEngine);
+		response.setRoom(room);
+		response.setParentMessageId(msg.getMessageId());
+
+		if (!Room.shouldPersistTurn(msg, modelEngine)) {
+			return response;
+		}
 
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		synchronized (room) {
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
 				RoomMessageStore.refreshFromLatestProjection(room, userId);
+				if (!modelEngine.keepsConversationHistory()) {
+					room.getMessages().clear();
+				}
 				RoomMessageStore.normalizeForProviderPayload(room);
 
 				msg.setModel(modelEngine);
