@@ -30,7 +30,9 @@ package prerna.reactor.utils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +47,7 @@ import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -178,5 +181,15 @@ public class DeleteEngineReactor extends AbstractReactor {
 			engineIds.add(this.curRow.get(i).toString());
 		}
 		return engineIds;
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

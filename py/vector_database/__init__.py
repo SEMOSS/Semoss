@@ -1,7 +1,6 @@
 from typing import Any
 
 
-# register classes and methods
 def __getattr__(name: str) -> Any:
     if name == "FAISSDatabase":
         from .faiss.faiss_database import FAISSDatabase

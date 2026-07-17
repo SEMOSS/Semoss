@@ -4694,8 +4694,14 @@ public final class Utility {
 	}
 
 	/**
-	 * 
-	 * @param urlString
+	 * Validates that the given URL's domain is within the configured whitelist
+	 * ({@link Constants#WHITE_LIST_DOMAINS}). When no whitelist is configured all
+	 * domains are permitted.
+	 *
+	 * @param urlString the URL whose domain should be validated
+	 * @throws IllegalArgumentException when the URL is malformed, has no resolvable
+	 *                                  host/domain, or its domain is not
+	 *                                  whitelisted
 	 */
 	public static void checkIfValidDomain(String urlString) {
 		String whiteListDomains = Utility.getDIHelperProperty(Constants.WHITE_LIST_DOMAINS);
@@ -4703,18 +4709,34 @@ public final class Utility {
 			return;
 		}
 
-		List<String> domainList = Arrays.stream(whiteListDomains.split(",")).collect(Collectors.toList());
-		URL url = null;
+		List<String> domainList = Arrays.stream(whiteListDomains.split(",")).map(String::trim).filter(d -> !d.isEmpty())
+				.collect(Collectors.toList());
+
+		// URI is used instead of the deprecated java.net.URL constructor (deprecated
+		// since Java 20)
+		final String host;
 		try {
-			url = new URL(urlString);
-			final String host = url.getHost();
-			final InternetDomainName domainName = InternetDomainName.from(host).topPrivateDomain();
-			if (!domainList.contains(domainName.toString())) {
-				throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
-			}
-		} catch (MalformedURLException e) {
+			host = new URI(urlString).getHost();
+		} catch (URISyntaxException e) {
 			classLogger.error("Failed to validate domain URL: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
+		}
+
+		if (host == null || host.isBlank()) {
+			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Unable to determine the host.");
+		}
+
+		final String topPrivateDomain;
+		try {
+			topPrivateDomain = InternetDomainName.from(host).topPrivateDomain().toString();
+		} catch (IllegalStateException | IllegalArgumentException e) {
+			// host is a raw IP or is not under a recognized public suffix (e.g. an internal
+			// hostname)
+			throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
+		}
+
+		if (!domainList.contains(topPrivateDomain)) {
+			throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
 		}
 	}
 
