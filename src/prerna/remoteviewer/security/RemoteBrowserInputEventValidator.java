@@ -42,11 +42,14 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_TYPE_TEXT_LENGTH = 2000;
 	private static final int MAX_KEY_LENGTH = 64;
 	private static final int MAX_URL_LENGTH = 2048;
+	private static final int MAX_REQUEST_ID_LENGTH = 128;
+	private static final double MIN_SELECTION_SIZE = 2;
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
 					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
-					"recording-control", "switch-tab", "switch-replay-tab", "prepare-replay", "close-tab"));
+					"recording-control", "selected-text-context", "switch-tab", "switch-replay-tab",
+					"prepare-replay", "close-tab"));
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -140,10 +143,33 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
+		case "selected-text-context":
+			validateRequestId(event);
+			requireCoordinates(event, vpWidth, vpHeight);
+			if (event.getEndX() == null || event.getEndY() == null) {
+				throw new IllegalArgumentException("selected-text-context requires endX and endY");
+			}
+			event.setEndX(Math.max(0, Math.min(event.getEndX(), vpWidth)));
+			event.setEndY(Math.max(0, Math.min(event.getEndY(), vpHeight)));
+			if (Math.abs(event.getEndX() - event.getX()) < MIN_SELECTION_SIZE
+					&& Math.abs(event.getEndY() - event.getY()) < MIN_SELECTION_SIZE) {
+				throw new IllegalArgumentException("selected-text-context selection is too small");
+			}
+			break;
+
 		// close-session, navigate-back, navigate-forward, reload — no payload to
 		// validate
 		default:
 			break;
+		}
+	}
+
+	private static void validateRequestId(RemoteBrowserInputEvent event) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			throw new IllegalArgumentException("selected-text-context requires requestId");
+		}
+		if (event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
+			throw new IllegalArgumentException("selected-text-context requestId exceeds max length");
 		}
 	}
 

@@ -351,7 +351,9 @@ public class RemoteBrowserSessionManager {
 				while ((event = session.eventQueue.poll()) != null) {
 					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
 							session.getSessionId(), session.eventQueue.size(), event.getType());
-					if (isRecordingControl(event)) {
+					if ("selected-text-context".equals(event.getType())) {
+						handleSelectedTextContext(session, event);
+					} else if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
 						event.setTabId(session.getActiveTabId());
@@ -558,6 +560,29 @@ public class RemoteBrowserSessionManager {
 			payload.put("error", error);
 		}
 		sender.send(LOOP_GSON.toJson(payload));
+	}
+
+	private static void handleSelectedTextContext(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+
+		Map<String, Object> response = new java.util.LinkedHashMap<>();
+		response.put("type", "selected-text-context-result");
+		response.put("requestId", event.getRequestId());
+		try {
+			response.put("context", RemoteBrowserSelectedTextService.capture(session, event));
+			response.put("success", true);
+		} catch (Exception e) {
+			classLogger.warn("Selected-text context capture failed for session {}: {}", session.getSessionId(),
+					e.getMessage());
+			response.put("success", false);
+			response.put("error", e.getMessage() == null || e.getMessage().isBlank()
+					? "Could not capture selected website text"
+					: e.getMessage());
+		}
+		sender.send(LOOP_GSON.toJson(response));
 	}
 
 	private void closeViewerTransport(RemoteBrowserSession s) {
