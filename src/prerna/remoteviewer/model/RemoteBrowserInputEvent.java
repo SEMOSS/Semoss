@@ -42,10 +42,15 @@ public class RemoteBrowserInputEvent {
 
 	// ---- common fields ----
 	private String type;
+	/** Correlates non-input requests with their WebSocket response. */
+	private String requestId;
 
 	// ---- mouse / wheel ----
 	private Double x;
 	private Double y;
+	/** Opposite corner of a viewport selection rectangle. */
+	private Double endX;
+	private Double endY;
 	private String button; // "left" | "right" | "middle"
 	private Double deltaX;
 	private Double deltaY;
@@ -103,6 +108,14 @@ public class RemoteBrowserInputEvent {
 		this.type = type;
 	}
 
+	public String getRequestId() {
+		return requestId;
+	}
+
+	public void setRequestId(String requestId) {
+		this.requestId = requestId;
+	}
+
 	public Double getX() {
 		return x;
 	}
@@ -117,6 +130,22 @@ public class RemoteBrowserInputEvent {
 
 	public void setY(Double y) {
 		this.y = y;
+	}
+
+	public Double getEndX() {
+		return endX;
+	}
+
+	public void setEndX(Double endX) {
+		this.endX = endX;
+	}
+
+	public Double getEndY() {
+		return endY;
+	}
+
+	public void setEndY(Double endY) {
+		this.endY = endY;
 	}
 
 	public String getButton() {
