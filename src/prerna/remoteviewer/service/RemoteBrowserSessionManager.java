@@ -244,9 +244,7 @@ public class RemoteBrowserSessionManager {
 				while ((event = session.eventQueue.poll()) != null) {
 					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
 							session.getSessionId(), session.eventQueue.size(), event.getType());
-					if ("context-snapshot".equals(event.getType())) {
-						handleContextSnapshot(session, event);
-					} else if (isRecordingControl(event)) {
+					if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
 						RemoteBrowserSelectorService.enrich(session, event);
@@ -374,26 +372,6 @@ public class RemoteBrowserSessionManager {
 			return false;
 		}
 		return "recording".equals(event.getType()) || "recording-control".equals(event.getType());
-	}
-
-	private static void handleContextSnapshot(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
-		if (sender == null || !session.isWsConnected()) {
-			return;
-		}
-
-		Map<String, Object> response = new java.util.LinkedHashMap<>();
-		response.put("type", "context-snapshot-result");
-		response.put("requestId", event.getRequestId());
-		try {
-			response.put("snapshot", RemoteBrowserContextSnapshotService.capture(session));
-			response.put("success", true);
-		} catch (Exception e) {
-			classLogger.warn("Context snapshot failed for session {}: {}", session.getSessionId(), e.getMessage(), e);
-			response.put("success", false);
-			response.put("error", "Could not capture browser context");
-		}
-		sender.send(LOOP_GSON.toJson(response));
 	}
 
 	private void closeViewerTransport(RemoteBrowserSession s) {
