@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -207,6 +208,10 @@ public class RemoteBrowserSessionManager {
 		}
 		RemoteBrowserRecordingService.recordInitialNavigation(session, safeUrl(page));
 
+		// Register a context-level listener so that pages opened by the browser
+		// (e.g. target="_blank" links) are tracked and announced to the viewer.
+		registerNewTabListener(session);
+
 		// Start the event-processing loop immediately so that injected events
 		// (e.g. from the Chrome extension mock) are processed even before a
 		// WebSocket viewer connects. The WebSocket onOpen will reuse this thread.
@@ -217,6 +222,108 @@ public class RemoteBrowserSessionManager {
 
 		classLogger.info("Opened remote browser viewer {} for user {} -> {}", sessionId, userId, url);
 		return session;
+	}
+
+	/**
+	 * Registers a {@code context.onPage()} listener that detects browser-opened
+	 * tabs (e.g. target="_blank" links) and sends {@code tab-opened} / {@code
+	 * tab-activated} WebSocket events to the connected viewer.
+	 */
+	private void registerNewTabListener(RemoteBrowserSession session) {
+		PlaywrightSession ps = session.getPlaywrightSession();
+		if (ps == null) return;
+		BrowserContext ctx = ps.getBrowserContext();
+		if (ctx == null) return;
+		ctx.onPage(newPage -> {
+			if (session.isClosed()) {
+				return;
+			}
+			try {
+				try { newPage.waitForLoadState(com.microsoft.playwright.options.LoadState.LOAD,
+						new Page.WaitForLoadStateOptions().setTimeout(2_000)); } catch (Exception ignored) {}
+
+				String title = "";
+				String newUrl = "";
+				try { title = newPage.title(); } catch (Exception ignored) {}
+				try { newUrl = newPage.url(); } catch (Exception ignored) {}
+
+				String newTabId = ps.registerPage(newPage, null);
+				session.markNewlyOpenedTab(newTabId);
+				newPage.onClose(closedPage -> {
+					ps.removeReplayBindings(closedPage);
+					if (newTabId.equals(session.getActiveTabId())) {
+						session.activateFallbackTab();
+					}
+					sendTabState(session);
+				});
+
+				// Switch active tab to the new one
+				session.setActiveTabId(newTabId);
+
+				// Notify the viewer
+				RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+				if (sender != null) {
+					sender.send(LOOP_GSON.toJson(Map.of(
+							"type", "tab-opened",
+							"tabId", newTabId,
+							"title", title,
+							"url", newUrl)));
+					sender.send(LOOP_GSON.toJson(Map.of(
+							"type", "tab-activated",
+							"tabId", newTabId)));
+					sendTabState(session);
+				}
+				classLogger.info("New tab opened session={} tabId={} url={}", session.getSessionId(), newTabId, newUrl);
+			} catch (Exception e) {
+				classLogger.warn("Error handling new tab for session {}: {}", session.getSessionId(), e.getMessage());
+			}
+		});
+	}
+
+	/** Sends the complete live-tab state to a newly connected or updated viewer. */
+	public void sendTabState(RemoteBrowserSession session) {
+		if (session == null) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null) {
+			return;
+		}
+		List<Map<String, Object>> tabs = new ArrayList<>();
+		for (Map.Entry<String, Page> entry : session.getPlaywrightSession().getTabPages().entrySet()) {
+			Page tabPage = entry.getValue();
+			if (tabPage == null || tabPage.isClosed()) {
+				continue;
+			}
+			Map<String, Object> tab = new LinkedHashMap<>();
+			tab.put("tabId", entry.getKey());
+			tab.put("title", safeTitle(tabPage));
+			tab.put("url", safeUrl(tabPage));
+			tabs.add(tab);
+		}
+		tabs.sort((left, right) -> Integer.compare(tabNumber((String) left.get("tabId")),
+				tabNumber((String) right.get("tabId"))));
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "tabs-state");
+		payload.put("activeTabId", session.getActiveTabId());
+		payload.put("tabs", tabs);
+		sender.send(LOOP_GSON.toJson(payload));
+	}
+
+	private static String safeTitle(Page page) {
+		try {
+			return page.title();
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	private static int tabNumber(String tabId) {
+		try {
+			return Integer.parseInt(tabId.substring("tab-".length()));
+		} catch (Exception e) {
+			return Integer.MAX_VALUE;
+		}
 	}
 
 	private static String safeUrl(Page page) {
@@ -234,8 +341,8 @@ public class RemoteBrowserSessionManager {
 	private static final Gson LOOP_GSON = new Gson();
 
 	private void runEventLoop(RemoteBrowserSession session) {
-		Page page = session.getPage();
 		String lastUrl = "";
+		String lastTabId = "";
 		while (!session.isClosed() && !Thread.currentThread().isInterrupted()) {
 			long start = System.currentTimeMillis();
 			try {
@@ -247,14 +354,40 @@ public class RemoteBrowserSessionManager {
 					if (isRecordingControl(event)) {
 						RemoteBrowserRecordingService.record(session, event);
 					} else {
-						RemoteBrowserSelectorService.enrich(session, event);
-						RemoteBrowserInputService.dispatch(session, event);
+						event.setTabId(session.getActiveTabId());
+						session.clearNewlyOpenedTab();
+						if (!isTabControl(event)) {
+							RemoteBrowserSelectorService.enrich(session, event);
+						}
+						try {
+							RemoteBrowserInputService.dispatch(session, event);
+						} catch (Exception dispatchError) {
+							if (isTabControl(event)) {
+								sendTabControlResult(session, event, false, dispatchError.getMessage());
+								sendTabState(session);
+								session.touchActivity();
+								continue;
+							}
+							throw dispatchError;
+						}
+						event.setTriggeredTabId(session.consumeNewlyOpenedTab());
+						if (event.getTriggeredTabId() != null && event.getReplayTriggerTabId() != null) {
+							Page replayPopup = session.getPlaywrightSession().getLivePage(event.getTriggeredTabId());
+							session.getPlaywrightSession().bindReplayPage(event.getReplayTriggerTabId(), replayPopup);
+						}
 						RemoteBrowserRecordingService.record(session, event);
+						if (isTabControl(event)) {
+							sendTabControlResult(session, event, true, null);
+							sendTabState(session);
+						} else {
+							sendReplayStepResult(session, event, true, null);
+						}
 					}
 					session.touchActivity();
 				}
 
-				if (page.isClosed()) {
+				Page page = session.getActivePage();
+				if (page == null || page.isClosed()) {
 					break;
 				}
 
@@ -264,9 +397,13 @@ public class RemoteBrowserSessionManager {
 					// Notify URL changes
 					try {
 						String currentUrl = page.url();
-						if (!currentUrl.equals(lastUrl)) {
+						String activeTabId = session.getActiveTabId();
+						if (!currentUrl.equals(lastUrl) || !activeTabId.equals(lastTabId)) {
 							lastUrl = currentUrl;
-							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl)));
+							lastTabId = activeTabId;
+							sender.send(LOOP_GSON.toJson(Map.of("type", "navigated", "url", currentUrl,
+									"tabId", activeTabId)));
+							sendTabState(session);
 						}
 					} catch (Exception ignored) {
 					}
@@ -372,6 +509,55 @@ public class RemoteBrowserSessionManager {
 			return false;
 		}
 		return "recording".equals(event.getType()) || "recording-control".equals(event.getType());
+	}
+
+	private static boolean isTabControl(RemoteBrowserInputEvent event) {
+		String type = event == null ? null : event.getType();
+		return "switch-tab".equals(type) || "switch-replay-tab".equals(type)
+				|| "prepare-replay".equals(type) || "close-tab".equals(type);
+	}
+
+	private void sendTabControlResult(RemoteBrowserSession session, RemoteBrowserInputEvent event, boolean success,
+			String error) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null) {
+			return;
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "tab-control-result");
+		payload.put("requestId", event.getRequestId());
+		payload.put("success", success);
+		payload.put("activeTabId", session.getActiveTabId());
+		if (error != null && !error.isBlank()) {
+			payload.put("error", error);
+		}
+		sender.send(LOOP_GSON.toJson(payload));
+	}
+
+	private void sendReplayStepResult(RemoteBrowserSession session, RemoteBrowserInputEvent event, boolean success,
+			String error) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null) {
+			return;
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "replay-step-result");
+		payload.put("requestId", event.getRequestId());
+		payload.put("success", success);
+		Page page = session.getActivePage();
+		if (page != null) {
+			payload.put("url", safeUrl(page));
+		}
+		if (error != null && !error.isBlank()) {
+			payload.put("error", error);
+		}
+		sender.send(LOOP_GSON.toJson(payload));
 	}
 
 	private void closeViewerTransport(RemoteBrowserSession s) {

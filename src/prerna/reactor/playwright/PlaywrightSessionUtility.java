@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.JSHandle;
 import com.microsoft.playwright.Locator;
@@ -64,7 +63,7 @@ public class PlaywrightSessionUtility {
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
 		Map<String, Object> response = new HashMap<String, Object>();
 
-		Page page = session.tabPages.get(tabId);
+		Page page = session.getPage(tabId);
 		long startTime = System.currentTimeMillis();
 		boolean pageChanged = false;
 		response.put("isNewTab", false);
@@ -466,6 +465,8 @@ public class PlaywrightSessionUtility {
 		response.remove("newTabId");
 		response.remove("tabTitle");
 
+		List<Page> pagesBeforeClick = new ArrayList<>(session.CTX.pages());
+
 		// Just perform the click
 		boolean clicked = tryClick(page, step);
 
@@ -474,10 +475,13 @@ public class PlaywrightSessionUtility {
 		}
 
 		// heck if new tab appeared
-		Page newPage = waitForNewTab(session);
+		Page newPage = waitForNewTab(session, page, pagesBeforeClick);
 
 		if (newPage != null) {
-			handleNewTab(session, newPage, response);
+			String preferredTabId = step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()
+					? step.isTriggerNewTab().tabId()
+					: null;
+			handleNewTab(session, newPage, preferredTabId, response);
 		}
 
 		return true;
@@ -543,13 +547,25 @@ public class PlaywrightSessionUtility {
 	 * @return The new Page object, or null if no new tab is created within the
 	 *         timeout.
 	 */
-	private static Page waitForNewTab(PlaywrightSession session) {
-		try {
-			return session.CTX.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(6000), () -> {
-			});
-		} catch (Exception e) {
-			return null; // No new tab - normal case
+	private static Page waitForNewTab(PlaywrightSession session, Page sourcePage, List<Page> pagesBeforeClick) {
+		Page newPage = findNewPage(session, pagesBeforeClick);
+		if (newPage != null) {
+			return newPage;
 		}
+		try {
+			sourcePage.waitForTimeout(750);
+		} catch (Exception ignored) {
+		}
+		return findNewPage(session, pagesBeforeClick);
+	}
+
+	private static Page findNewPage(PlaywrightSession session, List<Page> pagesBeforeClick) {
+		for (Page candidate : session.CTX.pages()) {
+			if (!pagesBeforeClick.contains(candidate)) {
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -559,7 +575,8 @@ public class PlaywrightSessionUtility {
 	 * @param newPage  The new Page object.
 	 * @param response The response map to be populated with new tab details.
 	 */
-	private static void handleNewTab(PlaywrightSession session, Page newPage, Map<String, Object> response) {
+	private static void handleNewTab(PlaywrightSession session, Page newPage, String preferredTabId,
+			Map<String, Object> response) {
 		classLogger.info("New tab detected: " + newPage.url());
 
 		try {
@@ -575,7 +592,7 @@ public class PlaywrightSessionUtility {
 
 		response.put("isNewTab", true);
 		response.put("tabTitle", newPage.title());
-		createNewTabRecord(session, newPage, response);
+		createNewTabRecord(session, newPage, preferredTabId, response);
 	}
 
 	/**
@@ -879,18 +896,9 @@ public class PlaywrightSessionUtility {
 	 * @param page     The new Page object.
 	 * @param response The response map to be populated with the new tab ID.
 	 */
-	private static void createNewTabRecord(PlaywrightSession session, Page page, Map<String, Object> response) {
-		// Get the steps map from session.history
-		Map<String, List<List<PlaywrightStep>>> stepsMap = session.history.steps();
-
-		// Generate next tab name
-		int nextTabIndex = stepsMap.size() + 1;
-		String tabId = "tab-" + nextTabIndex;
-
-		// Add new tab record with an empty list of steps
-		session.history.steps().put(tabId, new ArrayList<List<PlaywrightStep>>());
-		session.tabPages.put(tabId, page);
-		session.attachNetworkListeners(tabId, page);
+	private static void createNewTabRecord(PlaywrightSession session, Page page, String preferredTabId,
+			Map<String, Object> response) {
+		String tabId = session.registerPage(page, preferredTabId);
 		// Store the new tab ID in the response so it can be returned
 		response.put("newTabId", tabId);
 	}

@@ -69,7 +69,10 @@ public class PlaywrightSession {
 	private String sessionId;
 
 	StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
-	Map<String, Page> tabPages = new HashMap<>();
+	Map<String, Page> tabPages = new ConcurrentHashMap<>();
+	private final Map<String, Page> replayTabPages = new ConcurrentHashMap<>();
+	private final List<Page> replayCandidatePages = new ArrayList<>();
+	private volatile boolean replayTabBindingActive = false;
 	Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
 	Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
 
@@ -217,6 +220,12 @@ public class PlaywrightSession {
 	 * @return The default Page.
 	 */
 	public Page getPage() {
+		if (replayTabBindingActive) {
+			Page replayRoot = replayTabPages.get("tab-1");
+			if (replayRoot != null && !replayRoot.isClosed()) {
+				return replayRoot;
+			}
+		}
 		return this.tabPages.get("tab-1");
 	}
 
@@ -227,7 +236,96 @@ public class PlaywrightSession {
 	 * @return The Page object associated with the given tab ID.
 	 */
 	public Page getPage(String tabId) {
+		if (replayTabBindingActive) {
+			Page replayPage = replayTabPages.get(tabId);
+			return replayPage == null || replayPage.isClosed() ? null : replayPage;
+		}
 		return this.tabPages.get(tabId);
+	}
+
+	/** Returns a physical browser tab without applying recording replay aliases. */
+	public Page getLivePage(String tabId) {
+		return this.tabPages.get(tabId);
+	}
+
+	/** Starts an isolated recorded-tab to live-page binding for a playback run. */
+	public synchronized void beginReplayTabBinding(Page rootPage) {
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+		replayTabBindingActive = true;
+		if (rootPage != null && !rootPage.isClosed()) {
+			replayTabPages.put("tab-1", rootPage);
+			replayCandidatePages.add(rootPage);
+		}
+	}
+
+	/** Clears the current playback tab aliases. */
+	public synchronized void endReplayTabBinding() {
+		replayTabBindingActive = false;
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+	}
+
+	/** Returns a page bound to a recorded tab ID during the current playback. */
+	public Page getReplayPage(String recordedTabId) {
+		if (!replayTabBindingActive) {
+			return null;
+		}
+		Page page = replayTabPages.get(recordedTabId);
+		return page == null || page.isClosed() ? null : page;
+	}
+
+	/** Binds a recorded tab ID to a live popup page during socket playback. */
+	public synchronized void bindReplayPage(String recordedTabId, Page page) {
+		if (!replayTabBindingActive || recordedTabId == null || recordedTabId.isBlank() || page == null
+				|| page.isClosed()) {
+			return;
+		}
+		replayTabPages.put(recordedTabId, page);
+		addReplayCandidate(page);
+	}
+
+	/**
+	 * Resolves an unbound recorded tab without relying on matching numeric live-tab
+	 * IDs. The active page is preferred when it is unassigned because the remote
+	 * viewer activates a newly opened popup. Remaining playback candidates are a
+	 * fallback for recordings that did not preserve popup-trigger metadata.
+	 */
+	public synchronized Page resolveReplayPage(String recordedTabId, Page activePage) {
+		Page existing = getReplayPage(recordedTabId);
+		if (existing != null) {
+			return existing;
+		}
+		if (isAvailableReplayCandidate(activePage)) {
+			addReplayCandidate(activePage);
+			replayTabPages.put(recordedTabId, activePage);
+			return activePage;
+		}
+		for (int index = replayCandidatePages.size() - 1; index >= 0; index--) {
+			Page candidate = replayCandidatePages.get(index);
+			if (isAvailableReplayCandidate(candidate)) {
+				replayTabPages.put(recordedTabId, candidate);
+				return candidate;
+			}
+		}
+		return null;
+	}
+
+	private boolean isAvailableReplayCandidate(Page page) {
+		return page != null && !page.isClosed()
+				&& replayTabPages.values().stream().noneMatch(boundPage -> boundPage == page);
+	}
+
+	private void addReplayCandidate(Page page) {
+		if (page != null && replayCandidatePages.stream().noneMatch(candidate -> candidate == page)) {
+			replayCandidatePages.add(page);
+		}
+	}
+
+	/** Removes any playback aliases that point at a closed live page. */
+	public synchronized void removeReplayBindings(Page page) {
+		replayTabPages.entrySet().removeIf(entry -> entry.getValue() == page);
+		replayCandidatePages.removeIf(candidate -> candidate == page);
 	}
 
 	/**
@@ -238,6 +336,87 @@ public class PlaywrightSession {
 	 */
 	public void putPage(String tabId, Page page) {
 		this.tabPages.put(tabId, page);
+	}
+
+	/**
+	 * Registers a live Playwright page as a tab, reusing an existing mapping when
+	 * the same page has already been observed. This is shared by the classic
+	 * reactors and the remote viewer so a popup is never assigned two tab IDs.
+	 *
+	 * @param page           the newly observed Playwright page
+	 * @param preferredTabId optional tab ID from replay metadata
+	 * @return the stable tab ID assigned to the page
+	 */
+	public synchronized String registerPage(Page page, String preferredTabId) {
+		if (page == null) {
+			throw new IllegalArgumentException("Page is required");
+		}
+		String existingTabId = findTabId(page);
+		if (existingTabId != null) {
+			if (replayTabBindingActive) {
+				addReplayCandidate(page);
+			}
+			if (replayTabBindingActive && preferredTabId != null && !preferredTabId.isBlank()) {
+				replayTabPages.put(preferredTabId, page);
+				return preferredTabId;
+			}
+			if (preferredTabId == null || preferredTabId.isBlank() || preferredTabId.equals(existingTabId)
+					|| tabPages.containsKey(preferredTabId)) {
+				return existingTabId;
+			}
+			// A context listener may have provisionally named the popup before replay
+			// metadata is inspected. Rebind it to the recording's stable tab ID.
+			tabPages.remove(existingTabId);
+			tabPages.put(preferredTabId, page);
+			history.steps().computeIfAbsent(preferredTabId, key -> new ArrayList<List<PlaywrightStep>>());
+			tabCurrentPageIndex.putIfAbsent(preferredTabId, 0);
+			tabCurrentStepIndex.putIfAbsent(preferredTabId, 0);
+			return preferredTabId;
+		}
+		if (replayTabBindingActive && preferredTabId != null && !preferredTabId.isBlank()) {
+			String liveTabId = nextAvailableLiveTabId();
+			tabPages.put(liveTabId, page);
+			history.steps().computeIfAbsent(liveTabId, key -> new ArrayList<List<PlaywrightStep>>());
+			tabCurrentPageIndex.putIfAbsent(liveTabId, 0);
+			tabCurrentStepIndex.putIfAbsent(liveTabId, 0);
+			attachNetworkListeners(liveTabId, page);
+			replayTabPages.put(preferredTabId, page);
+			addReplayCandidate(page);
+			return preferredTabId;
+		}
+
+		String tabId = preferredTabId;
+		if (tabId == null || tabId.isBlank() || tabPages.containsKey(tabId)) {
+			tabId = nextAvailableLiveTabId();
+		}
+
+		tabPages.put(tabId, page);
+		if (replayTabBindingActive) {
+			addReplayCandidate(page);
+		}
+		history.steps().computeIfAbsent(tabId, key -> new ArrayList<List<PlaywrightStep>>());
+		tabCurrentPageIndex.putIfAbsent(tabId, 0);
+		tabCurrentStepIndex.putIfAbsent(tabId, 0);
+		attachNetworkListeners(tabId, page);
+		return tabId;
+	}
+
+	private String nextAvailableLiveTabId() {
+		int nextIndex = 1;
+		while (tabPages.containsKey("tab-" + nextIndex)) {
+			nextIndex++;
+		}
+		return "tab-" + nextIndex;
+	}
+
+	/** Returns the tab ID already associated with a page, or {@code null}. */
+	public synchronized String findTabId(Page page) {
+		for (Map.Entry<String, Page> entry : tabPages.entrySet()) {
+			if (entry.getValue() == page) {
+				return entry.getKey();
+			}
+		}
+		return null;
 	}
 
 	/**

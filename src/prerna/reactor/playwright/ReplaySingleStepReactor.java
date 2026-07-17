@@ -202,7 +202,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
 				if (s != null) {
 					String actualTabId = tabId != null && !tabId.isEmpty() ? tabId : "tab-1";
-					if (s.tabPages.containsKey(actualTabId)) {
+					if (s.getPage(actualTabId) != null) {
 						ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
 						response.put("screenshot", screenshot);
 					}

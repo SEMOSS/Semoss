@@ -326,7 +326,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			}
 
 			// Get title
-			Page newTabPage = playwrightSession.tabPages.get(newTabId);
+			Page newTabPage = playwrightSession.getPage(newTabId);
 			result.newTabTitle = (newTabPage != null && newTabPage.title() != null
 					&& !newTabPage.title().trim().isEmpty()) ? newTabPage.title() : newTabId;
 
@@ -504,7 +504,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
 					PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-					Page page = s.tabPages.get(tabId);
+					Page page = s.getPage(tabId);
 					page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(5_000));
 					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(s, current.coords(), tabId);
 					typeAction.put("probe", probeResult);

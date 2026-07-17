@@ -92,6 +92,18 @@ public class RemoteBrowserInputEvent {
 	private Boolean required;
 	/** Optional replay playground flag. */
 	private Boolean sendToPlayground;
+	/** For switch-tab events: the tab ID to activate. */
+	private String targetTabId;
+	/** Internal source tab captured before dispatch; clients may omit it. */
+	private String tabId;
+	/** Internal popup tab detected while dispatching this event. */
+	private String triggeredTabId;
+	/** Optional client correlation ID for tab-control acknowledgements. */
+	private String requestId;
+	/** Whether playback should bind tab-1 to the active tab instead of a fresh tab. */
+	private Boolean reuseActiveTab;
+	/** Recorded child-tab ID expected from a replayed popup-triggering action. */
+	private String replayTriggerTabId;
 
 	// ---- getters & setters ----
 
@@ -309,5 +321,53 @@ public class RemoteBrowserInputEvent {
 
 	public void setSendToPlayground(Boolean sendToPlayground) {
 		this.sendToPlayground = sendToPlayground;
+	}
+
+	public String getTargetTabId() {
+		return targetTabId;
+	}
+
+	public void setTargetTabId(String targetTabId) {
+		this.targetTabId = targetTabId;
+	}
+
+	public String getTabId() {
+		return tabId;
+	}
+
+	public void setTabId(String tabId) {
+		this.tabId = tabId;
+	}
+
+	public String getTriggeredTabId() {
+		return triggeredTabId;
+	}
+
+	public void setTriggeredTabId(String triggeredTabId) {
+		this.triggeredTabId = triggeredTabId;
+	}
+
+	public String getRequestId() {
+		return requestId;
+	}
+
+	public void setRequestId(String requestId) {
+		this.requestId = requestId;
+	}
+
+	public Boolean getReuseActiveTab() {
+		return reuseActiveTab;
+	}
+
+	public void setReuseActiveTab(Boolean reuseActiveTab) {
+		this.reuseActiveTab = reuseActiveTab;
+	}
+
+	public String getReplayTriggerTabId() {
+		return replayTriggerTabId;
+	}
+
+	public void setReplayTriggerTabId(String replayTriggerTabId) {
+		this.replayTriggerTabId = replayTriggerTabId;
 	}
 }

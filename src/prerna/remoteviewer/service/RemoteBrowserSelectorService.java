@@ -308,7 +308,7 @@ public final class RemoteBrowserSelectorService {
 			return;
 		}
 
-		Page page = session.getPage();
+		Page page = session.getActivePage();
 		if (page == null || page.isClosed()) {
 			return;
 		}

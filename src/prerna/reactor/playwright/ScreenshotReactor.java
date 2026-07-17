@@ -100,7 +100,7 @@ public class ScreenshotReactor extends AbstractReactor {
 	 *         viewport dimensions, and device pixel ratio.
 	 */
 	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
-		Page page = playwrightSession.tabPages.get(tabId);
+		Page page = playwrightSession.getPage(tabId);
 		waitForStablePage(page);
 		playwrightSession.refreshTrackedUrl(tabId);
 		byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
@@ -130,7 +130,7 @@ public class ScreenshotReactor extends AbstractReactor {
 	 */
 	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
 			int startY, int endX, int endY) {
-		Page page = playwrightSession.tabPages.get(tabId);
+		Page page = playwrightSession.getPage(tabId);
 		waitForStablePage(page);
 		playwrightSession.refreshTrackedUrl(tabId);
 

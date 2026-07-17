@@ -46,7 +46,7 @@ public class RemoteBrowserInputEventValidator {
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
 					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
-					"recording-control"));
+					"recording-control", "switch-tab", "switch-replay-tab", "prepare-replay", "close-tab"));
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -129,6 +129,14 @@ public class RemoteBrowserInputEventValidator {
 		case "recording-control":
 			if (event.getRecording() == null && event.getRecord() == null) {
 				throw new IllegalArgumentException("recording-control event requires 'recording' or 'record'");
+			}
+			break;
+
+		case "switch-tab":
+		case "switch-replay-tab":
+		case "close-tab":
+			if (event.getTargetTabId() == null || !event.getTargetTabId().matches("tab-[1-9][0-9]*")) {
+				throw new IllegalArgumentException(type + " event requires a valid 'targetTabId'");
 			}
 			break;
 

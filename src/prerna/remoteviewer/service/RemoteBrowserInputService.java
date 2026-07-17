@@ -59,7 +59,40 @@ public class RemoteBrowserInputService {
 	}
 
 	public static void dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		Page page = session.getPage();
+		if ("switch-tab".equals(event.getType())) {
+			if (!session.setActiveTabId(event.getTargetTabId())) {
+				throw new IllegalStateException("Browser tab " + event.getTargetTabId() + " is missing or closed");
+			}
+			return;
+		}
+		if ("prepare-replay".equals(event.getType())) {
+			Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab())
+					? session.getActivePage()
+					: session.getContext().newPage();
+			String liveTabId = session.getPlaywrightSession().findTabId(replayRoot);
+			if (liveTabId == null) {
+				liveTabId = session.getPlaywrightSession().registerPage(replayRoot, null);
+			}
+			session.getPlaywrightSession().beginReplayTabBinding(replayRoot);
+			session.setActiveTabId(liveTabId);
+			return;
+		}
+		if ("switch-replay-tab".equals(event.getType())) {
+			Page replayPage = session.getPlaywrightSession().resolveReplayPage(event.getTargetTabId(),
+					session.getActivePage());
+			String liveTabId = session.getPlaywrightSession().findTabId(replayPage);
+			if (liveTabId == null || !session.setActiveTabId(liveTabId)) {
+				throw new IllegalStateException(
+						"Recorded tab " + event.getTargetTabId() + " has not been opened by playback yet");
+			}
+			return;
+		}
+		if ("close-tab".equals(event.getType())) {
+			closeLiveTab(session, event.getTargetTabId());
+			return;
+		}
+
+		Page page = session.getActivePage();
 		if (page == null || page.isClosed()) {
 			return;
 		}
@@ -117,6 +150,26 @@ public class RemoteBrowserInputService {
 		postActionWait(page, event, urlBefore);
 		classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
 				session.getSessionId(), type, System.currentTimeMillis() - start, safeUrl(page));
+	}
+
+	private static void closeLiveTab(RemoteBrowserSession session, String tabId) {
+		if (session.isRecordingEnabled()) {
+			throw new IllegalStateException("Tabs cannot be closed while recording");
+		}
+		long openTabs = session.getPlaywrightSession().getTabPages().values().stream()
+				.filter(page -> page != null && !page.isClosed()).count();
+		if (openTabs <= 1) {
+			throw new IllegalStateException("At least one browser tab must remain open");
+		}
+		Page page = session.getPlaywrightSession().getLivePage(tabId);
+		if (page == null || page.isClosed()) {
+			return;
+		}
+		session.getPlaywrightSession().removeReplayBindings(page);
+		page.close();
+		if (tabId.equals(session.getActiveTabId())) {
+			session.activateFallbackTab();
+		}
 	}
 
 	// ---- Click with 3-tier fallback ----

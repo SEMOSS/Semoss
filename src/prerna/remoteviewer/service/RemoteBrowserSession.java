@@ -31,7 +31,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,6 +91,8 @@ public class RemoteBrowserSession {
 
 	/** Temporary, unsaved replay buffer for the current recording window. */
 	private StepsEnvelope recordingHistory = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""), new HashMap<>());
+	/** Maps live session tab IDs to compact tab IDs inside the current recording. */
+	private final Map<String, String> recordingTabIds = new HashMap<>();
 
 	/** Session-scoped step id for the temporary recording buffer. */
 	private int recordingLastStepId = 0;
@@ -102,10 +107,16 @@ public class RemoteBrowserSession {
 	private PlaywrightStep pendingTypeStep;
 
 	/** Whether the next recorded action should start a new replay page group. */
-	private boolean nextRemoteBrowserRecordedStepStartsNewPage = false;
+	private final Set<String> tabsStartingNextRecordedPage = new HashSet<>();
 
 	/** Handle to the session's background thread for cleanup. */
 	private volatile Thread sessionThread;
+
+	/** The tab currently being streamed and controlled. Defaults to "tab-1". */
+	private volatile String activeTabId = "tab-1";
+
+	/** A popup observed while dispatching the current input event. */
+	private String newlyOpenedTabId;
 
 	public RemoteBrowserSession(String sessionId, String userId, PlaywrightSession playwrightSession, int viewportWidth,
 			int viewportHeight) {
@@ -116,6 +127,7 @@ public class RemoteBrowserSession {
 		this.viewportHeight = viewportHeight;
 		this.createdAt = Instant.now();
 		this.lastActivityAt = Instant.now();
+		this.activeTabId = findLastOpenTabId();
 	}
 
 	public String getSessionId() {
@@ -210,8 +222,10 @@ public class RemoteBrowserSession {
 		recordingHistory = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""), new HashMap<>());
 		recordingLastStepId = 0;
 		recordedSteps.clear();
+		recordingTabIds.clear();
+		recordingTabIds.put(normalizeTabId(activeTabId), "tab-1");
 		clearPendingTypeStep();
-		nextRemoteBrowserRecordedStepStartsNewPage = false;
+		tabsStartingNextRecordedPage.clear();
 		ensureRecordingTab();
 	}
 
@@ -264,13 +278,19 @@ public class RemoteBrowserSession {
 	}
 
 	public synchronized void startNextRemoteBrowserRecordedStepOnNewPage() {
-		this.nextRemoteBrowserRecordedStepStartsNewPage = true;
+		startNextRemoteBrowserRecordedStepOnNewPage(activeTabId);
 	}
 
 	public synchronized boolean consumeNextRemoteBrowserRecordedStepStartsNewPage() {
-		boolean result = this.nextRemoteBrowserRecordedStepStartsNewPage;
-		this.nextRemoteBrowserRecordedStepStartsNewPage = false;
-		return result;
+		return consumeNextRemoteBrowserRecordedStepStartsNewPage(activeTabId);
+	}
+
+	public synchronized void startNextRemoteBrowserRecordedStepOnNewPage(String tabId) {
+		tabsStartingNextRecordedPage.add(normalizeTabId(tabId));
+	}
+
+	public synchronized boolean consumeNextRemoteBrowserRecordedStepStartsNewPage(String tabId) {
+		return tabsStartingNextRecordedPage.remove(normalizeTabId(tabId));
 	}
 
 	public Thread getSessionThread() {
@@ -279,6 +299,109 @@ public class RemoteBrowserSession {
 
 	public void setSessionThread(Thread t) {
 		this.sessionThread = t;
+	}
+
+	/** Returns the ID of the currently active/streamed tab. */
+	public String getActiveTabId() {
+		return activeTabId;
+	}
+
+	/** Updates the active tab. The next frame loop iteration will stream from this tab. */
+	public synchronized boolean setActiveTabId(String tabId) {
+		Page page = tabId == null ? null : playwrightSession.getLivePage(tabId);
+		if (page == null || page.isClosed()) {
+			return false;
+		}
+		if (!tabId.equals(this.activeTabId)) {
+			clearPendingTypeStep();
+		}
+		this.activeTabId = tabId;
+		return true;
+	}
+
+	/**
+	 * Returns the Playwright {@link com.microsoft.playwright.Page} for the active tab,
+	 * falling back to tab-1 if the active tab's page is closed or missing.
+	 */
+	public Page getActivePage() {
+		PlaywrightSession ps = playwrightSession;
+		if (ps == null) {
+			return null;
+		}
+		Page p = ps.getLivePage(activeTabId);
+		if (p == null || p.isClosed()) {
+			p = ps.getPage();
+			if (p != null && !p.isClosed()) {
+				activeTabId = "tab-1";
+			}
+		}
+		return p;
+	}
+
+	public synchronized void clearNewlyOpenedTab() {
+		newlyOpenedTabId = null;
+	}
+
+	public synchronized void markNewlyOpenedTab(String tabId) {
+		newlyOpenedTabId = tabId;
+	}
+
+	public synchronized String consumeNewlyOpenedTab() {
+		String tabId = newlyOpenedTabId;
+		newlyOpenedTabId = null;
+		return tabId;
+	}
+
+	/** Resolves a live browser tab to its stable ID in the current recording. */
+	public synchronized String getRecordingTabId(String liveTabId) {
+		String normalizedLiveTabId = normalizeTabId(liveTabId);
+		String existing = recordingTabIds.get(normalizedLiveTabId);
+		if (existing != null) {
+			return existing;
+		}
+		int nextIndex = 1;
+		while (recordingTabIds.containsValue("tab-" + nextIndex)) {
+			nextIndex++;
+		}
+		String recordingTabId = "tab-" + nextIndex;
+		recordingTabIds.put(normalizedLiveTabId, recordingTabId);
+		return recordingTabId;
+	}
+
+	/** Activates the highest-numbered remaining live tab, if one exists. */
+	public synchronized void activateFallbackTab() {
+		String fallbackTabId = null;
+		for (Map.Entry<String, Page> entry : playwrightSession.getTabPages().entrySet()) {
+			Page page = entry.getValue();
+			if (page == null || page.isClosed()) {
+				continue;
+			}
+			if (fallbackTabId == null || tabNumber(entry.getKey()) > tabNumber(fallbackTabId)) {
+				fallbackTabId = entry.getKey();
+			}
+		}
+		if (fallbackTabId != null) {
+			setActiveTabId(fallbackTabId);
+		}
+	}
+
+	private String findLastOpenTabId() {
+		String selected = "tab-1";
+		for (Map.Entry<String, Page> entry : playwrightSession.getTabPages().entrySet()) {
+			Page page = entry.getValue();
+			if (page != null && !page.isClosed() && tabNumber(entry.getKey()) >= tabNumber(selected)) {
+				selected = entry.getKey();
+			}
+		}
+		return selected;
+	}
+
+	private static int tabNumber(String tabId) {
+		try {
+			return Integer.parseInt(tabId.substring("tab-".length()));
+		} catch (Exception e) {
+			return 0;
+		}
 	}
 
 	private void ensureRecordingTab() {
