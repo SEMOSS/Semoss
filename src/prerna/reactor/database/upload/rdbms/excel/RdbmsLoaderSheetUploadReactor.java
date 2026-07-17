@@ -87,6 +87,12 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Uploads an Excel file that follows the SEMOSS loader-sheet format to create a relational (RDBMS) database. "
+				+ "The 'Loader' tab specifies which sheets to load, and node/relationship sheets define the tables and their foreign-key relationships.";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		if (!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
