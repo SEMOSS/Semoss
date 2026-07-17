@@ -29,8 +29,6 @@ package prerna.reactor.agent;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,19 +36,14 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.run.RunAgentRequest;
 import prerna.reactor.agent.run.RunAgentResult;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -66,11 +59,9 @@ public class RunAgentReactor extends AbstractReactor {
     private static final String HARNESS_TYPE_KEY    = "harnessType";
     private static final String WORKSPACE_ID_KEY    = "workspaceId";
     private static final String MAX_TURNS_KEY       = "maxTurns";
-    private static final String MAX_ITERATIONS_KEY  = "maxIterations";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
     private static final String WAIT_KEY            = "wait";
     private static final String WAIT_TIMEOUT_MS_KEY = "waitTimeoutMs";
-    private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
@@ -80,17 +71,15 @@ public class RunAgentReactor extends AbstractReactor {
                 HARNESS_TYPE_KEY,
                 WORKSPACE_ID_KEY,
                 MAX_TURNS_KEY,
-                MAX_ITERATIONS_KEY,
                 MAX_REFLECTIONS_KEY,
                 WAIT_KEY,
                 WAIT_TIMEOUT_MS_KEY,
-                INCLUDE_MESSAGES_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
                 ReactorKeysEnum.AGENT_PARAMS.getKey(),
                 ReactorKeysEnum.IMAGE.getKey(),
                 ReactorKeysEnum.URL.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -115,21 +104,11 @@ public class RunAgentReactor extends AbstractReactor {
         // workspaceId overrides room.options.workspace.workspace_id for this run.
         String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
 
-        int maxTurns = parseIntAtLeast(
-                StringUtils.firstNonBlank(
-                        this.keyValue.get(MAX_TURNS_KEY),
-                        this.keyValue.get(MAX_ITERATIONS_KEY)),
-                AgentRunContext.DEFAULT_MAX_TURNS, 1);
+        int maxTurns = parseIntAtLeast(this.keyValue.get(MAX_TURNS_KEY), AgentRunContext.DEFAULT_MAX_TURNS, 1);
         int maxReflections = parseIntAtLeast(
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
         boolean wait = parseBoolean(this.keyValue.get(WAIT_KEY), true);
-        // Returning the run's message history requires a completed run, so this flag
-        // implies wait=true even if the caller passed wait=false.
-        boolean includeMessages = parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY), false);
-        if (includeMessages) {
-            wait = true;
-        }
         long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
@@ -168,18 +147,8 @@ public class RunAgentReactor extends AbstractReactor {
             if (wait) {
                 output = AgentRuntimeManager.get().waitForRun(handle.getRunId(), this.insight, waitTimeoutMs);
             }
-            if (includeMessages) {
-                output.put("messages", collectRunMessages(roomId, handle.getRunId()));
-            }
-            AgentHarnessResult result = handle.getResult();
-
-            if (result != null) {
-                logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
-                        handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
-                        result.getToolCallRecords().size());
-            } else {
-                logger.info("RunAgentReactor: runId={} status={}", handle.getRunId(), handle.getStatus());
-            }
+            // async submit handle; terminal output (when wait=true) comes from waitForRun above
+            logger.info("RunAgentReactor: runId={} status={}", handle.getRunId(), handle.getStatus());
 
             return new NounMetadata(output, PixelDataType.MAP,
                     PixelOperationType.OPERATION);
@@ -217,46 +186,6 @@ public class RunAgentReactor extends AbstractReactor {
         Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
                 : RoomUtils.getOrLoadRoom(roomId, insight);
         return RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
-    }
-
-    /**
-     * Collect the full message history for a single agent run, in chronological
-     * order. Filters the room's messages by the {@code agentRunId} ornament that the
-     * harness stamps on every message it produces, then serializes each via the same
-     * parts-based projection used for persistence (rich {@code parts}/{@code ornaments}
-     * shape, base64 image data excluded). Returns an empty list when no tagged
-     * messages exist, or {@code null} on a lookup/serialization failure (best-effort).
-     */
-    private List<Object> collectRunMessages(String roomId, String runId) {
-        if (runId == null || runId.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-        try {
-            Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-            List<AbstractMessage> all = room != null ? room.getMessages() : null;
-            if (all == null || all.isEmpty()) {
-                return Collections.emptyList();
-            }
-            List<AbstractMessage> runMessages = new ArrayList<>();
-            for (AbstractMessage m : all) {
-                if (m == null) {
-                    continue;
-                }
-                Object tag = m.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
-                if (tag != null && runId.equals(String.valueOf(tag))) {
-                    runMessages.add(m);
-                }
-            }
-            if (runMessages.isEmpty()) {
-                return Collections.emptyList();
-            }
-            // Parse the serialized projection back into plain Maps/Lists so the value
-            // nests cleanly in the reactor's MAP return (vs. a raw JSON string).
-            return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
-        } catch (Exception e) {
-            logger.warn("RunAgentReactor: failed to collect run messages for runId={}: {}", runId, e.getMessage());
-            return null;
-        }
     }
 
     private void validateMediaSupported(String harnessType, List<String> inputImages, List<String> inputImageURLs) {
@@ -366,9 +295,6 @@ public class RunAgentReactor extends AbstractReactor {
         }
         if (key.equals(ReactorKeysEnum.URL.getKey())) {
             return "Array of image file URLs whose contents will be fetched when building the initial agent message.";
-        }
-        if (key.equals(INCLUDE_MESSAGES_KEY)) {
-            return "When true, returns the run's full message history (input, assistant turns, tool calls/results) under 'messages'. Implies wait=true.";
         }
         return super.getDescriptionForKey(key);
     }
