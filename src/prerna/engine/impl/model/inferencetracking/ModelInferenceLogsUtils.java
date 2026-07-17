@@ -1435,33 +1435,56 @@ public class ModelInferenceLogsUtils {
 	 * @return a list of matching messages (room_id, message_text, message_id)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		return searchMessages(userId, projectId, keyword, -1, -1, true);
+	}
+
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
+			long limit, long offset, boolean includeMessageText) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Always select room_id and message_id
+		// Always select room_id, message_id, and room metadata needed by the frontend
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 
-		// Build a selector for message_text out of message_data, adapted to DB type
+		// Always build the BLOB selector — needed for the WHERE filter regardless
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
 				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
-		qs.addSelector(messageTextSelector);
+		if (includeMessageText) {
+			qs.addSelector(messageTextSelector);
+		}
+
+		// Wrap decoded text in LOWER() for case-insensitive LIKE filtering
+		QueryFunctionSelector lowerMessageSelector = new QueryFunctionSelector();
+		lowerMessageSelector.setFunction(QueryFunctionHelper.LOWER);
+		lowerMessageSelector.addInnerSelector(messageTextSelector);
+		lowerMessageSelector.setAlias("message_text_lower");
 
 		// JOIN, filters, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		if (projectId != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
 
-		// Add filter on decoded message text
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, // use the computed selector (the
-																						// decoded/casted field)
-				"?like", keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
+		// Case-insensitive substring filter: LOWER(CAST(message_data AS TEXT)) LIKE '%keyword%'
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(lowerMessageSelector,
+				"?like", "%" + keyword.toLowerCase() + "%",
 				PixelDataType.CONST_STRING));
 
 		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
