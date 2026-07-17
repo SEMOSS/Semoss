@@ -262,15 +262,13 @@ class GoogleGenAIMessageBuilder:
             return types.ThinkingConfig(include_thoughts=False)
 
         model_name = (self.model_settings.model_name or "").lower()
-        if "gemini-3" in model_name:
+        if "gemini-3" in model_name and "gemini-3-pro-image" not in model_name:
             return types.ThinkingConfig(
                 include_thoughts=True,
                 thinking_level=self._GEMINI_THINKING_LEVEL.get(
                     resolved.effort, types.ThinkingLevel.HIGH
                 ),
             )
-
-        # Gemini 2.5 / 2.0 family -> explicit token budget.
         return types.ThinkingConfig(
             include_thoughts=True, thinking_budget=resolved.budget
         )
@@ -397,14 +395,37 @@ class GoogleGenAIMessageBuilder:
             raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
 
     _GOOGLE_SCHEMA_ALLOWED = {
-        "type", "format", "description", "default", "enum", "example",
-        "properties", "required", "items",
-        "min_items", "max_items", "minItems", "maxItems",
-        "min_length", "max_length", "minLength", "maxLength", "pattern",
-        "minimum", "maximum", "nullable",
-        "any_of", "anyOf", "property_ordering", "propertyOrdering",
-        "min_properties", "max_properties", "minProperties", "maxProperties",
-        "additional_properties", "additionalProperties",
+        "type",
+        "format",
+        "description",
+        "default",
+        "enum",
+        "example",
+        "properties",
+        "required",
+        "items",
+        "min_items",
+        "max_items",
+        "minItems",
+        "maxItems",
+        "min_length",
+        "max_length",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "minimum",
+        "maximum",
+        "nullable",
+        "any_of",
+        "anyOf",
+        "property_ordering",
+        "propertyOrdering",
+        "min_properties",
+        "max_properties",
+        "minProperties",
+        "maxProperties",
+        "additional_properties",
+        "additionalProperties",
     }
 
     def _sanitize_schema_for_google(self, schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -444,11 +465,15 @@ class GoogleGenAIMessageBuilder:
         if isinstance(excl_min, (int, float)) and not isinstance(excl_min, bool):
             if is_int:
                 translated = int(excl_min) + 1
-                out["minimum"] = max(out["minimum"], translated) if "minimum" in out else translated
+                out["minimum"] = (
+                    max(out["minimum"], translated) if "minimum" in out else translated
+                )
         if isinstance(excl_max, (int, float)) and not isinstance(excl_max, bool):
             if is_int:
                 translated = int(excl_max) - 1
-                out["maximum"] = min(out["maximum"], translated) if "maximum" in out else translated
+                out["maximum"] = (
+                    min(out["maximum"], translated) if "maximum" in out else translated
+                )
 
         return out
 
