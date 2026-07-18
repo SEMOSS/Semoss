@@ -138,28 +138,36 @@ public final class RoomMessageStore {
 
 	public static String messageHistoryWithNewMessage(Room room, AbstractMessage newMessage) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), newMessage);
-		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return serializeMessageBranch(room, branch);
 	}
 
 	public static String currentMessageHistory(Room room) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), null);
-		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return serializeMessageBranch(room, branch);
 	}
 
-	public static String providerMessageHistory(Room room, List<AbstractMessage> messages) {
-		validateProviderPayload(room, messages);
-		return MessageUtils.toJsonArrayWithImageData(messages);
+	public static String serializeMessageHistory(Room room, List<AbstractMessage> messages) {
+		return serializeMessageBranch(room, messages);
 	}
 
-	public static void normalizeForProviderPayload(Room room) {
+	/**
+	 * Sanitizes the room's in-memory message tree. The healed tree is persisted by
+	 * the next normal successful room write; this method does not write storage.
+	 */
+	public static void sanitizeRoomMessages(Room room) {
 		List<AbstractMessage> messages = room.getMessages();
 		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(messages, room);
 		if (sanitized != messages) {
 			room.setMessages(sanitized);
 		}
 		validateForPersistence(room, room.getMessages());
+	}
+
+	/** Sanitizes and validates an isolated branch before serializing model history. */
+	private static String serializeMessageBranch(Room room, List<AbstractMessage> branch) {
+		List<AbstractMessage> sanitizedBranch = MessageUtils.sanitizedCopy(branch, room);
+		validateMessageBranch(room, sanitizedBranch);
+		return MessageUtils.toJsonArrayWithImageData(sanitizedBranch);
 	}
 
 	public static boolean persist(Room room, String userId) {
@@ -258,7 +266,7 @@ public final class RoomMessageStore {
 		}
 	}
 
-	private static void validateProviderPayload(Room room, List<AbstractMessage> messages) {
+	private static void validateMessageBranch(Room room, List<AbstractMessage> messages) {
 		validateForPersistence(room, messages);
 
 		Set<String> toolCallIds = new HashSet<>();
@@ -282,13 +290,13 @@ public final class RoomMessageStore {
 		if (!toolCallIds.containsAll(toolResultIds)) {
 			Set<String> unmatched = new HashSet<>(toolResultIds);
 			unmatched.removeAll(toolCallIds);
-			throw new IllegalStateException("Room message payload contains tool results without tool calls: "
+			throw new IllegalStateException("Room message branch contains tool results without tool calls: "
 					+ unmatched);
 		}
 		if (!toolResultIds.containsAll(toolCallIds)) {
 			Set<String> unmatched = new HashSet<>(toolCallIds);
 			unmatched.removeAll(toolResultIds);
-			throw new IllegalStateException("Room message payload contains unresolved tool calls: " + unmatched);
+			throw new IllegalStateException("Room message branch contains unresolved tool calls: " + unmatched);
 		}
 	}
 

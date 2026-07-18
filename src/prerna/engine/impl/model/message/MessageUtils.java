@@ -32,9 +32,12 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -395,64 +398,151 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
-	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
-	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 * Strip only the specific TOOL_CALL / TOOL_RESULT parts that violate the model-history pairing rule.
+	 * Model APIs reject unpaired tool_use and unpaired tool_result, but removing the whole message throws away
+	 * perfectly good sibling parts -- e.g. a parallel batch where one tool_use is answered and another is not
+	 * (HITL ask-one/answer-other, or a crash mid-batch) would otherwise lose the answered call and orphan its
+	 * result. Instead drop just the offending parts; a message that still has content survives in place, and only
+	 * a message left without any valid parts is removed (with any surviving child re-linked to
+	 * the removed message's parent so the branch chain stays intact).
+	 * Not pure read-side: surviving messages are mutated in place (parts and/or parentMessageId), and the healed
+	 * state is persisted on the next normal turn via RoomMessageStore.sanitizeRoomMessages.
 	 */
 	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
-		if (messages == null || messages.size() < 2) {
-			return messages != null ? messages : new ArrayList<>();
+		if (messages == null) {
+			return new ArrayList<>();
 		}
-		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
-		List<int[]> toolCallSlots = new ArrayList<>();
-		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
-		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
-		for (int i = 0; i < messages.size(); i++) {
-			AbstractMessage m = messages.get(i);
+		if (messages.isEmpty()) {
+			return messages;
+		}
+		// pass 1: collect the full set of tool_use ids and tool_result ids seen across the branch
+		Set<String> toolUseIds = new HashSet<>();
+		Set<String> toolResultIds = new HashSet<>();
+		for (AbstractMessage m : messages) {
 			if (m == null) continue;
 			for (MessagePart part : m.getParts()) {
 				if (part instanceof ToolCallMessagePart tcp) {
 					Map<String, Object> tc = tcp.getToolCall();
 					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
-					if (id != null && !id.isBlank()) {
-						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
-							toolCallSlots.add(new int[] { i });
-							toolCallIdsPerSlot.add(new ArrayList<>());
-						}
-						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
-					}
+					if (id != null && !id.isBlank()) toolUseIds.add(id);
 				} else if (part instanceof ToolResultMessagePart trp) {
 					ToolResultPart tr = trp.getToolResult();
 					String id = tr != null ? tr.getToolCallId() : null;
-					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+					if (id != null && !id.isBlank()) toolResultIds.add(id);
 				}
 			}
 		}
-		if (toolCallSlots.isEmpty()) return messages;
+		// orphans in both directions -- model history requires bidirectional pairing
+		Set<String> orphanUseIds = new HashSet<>(toolUseIds);
+		orphanUseIds.removeAll(toolResultIds);
+		Set<String> orphanResultIds = new HashSet<>(toolResultIds);
+		orphanResultIds.removeAll(toolUseIds);
+		if (orphanUseIds.isEmpty() && orphanResultIds.isEmpty()) return messages;
 
-		// pass 2: first slot with any unanswered id is the truncation point
-		int truncateAt = -1;
-		List<String> orphanIds = null;
-		for (int s = 0; s < toolCallSlots.size(); s++) {
-			List<String> unmatched = null;
-			for (String id : toolCallIdsPerSlot.get(s)) {
-				if (!resultIdsSeen.contains(id)) {
-					if (unmatched == null) unmatched = new ArrayList<>();
-					unmatched.add(id);
+		// pass 2: strip orphan parts; a message emptied of meaningful content is marked for removal
+		Set<Integer> removedIndices = new TreeSet<>();
+		Map<String, String> removedIdToParentId = new HashMap<>();
+		for (int i = 0; i < messages.size(); i++) {
+			AbstractMessage m = messages.get(i);
+			if (m == null) continue;
+			List<MessagePart> parts = m.getParts();
+			boolean hasOrphan = false;
+			for (MessagePart part : parts) {
+				if (isOrphanToolPart(part, orphanUseIds, orphanResultIds)) {
+					hasOrphan = true;
+					break;
 				}
 			}
-			if (unmatched != null && !unmatched.isEmpty()) {
-				truncateAt = toolCallSlots.get(s)[0];
-				orphanIds = unmatched;
-				break;
+			if (!hasOrphan) continue;
+
+			List<MessagePart> kept = new ArrayList<>(parts.size());
+			for (MessagePart part : parts) {
+				if (part != null && !isOrphanToolPart(part, orphanUseIds, orphanResultIds)) kept.add(part);
+			}
+			if (hasRemainingPart(kept)) {
+				m.setParts(kept);
+			} else {
+				removedIndices.add(i);
+				if (m.getMessageId() != null) removedIdToParentId.put(m.getMessageId(), m.getParentMessageId());
 			}
 		}
-		if (truncateAt < 0) return messages;
+
+		// Resolve transitively so consecutive removals collapse into the nearest surviving ancestor
+		for (String id : new ArrayList<>(removedIdToParentId.keySet())) {
+			String parent = removedIdToParentId.get(id);
+			Set<String> guard = new HashSet<>();
+			while (parent != null && removedIdToParentId.containsKey(parent) && guard.add(parent)) {
+				parent = removedIdToParentId.get(parent);
+			}
+			removedIdToParentId.put(id, parent);
+		}
+
+		// Build sanitized list; re-link parentMessageId for any surviving child of a removed message
+		List<AbstractMessage> sanitized = new ArrayList<>(messages.size() - removedIndices.size());
+		for (int i = 0; i < messages.size(); i++) {
+			if (removedIndices.contains(i)) continue;
+			AbstractMessage m = messages.get(i);
+			if (m != null && m.getParentMessageId() != null
+					&& removedIdToParentId.containsKey(m.getParentMessageId())) {
+				m.setParentMessageId(removedIdToParentId.get(m.getParentMessageId()));
+			}
+			sanitized.add(m);
+		}
 
 		String roomId = room != null ? room.getId() : "<unknown>";
-		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
-				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
-		return new ArrayList<>(messages.subList(0, truncateAt));
+		classLogger.warn("sanitizeOrphanToolCalls: room {} stripped orphan tool_use ids {} and tool_result ids {}; "
+				+ "removed {} emptied message(s) at indices {}",
+				roomId, orphanUseIds, orphanResultIds, removedIndices.size(), removedIndices);
+		return sanitized;
+	}
+
+	/**
+	 * Creates an isolated, sanitized copy of a message branch. The source messages
+	 * are not mutated, so branch-specific repair cannot damage shared room
+	 * ancestors that remain valid on a sibling branch.
+	 *
+	 * @param messages message branch to copy
+	 * @param room     room context used to rehydrate copied messages
+	 * @return sanitized copies of the supplied messages
+	 */
+	public static List<AbstractMessage> sanitizedCopy(List<AbstractMessage> messages, Room room) {
+		if (messages == null || messages.isEmpty()) {
+			return new ArrayList<>();
+		}
+		List<AbstractMessage> copies = new ArrayList<>(messages.size());
+		for (AbstractMessage message : messages) {
+			if (message == null) {
+				copies.add(null);
+				continue;
+			}
+			copies.add(fromJson(GSON_FOR_DB.toJson(message), room));
+		}
+		return sanitizeOrphanToolCalls(copies, room);
+	}
+
+	/** An orphan part is a TOOL_CALL whose id has no matching result, or a TOOL_RESULT whose id has no matching call. */
+	private static boolean isOrphanToolPart(MessagePart part, Set<String> orphanUseIds, Set<String> orphanResultIds) {
+		if (part instanceof ToolCallMessagePart tcp) {
+			Map<String, Object> tc = tcp.getToolCall();
+			String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+			return id != null && orphanUseIds.contains(id);
+		}
+		if (part instanceof ToolResultMessagePart trp) {
+			ToolResultPart tr = trp.getToolResult();
+			String id = tr != null ? tr.getToolCallId() : null;
+			return id != null && orphanResultIds.contains(id);
+		}
+		return false;
+	}
+
+	/** A message survives whenever at least one valid, non-orphan part remains. */
+	private static boolean hasRemainingPart(List<MessagePart> parts) {
+		for (MessagePart part : parts) {
+			if (part != null) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// --- Core two serialization methods ---
