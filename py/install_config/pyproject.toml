@@ -68,6 +68,8 @@ dependencies = [
     "pytest>=9.1.1",
     "python-docx>=1.2.0",
     "python-pptx>=1.0.2",
+    "qdrant-client>=1.18.0",
+    "fastembed>=0.8.0",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
     "semantic-text-splitter==0.18.1",
