@@ -665,9 +665,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				for (int i = 0; i < requests.size(); i++) {
-					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
-							requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
-							engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"));
+						NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+								requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
+								engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"),
+								NotificationConstants.DisplaySurface.BELL);
 					// Adding email notification
 					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
 							engineId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.ENGINE);
@@ -738,10 +739,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
 					String permission = AccessPermissionEnum
 							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
-							(String) deniedUserDetails.get(i).get("type"), engineId,
-							NotificationConstants.Type.REQUEST_DENIAL, engineType,
-							NotificationConstants.Priority.MEDIUM, null, permission);
+						NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+								(String) deniedUserDetails.get(i).get("type"), engineId,
+								NotificationConstants.Type.REQUEST_DENIAL, engineType,
+								NotificationConstants.Priority.MEDIUM, null, permission,
+								NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 
@@ -1154,10 +1156,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				for (int i = 0; i < permission.size(); i++) {
-					NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"),
-							(String) permission.get(i).get("type"), engineId, NotificationConstants.Type.USER_ADDITION,
-							engineType, NotificationConstants.Priority.MEDIUM, null,
-							(String) permission.get(i).get("permission"));
+						NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"),
+								(String) permission.get(i).get("type"), engineId, NotificationConstants.Type.USER_ADDITION,
+								engineType, NotificationConstants.Priority.MEDIUM, null,
+								(String) permission.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 
@@ -1271,9 +1273,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
-						NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
-						existingPermission, newPermission);
+					NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
+							NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
+							existingPermission, newPermission, NotificationConstants.DisplaySurface.BELL);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permission", e);
@@ -1400,10 +1402,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-					NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId,
-							NotificationConstants.Type.PERMISSION_CHANGE, engineType,
-							NotificationConstants.Priority.MEDIUM, existingPermission,
-							(String) thisPermissionMap.get("permission"));
+						NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId,
+								NotificationConstants.Type.PERMISSION_CHANGE, engineType,
+								NotificationConstants.Priority.MEDIUM, existingPermission,
+								(String) thisPermissionMap.get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 			ps.executeBatch();

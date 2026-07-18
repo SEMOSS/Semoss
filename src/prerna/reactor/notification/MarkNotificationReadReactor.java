@@ -56,7 +56,7 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		NotificationDbUtils.markNotificationRead(notificationId, readAt);
+		NotificationDbUtils.markNotificationRead(this.insight.getUser(), notificationId, readAt);
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
