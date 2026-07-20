@@ -886,7 +886,7 @@ public class GraphDataModel implements IDataMaker {
 
 		classLogger.debug(conceptSelectQuery);
 
-		try {
+		try (sjsc) {
 			sjsc.setQuery(conceptSelectQuery);
 			sjsc.execute();
 			classLogger.debug("Execute complete");
@@ -939,7 +939,7 @@ public class GraphDataModel implements IDataMaker {
 
 		classLogger.debug(predicateSelectQuery);
 
-		try {
+		try (sjsc) {
 			sjsc.setQuery(predicateSelectQuery);
 			sjsc.execute();
 			classLogger.warn("Execute compelete");

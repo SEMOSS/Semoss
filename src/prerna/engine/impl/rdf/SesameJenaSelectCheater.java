@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -133,6 +134,19 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
 //			count = 0;
 //			proxy = (SesameJenaSelectCheater)((RemoteSemossSesameEngine)(engine)).execCheaterQuery(query);
 //		}
+	}
+
+	@Override
+	public void close() throws IOException {
+		if (this.tqr != null) {
+			try {
+				this.tqr.close();
+			} catch (Exception e) {
+				throw new IOException("Unable to close tuple query result", e);
+			} finally {
+				this.tqr = null;
+			}
+		}
 	}
 
 	/**
