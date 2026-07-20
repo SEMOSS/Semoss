@@ -78,7 +78,10 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
@@ -240,6 +243,12 @@ public class Room implements Serializable {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
+		// Pull the playground-only auto-compaction threshold out of the param map
+		// so it never reaches the model engine. Sent by the FE on every
+		// AskPlayground call as paramValues.auto_compact_threshold.
+		Object thresholdRaw = kwArgMap.remove("auto_compact_threshold");
+		Double autoCompactThreshold = thresholdRaw instanceof Number n ? n.doubleValue() : null;
+
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -310,6 +319,21 @@ public class Room implements Serializable {
 				msg.setParentMessageId(null); // first message
 			}
 
+			// Auto-compact when the branch exceeds the per-room threshold provided
+			// by the caller in paramValues.auto_compact_threshold. Re-parent the
+			// in-flight user message to the new tail so the persisted tree stays
+			// linear (the FE rebuilds the tree by sorting on dateCreated, and
+			// msg.dateCreated predates the compaction messages).
+			String newParentAfterCompaction = maybeCompactConversation(modelEngine, msg.getParentMessageId(),
+					appendToHistory, autoCompactThreshold);
+			boolean compactionRan = newParentAfterCompaction != null;
+			if (compactionRan) {
+				msg.setParentMessageId(newParentAfterCompaction);
+				// The reactor's getOrLoadRoom path can replace this.messages from
+				// the Redis projection, undoing the normalize above. Re-apply so
+				// the outbound payload remains free of orphan tool_use entries.
+				RoomMessageStore.normalizeForProviderPayload(this);
+			}
 			ResponseMessage response = null;
 			try {
 				String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
@@ -321,6 +345,11 @@ public class Room implements Serializable {
 			} catch (Exception e) {
 				classLogger.error("Error running new message in room", e);
 				throw e;
+			}
+			if (compactionRan) {
+				// Flag the response so the FE can render the compaction chip and
+				// dedup it on reload.
+				response.setAutoCompacted(true);
 			}
 			// on success, add the message
 			if (appendToHistory) {
@@ -1491,6 +1520,87 @@ public class Room implements Serializable {
 		} catch (Exception ignore) {
 		}
 		return null;
+	}
+	
+	/**
+	 * Auto-compacts the current branch via {@link CompactRoomMessagesReactor} when
+	 * its token usage meets the per-call {@code threshold}. Skips when the caller
+	 * did not enable auto-compaction (threshold {@code null}), when the model has
+	 * no context window configured, when history is not being appended, or when
+	 * the reactor reports no successful compaction.
+	 *
+	 * @param threshold fraction of the model's context window above which to
+	 *                  compact; sourced from {@code paramValues.auto_compact_threshold}
+	 *                  on the originating pixel call. {@code null} disables.
+	 * @return messageId of the compaction-response (new branch tail) on success;
+	 *         {@code null} when the reactor was a no-op or failed. Callers use the
+	 *         id to re-parent the in-flight user message so the persisted tree
+	 *         stays linear after reload.
+	 */
+	private String maybeCompactConversation(IModelEngine modelEngine, String parentMessageId, boolean appendToHistory,
+			Double threshold) {
+		if (threshold == null || !appendToHistory || this.insight == null || modelEngine == null || messages.isEmpty()
+				|| parentMessageId == null || parentMessageId.isEmpty()) {
+			return null;
+		}
+		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(this.messages, parentMessageId);
+		if (branch == null || branch.size() < 2) {
+			return null;
+		}
+		int currentTokens = branch.getLast().getTokensInMessage() + branch.get(branch.size() - 2).getTokensInMessage();
+		int maxTokens = modelEngine.getContextWindow();
+		if (currentTokens <= 0 || maxTokens <= 0) {
+			return null;
+		}
+		double usage = (double) currentTokens / maxTokens;
+		if (usage < threshold) {
+			return null;
+		}
+		String engineId = modelEngine.getEngineId();
+		classLogger.info("Auto-compaction triggered for room {} engine {} (usage {}/{} = {}, threshold {})",
+				this.room_id, engineId, currentTokens, maxTokens, usage, threshold);
+		try {
+			NounStore ns = new NounStore(ReactorKeysEnum.ALL.getKey());
+			ns.makeGenRowStruct(ReactorKeysEnum.ROOM_ID.getKey()).addLiteral(this.room_id);
+			ns.makeGenRowStruct(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey()).addLiteral(parentMessageId);
+
+			CompactRoomMessagesReactor compactReactor = new CompactRoomMessagesReactor();
+			compactReactor.setInsight(this.insight);
+			compactReactor.setNounStore(ns);
+			compactReactor.In();
+
+			NounMetadata compactResult = compactReactor.execute();
+			// The reactor returns VECTOR<Map> on a real attempt and MAP on the
+			// empty-room no-op. Only entries with success=true and a
+			// ResponseMessage give us a new branch tail to re-parent against;
+			// rolled-back failures keep success=false so we treat them as no-op.
+			Object resultValue = compactResult != null ? compactResult.getValue() : null;
+			if (!(resultValue instanceof List<?> results) || results.isEmpty()) {
+				return null;
+			}
+			String newTailId = null;
+			for (Object r : results) {
+				if (!(r instanceof Map<?, ?> entry) || !Boolean.TRUE.equals(entry.get("success"))) {
+					continue;
+				}
+				if (entry.get("responseMessage") instanceof ResponseMessage rm) {
+					newTailId = rm.getMessageId();
+				}
+			}
+			if (newTailId != null) {
+				classLogger.info("Auto-compaction completed for room {} engine {} - new tail {}", this.room_id,
+						engineId, newTailId);
+			} else {
+				classLogger.warn(
+						"Auto-compaction triggered but reactor returned no successful result for room {} engine {}",
+						this.room_id, engineId);
+			}
+			return newTailId;
+		} catch (Exception e) {
+			classLogger.error("Auto-compaction failed for room {} engine {} parentMessageId {}", this.room_id, engineId,
+					parentMessageId, e);
+			return null;
+		}
 	}
 
 	// ---- Getters and Setters ----

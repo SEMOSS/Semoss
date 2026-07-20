@@ -59,6 +59,22 @@ public class ResponseMessage extends AbstractMessage {
 
 	private transient AskModelEngineResponse<?> modelEngineResponse;
 
+	/**
+	 * Set when this response was produced on a turn during which the conversation
+	 * was auto-compacted. The FE uses it to render the compaction chip and to
+	 * deduplicate the chip on reload.
+	 */
+	@SerializedName("autoCompacted")
+	private boolean autoCompacted = false;
+
+	public boolean getAutoCompacted() {
+		return this.autoCompacted;
+	}
+
+	public void setAutoCompacted(boolean autoCompacted) {
+		this.autoCompacted = autoCompacted;
+	}
+
 	private ResponseMessage() {
 		super();
 	}
