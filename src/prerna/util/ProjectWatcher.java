@@ -76,6 +76,23 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				}
 			}
 		}
+
+		// loading platform mcps (headless system apps, no UI)
+		List<String> defaultMCPs = SystemDefaultEngines.getSystemMCPs();
+		for (String engineId : defaultMCPs) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureMCPTag(engineId);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
 	}
 
 	/**
@@ -111,6 +128,38 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	}
 
 	/**
+	 * Makes sure a platform mcp project carries the PROJECTMETA tag marking it as an
+	 * mcp. Mirrors {@link #ensureSkillTag(String)}: addProject early-returns when the
+	 * project already exists in the security db, so this runs on every boot; it is
+	 * idempotent and preserves any other tag values already on the project. Never
+	 * blocks project load. The literal "MCP" tag matches MCPUtility.addMCPTag.
+	 */
+	private static void ensureMCPTag(String projectId) {
+		try {
+			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
+					false);
+			List<Object> tags = new ArrayList<>();
+			Object existing = meta.get("tag");
+			if (existing instanceof List) {
+				tags.addAll((List<?>) existing);
+			} else if (existing != null) {
+				tags.add(existing);
+			}
+			for (Object t : tags) {
+				if ("MCP".equals(t)) {
+					return;
+				}
+			}
+			tags.add("MCP");
+			Map<String, Object> update = new HashMap<>();
+			update.put("tag", tags);
+			SecurityProjectUtils.updateProjectMetadata(projectId, update);
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure mcp tag on platform mcp project '{}': {}", projectId, e.getMessage());
+		}
+	}
+
+	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
 	@Override
@@ -140,12 +189,15 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
+			// reserved system apps (platform skills + platform mcps) reload from disk
+			// every boot and must never be pruned during file-system reconciliation
+			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
-				if (!projectIds.contains(project) && !defaultPlatforms.contains(project)) {
+				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}

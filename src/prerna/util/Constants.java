@@ -1061,4 +1061,7 @@ public class Constants {
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
 	public static final String SKILL_VECTOR = "vector";
+
+	// system (platform) mcp names
+	public static final String MCP_NODE_BUILDER = "node-builder";
 }

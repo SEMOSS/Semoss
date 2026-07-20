@@ -86,11 +86,10 @@ public class DeleteProjectReactor extends AbstractReactor {
 				}
 			}
 
-			// built-in platform skills ship with the distribution and reload at boot;
-			// deleting one would remove its folder + smss with no way to restore it
-			if (SystemDefaultEngines.getSystemSkills().contains(projectId)) {
+			if (SystemDefaultEngines.getSystemSkills().contains(projectId)
+					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)) {
 				throw new IllegalArgumentException(
-						"Project " + projectId + " is a built-in platform skill and cannot be deleted");
+						"Project " + projectId + " is a built-in platform MCP/skill and cannot be deleted");
 			}
 
 			IProject project = Utility.getProject(projectId);

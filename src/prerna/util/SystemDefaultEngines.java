@@ -55,6 +55,8 @@ public class SystemDefaultEngines {
 			Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS,
 			Constants.SKILL_MODEL, Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
 
+	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER);
+
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
 	}
@@ -73,6 +75,10 @@ public class SystemDefaultEngines {
 
 	public static List<String> getSystemSkills() {
 		return SYSTEM_SKILLS;
+	}
+
+	public static List<String> getSystemMCPs() {
+		return SYSTEM_MCPS;
 	}
 
 	/**
