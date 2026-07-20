@@ -34,7 +34,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -56,9 +55,6 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -73,21 +69,17 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -110,18 +102,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -402,78 +382,6 @@ public final class Utility {
 		}
 
 		return instanceName;
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the node instance name for a display name of a property where the node's
-	 * display name is prior to the property display name.
-	 * 
-	 * @param String URI to be split into tokens.
-	 * @return String Instance name.
-	 */
-	public static String getInstanceNodeName(String uri) {
-		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
-		int totalTok = tokens.countTokens() - 1;
-		String instanceName = null;
-
-		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok) {
-				tokens.nextToken();
-			} else if (tokIndex + 1 == totalTok) {
-				instanceName = tokens.nextToken();
-			} else {
-				tokens.nextToken();
-			}
-		}
-
-		return instanceName;
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the primary key.
-	 * 
-	 * @param String URI to be split into tokens.
-	 *               (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
-	 * 
-	 * @return String Primary Key
-	 */
-	public static String getPrimaryKeyFromURI(String uri) {
-		String[] elements = uri.split("/");
-		if (elements.length >= 2) {
-			return elements[elements.length - 2];
-		} else {
-			return uri;
-		}
-	}
-
-	public static String getFQNodeName(IDatabaseEngine engine, String URI) {
-		if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
-			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
-		} else {
-			return getInstanceName(URI);
-		}
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the base URI
-	 * 
-	 * @param String URI to be split into tokens.
-	 * @return String Base URI
-	 */
-	public static String getBaseURI(String uri) {
-		int indexOf = uri.lastIndexOf('/');
-		String baseURI = uri.substring(0, indexOf);
-
-		indexOf = baseURI.lastIndexOf('/');
-		baseURI = baseURI.substring(0, indexOf);
-
-		indexOf = baseURI.lastIndexOf('/');
-		baseURI = baseURI.substring(0, indexOf);
-
-		return baseURI;
 	}
 
 	/**
@@ -772,15 +680,6 @@ public final class Utility {
 		df.format(roundedValue);
 
 		return formatter.format(roundedValue);
-	}
-
-	public static boolean isFactorType(String dataType) {
-		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("FACTOR") || dataType.startsWith("ORDER")) {
-			return true;
-		}
-
-		return false;
 	}
 
 	/**
@@ -1118,148 +1017,9 @@ public final class Utility {
 		}
 	}
 
-	public static String retrieveResult(String api, Hashtable<String, String> params) {
-		String output = "";
-		BufferedReader stream = null;
-		InputStreamReader inputStream = null;
-		CloseableHttpClient httpclient = null;
-		try {
-			URIBuilder uri = new URIBuilder(api);
-
-			classLogger.debug("Getting data from the API...  " + api);
-			classLogger.debug("Params is " + params);
-
-			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
-					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
-			HttpPost get = new HttpPost(api);
-			if (params != null) // add the parameters
-			{
-				List<NameValuePair> nvps = new ArrayList<>();
-				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
-					String key = keys.nextElement();
-					String value = params.get(key);
-					uri.addParameter(key, cleanHttpResponse(value));
-					nvps.add(new BasicNameValuePair(key, value));
-				}
-				get.setEntity(new UrlEncodedFormEntity(nvps));
-				// get = new HttpPost(uri.build());
-			}
-
-			CloseableHttpResponse response = httpclient.execute(get);
-			HttpEntity entity = response.getEntity();
-
-			if (entity != null) {
-				inputStream = new InputStreamReader(entity.getContent());
-				stream = new BufferedReader(inputStream);
-				String data = null;
-				while ((data = stream.readLine()) != null) {
-					output = output + data;
-				}
-			}
-		} catch (RuntimeException ex) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", ex.getMessage(), ex);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", ioe.getMessage(), ioe);
-		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", nsae.getMessage(), nsae);
-		} catch (KeyStoreException kse) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", kse.getMessage(), kse);
-		} catch (URISyntaxException use) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", use.getMessage(), use);
-		} catch (KeyManagementException kme) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", kme.getMessage(), kme);
-		} finally {
-			try {
-				if (inputStream != null) {
-					inputStream.close();
-				}
-				if (stream != null) {
-					stream.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close image response stream", e);
-			}
-			try {
-				if (httpclient != null) {
-					httpclient.close();
-				}
-				if (stream != null) {
-					stream.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close HTTP client while retrieving response body", e);
-			}
-		}
-		if (output.length() == 0) {
-			output = null;
-		}
-
-		return output;
-	}
-
-	public static InputStream getStream(String api, Hashtable<String, String> params) {
-		HttpEntity entity;
-		CloseableHttpClient httpclient = null;
-		try {
-			URIBuilder uri = new URIBuilder(api);
-
-			classLogger.info("Getting data from the API...  " + Utility.cleanLogString(api));
-			classLogger.info("Params are " + Utility.cleanLogMap(params, "HASHTABLE"));
-
-			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
-					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
-			HttpPost get = new HttpPost(api);
-			if (params != null) // add the parameters
-			{
-				List<NameValuePair> nvps = new ArrayList<>();
-				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
-					String key = keys.nextElement();
-					String value = params.get(key);
-					uri.addParameter(key, value);
-					nvps.add(new BasicNameValuePair(key, value));
-				}
-				get.setEntity(new UrlEncodedFormEntity(nvps));
-				// get = new HttpPost(uri.build());
-			}
-
-			CloseableHttpResponse response = httpclient.execute(get);
-			entity = response.getEntity();
-			return entity.getContent();
-
-		} catch (RuntimeException ex) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", ex.getMessage(), ex);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", ioe.getMessage(), ioe);
-		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", nsae.getMessage(), nsae);
-		} catch (KeyStoreException kse) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", kse.getMessage(), kse);
-		} catch (URISyntaxException use) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", use.getMessage(), use);
-		} catch (KeyManagementException kme) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", kme.getMessage(), kme);
-		}
-		return null;
-	}
-
 	public static ISelectWrapper processQuery(IDatabaseEngine engine, String query) {
-		classLogger.debug("PROCESSING QUERY: " + query);
-
+		classLogger.debug("PROCESSING QUERY: {}", query);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper(); //run the query
-		 * against the engine provided sjsw.setEngine(engine); sjsw.setQuery(query);
-		 * sjsw.executeQuery(); return sjsw;
-		 */
 		return wrapper;
 	}
 
@@ -1665,7 +1425,7 @@ public final class Utility {
 
 	public static boolean isIntegerType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
+		return (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER") || dataType.startsWith("MEDIUMINT") || dataType.startsWith("INT4")
 				|| dataType.startsWith("SIGNED") || dataType.startsWith("SERIAL")
 
@@ -1679,41 +1439,29 @@ public final class Utility {
 				|| dataType.startsWith("BIGINT") || dataType.startsWith("INT8")
 
 				// PANDAS
-				|| dataType.contains("DTYPE('INT64')")) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('INT64')"));
 	}
 
 	public static boolean isBoolean(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("BOOL") || dataType.startsWith("BIT")) {
-			return true;
-		}
-
-		return false;
+		return (dataType.startsWith("BOOL") || dataType.startsWith("BIT"));
 	}
 
 	public static boolean isDoubleType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
+		return (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
 				|| dataType.startsWith("DECIMAL") || dataType.startsWith("DEC") || dataType.startsWith("NUMERIC")
 				|| dataType.startsWith("DOUBLE") || dataType.startsWith("PRECISION") || dataType.startsWith("FLOAT")
 				|| dataType.startsWith("FLOAT8")
 				// REAL TYPE
 				|| dataType.startsWith("REAL") || dataType.startsWith("FLOAT4")
 				// PANDAS
-				|| dataType.contains("DTYPE('FLOAT64')")) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('FLOAT64')"));
 	}
 
 	public static boolean isStringType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.equals("STRING")
+		return (dataType.equals("STRING")
 				// VARCHAR TYPE
 				|| dataType.startsWith("VARCHAR") || dataType.startsWith("TEXT") || dataType.startsWith("LONGVARCHAR")
 				|| dataType.startsWith("VARCHAR2") || dataType.startsWith("NVARCHAR")
@@ -1729,25 +1477,22 @@ public final class Utility {
 				|| dataType.startsWith("FACTOR")
 
 				// PANDAS
-				|| dataType.contains("DTYPE('O')")
-
-		) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('O')"));
 	}
 
 	public static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-
 		return dataType.equals("DATE");
 	}
 
 	public static boolean isTimeStamp(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-
 		return dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME");
+	}
+
+	public static boolean isFactorType(String dataType) {
+		dataType = dataType.toUpperCase().trim();
+		return dataType.startsWith("FACTOR") || dataType.startsWith("ORDER");
 	}
 
 	/**
@@ -2105,7 +1850,7 @@ public final class Utility {
 		SecureRandom secureRandom = new SecureRandom();
 		for (int i = 0; i < len; i++) {
 			double num = secureRandom.nextInt(alpha.length());
-			retString = retString + alpha.charAt(new Double(num).intValue());
+			retString = retString + alpha.charAt(Double.valueOf(num).intValue());
 		}
 
 		return retString;
@@ -3266,37 +3011,6 @@ public final class Utility {
 		}
 
 		return message;
-	}
-
-	public static Map<String, String> cleanLogMap(Map<String, String> paramTable, String typeOfMap) {
-		Map<String, String> cleanedParams = null;
-
-		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
-		case "HASHTABLE":
-			cleanedParams = new Hashtable<>();
-			break;
-		case "HASHMAP":
-			cleanedParams = new HashMap<>();
-			break;
-		case "LINKEDHASHMAP":
-			cleanedParams = new LinkedHashMap<>();
-			break;
-		case "TREEMAP":
-			cleanedParams = new TreeMap<>();
-			break;
-		default:
-			cleanedParams = new HashMap<>();
-			break;
-		}
-
-		for (Entry<String, String> map : paramTable.entrySet()) {
-			String cleanedKey = Utility.cleanLogString(map.getKey());
-			String cleanedValue = Utility.cleanLogString(map.getValue());
-
-			cleanedParams.put(cleanedKey, cleanedValue);
-		}
-
-		return cleanedParams;
 	}
 
 	// ensure no CRLF injection into responses for malicious attacks
@@ -4862,7 +4576,7 @@ public final class Utility {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
-				System.out.println(line); // Replace with your logger
+				classLogger.info(line);
 			}
 		}
 
@@ -4873,10 +4587,7 @@ public final class Utility {
 			throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
 					+ ", chmod command exited with code " + exitCode);
 		} else {
-			System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace
-																															// with
-																															// your
-																															// logger
+			classLogger.info("Changed permissions on {} with exit code {}", directory.getAbsolutePath(), exitCode);
 		}
 	}
 
