@@ -46,10 +46,9 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.om.ThreadStore;
 import prerna.usertracking.UserQueryTrackingThread;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelectWrapper {
+public class RawJenaSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(RawJenaSelectWrapper.class);
 	private ResultSet rs = null;
@@ -73,9 +72,9 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		Object[] rawRow = new Object[numColumns];
 
 		QuerySolution row = rs.next();
-		for(int colIndex = 0;colIndex < numColumns; colIndex++) {
+		for (int colIndex = 0; colIndex < numColumns; colIndex++) {
 			RDFNode node = row.get(rawHeaders[colIndex]);
-			if(node != null) {
+			if (node != null) {
 				// raw value is the straight return from the binding set
 				rawRow[colIndex] = node.toString();
 				// get the real value of the node
@@ -86,13 +85,12 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		return new HeadersDataRow(headers, cleanRow, rawRow);
 	}
 
-
 	private void setVariables() {
 		// this makes the assumption that the query is constructed
 		// using the logic within the SPARQL Query Builder
 
-		// get the vars from the tuple result 
-		List <String> names = rs.getResultVars();
+		// get the vars from the tuple result
+		List<String> names = rs.getResultVars();
 		numColumns = names.size();
 
 		// what should be in physical names?
@@ -102,12 +100,12 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		rawHeaders = names.toArray(new String[names.size()]);
 
 		headers = new String[numColumns];
-		for(int colIndex = 0; colIndex < numColumns; colIndex++){
-			// for the display, if we encounter a "__", we want to 
+		for (int colIndex = 0; colIndex < numColumns; colIndex++) {
+			// for the display, if we encounter a "__", we want to
 			// split and get the second part of the string
 			// that is the display for the column
 			String columnLabel = names.get(colIndex);
-			if(columnLabel.contains("__")){
+			if (columnLabel.contains("__")) {
 				String[] splitColAndTable = columnLabel.split("__");
 				columnLabel = splitColAndTable[1];
 			}
@@ -121,16 +119,16 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		return headers;
 	}
 
-	private Object getRealValue(RDFNode node){
-		if(node.isLiteral()) {
+	private Object getRealValue(RDFNode node) {
+		if (node.isLiteral()) {
 			return node.asLiteral().getValue();
-		} 
+		}
 		return Utility.getInstanceName(node + "");
 	}
-	
+
 	@Override
 	public SemossDataType[] getTypes() {
-		if(this.types == null) {
+		if (this.types == null) {
 			try {
 				SPARQLParser parser = new SPARQLParser();
 				ParsedQuery parsedQuery = parser.parseQuery(query, null);
@@ -138,19 +136,19 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 				CustomSparqlAggregationParser aggregationVisitor = new CustomSparqlAggregationParser();
 				parsedQuery.getTupleExpr().visit(aggregationVisitor);
 				Set<String> aggregationValues = aggregationVisitor.getValue();
-				
+
 				this.types = new SemossDataType[this.numColumns];
-				for(int i = 0; i < this.numColumns; i++) {
-					if(aggregationValues.contains(this.rawHeaders[i])) {
+				for (int i = 0; i < this.numColumns; i++) {
+					if (aggregationValues.contains(this.rawHeaders[i])) {
 						this.types[i] = SemossDataType.DOUBLE;
 					} else {
 						this.types[i] = SemossDataType.STRING;
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error parsing query to determine column data types; defaulting all columns to STRING", e);
 				this.types = new SemossDataType[this.numColumns];
-				for(int i = 0; i < this.numColumns; i++) {
+				for (int i = 0; i < this.numColumns; i++) {
 					this.types[i] = SemossDataType.STRING;
 				}
 			}
@@ -160,15 +158,15 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 
 	@Override
 	public void close() throws IOException {
-		
+
 	}
-	
+
 	@Override
 	public long getNumRows() {
-		if(this.numRows == 0) {
+		if (this.numRows == 0) {
 			User user = ThreadStore.getUser();
 			UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
-			
+
 			String query = "select count(*) where { " + this.query + "}";
 			ResultSet resultSet = null;
 			try {
@@ -176,29 +174,29 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 				queryT.setStartTimeNow();
 				resultSet = (ResultSet) engine.execQuery(query);
 				queryT.setEndTimeNow();
-				if(resultSet != null && resultSet.hasNext()) {
+				if (resultSet != null && resultSet.hasNext()) {
 					QuerySolution row = resultSet.next();
 					RDFNode node = row.get("count");
 					Object cleanValue = getRealValue(node);
-					if(cleanValue instanceof Number) {
+					if (cleanValue instanceof Number) {
 						this.numRows = ((Number) cleanValue).longValue();
 					}
 				}
 			} catch (Exception e) {
 				queryT.setFailed();
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error executing count query to determine number of rows", e);
 			} finally {
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 		return this.numRows;
 	}
-	
+
 	@Override
 	public long getNumRecords() {
 		return getNumRows() * this.numColumns;
 	}
-	
+
 	@Override
 	public void reset() throws Exception {
 		close();
