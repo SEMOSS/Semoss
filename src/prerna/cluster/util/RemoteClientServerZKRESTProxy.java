@@ -62,7 +62,7 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
     
     private static final Logger classLogger = LogManager.getLogger(RemoteClientServerZKRESTProxy.class);
     
-    private static RemoteClientServerZKRESTProxy instance;
+    private static volatile RemoteClientServerZKRESTProxy instance;
     
     private static final String WARMING_PATH = "/models/warming";
     private static final String ACTIVE_PATH = "/models/active";
