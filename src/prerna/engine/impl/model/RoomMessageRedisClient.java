@@ -30,28 +30,25 @@ package prerna.engine.impl.model;
 import java.util.Collections;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
+import redis.clients.jedis.util.Pool;
 
 /**
  * Narrow Redis client for room-message coordination and cache keys.
  */
 public final class RoomMessageRedisClient {
 
-	private static final String UNLOCK_SCRIPT =
-			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
-	private static final String RENEW_SCRIPT =
-			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
+	private static final String UNLOCK_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+	private static final String RENEW_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
 
-	private final JedisPool pool;
+	private final Pool<Jedis> pool;
 
-	RoomMessageRedisClient(JedisPool pool) {
+	RoomMessageRedisClient(Pool<Jedis> pool) {
 		this.pool = pool;
 	}
 
 	boolean tryAcquireLock(String roomId, String token, long ttlMs) {
-		return withJedis(jedis -> "OK".equals(jedis.set(lockKey(roomId), token,
-				SetParams.setParams().nx().px(ttlMs))));
+		return withJedis(jedis -> "OK".equals(jedis.set(lockKey(roomId), token, SetParams.setParams().nx().px(ttlMs))));
 	}
 
 	void releaseLock(String roomId, String token) {
@@ -81,8 +78,8 @@ public final class RoomMessageRedisClient {
 	}
 
 	public boolean tryClaimActiveRun(String roomId, String runId, String token, long ttlMs) {
-		return withJedis(jedis -> "OK".equals(jedis.set(activeRunKey(roomId), activeRunValue(runId, token),
-				SetParams.setParams().nx().px(ttlMs))));
+		return withJedis(jedis -> "OK".equals(
+				jedis.set(activeRunKey(roomId), activeRunValue(runId, token), SetParams.setParams().nx().px(ttlMs))));
 	}
 
 	public void releaseActiveRun(String roomId, String runId, String token) {
