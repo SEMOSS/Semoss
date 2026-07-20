@@ -29,12 +29,12 @@ package prerna.reactor.browser;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -833,28 +833,23 @@ public class PlaywrightBrowserUtil {
 	}
 	
 	public String getScreenShot()
-	{		
+	{
 		String outputName = "a_" + Utility.getRandomString(8);
-        try {
-        	cur_page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(outputDir + "/" + outputName + ".png")));
-    		String filePath = Paths.get(outputDir + "/" + outputName + ".png").toString(); // Change this to the path of your image file
-            File imageFile = new File(filePath);
-            FileInputStream imageInFile = new FileInputStream(imageFile);
-
-            // Reading the file's byte array
-            byte[] imageData = new byte[(int) imageFile.length()];
-            imageInFile.read(imageData);
-
-            // Converting the byte array into Base64 string
-            String base64Image = Base64.getEncoder().encodeToString(imageData);
-
-            imageInFile.close();
-            imageFile.delete();	
-            return base64Image;
-        } catch (IOException e) {
-            System.out.println("Error while reading the file: " + e.getMessage());
-        }
-        return null;
+		Path imagePath = Paths.get(outputDir, outputName + ".png");
+		try {
+			cur_page.screenshot(new Page.ScreenshotOptions().setPath(imagePath));
+			byte[] imageData = Files.readAllBytes(imagePath);
+			return Base64.getEncoder().encodeToString(imageData);
+		} catch (IOException e) {
+			System.out.println("Error while reading the file: " + e.getMessage());
+			return null;
+		} finally {
+			try {
+				Files.deleteIfExists(imagePath);
+			} catch (IOException e) {
+				System.out.println("Error while deleting the screenshot file: " + e.getMessage());
+			}
+		}
 	}
 	
 	public String getUrl()
