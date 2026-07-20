@@ -102,10 +102,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						this.cpw == null ? "UNK_" + Utility.getRandomString(5) : cpw.getPrefix());
 			}
 
-			// there is 2 portions to the run
-			// one is before connect
-			// one is after. The reason this is done is to avoid an extra handler for
-			// information
+			// there is 2 portions to the run, one is before connect and one is after. The
+			// reason this is done is to avoid an extra handler for information
 
 			// Configure SSL.git
 			if (!connected && !killAll) {
@@ -136,9 +134,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						connected = true;
 						ready = true;
 						killAll = false;
-						synchronized (this) {
-							this.notifyAll();
-						}
+						signalReadinessChanged();
 					} catch (Exception ex) {
 						// fail fast if the process already died - no point waiting out the
 						// deadline, and it lets the caller surface the real startup error
@@ -163,9 +159,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					classLogger.error("CLIENT Connection Failed after {} attempt(s) !!!!!!!", attempt);
 					ready = false;
 					killAll = true;
-					synchronized (this) {
-						this.notifyAll();
-					}
+					signalReadinessChanged();
 					close();
 					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 				}
@@ -211,7 +205,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							String message = new String(msg);
 							classLogger.debug("Raw message from Python: {}", message);
 							// System.err.print(message);
-							PayloadStruct ps = gson.fromJson(message, PayloadStruct.class);
+							PayloadStruct ps = GSON.fromJson(message, PayloadStruct.class);
 							classLogger.debug("Parsed message - epoc: {}, operation: {}, response: {}, interim: {}",
 									ps.epoc, ps.operation, ps.response, ps.interim);
 
@@ -270,7 +264,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								try {
 									if (ps.payload[0] != null && ps.payload[0] instanceof String
 											&& !((String) ps.payload[0]).isBlank()) {
-										Object obj = gson.fromJson((String) ps.payload[0], Object.class);
+										Object obj = GSON.fromJson((String) ps.payload[0], Object.class);
 										ps.payload[0] = obj;
 									}
 								} catch (Exception ignored) {
@@ -660,16 +654,17 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		classLogger.debug("Starting writePayload for epoc: {}", ps.epoc);
 		ps.payloadClasses = null;
 		try {
-			String jsonPS = gson.toJson(ps);
+			String jsonPS = GSON.toJson(ps);
 			byte[] psBytes = pack(jsonPS, ps.epoc);
+			WRITE_LOCK.lock();
 			try {
-				synchronized (WRITE_LOCK) {
-					classLogger.debug("About to write to output stream for epoc: {}", ps.epoc);
-					os.write(psBytes);
-					classLogger.debug("Successfully wrote to output stream for epoc: {}", ps.epoc);
-				}
+				classLogger.debug("About to write to output stream for epoc: {}", ps.epoc);
+				os.write(psBytes);
+				classLogger.debug("Successfully wrote to output stream for epoc: {}", ps.epoc);
 			} catch (IOException ex) {
 				classLogger.error("Failed to write payload to output stream for epoc: {}", ps.epoc, ex);
+			} finally {
+				WRITE_LOCK.unlock();
 			}
 		} catch (Exception ex) {
 			classLogger.error("Unexpected error serializing payload for epoc: {}", ps.epoc, ex);
