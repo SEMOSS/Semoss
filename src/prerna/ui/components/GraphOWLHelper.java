@@ -69,18 +69,20 @@ public class GraphOWLHelper {
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(sesameEngine);
 		sjsc.setQuery(conceptHierarchyForSubject);
-		sjsc.execute();
-		
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
-			SesameJenaConstructStatement st = sjsc.next();
-			PropertySpecData psd = ps.getPredicateData();
-			psd.addConcept(st.getObject()+"", st.getSubject()+"");
+		try (sjsc) {
+			sjsc.execute();
 
+			while(sjsc.hasNext())
+			{
+				// read the subject predicate object
+				// add it to the in memory jena model
+				// get the properties
+				// add it to the in memory jena model
+				SesameJenaConstructStatement st = sjsc.next();
+				PropertySpecData psd = ps.getPredicateData();
+				psd.addConcept(st.getObject()+"", st.getSubject()+"");
+
+			}
 		}
 	}
 
@@ -107,20 +109,22 @@ public class GraphOWLHelper {
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(sesameEngine);
 		sjsc.setQuery(relationHierarchy);
-		sjsc.execute();
+		try (sjsc) {
+			sjsc.execute();
 
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model			
-			SesameJenaConstructStatement st = sjsc.next();
-			PropertySpecData psd = ps.getPredicateData();
-			psd.addPredicate2(st.getObject()+"", st.getSubject());
-			// I have to have some logic which will add the type name 
-			// basically the object is the main type
-			// subject is the subtype
+			while(sjsc.hasNext())
+			{
+				// read the subject predicate object
+				// add it to the in memory jena model
+				// get the properties
+				// add it to the in memory jena model
+				SesameJenaConstructStatement st = sjsc.next();
+				PropertySpecData psd = ps.getPredicateData();
+				psd.addPredicate2(st.getObject()+"", st.getSubject());
+				// I have to have some logic which will add the type name
+				// basically the object is the main type
+				// subject is the subtype
+			}
 		}
 	}	
 
@@ -148,21 +152,23 @@ public class GraphOWLHelper {
 		SesameJenaSelectCheater sjsc = new SesameJenaSelectCheater();
 		sjsc.setEngine(sesameEngine);
 		sjsc.setQuery(relationHierarchy);
-		sjsc.execute();
+		try (sjsc) {
+			sjsc.execute();
 
-		while(sjsc.hasNext())
-		{
-			// read the subject predicate object
-			// add it to the in memory jena model
-			// get the properties
-			// add it to the in memory jena model
+			while(sjsc.hasNext())
+			{
+				// read the subject predicate object
+				// add it to the in memory jena model
+				// get the properties
+				// add it to the in memory jena model
 
-			SesameJenaConstructStatement st = sjsc.next();
-			PropertySpecData psd = ps.getPredicateData();
-			psd.addPredicate2(st.getObject()+"", st.getSubject());
-			// I have to have some logic which will add the type name 
-			// basically the object is the main type
-			// subject is the subtype
+				SesameJenaConstructStatement st = sjsc.next();
+				PropertySpecData psd = ps.getPredicateData();
+				psd.addPredicate2(st.getObject()+"", st.getSubject());
+				// I have to have some logic which will add the type name
+				// basically the object is the main type
+				// subject is the subtype
+			}
 		}
 	}
 

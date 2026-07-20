@@ -75,7 +75,7 @@ public class FilterLambdaReactor extends AbstractLambdaTaskReactor {
 		String baseClass = FilterTaskIterator.class.getName();
 		myClass.addSuper(baseClass);
 		// add all the imports
-		for(int i = 0; i > imports.size(); i++) {
+		for(int i = 0; i < imports.size(); i++) {
 			String importPackage = imports.get(i).trim();
 			if(importPackage.endsWith(";")) {
 				importPackage = importPackage.substring(0, importPackage.length()-1);
