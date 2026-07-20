@@ -146,7 +146,6 @@ final class AgentRunWorker {
 				cleanupInsight(runId, insightHandle);
 				return false;
 			}
-			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.RUNNING, false);
 			final AgentRunQueueCoordinator.ActiveRunLease claimedLease = lease;
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
 				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap)) {
@@ -195,33 +194,18 @@ final class AgentRunWorker {
 				throw new AgentCancelledException();
 			}
 			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
-			Map<String, Object> eventData = new java.util.HashMap<>();
-			eventData.put("runId", runId);
-			eventData.put("roomId", record.getRoomId());
-			eventData.put("status", AgentRunStatus.COMPLETED.name());
-			eventData.put("finalText", result != null ? result.getFinalText() : null);
-			eventData.put("inputMessageId", result != null ? result.getInputMessageId() : null);
-			eventData.put("finalOutputMessageId", result != null ? result.getFinalOutputMessageId() : null);
-			AgentRunEventBus.get().publish(runId, "status", eventData, true);
 		} catch (Exception e) {
 			jobId = runtime.firstNonBlank(ThreadStore.getJobId(), jobId);
 			if (runtime.isCancelled(e)) {
 				store.markCancelled(runId, jobId, runtime.boundedError(e));
-				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
 			} else if (e instanceof prerna.reactor.agent.exceptions.AgentInputRequiredException) {
 				// Harness paused on SMSS_MCP_EXECUTION=ask tools.
-				// The harness already persisted AGENT_RUN_ACTION rows and published
-				// the INPUT_REQUIRED event with pendingActions; only transition the run.
+				// The harness already persisted the AGENT_RUN_ACTION rows; only
+				// transition the durable run status here.
 				store.markInputRequired(runId, jobId);
 				logger.info("AgentRunWorker: runId={} paused for user input", runId);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
-				Map<String, Object> eventData = new java.util.HashMap<>();
-				eventData.put("runId", runId);
-				eventData.put("roomId", record.getRoomId());
-				eventData.put("status", AgentRunStatus.FAILED.name());
-				eventData.put("errorMessage", runtime.boundedError(e));
-				AgentRunEventBus.get().publish(runId, "status", eventData, true);
 			}
 			logger.warn("AgentRunWorker: runId={} failed: {}", runId, e.getMessage(), e);
 		} finally {

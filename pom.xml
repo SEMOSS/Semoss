@@ -656,29 +656,6 @@
 	</dependencyManagement>
 	<dependencies>
 		<dependency>
-			<groupId>com.github</groupId>
-			<artifactId>copilot-sdk-java</artifactId>
-			<version>0.2.2-java.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-databind</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>jackson-datatype-jsr310</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
 			<groupId>org.semoss</groupId>
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
@@ -3211,7 +3188,7 @@
 		<dependency>
 			<groupId>com.microsoft.playwright</groupId>
 			<artifactId>playwright</artifactId>
-			<version>1.48.0</version>
+			<version>1.58.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>

@@ -403,7 +403,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Path user = base.resolve("user");
 		Files.createDirectories(user);
 
-		File f = SmssUtilities.createTemporaryAssetAndWorkspaceSmss("pid", "pname", false, RdbmsTypeEnum.H2_DB);
+		File f = SmssUtilities.createTemporaryAssetSmss("pid", "pname", false, RdbmsTypeEnum.H2_DB);
 
 		assertNotNull(f);
 		assertTrue(f.exists());
