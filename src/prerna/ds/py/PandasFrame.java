@@ -1267,7 +1267,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				bw.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to write command output to CSV file {}", fileName, e);
 			}
 			return fileName;
 		}
