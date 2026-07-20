@@ -671,13 +671,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
 			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
-			it.execute();
-			List<Object> columnList = new ArrayList<>();
-			while (it.hasNext()) {
-				columnList.add(it.next().getValues()[0]);
-			}
+			try {
+				it.execute();
+				List<Object> columnList = new ArrayList<>();
+				while (it.hasNext()) {
+					columnList.add(it.next().getValues()[0]);
+				}
 
-			return columnList.toArray(new Double[columnList.size()]);
+				return columnList.toArray(new Double[columnList.size()]);
+			} finally {
+				try {
+					it.close();
+				} catch (IOException e) {
+					logger.error("Unable to close Gremlin select wrapper", e);
+				}
+			}
 		}
 		return null;
 	}
