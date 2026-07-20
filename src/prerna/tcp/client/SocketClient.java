@@ -49,6 +49,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -105,11 +107,14 @@ public class SocketClient implements Runnable, Closeable {
 	SocketChannel udsChannel = null;
 	SocketClientHandler sch = new SocketClientHandler();
 
+	private final ReentrantLock readinessLock = new ReentrantLock();
+	private final Condition readinessChanged = readinessLock.newCondition();
+
 	volatile InputStream is = null;
 	volatile OutputStream os = null;
-	final Object WRITE_LOCK = new Object();
+	final ReentrantLock WRITE_LOCK = new ReentrantLock();
 
-	Gson gson = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+	final Gson GSON = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.create();
 
 	ClientProcessWrapper cpw = null;
@@ -191,9 +196,7 @@ public class SocketClient implements Runnable, Closeable {
 				connected = true;
 				ready = true;
 				killAll = false;
-				synchronized (this) {
-					this.notifyAll();
-				}
+				signalReadinessChanged();
 			} catch (Exception ex) {
 				attempt++;
 				classLogger.info("Attempting connection number {}", attempt);
@@ -210,10 +213,51 @@ public class SocketClient implements Runnable, Closeable {
 			killAll = true;
 			connected = false;
 			ready = false;
-			synchronized (this) {
-				this.notifyAll();
-			}
+			signalReadinessChanged();
 			throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+		}
+	}
+
+	public void awaitReadyOrKill() {
+		awaitReadyOrKill(60_000L, 1_000L);
+	}
+
+	public void awaitReadyOrKill(long timeoutMillis, long pollIntervalMillis) {
+		long waitDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+		long pollNanos = TimeUnit.MILLISECONDS.toNanos(pollIntervalMillis);
+
+		readinessLock.lock();
+		try {
+			while (!this.ready && !this.killAll) {
+				long remainingNanos = waitDeadline - System.nanoTime();
+				if (remainingNanos <= 0) {
+					throw new IllegalArgumentException(
+							"Timed out waiting for isolated analytics engine socket client to become ready");
+				}
+				try {
+					long waitNanos = Math.min(pollNanos, remainingNanos);
+					readinessChanged.await(waitNanos, TimeUnit.NANOSECONDS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting for socket client readiness", e);
+					throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
+				}
+			}
+		} finally {
+			readinessLock.unlock();
+		}
+
+		if (this.killAll) {
+			throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+		}
+	}
+
+	protected void signalReadinessChanged() {
+		readinessLock.lock();
+		try {
+			readinessChanged.signalAll();
+		} finally {
+			readinessLock.unlock();
 		}
 	}
 
@@ -299,13 +343,14 @@ public class SocketClient implements Runnable, Closeable {
 	 */
 	private void writePayload(PayloadStruct ps) {
 		byte[] psBytes = FstUtil.packBytes(ps);
+		WRITE_LOCK.lock();
 		try {
-			synchronized (WRITE_LOCK) {
-				os.write(psBytes);
-			}
+			os.write(psBytes);
 		} catch (IOException ex) {
 			classLogger.error("Failed to write payload to socket output stream for epoc: {}", ps.epoc, ex);
 			crash();
+		} finally {
+			WRITE_LOCK.unlock();
 		}
 	}
 
