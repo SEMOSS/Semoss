@@ -46,6 +46,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.SystemEngineRegistry;
@@ -91,6 +92,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String MAX_SPAWNS_PER_TURN = "maxSpawnsPerTurn";
 	/** Request key for named subagent slots (CONFIG_JSON.subagents[]). */
 	static final String SUBAGENTS = "subagents";
+	/** Request key for agent lifecycle hooks (CONFIG_JSON.hooks[]). */
+	static final String HOOKS = "hooks";
 
 	/**
 	 * Builds a workspace resource row for an engine, including engine type metadata.
@@ -242,6 +245,56 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Returns agent lifecycle hook entries ({@code {kind, ...kind-specific fields}}) from
+	 * the incoming reactor request payload.
+	 *
+	 * @return list of hook maps; each map represents one requested hook entry
+	 */
+	List<Map<String, Object>> getHookMapList() {
+		return getList(HOOKS, List.of());
+	}
+
+	/**
+	 * Validates each hook entry has a known {@code kind}, plus the one kind-specific
+	 * required field known today ({@code kind="pixel"} requires a non-empty {@code pixel}
+	 * field). Mirrors the validation the standalone {@code SetAgentHooksReactor} used to
+	 * perform before hooks were folded into this same write path as every other agent-config
+	 * field.
+	 *
+	 * <p>Unlike {@link #validateAndNormalizeSubagents}, this does not reconstruct entries
+	 * field-by-field - hook schemas are open-ended per kind (e.g. {@code pixel}'s optional
+	 * {@code events} array, and future kinds may carry their own fields this reactor doesn't
+	 * need to know about), so validated entries are persisted as-is.
+	 *
+	 * @throws IllegalArgumentException with a human-readable message on validation failure
+	 *                                   (callers catch and convert to {@code getError(...)})
+	 */
+	protected static void validateHooks(List<Map<String, Object>> rawHooks) {
+		for (int i = 0; i < rawHooks.size(); i++) {
+			Map<String, Object> entry = rawHooks.get(i);
+			if (entry == null) {
+				throw new IllegalArgumentException("hooks[" + i + "] is null");
+			}
+			Object kindObj = entry.get("kind");
+			if (kindObj == null) {
+				throw new IllegalArgumentException("hooks[" + i + "] missing required 'kind'");
+			}
+			String kind = String.valueOf(kindObj);
+			if (!AgentHookRegistry.isKnown(kind)) {
+				throw new IllegalArgumentException(
+						"hooks[" + i + "] unknown kind '" + kind + "'. Known kinds: " + AgentHookRegistry.knownKinds());
+			}
+			if (AgentHookRegistry.PIXEL.equals(kind)) {
+				Object pixelObj = entry.get("pixel");
+				if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
+					throw new IllegalArgumentException(
+							"hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
+				}
+			}
+		}
+	}
+
+	/**
 	 * Mirrors the workspace's {@code system_prompt}, MCP refs, and skill refs
 	 * into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
 	 * present (hooks, subagents, budgets, etc.).
@@ -264,13 +317,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null);
+				false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null);
+				null, null, false, null, false, null);
 	}
 
 	/**
@@ -290,11 +343,19 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *                           {@link #validateAndNormalizeSubagents}) to fully replace
 	 *                           {@code CONFIG_JSON.subagents[]} with; an empty list clears
 	 *                           it. Ignored when {@code subagentsProvided} is {@code false}.
+	 * @param hooksProvided      whether the caller passed a {@code hooks} key at all; when
+	 *                           {@code false}, {@code CONFIG_JSON.hooks} is left untouched
+	 *                           regardless of {@code hooks}.
+	 * @param hooks              validated entries (see {@link #validateHooks}) to fully
+	 *                           replace {@code CONFIG_JSON.hooks[]} with, persisted as-is;
+	 *                           an empty list clears it. Ignored when {@code hooksProvided}
+	 *                           is {@code false}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
-			List<Map<String, Object>> subagents) throws Exception {
+			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks)
+			throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -356,6 +417,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				subagentsJson.put(entryJson);
 			}
 			cfg.put("subagents", subagentsJson);
+		}
+
+		if (hooksProvided) {
+			JSONArray hooksJson = new JSONArray();
+			for (Map<String, Object> entry : hooks) {
+				hooksJson.put(new JSONObject(entry));
+			}
+			cfg.put("hooks", hooksJson);
 		}
 
 		ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);

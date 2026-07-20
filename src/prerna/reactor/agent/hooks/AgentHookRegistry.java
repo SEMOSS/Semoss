@@ -42,8 +42,9 @@ import prerna.reactor.agent.IAgentRunHook;
 
 /**
  * Static registry for {@link IAgentHook} kinds. One source of truth for both
- * the validate-on-write path ({@code SetAgentHooksReactor}) and the
- * resolve-on-read path ({@code AgentConfigLoader.resolveHook}).
+ * the validate-on-write path ({@code AbstractWorkspaceReactor.validateHooks},
+ * used by {@code EditWorkspace}) and the resolve-on-read path
+ * ({@code AgentConfigLoader.resolveHook}).
  *
  * <p>Built-in hooks registered at class-load time:
  * <ul>

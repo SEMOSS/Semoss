@@ -53,8 +53,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_REFLECTIONS,
-				MAX_SUBAGENT_DEPTH, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				MAX_SUBAGENT_DEPTH, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -142,6 +142,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		Map<String, Integer> spawnPolicyUpdates = new HashMap<>();
 		boolean subagentsProvided = getGenRowStruct(SUBAGENTS) != null;
 		List<Map<String, Object>> subagentUpdates = null;
+		boolean hooksProvided = getGenRowStruct(HOOKS) != null;
+		List<Map<String, Object>> hookUpdates = null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
 					dependencyList, workspaceResources, skillIds);
@@ -152,6 +154,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			stageIntUpdate(spawnPolicyUpdates, MAX_SPAWNS_PER_TURN, "max_spawns_per_turn", 0);
 			if (subagentsProvided) {
 				subagentUpdates = validateAndNormalizeSubagents(user, workspaceId, getSubagentMapList());
+			}
+			if (hooksProvided) {
+				hookUpdates = getHookMapList();
+				validateHooks(hookUpdates);
 			}
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
@@ -182,7 +188,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
-					subagentUpdates);
+					subagentUpdates, hooksProvided, hookUpdates);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
