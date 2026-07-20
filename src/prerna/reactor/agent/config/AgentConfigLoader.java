@@ -498,7 +498,7 @@ public final class AgentConfigLoader {
         return null;
     }
 
-    private static int resolveMaxSeconds(Map<String, Object> paramMap) {
+    private static int resolveRequestedMaxSeconds(Map<String, Object> paramMap) {
         if (paramMap == null) {
             return 0;
         }
@@ -520,6 +520,25 @@ public final class AgentConfigLoader {
     }
 
     /**
+     * Resolve the wall-clock budget that the harness must enforce.
+     *
+     * <p>A nonpositive workspace value means the workspace does not impose a cap.
+     * A caller value of zero means the caller requested no limit, so a positive
+     * workspace cap becomes the effective limit. When both values are positive,
+     * the smaller value wins. Negative caller values are intentionally preserved
+     * so {@link AgentConfig.Budgets} can reject them.
+     */
+    private static int resolveEffectiveMaxSeconds(int requestedSeconds, int workspaceCapSeconds) {
+        if (workspaceCapSeconds <= 0) {
+            return requestedSeconds;
+        }
+        if (requestedSeconds == 0) {
+            return workspaceCapSeconds;
+        }
+        return Math.min(requestedSeconds, workspaceCapSeconds);
+    }
+
+    /**
      * Build the run budgets.
      *
      * <p>{@code CONFIG_JSON.budgets} sets hard caps per field. The runtime
@@ -534,22 +553,22 @@ public final class AgentConfigLoader {
             int callerMaxTurns, int callerMaxReflections) {
         int maxTurns       = callerMaxTurns;
         int maxReflections = callerMaxReflections;
-        int maxSeconds     = resolveMaxSeconds(paramMap);
+        int requestedMaxSeconds = resolveRequestedMaxSeconds(paramMap);
+        int effectiveMaxSeconds = requestedMaxSeconds;
 
         if (cfgJson != null && cfgJson.has("budgets")) {
             JSONObject bj = cfgJson.optJSONObject("budgets");
             if (bj != null) {
-                int capTurns   = bj.optInt("max_turns",       -1);
-                int capRefl    = bj.optInt("max_reflections", -1);
-                int capSeconds = bj.optInt("max_seconds",     -1);
+                int capTurns           = bj.optInt("max_turns",       -1);
+                int capRefl            = bj.optInt("max_reflections", -1);
+                int workspaceCapSeconds = bj.optInt("max_seconds",     -1);
                 // Clamp runtime values to the configured caps — runtime can go lower, never higher.
                 if (capTurns   > 0)  maxTurns       = Math.min(maxTurns, capTurns);
                 if (capRefl    >= 0) maxReflections = Math.min(maxReflections, capRefl);
-                if (capSeconds >= 0) maxSeconds     = (maxSeconds <= 0) ? capSeconds
-                                                        : Math.min(maxSeconds, capSeconds);
+                effectiveMaxSeconds = resolveEffectiveMaxSeconds(requestedMaxSeconds, workspaceCapSeconds);
             }
         }
-        return AgentConfig.Budgets.of(maxTurns, maxReflections, maxSeconds);
+        return AgentConfig.Budgets.of(maxTurns, maxReflections, effectiveMaxSeconds);
     }
 
     /** CONFIG_JSON.spawn_policy keys: max_subagent_depth, max_subagents_per_run, max_spawns_per_turn. */
