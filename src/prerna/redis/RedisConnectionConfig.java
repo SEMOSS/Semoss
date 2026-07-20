@@ -27,7 +27,12 @@
  *******************************************************************************/
 package prerna.redis;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import prerna.cluster.util.clients.AppCloudClientProperties;
+import redis.clients.jedis.HostAndPort;
 
 /**
  * Shared Redis connection settings resolved from DI/RDF properties.
@@ -42,6 +47,14 @@ public final class RedisConnectionConfig {
 	public static final String REDIS_POOL_MAX_TOTAL = "REDIS_POOL_MAX_TOTAL";
 	public static final String REDIS_POOL_MAX_IDLE = "REDIS_POOL_MAX_IDLE";
 	public static final String REDIS_POOL_MIN_IDLE = "REDIS_POOL_MIN_IDLE";
+	// High-availability via Redis Sentinel. When enabled the direct host/port is
+	// ignored and the current master is discovered through the sentinel nodes.
+	public static final String REDIS_SENTINEL_ENABLED = "REDIS_SENTINEL_ENABLED";
+	public static final String REDIS_MASTER_NAME = "REDIS_MASTER_NAME";
+	public static final String REDIS_SENTINEL_NODES = "REDIS_SENTINEL_NODES";
+	public static final String REDIS_SENTINEL_PASSWORD = "REDIS_SENTINEL_PASSWORD";
+
+	private static final int DEFAULT_SENTINEL_PORT = 26379;
 
 	private static final AppCloudClientProperties PROPS = AppCloudClientProperties.build();
 
@@ -52,9 +65,14 @@ public final class RedisConnectionConfig {
 	private final int poolMaxTotal;
 	private final int poolMaxIdle;
 	private final int poolMinIdle;
+	private final boolean sentinelEnabled;
+	private final String masterName;
+	private final Set<HostAndPort> sentinelNodes;
+	private final String sentinelPassword;
 
 	private RedisConnectionConfig(String host, int port, String password, int timeoutMs, int poolMaxTotal,
-			int poolMaxIdle, int poolMinIdle) {
+			int poolMaxIdle, int poolMinIdle, boolean sentinelEnabled, String masterName,
+			Set<HostAndPort> sentinelNodes, String sentinelPassword) {
 		this.host = host;
 		this.port = port;
 		this.password = password;
@@ -62,6 +80,10 @@ public final class RedisConnectionConfig {
 		this.poolMaxTotal = poolMaxTotal;
 		this.poolMaxIdle = poolMaxIdle;
 		this.poolMinIdle = poolMinIdle;
+		this.sentinelEnabled = sentinelEnabled;
+		this.masterName = masterName;
+		this.sentinelNodes = sentinelNodes;
+		this.sentinelPassword = sentinelPassword;
 	}
 
 	public static RedisConnectionConfig fromDIHelper() {
@@ -77,8 +99,51 @@ public final class RedisConnectionConfig {
 		poolMaxIdle = Math.min(poolMaxIdle, poolMaxTotal);
 		int poolMinIdle = Math.max(0, (int) getLongProperty(REDIS_POOL_MIN_IDLE, 1L));
 		poolMinIdle = Math.min(poolMinIdle, poolMaxIdle);
-		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle,
-				poolMinIdle);
+		boolean sentinelEnabled = Boolean.parseBoolean(nullToEmpty(trimToNull(property(REDIS_SENTINEL_ENABLED))));
+		String masterName = trimToNull(property(REDIS_MASTER_NAME));
+		Set<HostAndPort> sentinelNodes = parseSentinelNodes(property(REDIS_SENTINEL_NODES));
+		String sentinelPassword = trimToNull(property(REDIS_SENTINEL_PASSWORD));
+		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle, poolMinIdle,
+				sentinelEnabled, masterName, sentinelNodes, sentinelPassword);
+	}
+
+	/**
+	 * Parses a comma-separated {@code host:port} list of sentinel nodes. Entries
+	 * without an explicit port default to {@value #DEFAULT_SENTINEL_PORT}.
+	 *
+	 * @param raw the raw property value (nullable)
+	 * @return an ordered, unmodifiable set of sentinel endpoints (never null)
+	 */
+	private static Set<HostAndPort> parseSentinelNodes(String raw) {
+		String value = trimToNull(raw);
+		if (value == null) {
+			return Collections.emptySet();
+		}
+		Set<HostAndPort> nodes = new LinkedHashSet<>();
+		for (String entry : value.split(",")) {
+			String node = entry.trim();
+			if (node.isEmpty()) {
+				continue;
+			}
+			int lastColon = node.lastIndexOf(':');
+			String nodeHost;
+			int nodePort;
+			if (lastColon > 0 && lastColon < node.length() - 1) {
+				nodeHost = node.substring(0, lastColon).trim();
+				try {
+					nodePort = Integer.parseInt(node.substring(lastColon + 1).trim());
+				} catch (NumberFormatException e) {
+					nodePort = DEFAULT_SENTINEL_PORT;
+				}
+			} else {
+				nodeHost = node;
+				nodePort = DEFAULT_SENTINEL_PORT;
+			}
+			if (!nodeHost.isEmpty()) {
+				nodes.add(new HostAndPort(nodeHost, nodePort));
+			}
+		}
+		return Collections.unmodifiableSet(nodes);
 	}
 
 	public String getHost() {
@@ -109,9 +174,39 @@ public final class RedisConnectionConfig {
 		return poolMinIdle;
 	}
 
+	/**
+	 * @return true when Sentinel is enabled AND a master name and at least one
+	 *         sentinel node are configured. When true the pool is built against the
+	 *         sentinel set rather than the direct host/port.
+	 */
+	public boolean isSentinelEnabled() {
+		return sentinelEnabled && masterName != null && !sentinelNodes.isEmpty();
+	}
+
+	/**
+	 * @return true when Sentinel was requested via {@link #REDIS_SENTINEL_ENABLED}
+	 *         but the master name or sentinel nodes are missing/invalid.
+	 */
+	public boolean isSentinelMisconfigured() {
+		return sentinelEnabled && (masterName == null || sentinelNodes.isEmpty());
+	}
+
+	public String getMasterName() {
+		return masterName;
+	}
+
+	public Set<HostAndPort> getSentinelNodes() {
+		return sentinelNodes;
+	}
+
+	public String getSentinelPassword() {
+		return sentinelPassword;
+	}
+
 	public String cacheKey() {
 		return host + "|" + port + "|" + timeoutMs + "|" + nullToEmpty(password) + "|" + poolMaxTotal + "|"
-				+ poolMaxIdle + "|" + poolMinIdle;
+				+ poolMaxIdle + "|" + poolMinIdle + "|sentinel:" + sentinelEnabled + "|" + nullToEmpty(masterName) + "|"
+				+ sentinelNodes + "|" + nullToEmpty(sentinelPassword);
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {

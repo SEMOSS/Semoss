@@ -57,7 +57,7 @@ import prerna.util.AssetUtility;
  * <li>Creates the underlying Project via
  * {@link ProjectHelper#createSkillProject}.</li>
  * <li>Writes {@code SKILL.md} (and helper files, if any) into
- * {@code <project>/version/assets/skill/}.</li>
+ * {@code <project>/version/assets/public/}.</li>
  * </ol>
  *
  * <p>
@@ -65,10 +65,12 @@ import prerna.util.AssetUtility;
  * <ul>
  * <li>{@code skillContent} - SKILL.md body, with or without a YAML frontmatter
  * block (required)</li>
- * <li>{@code name} - display name. Required <i>only</i> when the frontmatter
- * omits one. When both are supplied, frontmatter wins.</li>
- * <li>{@code description} - same rule as {@code name}: required only when
- * frontmatter omits it.</li>
+ * <li>{@code name} - display name. Wins over the frontmatter's {@code name}
+ * when supplied; frontmatter is the fallback only when the param is omitted
+ * entirely.</li>
+ * <li>{@code description} - same rule as {@code name}: wins over the
+ * frontmatter's {@code description} when supplied; frontmatter is the
+ * fallback only when the param is omitted entirely.</li>
  * </ul>
  *
  * <p>
@@ -104,13 +106,14 @@ public class CreateSkillReactor extends AbstractReactor {
 			throw new IllegalArgumentException("skillContent is required");
 		}
 
-		// Frontmatter wins when present; params are the fallback. The file on disk
-		// is left alone if it already carries a frontmatter block (even if partial)
-		// and gets a synthesized block prepended only when one is entirely absent.
+		// Explicit name/description params win when supplied; frontmatter is the
+		// fallback only when a param is omitted entirely. The file on disk is left
+		// alone if it already carries a frontmatter block (even if partial) and
+		// gets a synthesized block prepended only when one is entirely absent.
 		Skill.Frontmatter fm = Skill.parseFrontmatter(skillContent);
 		boolean hasFrontmatter = Skill.hasFrontmatterBlock(skillContent);
-		String name = firstNonEmpty(fm.name, nameInput);
-		String description = firstNonEmpty(fm.description, descInput);
+		String name = firstNonEmpty(nameInput, fm.name);
+		String description = firstNonEmpty(descInput, fm.description);
 		if (name == null) {
 			throw new IllegalArgumentException(
 					"name is required: provide a 'name' input, or include 'name' in the SKILL.md frontmatter");
@@ -166,7 +169,7 @@ public class CreateSkillReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/skill/ folder";
+		return "Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/public/ folder";
 	}
 
 	@Override
@@ -176,12 +179,12 @@ public class CreateSkillReactor extends AbstractReactor {
 					+ "A frontmatter block will be synthesized from 'name' and 'description' if absent";
 		}
 		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Display name. Required only when the SKILL.md frontmatter omits 'name'. "
-					+ "Frontmatter wins when both are supplied";
+			return "Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
+					+ "frontmatter is the fallback only when this param is omitted entirely";
 		}
 		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
-			return "Description. Required only when the SKILL.md frontmatter omits 'description'. "
-					+ "Frontmatter wins when both are supplied";
+			return "Description. Wins over the SKILL.md frontmatter's 'description' when supplied; "
+					+ "frontmatter is the fallback only when this param is omitted entirely";
 		}
 		return super.getDescriptionForKey(key);
 	}

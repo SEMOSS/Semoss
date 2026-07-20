@@ -25,23 +25,22 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.mcp;
+package prerna.remoteviewer.service;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-public class HelloWorldReactor extends AbstractReactor {
-
-	// we should possibly remove the function and param values map
-	public HelloWorldReactor() {
-		this.keysToGet = new String[] {};
-		this.keyRequired = new int[] {};
-	}
-
-	@Override
-	public NounMetadata execute() {
-		return new NounMetadata("Hello World", PixelDataType.CONST_STRING);
-	}
-
+/**
+ * Callback used by the session loop to push JSON messages to the connected
+ * WebSocket client without creating a hard dependency on javax.websocket.
+ *
+ * The Monolith WebSocket endpoint implements this by wrapping
+ * {@code Session.getBasicRemote().sendText(json)}.
+ */
+@FunctionalInterface
+public interface RemoteBrowserFrameSender {
+	/**
+	 * Send a JSON string to the connected WebSocket client. Implementations must be
+	 * thread-safe.
+	 *
+	 * @param json the JSON message to send
+	 */
+	void send(String json);
 }
