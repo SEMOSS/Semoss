@@ -42,8 +42,8 @@ import prerna.cluster.util.ClusterSyncMethod;
 import prerna.redis.RedisConnectionConfig;
 import prerna.redis.RedisConnectionFactory;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.util.Pool;
 
 public class RedisClusterSynchronizer implements IClusterSynchronizer {
 
@@ -58,7 +58,7 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 	// delay before re-subscribing after a subscription failure
 	private static final long RESUBSCRIBE_BACKOFF_MS = 5000L;
 
-	private JedisPool pool;
+	private Pool<Jedis> pool;
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 	/**

@@ -128,8 +128,8 @@ class GitHubCopilotClient:
         self._available_tools = self._build_available_tools()
 
         bearer = f"{self.cfg.access_key}:{self.cfg.secret_key}:room-{self.cfg.room_id}"
-        # Mirror GitHubCopilotManager.java: pass --config-dir to the CLI on the
-        # subprocess argv from process start, NOT just as a create_session kwarg.
+        # Pass --config-dir to the CLI on the subprocess argv from process
+        # start, NOT just as a create_session kwarg.
         # The kwarg-only path lets the CLI bootstrap against its default
         # config dir (~/.copilot or similar) before the session is created,
         # which fails under chroot when that path isn't writable. With
@@ -523,8 +523,7 @@ class GitHubCopilotClient:
         # advertises, matching the in-Java path that lets the CLI pull tool
         # lists at runtime.
         #
-        # Bearer must be the same 3-segment shape as the Java path
-        # (GitHubCopilotManager.buildBearerToken):
+        # Bearer must use the 3-segment shape expected by SEMOSS:
         #     accessKey:secretKey:room-{roomId}
         # Monolith CodeAssistantFilter splits on ":" and only extracts the
         # roomId when split.length == 3 with the third segment starting with
@@ -549,8 +548,7 @@ class GitHubCopilotClient:
     def _build_provider(self) -> Optional[dict[str, Any]]:
         if not self.cfg.base_url:
             return None
-        # Mirror GitHubCopilotManager.buildProviderConfig - the bearer_token
-        # must include the `:room-{roomId}` 3rd segment so
+        # The bearer_token must include the `:room-{roomId}` 3rd segment so
         # CodeAssistantFilter can pin the model call to the same SEMOSS
         # Room across follow-on turns. The api_key field is unused by the
         # filter (which only inspects Authorization: Bearer ...), but we

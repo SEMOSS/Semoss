@@ -27,41 +27,50 @@
  *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RemoveUserRoomReactor extends AbstractReactor {
-	@SuppressWarnings("unused")
-	private static final Logger classLogger = LogManager.getLogger(RemoveUserRoomReactor.class);
 
-    public RemoveUserRoomReactor() {
-        this.keysToGet = new String[] {"roomId"};
-        this.keyRequired = new int[] {1};
-    }
-    
+	public RemoveUserRoomReactor() {
+		this.keysToGet = new String[] { "roomId" };
+		this.keyRequired = new int[] { 1 };
+	}
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-        if (user == null) {
-            throw new IllegalArgumentException("You are not properly logged in");
-        }
-        String roomId = this.keyValue.get(this.keysToGet[0]);
-        boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
+		String roomId = this.keyValue.get(this.keysToGet[0]);
+		boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals("roomId")) {
 			return "The room or conversation ID for a given chat app";
-		} 
+		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }
