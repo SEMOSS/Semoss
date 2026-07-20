@@ -30,24 +30,23 @@ package prerna.reactor.agent.run;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.reactor.agent.AgentHarnessResult;
-
+// Async submit handle returned by AgentRuntimeManager.run/runWithId. The run executes
+// on a background worker; terminal results are read from the durable AGENT_RUN record
+// (via waitForRun/getRun), not from this handle.
 public final class RunAgentResult {
 
 	private final String runId;
 	private final AgentRunStatus status;
-	private final AgentHarnessResult result;
 	private final String roomId;
 
-	public RunAgentResult(String runId, AgentRunStatus status, AgentHarnessResult result) {
-		this(runId, null, status, result);
+	public RunAgentResult(String runId, AgentRunStatus status) {
+		this(runId, null, status);
 	}
 
-	public RunAgentResult(String runId, String roomId, AgentRunStatus status, AgentHarnessResult result) {
+	public RunAgentResult(String runId, String roomId, AgentRunStatus status) {
 		this.runId = runId;
 		this.roomId = roomId;
 		this.status = status;
-		this.result = result;
 	}
 
 	public String getRunId() {
@@ -62,18 +61,11 @@ public final class RunAgentResult {
 		return status;
 	}
 
-	public AgentHarnessResult getResult() {
-		return result;
-	}
-
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new HashMap<>();
 		map.put("runId", runId);
 		map.put("roomId", roomId);
 		map.put("status", status == null ? null : status.name());
-		map.put("finalText", result == null ? null : result.getFinalText());
-		map.put("inputMessageId", result == null ? null : result.getInputMessageId());
-		map.put("finalOutputMessageId", result == null ? null : result.getFinalOutputMessageId());
 		return map;
 	}
 }

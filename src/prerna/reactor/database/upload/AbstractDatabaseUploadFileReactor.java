@@ -52,7 +52,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -153,7 +152,8 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				}
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error occurred while adding data to existing database '{}': {}", databaseIdOrName,
+						e.getMessage(), e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -196,7 +196,8 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error occurred while generating new database '{}': {}", this.databaseName,
+						e.getMessage(), e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
