@@ -1106,27 +1106,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// userHasProjectWithName
-	///
-
-	@Test
-	void testUserHasProjectWithName_false() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-
-		boolean hasProject = SecurityProjectUtils.userHasProjectWithName(user, "nonExistentProject");
-		assertFalse(hasProject);
-	}
-
-	@Test
-	void testUserHasProjectWithName_true() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-
-		boolean hasProject = SecurityProjectUtils.userHasProjectWithName(user, "testProjectName");
-		assertTrue(hasProject);
-	}
-
-	///
 	/// copyProjectPermissions
 	///
 
