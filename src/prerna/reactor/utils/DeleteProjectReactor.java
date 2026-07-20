@@ -28,7 +28,9 @@
 package prerna.reactor.utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,6 +45,7 @@ import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -86,8 +89,8 @@ public class DeleteProjectReactor extends AbstractReactor {
 			// built-in platform skills ship with the distribution and reload at boot;
 			// deleting one would remove its folder + smss with no way to restore it
 			if (SystemDefaultEngines.getSystemSkills().contains(projectId)) {
-				throw new IllegalArgumentException("Project " + projectId
-						+ " is a built-in platform skill and cannot be deleted");
+				throw new IllegalArgumentException(
+						"Project " + projectId + " is a built-in platform skill and cannot be deleted");
 			}
 
 			IProject project = Utility.getProject(projectId);
@@ -164,5 +167,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectIds.add(this.curRow.get(i).toString());
 		}
 		return projectIds;
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

@@ -62,53 +62,61 @@ public class PlaywrightSessionUtility {
 	 * @return true if page changed, false otherwise
 	 */
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
-		Map<String, Object> response = new HashMap<String, Object>();
-
-		Page page = session.tabPages.get(tabId);
-		long startTime = System.currentTimeMillis();
-		boolean pageChanged = false;
-		response.put("isNewTab", false);
-		response.put("tabTitle", page.title());
+		session.getOperationLock().lock();
 		try {
-			String urlBefore = page.url();
-			AtomicBoolean networkTriggered = new AtomicBoolean(false);
+			Map<String, Object> response = new HashMap<String, Object>();
 
-			JSHandle mutationPromise = createMutationObserver(page);
+			Page page = session.tabPages.get(tabId);
+			long startTime = System.currentTimeMillis();
+			boolean pageChanged = false;
+			response.put("isNewTab", false);
+			response.put("tabTitle", page.title());
+			try {
+				String urlBefore = page.url();
+				AtomicBoolean networkTriggered = new AtomicBoolean(false);
 
-			page.onRequest(req -> {
-				if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
-					networkTriggered.set(true);
+				JSHandle mutationPromise = createMutationObserver(page);
+
+				page.onRequest(req -> {
+					if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+						networkTriggered.set(true);
+					}
+				});
+
+				if (step.type() == PlaywrightStepType.WAIT) {
+					response.put("shouldStop", true);
+				} else {
+					response.put("shouldStop", false);
+					executeStepAction(page, step, urlBefore, session, response);
 				}
-			});
 
-			if (step.type() == PlaywrightStepType.WAIT) {
-				response.put("shouldStop", true);
-			} else {
-				response.put("shouldStop", false);
-				executeStepAction(page, step, urlBefore, session, response);
+				if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
+					page.waitForTimeout(step.waitAfterMs());
+				}
+
+				boolean sameUrl = urlBefore.equals(page.url());
+				if (sameUrl && !networkTriggered.get()) {
+					waitForPageOrElement(page, step);
+					pageChanged = detectPageChange(mutationPromise);
+				} else {
+					pageChanged = true;
+				}
+
+				long elapsed = System.currentTimeMillis() - startTime;
+				classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
+				response.put("status", "success");
+				response.put("isPageChanged", pageChanged);
+				return response;
+
+			} catch (Exception e) {
+				classLogger.error("Failed to apply Playwright step {}", step.type(), e);
+				response.put("status", "failed");
+				response.put("error", e.getMessage());
+				response.put("isPageChanged", true);
+				return response;
 			}
-
-			if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
-				page.waitForTimeout(step.waitAfterMs());
-			}
-
-			boolean sameUrl = urlBefore.equals(page.url());
-			if (sameUrl && !networkTriggered.get()) {
-				waitForPageOrElement(page, step);
-				pageChanged = detectPageChange(mutationPromise);
-			} else {
-				pageChanged = true;
-			}
-
-			long elapsed = System.currentTimeMillis() - startTime;
-			classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
-			response.put("isPageChanged", pageChanged);
-			return response;
-
-		} catch (Exception e) {
-			classLogger.error("Failed to apply Playwright step {}", step.type(), e);
-			response.put("isPageChanged", true);
-			return response;
+		} finally {
+			session.getOperationLock().unlock();
 		}
 	}
 
@@ -163,7 +171,7 @@ public class PlaywrightSessionUtility {
 	 * @return The resolved Locator, or null if resolution fails.
 	 */
 	private static Locator resolveLocator(Page page, Selector sel) {
-		classLogger.info("Resolving this locator: " + sel);
+		classLogger.info("Resolving this locator: {}", sel);
 		if (sel == null || sel.value() == null) {
 			return null;
 		}
@@ -271,6 +279,30 @@ public class PlaywrightSessionUtility {
 		Locator loc = resolveLocator(page, step.selector());
 		boolean typed = focusAndType(loc, step.text());
 
+		// Try healed selector / coordinates when the recorded selector is stale.
+		if (!typed && step.coords() != null) {
+			Locator healed = null;
+			try {
+				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
+			} catch (Exception ignore) {
+			}
+			typed = focusAndType(healed, step.text());
+		}
+
+		if (!typed && step.coords() != null) {
+			try {
+				page.mouse().click(step.coords().x(), step.coords().y());
+				typed = typeFocusedTextControl(page, step.text());
+			} catch (Exception ignore) {
+			}
+		}
+
+		// Last resort for old recordings where TYPE has no coords: use the currently
+		// focused input/textarea/contentEditable that a prior CLICK likely focused.
+		if (!typed) {
+			typed = typeFocusedTextControl(page, step.text());
+		}
+
 		if (typed && Boolean.TRUE.equals(step.pressEnter())) {
 			try {
 				page.keyboard().press("Enter");
@@ -278,6 +310,55 @@ public class PlaywrightSessionUtility {
 			}
 		}
 		return typed;
+	}
+
+	private static boolean typeFocusedTextControl(Page page, String text) {
+		try {
+			return Boolean.TRUE.equals(page.evaluate(
+					"""
+							(value) => {
+							  function active(win) {
+							    let el = win.document.activeElement;
+							    if (!el) return null;
+							    if (el.shadowRoot && el.shadowRoot.activeElement) {
+							      el = el.shadowRoot.activeElement;
+							    }
+							    if (el.tagName === "IFRAME") {
+							      try {
+							        return active(el.contentWindow);
+							      } catch (e) {
+							        return null;
+							      }
+							    }
+							    return el;
+							  }
+							  const el = active(window);
+							  if (!el) return false;
+							  const tag = (el.tagName || "").toLowerCase();
+							  const type = (el.type || "").toLowerCase();
+							  const isInput = tag === "textarea" ||
+							    (tag === "input" && ["text", "password", "email", "search", "tel", "url", "number"].includes(type));
+							  const nextValue = value == null ? "" : String(value);
+							  if (isInput) {
+							    el.focus();
+							    el.value = nextValue;
+							    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+							    el.dispatchEvent(new Event("change", { bubbles: true }));
+							    return true;
+							  }
+							  if (el.isContentEditable) {
+							    el.focus();
+							    el.textContent = nextValue;
+							    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+							    return true;
+							  }
+							  return false;
+							}
+							""",
+					text));
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -489,7 +570,7 @@ public class PlaywrightSessionUtility {
 	 * @param response The response map to be populated with new tab details.
 	 */
 	private static void handleNewTab(PlaywrightSession session, Page newPage, Map<String, Object> response) {
-		classLogger.info("New tab detected: " + newPage.url());
+		classLogger.info("New tab detected: {}", newPage.url());
 
 		try {
 			newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
@@ -654,7 +735,7 @@ public class PlaywrightSessionUtility {
 		} finally {
 			response.put("tabTitle", page.title());
 		}
-		classLogger.info("Tab Title: " + response.get("tabTitle"));
+		classLogger.info("Tab Title: {}", response.get("tabTitle"));
 		classLogger.info("[ACTION] NAVIGATE took {} ms {}", System.currentTimeMillis() - start, step.url());
 	}
 
@@ -699,10 +780,9 @@ public class PlaywrightSessionUtility {
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match - don't drop to coords; surface as SELECTOR_NOT_FOUND
-				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+				classLogger.warn("TYPE selector not found for step {}; falling back to coords/focused element: {}",
+						step.id(), step.selector().value());
 			}
-			// otherwise proceed with the clickable path above
 		}
 		boolean ok = typeWithFallback(page, step);
 		if (!ok) {
