@@ -90,9 +90,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	static Map<String, Object> pyJ = new HashMap<>();
 	static Map<Object, String> spy = new HashMap<>();
 
-	// gets all the commands in one fell swoop
-	List<String> commands = new ArrayList<>();
-
 	private String wrapperFrameName = null;
 	private String originalWrapperFrameName = null;
 	private PyTranslator pyTranslator = null;
@@ -101,7 +98,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public String sqliteConnectionName = null;
 
 	// list of caches
-	public List keyCache = new ArrayList();
+	public List<Object> keyCache = new ArrayList<>();
 
 	static {
 		pyS.put("object", SemossDataType.STRING);
@@ -312,7 +309,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String importPandasS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 		String importNumpyS = new StringBuilder(NUMPY_IMPORT_STRING).toString();
 		String fileLocation = it.getFileLocation();
-		Map<String, String> temp = qs.getColumnTypes();
 		// apply limit for import
 		long limit = qs.getLimit();
 		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, NUMPY_IMPORT_VAR, fileLocation, tableName,
@@ -540,7 +536,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 				colType = "STRING";
 			}
 
-			SemossDataType pysColType = pyS.get(colType);
 			SemossDataType proposedType = dataTypeMap.get(frameName + "__" + colName);
 			if (proposedType == null) {
 				proposedType = dataTypeMap.get(colName);
@@ -552,7 +547,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 				pyproposedType = spy.get(colType);
 			}
 
-			// if(proposedType != null && pysColType != proposedType) {
 			if (proposedType != null && pyproposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if (proposedType == SemossDataType.DATE) {
@@ -594,14 +588,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public Object[] getHeaderAndTypes(String targetFrame) {
 		String colScript = PandasSyntaxHelper.getColumns(targetFrame);
 		String typeScript = PandasSyntaxHelper.getTypes(targetFrame);
-
-		/*
-		 * Hashtable response = (Hashtable)pyt.runScript(colScript, typeScript);
-		 * 
-		 * String [] headers = (String
-		 * [])((ArrayList)response.get(colScript)).toArray(); SemossDataType [] stypes =
-		 * new SemossDataType[headers.length];
-		 */
 
 		List<String> headerList = (List) pyTranslator.getList(colScript);
 		String[] headers = new String[headerList.size()];
@@ -655,10 +641,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return processInterpreter(interp, qs);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public IRawSelectWrapper query(String query) {
-		// TODO: this only works if you have an interp!
-		// TODO: this only works if you have an interp!
 		// TODO: this only works if you have an interp!
 
 		// need to redo this when you have a pandas script you want to run
@@ -681,7 +666,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			response.add(val);
 
 		} else if (output instanceof HashMap) {
-			HashMap map = (HashMap) output;
+			Map<String, Object> map = (Map<String, Object>) output;
 			response = (List<Object>) map.get("data");
 
 			// get the columns
@@ -691,7 +676,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 
 		else if (output instanceof List) {
-			response = (List) output;
+			response = (List<Object>) output;
 			actHeaders = null;
 			sync = true;
 		}
@@ -733,6 +718,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return newFrame;
 	}
 
+	@SuppressWarnings("unchecked")
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 
 		String query = null;
@@ -813,7 +799,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				else if (output instanceof Map) // this is our main map
 				{
 
-					Map map = (Map) output;
+					Map<String, Object> map = (Map<String, Object>) output;
 					response = (List<Object>) map.get("data");
 
 					// get the columns
@@ -834,7 +820,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				}
 
 				else if (output instanceof List) {
-					response = (List) output;
+					response = (List<Object>) output;
 					actHeaders = null;
 					sync = true;
 				}
@@ -871,6 +857,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return retWrapper;
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<String> mapColumns(PandasInterpreter interp, List<Object> columns) {
 		List<String> newHeaders = new ArrayList<String>();
 		Map<String, String> funcMap = interp.functionMap();
@@ -879,7 +866,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// every element here is List
 			Object item = columns.get(colIndex);
 			if (item instanceof List) {
-				List elem = (List) columns.get(colIndex);
+				List<Object> elem = (List<Object>) columns.get(colIndex);
 				String key = elem.get(1) + "" + elem.get(0);
 				if (funcMap.containsKey(key)) {
 					newHeaders.add(funcMap.get(key));
@@ -940,7 +927,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		super.close();
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
-		logger.info("Removing variable " + this.frameName);
+		logger.info("Removing variable {}", this.frameName);
 		pyTranslator.runScript("del " + this.frameName);
 		pyTranslator.runScript("del " + this.wrapperFrameName);
 		if (!this.originalName.equals(this.frameName)) {
@@ -963,7 +950,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		cf.setFrameCacheLocation(frameFilePath);
 
 		// trying to write the pickle instead
-		frameFilePath = frameFilePath.replaceAll("\\\\", "/");
+		frameFilePath = frameFilePath.replace("\\\\", "/");
 
 		/*
 		 * 
@@ -1027,32 +1014,25 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public void addRow(Object[] cleanCells, String[] headers) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void removeColumn(String columnHeader) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
-		// TODO Auto-generated method stub
-
 	}
 
 	/**
 	 * Recreate the metadata for this existing frame
 	 */
 	public void recreateMeta() {
-		logger.info("Getting the columns for :" + frameName);
+		logger.info("Getting the columns for :{}", frameName);
 
 		String[] colNames = pyTranslator.getStringArray(PandasSyntaxHelper.getColumns(frameName));
-		;
 		pyTranslator.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
-		logger.info("Getting the column types for :" + frameName);
+		logger.info("Getting the column types for :{}", frameName);
 
 		String[] colTypes = pyTranslator.getStringArray(PandasSyntaxHelper.getTypes(frameName));
 		// clean headers
@@ -1083,6 +1063,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyTranslator.runScript(wrapperFrameName + ".cache['data'] = " + frameName);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object querySQL(String sql) {
 		// columns
@@ -1096,7 +1077,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 
 		if (sql.trim().toUpperCase().startsWith("SELECT")) {
-			Map retMap = new HashMap();
+			Map<String, Object> retMap = new HashMap<>();
 			String tempFrameName = Utility.getRandomString(5);
 			String loadsqlDF = "";
 			String makeNewFrame = "";
@@ -1126,14 +1107,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 			pyTranslator.runEmptyPy(deleteAll);
 
 			if (retObject instanceof Map) {
-				System.err.println("Valid Output");
-				retMap = (Map) retObject;
+				classLogger.debug("Valid Output");
+				retMap = (Map<String, Object>) retObject;
 			}
 			// convert types to java object
-			Map typeMap = (Map) retMap.get("types");
-			Iterator keys = typeMap.keySet().iterator();
+			Map<String, Object> typeMap = (Map<String, Object>) retMap.get("types");
+			Iterator<String> keys = typeMap.keySet().iterator();
 			while (keys.hasNext()) {
-				String column = (String) keys.next();
+				String column = keys.next();
 				String value = (String) typeMap.get(column);
 
 				if (pyJ.containsKey(value)) {
@@ -1159,7 +1140,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			retMap.put("types", typesArray);
 			return retMap;
 		} else {
-			Map retMap = new HashMap();
+			Map<String, Object> retMap = new HashMap<>();
 
 			String[] commands = sql.split("\\R");
 			// execute each command and drop the result
@@ -1188,9 +1169,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Object queryCSV(String sql) {
-		// columns
-		// types
-		// data
 		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
 
 		if (sql.startsWith("NLP:") || sql.startsWith("nlp:")) {
@@ -1199,8 +1177,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 
 		if (sql.toUpperCase().startsWith("SELECT")) {
-			Map retMap = new HashMap();
-
 			try {
 				String frameName = Utility.getRandomString(5);
 				File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
@@ -1223,9 +1199,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 				// nothing to delete
 				pyTranslator.runEmptyPy(loadsqlDF, newFrame);
-
-				Object retObject = "no data";
-
 				if (fileName.exists()) {
 					// retObject = new String(Files.readAllBytes(fileName.toPath())); // get the
 					// dictionary back
@@ -1234,7 +1207,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				}
 				// return retObject;
 			} catch (Exception ex) {
-
+				classLogger.error("Failed to execute pandas SQL query and write insight cache CSV file", ex);
 			}
 		} else {
 			String frameName = Utility.getRandomString(5);
@@ -1247,26 +1220,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 				String[] commands = sql.split("\\R");
 				// execute each command and drop the result
-				String[] columns = new String[] { "Command", "Output" };
-				Object[] types = new Object[] { java.lang.String.class, java.lang.String.class };
-
-				List<List<Object>> data = new ArrayList<List<Object>>();
-
 				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-					List<Object> row = new ArrayList<Object>();
 					String thisCommand = commands[commandIndex];
 					Object output = this.pyTranslator.runDirectPy(thisCommand);
 
 					bw.write(thisCommand);
 					bw.print(", ");
 					bw.print(output);
-
 					bw.println();
 				}
 				bw.flush();
 				bw.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				classLogger.error("Failed to write command output to CSV file {}", fileName, e);
 			}
 			return fileName;
@@ -1290,7 +1255,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		}
 
 		if (sql.toUpperCase().startsWith("SELECT")) {
-			Map retMap = new HashMap();
 			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".json");
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
@@ -1316,7 +1280,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 		} else {
 
-			Map retMap = new HashMap();
+			Map<String, Object> retMap = new HashMap<>();
 
 			String[] commands = sql.split("\\R");
 			// execute each command and drop the result
@@ -1354,7 +1318,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		for (int varIndex = 0; varIndex < formulas.length; varIndex++) {
 			String thisVar = formulas[varIndex];
 			thisVar = thisVar.replace(oldName, newName);
-			System.err.println("Running command " + thisVar);
+			classLogger.debug("Running command {}", thisVar);
 			returnCommands[varIndex + 1] = thisVar;
 			pyTranslator.runScript(thisVar);
 		}
@@ -1382,7 +1346,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		query = query.substring(query.indexOf(":") + 1);
 
 		StringBuffer finalDbString = new StringBuffer();
-		logger.info("Processing frame " + this.getName());
+		logger.info("Processing frame {}", this.getName());
 		finalDbString.append("#").append(this.getName()).append("(");
 
 		String[] columns = this.getColumnHeaders();
@@ -1399,13 +1363,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 		finalDbString.append(")\\n");
 		finalDbString.append("#\\n").append("### A query to list ").append(query).append("\\n").append("SELECT");
 
-		logger.info("executing query " + finalDbString);
+		logger.info("executing query {}", finalDbString);
 
 		Object output = this.pyTranslator.runScript("smssutil.run_gpt_3(\"" + finalDbString + "\", " + 150 + ")");
 		// get the string
 		// make a frame
 		// load the frame into insight
-		logger.info("SQL query is " + output);
+		logger.info("SQL query is {}", output);
 
 		// Create a new SQL Data Frame
 		String sqlDFQuery = output.toString().trim();
@@ -1415,65 +1379,4 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return sqlDFQuery;
 	}
 
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Unused methods...
-	 */
-
-//	private void alignColumns(String tableName, Map<String, SemossDataType> dataTypeMap) {
-//		// look at what are the column types
-//		// see if they are the same as data type map
-//		
-//		String colScript = PandasSyntaxHelper.getColumns(tableName);
-//		String typeScript = PandasSyntaxHelper.getTypes(tableName);
-//		
-//		Hashtable columnTypes = (Hashtable)pyt.runScript(colScript, typeScript);
-//		// get the column names
-//		ArrayList <String> cols = (ArrayList)columnTypes.get(colScript);
-//		ArrayList <String> types = (ArrayList)columnTypes.get(typeScript);
-//
-//		List <String> colChanger = new ArrayList<String>();
-//
-//		for(int colIndex = 0;colIndex < cols.size();colIndex++)
-//		{
-//			String colName = cols.get(colIndex);
-//			String colType = types.get(colIndex);
-//			
-//			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
-//			
-//			SemossDataType sColType = dataTypeMap.get(colName);
-//		
-//			colChanger = checkColumn(tableName, colName, pysColType, sColType, colChanger);
-//		}
-//		
-//		pyt.runScript((String [])colChanger.toArray());
-//	}
-
-//	private List<String> checkColumn(String tableName, String colName, SemossDataType curType, SemossDataType newType, List <String> colChanger) {
-//		if(curType == newType) {
-//			return colChanger;
-//		} else {
-//			// get the pytype
-//			String pyType = (String)spy.get(curType);
-//			
-//			// get the as type
-//			String asType = (String)spy.get(pyType);
-//			
-//			// column change
-//			String script = PandasSyntaxHelper.getColumnChange(tableName, colName, asType);
-//			colChanger.add(script);
-//			
-//			return colChanger;
-//		}
-//	}
-
-//	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
-//		this.dataTypeMap = dataTypeMap;
-//		interp.setDataTypeMap(dataTypeMap);
-//	}
 }

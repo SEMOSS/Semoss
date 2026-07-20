@@ -125,7 +125,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	private void setDefaultName() {
 		String uuid = UUID.randomUUID().toString().toUpperCase();
-		uuid = uuid.replaceAll("-", "_");
+		uuid = uuid.replace("-", "_");
 		setName("NATIVE_" + uuid);
 	}
 
