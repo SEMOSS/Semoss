@@ -82,15 +82,14 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
     }
     
     public static RemoteClientServerZKRESTProxy getInstance() {
-        if (instance != null) {
-            return instance;
-        }
-        
         if (instance == null) {
             synchronized (RemoteClientServerZKRESTProxy.class) {
                 if (instance == null) {
-                    instance = new RemoteClientServerZKRESTProxy();
-                    instance.init();
+                    // Fully initialize before publishing to the volatile field so other
+                    // threads never observe a half-constructed singleton (mid-init()).
+                    RemoteClientServerZKRESTProxy proxy = new RemoteClientServerZKRESTProxy();
+                    proxy.init();
+                    instance = proxy;
                 }
             }
         }
