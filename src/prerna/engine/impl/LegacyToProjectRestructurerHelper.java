@@ -47,20 +47,38 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
+// @formatter:off
 /**
  * 
- * The intention of this class is to build the new project structure from legacy
- * old db folders. Assumption is that this code just runs once. It will read the
- * existing app data from the existing baseFolder/db/ folder and populate the
- * baseFolder/project/ folder. Below is how the new folder structure will
- * be(might need changes).
+ * The intention of this class is to build the new project structure
+ * from legacy old db folders. Assumption is that this code just runs 
+ * once. It will read the existing app data from the existing baseFolder/db/ 
+ * folder and populate the baseFolder/project/ folder. Below is how the new folder 
+ * structure will be(might need changes).
  * 
- * baseFolder | |- db | |- Name1__UUID | |- Name2__UUID | |- project | |-
- * Project1__UUID | | |- version | | |- insights.db | | | |- Project2_UUID | |
- * |- version | | |- insights.db | |- user | |- Asset__UUID | | |- version | |-
- * Asset__UUID | | |- version
+ * baseFolder
+ * |
+ * |- db 
+ * |	|-	Name1__UUID
+ * |	|-	Name2__UUID
+ * |
+ * |- project
+ * |	|-	Project1__UUID
+ * |	|		|-	version
+ * |	|		|-	insights.db
+ * |	|
+ * |	|-	Project2_UUID
+ * |	|		|- version
+ * |	|		|- insights.db
+ * |
+ * |- user
+ * |	|-	Asset__UUID
+ * |	|		|-	version
+ * |	|-	Asset__UUID
+ * |	|		|- version
  * 
  */
+// @formatter:on
 
 public class LegacyToProjectRestructurerHelper {
 
@@ -146,7 +164,8 @@ public class LegacyToProjectRestructurerHelper {
 					System.out.println("\tDONE REFACTORING " + appName + " at " + folderName);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to refactor legacy database folder {} into the new project structure",
+						folderName, e);
 			}
 		}
 	}
@@ -232,15 +251,15 @@ public class LegacyToProjectRestructurerHelper {
 			Properties prop = Utility.loadProperties(dbSmssFile);
 			existingRdbmsType = RdbmsTypeEnum.valueOf(prop.get(Constants.RDBMS_INSIGHTS_TYPE) + "");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load the insights rdbms type from the existing smss file {}", dbSmssFile, e);
 		}
-		File tempProjectSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset,
+		File tempProjectSmss = SmssUtilities.createTemporaryAssetSmss(projectId, projectName, isAsset,
 				existingRdbmsType);
 		File smssFile = new File(tempProjectSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy the temporary asset smss file to {}", smssFile.getAbsolutePath(), e);
 		}
 		tempProjectSmss.delete();
 	}
@@ -377,7 +396,7 @@ public class LegacyToProjectRestructurerHelper {
 			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
 			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load properties from the existing smss file {}", dbSmssFile, e);
 		}
 
 		File tempProjectSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectEnumType,
@@ -386,7 +405,7 @@ public class LegacyToProjectRestructurerHelper {
 		try {
 			FileUtils.copyFile(tempProjectSmss, smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy the temporary project smss file to {}", smssFile.getAbsolutePath(), e);
 		}
 		tempProjectSmss.delete();
 	}
