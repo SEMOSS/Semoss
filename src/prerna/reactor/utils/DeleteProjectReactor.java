@@ -87,9 +87,10 @@ public class DeleteProjectReactor extends AbstractReactor {
 			}
 
 			if (SystemDefaultEngines.getSystemSkills().contains(projectId)
-					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)) {
+					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)
+					|| SystemDefaultEngines.getSystemAgents().contains(projectId)) {
 				throw new IllegalArgumentException(
-						"Project " + projectId + " is a built-in platform MCP/skill and cannot be deleted");
+						"Project " + projectId + " is a built-in platform MCP/skill/agent and cannot be deleted");
 			}
 
 			IProject project = Utility.getProject(projectId);

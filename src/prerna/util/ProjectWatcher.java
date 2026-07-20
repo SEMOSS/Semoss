@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 
 public class ProjectWatcher extends AbstractFileWatcher {
@@ -87,6 +88,24 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, "MCP", "SYSTEM");
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
+
+		// loading platform agents (immutable, global system workspaces)
+		List<String> defaultAgents = SystemDefaultEngines.getSystemAgents();
+		for (String engineId : defaultAgents) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
+					SystemAgentSeeder.seed(engineId);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
@@ -198,6 +217,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			// every boot and must never be pruned during file-system reconciliation
 			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
 			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemAgents());
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
