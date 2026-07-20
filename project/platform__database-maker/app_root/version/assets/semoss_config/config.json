@@ -1,0 +1,11 @@
+{
+  "project_id": "database-maker",
+  "app_id": "database-maker",
+  "project_name": "database-maker",
+  "module": "project",
+  "created_on": "2026-04-01",
+  "base_url": "https://workshop.cfg.deloitte.com/",
+  "api_module_url": "/cfg-ai-dev/Monolith",
+  "web_module_url": "/cfg-ai-dev/SemossWeb",
+  "is_mcp": true
+}

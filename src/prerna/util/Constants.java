@@ -1064,4 +1064,5 @@ public class Constants {
 
 	// system (platform) mcp names
 	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
 }

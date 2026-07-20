@@ -86,7 +86,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
-					ensureMCPTag(engineId);
+					ensureProjectTags(engineId, "MCP", "SYSTEM");
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
@@ -128,13 +128,14 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	}
 
 	/**
-	 * Makes sure a platform mcp project carries the PROJECTMETA tag marking it as an
-	 * mcp. Mirrors {@link #ensureSkillTag(String)}: addProject early-returns when the
-	 * project already exists in the security db, so this runs on every boot; it is
-	 * idempotent and preserves any other tag values already on the project. Never
-	 * blocks project load. The literal "MCP" tag matches MCPUtility.addMCPTag.
+	 * Ensures a platform project carries each of the given PROJECTMETA tags (e.g.
+	 * "MCP", "SYSTEM"). Mirrors {@link #ensureSkillTag(String)}: addProject
+	 * early-returns when the project already exists in the security db, so this runs
+	 * on every boot; it is idempotent (only writes when a tag is missing) and
+	 * preserves any other tag values already on the project. Never blocks project
+	 * load. The literal "MCP" tag matches MCPUtility.addMCPTag.
 	 */
-	private static void ensureMCPTag(String projectId) {
+	private static void ensureProjectTags(String projectId, String... requiredTags) {
 		try {
 			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
 					false);
@@ -145,17 +146,21 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			} else if (existing != null) {
 				tags.add(existing);
 			}
-			for (Object t : tags) {
-				if ("MCP".equals(t)) {
-					return;
+			boolean changed = false;
+			for (String req : requiredTags) {
+				if (!tags.contains(req)) {
+					tags.add(req);
+					changed = true;
 				}
 			}
-			tags.add("MCP");
-			Map<String, Object> update = new HashMap<>();
-			update.put("tag", tags);
-			SecurityProjectUtils.updateProjectMetadata(projectId, update);
+			if (changed) {
+				Map<String, Object> update = new HashMap<>();
+				update.put("tag", tags);
+				SecurityProjectUtils.updateProjectMetadata(projectId, update);
+			}
 		} catch (Exception e) {
-			classLogger.warn("Failed to ensure mcp tag on platform mcp project '{}': {}", projectId, e.getMessage());
+			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),
+					projectId, e.getMessage());
 		}
 	}
 
