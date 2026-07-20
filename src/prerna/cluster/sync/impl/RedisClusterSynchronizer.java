@@ -28,8 +28,6 @@
 package prerna.cluster.sync.impl;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,8 +93,9 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 		RedisConnectionConfig config = RedisConnectionConfig.fromDIHelper();
 		client = RedisConnectionFactory.getClient(config);
 
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		executor.submit(() -> {
+		// dedicated long-lived daemon thread for the blocking subscribe loop; it runs
+		// for the lifetime of the JVM
+		Thread subscriber = new Thread(() -> {
 			while (true) {
 				try {
 					// subscribe blocks; UnifiedJedis borrows a dedicated connection for it
@@ -168,7 +167,9 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 					}
 				}
 			}
-		});
+		}, "redis-cluster-sync-subscriber");
+		subscriber.setDaemon(true);
+		subscriber.start();
 	}
 
 	@Override

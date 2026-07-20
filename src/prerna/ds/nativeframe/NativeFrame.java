@@ -168,13 +168,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				logger.error("Failed to query the max value for column {}", columnHeader, e);
+				logger.error("Failed to query the max value for column {}", columnHeader);
+				classLogger.error("Failed to query the max value for column {}", columnHeader, e);
 			} finally {
 				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						logger.error("Error closing the result set after querying the max value", e);
+						classLogger.error("Error closing the result set after querying the max value", e);
 					}
 				}
 			}
@@ -205,13 +206,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 				it = query(mQs);
 				return ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
-				logger.error("Failed to query the min value for column {}", columnHeader, e);
+				logger.error("Failed to query the min value for column {}", columnHeader);
+				classLogger.error("Failed to query the min value for column {}", columnHeader, e);
 			} finally {
 				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						logger.error("Error closing the result set after querying the min value", e);
+						classLogger.error("Error closing the result set after querying the min value", e);
 					}
 				}
 			}
@@ -243,13 +245,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			logger.error("Failed to query the numeric column {}", columnHeader, e);
+			logger.error("Failed to query the numeric column {}", columnHeader);
+			classLogger.error("Failed to query the numeric column {}", columnHeader, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error("Error closing the result set after querying the numeric column", e);
+					classLogger.error("Error closing the result set after querying the numeric column", e);
 				}
 			}
 		}
@@ -280,13 +283,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			logger.error("Failed to query the column {}", columnHeader, e);
+			logger.error("Failed to query the column {}", columnHeader);
+			classLogger.error("Failed to query the column {}", columnHeader, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error("Error closing the result set after querying the column", e);
+					classLogger.error("Error closing the result set after querying the column", e);
 				}
 			}
 		}
@@ -338,13 +342,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 			it = WrapperManager.getInstance().getRawWrapper(engine, this.queryQs);
 			empty = !(it.hasNext());
 		} catch (Exception e) {
-			logger.error("Failed to check if the native frame is empty", e);
+			logger.error("Failed to check if the native frame is empty");
+			classLogger.error("Failed to check if the native frame is empty", e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error("Error closing the result set after checking if the native frame is empty", e);
+					classLogger.error("Error closing the result set after checking if the native frame is empty", e);
 				}
 			}
 		}
@@ -507,21 +512,22 @@ public class NativeFrame extends AbstractTableDataFrame {
 			jWriter.flush();
 			jWriter.close();
 		} catch (IOException e) {
-			logger.error("Failed to save the native frame to {}", frameFileName, e);
+			logger.error("Failed to save the native frame to {}", frameFileName);
+			classLogger.error("Failed to save the native frame to {}", frameFileName, e);
 			throw new IOException("Error occurred attempting to save native frame");
 		} finally {
 			if (writer != null) {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					logger.error("Error closing the writer after saving the native frame", e);
+					classLogger.error("Error closing the writer after saving the native frame", e);
 				}
 			}
 			if (jWriter != null) {
 				try {
 					jWriter.close();
 				} catch (IOException e) {
-					logger.error("Error closing the json writer after saving the native frame", e);
+					classLogger.error("Error closing the json writer after saving the native frame", e);
 				}
 			}
 		}
@@ -551,20 +557,21 @@ public class NativeFrame extends AbstractTableDataFrame {
 			this.originalQs = adapter.read(jReader);
 			this.queryQs = this.originalQs;
 		} catch (IOException e) {
-			logger.error("Failed to open the native frame from cache", e);
+			logger.error("Failed to open the native frame from cache");
+			classLogger.error("Failed to open the native frame from cache", e);
 		} finally {
 			if (reader != null) {
 				try {
 					reader.close();
 				} catch (IOException e) {
-					logger.error("Error closing the reader after opening the native frame", e);
+					classLogger.error("Error closing the reader after opening the native frame", e);
 				}
 			}
 			if (jReader != null) {
 				try {
 					jReader.close();
 				} catch (IOException e) {
-					logger.error("Error closing the json reader after opening the native frame", e);
+					classLogger.error("Error closing the json reader after opening the native frame", e);
 				}
 			}
 		}
@@ -600,14 +607,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 				data.add(Arrays.asList(it.next().getValues()));
 			}
 		} catch (Exception e) {
-			logger.error("Failed to execute sql query {}", query, e);
+			logger.error("Failed to execute sql query {}", query);
+			classLogger.error("Failed to execute sql query {}", query, e);
 			throw new IllegalArgumentException("Error executing sql: " + query);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error("Error closing the result set after executing the sql query", e);
+					classLogger.error("Error closing the result set after executing the sql query", e);
 				}
 			}
 		}
