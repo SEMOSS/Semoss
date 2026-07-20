@@ -50,6 +50,8 @@ public class RemoteBrowserInputEventValidator {
 					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
 					"recording-control", "selected-text-context", "switch-tab", "switch-replay-tab",
 					"prepare-replay", "close-tab"));
+	private static final int MAX_WAIT_AFTER_MS = 60_000;
+
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -73,6 +75,13 @@ public class RemoteBrowserInputEventValidator {
 		String type = event.getType();
 		if (type == null || !ALLOWED_EVENT_TYPES.contains(type)) {
 			throw new IllegalArgumentException("Unsupported event type: " + type);
+		}
+		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
+			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
+		if (event.getWaitAfterMs() != null
+				&& (event.getWaitAfterMs() < 0 || event.getWaitAfterMs() > MAX_WAIT_AFTER_MS)) {
+			throw new IllegalArgumentException("waitAfterMs must be between 0 and " + MAX_WAIT_AFTER_MS);
 		}
 
 		switch (type) {

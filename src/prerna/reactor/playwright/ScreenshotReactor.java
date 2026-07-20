@@ -72,11 +72,9 @@ public class ScreenshotReactor extends AbstractReactor {
 		Map<String, Object> paramValues = getMap(this.keysToGet[2]);
 
 		PlaywrightSession playwrightSesion = this.insight.getUser().getPlaywrightSession(sessionId);
-
 		if (paramValues != null && paramValues.containsKey("startX")) {
 			// log the crop params
-			classLogger.info("Crop params provided.");
-			classLogger.info("Crop params: " + paramValues.toString());
+			classLogger.info("Crop params: {}", paramValues.toString());
 			// cropped screenshot
 			int startX = ((Number) paramValues.get("startX")).intValue();
 			int startY = ((Number) paramValues.get("startY")).intValue();
@@ -100,19 +98,24 @@ public class ScreenshotReactor extends AbstractReactor {
 	 *         viewport dimensions, and device pixel ratio.
 	 */
 	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
-		Page page = playwrightSession.getPage(tabId);
-		waitForStablePage(page);
-		playwrightSession.refreshTrackedUrl(tabId);
-		byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
-		String b64 = java.util.Base64.getEncoder().encodeToString(buf);
+        playwrightSession.getOperationLock().lock();
 
-		int vpW = page.viewportSize().width;
-		int vpH = page.viewportSize().height;
+		try {
+			Page page = playwrightSession.tabPages.get(tabId);
+			waitForStablePage(page);
+			playwrightSession.refreshTrackedUrl(tabId);
+			byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
+			String b64 = java.util.Base64.getEncoder().encodeToString(buf);
+			int vpW = page.viewportSize().width;
+			int vpH = page.viewportSize().height;
 
-		Object raw = page.evaluate("() => Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1");
-		double dpr = (raw instanceof Number) ? ((Number) raw).doubleValue() : 1.0;
+			Object raw = page.evaluate("() => Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1");
+			double dpr = (raw instanceof Number) ? ((Number) raw).doubleValue() : 1.0;
 
-		return new ScreenshotResponse(b64, vpW, vpH, dpr);
+			return new ScreenshotResponse(b64, vpW, vpH, dpr);
+		} finally {
+			playwrightSession.getOperationLock().unlock();
+		}
 	}
 
 	/**
@@ -130,20 +133,26 @@ public class ScreenshotReactor extends AbstractReactor {
 	 */
 	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
 			int startY, int endX, int endY) {
-		Page page = playwrightSession.getPage(tabId);
-		waitForStablePage(page);
-		playwrightSession.refreshTrackedUrl(tabId);
+        playwrightSession.getOperationLock().lock();
 
-		int x = Math.min(startX, endX);
-		int y = Math.min(startY, endY);
-		int width = Math.abs(endX - startX);
-		int height = Math.abs(endY - startY);
 
-		byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false).setClip(x, y, width, height));
+		try {
+			Page page = playwrightSession.tabPages.get(tabId);
+			waitForStablePage(page);
+			playwrightSession.refreshTrackedUrl(tabId);
+			int x = Math.min(startX, endX);
+			int y = Math.min(startY, endY);
+			int width = Math.abs(endX - startX);
+			int height = Math.abs(endY - startY);
 
-		String b64 = java.util.Base64.getEncoder().encodeToString(buf);
+			byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false).setClip(x, y, width, height));
 
-		return new ScreenshotResponse(b64, width, height, 1.0);
+			String b64 = java.util.Base64.getEncoder().encodeToString(buf);
+
+			return new ScreenshotResponse(b64, width, height, 1.0);
+		} finally {
+			playwrightSession.getOperationLock().unlock();
+		}
 	}
 
 	/**

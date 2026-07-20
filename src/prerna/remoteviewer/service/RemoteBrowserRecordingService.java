@@ -25,50 +25,13 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
- *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
- *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
 package prerna.remoteviewer.service;
 
 import java.util.Objects;
 
 import com.microsoft.playwright.Page;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.playwright.Coords;
 import prerna.reactor.playwright.PlaywrightStep;
@@ -90,6 +53,9 @@ import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
  */
 public class RemoteBrowserRecordingService {
 
+	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserRecordingService.class);
+
+	private static final String DEFAULT_TAB_ID = "tab-1";
 	private static final int DEFAULT_CLICK_WAIT_MS = 300;
 	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
@@ -141,6 +107,7 @@ public class RemoteBrowserRecordingService {
 			appendStep(session, event, buildStep(session, event, PlaywrightStepType.NAVIGATE, event.getUrl(), null, null,
 					null, null), true);
 			session.startNextRemoteBrowserRecordedStepOnNewPage(tabId(session, event));
+
 			addLegacyStep(session, event);
 			break;
 		case "wheel":
@@ -218,6 +185,7 @@ public class RemoteBrowserRecordingService {
 					storeValue(event, previous), selectorOrPrevious(event, previous), previous.isTriggerNewTab(),
 					shouldRun(event), required(event), sendToPlayground(event), tag(event, previous));
 			session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
+
 			session.setPendingTypeStep(signature, updated);
 			return;
 		}
@@ -244,6 +212,7 @@ public class RemoteBrowserRecordingService {
 				PlaywrightStep updated = withText(previous, Boolean.TRUE.equals(event.getIsPassword()) ? "" : currentValue,
 						event);
 				session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
+
 				session.setPendingTypeStep(selectorSignatureForStep(updated), updated);
 			}
 			return;
@@ -270,9 +239,9 @@ public class RemoteBrowserRecordingService {
 		return new PlaywrightStep(previous.id(), previous.type(), previous.url(), coordsOrPrevious(event, previous),
 				previous.multiCoords(), previous.prompt(), text, previous.pressEnter(), previous.deltaY(),
 				previous.waitUntil(), previous.waitAfterMs(), previous.viewport(), previous.timestamp(),
-				label(event, previous), description(event, previous), previous.isPassword(), storeValue(event, previous),
-				selectorOrPrevious(event, previous), previous.isTriggerNewTab(), shouldRun(event), required(event),
-				sendToPlayground(event), tag(event, previous));
+				label(event, previous), description(event, previous), previous.isPassword(),
+				storeValue(event, previous), selectorOrPrevious(event, previous), previous.isTriggerNewTab(),
+				shouldRun(event), required(event), sendToPlayground(event), tag(event, previous));
 	}
 
 	private static boolean isModifierKey(String key) {
@@ -287,8 +256,8 @@ public class RemoteBrowserRecordingService {
 		return session.appendRemoteBrowserRecordedStep(tabId, step, resolvedStartNewPage);
 	}
 
-	private static PlaywrightStep buildStep(RemoteBrowserSession session, RemoteBrowserInputEvent event, PlaywrightStepType type,
-			String url, Coords coords, String text, Integer waitAfterMs, Integer deltaY) {
+	private static PlaywrightStep buildStep(RemoteBrowserSession session, RemoteBrowserInputEvent event,
+			PlaywrightStepType type, String url, Coords coords, String text, Integer waitAfterMs, Integer deltaY) {
 		boolean isPassword = Boolean.TRUE.equals(event.getIsPassword());
 		boolean storeValue = Boolean.TRUE.equals(event.getStoreValue()) && !isPassword;
 		TriggerNewTab trigger = event.getTriggeredTabId() == null ? null
@@ -410,7 +379,8 @@ public class RemoteBrowserRecordingService {
 
 	private static void addLegacyStep(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		RemoteBrowserRecordedStep step = new RemoteBrowserRecordedStep().type(event.getType()).url(safeUrl(session))
-				.viewport(session.getViewportWidth(), session.getViewportHeight()).timestamp(System.currentTimeMillis());
+				.viewport(session.getViewportWidth(), session.getViewportHeight())
+				.timestamp(System.currentTimeMillis());
 		if (event.getX() != null && event.getY() != null) {
 			step.coordinates(event.getX(), event.getY());
 		}
@@ -429,6 +399,8 @@ public class RemoteBrowserRecordingService {
 			Page page = session.getActivePage();
 			return page == null ? "" : page.url();
 		} catch (Exception e) {
+			classLogger.warn("Unable to read current URL for session {}; recording step with empty URL",
+					session.getSessionId(), e);
 			return "";
 		}
 	}

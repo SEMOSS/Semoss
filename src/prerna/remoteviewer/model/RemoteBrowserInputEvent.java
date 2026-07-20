@@ -43,6 +43,7 @@ public class RemoteBrowserInputEvent {
 	// ---- common fields ----
 	private String type;
 	/** Correlates non-input requests with their WebSocket response. */
+
 	private String requestId;
 
 	// ---- mouse / wheel ----

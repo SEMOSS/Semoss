@@ -30,6 +30,7 @@ package prerna.remoteviewer.service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,46 +63,64 @@ public class RemoteBrowserInputService {
 			"ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize",
 			"ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in",
 			"zoom-out");
+
 	private RemoteBrowserInputService() {
 	}
 
-	public static void dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		if ("switch-tab".equals(event.getType())) {
-			if (!session.setActiveTabId(event.getTargetTabId())) {
-				throw new IllegalStateException("Browser tab " + event.getTargetTabId() + " is missing or closed");
+	public static Map<String, Object> dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		Map<String, Object> result = new HashMap<>();
+		try {
+			if ("switch-tab".equals(event.getType())) {
+				if (!session.setActiveTabId(event.getTargetTabId())) {
+					throw new IllegalStateException("Browser tab " + event.getTargetTabId() + " is missing or closed");
+				}
+				result.put("success", true);
+				result.put("url", safeUrl(session.getActivePage()));
+				return result;
 			}
-			return;
-		}
-		if ("prepare-replay".equals(event.getType())) {
-			Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab())
-					? session.getActivePage()
-					: session.getContext().newPage();
-			String liveTabId = session.getPlaywrightSession().findTabId(replayRoot);
-			if (liveTabId == null) {
-				liveTabId = session.getPlaywrightSession().registerPage(replayRoot, null);
+			if ("prepare-replay".equals(event.getType())) {
+				Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab())
+						? session.getActivePage()
+						: session.getContext().newPage();
+				String liveTabId = session.getPlaywrightSession().findTabId(replayRoot);
+				if (liveTabId == null) {
+					liveTabId = session.getPlaywrightSession().registerPage(replayRoot, null);
+				}
+				session.getPlaywrightSession().beginReplayTabBinding(replayRoot);
+				session.setActiveTabId(liveTabId);
+				result.put("success", true);
+				result.put("url", safeUrl(replayRoot));
+				return result;
 			}
-			session.getPlaywrightSession().beginReplayTabBinding(replayRoot);
-			session.setActiveTabId(liveTabId);
-			return;
-		}
-		if ("switch-replay-tab".equals(event.getType())) {
-			Page replayPage = session.getPlaywrightSession().resolveReplayPage(event.getTargetTabId(),
-					session.getActivePage());
-			String liveTabId = session.getPlaywrightSession().findTabId(replayPage);
-			if (liveTabId == null || !session.setActiveTabId(liveTabId)) {
-				throw new IllegalStateException(
-						"Recorded tab " + event.getTargetTabId() + " has not been opened by playback yet");
+			if ("switch-replay-tab".equals(event.getType())) {
+				Page replayPage = session.getPlaywrightSession().resolveReplayPage(event.getTargetTabId(),
+						session.getActivePage());
+				String liveTabId = session.getPlaywrightSession().findTabId(replayPage);
+				if (liveTabId == null || !session.setActiveTabId(liveTabId)) {
+					throw new IllegalStateException(
+							"Recorded tab " + event.getTargetTabId() + " has not been opened by playback yet");
+				}
+				result.put("success", true);
+				result.put("url", safeUrl(replayPage));
+				return result;
 			}
-			return;
-		}
-		if ("close-tab".equals(event.getType())) {
-			closeLiveTab(session, event.getTargetTabId());
-			return;
+			if ("close-tab".equals(event.getType())) {
+				closeLiveTab(session, event.getTargetTabId());
+				result.put("success", true);
+				result.put("url", safeUrl(session.getActivePage()));
+				return result;
+			}
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("error", e.getMessage() == null ? "Browser tab action failed" : e.getMessage());
+			return result;
 		}
 
 		Page page = session.getActivePage();
 		if (page == null || page.isClosed()) {
-			return;
+			result.put("success", false);
+			result.put("error", "Remote browser page is unavailable");
+			return result;
 		}
 
 		String urlBefore = safeUrl(page);
@@ -146,17 +165,32 @@ public class RemoteBrowserInputService {
 				break;
 			default:
 				classLogger.warn("Unhandled input event type: {}", type);
-				return;
+				result.put("success", false);
+				result.put("error", "Unhandled input event type: " + type);
+				return result;
 			}
 		} catch (Exception e) {
 			classLogger.warn("Error dispatching event '{}' on session {}: {}", type, session.getSessionId(),
 					e.getMessage());
+			result.put("success", false);
+			result.put("error", e.getMessage() == null ? "Browser action failed" : e.getMessage());
+			return result;
 		}
 
 		// Post-action: wait as specified, then wait for page to settle
-		postActionWait(page, event, urlBefore);
-		classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
-				session.getSessionId(), type, System.currentTimeMillis() - start, safeUrl(page));
+		try {
+			postActionWait(page, event, urlBefore);
+			result.put("success", true);
+			result.put("url", safeUrl(page));
+			classLogger.info("Remote viewer dispatch end session={} eventType={} elapsedMs={} urlAfter={}",
+					session.getSessionId(), type, System.currentTimeMillis() - start, result.get("url"));
+		} catch (Exception e) {
+			classLogger.warn("Error settling event '{}' on session {}: {}", type, session.getSessionId(),
+					e.getMessage());
+			result.put("success", false);
+			result.put("error", e.getMessage() == null ? "Browser action did not settle" : e.getMessage());
+		}
+		return result;
 	}
 
 	/** Returns the safe computed CSS cursor beneath the remote pointer. */
@@ -202,7 +236,7 @@ public class RemoteBrowserInputService {
 
 	private static void clickWithNavigationWait(Page page, RemoteBrowserInputEvent event) {
 		if (isLiveEvent(event)) {
-			clickWithFallback(page, event, true);
+			ensureClickSucceeded(clickWithFallback(page, event, true));
 			return;
 		}
 
@@ -210,18 +244,26 @@ public class RemoteBrowserInputService {
 		classLogger.info("Remote viewer click navigationProbe likelyNavigation={} event={}", likelyNavigation,
 				describeEvent(event));
 		if (!likelyNavigation) {
-			clickWithFallback(page, event, false);
+			ensureClickSucceeded(clickWithFallback(page, event, false));
 			return;
 		}
 
+		AtomicBoolean clicked = new AtomicBoolean(false);
 		try {
 			page.waitForNavigation(
 					new Page.WaitForNavigationOptions().setTimeout(8_000).setWaitUntil(WaitUntilState.NETWORKIDLE),
-					() -> clickWithFallback(page, event, false));
+					() -> clicked.set(clickWithFallback(page, event, false)));
 			classLogger.info("Remote viewer click navigation observed urlAfter={}", safeUrl(page));
 		} catch (PlaywrightException e) {
 			classLogger.info("Remote viewer click navigation wait timed out; continuing urlAfter={} reason={}",
 					safeUrl(page), e.getMessage());
+		}
+		ensureClickSucceeded(clicked.get());
+	}
+
+	private static void ensureClickSucceeded(boolean clicked) {
+		if (!clicked) {
+			throw new PlaywrightException("Click had no actionable target");
 		}
 	}
 
@@ -262,7 +304,7 @@ public class RemoteBrowserInputService {
 		return payload;
 	}
 
-	private static void clickWithFallback(Page page, RemoteBrowserInputEvent event, boolean noWaitAfter) {
+	private static boolean clickWithFallback(Page page, RemoteBrowserInputEvent event, boolean noWaitAfter) {
 		Selector sel = event.getSelector();
 
 		// 1) Try CSS/ID selector (most reliable, survives minor layout changes)
@@ -274,7 +316,7 @@ public class RemoteBrowserInputService {
 					loc.click(new Locator.ClickOptions().setTimeout(2000).setNoWaitAfter(noWaitAfter));
 					classLogger.info("Remote viewer click success method=selector selector={} urlAfter={}",
 							describeSelector(sel), safeUrl(page));
-					return;
+					return true;
 				}
 			} catch (Exception e) {
 				classLogger.info("Remote viewer click failed method=selector selector={} reason={} fallback=coords",
@@ -290,13 +332,14 @@ public class RemoteBrowserInputService {
 				page.mouse().click(event.getX(), event.getY());
 				classLogger.info("Remote viewer click success method=coords x={} y={} urlAfter={}", round(event.getX()),
 						round(event.getY()), safeUrl(page));
-				return;
+				return true;
 			} catch (Exception e) {
 				classLogger.warn("Coord click failed at ({}, {}): {}", event.getX(), event.getY(), e.getMessage());
 			}
 		}
 
 		classLogger.warn("Click could not be performed — no selector and no coords");
+		return false;
 	}
 
 	private static Locator resolveLocator(Page page, Selector sel) {

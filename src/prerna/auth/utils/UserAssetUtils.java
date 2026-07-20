@@ -107,7 +107,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 
 		// Add database into DIHelper so that the web watcher doesn't try to load as
 		// well
-		File tempSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset, null);
+		File tempSmss = SmssUtilities.createTemporaryAssetSmss(projectId, projectName, isAsset, null);
 		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 		// Add the project to security db

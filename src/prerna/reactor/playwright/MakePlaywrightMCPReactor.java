@@ -111,7 +111,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 				JSONObject tool = createToolFromRecording(file);
 				toolsArray.put(tool);
 			} catch (Exception e) {
-				classLogger.error("Failed to process file: " + file.getName(), e);
+				classLogger.error("Failed to process Playwright recording file '{}'", file.getName(), e);
 				// Continue processing other files
 			}
 		}
@@ -142,7 +142,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 			String prettyJson = mcpJson.toString(4);
 			writer.write(prettyJson);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to write pixel_mcp.json file to '{}'", outputFileLoc, e);
 			throw new IllegalArgumentException(
 					"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 		}
@@ -228,8 +228,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		required.put("recordedFile");
 
 		// Add intent parameter if present in metadata
-		if (envelope.meta() != null && envelope.meta().intent() != null
-				&& !envelope.meta().intent().trim().isEmpty()) {
+		if (envelope.meta() != null && envelope.meta().intent() != null && !envelope.meta().intent().trim().isEmpty()) {
 			JSONObject intentProp = new JSONObject();
 			intentProp.put("description", "The intent or purpose of this recording");
 			intentProp.put("title", "intent");
