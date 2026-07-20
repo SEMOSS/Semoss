@@ -66,9 +66,7 @@ import prerna.util.Utility;
  * it.
  *
  * <p>
- * Drop-in replacement for {@link GitHubCopilotManager} that avoids the in-Java
- * {@code copilot-sdk-java} CLI launch (which is the path that hits chroot
- * permission errors today). Used by
+ * Used by
  * {@link prerna.reactor.agent.GitHubCopilotPyAgentHarness} under harness name
  * {@code "github_copilot_py"}.
  */
@@ -86,6 +84,25 @@ public class GitHubCopilotPyManager {
 
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
+
+	/**
+	 * Resolve the configured Copilot CLI binary, falling back to common install
+	 * locations and finally the executable name on {@code PATH}.
+	 */
+	public static String resolveCopilotBinary() {
+		String configured = Utility.getDIHelperProperty(Constants.GITHUB_COPILOT_CLI_PATH);
+		if (configured != null && !configured.trim().isEmpty()) {
+			return configured.trim();
+		}
+		String[] candidates = new String[] { "/usr/local/bin/copilot", "/usr/bin/copilot",
+				System.getProperty("user.home") + "/.local/bin/copilot" };
+		for (String candidate : candidates) {
+			if (Files.isExecutable(Paths.get(candidate))) {
+				return candidate;
+			}
+		}
+		return "copilot";
+	}
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
@@ -114,7 +131,7 @@ public class GitHubCopilotPyManager {
 			// Sandbox launchers reject non-absolute paths; fall back to the same
 			// discovery logic the Java manager uses so the configured-or-discovered
 			// binary lines up with the policy carve-out built by the harness.
-			String targetBinary = cliPath != null ? cliPath : GitHubCopilotManager.resolveCopilotBinary();
+			String targetBinary = cliPath != null ? cliPath : resolveCopilotBinary();
 			SandboxLaunchPlan plan = launcher.plan(sandboxPolicy, targetBinary, null);
 			cliPath = plan.getCliPath();
 			sandboxEnv = plan.getEnvironmentAdditions();

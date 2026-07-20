@@ -30,11 +30,16 @@ package prerna.reactor.playwright;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CheckNetworkIdleReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(CheckNetworkIdleReactor.class);
 
 	private static final long DEFAULT_QUIET_MS = 500;
 
@@ -58,8 +63,8 @@ public class CheckNetworkIdleReactor extends AbstractReactor {
 		if (quietRaw != null) {
 			try {
 				quietMillis = Long.parseLong(quietRaw);
-			} catch (NumberFormatException ignore) {
-				// use default
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid quietMillis value '{}'; using default of {} ms", quietRaw, DEFAULT_QUIET_MS);
 			}
 		}
 
