@@ -58,7 +58,6 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -274,11 +273,6 @@ public final class UploadUtilities {
 			throws IOException {
 		if (engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
-		}
-		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
-		if (containsDatabase) {
-			throw new IOException("Engine name already exists.  Please provide a unique engine name");
 		}
 
 		// need to make sure engine folder doesn't already exist

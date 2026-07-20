@@ -32,7 +32,9 @@ package prerna.reactor.agent.skill;
  *
  * <p>A skill is a Project of type {@code SKILL} (tagged {@code SKILL} in
  * {@code PROJECTMETA}). The Project owns the {@code SKILL.md} (stored under
- * {@code version/assets/skill/}), git-based versioning, and permissions; the
+ * {@code version/assets/public/}, or the legacy {@code version/assets/skill/}
+ * for skills created before that change), git-based versioning, and
+ * permissions; the
  * SKILL.md frontmatter is the source of truth for the skill's name and
  * description (see {@link SkillProjects}). This class holds the frontmatter
  * parse/build/strip helpers, {@link #slugify}, and the folder/file constants
@@ -51,9 +53,22 @@ public final class Skill {
 
 	/**
 	 * Subfolder under {@code <project>/version/assets/} that holds the skill
-	 * content. Mirrored by {@code SkillStager} when copying to a working dir.
+	 * content for newly-created skills, matching where the shipped platform
+	 * skill projects already keep theirs (see
+	 * {@link prerna.util.Constants#PUBLIC_ASSETS_FOLDER}) - so custom skills are
+	 * readable by users with only view (not edit) access to the skill project,
+	 * same as built-in ones. Mirrored by {@code SkillStager} when copying to a
+	 * working dir.
 	 */
-	public static final String SKILL_ASSET_SUBFOLDER = "skill";
+	public static final String SKILL_ASSET_SUBFOLDER = "public";
+
+	/**
+	 * Legacy subfolder under {@code <project>/version/assets/} used for skill
+	 * content written before it moved to {@link #SKILL_ASSET_SUBFOLDER}. Still
+	 * probed as a fallback (by {@link SkillProjects#resolveSkillDir}) so skills
+	 * created before that change keep resolving; no longer written to.
+	 */
+	public static final String LEGACY_SKILL_ASSET_SUBFOLDER = "skill";
 
 	// frontmatter keys
 	public static final String FRONTMATTER_DELIM = "---";
