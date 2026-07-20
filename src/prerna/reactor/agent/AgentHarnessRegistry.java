@@ -47,7 +47,7 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
- * The default harness (used when the requested name is unknown) is {@code "semoss"}.
+ * The default harness (used when no name is requested) is {@code "semoss"}.
  */
 public final class AgentHarnessRegistry {
 
@@ -93,18 +93,22 @@ public final class AgentHarnessRegistry {
 
     /**
      * Returns the harness registered under {@code name}.
-     * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null,
-     * blank, or unrecognised.
+     * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null
+     * or blank. Explicit, unrecognised names are rejected.
      *
      * @param name registry key; may be null or empty
+     * @throws IllegalArgumentException if a nonblank name is not registered
      */
     public static IAgentHarness getOrDefault(String name) {
-        if (name != null && !name.trim().isEmpty()) {
-            IAgentHarness h = REGISTRY.get(name.trim());
-            if (h != null) return h;
-            logger.warn("AgentHarnessRegistry: unknown harness '{}' - falling back to '{}'",
-                    name, DEFAULT_HARNESS);
+        String normalizedName = name == null ? null : name.trim();
+        if (normalizedName == null || normalizedName.isEmpty()) {
+            return REGISTRY.get(DEFAULT_HARNESS);
         }
-        return REGISTRY.get(DEFAULT_HARNESS);
+
+        IAgentHarness harness = REGISTRY.get(normalizedName);
+        if (harness == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + normalizedName);
+        }
+        return harness;
     }
 }

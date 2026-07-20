@@ -53,8 +53,15 @@ public final class RedisConnectionConfig {
 	public static final String REDIS_MASTER_NAME = "REDIS_MASTER_NAME";
 	public static final String REDIS_SENTINEL_NODES = "REDIS_SENTINEL_NODES";
 	public static final String REDIS_SENTINEL_PASSWORD = "REDIS_SENTINEL_PASSWORD";
+	// Horizontal scaling via Redis Cluster. When enabled the direct host/port is
+	// ignored and keys are routed across the cluster nodes by hash slot. Cluster
+	// takes precedence over Sentinel if both are enabled.
+	public static final String REDIS_CLUSTER_ENABLED = "REDIS_CLUSTER_ENABLED";
+	public static final String REDIS_CLUSTER_NODES = "REDIS_CLUSTER_NODES";
+	public static final String REDIS_CLUSTER_MAX_ATTEMPTS = "REDIS_CLUSTER_MAX_ATTEMPTS";
 
 	private static final int DEFAULT_SENTINEL_PORT = 26379;
+	private static final int DEFAULT_REDIS_PORT = 6379;
 
 	private static final AppCloudClientProperties PROPS = AppCloudClientProperties.build();
 
@@ -69,10 +76,14 @@ public final class RedisConnectionConfig {
 	private final String masterName;
 	private final Set<HostAndPort> sentinelNodes;
 	private final String sentinelPassword;
+	private final boolean clusterEnabled;
+	private final Set<HostAndPort> clusterNodes;
+	private final int clusterMaxAttempts;
 
 	private RedisConnectionConfig(String host, int port, String password, int timeoutMs, int poolMaxTotal,
 			int poolMaxIdle, int poolMinIdle, boolean sentinelEnabled, String masterName,
-			Set<HostAndPort> sentinelNodes, String sentinelPassword) {
+			Set<HostAndPort> sentinelNodes, String sentinelPassword, boolean clusterEnabled,
+			Set<HostAndPort> clusterNodes, int clusterMaxAttempts) {
 		this.host = host;
 		this.port = port;
 		this.password = password;
@@ -84,6 +95,9 @@ public final class RedisConnectionConfig {
 		this.masterName = masterName;
 		this.sentinelNodes = sentinelNodes;
 		this.sentinelPassword = sentinelPassword;
+		this.clusterEnabled = clusterEnabled;
+		this.clusterNodes = clusterNodes;
+		this.clusterMaxAttempts = clusterMaxAttempts;
 	}
 
 	public static RedisConnectionConfig fromDIHelper() {
@@ -101,20 +115,25 @@ public final class RedisConnectionConfig {
 		poolMinIdle = Math.min(poolMinIdle, poolMaxIdle);
 		boolean sentinelEnabled = Boolean.parseBoolean(nullToEmpty(trimToNull(property(REDIS_SENTINEL_ENABLED))));
 		String masterName = trimToNull(property(REDIS_MASTER_NAME));
-		Set<HostAndPort> sentinelNodes = parseSentinelNodes(property(REDIS_SENTINEL_NODES));
+		Set<HostAndPort> sentinelNodes = parseNodes(property(REDIS_SENTINEL_NODES), DEFAULT_SENTINEL_PORT);
 		String sentinelPassword = trimToNull(property(REDIS_SENTINEL_PASSWORD));
+		boolean clusterEnabled = Boolean.parseBoolean(nullToEmpty(trimToNull(property(REDIS_CLUSTER_ENABLED))));
+		Set<HostAndPort> clusterNodes = parseNodes(property(REDIS_CLUSTER_NODES), DEFAULT_REDIS_PORT);
+		int clusterMaxAttempts = Math.max(1, (int) getLongProperty(REDIS_CLUSTER_MAX_ATTEMPTS, 5L));
 		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle, poolMinIdle,
-				sentinelEnabled, masterName, sentinelNodes, sentinelPassword);
+				sentinelEnabled, masterName, sentinelNodes, sentinelPassword, clusterEnabled, clusterNodes,
+				clusterMaxAttempts);
 	}
 
 	/**
-	 * Parses a comma-separated {@code host:port} list of sentinel nodes. Entries
-	 * without an explicit port default to {@value #DEFAULT_SENTINEL_PORT}.
+	 * Parses a comma-separated {@code host:port} list of nodes. Entries without an
+	 * explicit port fall back to {@code defaultPort}.
 	 *
-	 * @param raw the raw property value (nullable)
-	 * @return an ordered, unmodifiable set of sentinel endpoints (never null)
+	 * @param raw         the raw property value (nullable)
+	 * @param defaultPort the port to use for entries that omit one
+	 * @return an ordered, unmodifiable set of endpoints (never null)
 	 */
-	private static Set<HostAndPort> parseSentinelNodes(String raw) {
+	private static Set<HostAndPort> parseNodes(String raw, int defaultPort) {
 		String value = trimToNull(raw);
 		if (value == null) {
 			return Collections.emptySet();
@@ -133,11 +152,11 @@ public final class RedisConnectionConfig {
 				try {
 					nodePort = Integer.parseInt(node.substring(lastColon + 1).trim());
 				} catch (NumberFormatException e) {
-					nodePort = DEFAULT_SENTINEL_PORT;
+					nodePort = defaultPort;
 				}
 			} else {
 				nodeHost = node;
-				nodePort = DEFAULT_SENTINEL_PORT;
+				nodePort = defaultPort;
 			}
 			if (!nodeHost.isEmpty()) {
 				nodes.add(new HostAndPort(nodeHost, nodePort));
@@ -175,9 +194,26 @@ public final class RedisConnectionConfig {
 	}
 
 	/**
+	 * @return true when Cluster is enabled AND at least one cluster node is
+	 *         configured. When true the client is built against the cluster nodes
+	 *         rather than the direct host/port, and this takes precedence over
+	 *         Sentinel.
+	 */
+	public boolean isClusterEnabled() {
+		return clusterEnabled && !clusterNodes.isEmpty();
+	}
+
+	/**
+	 * @return true when Cluster was requested via {@link #REDIS_CLUSTER_ENABLED}
+	 *         but no cluster nodes are configured.
+	 */
+	public boolean isClusterMisconfigured() {
+		return clusterEnabled && clusterNodes.isEmpty();
+	}
+
+	/**
 	 * @return true when Sentinel is enabled AND a master name and at least one
-	 *         sentinel node are configured. When true the pool is built against the
-	 *         sentinel set rather than the direct host/port.
+	 *         sentinel node are configured. Ignored when Cluster is enabled.
 	 */
 	public boolean isSentinelEnabled() {
 		return sentinelEnabled && masterName != null && !sentinelNodes.isEmpty();
@@ -203,10 +239,19 @@ public final class RedisConnectionConfig {
 		return sentinelPassword;
 	}
 
+	public Set<HostAndPort> getClusterNodes() {
+		return clusterNodes;
+	}
+
+	public int getClusterMaxAttempts() {
+		return clusterMaxAttempts;
+	}
+
 	public String cacheKey() {
 		return host + "|" + port + "|" + timeoutMs + "|" + nullToEmpty(password) + "|" + poolMaxTotal + "|"
 				+ poolMaxIdle + "|" + poolMinIdle + "|sentinel:" + sentinelEnabled + "|" + nullToEmpty(masterName) + "|"
-				+ sentinelNodes + "|" + nullToEmpty(sentinelPassword);
+				+ sentinelNodes + "|" + nullToEmpty(sentinelPassword) + "|cluster:" + clusterEnabled + "|"
+				+ clusterNodes + "|" + clusterMaxAttempts;
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {
