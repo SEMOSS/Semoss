@@ -221,9 +221,6 @@ public final class WrapperManager {
 				classLogger.debug("Engine execution time = " + (end - start) + "ms");
 				break;
 			}
-			case REMOTE_SEMOSS: {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
-			}
 //				case NEO4J_EMBEDDED : {
 //					returnWrapper = new Neo4jWrapper();
 //					break;
@@ -391,11 +388,6 @@ public final class WrapperManager {
 				returnWrapper = new WebWrapper();
 				break;
 			}
-			case REMOTE_SEMOSS: {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
-				// TODO: build iterator
-				break;
-			}
 //				case NEO4J_EMBEDDED : {
 //					returnWrapper = new Neo4jWrapper();
 //					break;
@@ -504,10 +496,6 @@ public final class WrapperManager {
 			returnWrapper = new JenaSelectWrapper();
 			break;
 		}
-		case SEMOSS_SESAME_REMOTE: {
-			returnWrapper = new RemoteSesameSelectWrapper();
-			break;
-		}
 		case RDBMS: {
 			returnWrapper = new RDBMSSelectWrapper();
 			break;
@@ -546,10 +534,6 @@ public final class WrapperManager {
 		}
 		case JENA: {
 			returnWrapper = new JenaConstructWrapper();
-			break;
-		}
-		case SEMOSS_SESAME_REMOTE: {
-			returnWrapper = new RemoteSesameConstructWrapper();
 			break;
 		}
 		case RDBMS: {
