@@ -333,7 +333,7 @@ final class HarnessToolExecutor {
 		}
 		for (IToolHook hook : hooks) {
 			try {
-				hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, currentIter);
+				hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, new HashMap<>(tc.toolParams), currentIter);
 			} catch (Throwable t) {
 				logger.warn("HarnessToolExecutor: tool hook {}#beforeTool threw for tool '{}': {}",
 						hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
@@ -349,7 +349,7 @@ final class HarnessToolExecutor {
 		}
 		for (IToolHook hook : hooks) {
 			try {
-				hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, outcome.content, durMs,
+				hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, new HashMap<>(tc.toolParams), outcome.content, durMs,
 						outcome.success, currentIter);
 			} catch (Throwable t) {
 				logger.warn("HarnessToolExecutor: tool hook {}#afterTool threw for tool '{}': {}",
@@ -468,11 +468,15 @@ final class HarnessToolExecutor {
 	private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params, AgentRunContext ctx,
 			java.util.List<SubAgentSpec> specs, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
 		Room parentRoom = ctx.getRoom();
+		// Do not read instructions back from the live room here. SemossAgentHarness
+		// temporarily replaces them with its fully composed runtime prompt while tools run.
+		String parentAuthoredSystemPrompt = ctx.getAgentConfig().getAuthoredPrompt();
 		if (SubAgentToolSynthesizer.TOOL_SPAWN_SUBAGENT.equals(rawToolName)) {
 			if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
 				return perTurnRejectedJson(ctx);
 			}
-			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId);
+			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId,
+					parentAuthoredSystemPrompt);
 		}
 		if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
 			Object jobIdObj = params == null ? null : params.get("jobId");
@@ -501,7 +505,8 @@ final class HarnessToolExecutor {
 		if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
 			return perTurnRejectedJson(ctx);
 		}
-		return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId);
+		return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId,
+				parentAuthoredSystemPrompt);
 	}
 
 	/** Atomic claim against the per-turn spawn budget; restores on miss. */
