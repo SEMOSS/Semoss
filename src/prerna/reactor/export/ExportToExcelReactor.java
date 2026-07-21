@@ -1461,7 +1461,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// you have what you need now..
 		ConstantDataTask cdt = (ConstantDataTask) retData.getValue();
 		// json is sitting in the cdt
-		String json = (String) ((Map) cdt.getOutputData()).get("values");
+		Object valuesObj = ((Map) cdt.getOutputData()).get("values");
+		// CollectPivotReactor now returns "values" as a String[] (matching the R
+		// sibling
+		// and the grid-pivot view's values[0] contract); keep a String fallback for
+		// safety.
+		String json = (valuesObj instanceof String[])
+				? (((String[]) valuesObj).length > 0 ? ((String[]) valuesObj)[0] : "")
+				: (String) valuesObj;
 
 		JSONArray array = new JSONArray(json);
 		StringBuffer html2 = new StringBuffer();
