@@ -303,26 +303,8 @@ public class ClientProcessWrapper {
 				}
 				Thread t = new Thread(socketClient);
 				t.start();
-				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;
-				synchronized (socketClient) {
-					while (!socketClient.isReady() && !socketClient.isKillAll()) {
-						long remainingWaitMillis = waitDeadline - System.currentTimeMillis();
-						if (remainingWaitMillis <= 0) {
-							throw new IllegalArgumentException(
-									"Timed out waiting for isolated analytics engine socket client to become ready");
-						}
-						try {
-							socketClient.wait(Math.min(SOCKET_CLIENT_READY_WAIT_INTERVAL_MS, remainingWaitMillis));
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							classLogger.error("Interrupted while waiting for socket client readiness", e);
-							throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
-						}
-					}
-				}
-				if (socketClient.isKillAll()) {
-					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-				}
+				socketClient.awaitReadyOrKill(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS,
+						SOCKET_CLIENT_READY_WAIT_INTERVAL_MS);
 				classLogger.info("Setting the socket client ");
 			} catch (Exception e) {
 				if (debug) {

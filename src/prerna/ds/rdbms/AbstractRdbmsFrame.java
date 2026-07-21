@@ -68,7 +68,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	protected RdbmsFrameBuilder builder = null;
 
 	public AbstractRdbmsFrame() {
-		this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+		this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replace("-", "_");
 		try {
 			this.initConnAndBuilder();
 		} catch (Exception e) {
@@ -81,7 +81,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		if (tableName != null && !tableName.isEmpty()) {
 			this.frameName = tableName;
 		} else {
-			this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			this.frameName = "RDBMSFRAME_" + UUID.randomUUID().toString().toUpperCase().replace("-", "_");
 		}
 		try {
 			this.initConnAndBuilder();
@@ -242,7 +242,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		long start = System.currentTimeMillis();
 		RawRDBMSSelectWrapper it = RawRDBMSSelectWrapper.directExecutionViaConnection(this.conn, query, false);
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to execute query on frame = " + (end - start) + "ms");
+		classLogger.info("Time to execute query on frame = {}ms", (end - start));
 		return it;
 	}
 

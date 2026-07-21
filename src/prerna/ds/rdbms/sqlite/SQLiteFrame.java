@@ -84,11 +84,11 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		if (sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
 			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + insightId;
-			this.fileNameToUse = "SQLite_Store_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_")
+			this.fileNameToUse = "SQLite_Store_" + UUID.randomUUID().toString().toUpperCase().replace("-", "_")
 					+ ".sqlite";
 		} else {
 			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + "SQLite_Store_"
-					+ UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+					+ UUID.randomUUID().toString().toUpperCase().replace("-", "_");
 			this.fileNameToUse = "database.sqlite";
 		}
 
