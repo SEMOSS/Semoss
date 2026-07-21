@@ -109,7 +109,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ChromeDriverUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -237,9 +236,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Could not find the Semoss logo image at {}", semossLogoPath, e);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error reading the Semoss logo image bytes from {}", semossLogoPath, e);
 				}
 				XSLFPictureData pictureData = slideshow.addPicture(picture, PictureType.PNG);
 				Rectangle lowerRightCornerBounds = createStandardPowerPointSemossLogoBounds();
@@ -276,7 +275,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				insertImage(user, options, slideshow, task, panel);
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error building the PPT chart for panel {}", panelId, ex);
 		} finally {
 			if (driver != null && driver instanceof ChromeDriver) {
 
@@ -337,7 +336,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
@@ -345,7 +344,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
@@ -435,14 +434,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		if (showXAxisTitle) {
 			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 		XDDFScatterChartData data = (XDDFScatterChartData) chart.createData(ChartTypes.SCATTER, bottomAxis, leftAxis);
@@ -456,7 +455,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFScatterChartData.Series chartSeries = (XDDFScatterChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			// Standardize markers
 			chartSeries.setSmooth(false);
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
@@ -535,14 +534,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		if (showXAxisTitle) {
 			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
@@ -572,7 +571,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setFillProperties(fillProperties);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			yCounter++;
 		}
 
@@ -641,14 +640,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		if (showXAxisTitle) {
 			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 		XDDFAreaChartData data = (XDDFAreaChartData) chart.createData(ChartTypes.AREA, bottomAxis, leftAxis);
@@ -665,7 +664,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
 			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setFillProperties(fillProperties);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			yCounter++;
 		}
 
@@ -718,7 +717,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFPieChartData.Series chartSeries = (XDDFPieChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			chartSeries.setExplosion((long) 0);
 		}
 
@@ -804,14 +803,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
+				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		if (showXAxisTitle) {
 			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
-				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
+				bottomAxis.setTitle(xColumnName.replace("_", " "));
 			}
 		}
 		XDDFRadarChartData data = (XDDFRadarChartData) chart.createData(ChartTypes.RADAR, bottomAxis, leftAxis);
@@ -824,7 +823,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Number[] yNumberArray = dataHandler.getColumnAsNumberArray(yColumnName);
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFRadarChartData.Series chartSeries = (XDDFRadarChartData.Series) data.addSeries(xs, ys);
-			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
+			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
@@ -865,7 +864,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 				try {
 					task.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the task after reaching the max grid table size", e);
 				}
 				break MAX_TABLE_SIZE;
 			}
@@ -978,9 +977,9 @@ public class ExportToPPTReactor extends AbstractReactor {
 			OutputStream out = new FileOutputStream(path);
 			slideshow.write(out);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not open the output file to write the PPT to {}", path, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error writing the PPT to the output file {}", path, e);
 		}
 	}
 
@@ -1017,13 +1016,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XSLFPictureShape pic = blankSlide.createPicture(hslfPictureData);
 			pic.setAnchor(new Rectangle(0, 0, 800, 600));
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error capturing the panel image and adding it to the PPT slide from {}", imageLocation,
+					e);
 		} finally {
 			if (inputStream != null) {
 				try {
 					inputStream.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the panel image input stream", e);
 				}
 			}
 			if (driver != null && driver instanceof ChromeDriver) {

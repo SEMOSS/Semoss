@@ -38,6 +38,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -58,6 +59,13 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String fileName = this.keyValue.get(this.keysToGet[1]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 
 		if (fileName == null || fileName.trim().isEmpty()) {
 			throw new IllegalArgumentException("File name cannot be null or empty");
