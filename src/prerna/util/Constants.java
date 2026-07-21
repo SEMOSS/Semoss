@@ -1053,7 +1053,6 @@ public class Constants {
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
 	// system (platform) skill names
-	public static final String SKILL_AGENT_MEMORY = "agent-memory";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
