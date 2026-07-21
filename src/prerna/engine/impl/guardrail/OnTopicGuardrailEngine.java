@@ -54,23 +54,6 @@ import prerna.util.Utility;
  * best similarity score against those examples meets or exceeds the configured
  * threshold; otherwise it is rejected.
  *
- * <p>
- * Score semantics follow the backing vector DB (e.g. cosine similarity in
- * [0,1] for most backends). Set the threshold accordingly — a value of 0.5 is
- * a reasonable starting point for cosine similarity.
- *
- * <p>
- * Required SMSS keys:
- * <ul>
- * <li>{@code VECTOR_ENGINE_ID} — UUID of the vector DB engine</li>
- * </ul>
- * Optional SMSS keys:
- * <ul>
- * <li>{@code DEFAULT_THRESHOLD} — minimum best-match score to pass (default
- * 0.5)</li>
- * <li>{@code LIMIT} — number of nearest neighbours to retrieve (default 5
- * </li>
- * </ul>
  */
 public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
 
@@ -184,7 +167,8 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 			InsightStore.getInstance().remove(queryInsight.getInsightId());
 		}
 
-		// Results are returned sorted by the vector DB — first result is the best match.
+		// Results are returned sorted by the vector DB — first result is the best
+		// match.
 		double bestScore = 0.0;
 		if (!results.isEmpty()) {
 			Object scoreObj = results.get(0).get(SCORE_KEY);
@@ -192,7 +176,8 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 				bestScore = ((Number) scoreObj).doubleValue();
 			}
 			classLogger.info("OnTopicGuardrail: top match — score={}, content={}",
-					bestScore, results.get(0).getOrDefault("Content", results.get(0).getOrDefault("content", "<unknown>")));
+					bestScore,
+					results.get(0).getOrDefault("Content", results.get(0).getOrDefault("content", "<unknown>")));
 		} else {
 			classLogger.info("OnTopicGuardrail: no results returned from vector DB");
 		}
