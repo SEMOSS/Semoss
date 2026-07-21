@@ -1432,7 +1432,7 @@ public class ModelInferenceLogsUtils {
 	 * @param userId    the user to search for
 	 * @param projectId the project to search within
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching messages (room_id, message_text, message_id)
+	 * @return a list of matching messages (room_id, message_id, room_name, date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, -1, true);
@@ -1456,12 +1456,6 @@ public class ModelInferenceLogsUtils {
 			qs.addSelector(messageTextSelector);
 		}
 
-		// Wrap decoded text in LOWER() for case-insensitive LIKE filtering
-		QueryFunctionSelector lowerMessageSelector = new QueryFunctionSelector();
-		lowerMessageSelector.setFunction(QueryFunctionHelper.LOWER);
-		lowerMessageSelector.addInnerSelector(messageTextSelector);
-		lowerMessageSelector.setAlias("message_text_lower");
-
 		// JOIN, filters, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
 		qs.addExplicitFilter(
@@ -1470,14 +1464,12 @@ public class ModelInferenceLogsUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-
-		// Case-insensitive substring filter: LOWER(CAST(message_data AS TEXT)) LIKE '%keyword%'
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(lowerMessageSelector,
-				"?like", "%" + keyword.toLowerCase() + "%",
-				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
+				"?like", keyword, PixelDataType.CONST_STRING));
 
 		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
+		qs.addOrderBy("MESSAGE__MESSAGE_ID", "DESC");
 
 		if (limit > 0) {
 			qs.setLimit(limit);

@@ -74,26 +74,26 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Search keyword must be provided");
 		}
 
-		long limit = -1;
-		String limitStr = this.keyValue.get(this.keysToGet[2]);
-		if (limitStr != null) {
-			limit = Long.parseLong(limitStr);
-		}
-
-		long offset = -1;
-		String offsetStr = this.keyValue.get(this.keysToGet[3]);
-		if (offsetStr != null) {
-			offset = Long.parseLong(offsetStr);
-		}
-
-		boolean includeMessageText = false;
-		String includeStr = this.keyValue.get(this.keysToGet[4]);
-		if (includeStr != null) {
-			includeMessageText = Boolean.parseBoolean(includeStr);
-		}
-
 		List<Map<String, Object>> results;
 		try {
+			long limit = -1;
+			String limitStr = this.keyValue.get(this.keysToGet[2]);
+			if (limitStr != null) {
+				limit = Long.parseLong(limitStr);
+			}
+
+			long offset = -1;
+			String offsetStr = this.keyValue.get(this.keysToGet[3]);
+			if (offsetStr != null) {
+				offset = Long.parseLong(offsetStr);
+			}
+
+			boolean includeMessageText = false;
+			String includeStr = this.keyValue.get(this.keysToGet[4]);
+			if (includeStr != null) {
+				includeMessageText = Boolean.parseBoolean(includeStr);
+			}
+
 			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword, limit, offset, includeMessageText);
 		} catch (Exception e) {
 			classLogger.error("Error searching room messages", e);
@@ -106,7 +106,8 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Searches through the messages in the user's conversation rooms for a given keyword. "
-				+ "Returns room_id and message_id for each match. Optionally returns message_text when includeMessageText=true. "
+				+ "Returns room_id, message_id, room_name, and date_created for each match. "
+				+ "Optionally returns message_text when includeMessageText=true. "
 				+ "Omitting projectId searches across all projects. Supports limit and offset for pagination.";
 	}
 
