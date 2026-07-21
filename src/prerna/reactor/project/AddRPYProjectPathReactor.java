@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -49,6 +50,14 @@ public class AddRPYProjectPathReactor extends AbstractReactor {
 		AbstractRJavaTranslator rt = this.insight.getRJavaTranslator(this.getClass().getName());
 
 		String projectId = keyValue.get(keysToGet[0]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
+
 		String basePath = AssetUtility.getProjectAssetsFolder(projectId);
 		String folderName = basePath + "/py";
 		folderName = folderName.replace("\\", "/");
