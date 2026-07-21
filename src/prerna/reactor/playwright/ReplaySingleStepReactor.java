@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,6 +78,13 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		Map<String, Object> inputs = getMap(this.keysToGet[3]);
 		int stepId = Integer.parseInt(this.keyValue.get(this.keysToGet[4]));
 		String tabId = this.keyValue.get(this.keysToGet[5]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 
 		Map<String, Object> response = replayStep(projectId, sessionId, fileName, stepId, inputs, tabId);
 

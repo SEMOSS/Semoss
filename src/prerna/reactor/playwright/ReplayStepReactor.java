@@ -44,6 +44,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -84,6 +85,13 @@ public class ReplayStepReactor extends AbstractReactor {
 		String tabId = this.keyValue.get(this.keysToGet[4]);
 
 		projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 
 		ScreenshotResponse screenshot = replayFromFile(inputs, name, tabId);
