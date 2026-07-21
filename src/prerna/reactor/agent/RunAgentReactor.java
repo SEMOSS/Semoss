@@ -127,7 +127,10 @@ public class RunAgentReactor extends AbstractReactor {
                 waitTimeoutMs, sizeOf(inputImages), sizeOf(inputImageURLs));
 
         try {
-            validateMediaSupported(harnessType, inputImages, inputImageURLs);
+            // Resolve every explicit harness name before submission. This keeps a typo
+            // from creating a durable run that later executes under the default harness.
+            IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
+            validateMediaSupported(harness, inputImages, inputImageURLs);
             List<String> copiedImages = stageMediaInputs(roomId, input, engineIdFallback, inputImages);
             RunAgentRequest request = new RunAgentRequest(
                     roomId,
@@ -188,11 +191,11 @@ public class RunAgentReactor extends AbstractReactor {
         return RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
     }
 
-    private void validateMediaSupported(String harnessType, List<String> inputImages, List<String> inputImageURLs) {
+    private void validateMediaSupported(IAgentHarness harness, List<String> inputImages,
+            List<String> inputImageURLs) {
         if (sizeOf(inputImages) == 0 && sizeOf(inputImageURLs) == 0) {
             return;
         }
-        IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         if (!harness.supportsMediaInput()) {
             throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
                     + harness.getName() + "'");

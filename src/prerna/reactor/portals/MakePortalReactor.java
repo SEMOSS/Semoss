@@ -39,6 +39,8 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.Version;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -77,7 +79,13 @@ public class MakePortalReactor extends AbstractReactor {
 		// Prints out it is ready to start building source code
 		organizeKeys();
 
+		User user = this.insight.getUser();
 		String projectId = keyValue.get(keysToGet[0]);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to edit the project");
+		}
 
 		String portalName = keyValue.get(keysToGet[1]);
 		String client = keyValue.get(keysToGet[2]);
