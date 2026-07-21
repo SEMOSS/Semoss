@@ -33,76 +33,94 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import redis.clients.jedis.ConnectionPoolConfig;
 import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisClientConfig;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisSentinelPool;
-import redis.clients.jedis.util.Pool;
+import redis.clients.jedis.RedisClient;
+import redis.clients.jedis.RedisClusterClient;
+import redis.clients.jedis.RedisSentinelClient;
+import redis.clients.jedis.UnifiedJedis;
 
 /**
- * Shared Redis pool factory for SEMOSS features that need Redis coordination.
+ * Shared Redis client factory for SEMOSS features that need Redis coordination.
  *
  * <p>
- * Returns a {@link Pool}&lt;{@link Jedis}&gt; so callers work uniformly against
- * either a direct {@link JedisPool} (single node) or a
- * {@link JedisSentinelPool} (high-availability with automatic master failover).
- * Both extend {@code Pool<Jedis>} and hand out {@code Jedis} from
- * {@code getResource()}, so no consumer code changes when Sentinel is toggled
- * on.
+ * Returns a {@link UnifiedJedis}, the common base of Jedis 7's client family,
+ * so callers work uniformly against standalone ({@link RedisClient}), Sentinel
+ * high-availability ({@link RedisSentinelClient}), or Cluster
+ * ({@link RedisClusterClient}) deployments. Every variant exposes the same
+ * command surface and is thread-safe and internally pooled, so a single shared
+ * instance is reused per configuration and callers invoke commands directly (no
+ * per-call {@code getResource()}/close).
+ * </p>
+ *
+ * <p>
+ * Selection precedence: Cluster (if enabled and nodes configured), then
+ * Sentinel (if enabled with a master name and nodes), otherwise the direct
+ * {@code REDIS_HOST}/{@code REDIS_PORT} standalone connection.
  * </p>
  */
 public final class RedisConnectionFactory {
 
 	private static final Logger classLogger = LogManager.getLogger(RedisConnectionFactory.class);
 
-	private static final ConcurrentMap<String, Pool<Jedis>> POOLS = new ConcurrentHashMap<>();
+	private static final ConcurrentMap<String, UnifiedJedis> CLIENTS = new ConcurrentHashMap<>();
 
 	private RedisConnectionFactory() {
 	}
 
-	public static Pool<Jedis> getPool() {
-		return getPool(RedisConnectionConfig.fromDIHelper());
+	public static UnifiedJedis getClient() {
+		return getClient(RedisConnectionConfig.fromDIHelper());
 	}
 
-	public static Pool<Jedis> getPool(RedisConnectionConfig config) {
-		return POOLS.computeIfAbsent(config.cacheKey(), ignored -> createPool(config));
+	public static UnifiedJedis getClient(RedisConnectionConfig config) {
+		return CLIENTS.computeIfAbsent(config.cacheKey(), ignored -> createClient(config));
 	}
 
-	private static Pool<Jedis> createPool(RedisConnectionConfig config) {
-		JedisPoolConfig poolConfig = new JedisPoolConfig();
-		poolConfig.setMaxTotal(config.getPoolMaxTotal());
-		poolConfig.setMaxIdle(config.getPoolMaxIdle());
-		poolConfig.setMinIdle(config.getPoolMinIdle());
-		poolConfig.setTestOnBorrow(true);
-		poolConfig.setTestWhileIdle(true);
+	private static UnifiedJedis createClient(RedisConnectionConfig config) {
+		ConnectionPoolConfig poolConfig = buildPoolConfig(config);
+		// Data-node client config: what our commands actually authenticate/talk to.
+		JedisClientConfig dataClientConfig = clientConfig(config.getTimeoutMs(), config.getPassword());
+
+		if (config.isClusterEnabled()) {
+			classLogger.info("Connecting to Redis via Cluster: nodes=" + config.getClusterNodes());
+			return RedisClusterClient.builder().nodes(config.getClusterNodes())
+					.maxAttempts(config.getClusterMaxAttempts()).clientConfig(dataClientConfig).poolConfig(poolConfig)
+					.build();
+		}
 
 		if (config.isSentinelEnabled()) {
-			return createSentinelPool(config, poolConfig);
+			// Sentinel auth is independent of the data-node password.
+			JedisClientConfig sentinelClientConfig = clientConfig(config.getTimeoutMs(), config.getSentinelPassword());
+			classLogger.info("Connecting to Redis via Sentinel: master=" + config.getMasterName() + ", sentinels="
+					+ config.getSentinelNodes());
+			return RedisSentinelClient.builder().masterName(config.getMasterName()).sentinels(config.getSentinelNodes())
+					.sentinelClientConfig(sentinelClientConfig).clientConfig(dataClientConfig).poolConfig(poolConfig)
+					.build();
+		}
+
+		if (config.isClusterMisconfigured()) {
+			classLogger.warn("REDIS_CLUSTER_ENABLED is true but REDIS_CLUSTER_NODES is not set; "
+					+ "falling back to the direct REDIS_HOST/REDIS_PORT connection.");
 		}
 		if (config.isSentinelMisconfigured()) {
 			classLogger.warn("REDIS_SENTINEL_ENABLED is true but REDIS_MASTER_NAME and/or REDIS_SENTINEL_NODES "
 					+ "are not set; falling back to the direct REDIS_HOST/REDIS_PORT connection.");
 		}
 
-		String password = config.getPassword();
-		if (password != null && !password.trim().isEmpty()) {
-			return new JedisPool(poolConfig, config.getHost(), config.getPort(), config.getTimeoutMs(), password);
-		}
-		return new JedisPool(poolConfig, config.getHost(), config.getPort(), config.getTimeoutMs());
+		classLogger.info("Connecting to Redis standalone: " + config.getHost() + ":" + config.getPort());
+		return RedisClient.builder().hostAndPort(config.getHost(), config.getPort()).clientConfig(dataClientConfig)
+				.poolConfig(poolConfig).build();
 	}
 
-	private static Pool<Jedis> createSentinelPool(RedisConnectionConfig config, JedisPoolConfig poolConfig) {
-		// Data-node (master/replica) client config: what our commands actually talk to.
-		JedisClientConfig masterClientConfig = clientConfig(config.getTimeoutMs(), config.getPassword());
-		// Sentinel client config: sentinel auth is independent of the data-node
-		// password.
-		JedisClientConfig sentinelClientConfig = clientConfig(config.getTimeoutMs(), config.getSentinelPassword());
-		classLogger.info("Connecting to Redis via Sentinel: master=" + config.getMasterName() + ", sentinels="
-				+ config.getSentinelNodes());
-		return new JedisSentinelPool(config.getMasterName(), config.getSentinelNodes(), poolConfig, masterClientConfig,
-				sentinelClientConfig);
+	private static ConnectionPoolConfig buildPoolConfig(RedisConnectionConfig config) {
+		ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+		poolConfig.setMaxTotal(config.getPoolMaxTotal());
+		poolConfig.setMaxIdle(config.getPoolMaxIdle());
+		poolConfig.setMinIdle(config.getPoolMinIdle());
+		poolConfig.setTestOnBorrow(true);
+		poolConfig.setTestWhileIdle(true);
+		return poolConfig;
 	}
 
 	private static JedisClientConfig clientConfig(int timeoutMs, String password) {

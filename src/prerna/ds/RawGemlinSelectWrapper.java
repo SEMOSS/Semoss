@@ -46,7 +46,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
-import prerna.util.Constants;
 
 public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -193,11 +192,13 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	@Override
 	public void close() throws IOException {
-		try {
-			baseIterator.close();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Unable to close traversal with message = " + e.getMessage());
+		if (baseIterator != null) {
+			try {
+				baseIterator.close();
+			} catch (Exception e) {
+				classLogger.error("Error occurred closing the gremlin traversal iterator", e);
+				throw new IOException("Unable to close traversal with message = " + e.getMessage());
+			}
 		}
 	}
 
@@ -215,13 +216,12 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				try {
 					numValues.close();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error occurred closing the count traversal while getting the number of rows", e);
 				}
 				try {
 					it.close();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-
+					classLogger.error("Error occurred closing the traversal iterator while getting the number of rows", e);
 				}
 			}
 		}
@@ -238,7 +238,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		try {
 			close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred closing the gremlin traversal iterator during reset", e);
 		}
 		this.interp.reset();
 		this.baseIterator = this.interp.composeIterator();
@@ -252,6 +252,34 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	@Override
 	public SemossDataType[] getTypes() {
 		return this.types;
+	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public String getQuery() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+
+	@Override
+	public String flush() {
+		return null;
 	}
 
 	///////////////////////////////////////////////////////////////////
@@ -295,32 +323,4 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 //		it.execute();
 //		System.out.println(it.getNumRecords());
 //	}
-
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public String getQuery() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setEngine(IDatabaseEngine engine) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public boolean flushable() {
-		return false;
-	}
-
-	@Override
-	public String flush() {
-		return null;
-	}
 }

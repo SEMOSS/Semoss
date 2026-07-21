@@ -578,7 +578,9 @@ public class InsightUtility {
 						pixelRunner.addResult("CACHED_FRAME_HEADERS", new NounMetadata(frame.getFrameHeadersObject(),
 								PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS), true);
 					} catch (Exception e) {
-						classLogger.error("Failed to add the cached frame headers for variable {} while recreating the insight state", k, e);
+						classLogger.error(
+								"Failed to add the cached frame headers for variable {} while recreating the insight state",
+								k, e);
 						// ignore
 					}
 				}
@@ -755,7 +757,9 @@ public class InsightUtility {
 		// first, do a basic check
 		if (qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
 				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
-				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE
+				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			// it is not a hard query
 			// we need to make sure there is at least a selector
 			if (qs.getSelectors().isEmpty()) {
@@ -1288,7 +1292,8 @@ public class InsightUtility {
 							additionalMessages.add(warning);
 						} catch (Exception e1) {
 							// at this point - no luck :/
-							InsightUtility.classLogger.error("Failed to build the fallback grid task for panel {}", panelId, e);
+							InsightUtility.classLogger.error("Failed to build the fallback grid task for panel {}",
+									panelId, e);
 							additionalMessages.add(NounMetadata.getErrorNounMessage("Attemptingt to refresh panel id "
 									+ panelId + " but the underlying data creating the visualization no longer exists "
 									+ " or is now incompatible with the view. Displaying a grid of the data "
