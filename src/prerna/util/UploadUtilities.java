@@ -1380,7 +1380,7 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryGuardrailSmss(String engineId, String engineName, String className,
 			Map<String, Object> properties) throws IOException {
-		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.GUARDRAIL, engineId, engineName, className, properties);
 	}
 
 	/**

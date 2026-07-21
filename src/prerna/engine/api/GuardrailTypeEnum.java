@@ -30,12 +30,14 @@ package prerna.engine.api;
 import prerna.engine.impl.guardrail.DetoxifyGuardrailEngine;
 import prerna.engine.impl.guardrail.GLiNERGuardrailEngine;
 import prerna.engine.impl.guardrail.LocalPythonGuardrailReactorFunctionEngine;
+import prerna.engine.impl.guardrail.OnTopicGuardrailEngine;
 import prerna.engine.impl.guardrail.PromptInjectionGuardrailEngine;
 
 public enum GuardrailTypeEnum {
 
 	EMBEDDED_DETOXIFY("EMBEDDED_DETOXIFY", DetoxifyGuardrailEngine.class.getName()),
 	EMBEDDED_GLINER("EMBEDDED_GLINER", GLiNERGuardrailEngine.class.getName()),
+	EMBEDDED_ON_TOPIC("EMBEDDED_ON_TOPIC", OnTopicGuardrailEngine.class.getName()),
 	EMBEDDED_PROMPT_INJECTION("EMBEDDED_PROMPT_INJECTION", PromptInjectionGuardrailEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonGuardrailReactorFunctionEngine.class.getName());
 
