@@ -778,13 +778,17 @@ public class Room implements Serializable {
 						// Only strip the part when this call actually appended it; on the dedupe-reuse
 						// path the part pre-existed and must survive the failure.
 						if (appendedPartThisCall) {
-							toolResultsMessage.getParts().removeIf(p -> {
+							// getParts() returns a defensive copy, so removeIf on it wouldn't touch the
+							// message; strip on the copy and set it back so the part is actually dropped.
+							List<MessagePart> remainingParts = toolResultsMessage.getParts();
+							remainingParts.removeIf(p -> {
 								if (p instanceof ToolResultMessagePart) {
 									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
 									return tr != null && toolCallId.equals(tr.getToolCallId());
 								}
 								return false;
 							});
+							toolResultsMessage.setParts(remainingParts);
 							toolResultsMessage.normalizeForWrite();
 						}
 					} else {
