@@ -37,6 +37,9 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
@@ -46,14 +49,9 @@ import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 
 public class SQLiteFrame extends AbstractRdbmsFrame {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SQLiteFrame.class);
 
 	private String fileLocation;
@@ -66,70 +64,71 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	public SQLiteFrame(String tableName) {
 		super(tableName);
 	}
-	
+
 	public SQLiteFrame(String[] headers) {
 		super(headers);
 	}
-	
+
 	public SQLiteFrame(String[] headers, String[] types) {
 		super(headers, types);
 	}
-	
+
+	@Override
 	protected void initConnAndBuilder() throws Exception {
 		this.util = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.SQLITE);
 
 		String sessionId = ThreadStore.getSessionId();
 		String insightId = ThreadStore.getInsightId();
-		
+
 		String folderToUsePath = null;
-		if(sessionId != null && insightId != null) {
+		if (sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-			folderToUsePath = Utility.getInsightCacheDir() + 
-					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
-			this.fileNameToUse = "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".sqlite";
+			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + insightId;
+			this.fileNameToUse = "SQLite_Store_" + UUID.randomUUID().toString().toUpperCase().replace("-", "_")
+					+ ".sqlite";
 		} else {
-			folderToUsePath = Utility.getInsightCacheDir() + 
-					DIR_SEPARATOR + "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			folderToUsePath = Utility.getInsightCacheDir() + DIR_SEPARATOR + "SQLite_Store_"
+					+ UUID.randomUUID().toString().toUpperCase().replace("-", "_");
 			this.fileNameToUse = "database.sqlite";
 		}
-		
+
 		// create the location of the file if it doesn't exist
 		File folderToUse = new File(folderToUsePath);
-		if(!folderToUse.exists()) {
+		if (!folderToUse.exists()) {
 			folderToUse.mkdirs();
 		}
 
 		this.fileLocation = folderToUsePath + DIR_SEPARATOR + this.fileNameToUse;
 		File fileToUse = new File(this.fileLocation);
-		if(!fileToUse.exists()) {
+		if (!fileToUse.exists()) {
 			fileToUse.createNewFile();
 		}
-		
+
 		// build the connection url
 		// build the connection url
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
 		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
-		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.SQLITE, connectionUrl,  "", "");
-		
+		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.SQLITE, connectionUrl, "", "");
+
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
-		
+
 		this.builder.runQuery("PRAGMA synchronous = OFF");
 		this.builder.runQuery("PRAGMA journal_mode = MEMORY");
 	}
-	
+
 	@Override
 	public void close() {
 		super.close();
 		File f = new File(Utility.normalizePath(this.fileLocation));
-		if(f.exists()) {
+		if (f.exists()) {
 			f.delete();
 		}
 	}
-	
+
 	@Override
 	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
@@ -137,34 +136,34 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		String frameName = this.getName();
 		cf.setFrameName(frameName);
 
-		//save frame
+		// save frame
 		String frameFileName = Utility.normalizePath(folderDir + DIR_SEPARATOR + frameName + ".sqlite");
-		
+
 		String saveScript = "backup to '" + frameFileName + "'";
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
 			stmt.executeUpdate(saveScript);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to backup SQLite frame {} to {}", frameName, frameFileName, e);
 			throw new IOException("Error occurred attempting to cache SQL Frame");
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the statement after backing up SQLite frame {}", frameName, e);
 				}
 			}
 		}
-		
-		if(!new File(frameFileName).exists()) {
+
+		if (!new File(frameFileName).exists()) {
 			throw new IllegalArgumentException("Unable to save the SQLite frame");
 		}
-		if(new File(frameFileName).length() == 0){
+		if (new File(frameFileName).length() == 0) {
 			throw new IllegalArgumentException("Attempting to save an empty SQLite frame");
 		}
-		
+
 		cf.setFrameCacheLocation(frameFileName);
 		// also save the meta details
 		this.saveMeta(cf, folderDir, frameName, cipher);
@@ -173,7 +172,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 
 	@Override
 	public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
-		//set the frame name to that of the cached frame name
+		// set the frame name to that of the cached frame name
 		this.frameName = cf.getFrameName();
 
 		// load the frame
@@ -184,20 +183,21 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
-			stmt.executeUpdate("restore from '" +  filePath + "'");
+			stmt.executeUpdate("restore from '" + filePath + "'");
 		} catch (SQLException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to restore cached SQLite frame {} from {}", this.frameName, filePath, e1);
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the statement after restoring cached SQLite frame {}",
+							this.frameName, e);
 				}
 			}
 		}
-		
+
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
 	}

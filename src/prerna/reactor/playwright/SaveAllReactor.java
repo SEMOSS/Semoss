@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,6 +64,13 @@ public class SaveAllReactor extends AbstractReactor {
 		String title = this.keyValue.get(this.keysToGet[3]);
 		String desc = this.keyValue.get(this.keysToGet[4]);
 		String intent = this.keyValue.get(this.keysToGet[5]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
+		}
 
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
