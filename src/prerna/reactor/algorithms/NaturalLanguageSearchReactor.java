@@ -43,8 +43,6 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -108,7 +106,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String panelId = getPanelId();
 
 		// start logger
-		logger.info(stepCounter + ". Performing Natural Language Search");
+		logger.info("{}. Performing Natural Language Search", stepCounter);
 		stepCounter++;
 
 		// Check Packages
@@ -150,7 +148,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		query = buildNamedArray(query);
 		queryString = getQStringFromArray(query);
 
-		logger.info(stepCounter + ". Generating search results");
+		logger.info("{}. Generating search results", stepCounter);
 		stepCounter++;
 		List<Object[]> retData = generateAndRunScript(query, dbFilters, rSessionTable, rSessionJoinTable, global);
 
@@ -161,7 +159,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			return noun;
 		}
 
-		logger.info(stepCounter + ". Generating pixel return from results");
+		logger.info("{}. Generating pixel return from results", stepCounter);
 		stepCounter++;
 		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId,
 				queryString);
@@ -190,7 +188,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// read string into list
 		List<Map<String, Object>> optMap = new Vector<Map<String, Object>>();
-		optMap = new Gson().fromJson(query, optMap.getClass());
+		optMap = GSON.fromJson(query, optMap.getClass());
 		StringBuilder arrayRsb = new StringBuilder();
 		StringBuilder namesRsb = new StringBuilder();
 		String request = "request_" + Utility.getRandomString(6);
@@ -1101,18 +1099,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	}
 
 	private String getCleanFrameName(String queryString) {
-		queryString = queryString.replaceAll("<=", "less than or equal to");
-		queryString = queryString.replaceAll("- top", "offset_top");
-		queryString = queryString.replaceAll("- bottom", "offset_bottom");
-		queryString = queryString.replaceAll(">=", "greater than or equal to");
-		queryString = queryString.replaceAll("!=", "not equal to");
-		queryString = queryString.replaceAll("<", "less than");
-		queryString = queryString.replaceAll(">", "greater than");
-		queryString = queryString.replaceAll("=", "equals");
-		queryString = queryString.replaceAll(" ", "_");
-		queryString = queryString.replaceAll("-", "_");
-		queryString = queryString.replaceAll("/", "_");
-		queryString = queryString.replaceAll("\\\\", "_");
+		queryString = queryString.replace("<=", "less than or equal to");
+		queryString = queryString.replace("- top", "offset_top");
+		queryString = queryString.replace("- bottom", "offset_bottom");
+		queryString = queryString.replace(">=", "greater than or equal to");
+		queryString = queryString.replace("!=", "not equal to");
+		queryString = queryString.replace("<", "less than");
+		queryString = queryString.replace(">", "greater than");
+		queryString = queryString.replace("=", "equals");
+		queryString = queryString.replace(" ", "_");
+		queryString = queryString.replace("-", "_");
+		queryString = queryString.replace("/", "_");
+		queryString = queryString.replace("\\\\", "_");
 
 		return queryString;
 	}
@@ -1458,7 +1456,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// if its from the frame, then remove reference to the frame
 		String retString = psb.toString();
 		if (!global) {
-			retString = retString.replaceAll(this.getFrame().getName() + "__", "");
+			retString = retString.replace(this.getFrame().getName() + "__", "");
 		}
 
 		// return the pixel
@@ -1516,7 +1514,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// if this is being passed to the createviz reactor, need to remove frame name
 		if (replaceFrame) {
-			retString = retString.replaceAll(frameName + "__", "");
+			retString = retString.replace(frameName + "__", "");
 		}
 
 		return retString;

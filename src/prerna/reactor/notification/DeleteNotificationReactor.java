@@ -72,7 +72,11 @@ public class DeleteNotificationReactor extends AbstractReactor {
 		String recipientType = userIdAndTypeList.get(0).getValue1();
 		int deleteCount;
 		if (notificationId != null) {
-			deleteCount = NotificationDbUtils.deleteNotification(null, null, notificationId);
+			deleteCount = 0;
+			for (Pair<String, String> recipient : userIdAndTypeList) {
+				deleteCount += NotificationDbUtils.deleteNotification(recipient.getValue0(), recipient.getValue1(),
+						notificationId);
+			}
 		} else {
 			deleteCount = NotificationDbUtils.deleteNotification(recipientId, recipientType, null);
 		}

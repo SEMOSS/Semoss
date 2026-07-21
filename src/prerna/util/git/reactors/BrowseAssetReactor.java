@@ -75,7 +75,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
 			locFolder = assetFolder + "/" + Utility.normalizePath(keyValue.get(keysToGet[0]));
-			locFolder = locFolder.replaceAll("\\\\", "/");
+			locFolder = locFolder.replace("\\", "/");
 		}
 
 		// set the context here

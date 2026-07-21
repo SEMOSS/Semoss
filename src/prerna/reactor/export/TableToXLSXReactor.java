@@ -103,7 +103,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TableToXLSXReactor extends AbstractReactor {
@@ -298,7 +297,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 							}
 						}
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error loading the export template workbook", e);
 					}
 				} else {
 					wb = new XSSFWorkbook();
@@ -442,14 +441,14 @@ public class TableToXLSXReactor extends AbstractReactor {
 			exportMap.put("FILE_NAME", fileName);
 			return "Waiting for next command";
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Error generating the XLSX sheet from the HTML table", ex);
 		}
 //		} finally {
 //			if(wb != null) {
 //		          try {
 //		        	  wb.close();
 //		          } catch(IOException e) {
-//						classLogger.error(Constants.STACKTRACE, e);
+//						classLogger.error("Error closing the workbook", e);
 //		          }
 //		        }
 //		}
@@ -584,11 +583,11 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 
 		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error parsing the CSS style due to a malformed base URL", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error reading the CSS style", e);
 		} catch (CSSException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error parsing the CSS style", e);
 		}
 		return new List[] { names, values };
 	}
@@ -875,7 +874,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 					// Adding Custom formatting to handle the decimal places.
 					String fmt = "$#,##0";
 					String tempValue = value;
-					tempValue = tempValue.replaceAll(",", "");
+					tempValue = tempValue.replace(",", "");
 					int decimalPlaces = tempValue.lastIndexOf('.') > 0
 							? tempValue.length() - tempValue.lastIndexOf('.') - 1
 							: 0;
@@ -1059,9 +1058,9 @@ public class TableToXLSXReactor extends AbstractReactor {
 			FileOutputStream fileOut = new FileOutputStream(fileLocation);
 			wb.write(fileOut);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error opening the output file to write the workbook", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error writing the workbook to the output file", e);
 		}
 	}
 
@@ -1337,13 +1336,13 @@ public class TableToXLSXReactor extends AbstractReactor {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error executing the query to resolve placeholder {}", placeholderLabel, e);
 			} finally {
 				if (wrapper != null) {
 					try {
 						wrapper.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error closing the query result wrapper", e);
 					}
 				}
 			}

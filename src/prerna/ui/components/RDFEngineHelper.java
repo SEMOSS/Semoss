@@ -76,8 +76,7 @@ public class RDFEngineHelper {
 			GraphDataModel ps) {
 		String conceptHierarchyForSubject = "";
 
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			conceptHierarchyForSubject = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " + "{"
 					+ "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?Object}"
 					+ "{?Subject ?Predicate ?Object}" + "} BINDINGS ?Subject { " + subjects + objects + " } " + "";
@@ -102,8 +101,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " + "{"
 					+ "{?Subject ?Predicate ?Object}"
 					+ "{?Subject <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?Object}"
@@ -133,8 +131,7 @@ public class RDFEngineHelper {
 		// same concept as the subject, but only for relations
 		String relationHierarchy = "";
 
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			relationHierarchy = "CONSTRUCT { ?Subject ?Predicate ?Object} WHERE " + "{"
 					+ "{?Subject ?Predicate ?Object}" + "{?Subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
 					+ containsRelation + " }" + "} BINDINGS ?Subject { " + predicates + " } " + "";// relation hierarchy
@@ -165,8 +162,7 @@ public class RDFEngineHelper {
 			String predicates, String containsRelation, GraphDataModel ps) {
 
 		String propertyQuery = "";
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			propertyQuery = "CONSTRUCT { ?Subject ?Predicate ?Object . ?Predicate ?type ?contains} WHERE {"
 					+ "BIND(<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> AS ?type)" + "BIND(" + containsRelation
 					+ " as ?contains)" + "{?Predicate " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
@@ -393,8 +389,7 @@ public class RDFEngineHelper {
 		 * sjsc.setEngine(fromEngine); sjsc.setQuery(constructAllQuery); sjsc.execute();
 		 */
 
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			try {
 				toRC.add(((SesameConstructWrapper) sjsc).gqr); // abstraction leak
 				// TODO: Delete? Engine type is Sesame
@@ -431,8 +426,7 @@ public class RDFEngineHelper {
 		 * SesameJenaConstructWrapper sjsc = new SesameJenaConstructWrapper();
 		 * sjsc.setEngine(fromEngine); sjsc.setQuery(constructAllQuery); sjsc.execute();
 		 */
-		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-				|| fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
+		if (fromEngine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 			try {
 				toRC.remove(((SesameConstructWrapper) sjsc).gqr);
 			} catch (QueryEvaluationException e) {
@@ -441,7 +435,6 @@ public class RDFEngineHelper {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-
 	}
 
 	public static Hashtable<String, String> createBaseFilterHash(RepositoryConnection rcOWL)
