@@ -373,7 +373,14 @@ public class RemoteBrowserSessionManager {
 					if ("selected-text-context".equals(event.getType())) {
 						handleSelectedTextContext(session, event);
 					} else if (isRecordingControl(event)) {
-						RemoteBrowserRecordingService.record(session, event);
+						try {
+							RemoteBrowserRecordingService.record(session, event);
+							sendRecordingControlResult(session, event, true, null);
+						} catch (RuntimeException e) {
+							classLogger.error("Failed to update recording state for session={}",
+									session.getSessionId(), e);
+							sendRecordingControlResult(session, event, false, e.getMessage());
+						}
 					} else {
 						event.setTabId(session.getActiveTabId());
 						session.clearNewlyOpenedTab();
@@ -583,6 +590,25 @@ public class RemoteBrowserSessionManager {
 		payload.put("requestId", event.getRequestId());
 		payload.put("success", success);
 		payload.put("activeTabId", session.getActiveTabId());
+		if (error != null && !error.isBlank()) {
+			payload.put("error", error);
+		}
+		sender.send(LOOP_GSON.toJson(payload));
+	}
+
+	private void sendRecordingControlResult(RemoteBrowserSession session, RemoteBrowserInputEvent event,
+			boolean success, String error) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null) {
+			return;
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "recording-control-result");
+		payload.put("requestId", event.getRequestId());
+		payload.put("success", success);
 		if (error != null && !error.isBlank()) {
 			payload.put("error", error);
 		}

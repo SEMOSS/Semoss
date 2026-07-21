@@ -65,10 +65,16 @@ public class PlaywrightSessionUtility {
 		try {
 			Map<String, Object> response = new HashMap<String, Object>();
 
-			Page page = session.tabPages.get(tabId);
+			Page page = session.getPage(tabId);
 			long startTime = System.currentTimeMillis();
 			boolean pageChanged = false;
 			response.put("isNewTab", false);
+			if (page == null || page.isClosed()) {
+				response.put("status", "failed");
+				response.put("error", "Recorded tab " + tabId + " is not bound to an open browser page");
+				response.put("isPageChanged", false);
+				return response;
+			}
 			response.put("tabTitle", page.title());
 			try {
 				String urlBefore = page.url();

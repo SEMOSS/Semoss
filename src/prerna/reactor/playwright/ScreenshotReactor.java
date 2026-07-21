@@ -101,7 +101,7 @@ public class ScreenshotReactor extends AbstractReactor {
         playwrightSession.getOperationLock().lock();
 
 		try {
-			Page page = playwrightSession.tabPages.get(tabId);
+			Page page = requireOpenPage(playwrightSession, tabId);
 			waitForStablePage(page);
 			playwrightSession.refreshTrackedUrl(tabId);
 			byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
@@ -137,7 +137,7 @@ public class ScreenshotReactor extends AbstractReactor {
 
 
 		try {
-			Page page = playwrightSession.tabPages.get(tabId);
+			Page page = requireOpenPage(playwrightSession, tabId);
 			waitForStablePage(page);
 			playwrightSession.refreshTrackedUrl(tabId);
 			int x = Math.min(startX, endX);
@@ -153,6 +153,15 @@ public class ScreenshotReactor extends AbstractReactor {
 		} finally {
 			playwrightSession.getOperationLock().unlock();
 		}
+	}
+
+	private static Page requireOpenPage(PlaywrightSession playwrightSession, String tabId) {
+		Page page = playwrightSession.getPage(tabId);
+		if (page == null || page.isClosed()) {
+			throw new IllegalStateException(
+					"Recorded tab " + tabId + " is not bound to an open browser page");
+		}
+		return page;
 	}
 
 	/**

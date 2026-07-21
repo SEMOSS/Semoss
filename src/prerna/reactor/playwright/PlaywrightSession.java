@@ -714,7 +714,7 @@ public class PlaywrightSession {
 	 * @param tabId The ID of the tab.
 	 */
 	public void refreshTrackedUrl(String tabId) {
-		Page page = tabPages.get(tabId);
+		Page page = getPage(tabId);
 		if (page != null) {
 			try {
 				page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(1_000));
