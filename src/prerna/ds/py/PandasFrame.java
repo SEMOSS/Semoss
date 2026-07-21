@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -97,9 +98,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	public String sqliteConnectionName = null;
 
-	// list of caches
-	public List<Object> keyCache = new ArrayList<>();
-
 	static {
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
@@ -132,7 +130,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 //	public PandasFrame() {
 //		this(null);
-//	}
+//	} 
 
 	public PandasFrame(PyTranslator pyTranslator) {
 		this(null, pyTranslator);
@@ -632,7 +630,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
-		interp.setKeyCache(keyCache);
 		// I should also possibly set up pytranslator so I can run command for creating
 		// filter
 		interp.setPyTranslator(pyTranslator);
@@ -703,7 +700,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
-		interp.setKeyCache(keyCache);
 		// I should also possibly set up pytranslator so I can run command for creating
 		// filter
 		interp.setPyTranslator(pyTranslator);
@@ -720,15 +716,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@SuppressWarnings("unchecked")
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
-
 		String query = null;
 		// make it into a full frame
 		String targetFrame = Utility.getRandomString(6);
 
-		if (qs instanceof HardSelectQueryStruct) // this is a hard select query struct
-		{
+		if (qs instanceof HardSelectQueryStruct) {
 			// escape the quotes
-
 			String sql = ((HardSelectQueryStruct) qs).getQuery();
 			sql = sql.replace("\"", "\\\"");
 			boolean pandasImported = this.pyTranslator.getBoolean("'pd' in dir()");
@@ -736,9 +729,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 				this.pyTranslator.runEmptyPy("import pandas as pd");
 			}
 			String frameMaker = targetFrame + " = pd.read_sql(\"" + sql + "\", " + getSQLite() + ")";
-//			String loadsqlDF = "from pandasql import sqldf";
-//			this.pyt.runEmptyPy(loadsqlDF);
-//			query = targetFrame + "= sqldf('" + ((HardSelectQueryStruct)qs).getQuery() + "')";
 			this.pyTranslator.runEmptyPy(frameMaker);
 			query = targetFrame + ".to_dict('split')";
 		} else {
@@ -896,20 +886,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @return
 	 */
 	public Object runScript(String script) {
-		/*
-		 * py.command = script; Object monitor = py.getMonitor(); Object response =
-		 * null; synchronized(monitor) { try { monitor.notify(); monitor.wait(); } catch
-		 * (Exception ignored) {
-		 * 
-		 * } if(script.length == 1) { response = py.response.get(script[0]); } else {
-		 * response = py.response; } }
-		 * 
-		 * commands.add(script[0]); return response;
-		 */
-		// if(script.length == 1)
 		return pyTranslator.runScript(script);
-		// else
-		// return pyt.runScript(script);
 	}
 
 	@Override
@@ -952,12 +929,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// trying to write the pickle instead
 		frameFilePath = frameFilePath.replace("\\\\", "/");
 
-		/*
-		 * 
-		 * pyt.runScript("import pickle"); String command =
-		 * PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName,
-		 * frameFilePath); pyt.runScript(command);
-		 */
 		String[] commands = new String[] { "import pickle",
 				PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName, frameFilePath) };
 		pyTranslator.runEmptyPy(commands);
@@ -1006,24 +977,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	@Override
-	public void addRow(Object[] cleanCells, String[] headers) {
-	}
-
-	@Override
-	public void removeColumn(String columnHeader) {
-	}
-
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
-	}
-
 	/**
 	 * Recreate the metadata for this existing frame
 	 */
@@ -1069,7 +1022,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
-		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+		sql = StringEscapeUtils.unescapeHtml3(sql);
 
 		if (sql.startsWith("NLP:") || sql.startsWith("nlp:")) {
 			// convert this to sql
@@ -1169,7 +1122,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Object queryCSV(String sql) {
-		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+		sql = StringEscapeUtils.unescapeHtml3(sql);
 
 		if (sql.startsWith("NLP:") || sql.startsWith("nlp:")) {
 			// convert this to sql
@@ -1247,7 +1200,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// columns
 		// types
 		// data
-		sql = org.apache.commons.text.StringEscapeUtils.unescapeHtml3(sql);
+		sql = StringEscapeUtils.unescapeHtml3(sql);
 
 		if (sql.startsWith("NLP:") || sql.startsWith("nlp:")) {
 			// convert this to sql
@@ -1377,6 +1330,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 		sqlDFQuery = sqlDFQuery.replace("\n", " ");
 
 		return sqlDFQuery;
+	}
+
+	@Override
+	public void addRow(Object[] cleanCells, String[] headers) {
+	}
+
+	@Override
+	public void removeColumn(String columnHeader) {
+	}
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 }
