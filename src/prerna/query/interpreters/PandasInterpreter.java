@@ -223,7 +223,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggHash = new HashMap<>();
 		aggKeys = new ArrayList<>();
 		aggHash2 = new HashMap<>();
-		typesHash = new HashMap<>(); // EXPERIMENTING
+		typesHash = new HashMap<>();
 		orderHash = new HashMap<>();
 		aliasHash = new HashMap<>();
 		orderBy = new StringBuilder("");
@@ -268,13 +268,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if (!scalar && aggCriteria2.toString().isEmpty()) {
 				query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
 			}
-			// TODO: need to be more elegant than this
 			query.append(scalar ? "" : orderBy).append(addLimitOffset(start, end)).append(normalizer);
-			// .append(".fillna('')");
-			// TODO: NEED TO DISTINCT THE LIST RETURNED
-//				if(!scalar && !aggCriteria2.toString().isEmpty()) {
-//					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
-//				}
 		} else {
 			query = overrideQuery;
 			if (actHeaders != null && actHeaders.size() > 0) {
@@ -350,10 +344,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 */
 	private String addDistinct(boolean distinct) {
 		if (distinct) {
-			// try to find if there is more than 1 column
-//			if(orderHash.size() > 1)
-//				return "";
-//			else if(orderHash.size() == 1 && aggHash.size() == 0)
 			return ".drop_duplicates()";
 		}
 		return "";
@@ -484,9 +474,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				}
 			}
 		}
-
-		// if(!processed)
-		// orderBy = new StringBuilder("");
 	}
 
 	/**
@@ -698,7 +685,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// Add to functionMap. I need an example of this working, for processAgg and
 		// processDAte
 		functionMap.put(pandasFunction + columnName, selector.getAlias());
-
 		return "'" + alias.toString() + "'";
 	}
 
@@ -945,17 +931,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 * lead the result columns.
 	 */
 	private void processGroupSelector(QueryColumnSelector selector) {
-//		if(!processedSelector.containsKey(selector.getAlias())) {
-//			if(!aggHash.containsKey(selector.getTable()))
-		{
-			if (groupCriteria.length() == 0) {
-				groupCriteria.append(".groupby([");
-			} else {
-				groupCriteria.append(",");
-			}
-
-			groupCriteria.append("'").append(selector.getColumn()).append("'");
+		if (groupCriteria.length() == 0) {
+			groupCriteria.append(".groupby([");
+		} else {
+			groupCriteria.append(",");
 		}
+
+		groupCriteria.append("'").append(selector.getColumn()).append("'");
 
 		if (actHeaders.contains(selector.getColumn())) {
 			int index = actHeaders.indexOf(selector.getColumn());
@@ -971,7 +953,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			processedSelector.put(selector.getColumn(), Boolean.TRUE);
 			headers.add(selector.getColumn());
 		}
-//		}
 	}
 
 	/**
@@ -1295,7 +1276,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return createLambdaFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator),
 					tableName);
 		} else if (fType == FILTER_TYPE.COL_TO_COL) {
-			// TODO
+			// TODO: need to implement
 		} else if (fType == FILTER_TYPE.COL_TO_QUERY) {
 			return createSubqueryLambdaFilter(leftComp, rightComp, thisComparator, tableName);
 		} else if (fType == FILTER_TYPE.QUERY_TO_COL) {
@@ -1773,10 +1754,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
-
-		/*
-		 * Add the filter syntax here once we have the correct physical names
-		 */
 
 		String lSelector = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		String rSelector = processSelector(rightSelector, tableName, true, useAlias, useTable);
