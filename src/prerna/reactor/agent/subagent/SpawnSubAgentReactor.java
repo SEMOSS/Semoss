@@ -38,6 +38,8 @@ import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.AgentHarnessRegistry;
@@ -123,19 +125,22 @@ public class SpawnSubAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("Unknown harnessType: " + harnessType);
         }
 
+        // Pixel spawns run outside the in-flight harness prompt override, so the room
+        // exposes the clean authored system prompt directly.
+        Room parentRoom = RoomUtils.getOrLoadRoom(roomId, this.insight);
+
         SpawnRequest req = new SpawnRequest();
-        req.parentJobId       = ThreadStore.getJobId();
-        req.parentRoomId      = roomId;
-        req.alias             = alias;
-        req.workspaceId       = workspaceId;
-        req.prompt            = prompt;
-        req.additionalContext = context;
-        req.engine            = engine;
-        req.harnessType       = harnessType;
-        req.callerInsight     = this.insight;
+        req.parentJobId          = ThreadStore.getJobId();
+        req.parentRoomId         = roomId;
+        req.alias                = alias;
+        req.workspaceId          = workspaceId;
+        req.prompt               = prompt;
+        req.additionalContext    = context;
+        req.parentAuthoredSystemPrompt = parentRoom.getRoomOrWorkspaceSystemPrompt();
+        req.engine               = engine;
+        req.harnessType          = harnessType;
+        req.callerInsight        = this.insight;
         if (inheritParentWorkdir) {
-            prerna.engine.impl.model.Room parentRoom =
-                    prerna.engine.impl.model.RoomUtils.getOrLoadRoom(roomId, this.insight);
             Object wd = parentRoom.getOptionsMap() != null
                     ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
                     : null;

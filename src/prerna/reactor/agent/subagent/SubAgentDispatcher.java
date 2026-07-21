@@ -72,18 +72,27 @@ public final class SubAgentDispatcher {
      */
     public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args,
             Room parentRoom, Insight callerInsight) {
-        return spawnNamed(spec, args, parentRoom, callerInsight, null);
+        return spawnNamed(spec, args, parentRoom, callerInsight, null,
+                parentRoom.getRoomOrWorkspaceSystemPrompt());
     }
 
     /**
-     * Spawn a named subagent with an explicit parent jobId. Prefer this overload
-     * when the call originates from inside the harness's parallel tool pool -
-     * the worker threads have a fresh empty {@link ThreadStore} so a fallback to
-     * {@code ThreadStore.getJobId()} would yield null and silently skip the
-     * parent-stream {@code subagent-spawned} envelope.
+     * Spawn a named subagent with an explicit parent jobId when the parent room's
+     * instructions are stable. In-flight harness callers must use the overload that
+     * also accepts {@code parentAuthoredSystemPrompt}.
      */
     public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args,
             Room parentRoom, Insight callerInsight, String parentJobId) {
+        return spawnNamed(spec, args, parentRoom, callerInsight, parentJobId,
+                parentRoom.getRoomOrWorkspaceSystemPrompt());
+    }
+
+    /**
+     * Harness-safe named spawn. The caller supplies the parent's authored system prompt
+     * because the live room may temporarily contain a composed runtime prompt.
+     */
+    public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args,
+            Room parentRoom, Insight callerInsight, String parentJobId, String parentAuthoredSystemPrompt) {
         String prompt  = stringArg(args, "prompt");
         String context = stringArg(args, "context");
         boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
@@ -93,15 +102,16 @@ public final class SubAgentDispatcher {
         }
 
         SpawnRequest req = new SpawnRequest();
-        req.parentJobId       = resolveParentJobId(parentJobId);
+        req.parentJobId          = resolveParentJobId(parentJobId);
         logger.info("SubAgentDispatcher.spawnNamed: alias={} parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
                 spec.getAlias(), req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
-        req.parentRoomId      = parentRoom.getId();
-        req.alias             = spec.getAlias();
-        req.workspaceId       = spec.getWorkspaceId();
-        req.prompt            = prompt;
-        req.additionalContext = context;
-        req.callerInsight     = callerInsight;
+        req.parentRoomId         = parentRoom.getId();
+        req.alias                = spec.getAlias();
+        req.workspaceId          = spec.getWorkspaceId();
+        req.prompt               = prompt;
+        req.additionalContext    = context;
+        req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
+        req.callerInsight        = callerInsight;
         if (inheritParentWorkdir) {
             Object wd = parentRoom.getOptionsMap() != null
                     ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
@@ -120,15 +130,27 @@ public final class SubAgentDispatcher {
      * {@link #spawnNamed} with {@code alias=null}.
      */
     public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight) {
-        return spawnAnonymous(args, parentRoom, callerInsight, null);
+        return spawnAnonymous(args, parentRoom, callerInsight, null,
+                parentRoom.getRoomOrWorkspaceSystemPrompt());
     }
 
     /**
-     * Anonymous spawn with explicit parent jobId - same rationale as
-     * {@link #spawnNamed(SubAgentSpec, Map, Room, Insight, String)}.
+     * Anonymous spawn with an explicit parent jobId when the parent room's
+     * instructions are stable. In-flight harness callers must use the overload that
+     * also accepts {@code parentAuthoredSystemPrompt}.
      */
     public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight,
             String parentJobId) {
+        return spawnAnonymous(args, parentRoom, callerInsight, parentJobId,
+                parentRoom.getRoomOrWorkspaceSystemPrompt());
+    }
+
+    /**
+     * Harness-safe anonymous spawn. The caller supplies the parent's authored system prompt
+     * because the live room may temporarily contain a composed runtime prompt.
+     */
+    public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight,
+            String parentJobId, String parentAuthoredSystemPrompt) {
         String prompt  = stringArg(args, "prompt");
         String context = stringArg(args, "context");
         boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
@@ -137,15 +159,16 @@ public final class SubAgentDispatcher {
         }
 
         SpawnRequest req = new SpawnRequest();
-        req.parentJobId       = resolveParentJobId(parentJobId);
+        req.parentJobId          = resolveParentJobId(parentJobId);
         logger.info("SubAgentDispatcher.spawnAnonymous: parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
                 req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
-        req.parentRoomId      = parentRoom.getId();
-        req.alias             = null;
-        req.workspaceId       = null;
-        req.prompt            = prompt;
-        req.additionalContext = context;
-        req.callerInsight     = callerInsight;
+        req.parentRoomId         = parentRoom.getId();
+        req.alias                = null;
+        req.workspaceId          = null;
+        req.prompt               = prompt;
+        req.additionalContext    = context;
+        req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
+        req.callerInsight        = callerInsight;
         if (inheritParentWorkdir) {
             Object wd = parentRoom.getOptionsMap() != null
                     ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)

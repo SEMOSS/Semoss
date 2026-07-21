@@ -42,7 +42,6 @@ public class OpSumIfs extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-
 		int rowSize = this.curRow.size();
 		double sumIfsVal = 0;
 		boolean isInteger = false;
@@ -81,14 +80,14 @@ public class OpSumIfs extends OpBasic {
 
 			// get index list for each criteria
 			for (int i = 0; i < criteriaObjList.size(); i++) {
-				if (((Object) criteriaObjList.get(i)) != null) {
-					if (((Object) criteriaObjList.get(i)) instanceof Integer) {
+				if ((criteriaObjList.get(i)) != null) {
+					if ((criteriaObjList.get(i)) instanceof Integer) {
 						isInteger = true;
-					} else if (((Object) criteriaObjList.get(i)) instanceof String) {
+					} else if ((criteriaObjList.get(i)) instanceof String) {
 						isInteger = false;
 					}
 				}
-				criteria = ((Object) criteriaObjList.get(i)).toString();
+				criteria = criteriaObjList.get(i).toString();
 
 				if (criteria.contains(">=")) {
 					criteria = criteria.replace(">=", "").trim();
@@ -126,7 +125,7 @@ public class OpSumIfs extends OpBasic {
 
 				List<Object> criteriaRangeList = new ArrayList<Object>();
 
-				for (Object obj : (Object[]) criteriaRangeObjLists.get(i)) {
+				for (Object obj : criteriaRangeObjLists.get(i)) {
 					criteriaRangeList.add(obj);
 				}
 				// Integer criteria
@@ -157,7 +156,6 @@ public class OpSumIfs extends OpBasic {
 			}
 		}
 		NounMetadata sumIfsValue = new NounMetadata(sumIfsVal, PixelDataType.CONST_DECIMAL);
-		System.out.println("sumIfsValue..." + sumIfsVal);
 		return sumIfsValue;
 	}
 
@@ -186,7 +184,7 @@ public class OpSumIfs extends OpBasic {
 
 		List<String> strArrlist = criteriaRangeList.stream().map(object -> Objects.toString(object, null))
 				.collect(Collectors.toList());
-		criteria = criteria.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
+		criteria = criteria.replace("*", "\\w*").replace("?", "\\w?");
 		for (int j = 0; j < strArrlist.size(); j++) {
 			if (strArrlist.get(j).matches(criteria) || strArrlist.get(j).equalsIgnoreCase(criteria)) {
 				indexMatchList.add(j);
@@ -235,7 +233,6 @@ public class OpSumIfs extends OpBasic {
 
 	@Override
 	public String getReturnType() {
-		// TODO Auto-generated method stub
 		return "double";
 	}
 
