@@ -523,26 +523,24 @@ public class RemoteBrowserSessionManager {
 	}
 
 	/**
-	 * Closes the viewer and disposes its user-owned Playwright session, including
-	 * every tracked browser tab. Use this for explicit user completion; internal
-	 * viewer replacement and TTL cleanup continue to preserve reusable pages.
+	 * Finishes an explicit viewer interaction and clears its tabs without disposing
+	 * the user-owned PlaywrightSession or shared BrowserContext.
 	 */
-	public void disposeSession(String sessionId) {
-		disposeSession(sessions.get(sessionId));
+	public void finishSession(String sessionId) {
+		finishSession(sessions.get(sessionId));
 	}
 
-	public void disposeSession(RemoteBrowserSession session) {
+	public void finishSession(RemoteBrowserSession session) {
 		if (session == null) {
 			return;
 		}
 		closeSession(session);
-		userRemoteSessionIds.remove(session.getUserId(), session.getSessionId());
 		PlaywrightSession playwrightSession = session.getPlaywrightSession();
 		playwrightSession.getOperationLock().lock();
 		try {
-			playwrightSession.close();
+			playwrightSession.resetPagesForNewViewer();
 		} catch (RuntimeException e) {
-			classLogger.warn("Failed to dispose Playwright session {}: {}", session.getSessionId(), e.getMessage());
+			classLogger.warn("Failed to reset pages for Playwright session {}: {}", session.getSessionId(), e.getMessage());
 		} finally {
 			playwrightSession.getOperationLock().unlock();
 		}

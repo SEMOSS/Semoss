@@ -442,6 +442,52 @@ public class PlaywrightSession {
 	}
 
 	/**
+	 * Replaces every tracked page with a fresh root page while retaining this
+	 * session's BrowserContext and user registration. Viewer completion uses this
+	 * to clear tabs without clearing cookies or context-level cache.
+	 *
+	 * @return the fresh root page registered as {@code tab-1}
+	 */
+	public synchronized Page resetPagesForNewViewer() {
+		if (closed) {
+			throw new IllegalStateException("Cannot reset a closed Playwright session");
+		}
+
+		Page replacementPage = CTX.newPage();
+		List<Page> pagesToClose = new ArrayList<>(tabPages.values());
+
+		tabPages.clear();
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+		replayTabBindingActive = false;
+		tabNetworkTrackers.clear();
+		parentChildMap.clear();
+		tabCurrentPageIndex.clear();
+		tabCurrentStepIndex.clear();
+		history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
+		isLastPage = false;
+		lastStepId = 0;
+
+		tabPages.put("tab-1", replacementPage);
+		history.steps().put("tab-1", new ArrayList<List<PlaywrightStep>>());
+		tabCurrentPageIndex.put("tab-1", 0);
+		tabCurrentStepIndex.put("tab-1", 0);
+		attachNetworkListeners("tab-1", replacementPage);
+
+		for (Page page : pagesToClose) {
+			try {
+				if (page != null && page != replacementPage && !page.isClosed()) {
+					page.close();
+				}
+			} catch (Exception e) {
+				classLogger.warn("Error closing page during viewer reset", e);
+			}
+		}
+
+		return replacementPage;
+	}
+
+	/**
 	 * Schedules the session to expire after a specified number of minutes. When
 	 * expired, the session will be closed.
 	 * 
@@ -472,8 +518,9 @@ public class PlaywrightSession {
 	}
 
 	/**
-	 * Closes the Playwright session, including all open pages and the browser
-	 * context. Also removes the session from the user's active sessions.
+	 * Closes the Playwright session and all of its pages, then removes it from the
+	 * user's active sessions. The shared BrowserContext remains user-owned and is
+	 * closed separately during logout or deliberate user cleanup.
 	 */
 	public void close() {
 		if (closed) {
