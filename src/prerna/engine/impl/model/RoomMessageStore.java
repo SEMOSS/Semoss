@@ -252,8 +252,8 @@ public final class RoomMessageStore {
 			}
 			if (!messageIds.contains(parentMessageId)) {
 				String roomId = room != null ? room.getId() : "<unknown>";
-				throw new IllegalStateException("Room " + roomId + " message parent does not exist: "
-						+ parentMessageId);
+				throw new IllegalStateException(
+						"Room " + roomId + " message parent does not exist: " + parentMessageId);
 			}
 		}
 	}
@@ -282,8 +282,8 @@ public final class RoomMessageStore {
 		if (!toolCallIds.containsAll(toolResultIds)) {
 			Set<String> unmatched = new HashSet<>(toolResultIds);
 			unmatched.removeAll(toolCallIds);
-			throw new IllegalStateException("Room message payload contains tool results without tool calls: "
-					+ unmatched);
+			throw new IllegalStateException(
+					"Room message payload contains tool results without tool calls: " + unmatched);
 		}
 		if (!toolResultIds.containsAll(toolCallIds)) {
 			Set<String> unmatched = new HashSet<>(toolCallIds);
@@ -384,7 +384,7 @@ public final class RoomMessageStore {
 			if (client != null && cacheKey.equals(cachedRedisClientKey)) {
 				return client;
 			}
-			RoomMessageRedisClient next = new RoomMessageRedisClient(RedisConnectionFactory.getPool(config));
+			RoomMessageRedisClient next = new RoomMessageRedisClient(RedisConnectionFactory.getClient(config));
 			cachedRedisClient = next;
 			cachedRedisClientKey = cacheKey;
 			return next;

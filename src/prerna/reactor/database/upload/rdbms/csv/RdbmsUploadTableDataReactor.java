@@ -101,6 +101,12 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 	 * @param filePath
 	 */
 	@Override
+	public String getReactorDescription() {
+		return "Uploads a delimited file (CSV, TSV, etc.) to create a new relational (RDBMS) database or append to an existing one as a single flat table. "
+				+ "When adding to an existing database, it first tries to insert into a matching table before creating a new one.";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do 1) make directory 2) make owl 3) make temporary smss 4)
@@ -145,29 +151,29 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		// start by validation
 		int stepCounter = 1;
 		logger.info("Generate new database database");
-		logger.info(stepCounter + ". Create metadata for database...");
+		logger.info("{}. Create metadata for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create properties file for database...");
+		logger.info("{}. Create properties file for database...", stepCounter);
 		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create database store...");
+		logger.info("{}. Create database store...", stepCounter);
 		this.database = new RDBMSNativeEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		Properties smssProps = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		smssProps.put("TEMP", true);
 		this.database.open(smssProps);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start loading data..");
+		logger.info("{}. Start loading data..", stepCounter);
 		logger.info("Parsing file metadata...");
 
 		// if user defines unique column name set that if not generate one
@@ -198,10 +204,10 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		logger.info("Done create table");
 		bulkInsertFile(this.database, this.helper, tableName, headers, types, additionalTypes, clean);
 		RdbmsUploadReactorUtility.addIndex((IRDBMSEngine) this.database, tableName, uniqueRowId);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating database metadata");
+		logger.info("{}. Start generating database metadata", stepCounter);
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes,
 				additionalTypes);
@@ -210,7 +216,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 	}
 
@@ -234,26 +240,26 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Parsing file metadata...");
+		logger.info("{}. Parsing file metadata...", stepCounter);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		logger.info(stepCounter + ". Done parsing file metadata");
+		logger.info("{}. Done parsing file metadata", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Get existing database schema...");
+		logger.info("{}. Get existing database schema...", stepCounter);
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper
 				.getExistingRDBMSStructure(this.database);
-		logger.info(stepCounter + ". Done getting existing database schema");
+		logger.info("{}. Done getting existing database schema", stepCounter);
 		stepCounter++;
 
 		logger.info("Determine if we can add into an existing table or make new table...");
 		String tableToInsertInto = determineExistingTableToInsert(existingRDBMSStructure, headers, types);
 		if (tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
-			logger.info(stepCounter + ". Create table...");
+			logger.info("{}. Create table...", stepCounter);
 
 			String fileName = FilenameUtils.getBaseName(filePath);
 			if (fileName.contains("_____UNIQUE")) {
@@ -279,10 +285,10 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			logger.info("Done create table");
 			bulkInsertFile(this.database, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 			RdbmsUploadReactorUtility.addIndex((IRDBMSEngine) this.database, tableToInsertInto, uniqueRowId);
-			logger.info(stepCounter + ". Complete");
+			logger.info("{}. Complete", stepCounter);
 			stepCounter++;
 
-			logger.info(stepCounter + ". Start generating database metadata...");
+			logger.info("{}. Start generating database metadata...", stepCounter);
 			WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 			RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableToInsertInto, uniqueRowId, headers,
 					sqlTypes, additionalTypes);
@@ -292,12 +298,12 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			owlEngine.commit();
 			owlEngine.export();
 			owlEngine.close();
-			logger.info(stepCounter + ". Complete");
+			logger.info("{}. Complete", stepCounter);
 			stepCounter++;
 
 		} else {
-			logger.info("Found table " + Utility.cleanLogString(tableToInsertInto)
-					+ " that holds similar data! Will insert into this table");
+			logger.info("Found table {} that holds similar data! Will insert into this table",
+					Utility.cleanLogString(tableToInsertInto));
 			bulkInsertFile(this.database, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 		}
 	}
@@ -465,7 +471,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
-					logger.info("Done inserting " + count + " number of rows");
+					logger.info("Done inserting {} number of rows", count);
 					ps.executeBatch();
 				}
 			}
@@ -473,7 +479,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			// well, we are done looping through now
 			ps.executeBatch(); // insert any remaining records
 			logger.info("Finished");
-			logger.info("Completed " + count + " number of rows");
+			logger.info("Completed {} number of rows", count);
 			ps.close();
 		} catch (SQLException e) {
 			classLogger.error("Error occurred while bulk inserting CSV data into table '{}': {}", TABLE_NAME,
