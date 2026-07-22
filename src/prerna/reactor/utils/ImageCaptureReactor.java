@@ -33,6 +33,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -74,7 +75,15 @@ public class ImageCaptureReactor extends AbstractReactor {
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
 		String param = this.keyValue.get(this.keysToGet[2]);
 		String sessionId = ThreadStore.getSessionId();
-		
+		if (projectId == null || projectId.trim().isEmpty()) {
+			throw new IllegalArgumentException("Project is required.");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId.trim());
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to edit the project.");
+		}
+
 		Integer waitTime = null;
 		String waitTimeStr = this.keyValue.get(this.keysToGet[3]);
 		if(waitTimeStr != null && (waitTimeStr=waitTimeStr.trim()).isEmpty()) {
