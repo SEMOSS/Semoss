@@ -149,8 +149,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 					String[] labelsSplit = labels.split(",");
 					List<String> labelsList = Arrays.asList(labelsSplit);
 					for (int j = 0; j < labelsList.size(); j++) {
-						String jLabel = "'" + labelsList.get(j).replaceAll("\"", "").trim().replaceAll("\\s", "_")
-								+ "'";
+						String jLabel = "'" + labelsList.get(j).replace("\"", "").trim().replaceAll("\\s", "_") + "'";
 						labelsList.set(j, jLabel);
 					}
 					labels = String.join(",", labelsList);

@@ -379,12 +379,14 @@ public class NotificationDbUtils {
 		if (notificationId != null) {
 			conditions.add("NOTIFICATIONID = ?");
 			parameters.add(notificationId);
-		} else if (recipientId != null && recipientType != null) {
+		}
+		if (recipientId != null && recipientType != null) {
 			conditions.add("RECIPIENTID = ?");
 			parameters.add(recipientId);
 			conditions.add("RECIPIENTTYPE = ?");
 			parameters.add(recipientType);
-		} else {
+		}
+		if (conditions.isEmpty()) {
 			return 0; // nothing to delete
 		}
 
@@ -451,18 +453,24 @@ public class NotificationDbUtils {
 	/**
 	 * Marks a notification as read and updates the read date.
 	 *
+	 * @param recipientId    -the notification recipient ID
+	 * @param recipientType  -the notification recipient type
 	 * @param notificationId -the ID of the notification
 	 * @param readDate       -the timestamp when the notification was read
 	 */
-	public static void markNotificationRead(String notificationId, Timestamp readDate) {
+	public static void markNotificationRead(String recipientId, String recipientType, String notificationId,
+			Timestamp readDate) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=? WHERE NOTIFICATIONID=?";
+		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=?"
+				+ " WHERE NOTIFICATIONID=? AND RECIPIENTID=? AND RECIPIENTTYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = notificationDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setTimestamp(parameterIndex++, readDate);
 			ps.setString(parameterIndex++, notificationId);
+			ps.setString(parameterIndex++, recipientId);
+			ps.setString(parameterIndex++, recipientType);
 			ps.executeUpdate();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
