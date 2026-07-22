@@ -905,7 +905,6 @@ public class SmssUtilities {
 						if (allUpperCurrentSmss.get(key) != null) {
 							value = allUpperCurrentSmss.get(key);
 						}
-						// re-escape: value was de-escaped by Properties.load, so a raw write corrupts \n in keys
 						constructedSmssContent.append(key).append("\t")
 								.append(StringEscapeUtils.escapeJava(value.toString()));
 					} else {
