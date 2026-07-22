@@ -1053,7 +1053,6 @@ public class Constants {
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
 	// system (platform) skill names
-	public static final String SKILL_AGENT_MEMORY = "agent-memory";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
@@ -1061,4 +1060,12 @@ public class Constants {
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
 	public static final String SKILL_VECTOR = "vector";
+
+	// system (platform) mcp names
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
+
+	// system (platform) agent (workspace) names
+	public static final String AGENT_APP_BUILDER = "app-builder";
 }

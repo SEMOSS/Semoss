@@ -1062,16 +1062,16 @@ public class RSyntaxHelper {
 					// if character is a single quote (SQ), then need to properly parse to the
 					// nearest closing single quote
 					if (substr.equals("''")) {
-						rFormat += substr.replaceAll("''", "'");
+						rFormat += substr.replace("''", "'");
 						i = lastIndxSubstr;
 						continue;
 					}
-					String substr_trimmed = substr.substring(1, substr.length() - 1).replaceAll("''", "");
+					String substr_trimmed = substr.substring(1, substr.length() - 1).replace("''", "");
 					int nextSQIndx = substr_trimmed.indexOf("'");
 					int multiSQIndx = substr.substring(1, substr.length() - 1).indexOf("''");
 					if (nextSQIndx > 0) {
 						if (multiSQIndx > 0 && multiSQIndx < nextSQIndx) {
-							rFormat += substr.substring(1, nextSQIndx + 3).replaceAll("''", "'");
+							rFormat += substr.substring(1, nextSQIndx + 3).replace("''", "'");
 							i = substr.substring(1, nextSQIndx + 3).length() + i + 1;
 							continue;
 						} else {
@@ -1080,7 +1080,7 @@ public class RSyntaxHelper {
 							continue;
 						}
 					} else {
-						rFormat += substr.substring(1, substr.length() - 1).replaceAll("''", "'");
+						rFormat += substr.substring(1, substr.length() - 1).replace("''", "'");
 					}
 				} else {
 					// check if there are any other characters in the substr other than the
@@ -1111,7 +1111,7 @@ public class RSyntaxHelper {
 						optionsMiliSeconds = Integer.toString(substr.length());
 						// for second, need to check for millisecond to properly translate to R syntax
 						if (rFormat.indexOf("%S") > 1) {
-							rFormat = rFormat.replaceAll("%S", "%OS");
+							rFormat = rFormat.replace("%S", "%OS");
 							rFormat = rFormat.substring(0, rFormat.indexOf("%OS") + 3);
 						} else {
 							throw new RuntimeException(
