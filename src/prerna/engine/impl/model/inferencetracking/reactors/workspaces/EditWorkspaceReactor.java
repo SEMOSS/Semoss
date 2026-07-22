@@ -45,6 +45,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.SystemDefaultEngines;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
@@ -67,6 +68,11 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		String workspaceDescription = this.keyValue.get(DESCRIPTION);
 		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
+
+		if (SystemDefaultEngines.getSystemAgents().contains(workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " is a built-in system agent and cannot be edited");
+		}
 
 		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
 		if (current == null) {
