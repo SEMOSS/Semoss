@@ -124,6 +124,8 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_512;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
+import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_1000;
+import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_2000;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,6 +134,7 @@ import org.javatuples.Pair;
 
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.reactor.automation.AutomationConstants;
 
 public class SchedulerOwlCreator extends AbstractOwlCreator {
 
@@ -275,6 +278,61 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(EXEC_ID, VARCHAR_200),
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
+
+		// AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS, AUTOMATION_FOREACH_ROWS - table/column DDL
+		// (CREATE TABLE, primary keys, indexes, addColumnIfNotExists migrations) is owned by
+		// AutomationDatabaseUtility.initialize() (called by SMSSWebWatcher), not this class - but
+		// every column must still be declared here too, or SelectQueryStruct-based reads against
+		// these tables fail with a NullPointerException resolving the conceptual->physical column
+		// name (AbstractSqlQueryUtil.isSelectorKeyword gets a null "selector" argument), since this
+		// OWL creator is this engine's only source of table/column metadata - there is no live
+		// schema-introspection fallback. Keep this column list in sync with AutomationDatabaseUtility's
+		// CREATE TABLE statements; needsRemake()/remakeOwl() automatically pick up any column added
+		// here on the next server startup, no manual OWL file deletion required.
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUNS, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.PROJECT_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.AUTOMATION_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.STATUS, VARCHAR_200),
+				Pair.with(AutomationConstants.TRIGGER_TYPE, VARCHAR_200),
+				Pair.with(AutomationConstants.RESUMED_FROM_RUN, VARCHAR_255),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.FAILED_NODE_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB),
+				Pair.with(AutomationConstants.LAST_HEARTBEAT, TIMESTAMP),
+				Pair.with(AutomationConstants.TOTAL_NODES, INTEGER),
+				Pair.with(AutomationConstants.COMPLETED_NODES, INTEGER),
+				Pair.with(AutomationConstants.CREATED_BY, VARCHAR_255),
+				Pair.with(AutomationConstants.PARENT_RUN_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.PARENT_NODE_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_LABEL, VARCHAR_512),
+				Pair.with(AutomationConstants.EXECUTION_ORDER, INTEGER),
+				Pair.with(AutomationConstants.STATUS, VARCHAR_200),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.DURATION_MS, BIGINT),
+				Pair.with(AutomationConstants.OUTPUT_VAR, VARCHAR_255),
+				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB),
+				Pair.with(AutomationConstants.OUTPUT_PREVIEW, VARCHAR_2000),
+				Pair.with(AutomationConstants.ROW_COUNT, INTEGER),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_FOREACH_ROWS, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, VARCHAR_255),
+				Pair.with(AutomationConstants.ROW_INDEX, INTEGER),
+				Pair.with(AutomationConstants.ROW_KEY, VARCHAR_1000),
+				Pair.with(AutomationConstants.STATUS, VARCHAR_200),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.DURATION_MS, BIGINT),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
 		// @formatter:on
 	}
 

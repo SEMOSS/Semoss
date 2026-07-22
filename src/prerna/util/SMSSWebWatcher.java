@@ -48,6 +48,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.automation.AutomationDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -215,6 +216,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SchedulerDatabaseUtility.startServer();
 				} catch (Exception e) {
 					classLogger.error("Failed to load and start the scheduler database", e);
+				}
+
+				try {
+					AutomationDatabaseUtility.initialize();
+					AutomationDatabaseUtility.markStaleRunsInterrupted();
+				} catch (Exception e) {
+					classLogger.error("Failed to initialize automation engine tables", e);
 				}
 			}
 		}
