@@ -555,8 +555,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		if (pipelineJson == null || pipelineJson.isBlank()) {
 			return;
 		}
+
 		JSONObject root = new JSONObject(pipelineJson);
-		JSONObject pipelines = root.getJSONObject("pipelines");
+		JSONObject pipelines = root.optJSONObject("pipelines");
+		if (pipelines == null) {
+			// Allow no/invalid pipelines object as an empty interceptor configuration.
+			return;
+		}
 
 		for (String methodName : pipelines.keySet()) {
 			JSONObject pipelineConfig = pipelines.getJSONObject(methodName);
