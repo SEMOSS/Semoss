@@ -478,7 +478,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					ConnectionUtils.closeAllConnections(null, statement, resultSet);
 				}
 				if (queryT != null) {
-					new Thread(queryT).start();
+					Thread.ofVirtual().start(queryT);
 				}
 			}
 		}
@@ -576,7 +576,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			throw e;
 		} finally {
 			if (queryT != null) {
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 	}
@@ -623,7 +623,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			throw e;
 		} finally {
 			if (queryT != null) {
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 	}

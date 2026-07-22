@@ -51,6 +51,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -89,8 +90,8 @@ public class ClientProcessWrapper {
 	private static final long SOCKET_CLIENT_READY_WAIT_INTERVAL_MS = 1_000L;
 	private static final long SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS = 60_000L;
 
-	private final Object lockCreate = new Object();
-	private final Object lockDestroy = new Object();
+	private final ReentrantLock lockCreate = new ReentrantLock();
+	private final ReentrantLock lockDestroy = new ReentrantLock();
 
 	private SocketClient socketClient;
 	private Process process;
@@ -179,7 +180,8 @@ public class ClientProcessWrapper {
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
 			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
 			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
-		synchronized (lockCreate) {
+		lockCreate.lock();
+		try {
 			this.nativePyServer = nativePyServer;
 			this.chrootSymlinkHelper = chrootSymlinkHelper;
 			this.classPath = classPath;
@@ -303,26 +305,8 @@ public class ClientProcessWrapper {
 				}
 				Thread t = new Thread(socketClient);
 				t.start();
-				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;
-				synchronized (socketClient) {
-					while (!socketClient.isReady() && !socketClient.isKillAll()) {
-						long remainingWaitMillis = waitDeadline - System.currentTimeMillis();
-						if (remainingWaitMillis <= 0) {
-							throw new IllegalArgumentException(
-									"Timed out waiting for isolated analytics engine socket client to become ready");
-						}
-						try {
-							socketClient.wait(Math.min(SOCKET_CLIENT_READY_WAIT_INTERVAL_MS, remainingWaitMillis));
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							classLogger.error("Interrupted while waiting for socket client readiness", e);
-							throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
-						}
-					}
-				}
-				if (socketClient.isKillAll()) {
-					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-				}
+				socketClient.awaitReadyOrKill(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS,
+						SOCKET_CLIENT_READY_WAIT_INTERVAL_MS);
 				classLogger.info("Setting the socket client ");
 			} catch (Exception e) {
 				if (debug) {
@@ -333,6 +317,8 @@ public class ClientProcessWrapper {
 						this.port, e);
 				throw e;
 			}
+		} finally {
+			lockCreate.unlock();
 		}
 	}
 
@@ -346,7 +332,8 @@ public class ClientProcessWrapper {
 	 *                      directory and any namespace-sandbox folders
 	 */
 	public void shutdown(boolean cleanUpFolder) {
-		synchronized (lockDestroy) {
+		lockDestroy.lock();
+		try {
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -398,6 +385,8 @@ public class ClientProcessWrapper {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
 				}
 			}
+		} finally {
+			lockDestroy.unlock();
 		}
 		if (this.port > 0) {
 			if (!PortAllocator.isPortAvailable(this.port)) {

@@ -29,6 +29,7 @@ package prerna.engine.impl.guardrail;
 
 import java.io.File;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -57,6 +58,7 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 	protected File cacheFolder;
 	protected ClientProcessWrapper cpw = null;
 	protected PyTranslator pyTranslator = null;
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -83,89 +85,94 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 		}
 	}
 
-	protected synchronized void startServer(int port) {
-		// already created by another thread
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
+	protected void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// already created by another thread
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
 
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way
-		// than the command
+			// spin the server
+			// start the client
+			// get the startup command and parameters - at some point we need a better way
+			// than the command
 
-		// execute all the basic commands
-		if (!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
-		}
+			// execute all the basic commands
+			if (!this.cacheFolder.exists()) {
+				this.cacheFolder.mkdirs();
+			}
 
-		// check if we have already created a process wrapper
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
+			// check if we have already created a process wrapper
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
+			String timeout = "30";
+			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			}
 
-		boolean debug = false;
+			boolean debug = false;
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
+			if (port < 0) {
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						classLogger.warn("Function engine {} has an invalid FORCE_PORT value",
+								SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					}
 				}
 			}
-		}
 
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-										// python
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-					debug, timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Unable to connect to server for local python function engine "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String execCommand = getStartupScript();
-
-			this.pyTranslator.runScriptNoCancelTrace(execCommand);
-
-			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + execCommand);
-
-			// finally set the cpw in the class
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			classLogger.error("Started the python process for guardrail engine "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId) + " but the start script failed", e);
-			if (cpwToInit != null) {
-				cpwToInit.shutdown(false);
+			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
+											// python
+			try {
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+						debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error("Unable to connect to python server for guardrail engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
 			}
-			throw e;
+
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
+
+			try {
+				String execCommand = getStartupScript();
+
+				this.pyTranslator.runScriptNoCancelTrace(execCommand);
+
+				// for debugging...
+				classLogger.info("Initializing '{}' python process with commands >>> {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), execCommand);
+
+				// finally set the cpw in the class
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				classLogger.error("Started python process for guardrail engine '{}' but the start script failed",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				if (cpwToInit != null) {
+					cpwToInit.shutdown(false);
+				}
+				throw e;
+			}
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 

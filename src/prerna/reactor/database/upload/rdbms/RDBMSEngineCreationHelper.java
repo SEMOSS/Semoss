@@ -46,7 +46,6 @@ import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.om.HeadersException;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.database.upload.rdbms.external.CustomTableAndViewIterator;
-import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -88,7 +87,7 @@ public class RDBMSEngineCreationHelper {
 				con = rdbms.getConnection();
 				meta = con.getMetaData();
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to establish connection or retrieve database metadata", e);
 				throw new IllegalArgumentException("Could not make connection or get metadata.");
 			}
 
@@ -97,7 +96,7 @@ public class RDBMSEngineCreationHelper {
 				try {
 					catalogFilter = con.getCatalog();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to retrieve catalog from connection", e);
 				}
 			}
 
@@ -129,14 +128,14 @@ public class RDBMSEngineCreationHelper {
 							colDetails.put(columnsRs.getString(COLUMN_NAME_STR), columnsRs.getString(COLUMN_TYPE_STR));
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to retrieve columns for table {}", tableOrView, e);
 					} finally {
 						try {
 							if (columnsRs != null) {
 								columnsRs.close();
 							}
 						} catch (SQLException e1) {
-							classLogger.error(Constants.STACKTRACE, e1);
+							classLogger.error("Failed to close columns result set for table {}", tableOrView, e1);
 						}
 					}
 					tableColumnMap.put(tableOrView, colDetails);
@@ -151,7 +150,7 @@ public class RDBMSEngineCreationHelper {
 				try {
 					con.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close database connection", e);
 				}
 			}
 		}
@@ -166,7 +165,7 @@ public class RDBMSEngineCreationHelper {
 	 */
 	public static String cleanTableName(String s) {
 		s = s.trim();
-		s = s.replaceAll(" ", "_");
+		s = s.replace(" ", "_");
 		s = s.replaceAll("[^a-zA-Z0-9\\_]", ""); // matches anything that is not alphanumeric or underscore
 		while (s.contains("__")) {
 			s = s.replace("__", "_");
