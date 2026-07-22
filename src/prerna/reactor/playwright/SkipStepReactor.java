@@ -38,6 +38,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,6 +78,13 @@ public class SkipStepReactor extends AbstractReactor {
 		String sessionId = this.keyValue.get(this.keysToGet[1]);
 		String fileName = this.keyValue.get(this.keysToGet[2]);
 		String tabId = this.keyValue.get(this.keysToGet[3]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 
 		if (sessionId == null || sessionId.isEmpty()) {
 			throw new IllegalArgumentException("sessionId is required");

@@ -29,6 +29,7 @@ package prerna.reactor.agent.runtime;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -49,6 +50,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,7 +113,8 @@ final class PlatformAgentToolHandlers {
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
 		add(tools, handler("ReadFile",
-				"Reads a file from the working directory. Returns content with line numbers.",
+				"Reads a file from the working directory. Returns content with line numbers "
+						+ "and a continuation marker when more lines remain.",
 				objectSchema(props(
 						prop("file_path", stringProp("Path to read, relative to the working directory.")),
 						prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
@@ -278,7 +281,8 @@ final class PlatformAgentToolHandlers {
 		if (!file.isFile()) {
 			return "Error: not a file: " + filePath;
 		}
-		List<String> lines = Files.readAllLines(file.toPath());
+		String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		List<String> lines = content.lines().toList();
 		int start = offset - 1;
 		if (start >= lines.size()) {
 			return "";
@@ -287,6 +291,10 @@ final class PlatformAgentToolHandlers {
 		StringBuilder sb = new StringBuilder();
 		for (int i = start; i < end; i++) {
 			sb.append(String.format("%6d\t%s%n", i + 1, lines.get(i)));
+		}
+		if (end < lines.size()) {
+			sb.append(String.format("%n[--- file continues: showing lines %d-%d of %d; continue with offset=%d. ---]%n",
+					start + 1, end, lines.size(), end + 1));
 		}
 		return sb.toString();
 	}
@@ -439,14 +447,15 @@ final class PlatformAgentToolHandlers {
 		}
 		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 		List<Path> matches = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> {
-					Path rel = baseDir.toPath().relativize(p);
-					return matcher.matches(rel) || matcher.matches(p.getFileName());
-				})
-				.limit(MAX_GLOB_RESULTS)
-				.forEach(matches::add);
+		try (Stream<Path> paths = Files.walk(baseDir.toPath())) {
+			paths.filter(p -> !Files.isDirectory(p))
+					.filter(p -> {
+						Path rel = baseDir.toPath().relativize(p);
+						return matcher.matches(rel) || matcher.matches(p.getFileName());
+					})
+					.limit(MAX_GLOB_RESULTS)
+					.forEach(matches::add);
+		}
 		if (matches.isEmpty()) {
 			return "No files matched pattern: " + pattern;
 		}
@@ -501,12 +510,13 @@ final class PlatformAgentToolHandlers {
 		boolean isCountMode = "count".equals(outputMode);
 		List<String> results = new ArrayList<>();
 		List<Path> paths = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
-						|| fileMatcher.matches(baseDir.toPath().relativize(p)))
-				.sorted()
-				.forEach(paths::add);
+		try (Stream<Path> walk = Files.walk(baseDir.toPath())) {
+			walk.filter(p -> !Files.isDirectory(p))
+					.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
+							|| fileMatcher.matches(baseDir.toPath().relativize(p)))
+					.sorted()
+					.forEach(paths::add);
+		}
 		for (Path p : paths) {
 			if (results.size() >= headLimit) {
 				break;
@@ -1036,37 +1046,38 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static int parseIntOr(Object value, int defaultValue) {
-		if (value == null || value.toString().trim().isEmpty()) {
+		Long parsed = parseIntegralLong(value);
+		if (parsed == null || parsed < Integer.MIN_VALUE || parsed > Integer.MAX_VALUE) {
 			return defaultValue;
 		}
-		try {
-			return Integer.parseInt(value.toString().trim());
-		} catch (NumberFormatException e) {
-			return defaultValue;
-		}
+		return parsed.intValue();
 	}
 
 	private static long parseLongAtLeast(Object value, long defaultValue, long minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
-		}
-		try {
-			long parsed = Long.parseLong(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
-		}
+		Long parsed = parseIntegralLong(value);
+		return parsed != null && parsed >= minInclusive ? parsed : defaultValue;
 	}
 
 	private static int parseIntAtLeast(Object value, int defaultValue, int minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
+		int parsed = parseIntOr(value, defaultValue);
+		return parsed >= minInclusive ? parsed : defaultValue;
+	}
+
+	private static Long parseIntegralLong(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = value.toString().trim();
+		if (text.isEmpty()) {
+			return null;
 		}
 		try {
-			int parsed = Integer.parseInt(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
+			if (value instanceof Number) {
+				return new BigDecimal(text).longValueExact();
+			}
+			return Long.parseLong(text);
+		} catch (NumberFormatException | ArithmeticException ignored) {
+			return null;
 		}
 	}
 

@@ -28,7 +28,11 @@
 package prerna.reactor.notification;
 
 import java.sql.Timestamp;
+import java.util.List;
 
+import org.javatuples.Pair;
+
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -48,15 +52,22 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		if (this.insight.getUser() == null
-				|| (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous())) {
+		User user = this.insight.getUser();
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
 			throwAnonymousUserError();
 		}
 
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		NotificationDbUtils.markNotificationRead(notificationId, readAt);
+		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
+		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
+			throw new IllegalArgumentException("Unable to determine notification recipient");
+		}
+		for (Pair<String, String> recipient : userIdAndTypeList) {
+			NotificationDbUtils.markNotificationRead(recipient.getValue0(), recipient.getValue1(), notificationId,
+					readAt);
+		}
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}

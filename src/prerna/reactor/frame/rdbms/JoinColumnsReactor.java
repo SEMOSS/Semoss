@@ -68,7 +68,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			// prepare separator for sql
 			String separator = String.valueOf(inputsGRS.getNoun(1).getValue());
 			if (separator.contains("'")) {
-				separator = separator.replaceAll("'", "''");
+				separator = separator.replace("'", "''");
 			}
 			separator = "'" + separator + "'";
 

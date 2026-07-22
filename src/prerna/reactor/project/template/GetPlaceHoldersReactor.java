@@ -30,6 +30,7 @@ package prerna.reactor.project.template;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -52,6 +53,13 @@ public class GetPlaceHoldersReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 		Map<String, List<String>> placeHoldersMap = TemplateUtility.getPlaceHolderInfo(projectId, templateName);
 
 		// returns the complete place holder data with key as placeholder label name 

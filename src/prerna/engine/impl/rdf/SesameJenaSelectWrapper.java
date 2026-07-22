@@ -30,7 +30,6 @@ package prerna.engine.impl.rdf;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -41,8 +40,6 @@ import org.openrdf.query.BindingSet;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
-
-import com.google.gson.Gson;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
@@ -58,6 +55,9 @@ import prerna.util.Utility;
 public class SesameJenaSelectWrapper extends AbstractWrapper {
 
 	@Deprecated
+	private static final Logger classLogger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+
+	@Deprecated
 	public transient TupleQueryResult tqr = null;
 
 	@Deprecated
@@ -67,12 +67,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 
 	@Deprecated
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-	@Deprecated
-	transient public IDatabaseEngine engine = null;
-	@Deprecated
-	transient String query = null;
-	@Deprecated
-	static final Logger classLogger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+
 	@Deprecated
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
 	@Deprecated
@@ -128,13 +123,6 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 			tqr = (TupleQueryResult) engine.execQuery(query);
 		} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 			rs = (org.apache.jena.query.ResultSet) engine.execQuery(query);
-		} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-			// get the actual SesameJenaConstructWrapper from the engine
-			// this is json output
-			System.out.println("Trying to get the wrapper remotely now");
-			remoteWrapperProxy = (SesameJenaSelectWrapper) engine.execQuery(query);
-			var = remoteWrapperProxy.var;
-			System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
 		}
 	}
 
@@ -161,10 +149,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
 						;
 					}
-				} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-					var = remoteWrapperProxy.getVariables();
 				}
-
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -191,36 +176,9 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 				}
 			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				retBool = rs.hasNext();
-			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				if (retSt != null) { // this means they have not picked it up yet
-					return true;
-				}
-				retSt = new SesameJenaSelectStatement();
-
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				if (ris == null) {
-					Hashtable params = new Hashtable<String, String>();
-					params.put("id", remoteWrapperProxy.getRemoteId());
-					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-				}
-				Object myObject = ris.readObject();
-				if (!myObject.toString().equalsIgnoreCase("null")) {
-					BindingSet bs = (BindingSet) myObject;
-					// System.out.println("Proceeded to first");
-					retSt = getSJSSfromBinding(bs);
-					retBool = true;
-				}
 			}
-
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			classLogger.error(Constants.STACKTRACE, e);
@@ -267,11 +225,7 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 					classLogger.debug("Binding Value " + value);
 				}
 				classLogger.debug("Adding a JENA statement ");
-			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				thisSt = retSt;
-				retSt = null;
 			}
-
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
@@ -382,16 +336,6 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 					classLogger.debug("Binding Value " + value);
 				}
 				classLogger.debug("Adding a JENA statement ");
-			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String, String>();
-				params.put("id", remoteWrapperProxy.getRemoteId());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteId());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/bvnext", params);
-				Gson gson = new Gson();
-				retSt = gson.fromJson(output, SesameJenaSelectStatement.class); // cleans up automatically at the remote
-																				// end
 			}
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
