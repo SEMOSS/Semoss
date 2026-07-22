@@ -37,6 +37,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -59,6 +60,13 @@ public class PatchFileMetaReactor extends AbstractReactor {
 		String nameOrPath = this.keyValue.get(this.keysToGet[0]);
 		Map<String, String> paramValues = getMap();
 		String projectId = this.keyValue.get(this.keysToGet[2]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
+		}
 
 		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
 

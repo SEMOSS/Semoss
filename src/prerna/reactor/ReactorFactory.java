@@ -400,11 +400,6 @@ import prerna.reactor.utils.VariableExistsReactor;
 import prerna.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.reactor.workflow.ModifyInsightDatasourceReactor;
-import prerna.reactor.workspace.DeleteUserAssetReactor;
-import prerna.reactor.workspace.MoveUserAssetReactor;
-import prerna.reactor.workspace.NewDirReactor;
-import prerna.reactor.workspace.UploadUserFileReactor;
-import prerna.reactor.workspace.UserDirReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
@@ -480,7 +475,7 @@ public class ReactorFactory {
 		try {
 			additionalPackages = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
 			if (additionalPackages != null && !(additionalPackages = additionalPackages.trim()).isEmpty()) {
-				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
+				classLogger.info("Loading additional reactors from packages [{}]", additionalPackages);
 				String[] packagesArr = additionalPackages.split(",");
 				for (String thisPackage : packagesArr) {
 					if (!(thisPackage = thisPackage.trim()).isEmpty()) {
@@ -497,6 +492,10 @@ public class ReactorFactory {
 		}
 
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
+	}
+
+	public static void load() {
+		// do nothing, just so the load from CP happens on application startup
 	}
 
 	/**
@@ -564,7 +563,7 @@ public class ReactorFactory {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error scanning classpath to load reactors", e);
 		}
 	}
 
@@ -988,13 +987,6 @@ public class ReactorFactory {
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
 		// reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
 
-		// User Space
-		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
-		reactorHash.put("UserDir", UserDirReactor.class);
-		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
-		reactorHash.put("NewDir", NewDirReactor.class);
-		reactorHash.put("MoveUserAsset", MoveUserAssetReactor.class);
-
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
 		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
@@ -1326,7 +1318,7 @@ public class ReactorFactory {
 				return reactor;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error instantiating reactor for {}", reactorId, e);
 		}
 
 		/*
@@ -1388,10 +1380,10 @@ public class ReactorFactory {
 								Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
 								hash.put(reactorName, reactorClass);
 							} else {
-								classLogger.warn("Class " + classname + " does not implement IReactor interface!");
+								classLogger.warn("Class {} does not implement IReactor interface!", classname);
 							}
 						} catch (ClassNotFoundException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Could not find additional reactor class {}", classname, e);
 						}
 					}
 				}
