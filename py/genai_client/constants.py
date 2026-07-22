@@ -128,3 +128,10 @@ class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
     response: List[float]
     response_tokens: int = 0
     prompt_tokens: int = 0
+
+
+class EmbeddingsModelEngineResponse2(BaseModel):
+    response: List[List[float]]
+    response_tokens: int = 0
+    prompt_tokens: int = 0
+    metadata: Optional[Dict[str, Any]]

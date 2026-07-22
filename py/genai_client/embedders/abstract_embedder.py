@@ -6,8 +6,10 @@ from ..constants import (
     MODEL_NAME,
     AskModelEngineResponse,
     EmbeddingsModelEngineResponse,
+    EmbeddingsModelEngineResponse2,
 )
 from ..tokenizers.abstract_tokenizer import AbstractTokenizer
+from ..text_generation.model_engine_exception import ErrorDetails
 
 if TYPE_CHECKING:
     from keybert.backend import BaseEmbedder
@@ -24,7 +26,15 @@ class AbstractEmbedder(ABC):
         pass
 
     def embeddings(self, strings_to_embed: List[str], **kwargs: Any) -> Dict:
-        return self.embeddings_call(strings_to_embed, **kwargs).to_dict()
+        response = self.embeddings_call(strings_to_embed, **kwargs)
+        if isinstance(response, EmbeddingsModelEngineResponse2) or isinstance(
+            response, ErrorDetails
+        ):
+            return response.model_dump()
+        elif isinstance(response, EmbeddingsModelEngineResponse):
+            return response.to_dict()
+        else:
+            raise Exception("Could not perform embeddings")
 
     @abstractmethod
     def embeddings_call(
