@@ -88,7 +88,7 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 				offset = Long.parseLong(offsetStr);
 			}
 
-			boolean includeMessageText = false;
+			boolean includeMessageText = true;
 			String includeStr = this.keyValue.get(this.keysToGet[4]);
 			if (includeStr != null) {
 				includeMessageText = Boolean.parseBoolean(includeStr);
@@ -122,7 +122,7 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
 			return "Number of results to skip for pagination.";
 		} else if (key.equals(INCLUDE_MESSAGE_TEXT)) {
-			return "Whether to include message_text in results. Defaults to false.";
+			return "Whether to include message_text in results. Defaults to true.";
 		}
 		return super.getDescriptionForKey(key);
 	}
