@@ -149,6 +149,29 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255)));
 
+		addTable("SEMOSS_SCHEMA_HISTORY", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("MIGRATIONID", VARCHAR_255),
+				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DESCRIPTION", VARCHAR_255),
+				Pair.with("SCRIPTNAME", VARCHAR_255),
+				Pair.with("CHECKSUM", VARCHAR_255),
+				Pair.with("APPLIEDBY", VARCHAR_255),
+				Pair.with("APPLIEDON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("EXECUTIONTIMEMS", "BIGINT"),
+				Pair.with("SUCCESS", BOOLEAN_DATATYPE_NAME)));
+
+		addTable("SEMOSS_MIGRATIONS", Arrays.asList(
+				Pair.with("MIGRATIONID", VARCHAR_255),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("SCRIPTNAME", VARCHAR_255),
+				Pair.with("SQLCONTENT", CLOB_DATATYPE_NAME),
+				Pair.with("ISLATEST", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CREATEDBY", VARCHAR_255),
+				Pair.with("CREATEDON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("NOTES", VARCHAR_500)));
+
 		addTable("INSIGHT", Arrays.asList(
 				Pair.with("INSIGHTID", VARCHAR_255),
 				Pair.with("PROJECTID", VARCHAR_255),

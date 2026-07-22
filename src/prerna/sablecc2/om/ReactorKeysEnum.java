@@ -190,6 +190,7 @@ public enum ReactorKeysEnum {
 	METAMODEL_DELETIONS("metamodelDelete", 						"Basic metamodel containing {tableName:[column1Name, column2Name]} for database columns to be deleted."),
 	METHOD_NAME("methodName", 						            "Name of the method to invoke on the engine."),
 	MERGE_CELLS("merge", 										"When the export is generated should the rowspans, colspans be merged"),
+	MIGRATION_ID("migrationId",								"String id of a versioned schema migration"),
 	MIN("min", 													"Minimum value of something. Typically a threshold"),
 	MODEL("model",												"The id/name of the model engine to use"),
 	MODEL_DETAILS("modelDetails",								"Map containing the necessary details to establish a connection to a model engine"),

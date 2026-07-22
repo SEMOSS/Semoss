@@ -1142,10 +1142,106 @@ public abstract class AbstractSecurityUtils {
 			}
 			performDependencyUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
 
+			// SEMOSS_SCHEMA_HISTORY
+			colNames = new String[] { "ENGINEID", "MIGRATIONID", "VERSION", "DESCRIPTION", "SCRIPTNAME", "CHECKSUM",
+					"APPLIEDBY", "APPLIEDON", "EXECUTIONTIMEMS", "SUCCESS" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, "BIGINT", BOOLEAN_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("SEMOSS_SCHEMA_HISTORY", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "SEMOSS_SCHEMA_HISTORY", database, schema)) {
+					String sql = queryUtil.createTable("SEMOSS_SCHEMA_HISTORY", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			// handle column changes
+			{
+				List<String> historyCols = queryUtil.getTableColumns(conn, "SEMOSS_SCHEMA_HISTORY", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!historyCols.contains(col) && !historyCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, historyCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("SEMOSS_SCHEMA_HISTORY", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("SCHEMAHISTORY_ENGINEID_INDEX", "SEMOSS_SCHEMA_HISTORY",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.indexExists(securityDb, "SCHEMAHISTORY_ENGINEID_INDEX", "SEMOSS_SCHEMA_HISTORY",
+					database, schema)) {
+				String sql = queryUtil.createIndex("SCHEMAHISTORY_ENGINEID_INDEX", "SEMOSS_SCHEMA_HISTORY", "ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
+			// SEMOSS_MIGRATIONS
+			colNames = new String[] { "MIGRATIONID", "ENGINEID", "VERSION", "SCRIPTNAME", "SQLCONTENT", "ISLATEST",
+					"CREATEDBY", "CREATEDON", "NOTES" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, CLOB_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_500 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("SEMOSS_MIGRATIONS", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "SEMOSS_MIGRATIONS", database, schema)) {
+					String sql = queryUtil.createTable("SEMOSS_MIGRATIONS", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			// handle column changes
+			{
+				List<String> migrationCols = queryUtil.getTableColumns(conn, "SEMOSS_MIGRATIONS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!migrationCols.contains(col) && !migrationCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col,
+								migrationCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("SEMOSS_MIGRATIONS", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("MIGRATIONS_ENGINEID_INDEX", "SEMOSS_MIGRATIONS",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+				sql = queryUtil.createIndexIfNotExists("MIGRATIONS_MIGRATIONID_INDEX", "SEMOSS_MIGRATIONS",
+						"MIGRATIONID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "MIGRATIONS_ENGINEID_INDEX", "SEMOSS_MIGRATIONS", database,
+						schema)) {
+					String sql = queryUtil.createIndex("MIGRATIONS_ENGINEID_INDEX", "SEMOSS_MIGRATIONS", "ENGINEID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "MIGRATIONS_MIGRATIONID_INDEX", "SEMOSS_MIGRATIONS", database,
+						schema)) {
+					String sql = queryUtil.createIndex("MIGRATIONS_MIGRATIONID_INDEX", "SEMOSS_MIGRATIONS",
+							"MIGRATIONID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			/**
-			 * 
+			 *
 			 * END PROJECT TABLES
-			 * 
+			 *
 			 */
 
 			// ASSETENGINE
