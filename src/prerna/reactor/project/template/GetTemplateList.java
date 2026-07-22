@@ -29,6 +29,7 @@ package prerna.reactor.project.template;
 
 import java.util.Map;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -47,6 +48,13 @@ public class GetTemplateList extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 		Map<String, String> templateDataMap = TemplateUtility.getTemplateList(projectId);
 
 		// templateDataMap will contain all the template information with template name as key 

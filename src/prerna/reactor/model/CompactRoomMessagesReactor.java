@@ -44,6 +44,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
@@ -89,6 +90,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		if (roomId == null || roomId.isEmpty()) {
 			throw new IllegalArgumentException("Room ID is required");
 		}
+		String userId = user.getPrimaryLoginToken().getId();
+		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		if (parentMessageId == null || parentMessageId.isEmpty()) {
