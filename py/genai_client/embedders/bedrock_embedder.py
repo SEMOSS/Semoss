@@ -17,16 +17,17 @@ class BedrockEmbedder(AbstractEmbedder):
         cohere_input_type: Optional[str] = None,
         **kwargs,
     ) -> None:
-        super().__init__(
-            model_name=self.model_name,
-            **kwargs,
-        )
         if model_name:
             self.model_name = model_name
         elif modelId:
             self.model_name = modelId
         else:
             raise ValueError("Either model_name or modelId must be provided")
+
+        super().__init__(
+            model_name=self.model_name,
+            **kwargs,
+        )
 
         self.access_key = access_key
         self.secret_key = secret_key
