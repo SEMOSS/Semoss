@@ -29,7 +29,6 @@ package prerna.reactor.automation;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -39,7 +38,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,8 +49,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
@@ -62,7 +58,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
  * Database utility for the Automation Engine subsystem.
- * Manages AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS, and AUTOMATION_FOREACH_ROWS tables
+ * Manages AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS, and AUTOMATION_ACTIVE_RUN tables
  * in the scheduler database.
  *
  * Follows the same patterns as {@link prerna.reactor.scheduler.SchedulerDatabaseUtility}.
@@ -75,7 +71,6 @@ public final class AutomationDatabaseUtility {
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = AutomationConstants.TABLE_AUTOMATION_RUNS;
 	private static final String TABLE_NODE_OUTPUTS = AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
-	private static final String TABLE_FOREACH = AutomationConstants.TABLE_AUTOMATION_FOREACH_ROWS;
 
 	private AutomationDatabaseUtility() {
 		// static utility - no instantiation
@@ -86,10 +81,9 @@ public final class AutomationDatabaseUtility {
 	// AUTOMATION_RUNS
 	private static final String INSERT_RUN = """
 			INSERT INTO AUTOMATION_RUNS \
-			(RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE, RESUMED_FROM_RUN, \
-			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY, \
-			PARENT_RUN_ID, PARENT_NODE_ID) \
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)""";
+			(RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE, \
+			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY) \
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
 
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -123,7 +117,7 @@ public final class AutomationDatabaseUtility {
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, ROW_COUNT = ? \
+			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_FAILED = """
@@ -132,19 +126,6 @@ public final class AutomationDatabaseUtility {
 
 	private static final String UPDATE_NODE_STATUS =
 			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ? WHERE RUN_ID = ? AND NODE_ID = ?";
-
-	// AUTOMATION_FOREACH_ROWS
-	private static final String INSERT_FOREACH_ROW = """
-			INSERT INTO AUTOMATION_FOREACH_ROWS \
-			(RUN_ID, NODE_ID, ROW_INDEX, ROW_KEY, STATUS, STARTED_AT, COMPLETED_AT, DURATION_MS, ERROR_MESSAGE) \
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""";
-
-	// Aggregate queries (use PreparedStatement - CASE WHEN not easily expressed in SelectQueryStruct)
-	private static final String SELECT_FOREACH_PROGRESS = """
-			SELECT COUNT(*) AS TOTAL, \
-			SUM(CASE WHEN STATUS = 'SUCCESS' THEN 1 ELSE 0 END) AS SUCCEEDED, \
-			SUM(CASE WHEN STATUS = 'FAILED' THEN 1 ELSE 0 END) AS FAILED \
-			FROM AUTOMATION_FOREACH_ROWS WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	// -- Initialization ------------------------------------------------------------
 
@@ -173,7 +154,6 @@ public final class AutomationDatabaseUtility {
 
 			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
-			createAutomationForEachRowsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createAutomationActiveRunTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
 
 			if (!conn.getAutoCommit()) {
@@ -425,19 +405,7 @@ public final class AutomationDatabaseUtility {
 	 * Inserts a new automation run record.
 	 */
 	public static boolean insertRun(String runId, String projectId, String automationId,
-			String triggerType, String resumedFromRun, int totalNodes, String createdBy) {
-		return insertRun(runId, projectId, automationId, triggerType, resumedFromRun,
-				totalNodes, createdBy, null, null);
-	}
-
-	/**
-	 * Inserts a new automation run record, optionally linked to a parent run/node - used when
-	 * a sub-automation node triggers another project's automation. {@code parentRunId} and
-	 * {@code parentNodeId} are null for top-level (manual/scheduled/resume) runs.
-	 */
-	public static boolean insertRun(String runId, String projectId, String automationId,
-			String triggerType, String resumedFromRun, int totalNodes, String createdBy,
-			String parentRunId, String parentNodeId) {
+			String triggerType, int totalNodes, String createdBy) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) return false;
 
@@ -453,13 +421,10 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, automationId);
 				ps.setString(index++, AutomationConstants.STATUS_RUNNING);
 				ps.setString(index++, triggerType);
-				setNullableString(ps, index++, resumedFromRun);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
 				ps.setInt(index++, totalNodes);
 				ps.setString(index++, createdBy);
-				setNullableString(ps, index++, parentRunId);
-				setNullableString(ps, index++, parentNodeId);
 				ps.executeUpdate();
 			}
 
@@ -581,7 +546,6 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__AUTOMATION_ID", "AUTOMATION_ID"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STATUS", "STATUS"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TRIGGER_TYPE", "TRIGGER_TYPE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RESUMED_FROM_RUN", "RESUMED_FROM_RUN"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STARTED_AT", "STARTED_AT"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_AT", "COMPLETED_AT"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__FAILED_NODE_ID", "FAILED_NODE_ID"));
@@ -612,7 +576,6 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__AUTOMATION_ID", "AUTOMATION_ID"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STATUS", "STATUS"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TRIGGER_TYPE", "TRIGGER_TYPE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RESUMED_FROM_RUN", "RESUMED_FROM_RUN"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STARTED_AT", "STARTED_AT"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_AT", "COMPLETED_AT"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__FAILED_NODE_ID", "FAILED_NODE_ID"));
@@ -736,7 +699,7 @@ public final class AutomationDatabaseUtility {
 	 * Updates a node output after successful execution.
 	 */
 	public static boolean updateNodeSuccess(String runId, String nodeId, Timestamp startedAt,
-			long durationMs, String outputVar, String outputValue, String outputPreview, Integer rowCount) {
+			long durationMs, String outputVar, String outputValue, String outputPreview) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) return false;
 
@@ -755,11 +718,6 @@ public final class AutomationDatabaseUtility {
 				// Handle CLOB for potentially large output values
 				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationExecutionUtils.GSON);
 				ps.setString(index++, outputPreview);
-				if (rowCount != null) {
-					ps.setInt(index++, rowCount);
-				} else {
-					ps.setNull(index++, Types.INTEGER);
-				}
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
 				ps.executeUpdate();
@@ -832,7 +790,6 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_VAR", "OUTPUT_VAR"));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_VALUE", "OUTPUT_VALUE"));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_PREVIEW", "OUTPUT_PREVIEW"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__ROW_COUNT", "ROW_COUNT"));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__ERROR_MESSAGE", "ERROR_MESSAGE"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
@@ -842,138 +799,6 @@ public final class AutomationDatabaseUtility {
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		return results != null ? results : new ArrayList<>();
-	}
-
-	// -- AUTOMATION_FOREACH_ROWS CRUD ------------------------------------------------
-
-	/**
-	 * Batch-inserts for-each row results. Called with batches of
-	 * {@link AutomationConstants#FOREACH_BATCH_SIZE} rows during for-each execution.
-	 */
-	public static boolean insertForEachRowsBatch(String runId, String nodeId,
-			List<ForEachRowResult> rows) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(INSERT_FOREACH_ROW)) {
-				for (ForEachRowResult row : rows) {
-					int index = 1;
-					ps.setString(index++, runId);
-					ps.setString(index++, nodeId);
-					ps.setInt(index++, row.rowIndex());
-					ps.setString(index++, row.rowKey());
-					ps.setString(index++, row.status());
-					ps.setTimestamp(index++, row.startedAt());
-					ps.setTimestamp(index++, toTimestamp(Instant.now()));
-					ps.setLong(index++, row.durationMs());
-					ps.setString(index++, row.errorMessage());
-					ps.addBatch();
-				}
-				ps.executeBatch();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return true;
-		} catch (SQLException e) {
-			classLogger.error("Failed to batch-insert for-each rows for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
-			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
-	}
-
-	/**
-	 * Gets aggregate progress for a for-each node.
-	 * Uses PreparedStatement directly because this query involves conditional
-	 * aggregates (SUM with CASE WHEN) not easily expressed via SelectQueryStruct.
-	 *
-	 * @return map with keys "total", "succeeded", "failed"
-	 */
-	public static Map<String, Integer> getForEachProgress(String runId, String nodeId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		Map<String, Integer> progress = new HashMap<>();
-		if (schedulerDb == null) return progress;
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(SELECT_FOREACH_PROGRESS)) {
-				ps.setString(1, runId);
-				ps.setString(2, nodeId);
-				try (ResultSet rs = ps.executeQuery()) {
-					if (rs.next()) {
-						progress.put("total", rs.getInt(1));
-						progress.put("succeeded", rs.getInt(2));
-						progress.put("failed", rs.getInt(3));
-					}
-				}
-			}
-		} catch (SQLException e) {
-			classLogger.error("Failed to get for-each progress for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
-		return progress;
-	}
-
-	/**
-	 * Gets the failed rows for a for-each node (for drill-down).
-	 */
-	public static List<Map<String, Object>> getForEachFailures(String runId, String nodeId, int limit) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return new ArrayList<>();
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_FOREACH + "__ROW_INDEX", "ROW_INDEX"));
-		qs.addSelector(new QueryColumnSelector(TABLE_FOREACH + "__ROW_KEY", "ROW_KEY"));
-		qs.addSelector(new QueryColumnSelector(TABLE_FOREACH + "__ERROR_MESSAGE", "ERROR_MESSAGE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_FOREACH + "__COMPLETED_AT", "COMPLETED_AT"));
-
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_FOREACH + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_FOREACH + "__NODE_ID", "==", nodeId, PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_FOREACH + "__STATUS", "==", AutomationConstants.NODE_STATUS_FAILED, PixelDataType.CONST_STRING));
-		qs.addOrderBy(TABLE_FOREACH + "__ROW_INDEX",
-				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.ASC.toString());
-		qs.setLimit(limit);
-
-		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
-		return results != null ? results : new ArrayList<>();
-	}
-
-	/**
-	 * Gets the max row index already processed for a for-each node (for resume).
-	 *
-	 * @return the max row index, or -1 if no rows have been processed
-	 */
-	public static int getForEachLastProcessedIndex(String runId, String nodeId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return -1;
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(
-				QueryFunctionHelper.MAX, TABLE_FOREACH + "__ROW_INDEX", "MAX_INDEX"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_FOREACH + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_FOREACH + "__NODE_ID", "==", nodeId, PixelDataType.CONST_STRING));
-
-		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
-		if (results != null && !results.isEmpty()) {
-			Object maxVal = results.get(0).get("MAX_INDEX");
-			if (maxVal instanceof Number) {
-				return ((Number) maxVal).intValue();
-			}
-		}
-		return -1;
 	}
 
 	// -- Table Creation ------------------------------------------------------------
@@ -988,17 +813,17 @@ public final class AutomationDatabaseUtility {
 		}
 
 		String[] colNames = { "RUN_ID", "PROJECT_ID", "AUTOMATION_ID", "STATUS", "TRIGGER_TYPE",
-				"RESUMED_FROM_RUN", "STARTED_AT", "COMPLETED_AT", "FAILED_NODE_ID",
+				"STARTED_AT", "COMPLETED_AT", "FAILED_NODE_ID",
 				"ERROR_MESSAGE", "LAST_HEARTBEAT", "TOTAL_NODES", "COMPLETED_NODES", "CREATED_BY",
-				"PARENT_RUN_ID", "PARENT_NODE_ID", "CANCEL_REQUESTED" };
+				"CANCEL_REQUESTED" };
 		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(50)", "VARCHAR(50)",
-				"VARCHAR(255)", dateTimeType, dateTimeType, "VARCHAR(255)",
+				dateTimeType, dateTimeType, "VARCHAR(255)",
 				clobType, dateTimeType, "INTEGER", "INTEGER", "VARCHAR(255)",
-				"VARCHAR(255)", "VARCHAR(255)", queryUtil.getBooleanDataTypeName() };
+				queryUtil.getBooleanDataTypeName() };
 		String[] constraints = { "NOT NULL", "NOT NULL", null, "NOT NULL", "NOT NULL",
-				null, "NOT NULL", null, null,
+				"NOT NULL", null, null,
 				null, null, null, null, null,
-				null, null, null };
+				null };
 
 		String sql;
 		if (allowIfExists) {
@@ -1011,9 +836,7 @@ public final class AutomationDatabaseUtility {
 			ps.execute();
 		}
 
-		// Migrate installs whose AUTOMATION_RUNS predates sub-automation support / cluster-safe cancel
-		addColumnIfNotExists(conn, queryUtil, tableName, "PARENT_RUN_ID", "VARCHAR(255)");
-		addColumnIfNotExists(conn, queryUtil, tableName, "PARENT_NODE_ID", "VARCHAR(255)");
+		// Migrate installs that predate cluster-safe cancel
 		addColumnIfNotExists(conn, queryUtil, tableName, "CANCEL_REQUESTED", queryUtil.getBooleanDataTypeName());
 
 		// Primary key
@@ -1023,7 +846,6 @@ public final class AutomationDatabaseUtility {
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_PROJECT", tableName, new String[]{"PROJECT_ID"});
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_STATUS", tableName, new String[]{"PROJECT_ID", "STATUS"});
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_STARTED", tableName, new String[]{"PROJECT_ID", "STARTED_AT"});
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_PARENT", tableName, new String[]{"PARENT_RUN_ID"});
 	}
 
 	private static void createAutomationNodeOutputsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
@@ -1037,13 +859,13 @@ public final class AutomationDatabaseUtility {
 
 		String[] colNames = { "RUN_ID", "NODE_ID", "NODE_LABEL", "EXECUTION_ORDER", "STATUS",
 				"STARTED_AT", "COMPLETED_AT", "DURATION_MS", "OUTPUT_VAR",
-				"OUTPUT_VALUE", "OUTPUT_PREVIEW", "ROW_COUNT", "ERROR_MESSAGE" };
+				"OUTPUT_VALUE", "OUTPUT_PREVIEW", "ERROR_MESSAGE" };
 		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(500)", "INTEGER", "VARCHAR(50)",
 				dateTimeType, dateTimeType, "BIGINT", "VARCHAR(255)",
-				clobType, "VARCHAR(2000)", "INTEGER", clobType };
+				clobType, "VARCHAR(2000)", clobType };
 		String[] constraints = { "NOT NULL", "NOT NULL", null, "NOT NULL", "NOT NULL",
 				null, null, null, null,
-				null, null, null, null };
+				null, null, null };
 
 		String sql;
 		if (allowIfExists) {
@@ -1061,41 +883,6 @@ public final class AutomationDatabaseUtility {
 
 		// Indexes
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_ANO_RUN", tableName, new String[]{"RUN_ID"});
-	}
-
-	private static void createAutomationForEachRowsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
-			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
-
-		String tableName = AutomationConstants.TABLE_AUTOMATION_FOREACH_ROWS;
-
-		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
-			return;
-		}
-
-		String[] colNames = { "RUN_ID", "NODE_ID", "ROW_INDEX", "ROW_KEY", "STATUS",
-				"STARTED_AT", "COMPLETED_AT", "DURATION_MS", "ERROR_MESSAGE" };
-		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "INTEGER", "VARCHAR(1000)", "VARCHAR(50)",
-				dateTimeType, dateTimeType, "BIGINT", clobType };
-		String[] constraints = { "NOT NULL", "NOT NULL", "NOT NULL", null, "NOT NULL",
-				null, null, null, null };
-
-		String sql;
-		if (allowIfExists) {
-			sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-		} else {
-			sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-		}
-		classLogger.info("Creating table {}: {}", tableName, sql);
-		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.execute();
-		}
-
-		// Composite primary key
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_AUTO_FE_ROWS", new String[]{"RUN_ID", "NODE_ID", "ROW_INDEX"});
-
-		// Indexes
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AFR_RUN_NODE", tableName, new String[]{"RUN_ID", "NODE_ID"});
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AFR_STATUS", tableName, new String[]{"RUN_ID", "NODE_ID", "STATUS"});
 	}
 
 	/**
@@ -1251,24 +1038,4 @@ public final class AutomationDatabaseUtility {
 		}
 	}
 
-	// -- Data Transfer Object ------------------------------------------------------
-
-	/**
-	 * Record for a single for-each row result, used in batch inserts.
-	 */
-	public record ForEachRowResult(
-			int rowIndex,
-			String rowKey,
-			String status,
-			String errorMessage,
-			Timestamp startedAt,
-			long durationMs
-	) {
-		public ForEachRowResult(int rowIndex, String rowKey, String status, String errorMessage, long startTimeMs) {
-			this(rowIndex, rowKey, status, errorMessage,
-					Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(
-							Instant.ofEpochMilli(startTimeMs), ZoneOffset.UTC)),
-					System.currentTimeMillis() - startTimeMs);
-		}
-	}
 }

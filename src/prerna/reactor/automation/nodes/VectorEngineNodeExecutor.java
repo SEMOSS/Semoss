@@ -27,94 +27,80 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.util.Utility;
 
-/**
- * Executes a "vector-engine" node: builds and runs the matching vector-operation Pixel call from
- * structured {@code config} on the backend, instead of trusting a frontend-precompiled
- * {@code builtPixel} string (ticket #2743). Reuses the existing
- * {@code VectorDatabaseQueryReactor}/{@code VectorAttachFileToSourceReactor}/
- * {@code CreateEmbeddingsFromVectorCSVFileReactor}/{@code ListDocumentsInVectorDatabaseReactor}/
- * {@code RemoveDocumentFromVectorDatabaseReactor}/{@code VectorFileDownloadReactor} unmodified via
- * the normal Pixel path - including {@code CreateEmbeddingsFromVectorCSVFileReactor}'s
- * substantial (~385 line) CSV-parsing/chunking logic, which this deliberately does not
- * re-implement.
- *
- * <p>Config: {@code {engineId, operation: "search"|"add-file"|"add-csv"|"list"|"delete"|
- * "download", command, limit, filePath, source, space, filePaths, paramValues, fileNames}}.
- */
 public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
-		String engineId = EngineNodeSupport.required(config, "engineId", "Vector-engine", nodeLabel);
-		String operation = EngineNodeSupport.optional(config, "operation", "search");
-		String encodedEngineId = EngineNodeSupport.resolveEncoded(engineId, scope, configMap);
 
-		String pixel;
+		String engineId = required(config, "engineId", nodeLabel);
+		String operation = optional(config, "operation", "search");
+		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		IVectorDatabaseEngine engine = Utility.getVectorDatabase(resolvedEngineId);
+		if (engine == null) {
+			throw new IllegalArgumentException("Vector-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
+		}
+
 		switch (operation) {
-			case "add-file": {
-				String filePath = EngineNodeSupport.required(config, "filePath", "Vector-engine", nodeLabel);
-				StringBuilder pixelBuilder = new StringBuilder("VectorAttachFileToSource(engine=[")
-						.append(encodedEngineId)
-						.append("], filePath=[").append(EngineNodeSupport.resolveEncoded(filePath, scope, configMap)).append("]");
-				String source = EngineNodeSupport.optional(config, "source");
-				if (source != null) pixelBuilder.append(", source=[").append(EngineNodeSupport.resolveEncoded(source, scope, configMap)).append("]");
-				String space = EngineNodeSupport.optional(config, "space");
-				if (space != null) pixelBuilder.append(", space=[").append(EngineNodeSupport.resolveEncoded(space, scope, configMap)).append("]");
-				pixelBuilder.append(");");
-				pixel = pixelBuilder.toString();
-				break;
-			}
+			case "add-file":
 			case "add-csv": {
-				String filePaths = EngineNodeSupport.required(config, "filePaths", "Vector-engine", nodeLabel);
-				StringBuilder pixelBuilder = new StringBuilder("CreateEmbeddingsFromVectorCSVFile(engine=[")
-						.append(encodedEngineId)
-						.append("], filePaths=[").append(EngineNodeSupport.resolveEncoded(filePaths, scope, configMap)).append("]");
-				String paramValues = EngineNodeSupport.optional(config, "paramValues");
-				if (paramValues != null) {
-					// Pixel map literal, not a string - see ModelEngineNodeExecutor's paramValues
-					// handling for the same resolve-then-validate treatment.
-					String resolvedParamValues = EngineNodeSupport.resolveAndValidateJsonLiteral(
-							paramValues, scope, configMap, "paramValues", "Vector-engine", nodeLabel);
-					pixelBuilder.append(", paramValues=[").append(resolvedParamValues).append("]");
-				}
-				pixelBuilder.append(");");
-				pixel = pixelBuilder.toString();
-				break;
+				String filePaths = required(config, "filePath", nodeLabel);
+				String resolvedPaths = AutomationExecutionUtils.resolve(filePaths, scope, configMap);
+				List<String> paths = Arrays.asList(resolvedPaths.split(","));
+				engine.addDocument(paths, null);
+				return "Added " + paths.size() + " file(s)";
 			}
-			case "list":
-				pixel = "ListDocumentsInVectorDatabase(engine=[" + encodedEngineId + "]);";
-				break;
+			case "list": {
+				List<Map<String, Object>> docs = engine.listDocuments(null);
+				return docs;
+			}
 			case "delete": {
-				String fileNames = EngineNodeSupport.required(config, "fileNames", "Vector-engine", nodeLabel);
-				pixel = "RemoveDocumentFromVectorDatabase(engine=[" + encodedEngineId +
-						"], fileNames=[" + EngineNodeSupport.resolveEncoded(fileNames, scope, configMap) + "]);";
-				break;
-			}
-			case "download": {
-				String fileNames = EngineNodeSupport.required(config, "fileNames", "Vector-engine", nodeLabel);
-				pixel = "VectorFileDownload(engine=[" + encodedEngineId +
-						"], fileNames=[" + EngineNodeSupport.resolveEncoded(fileNames, scope, configMap) + "]);";
-				break;
+				String fileNames = required(config, "fileNames", nodeLabel);
+				String resolvedNames = AutomationExecutionUtils.resolve(fileNames, scope, configMap);
+				List<String> names = Arrays.asList(resolvedNames.split(","));
+				engine.removeDocument(names, null);
+				return "Deleted " + names.size() + " file(s)";
 			}
 			default: {
 				// search
-				String command = EngineNodeSupport.required(config, "command", "Vector-engine", nodeLabel);
-				int limit = EngineNodeSupport.optionalInt(config, "limit", 5);
-				pixel = "VectorDatabaseQuery(engine=[" + encodedEngineId +
-						"], command=[" + EngineNodeSupport.resolveEncoded(command, scope, configMap) + "], limit=[" + limit + "]);";
+				String command = required(config, "command", nodeLabel);
+				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
+				int limit = optionalInt(config, "limit", 5);
+				List<Map<String, Object>> results = engine.nearestNeighbor(ctx.insight(), resolvedCommand, limit, null);
+				return results;
 			}
 		}
+	}
 
-		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(ctx.node());
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeoutSeconds);
+	private static String required(Map<String, Object> config, String key, String nodeLabel) {
+		Object v = config.get(key);
+		if (v == null || v.toString().isBlank()) {
+			throw new IllegalArgumentException("Vector-engine node \"" + nodeLabel + "\": '" + key + "' is required");
+		}
+		return v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key, String def) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? def : v.toString();
+	}
+
+	private static int optionalInt(Map<String, Object> config, String key, int def) {
+		Object v = config.get(key);
+		if (v == null) return def;
+		try { return Integer.parseInt(v.toString().trim()); }
+		catch (NumberFormatException e) { return def; }
 	}
 }

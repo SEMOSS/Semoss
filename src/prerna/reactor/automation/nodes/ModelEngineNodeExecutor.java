@@ -27,86 +27,85 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.util.Utility;
 
-/**
- * Executes a "model-engine" node: builds and runs the matching model-operation Pixel call
- * ({@code LLM}/{@code Embeddings}/{@code Vision}/{@code NER}) from structured {@code config} on
- * the backend, instead of trusting a frontend-precompiled {@code builtPixel} string (ticket
- * #2743). Reuses the existing {@code LLMReactor}/{@code EmbeddingsReactor}/{@code VisionReactor}/
- * {@code NERReactor} unmodified via the normal Pixel path.
- *
- * <p>Config: {@code {engineId, operation: "llm"|"embeddings"|"vision"|"ner", command, context,
- * paramValues, values, image, prompt, entities}}.
- */
 public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
-		String engineId = EngineNodeSupport.required(config, "engineId", "Model-engine", nodeLabel);
-		String operation = EngineNodeSupport.optional(config, "operation", "llm");
-		String encodedEngineId = EngineNodeSupport.resolveEncoded(engineId, scope, configMap);
 
-		String pixel;
-		switch (operation) {
-			case "embeddings": {
-				String values = EngineNodeSupport.required(config, "values", "Model-engine", nodeLabel);
-				pixel = "Embeddings(engine=[" + encodedEngineId +
-						"], values=[" + EngineNodeSupport.resolveEncoded(values, scope, configMap) + "]);";
-				break;
-			}
-			case "vision": {
-				String command = EngineNodeSupport.required(config, "command", "Model-engine", nodeLabel);
-				String image = EngineNodeSupport.required(config, "image", "Model-engine", nodeLabel);
-				pixel = "Vision(engine=[" + encodedEngineId +
-						"], command=[" + EngineNodeSupport.resolveEncoded(command, scope, configMap) +
-						"], image=[" + EngineNodeSupport.resolveEncoded(image, scope, configMap) + "]);";
-				break;
-			}
-			case "ner": {
-				String prompt = EngineNodeSupport.required(config, "prompt", "Model-engine", nodeLabel);
-				String entities = EngineNodeSupport.required(config, "entities", "Model-engine", nodeLabel);
-				pixel = "NER(engine=[" + encodedEngineId +
-						"], prompt=[" + EngineNodeSupport.resolveEncoded(prompt, scope, configMap) +
-						"], entities=[" + EngineNodeSupport.resolveEncoded(entities, scope, configMap) + "]);";
-				break;
-			}
-			default: {
-				// llm
-				String command = EngineNodeSupport.required(config, "command", "Model-engine", nodeLabel);
-				StringBuilder pixelBuilder = new StringBuilder("LLM(engine=[")
-						.append(encodedEngineId)
-						.append("], command=[").append(EngineNodeSupport.resolveEncoded(command, scope, configMap)).append("]");
-				String context = EngineNodeSupport.optional(config, "context");
-				if (context != null) {
-					pixelBuilder.append(", context=[").append(EngineNodeSupport.resolveEncoded(context, scope, configMap)).append("]");
-				}
-				String paramValues = EngineNodeSupport.optional(config, "paramValues");
-				if (paramValues != null) {
-					// paramValues is a Pixel map literal (e.g. {"key":"value"}), not a string -
-					// ReactorKeysEnum.PARAM_VALUES_MAP expects an actual map, so this must stay
-					// unquoted/un-encoded to match the FE's existing wire contract (buildPixelPreview
-					// emits it the same way). resolveAndValidateJsonLiteral substitutes ${var}
-					// refs on this field alone and rejects anything that doesn't resolve to
-					// complete, balanced JSON, so a value can't break out of the map literal and
-					// inject arbitrary Pixel syntax.
-					String resolvedParamValues = EngineNodeSupport.resolveAndValidateJsonLiteral(
-							paramValues, scope, configMap, "paramValues", "Model-engine", nodeLabel);
-					pixelBuilder.append(", paramValues=[").append(resolvedParamValues).append("]");
-				}
-				pixelBuilder.append(");");
-				pixel = pixelBuilder.toString();
-			}
+		String engineId = required(config, "engineId", nodeLabel);
+		String operation = optional(config, "operation", "llm");
+		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		IModelEngine engine = Utility.getModel(resolvedEngineId);
+		if (engine == null) {
+			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
-		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(ctx.node());
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeoutSeconds);
+		switch (operation) {
+			case "embeddings": {
+				String values = required(config, "values", nodeLabel);
+				String resolvedValues = AutomationExecutionUtils.resolve(values, scope, configMap);
+				List<String> valueList = Arrays.asList(resolvedValues.split(","));
+				EmbeddingsModelEngineResponse response = engine.embeddings(valueList, ctx.insight(), null);
+				return response.getResponse();
+			}
+			default: {
+				// llm (and vision/ner as fallback — both use ask() with the primary command field)
+				String command = required(config, "command", nodeLabel);
+				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
+				String context = optional(config, "context");
+				String resolvedContext = (context != null)
+						? AutomationExecutionUtils.resolve(context, scope, configMap) : null;
+				Map<String, Object> params = parseParams(config, scope, configMap, nodeLabel);
+				@SuppressWarnings("rawtypes")
+				AskModelEngineResponse response = engine.ask(resolvedCommand, resolvedContext, ctx.insight(), params);
+				return response.getResponse();
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> parseParams(Map<String, Object> config,
+			Map<String, String> scope, Map<String, String> configMap, String nodeLabel) {
+		String paramValues = optional(config, "paramValues");
+		if (paramValues == null) return null;
+		String resolved = AutomationExecutionUtils.resolve(paramValues, scope, configMap);
+		try {
+			return AutomationExecutionUtils.GSON.fromJson(resolved, Map.class);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": paramValues is not valid JSON: " + e.getMessage(), e);
+		}
+	}
+
+	private static String required(Map<String, Object> config, String key, String nodeLabel) {
+		Object v = config.get(key);
+		if (v == null || v.toString().isBlank()) {
+			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": '" + key + "' is required");
+		}
+		return v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? null : v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key, String def) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? def : v.toString();
 	}
 }

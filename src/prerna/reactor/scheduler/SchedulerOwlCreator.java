@@ -279,7 +279,7 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
 
-		// AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS, AUTOMATION_FOREACH_ROWS - table/column DDL
+		// AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS - table/column DDL
 		// (CREATE TABLE, primary keys, indexes, addColumnIfNotExists migrations) is owned by
 		// AutomationDatabaseUtility.initialize() (called by SMSSWebWatcher), not this class - but
 		// every column must still be declared here too, or SelectQueryStruct-based reads against
@@ -295,7 +295,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.AUTOMATION_ID, VARCHAR_255),
 				Pair.with(AutomationConstants.STATUS, VARCHAR_200),
 				Pair.with(AutomationConstants.TRIGGER_TYPE, VARCHAR_200),
-				Pair.with(AutomationConstants.RESUMED_FROM_RUN, VARCHAR_255),
 				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
 				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
 				Pair.with(AutomationConstants.FAILED_NODE_ID, VARCHAR_255),
@@ -304,8 +303,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.TOTAL_NODES, INTEGER),
 				Pair.with(AutomationConstants.COMPLETED_NODES, INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, VARCHAR_255),
-				Pair.with(AutomationConstants.PARENT_RUN_ID, VARCHAR_255),
-				Pair.with(AutomationConstants.PARENT_NODE_ID, VARCHAR_255),
 				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
@@ -320,18 +317,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.OUTPUT_VAR, VARCHAR_255),
 				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB),
 				Pair.with(AutomationConstants.OUTPUT_PREVIEW, VARCHAR_2000),
-				Pair.with(AutomationConstants.ROW_COUNT, INTEGER),
-				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
-
-		addTable(AutomationConstants.TABLE_AUTOMATION_FOREACH_ROWS, Arrays.asList(
-				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
-				Pair.with(AutomationConstants.NODE_ID, VARCHAR_255),
-				Pair.with(AutomationConstants.ROW_INDEX, INTEGER),
-				Pair.with(AutomationConstants.ROW_KEY, VARCHAR_1000),
-				Pair.with(AutomationConstants.STATUS, VARCHAR_200),
-				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.DURATION_MS, BIGINT),
 				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
 		// @formatter:on
 	}

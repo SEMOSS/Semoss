@@ -27,46 +27,91 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
-import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
-
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-/**
- * Executes a "database-engine" node: builds and runs a {@code SqlQuery(...)} Pixel call from
- * structured {@code config} on the backend, instead of trusting a frontend-precompiled
- * {@code builtPixel} string (ticket #2743). Reuses {@code SqlQueryReactor}/
- * {@code AbstractSqlQueryReactor} unmodified via the normal Pixel path - including its existing
- * SELECT-vs-mutation permission split ({@code userCanViewEngine} for reads,
- * {@code userCanEditEngine} for writes) - so no security logic is duplicated here.
- *
- * <p>Config: {@code {engineId, operation: "read"|"write", expression (the SQL), limit, commit}}.
- */
+import prerna.engine.api.IRDBMSEngine;
+import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.util.Utility;
+
 public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
-
-		String engineId = EngineNodeSupport.required(config, "engineId", "Database-engine", nodeLabel);
-		String sql = EngineNodeSupport.required(config, "expression", "Database-engine", nodeLabel);
-		String operation = EngineNodeSupport.optional(config, "operation", "read");
-
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
-		String encodedEngineId = EngineNodeSupport.resolveEncoded(engineId, scope, configMap);
-		String encodedSql = EngineNodeSupport.resolveEncoded(sql, scope, configMap);
 
-		String pixel;
-		if ("write".equals(operation)) {
-			pixel = "SqlQuery(database=[" + encodedEngineId + "], query=[" + encodedSql + "], commit=[true]);";
-		} else {
-			int limit = EngineNodeSupport.optionalInt(config, "limit", 50);
-			pixel = "SqlQuery(database=[" + encodedEngineId + "], query=[" + encodedSql + "], limit=[" + limit + "]);";
+		String engineId = required(config, "engineId", nodeLabel);
+		String sql = required(config, "expression", nodeLabel);
+		String operation = optional(config, "operation", "read");
+
+		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+		String resolvedSql = AutomationExecutionUtils.resolve(sql, scope, configMap);
+
+		IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(resolvedEngineId);
+		if (engine == null) {
+			throw new IllegalArgumentException("Database-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
-		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(ctx.node());
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeoutSeconds);
+		if ("write".equals(operation)) {
+			try (Connection conn = engine.getConnection();
+				 PreparedStatement ps = conn.prepareStatement(resolvedSql)) {
+				int rowsAffected = ps.executeUpdate();
+				return Map.of("rowsAffected", rowsAffected);
+			} catch (SQLException e) {
+				throw new IllegalStateException("Database-engine node \"" + nodeLabel + "\": write failed: " + e.getMessage(), e);
+			}
+		} else {
+			int limit = optionalInt(config, "limit", 50);
+			try (Connection conn = engine.getConnection();
+				 PreparedStatement ps = conn.prepareStatement(resolvedSql)) {
+				try (ResultSet rs = ps.executeQuery()) {
+					ResultSetMetaData meta = rs.getMetaData();
+					int colCount = meta.getColumnCount();
+					List<Map<String, Object>> rows = new ArrayList<>();
+					int count = 0;
+					while (rs.next() && count < limit) {
+						Map<String, Object> row = new LinkedHashMap<>();
+						for (int i = 1; i <= colCount; i++) {
+							row.put(meta.getColumnLabel(i), rs.getObject(i));
+						}
+						rows.add(row);
+						count++;
+					}
+					return rows;
+				}
+			} catch (SQLException e) {
+				throw new IllegalStateException("Database-engine node \"" + nodeLabel + "\": query failed: " + e.getMessage(), e);
+			}
+		}
+	}
+
+	private static String required(Map<String, Object> config, String key, String nodeLabel) {
+		Object v = config.get(key);
+		if (v == null || v.toString().isBlank()) {
+			throw new IllegalArgumentException("Database-engine node \"" + nodeLabel + "\": '" + key + "' is required");
+		}
+		return v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key, String def) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? def : v.toString();
+	}
+
+	private static int optionalInt(Map<String, Object> config, String key, int def) {
+		Object v = config.get(key);
+		if (v == null) return def;
+		try { return Integer.parseInt(v.toString().trim()); }
+		catch (NumberFormatException e) { return def; }
 	}
 }

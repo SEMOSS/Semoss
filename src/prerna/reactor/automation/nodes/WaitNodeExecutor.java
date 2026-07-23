@@ -50,7 +50,7 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> node = ctx.node();
 		Map<String, Object> config = (Map<String, Object>) node.get("config");
 		String nodeLabel = ctx.nodeLabel();

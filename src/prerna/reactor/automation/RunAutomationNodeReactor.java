@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,22 +46,19 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.nodes.AutomationNodeContext;
+import prerna.reactor.automation.nodes.AutomationNodeExecutors;
+import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
 /**
- * Executes a single automation node for testing purposes.
+ * Executes a single automation node for testing/preview purposes.
+ * Result is NOT persisted to any run record.
  *
- * <p>Pixel: {@code RunAutomationNode(project=["appId"], nodeId=["node-id"], runId=["optional-context-run"])}
- *
- * <p>Loads the automation definition, finds the target node, optionally loads scope from a
- * prior run's outputs, and executes just that one node. The result is NOT persisted to
- * any run - this is a test/preview operation.
- *
- * <p>When {@code runId} is provided, prior node outputs from that run are loaded into
- * the scope so that {@code ${varName}} references resolve correctly.
+ * Pixel: {@code RunAutomationNode(project=["appId"], nodeId=["node-id"], runId=["optional-context-run"])}
  */
 public class RunAutomationNodeReactor extends AbstractReactor {
 
@@ -86,36 +84,49 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a node id");
 		}
 
-		// Auth check
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access");
 		}
 
-		// Load automation and find the target node
 		Map<String, Object> node = findNode(projectId, nodeId);
 		if (node == null) {
 			throw new IllegalArgumentException("Node not found in automation: " + nodeId);
 		}
 
-		// Build scope from context run (if provided)
 		Map<String, String> scope = buildScope(contextRunId);
 		Map<String, String> configMap = AutomationExecutionUtils.loadConfig(projectId);
 
-		// Execute the node
 		long startMs = System.currentTimeMillis();
 		try {
-			Object rawOutput = executeNodePixel(node, scope, configMap);
+			String type = (String) node.get("type");
+			Object rawOutput;
+
+			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
+				rawOutput = scope.get("triggered_at");
+			} else {
+				IAutomationNodeExecutor executor = AutomationNodeExecutors.EXECUTORS.get(type);
+				if (executor == null) {
+					throw new IllegalArgumentException("Unsupported node type: " + type);
+				}
+				AutomationNodeContext ctx = new AutomationNodeContext(
+						"test", projectId, node, scope, configMap,
+						this.insight, new AtomicBoolean(false));
+				rawOutput = executor.execute(ctx);
+			}
+
 			@SuppressWarnings("unchecked")
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
 			String transformed = AutomationExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
+			String preview = (transformed != null && transformed.length() > AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH)
+					? transformed.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH) : transformed;
 
 			Map<String, Object> result = new HashMap<>();
 			result.put(AutomationConstants.NODE_ID, nodeId);
 			result.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
 			result.put(AutomationConstants.DURATION_MS, durationMs);
-			result.put(AutomationConstants.OUTPUT_PREVIEW, PixelExecutionUtils.generatePreview(transformed));
+			result.put(AutomationConstants.OUTPUT_PREVIEW, preview);
 			result.put(AutomationConstants.OUTPUT_VALUE, transformed);
 			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 
@@ -132,8 +143,6 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 		}
 	}
 
-	// -- Helpers -------------------------------------------------------------------
-
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> findNode(String projectId, String nodeId) {
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
@@ -148,9 +157,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
 			if (nodes != null) {
 				for (Map<String, Object> node : nodes) {
-					if (nodeId.equals(node.get("id"))) {
-						return node;
-					}
+					if (nodeId.equals(node.get("id"))) return node;
 				}
 			}
 		} catch (IOException e) {
@@ -178,22 +185,5 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			}
 		}
 		return scope;
-	}
-
-	private Object executeNodePixel(Map<String, Object> node, Map<String, String> scope,
-			Map<String, String> configMap) {
-		String type = (String) node.get("type");
-		if (AutomationConstants.NODE_TRIGGER.equals(type)) {
-			return scope.get("triggered_at");
-		}
-
-		String builtPixel = (String) node.get("builtPixel");
-		if (builtPixel == null || builtPixel.isBlank() || builtPixel.startsWith("//")) {
-			throw new IllegalStateException("Node has no compiled pixel - save the automation first");
-		}
-
-		String resolved = AutomationExecutionUtils.resolve(builtPixel, scope, configMap);
-		return PixelExecutionUtils.runAndCollect(this.insight, resolved,
-				AutomationConstants.DEFAULT_TIMEOUT_SECONDS);
 	}
 }

@@ -27,84 +27,81 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IStorageEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.util.Utility;
 
-/**
- * Executes a "storage-engine" node: builds and runs the matching storage-operation Pixel call
- * from structured {@code config} on the backend, instead of trusting a frontend-precompiled
- * {@code builtPixel} string (ticket #2743). Reuses the existing
- * {@code ListStoragePathReactor}/{@code PullFromStorageReactor}/{@code PushToStorageReactor}/
- * {@code DeleteFromStorageReactor}/{@code GetStorageFileAsBase64Reactor} unmodified via the
- * normal Pixel path.
- *
- * <p>Config: {@code {engineId, operation: "list"|"download"|"upload"|"delete"|"read-base64",
- * storagePath, filePath, metadata}}.
- */
 public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
-		String engineId = EngineNodeSupport.required(config, "engineId", "Storage-engine", nodeLabel);
-		String operation = EngineNodeSupport.optional(config, "operation", "list");
-		String encodedEngineId = EngineNodeSupport.resolveEncoded(engineId, scope, configMap);
 
-		String pixel;
+		String engineId = required(config, "engineId", nodeLabel);
+		String operation = optional(config, "operation", "list");
+		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		IStorageEngine engine = Utility.getStorage(resolvedEngineId);
+		if (engine == null) {
+			throw new IllegalArgumentException("Storage-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
+		}
+
 		switch (operation) {
 			case "download": {
-				String storagePath = EngineNodeSupport.required(config, "storagePath", "Storage-engine", nodeLabel);
-				String filePath = EngineNodeSupport.required(config, "filePath", "Storage-engine", nodeLabel);
-				pixel = "PullFromStorage(storage=[" + encodedEngineId +
-						"], storagePath=[" + EngineNodeSupport.resolveEncoded(storagePath, scope, configMap) +
-						"], filePath=[" + EngineNodeSupport.resolveEncoded(filePath, scope, configMap) + "]);";
-				break;
+				String storagePath = required(config, "storagePath", nodeLabel);
+				String filePath = required(config, "filePath", nodeLabel);
+				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
+				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
+				engine.copyToLocal(resolvedStorage, resolvedFile);
+				return "Downloaded: " + resolvedStorage;
 			}
 			case "upload": {
-				String storagePath = EngineNodeSupport.required(config, "storagePath", "Storage-engine", nodeLabel);
-				String filePath = EngineNodeSupport.required(config, "filePath", "Storage-engine", nodeLabel);
-				StringBuilder pixelBuilder = new StringBuilder("PushToStorage(storage=[")
-						.append(encodedEngineId)
-						.append("], storagePath=[").append(EngineNodeSupport.resolveEncoded(storagePath, scope, configMap))
-						.append("], filePath=[").append(EngineNodeSupport.resolveEncoded(filePath, scope, configMap)).append("]");
-				String metadata = EngineNodeSupport.optional(config, "metadata");
-				if (metadata != null) {
-					// Pixel map literal, not a string - see ModelEngineNodeExecutor's paramValues
-					// handling for the same resolve-then-validate treatment.
-					String resolvedMetadata = EngineNodeSupport.resolveAndValidateJsonLiteral(
-							metadata, scope, configMap, "metadata", "Storage-engine", nodeLabel);
-					pixelBuilder.append(", metadata=[").append(resolvedMetadata).append("]");
-				}
-				pixelBuilder.append(");");
-				pixel = pixelBuilder.toString();
-				break;
+				String storagePath = required(config, "storagePath", nodeLabel);
+				String filePath = required(config, "filePath", nodeLabel);
+				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
+				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
+				engine.copyToStorage(resolvedFile, resolvedStorage, null);
+				return "Uploaded: " + resolvedFile;
 			}
 			case "delete": {
-				String storagePath = EngineNodeSupport.required(config, "storagePath", "Storage-engine", nodeLabel);
-				pixel = "DeleteFromStorage(storage=[" + encodedEngineId +
-						"], storagePath=[" + EngineNodeSupport.resolveEncoded(storagePath, scope, configMap) + "]);";
-				break;
+				String storagePath = required(config, "storagePath", nodeLabel);
+				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
+				engine.deleteFromStorage(resolvedStorage);
+				return "Deleted: " + resolvedStorage;
 			}
 			case "read-base64": {
-				String storagePath = EngineNodeSupport.required(config, "storagePath", "Storage-engine", nodeLabel);
-				pixel = "GetStorageFileAsBase64(storage=[" + encodedEngineId +
-						"], storagePath=[" + EngineNodeSupport.resolveEncoded(storagePath, scope, configMap) + "]);";
-				break;
+				String storagePath = required(config, "storagePath", nodeLabel);
+				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
+				byte[] bytes = engine.readBlobToMemory(resolvedStorage);
+				return Base64.getEncoder().encodeToString(bytes);
 			}
 			default: {
 				// list
-				String storagePath = EngineNodeSupport.optional(config, "storagePath", "/");
-				pixel = "ListStoragePath(storage=[" + encodedEngineId +
-						"], storagePath=[" + EngineNodeSupport.resolveEncoded(storagePath, scope, configMap) + "]);";
+				String storagePath = optional(config, "storagePath", "/");
+				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
+				List<String> files = engine.list(resolvedStorage);
+				return files;
 			}
 		}
+	}
 
-		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(ctx.node());
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeoutSeconds);
+	private static String required(Map<String, Object> config, String key, String nodeLabel) {
+		Object v = config.get(key);
+		if (v == null || v.toString().isBlank()) {
+			throw new IllegalArgumentException("Storage-engine node \"" + nodeLabel + "\": '" + key + "' is required");
+		}
+		return v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key, String def) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? def : v.toString();
 	}
 }

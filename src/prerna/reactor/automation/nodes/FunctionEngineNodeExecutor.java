@@ -29,45 +29,55 @@ package prerna.reactor.automation.nodes;
 
 import java.util.Map;
 
+import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.util.Utility;
 
-/**
- * Executes a "function-engine" node: builds and runs an {@code ExecuteFunctionEngine(...)} /
- * {@code ExecuteStreamingFunctionEngine(...)} Pixel call from structured {@code config} on the
- * backend, instead of trusting a frontend-precompiled {@code builtPixel} string (ticket #2743).
- * Reuses the existing {@code ExecuteFunctionEngineReactor}/{@code ExecuteStreamingFunctionEngineReactor}
- * unmodified via the normal Pixel path.
- *
- * <p>Config: {@code {engineId, operation: "default"|"streaming", params (a JSON object string)}}.
- *
- * <p>{@code params} is passed as a quoted, quote-escaped string (matching the frontend's existing
- * {@code buildPixelPreview()} shape exactly, rather than {@code <encode>}-wrapped like other
- * fields here) because the target reactor's {@code map} key expects a Pixel Map noun, and
- * {@code <encode>} would change how the parser types the literal. {@code ${var}} substitution
- * happens on the raw field first (via
- * {@link EngineNodeSupport#resolveAndEscapeForQuotedPixelString}), then the resolved text is
- * quote-escaped before it is embedded - so a substituted value's own quotes can't break out of
- * the surrounding {@code "..."} boundary.
- */
 public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	@Override
-	public Object execute(AutomationNodeContext ctx) {
+	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
-		String engineId = EngineNodeSupport.required(config, "engineId", "Function-engine", nodeLabel);
-		String operation = EngineNodeSupport.optional(config, "operation");
-		String params = EngineNodeSupport.optional(config, "params", "{}");
-		String escapedParams = EngineNodeSupport.resolveAndEscapeForQuotedPixelString(params, scope, configMap);
 
-		String command = "streaming".equals(operation) ? "ExecuteStreamingFunctionEngine" : "ExecuteFunctionEngine";
-		String pixel = command + "(engine=[" + EngineNodeSupport.resolveEncoded(engineId, scope, configMap) +
-				"], map=[\"" + escapedParams + "\"]);";
+		String engineId = required(config, "engineId", nodeLabel);
+		String params = optional(config, "params", "{}");
 
-		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(ctx.node());
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeoutSeconds);
+		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+		String resolvedParams = AutomationExecutionUtils.resolve(params, scope, configMap);
+
+		IFunctionEngine engine = Utility.getFunctionEngine(resolvedEngineId);
+		if (engine == null) {
+			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
+		}
+
+		Map<String, Object> paramMap = parseParams(resolvedParams, nodeLabel);
+		return engine.execute(paramMap);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> parseParams(String json, String nodeLabel) {
+		if (json == null || json.isBlank()) return Map.of();
+		try {
+			Map<String, Object> parsed = AutomationExecutionUtils.GSON.fromJson(json, Map.class);
+			return parsed != null ? parsed : Map.of();
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": params is not valid JSON: " + e.getMessage(), e);
+		}
+	}
+
+	private static String required(Map<String, Object> config, String key, String nodeLabel) {
+		Object v = config.get(key);
+		if (v == null || v.toString().isBlank()) {
+			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": '" + key + "' is required");
+		}
+		return v.toString();
+	}
+
+	private static String optional(Map<String, Object> config, String key, String def) {
+		Object v = config.get(key);
+		return (v == null || v.toString().isBlank()) ? def : v.toString();
 	}
 }

@@ -28,38 +28,23 @@
 package prerna.reactor.automation.nodes;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import prerna.om.Insight;
+import prerna.reactor.automation.AutomationConstants;
 
 /**
- * Single param object bundling everything an {@link IAutomationNodeExecutor} needs to run one node.
+ * Shared registry of stateless node executor instances.
+ * Used by both TriggerAutomationReactor and RunAutomationNodeReactor.
  */
-public record AutomationNodeContext(
-		String runId,
-		String projectId,
-		Map<String, Object> node,
-		Map<String, String> scope,
-		Map<String, String> configMap,
-		Insight insight,
-		AtomicBoolean cancelFlag) {
+public final class AutomationNodeExecutors {
 
-	public String nodeId() {
-		return (String) node.get("id");
-	}
+	private AutomationNodeExecutors() {}
 
-	public String nodeLabel() {
-		Object label = node.get("label");
-		return label != null ? label.toString() : "unnamed";
-	}
-
-	public String nodeType() {
-		return (String) node.get("type");
-	}
-
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> config() {
-		Object config = node.get("config");
-		return config instanceof Map ? (Map<String, Object>) config : Map.of();
-	}
+	public static final Map<String, IAutomationNodeExecutor> EXECUTORS = Map.of(
+			AutomationConstants.NODE_WAIT, new WaitNodeExecutor(),
+			AutomationConstants.NODE_DATABASE_ENGINE, new DatabaseEngineNodeExecutor(),
+			AutomationConstants.NODE_MODEL_ENGINE, new ModelEngineNodeExecutor(),
+			AutomationConstants.NODE_VECTOR_ENGINE, new VectorEngineNodeExecutor(),
+			AutomationConstants.NODE_STORAGE_ENGINE, new StorageEngineNodeExecutor(),
+			AutomationConstants.NODE_FUNCTION_ENGINE, new FunctionEngineNodeExecutor()
+	);
 }

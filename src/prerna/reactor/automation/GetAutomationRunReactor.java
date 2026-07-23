@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -79,10 +77,8 @@ public class GetAutomationRunReactor extends AbstractReactor {
 			return new NounMetadata(notFound, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
 
-		// Build node results with for-each progress and while-loop iteration data
 		List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
 		List<Map<String, Object>> nodeResults = new ArrayList<>();
-		Gson gson = new Gson();
 
 		for (Map<String, Object> nodeOutput : nodeOutputs) {
 			Map<String, Object> nodeResult = new HashMap<>();
@@ -92,36 +88,6 @@ public class GetAutomationRunReactor extends AbstractReactor {
 			nodeResult.put(AutomationConstants.DURATION_MS, nodeOutput.get(AutomationConstants.DURATION_MS));
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, nodeOutput.get(AutomationConstants.OUTPUT_PREVIEW));
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, nodeOutput.get(AutomationConstants.ERROR_MESSAGE));
-
-			// Include for-each progress if this node has a row count
-			Object rowCount = nodeOutput.get(AutomationConstants.ROW_COUNT);
-			if (rowCount != null) {
-				nodeResult.put(AutomationConstants.ROW_COUNT, rowCount);
-				String nodeId = (String) nodeOutput.get(AutomationConstants.NODE_ID);
-				Map<String, Integer> progress = AutomationDatabaseUtility.getForEachProgress(runId, nodeId);
-				if (!progress.isEmpty()) {
-					nodeResult.put("forEachProgress", progress);
-				}
-			}
-
-			// Parse while-loop iteration data stored in OUTPUT_VALUE
-			Object outputValue = nodeOutput.get(AutomationConstants.OUTPUT_VALUE);
-			if (outputValue instanceof String) {
-				String outputStr = (String) outputValue;
-				if (outputStr.contains("\"__whileResult\":true")) {
-					try {
-						@SuppressWarnings("unchecked")
-						Map<String, Object> wr = gson.fromJson(outputStr, Map.class);
-						Object iterations = wr.get("iterations");
-						if (iterations != null) {
-							nodeResult.put("iterationResults", iterations);
-						}
-					} catch (Exception ignored) {
-						// malformed JSON - skip
-					}
-				}
-			}
-
 			nodeResults.add(nodeResult);
 		}
 
