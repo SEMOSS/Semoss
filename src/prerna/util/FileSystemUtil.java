@@ -622,7 +622,7 @@ public final class FileSystemUtil {
 		}
 		File file = new File(assetFolder + "/" + filePath);
 		try {
-			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
+			FileUtils.writeStringToFile(file, getDefaultAssetFileContent(filePath), StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			classLogger.error("Error creating new asset file {}", filePath, e);
 			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + filePath);
@@ -630,6 +630,30 @@ public final class FileSystemUtil {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+	}
+
+	private static String getDefaultAssetFileContent(String filePath) {
+		String normalizedPath = filePath == null ? "" : filePath.replace('\\', '/').toLowerCase();
+
+		if (normalizedPath.endsWith("/pipeline.json") || "pipeline.json".equals(normalizedPath)) {
+			return "{\n  \"pipelines\": {}\n}";
+		}
+
+		if (normalizedPath.endsWith("_mcp.json")) {
+			return """
+					{
+					  "tools": [],
+					  "resources": [],
+					  "resourceTemplates": [],
+					  "prompts": []
+					}""";
+		}
+
+		if (normalizedPath.endsWith(".json")) {
+			return "{}";
+		}
+
+		return "new file";
 	}
 
 	/**

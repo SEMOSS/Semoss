@@ -494,6 +494,10 @@ public class ReactorFactory {
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
 
+	public static void load() {
+		// do nothing, just so the load from CP happens on application startup
+	}
+
 	/**
 	 * Load reactors based on the class path
 	 * 
