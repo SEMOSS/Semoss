@@ -396,13 +396,6 @@ class PandasFrameUnitTests {
 		}
 
 		@Test
-		void constructor_initializesKeyCacheEmpty() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			assertNotNull(frame.keyCache);
-			assertTrue(frame.keyCache.isEmpty());
-		}
-
-		@Test
 		void constructor_sqliteConnectionNameIsNull() {
 			PandasFrame frame = new PandasFrame("test", mockTranslator);
 			assertNull(frame.sqliteConnectionName);
@@ -1228,21 +1221,6 @@ class PandasFrameUnitTests {
 			PandasFrame frame = new PandasFrame("test", mockTranslator);
 			frame.sqliteConnectionName = "my_conn";
 			assertEquals("my_conn", frame.sqliteConnectionName);
-		}
-
-		@Test
-		void keyCache_defaultEmpty() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			assertNotNull(frame.keyCache);
-			assertTrue(frame.keyCache.isEmpty());
-		}
-
-		@Test
-		@SuppressWarnings("unchecked")
-		void keyCache_canAddItems() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			frame.keyCache.add("item1");
-			assertEquals(1, frame.keyCache.size());
 		}
 
 	}

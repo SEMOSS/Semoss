@@ -295,7 +295,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String script = addDocumentPyCommand.toString();
 
-		classLogger.info("Running >>> " + script);
+		classLogger.info("Running >>> {}", script);
 		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator
 				.runDirectPy(insight, script);
 
@@ -512,7 +512,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						classLogger.error("Failed to delete indexed file '{}'", entry, e);
 						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
 					}
-					classLogger.info("Deleted: " + entry.toString());
+					classLogger.info("Deleted: {}", entry);
 				}
 			} catch (IllegalArgumentException e) {
 				throw e;
@@ -570,7 +570,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
 			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
-			classLogger.info("Running >>> " + updateFaissMaster);
+			classLogger.info("Running >>> {}", updateFaissMaster);
 
 			// also handle bm25 files
 			String updateBM25 = null;
@@ -580,7 +580,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						.append(indexClass).append("'])");
 
 				updateBM25 = updateBM25Builder.toString();
-				classLogger.info("Running >>> " + updateBM25);
+				classLogger.info("Running >>> {}", updateBM25);
 			}
 			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
@@ -691,7 +691,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// close the method
 		callMaker.append(")");
-		classLogger.info("Running >>> " + callMaker.toString());
+		classLogger.info("Running >>> {}", callMaker);
 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight,
 				callMaker.toString());
 		return output;
@@ -812,21 +812,26 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param port the port the python server should bind to
 	 */
 	@Override
-	protected synchronized void startServer(int port) {
-		// Detect any legacy .pkl files BEFORE Python starts;
-		// FAISSSearcher.__init__ will
-		// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
-		// script.
-		Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
+	protected void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// Detect any legacy .pkl files BEFORE Python starts;
+			// FAISSSearcher.__init__ will
+			// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
+			// script.
+			Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
 
-		super.startServer(port);
+			super.startServer(port);
 
-		// In cluster mode the engine folder was just hydrated from cloud and likely
-		// still contains the legacy .pkl entries we just converted locally. Push the
-		// migrated counterparts up and remove the obsolete .pkl from cloud so peers
-		// don't re-pull them.
-		if (!pendingPickleMigrations.isEmpty()) {
-			syncMigratedFilesToCloud(pendingPickleMigrations);
+			// In cluster mode the engine folder was just hydrated from cloud and likely
+			// still contains the legacy .pkl entries we just converted locally. Push the
+			// migrated counterparts up and remove the obsolete .pkl from cloud so peers
+			// don't re-pull them.
+			if (!pendingPickleMigrations.isEmpty()) {
+				syncMigratedFilesToCloud(pendingPickleMigrations);
+			}
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 
