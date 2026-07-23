@@ -66,8 +66,10 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 		}
 		String userId = user.getPrimaryLoginToken().getId();
 
-		// null = search across all projects
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		if (projectId == null) {
+			projectId = this.insight.getContextProjectId();
+		}
 
 		String keyword = this.keyValue.get(this.keysToGet[1]);
 		if (keyword == null || keyword.trim().isEmpty()) {
@@ -107,14 +109,14 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Searches through the messages in the user's conversation rooms for a given keyword. "
 				+ "Returns room_id, message_id, room_name, and date_created for each match. "
-				+ "Optionally returns message_text when includeMessageText=true. "
-				+ "Omitting projectId searches across all projects. Supports limit and offset for pagination.";
+				+ "Optionally returns message_text when includeMessageText=true (default). "
+				+ "Falls back to the current insight's project when projectId is omitted. Supports limit and offset for pagination.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "Optional project ID to scope the search. Omit to search across all projects the user has access to.";
+			return "Optional project ID to scope the search. Defaults to the current insight's project when omitted.";
 		} else if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
 			return "The keyword to search for within message content (case-insensitive).";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
