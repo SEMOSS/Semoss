@@ -75,7 +75,9 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 	private static final String PROJECT_ID = "projectId";
 	private static final String OUTPUT_REL = "/mcp/pixel_mcp.json";
 	private static final String ROOM_RECORDINGS_REL = "/playwright/recordings";
-	private static final String PLAYWRIGHT_FUNCTION = "open_playwright_sockets";
+	private static final String OPEN_TOOL_NAME = "open_playwright_sockets";
+	private static final String OPEN_REACTOR = "OpenPlaywrightSocketsRoomRecording";
+	private static final String REPLAY_REACTOR = "PlayPlaywrightSocketsRoomRecording";
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 	private final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -256,13 +258,15 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 				.put("SMSS_MCP_EXECUTION", "ask")
 				.put("SMSS_MCP_UI",
 						new JSONObject().put("displayLocation", "sidebar").put("resourceURI", "/"))
-				.put("SMSS_FUNCTION_NAME",
-						roomMode ? "PlayPlaywrightSocketsRoomRecording" : PLAYWRIGHT_FUNCTION);
+				.put("SMSS_FUNCTION_NAME", REPLAY_REACTOR);
 		if (hasText(projectId)) {
 			meta.put("SMSS_PROJECT_ID", projectId);
 		}
 		if (roomMode) {
 			meta.put("SMSS_ENGINE_ID", InsightMCP.INSIGHT_MCP_ID);
+			// Execution belongs to the room insight, but the sidebar UI is hosted
+			// by the Playwright Sockets project.
+			meta.put("SMSS_ENGINE_TYPE", "PROJECT");
 		}
 
 		JSONObject tool = new JSONObject()
@@ -271,9 +275,6 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 				.put("description", "Replay: " + intent + " - " + description)
 				.put("inputSchema", inputSchema)
 				.put("_meta", meta);
-		if (!roomMode) {
-			tool.put("_type", "python");
-		}
 		return tool;
 	}
 
@@ -325,21 +326,19 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 				.put("SMSS_MCP_EXECUTION", "ask")
 				.put("SMSS_MCP_UI",
 						new JSONObject().put("displayLocation", "sidebar").put("resourceURI", "/"))
-				.put("SMSS_FUNCTION_NAME", PLAYWRIGHT_FUNCTION);
+				.put("SMSS_FUNCTION_NAME", OPEN_REACTOR);
 		return new JSONObject()
-				.put("name", PLAYWRIGHT_FUNCTION)
+				.put("name", OPEN_TOOL_NAME)
 				.put("title", "browser app playwright browser app playwright sockets")
 				.put("description",
 						"browser app that Open the Playwright Sockets remote browser app, navigate to start_url, begin recording, and save the recording into the current Playground room when returned. If the user did not provide a URL, ask for one before calling this tool.")
 				.put("inputSchema", inputSchema)
-				.put("_meta", meta)
-				.put("_type", "python");
+				.put("_meta", meta);
 	}
 
 	private static JSONObject createMcpDocument(JSONArray tools, boolean projectMode) {
 		JSONObject meta = new JSONObject().put("last_modified_date", today());
 		if (projectMode) {
-			meta.put("source_file", "assets/py/mcp_driver.py");
 			meta.put("generated_by", "manual");
 		}
 		return new JSONObject().put("_meta", meta).put("tools", tools);
