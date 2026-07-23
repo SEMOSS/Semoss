@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -904,7 +905,8 @@ public class SmssUtilities {
 						if (allUpperCurrentSmss.get(key) != null) {
 							value = allUpperCurrentSmss.get(key);
 						}
-						constructedSmssContent.append(key).append("\t").append(value);
+						constructedSmssContent.append(key).append("\t")
+								.append(StringEscapeUtils.escapeJava(value.toString()));
 					} else {
 						// the value has been changed
 						constructedSmssContent.append(curLine);

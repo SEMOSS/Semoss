@@ -29,8 +29,6 @@ package prerna.reactor.export;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,14 +72,9 @@ import org.jsoup.select.Elements;
 
 import cz.vutbr.web.css.CSSException;
 import cz.vutbr.web.css.CSSFactory;
-import cz.vutbr.web.css.CombinedSelector;
 import cz.vutbr.web.css.Declaration;
 import cz.vutbr.web.css.RuleSet;
 import cz.vutbr.web.css.StyleSheet;
-import cz.vutbr.web.css.Term;
-import cz.vutbr.web.css.TermColor;
-import cz.vutbr.web.css.TermLength;
-import cz.vutbr.web.css.TermPercent;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -107,9 +99,9 @@ import prerna.util.Utility;
 
 public class TableToXLSXReactor extends AbstractReactor {
 
-	protected static final Logger classLogger = LogManager.getLogger(TableToXLSXReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(TableToXLSXReactor.class);
 
-	List<Integer> autoWrappedColumns = new Vector<Integer>();
+	List<Integer> autoWrappedColumns = new ArrayList<>();
 	int startColumn = 0;
 	int rowGutter = 2;
 	int startRow = 0;
@@ -119,7 +111,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 	int lastColumn = startColumn;
 	boolean keepOpen = true;
 	boolean mergeCells = true; // should we merge the cells or not.
-	Map exportMap = new HashMap<String, Object>();
+	Map<String, Object> exportMap = new HashMap<>();
 	final String DATA_TYPES_ARRAY_KEY = "DATA_TYPES_ARRAY_KEY";
 
 	int lastDataRow = 0;
@@ -132,8 +124,8 @@ public class TableToXLSXReactor extends AbstractReactor {
 	public static final String FOOTER = "footer";
 	public static final String PLACE_HOLDER = "placeholders";
 
-	Map colspanMatrix = new HashMap();
-	Map rowspanMatrix = new HashMap();
+	Map<String, Cell> colspanMatrix = new HashMap<>();
+	Map<String, Cell> rowspanMatrix = new HashMap<>();
 	Map<Sheet, List<CellRangeAddress>> mergeAreas = new HashMap<Sheet, List<CellRangeAddress>>();
 	String exportTemplate = null;
 	String sheetName = null;
@@ -143,9 +135,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 	Map<String, CellStyle> styleHash = new HashMap<String, CellStyle>();
 
 	public TableToXLSXReactor() {
-		// keep open specifies whether to keep this open or close it. if kept open then
-		// this will return open as noun metadata
-		// need to add table level header and tabel level footer
 
 		this.keysToGet = new String[] { ReactorKeysEnum.SHEET.getKey(), ReactorKeysEnum.HTML.getKey(),
 				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.MERGE_CELLS.getKey(),
@@ -162,7 +151,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
+		// throw error if user doesn't have rights to export data
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
@@ -258,11 +247,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 			if (exportMap.containsKey(fileName)) {
 				// keeping a map to be used for various things
 				wb = (XSSFWorkbook) exportMap.get(fileName);
-				// may be this is not needed for now
-				/*
-				 * Object oStartColumn = insight.getVar("COLUMN_COUNT"); if(oStartColumn !=
-				 * null) startColumn = (Integer)oStartColumn;
-				 */
 			} else {
 				if (exportTemplate != null) {
 					String fileLocation = (String) exportMap.get("FILE_LOCATION");
@@ -328,7 +312,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 					startRow = 6;
 					lastRow = 6;
 					exportMap.put(sheetName + "ROW_COUNT", startRow);
-					// need to find a way to remove disclaimer
 				} else {
 					// throwing the pixel Exception in case of invalid template
 					throw new SemossPixelException(new NounMetadata("Selected template is in invalid format",
@@ -349,7 +332,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 
 	public void getExportMap(String fileName) {
 		if (insight.getVar(fileName) != null) {
-			exportMap = (Map) insight.getVar(fileName);
+			exportMap = (Map<String, Object>) insight.getVar(fileName);
 		}
 	}
 
@@ -367,12 +350,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 				// keeping a map to be used for various things
 
 				wb = (Workbook) exportMap.get(fileName);
-
-				// may be this is not needed for now
-				/*
-				 * Object oStartColumn = insight.getVar("COLUMN_COUNT"); if(oStartColumn !=
-				 * null) startColumn = (Integer)oStartColumn;
-				 */
 			} else {
 				if (exportTemplate != null) {
 					wb = new XSSFWorkbook(exportTemplate);
@@ -394,17 +371,13 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 
 			Sheet aSheet = null;
-			/*
-			 * if(exportMap.containsKey(sheetName)) aSheet =
-			 * (Sheet)exportMap.get(sheetName); else
-			 */ {
+			{
 				aSheet = wb.getSheet(sheetName);
 				if (aSheet == null) {
 					if (this.exportTemplate != null) {
 						aSheet = wb.cloneSheet(wb.getSheetIndex(HEADER));
 						wb.setSheetName(wb.getSheetIndex(aSheet), sheetName);
 						startRow = 6;
-						// need to find a way to remove disclaimer
 
 					} else {
 						aSheet = wb.createSheet(sheetName);
@@ -421,15 +394,14 @@ public class TableToXLSXReactor extends AbstractReactor {
 			int offset = startRow;
 			lastRow = offset;
 			// this assumes a single table being there
-			Elements trs = doc.select("tr"); // a with href
-			// System.out.println("Table rows " + trs.size());
+			Elements trs = doc.select("tr");
 			for (int rowIndex = 0; rowIndex < trs.size(); rowIndex++) {
 				Row row = aSheet.createRow(offset + rowIndex);
 				Element tr = trs.get(rowIndex);
 				processRow(wb, row, tr);
 				lastRow++;
 			}
-			// add 2 new lines
+			// store the ending row so the next table starts below it
 			exportMap.put(sheetName + "ROW_COUNT", lastRow);
 			if (exportMap.containsKey(sheetName + "COLUMN_COUNT")) {
 				int curLastColumn = (Integer) exportMap.get(sheetName + "COLUMN_COUNT");
@@ -443,20 +415,11 @@ public class TableToXLSXReactor extends AbstractReactor {
 		} catch (Exception ex) {
 			classLogger.error("Error generating the XLSX sheet from the HTML table", ex);
 		}
-//		} finally {
-//			if(wb != null) {
-//		          try {
-//		        	  wb.close();
-//		          } catch(IOException e) {
-//						classLogger.error("Error closing the workbook", e);
-//		          }
-//		        }
-//		}
 		return null;
 	}
 
 	public void processRow(Workbook wb, Row row, Element tr) {
-		// get the style for the row if one exists
+		// iterate the cells (td) of this row
 		Elements tds = tr.children();
 		int offset = startColumn + columnGutter;
 		lastColumn = offset;
@@ -469,7 +432,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 			if (!colspanMatrix.containsKey(rowIndex + ":" + colIndex)
 					&& !(rowspanMatrix.containsKey(rowIndex + ":" + colIndex))) {
 				// find if the cell already has a value assigned
-				// if not see if t
 				Element td = tds.get(tdIndex);
 
 				String value = td.text();
@@ -477,11 +439,10 @@ public class TableToXLSXReactor extends AbstractReactor {
 				String colSpan = td.attr("colspan");
 
 				String style = td.attr("Style");
-				List[] nameProps = null;
+				List<String>[] nameProps = null;
 				if (style == null) {
 					style = td.attr("style");
 				}
-				// System.err.println("Value is " + value + " Style is " + style);
 				CellStyle input = null;
 
 				if (style != null) {
@@ -517,7 +478,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 					// THIS WILL ALSO SET THE CELL VALUE
 					formatAndSetCellType(wb, input, cell, value);
 
-					// process background
+					// process the column width
 					processWidth(cell.getSheet(), cell.getColumnIndex(), nameProps[0], nameProps[1]);
 				}
 
@@ -543,15 +504,13 @@ public class TableToXLSXReactor extends AbstractReactor {
 				cellIndex++;
 				lastColumn++;
 			} else if (!colspanMatrix.containsKey(rowIndex + ":" + colIndex)) {
-				Cell prevCell = (Cell) rowspanMatrix.get(rowIndex + ":" + colIndex);
+				Cell prevCell = rowspanMatrix.get(rowIndex + ":" + colIndex);
 				cell.setCellStyle(prevCell.getCellStyle());
 				cellIndex++;
-				// tdIndex++;
-			} else // if(!(rowspanMatrix.containsKey(rowIndex + ":" + colIndex)))
+			} else
 			{
-				// I have to do something here..
 				// I need to paint the same style for this cell also
-				Cell prevCell = (Cell) colspanMatrix.get(rowIndex + ":" + colIndex);
+				Cell prevCell = colspanMatrix.get(rowIndex + ":" + colIndex);
 				cell.setCellStyle(prevCell.getCellStyle());
 				cellIndex++;
 			}
@@ -560,19 +519,15 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public List<String>[] mapCSS(String style) {
-		List<String> names = new Vector<String>();
-		List<String> values = new Vector<String>();
+		List<String> names = new ArrayList<>();
+		List<String> values = new ArrayList<>();
 		try {
 			style = "div { " + style + " ; }";
 			StyleSheet sheet = CSSFactory.parseString(style, new URL("http://base.url"));
-			// "border:1px solid #ccc; font-size:18px; padding:10px; text-align:left"
-			// align="left"
 			if (sheet.size() > 0) {
 				RuleSet rule = (RuleSet) sheet.get(0);
-				CombinedSelector[] selector = rule.getSelectors();
 				for (int ruleIndex = 0; rule != null && ruleIndex < rule.size(); ruleIndex++) {
 					Declaration cssName = rule.get(ruleIndex);
-					// System.err.println("Property.... >> " + cssName.getProperty());
 					for (int propIndex = 0; propIndex < cssName.size(); propIndex++) {
 
 						String thisProp = cssName.get(propIndex).toString();
@@ -592,62 +547,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 		return new List[] { names, values };
 	}
 
-	public String predictName(List<String> names, String cssName, Term value) {
-		String retName = cssName;
-		if (!retName.contains("-")) {
-			if (value instanceof TermColor) {
-				retName = retName + "-color";
-			}
-			if (value instanceof TermLength || value instanceof TermPercent) {
-				// see if the width is there if not it is the width
-				if (!names.contains(retName + "-width")) {
-					retName = retName + "-width";
-					// else
-				}
-
-			}
-			if (value instanceof TermColor) {
-				retName = retName + "-color";
-			}
-			if (value instanceof TermColor) {
-				retName = retName + "-color";
-			}
-
-		}
-
-		return retName;
-	}
-
-	// this is not useful
-	public void modStyle(Workbook wb, CellStyle input, List<String> cssName, List<String> cssValue) {
-		// things we style
-		// background color
-		// font color
-		// font size
-		// font style - italic
-
-		// font -weight - bold
-		// underline
-		// horizontal justify
-		// vertical justify
-		// borders
-		// width of the cell - you can only do column
-
-		// things I am looking for
-		String[] borderProps = new String[] { "border", "border-width", "border-bottom", "border-left", "border-right",
-				"border-top", "border-style" };
-		String[] fontProps = new String[] { "font", "font-size", "font-color", "font-family", "font-style",
-				"font-weight" }; // font-style - italic, font-weight - bold
-		String[] backgroundProps = new String[] { "background-color" };
-		String[] aligns = new String[] { "text-align", "vertical-align" };
-		String[] dims = new String[] { "width", "height" }; // auto-wrap
-		String[] texts = new String[] { "text-decoration" };// underline
-	}
-
 	public CellStyle processBorders(CellStyle input, List<String> names, List<String> cssProps) {
-		String[] borderProps = new String[] { "border", "border-width", "border-bottom", "border-left", "border-right",
-				"border-top", "border-style" };
-
 		BorderStyle styleToApply = BorderStyle.THIN;
 
 		if (names.contains("border-style")) {
@@ -664,7 +564,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 		}
 
-		if (names.contains("border")) // put everything you are good move on
+		if (names.contains("border")) // all borders requested; apply and move on
 		{
 			input.setBorderBottom(styleToApply);
 			input.setBorderTop(styleToApply);
@@ -691,13 +591,9 @@ public class TableToXLSXReactor extends AbstractReactor {
 			XSSFColor color = new XSSFColor();
 			color.setARGBHex(borderColor.substring(1));
 			((XSSFCellStyle) input).setBottomBorderColor(color);
-			;
 			((XSSFCellStyle) input).setTopBorderColor(color);
-			;
 			((XSSFCellStyle) input).setLeftBorderColor(color);
-			;
 			((XSSFCellStyle) input).setRightBorderColor(color);
-			;
 		} else {
 			input.setBottomBorderColor(IndexedColors.BLACK.getIndex());
 			input.setTopBorderColor(IndexedColors.BLACK.getIndex());
@@ -710,14 +606,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public CellStyle processFont(CellStyle input, List<String> names, List<String> cssProps, Workbook wb) {
-		String[] fontProps = new String[] { "font", "font-size", "font-family", "font-style", "font-weight" }; // font-style
-																												// -
-																												// italic,
-																												// font-weight
-																												// -
-																												// bold
-		String[] texts = new String[] { "text-decoration" };// underline
-
 		XSSFFont font = (XSSFFont) wb.createFont();
 		int fontSize = 10;
 		boolean bold = false;
@@ -735,7 +623,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 		font.setFontHeightInPoints((short) fontSize);
 
 		// font name
-		// come back to this
 		font.setFontName("Arial");
 
 		if (names.contains("color")) {
@@ -785,8 +672,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public CellStyle processAlign(CellStyle input, List<String> names, List<String> cssProps) {
-		String[] aligns = new String[] { "text-align", "vertical-align" };
-
 		if (names.contains("text-align")) {
 			int textAlignIndex = names.indexOf("text-align");
 			String textAlign = cssProps.get(textAlignIndex);
@@ -824,9 +709,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public CellStyle processBackground(CellStyle input, List<String> names, List<String> cssProps) {
-		String[] backgroundProps = new String[] { "background-color" };
-
-		short colorIndex = IndexedColors.WHITE.getIndex();
 		if (names.contains("background-color")) {
 			int bgIndex = names.indexOf("background-color");
 			String bgColor = cssProps.get(bgIndex);
@@ -869,7 +751,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 
 				// see if it is $
 				if (value.contains("$")) {
-					// input.setDataFormat((short)0x5);
 
 					// Adding Custom formatting to handle the decimal places.
 					String fmt = "$#,##0";
@@ -922,7 +803,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 						cell.setCellValue(value);
 					}
 				}
-				// see if this is a date yuck
+				// fallback: treat as text
 				else {
 					input.setDataFormat((short) 0x31);
 					cell.setCellValue(value);
@@ -932,9 +813,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public void processWidth(Sheet inputSheet, int cellNum, List<String> names, List<String> cssProps) {
-		String[] widths = new String[] { "width" };
-
-		if (autoWrappedColumns.contains(cellNum)) // already auto wrapped dont mess
+		if (autoWrappedColumns.contains(cellNum)) // already auto-wrapped; do not override
 		{
 			inputSheet.autoSizeColumn(cellNum);
 			return;
@@ -980,12 +859,12 @@ public class TableToXLSXReactor extends AbstractReactor {
 	}
 
 	public void processSpan(Cell cell, String rowSpan, String colSpan, String value) {
-		// get the curren cell row and column
+		// get the current cell row and column
 		int colIndex = cell.getColumnIndex();
 		int rowIndex = cell.getRowIndex();
 
 		Sheet sh = cell.getSheet();
-		List mergeCells = new Vector();
+		List<CellRangeAddress> mergeCells = new ArrayList<>();
 		if (mergeAreas.containsKey(sh)) {
 			mergeCells = mergeAreas.get(sh);
 		}
@@ -997,7 +876,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 
 			// put the merge
-			// CellReference.convertNumToColString(cell.getColumnIndex());
 			CellRangeAddress cra = new CellRangeAddress(rowIndex, rowIndex, colIndex, (colIndex + numCols - 1));
 			mergeCells.add(cra);
 			mergeAreas.put(sh, mergeCells);
@@ -1016,9 +894,9 @@ public class TableToXLSXReactor extends AbstractReactor {
 		}
 
 		if (colSpan != null && rowSpan != null && rowSpan.length() > 0 && colSpan.length() > 0) {
-			int numRows = Integer.parseInt(colSpan);
+			int numRows = Integer.parseInt(rowSpan);
 			int numCols = Integer.parseInt(colSpan);
-			for (int rowSpanIndex = 0; rowSpanIndex < numCols; rowSpanIndex++) {
+			for (int rowSpanIndex = 0; rowSpanIndex < numRows; rowSpanIndex++) {
 				for (int colSpanIndex = 0; colSpanIndex < numCols; colSpanIndex++) {
 					colspanMatrix.put((rowIndex + rowSpanIndex) + ":" + (colIndex + colSpanIndex), cell);
 					rowspanMatrix.put((rowIndex + rowSpanIndex) + ":" + (colIndex + colSpanIndex), cell);
@@ -1027,7 +905,8 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 
 			// put the merge area
-			CellRangeAddress cra = new CellRangeAddress(rowIndex, rowIndex + numRows, colIndex, colIndex + numCols);
+			CellRangeAddress cra = new CellRangeAddress(rowIndex, (rowIndex + numRows - 1), colIndex,
+					(colIndex + numCols - 1));
 			mergeCells.add(cra);
 			mergeAreas.put(sh, mergeCells);
 		}
@@ -1045,26 +924,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 		}
 	}
 
-	public void writeWorkbook(User user, String fileName) {
-		try {
-			Workbook wb = (Workbook) exportMap.get(fileName);
-			if (exportMap.containsKey(FOOTER)) {
-				fillFooter(wb, exportMap, (String) exportMap.get(FOOTER));
-			}
-			fillHeader(wb, exportMap, "Mahers Magic Carpet", "Incurred through abc to def");
-			String exportName = AbstractExportTxtReactor.getExportFileName(user, fileName, "xlsx");
-			String fileLocation = "c:/temp" + DIR_SEPARATOR + exportName;
-
-			FileOutputStream fileOut = new FileOutputStream(fileLocation);
-			wb.write(fileOut);
-		} catch (FileNotFoundException e) {
-			classLogger.error("Error opening the output file to write the workbook", e);
-		} catch (IOException e) {
-			classLogger.error("Error writing the workbook to the output file", e);
-		}
-	}
-
-	public void fillHeader(Workbook wb, Map exportMap, String para1, String para2) {
+	public void fillHeader(Workbook wb, Map<String, Object> exportMap, String para1, String para2) {
 		// usually the company name is in the first row 4th column
 		for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
 			Sheet aSheet = wb.getSheetAt(sheetIndex);
@@ -1083,17 +943,13 @@ public class TableToXLSXReactor extends AbstractReactor {
 			Cell para1Cell = para1Row.getCell(3);
 			Cell para2Cell = para2Row.getCell(3);
 
-			// ok weird
 			if (para1Cell == null) {
 				para1Cell = para1Row.createCell(3);
 			}
-			// ok weird
 			if (para2Cell == null) {
 				para2Cell = para2Row.createCell(3);
 			}
 
-			// CellStyle style = wb.createCellStyle(); //Create new style
-			// style.setWrapText(true); //Set wordwrap
 			if (para1 != null) {
 				para1Cell.setCellValue(para1);
 			}
@@ -1103,8 +959,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 		}
 	}
 
-	// can neel just send it as part of the information ?
-	public void fillFooter(Workbook wb, Map exportMap, String footer) {
+	public void fillFooter(Workbook wb, Map<String, Object> exportMap, String footer) {
 		for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
 			Sheet aSheet = wb.getSheetAt(sheetIndex);
 			String sheetName = aSheet.getSheetName();
@@ -1119,7 +974,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 			int sheetTotalRows = 0;
 			int sheetTotalColumns = 0;
 			if (wb.getSheet(HEADER) != null && wb.getSheet(HEADER).getRow(0) != null) {
-				sheetTotalRows = 5; // leave space foe headers
+				sheetTotalRows = 5; // leave space for headers
 			}
 			if (exportMap.containsKey(sheetName + "ROW_COUNT")) {
 				sheetTotalRows = (Integer) exportMap.get(sheetName + "ROW_COUNT");
@@ -1157,7 +1012,8 @@ public class TableToXLSXReactor extends AbstractReactor {
 	 *                        and [Placeholder value, placeholder cell position] as
 	 *                        the list value.
 	 */
-	public void fillPlaceholders(Workbook wb, Map exportMap, Map<String, List<String>> placeHolderData) {
+	public void fillPlaceholders(Workbook wb, Map<String, Object> exportMap,
+			Map<String, List<String>> placeHolderData) {
 
 		for (int sheetIndex = 0; sheetIndex < wb.getNumberOfSheets(); sheetIndex++) {
 			Sheet sheet = wb.getSheetAt(sheetIndex);
@@ -1278,7 +1134,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 			String paramName = matcher.group();
 			paramName = paramName.replace("<", "");
 			paramName = paramName.replace(">", "");
-			// ok.. now I have the param name as if insight has it
+			// paramName now matches the insight parameter key format
 			NounMetadata param = insight.getVarStore().get(VarStore.PARAM_STRUCT_PREFIX + paramName);
 			if (param != null) {
 				ParamStruct ps = (ParamStruct) param.getValue();
@@ -1409,9 +1265,8 @@ public class TableToXLSXReactor extends AbstractReactor {
 	 * 
 	 * @param exportMap-it stores all the export related properties
 	 */
-	public void makeParamSheet(Workbook wb, Insight insight, boolean applyDefaultColor, Map exportMap) {
+	public void makeParamSheet(Workbook wb, Insight insight, boolean applyDefaultColor, Map<String, Object> exportMap) {
 
-		String SECTION = "Section"; // This column various section of filter like Insight, Frame
 		String PARAMETER_NAME = "Parameter Name";
 		String OPERATOR = "Operator"; // Operator used in UI translated to English word
 		String PARAMETER_VALUE = "Parameter Value(s)";
@@ -1445,7 +1300,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 		operatorCellHeader.setCellValue(OPERATOR);
 		paramValCellHeader.setCellValue(PARAMETER_VALUE);
 		// fill the rows.
-		// Ideally we can drop the section, but later
 		List<String> insightParamKeys = insight.getVarStore().getInsightParameterKeys();
 		List<String> preAppliedParamKeys = insight.getVarStore().getPreDefinedParametersKeys();
 		// to make unique set of keys giving priority to insight paramkeys using Set
@@ -1494,8 +1348,6 @@ public class TableToXLSXReactor extends AbstractReactor {
 
 						// next row
 						rowIndex++;
-
-						// set eh styles
 					}
 				} else {
 					continue;
@@ -1533,54 +1385,5 @@ public class TableToXLSXReactor extends AbstractReactor {
 			return headerCellStyle;
 		}
 	}
-
-//	public static void main(String [] args) {
-//		TableToXLSXReactor tx = new TableToXLSXReactor();
-//		String html = "</head><body><table style=\"border-collapse:collapse; margin:50px auto; width:750px\" width=\"750\">\r\n" + 
-//				"  <thead>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:80px\" align=\"left\">First Name</th>  <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Last Name</th>\r\n" + 
-//				"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Job Title</th>\r\n" + 
-//				"      <th style=\"background-color:#3498db; color:white; font-weight:bold; border:1px solid #ccc; font-size:18px; padding:10px; text-align:left; width:20px\" align=\"left\">Twitter</th>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"  </thead>\r\n" + 
-//				"  <tbody>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <td data-column=\"First Name\"  style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\", colspan=\"2\">James</td>\r\n" + 
-//				"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Matman</td>\r\n" + 
-//				"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Chief Sandwich Eater</td>\r\n" + 
-//				"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">20</td>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">30.123</td>\r\n" + 
-//				"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Nagy</td>\r\n" + 
-//				"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Designer</td>\r\n" + 
-//				"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@andornagy</td>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Tamas</td>\r\n" + 
-//				"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Biro</td>\r\n" + 
-//				"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Game Tester</td>\r\n" + 
-//				"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">$ 2000.32</td>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Zoli</td>\r\n" + 
-//				"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Mastah</td>\r\n" + 
-//				"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Developer</td>\r\n" + 
-//				"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@zoli</td>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"    <tr>\r\n" + 
-//				"      <td data-column=\"First Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Szabi</td>\r\n" + 
-//				"      <td data-column=\"Last Name\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Nagy</td>\r\n" + 
-//				"      <td data-column=\"Job Title\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">Chief Sandwich Eater</td>\r\n" + 
-//				"      <td data-column=\"Twitter\" style=\"border:1px solid #ccc; font-size:18px; padding:10px; text-align:left\" align=\"left\">@szabi</td>\r\n" + 
-//				"    </tr>\r\n" + 
-//				"  </tbody>\r\n" + 
-//				"</table></body></html>";
-//		tx.exportTemplate = "c:/users/pkapaleeswaran/workspacej3/SemossDev/templates/anthem.xlsx";
-//		tx.processTable("sh", html, "hello");
-//		tx.mergeAreas();
-//		tx.writeWorkbook(null, "hello");
-//	}
 
 }

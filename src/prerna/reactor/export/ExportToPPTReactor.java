@@ -96,7 +96,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightFile;
 import prerna.om.InsightPanel;
-import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -128,8 +127,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 	private static final String COLOR_ARRAY = "tools.shared.color";
 	private static final String CHART_TITLE = "tools.shared.chartTitle.text";
 
-	Object driver = null;
-	ChromeDriverUtility util = null;
+	private Object driver = null;
+	private ChromeDriverUtility util = null;
 
 	public ExportToPPTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
@@ -140,7 +139,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
+		// throw error if user doesn't have rights to export data
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
@@ -150,7 +149,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 
-		// get a random file name
+		// build the export file name from the requested file name
 		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 		// grab file path to write the file
@@ -172,12 +171,12 @@ public class ExportToPPTReactor extends AbstractReactor {
 		insightFile.setFilePath(fileLocation);
 
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
-		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
+
 		// create Powerpoint slideshow
 		XMLSlideShow slideshow = new XMLSlideShow();
 		// Map sheet to the list of panels it contains so we can group panels in
 		// the same sheet together
-		HashMap<String, List<InsightPanel>> sheetToPanelMap = new HashMap<String, List<InsightPanel>>();
+		Map<String, List<InsightPanel>> sheetToPanelMap = new HashMap<String, List<InsightPanel>>();
 		for (String panelId : panelMap.keySet()) {
 			InsightPanel panel = panelMap.get(panelId);
 			String sheetId = panel.getSheetId();
@@ -423,8 +422,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFChart chart = slideshow.createChart(slide);
-//		XDDFChartLegend legend = chart.getOrAddLegend();
-//		legend.setPosition(LegendPosition.TOP_RIGHT);
 
 		XDDFValueAxis bottomAxis = chart.createValueAxis(AxisPosition.BOTTOM);
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
@@ -837,21 +834,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 	}
 
 	private void insertGridChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
-
-//		// retrieve ornaments
-//		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
-//		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
-//		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
-//		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
-//		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-//		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
-//		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
-//		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
-//		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
-//		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
-//		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
-//		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFTable table = slide.createTable();
 		table.setAnchor(new Rectangle(50, 50, 800, 800));
@@ -983,13 +965,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * 
-	 * @param options
-	 * @param slideshow
-	 * @param task
-	 * @param panel
-	 */
 	private void insertImage(User user, Map<String, Object> options, XMLSlideShow slideshow, ITask task,
 			InsightPanel panel) {
 		String baseUrl = this.insight.getBaseURL();
@@ -1005,9 +980,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId,
 				800);
 
-		InputStream inputStream = null;
-		try {
-			inputStream = new FileInputStream(imageLocation);
+		try (InputStream inputStream = new FileInputStream(imageLocation)) {
 			byte[] bytes = IOUtils.toByteArray(inputStream);
 			inputStream.close();
 			FileUtils.forceDelete(new File(imageLocation));
@@ -1019,13 +992,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 			classLogger.error("Error capturing the panel image and adding it to the PPT slide from {}", imageLocation,
 					e);
 		} finally {
-			if (inputStream != null) {
-				try {
-					inputStream.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the panel image input stream", e);
-				}
-			}
 			if (driver != null && driver instanceof ChromeDriver) {
 				((ChromeDriver) driver).quit();
 			}
