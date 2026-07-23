@@ -141,6 +141,12 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
 
+		// Do not compact against a message that still has unanswered tool calls
+		if (!branch.isEmpty() && branch.getLast().hasToolCallPart()) {
+			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
+					+ " has unanswered tool calls. Compact once the tool call has been resolved.");
+		}
+
 		if (autoDetect) {
 			if (!roomHasViewableModel) {
 				classLogger.warn("No model id attached to room - attempting to clear out tool calls and responses");
