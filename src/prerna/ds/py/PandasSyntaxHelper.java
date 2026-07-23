@@ -800,7 +800,7 @@ public class PandasSyntaxHelper {
 		int i = 0;
 		int size = row.size();
 		for (; i < size; i++) {
-			if (SemossDataType.STRING == dataType) {
+			if (SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 				String escaper = row.get(i) + "";
 				escaper = escaper.replace("'", "\\'");
 				str.append("'").append(escaper).append("'");
