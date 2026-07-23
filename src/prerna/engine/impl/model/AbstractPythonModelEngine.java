@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -54,6 +55,7 @@ import prerna.engine.impl.model.responses.BatchResultsResponse;
 import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -438,6 +440,49 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
+		} catch (Exception e) {
+			classLogger.error("Could not create response object from output: {}", output, e);
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
+		return response;
+	}
+
+	@Override
+	public MultiModalEmbeddingsModelEngineResponse multiModalEmbeddings(List<String> text, List<String> image,
+			List<String> video, Insight insight, Map<String, Object> parameters) {
+		checkSocketStatus();
+
+		if (text == null) {
+			text = new ArrayList<>();
+		}
+		if (image == null) {
+			image = new ArrayList<>();
+		}
+		if (video == null) {
+			video = new ArrayList<>();
+		}
+
+		StringBuilder callMaker = new StringBuilder();
+		callMaker.append(varName).append(".multi_modal_embeddings(")
+				.append("text = ").append(PyUtils.determineStringType(text))
+				.append(", image = ").append(PyUtils.determineStringType(image))
+				.append(", video = ").append(PyUtils.determineStringType(video));
+
+		if (parameters != null && !parameters.isEmpty()) {
+			Iterator<String> paramKeys = parameters.keySet().iterator();
+			while (paramKeys.hasNext()) {
+				String key = paramKeys.next();
+				Object value = parameters.get(key);
+				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
+			}
+		}
+
+		callMaker.append(")");
+
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		MultiModalEmbeddingsModelEngineResponse response = null;
+		try {
+			response = MultiModalEmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage(), e);

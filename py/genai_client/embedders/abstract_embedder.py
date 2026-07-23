@@ -51,6 +51,24 @@ class AbstractEmbedder(ABC):
     ) -> EmbeddingsModelEngineResponse:
         pass
 
+    def multi_modal_embeddings(
+        self,
+        text: List[str] = None,
+        image: List[str] = None,
+        video: List[str] = None,
+        **kwargs: Any,
+    ) -> Dict:
+        """Embed text/image/video together, broken out by modality.
+
+        Optional capability: embedders that support it override this method.
+        The default reports that the operation is not implemented rather than
+        raising, so callers get a graceful response.
+        """
+        return {
+            "response": "This model does not support multi modal embeddings.",
+            "implemented": False,
+        }
+
     def ask(self, *args, **kwargs) -> Dict:
         response = "This model does not support text generation."
         model_engine_response = AskModelEngineResponse(
