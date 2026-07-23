@@ -76,26 +76,12 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Search keyword must be provided");
 		}
 
+		long limit = getLong(ReactorKeysEnum.LIMIT.getKey(), -1L);
+		long offset = getLong(ReactorKeysEnum.OFFSET.getKey(), -1L);
+		boolean includeMessageText = getBoolean(INCLUDE_MESSAGE_TEXT, true);
+
 		List<Map<String, Object>> results;
 		try {
-			long limit = -1;
-			String limitStr = this.keyValue.get(this.keysToGet[2]);
-			if (limitStr != null) {
-				limit = Long.parseLong(limitStr);
-			}
-
-			long offset = -1;
-			String offsetStr = this.keyValue.get(this.keysToGet[3]);
-			if (offsetStr != null) {
-				offset = Long.parseLong(offsetStr);
-			}
-
-			boolean includeMessageText = true;
-			String includeStr = this.keyValue.get(this.keysToGet[4]);
-			if (includeStr != null) {
-				includeMessageText = Boolean.parseBoolean(includeStr);
-			}
-
 			results = ModelInferenceLogsUtils.searchMessages(userId, projectId, keyword, limit, offset, includeMessageText);
 		} catch (Exception e) {
 			classLogger.error("Error searching room messages", e);
@@ -108,7 +94,8 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Searches through the messages in the user's conversation rooms for a given keyword. "
-				+ "Returns room_id, message_id, room_name, and date_created for each match. "
+				+ "Returns room_id, message_id, room_name, and date_created (message timestamp) for each match. "
+				+ "Case-insensitive matching is handled by the query framework's ?like comparator. "
 				+ "Optionally returns message_text when includeMessageText=true (default). "
 				+ "Falls back to the current insight's project when projectId is omitted. Supports limit and offset for pagination.";
 	}

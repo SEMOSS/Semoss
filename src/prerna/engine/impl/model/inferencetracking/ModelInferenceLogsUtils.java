@@ -1432,7 +1432,7 @@ public class ModelInferenceLogsUtils {
 	 * @param userId    the user to search for
 	 * @param projectId the project to search within
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching messages (room_id, message_id, room_name, date_created)
+	 * @return a list of matching messages (room_id, message_id, room_name, date_created from MESSAGE)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, -1, true);
@@ -1447,7 +1447,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
-		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED", "date_created"));
 
 		// Always build the BLOB selector — needed for the WHERE filter regardless
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
@@ -1467,15 +1467,14 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
 				"?like", keyword, PixelDataType.CONST_STRING));
 
-		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
 		qs.addOrderBy("MESSAGE__MESSAGE_ID", "DESC");
 
 		if (limit > 0) {
 			qs.setLimit(limit);
-		}
-		if (offset > 0) {
-			qs.setOffSet(offset);
+			if (offset > 0) {
+				qs.setOffSet(offset);
+			}
 		}
 
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
