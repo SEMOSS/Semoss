@@ -53,7 +53,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -164,7 +163,9 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 
 			ClusterUtil.pushEngine(guardrailId);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to create guardrail engine '{}' with id '{}' and type '{}': {}",
+					guardrailName, guardrailId, guardrailTypeStr, e.getMessage(), e);
 			UploadUtilities.cleanUpCreateNewError(guardrail, guardrailId, tempSmss, smssFile, specificEngineFolder);
 			throw new IllegalArgumentException("Failed to create guardrail engine. Error: " + e.getMessage());
 		}
