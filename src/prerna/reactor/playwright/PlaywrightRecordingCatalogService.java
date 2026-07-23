@@ -128,8 +128,9 @@ public class PlaywrightRecordingCatalogService {
 	private Catalog catalog(Path roomFolder, Path projectRecordingsFolder, String projectId, String hint,
 			String requestedFile) {
 		List<Candidate> candidates = new ArrayList<>();
-		int roomCount = addCandidates(candidates, roomFolder == null ? null : roomFolder.resolve("playwright"), "room",
-				"", hint, requestedFile);
+		int roomCount = addCandidates(candidates,
+				roomFolder == null ? null : roomFolder.resolve(PlaywrightUtility.RECORDINGS_FOLDER_NAME), "room", "",
+				hint, requestedFile);
 		int projectCount = addCandidates(candidates, projectRecordingsFolder, "project", trim(projectId), hint,
 				requestedFile);
 		return new Catalog(candidates, roomCount, projectCount);
@@ -243,7 +244,8 @@ public class PlaywrightRecordingCatalogService {
 		Map<String, Object> summary = summarize(fileName, recording, steps);
 		String reason = reasons.isEmpty() ? "no match"
 				: String.join(", ", new ArrayList<>(reasons).subList(0, Math.min(4, reasons.size())));
-		return new Candidate(source, projectId, fileName, "room".equals(source) ? "/playwright/" + fileName : "", score,
+		return new Candidate(source, projectId, fileName,
+				"room".equals(source) ? "/" + PlaywrightUtility.RECORDINGS_FOLDER_NAME + "/" + fileName : "", score,
 				reason, firstUrl, summary);
 	}
 
