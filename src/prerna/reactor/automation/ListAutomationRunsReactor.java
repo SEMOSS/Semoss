@@ -31,9 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -48,8 +45,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Reads from AUTOMATION_RUNS in the scheduler DB.
  */
 public class ListAutomationRunsReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(ListAutomationRunsReactor.class);
 
 	public ListAutomationRunsReactor() {
 		this.keysToGet = new String[]{ "project", "limit" };

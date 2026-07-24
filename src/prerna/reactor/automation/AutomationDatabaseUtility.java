@@ -176,7 +176,6 @@ public final class AutomationDatabaseUtility {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) return;
 
-		// Use SelectQueryStruct to find stale runs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__PROJECT_ID", "PROJECT_ID"));
@@ -189,7 +188,6 @@ public final class AutomationDatabaseUtility {
 			return;
 		}
 
-		// For each running run, check if heartbeat is stale and mark as interrupted
 		Timestamp threshold = toTimestamp(Instant.now().minusSeconds(
 				AutomationConstants.STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
 		Timestamp now = toTimestamp(Instant.now());
@@ -503,7 +501,7 @@ public final class AutomationDatabaseUtility {
 
 	/**
 	 * Updates only the heartbeat timestamp for a running automation.
-	 * Used during long-running for-each batches where completed node count hasn't changed.
+	 * Used when the node count hasn't changed but liveness needs to be signaled.
 	 */
 	public static boolean touchHeartbeat(String runId) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
@@ -596,38 +594,6 @@ public final class AutomationDatabaseUtility {
 	}
 
 	// -- AUTOMATION_NODE_OUTPUTS CRUD ------------------------------------------------
-
-	/**
-	 * Inserts a node output record with PENDING status (before execution).
-	 */
-	public static boolean insertNodeOutput(String runId, String nodeId, String nodeLabel, int executionOrder) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
-				int index = 1;
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				ps.setString(index++, nodeLabel);
-				ps.setInt(index++, executionOrder);
-				ps.setString(index++, AutomationConstants.NODE_STATUS_PENDING);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return true;
-		} catch (SQLException e) {
-			classLogger.error("Failed to insert node output for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
-			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
-	}
 
 	/**
 	 * Batch-inserts all node outputs for a run (all PENDING).
@@ -771,9 +737,7 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Gets all node outputs for a run (for scope reconstruction during resume).
-	 *
-	 * @return list of node output maps ordered by execution order
+	 * Gets all node outputs for a run, ordered by execution order.
 	 */
 	public static List<Map<String, Object>> getNodeOutputsForRun(String runId) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
@@ -1000,9 +964,7 @@ public final class AutomationDatabaseUtility {
 
 	/**
 	 * Adds a column to an existing table if it isn't already present - used to migrate
-	 * AUTOMATION_RUNS for installs that created the table before PARENT_RUN_ID/PARENT_NODE_ID
-	 * existed. Safe to call unconditionally on every startup; errors (column already exists)
-	 * are swallowed just like {@link #addPrimaryKeyIfNotExists}.
+	 * installs that predate a column addition. Errors (column already exists) are swallowed.
 	 */
 	private static void addColumnIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String tableName, String columnName, String columnType) {

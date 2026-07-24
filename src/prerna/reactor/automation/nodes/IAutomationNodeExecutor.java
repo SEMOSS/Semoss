@@ -31,7 +31,7 @@ package prerna.reactor.automation.nodes;
  * Executes one automation node's operation, given all the context that node type needs.
  *
  * <p>One concrete implementation per {@code node.type} value (e.g. {@code WaitNodeExecutor},
- * {@code ConditionalNodeExecutor}, {@code DatabaseEngineNodeExecutor}), resolved via a
+ * {@code DatabaseEngineNodeExecutor}), resolved via a
  * {@code Map<String, IAutomationNodeExecutor>} registry in
  * {@link prerna.reactor.automation.TriggerAutomationReactor#executeSingleNode} instead of the
  * previous {@code if/else} chain keyed on {@code type}.

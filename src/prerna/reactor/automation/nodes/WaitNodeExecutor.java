@@ -49,10 +49,8 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 	private static final int CANCEL_CHECK_INTERVAL_SECONDS = 5;
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public Object execute(AutomationNodeContext ctx) throws Exception {
-		Map<String, Object> node = ctx.node();
-		Map<String, Object> config = (Map<String, Object>) node.get("config");
+		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 
 		String secondsTemplate = config.get("seconds") != null

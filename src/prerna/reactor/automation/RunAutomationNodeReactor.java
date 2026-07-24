@@ -168,8 +168,9 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 
 	private Map<String, String> buildScope(String contextRunId) {
 		Map<String, String> scope = new HashMap<>();
-		scope.put("date", Instant.now().toString().substring(0, 10));
-		scope.put("triggered_at", Instant.now().toString());
+		String now = Instant.now().toString();
+		scope.put("date", now.substring(0, 10));
+		scope.put("triggered_at", now);
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(contextRunId);

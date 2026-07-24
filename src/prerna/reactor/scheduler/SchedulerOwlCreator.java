@@ -124,7 +124,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_512;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
-import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_1000;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_2000;
 
 import java.util.ArrayList;
@@ -279,16 +278,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
 
-		// AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS - table/column DDL
-		// (CREATE TABLE, primary keys, indexes, addColumnIfNotExists migrations) is owned by
-		// AutomationDatabaseUtility.initialize() (called by SMSSWebWatcher), not this class - but
-		// every column must still be declared here too, or SelectQueryStruct-based reads against
-		// these tables fail with a NullPointerException resolving the conceptual->physical column
-		// name (AbstractSqlQueryUtil.isSelectorKeyword gets a null "selector" argument), since this
-		// OWL creator is this engine's only source of table/column metadata - there is no live
-		// schema-introspection fallback. Keep this column list in sync with AutomationDatabaseUtility's
-		// CREATE TABLE statements; needsRemake()/remakeOwl() automatically pick up any column added
-		// here on the next server startup, no manual OWL file deletion required.
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUNS, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
 				Pair.with(AutomationConstants.PROJECT_ID, VARCHAR_255),

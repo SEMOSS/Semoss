@@ -84,7 +84,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
         File configFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_CONFIG_FILE_NAME);
 
-        // GetAutomationConfig masks sensitive values (e.g. WEBHOOK_SECRET) as SENSITIVE_MASK.
+        // GetAutomationConfig masks sensitive values as SENSITIVE_MASK.
         // Restore the real values from disk so a config round-trip cannot silently destroy them.
         config = restoreMaskedSensitiveValues(config, configFile);
 

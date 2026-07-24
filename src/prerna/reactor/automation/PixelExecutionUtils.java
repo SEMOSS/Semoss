@@ -102,25 +102,6 @@ public final class PixelExecutionUtils {
 		return runAndCollect(insight, pixel, AutomationConstants.DEFAULT_TIMEOUT_SECONDS);
 	}
 
-	/** Serializes a pixel result to a JSON string for DB storage. */
-	public static String serializeResult(Object result) {
-		if (result == null) return "";
-		if (result instanceof String) return (String) result;
-		return AutomationExecutionUtils.GSON.toJson(result);
-	}
-
-	/**
-	 * Generates a truncated preview string for quick UI display.
-	 * Returns null if input is null.
-	 */
-	public static String generatePreview(String serializedOutput) {
-		if (serializedOutput == null) return null;
-		int maxLength = AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH;
-		return serializedOutput.length() <= maxLength
-				? serializedOutput
-				: serializedOutput.substring(0, maxLength);
-	}
-
 	// -- Private implementation ----------------------------------------------------
 
 	private static NounMetadata executeWithTimeout(Insight insight, String pixel, int timeoutSeconds) {
@@ -188,7 +169,6 @@ public final class PixelExecutionUtils {
 		if (value == null) return null;
 
 		if (value instanceof ITask) {
-			classLogger.debug("Materializing ITask result");
 			try {
 				return ((ITask) value).collect(false);
 			} catch (Exception e) {

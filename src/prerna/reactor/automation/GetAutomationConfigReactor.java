@@ -81,7 +81,6 @@ public class GetAutomationConfigReactor extends AbstractReactor {
 
         try {
             String json = Files.readString(configFile.toPath(), StandardCharsets.UTF_8);
-            // strip sensitive values before returning
             List<Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (entries != null) {
                 for (Map<String, Object> entry : entries) {

@@ -108,15 +108,12 @@ public class AutomationConstants {
 
 	// -- Pixel execution defaults ----------------------------------------------------
 
-	/** Default max execution time (seconds) for a node's Pixel call before it's timed out. */
 	public static final int DEFAULT_TIMEOUT_SECONDS = 300;
 
 	// -- Data type constants (for table creation) ----------------------------------
 
 	public static final String VARCHAR_255 = "VARCHAR(255)";
 	public static final String VARCHAR_500 = "VARCHAR(500)";
-	public static final String VARCHAR_1000 = "VARCHAR(1000)";
-	public static final String VARCHAR_2000 = "VARCHAR(2000)";
 	public static final String INTEGER = "INTEGER";
 	public static final String BIGINT = "BIGINT";
 	public static final String NOT_NULL = "NOT NULL";

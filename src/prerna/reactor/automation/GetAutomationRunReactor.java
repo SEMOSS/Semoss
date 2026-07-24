@@ -32,9 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,11 +44,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Pixel: {@code GetAutomationRun(app=["appId"], runId=["uuid"])}
  *
  * <p>Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
- * Includes for-each progress for batch nodes.
  */
 public class GetAutomationRunReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetAutomationRunReactor.class);
 
 	public GetAutomationRunReactor() {
 		this.keysToGet = new String[]{ "project", "runId" };
@@ -63,6 +57,13 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String runId = this.keyValue.get(this.keysToGet[1]);
+
+		if (projectId == null || projectId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a project id");
+		}
+		if (runId == null || runId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a run id");
+		}
 
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
