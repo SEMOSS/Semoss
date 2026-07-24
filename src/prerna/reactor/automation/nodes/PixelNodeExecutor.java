@@ -30,22 +30,35 @@ package prerna.reactor.automation.nodes;
 import java.util.Map;
 
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.PixelExecutionUtils;
 
 /**
- * Shared registry of stateless node executor instances.
- * Used by both TriggerAutomationReactor and RunAutomationNodeReactor.
+ * Executor for {@code app}-type nodes - runs a node's frontend-precompiled {@code builtPixel}
+ * verbatim (after {@code ${var}} substitution). This is the correct behavior for {@code app}
+ * nodes because they represent an arbitrary, multi-engine recipe scoped to a project (e.g.
+ * {@code LoadApp(project=[...]); IndexPubmedDocuments(database=[..], storage=[..], vector=[..],
+ * ...)}) with no single backing engine to dispatch to - unlike {@code database-engine}/
+ * {@code model-engine}/{@code vector-engine}/{@code storage-engine}/{@code function-engine}
+ * nodes, which read structured {@code config} and call the matching engine/reactor directly.
  */
-public final class AutomationNodeExecutors {
+public final class PixelNodeExecutor implements IAutomationNodeExecutor {
 
-	private AutomationNodeExecutors() {}
+	@Override
+	public Object execute(AutomationNodeContext ctx) {
+		Map<String, Object> node = ctx.node();
+		Map<String, String> scope = ctx.scope();
+		Map<String, String> configMap = ctx.configMap();
 
-	public static final Map<String, IAutomationNodeExecutor> EXECUTORS = Map.of(
-			AutomationConstants.NODE_WAIT, new WaitNodeExecutor(),
-			AutomationConstants.NODE_DATABASE_ENGINE, new DatabaseEngineNodeExecutor(),
-			AutomationConstants.NODE_MODEL_ENGINE, new ModelEngineNodeExecutor(),
-			AutomationConstants.NODE_VECTOR_ENGINE, new VectorEngineNodeExecutor(),
-			AutomationConstants.NODE_STORAGE_ENGINE, new StorageEngineNodeExecutor(),
-			AutomationConstants.NODE_FUNCTION_ENGINE, new FunctionEngineNodeExecutor(),
-			AutomationConstants.NODE_APP, new PixelNodeExecutor()
-	);
+		String builtPixel = (String) node.get("builtPixel");
+		if (builtPixel == null || builtPixel.isBlank() || builtPixel.startsWith("//")) {
+			throw new IllegalStateException("Node \"" + node.get("label") +
+					"\" has no compiled pixel - please Save the automation before running");
+		}
+
+		int timeoutSeconds = AutomationExecutionUtils.getNodeTimeout(node);
+		String resolvedPixel = AutomationExecutionUtils.resolve(builtPixel, scope, configMap);
+
+		return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel, timeoutSeconds);
+	}
 }

@@ -91,6 +91,18 @@ public final class AutomationExecutionUtils {
 	}
 
 	/**
+	 * Returns the per-node timeout from the node definition, defaulting to
+	 * {@link AutomationConstants#DEFAULT_TIMEOUT_SECONDS}.
+	 */
+	public static int getNodeTimeout(Map<String, Object> node) {
+		Object timeout = node.get("timeoutSeconds");
+		if (timeout instanceof Number) {
+			return ((Number) timeout).intValue();
+		}
+		return AutomationConstants.DEFAULT_TIMEOUT_SECONDS;
+	}
+
+	/**
 	 * Loads {@code automation-config.json} for a project and returns key->value pairs.
 	 * Returns an empty map if the file does not exist or cannot be parsed.
 	 */

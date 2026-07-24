@@ -104,6 +104,12 @@ public class AutomationConstants {
 	public static final String NODE_MODEL_ENGINE = "model-engine";
 	public static final String NODE_FUNCTION_ENGINE = "function-engine";
 	public static final String NODE_WAIT = "wait";
+	public static final String NODE_APP = "app";
+
+	// -- Pixel execution defaults ----------------------------------------------------
+
+	/** Default max execution time (seconds) for a node's Pixel call before it's timed out. */
+	public static final int DEFAULT_TIMEOUT_SECONDS = 300;
 
 	// -- Data type constants (for table creation) ----------------------------------
 
