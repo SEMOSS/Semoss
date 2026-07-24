@@ -155,7 +155,7 @@ public final class AutomationExecutionUtils {
 
 	@SuppressWarnings("unchecked")
 	private static String transformRowsAsObjects(String rawStr) {
-		Map<String, Object> data = extractDataset(parseJson(rawStr));
+		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
 		List<String> headers = (List<String>) data.get("headers");
 		List<List<Object>> rows = (List<List<Object>>) data.get("values");
@@ -173,7 +173,7 @@ public final class AutomationExecutionUtils {
 
 	@SuppressWarnings("unchecked")
 	private static String transformFirstRow(String rawStr) {
-		Map<String, Object> data = extractDataset(parseJson(rawStr));
+		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
 		List<String> headers = (List<String>) data.get("headers");
 		List<List<Object>> rows = (List<List<Object>>) data.get("values");
@@ -189,7 +189,7 @@ public final class AutomationExecutionUtils {
 	@SuppressWarnings("unchecked")
 	private static String transformColumn(String rawStr, String colName) {
 		if (colName == null || colName.isEmpty()) return rawStr;
-		Map<String, Object> data = extractDataset(parseJson(rawStr));
+		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
 		List<String> headers = (List<String>) data.get("headers");
 		List<List<Object>> rows = (List<List<Object>>) data.get("values");
@@ -205,7 +205,7 @@ public final class AutomationExecutionUtils {
 	private static String transformJsonPath(String rawStr, String path) {
 		if (path == null || path.isEmpty()) return rawStr;
 		try {
-			Object current = parseJson(rawStr);
+			Object current = parseJsonAny(rawStr);
 			for (String segment : path.split("\\.")) {
 				if (!(current instanceof Map)) break;
 				current = ((Map<String, Object>) current).get(segment);
@@ -217,14 +217,58 @@ public final class AutomationExecutionUtils {
 		}
 	}
 
+	/**
+	 * Normalises any of the three dataset formats into a canonical {@code {headers, values}} map:
+	 *   1. List&lt;Map&gt; (rows-as-objects) — produced by {@link DatabaseEngineNodeExecutor}
+	 *   2. {@code {data: {headers, values}}} — SEMOSS wrapped envelope
+	 *   3. {@code {headers, values}} — SEMOSS direct
+	 */
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> extractDataset(Map<String, Object> parsed) {
+	private static Map<String, Object> extractDataset(Object parsed) {
 		if (parsed == null) return null;
-		if (parsed.containsKey("data") && parsed.get("data") instanceof Map) {
-			return (Map<String, Object>) parsed.get("data");
+
+		// Format 1: rows-as-objects list from DatabaseEngineNodeExecutor
+		if (parsed instanceof List) {
+			List<Object> list = (List<Object>) parsed;
+			if (list.isEmpty()) return null;
+			Object first = list.get(0);
+			if (!(first instanceof Map)) return null;
+			List<String> headers = new ArrayList<>(((Map<String, Object>) first).keySet());
+			List<List<Object>> values = new ArrayList<>();
+			for (Object item : list) {
+				if (item instanceof Map) {
+					Map<String, Object> row = (Map<String, Object>) item;
+					List<Object> rowVals = new ArrayList<>();
+					for (String h : headers) rowVals.add(row.get(h));
+					values.add(rowVals);
+				}
+			}
+			Map<String, Object> result = new HashMap<>();
+			result.put("headers", headers);
+			result.put("values", values);
+			return result;
 		}
-		if (parsed.containsKey("headers") && parsed.containsKey("values")) return parsed;
+
+		if (!(parsed instanceof Map)) return null;
+		Map<String, Object> map = (Map<String, Object>) parsed;
+
+		// Format 2: {data: {headers, values}}
+		if (map.containsKey("data") && map.get("data") instanceof Map) {
+			return (Map<String, Object>) map.get("data");
+		}
+		// Format 3: {headers, values}
+		if (map.containsKey("headers") && map.containsKey("values")) return map;
 		return null;
+	}
+
+	/** Parses JSON to Object — returns List for arrays, Map for objects (handles all executor output shapes). */
+	private static Object parseJsonAny(String json) {
+		if (json == null || json.isBlank()) return null;
+		try {
+			return GSON.fromJson(json, Object.class);
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 	private static Map<String, Object> parseJson(String json) {
