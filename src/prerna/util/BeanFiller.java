@@ -175,7 +175,7 @@ public class BeanFiller {
 				if (beanProps.length > inputIndex) {
 					String beanProp = beanProps[inputIndex];
 					if (beanProp.startsWith("add_")) {
-						beanProp = beanProp.replaceAll("add_", "");
+						beanProp = beanProp.replace("add_", "");
 						List<Object> thisList = new ArrayList<>();
 						Object listObj = PropertyUtils.getProperty(bean, beanProp);
 						if (listObj instanceof List<?>) {
@@ -242,7 +242,7 @@ public class BeanFiller {
 					String thisInput = thisInputObj.asText();
 					if (result.size() > inputIndex) {
 						if (beanProp.startsWith("add_")) {
-							beanProp = beanProp.replaceAll("add_", "");
+							beanProp = beanProp.replace("add_", "");
 							List<Object> thisList = new ArrayList<>();
 							Object listObj = PropertyUtils.getProperty(bean, beanProp);
 							if (listObj instanceof List<?>) {

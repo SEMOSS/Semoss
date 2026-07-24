@@ -70,6 +70,7 @@ public class UpdateFormReactor extends AbstractReactor {
 		
 		String databaseName = this.store.getGenRowStruct(this.keysToGet[0]).get(0) + "";
 		Map<String, Object> engineHash = (Map<String, Object>) this.store.getGenRowStruct(FORM_DATA).get(0);
+		databaseName = testDatabaseId(databaseName, true);
 
 		IDatabaseEngine engine = Utility.getDatabase(databaseName);
 		AbstractFormBuilder formbuilder = FormFactory.getFormBuilder(engine);

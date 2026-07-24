@@ -40,9 +40,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpMatch extends OpBasic {
-	
+
 	public OpMatch() {
-		this.keysToGet = new String[]{ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.ARRAY.getKey(), "matchType"};
+		this.keysToGet = new String[] { ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.ARRAY.getKey(), "matchType" };
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class OpMatch extends OpBasic {
 			offset = 1;
 		}
 		boolean comparingNumbers = false;
-		
+
 		boolean isString = this.curRow.getNoun(0).getNounType().equals(PixelDataType.CONST_STRING);
 		// figure out
 		// if sort needs to do a number sort
@@ -60,7 +60,7 @@ public class OpMatch extends OpBasic {
 		// if we have 1 string -> assumption is all are string values
 		// return -1 if match not found
 		List<NounMetadata> intGrs = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		
+
 		if (intGrs != null && intGrs.size() > offset) {
 			comparingNumbers = true;
 		}
@@ -120,7 +120,7 @@ public class OpMatch extends OpBasic {
 			Collections.sort(intArrlist);
 			navSet.addAll(intArrlist);
 			int matchVal1 = navSet.floor(inputVal);
-			matchValIndex = intArrlist.indexOf(matchVal1)+1;
+			matchValIndex = intArrlist.indexOf(matchVal1) + 1;
 		} else if (index == -1) { // Elements should be in descending order
 			reverseNavSet.addAll(intArrlist);
 			reverseNavSet = reverseNavSet.descendingSet();
@@ -137,7 +137,7 @@ public class OpMatch extends OpBasic {
 				.collect(Collectors.toList());
 
 		String inputVal = objInput.toString();
-		inputVal = inputVal.replaceAll("\\*", "\\\\w*").replaceAll("\\?", "\\\\w?");
+		inputVal = inputVal.replace("*", "\\w*").replace("?", "\\w?");
 		boolean regexCheck = false;
 		NavigableSet<String> navSet = new TreeSet<String>();
 		for (int i = 0; i < objArrList.size(); i++) {
@@ -184,7 +184,7 @@ public class OpMatch extends OpBasic {
 	public String getReturnType() {
 		return "int";
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
