@@ -40,10 +40,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +63,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -85,6 +88,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
+	static Set<IProject.PROJECT_TYPE> adminOnlyProjectAddExemptTypes = new HashSet<>();
 	static boolean adminOnlyProjectDelete = false;
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
@@ -183,6 +187,7 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		adminOnlyProjectAdd = Utility.getApplicationAdminOnlyProjectAdd();
+		adminOnlyProjectAddExemptTypes = Utility.getApplicationAdminOnlyProjectAddExemptTypes();
 		adminOnlyProjectDelete = Utility.getApplicationAdminOnlyProjectDelete();
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
@@ -249,6 +254,18 @@ public abstract class AbstractSecurityUtils {
 
 	public static boolean adminOnlyProjectAdd() {
 		return adminOnlyProjectAdd;
+	}
+
+	/**
+	 * Determine if the given project type is exempt from
+	 * {@link #adminOnlyProjectAdd()}, i.e. non-admins may still create projects
+	 * of this type even when project creation is otherwise admin-restricted.
+	 *
+	 * @param type the project type being created
+	 * @return true if this type is exempt from the admin-only restriction
+	 */
+	public static boolean isProjectAddExemptFromAdminOnly(IProject.PROJECT_TYPE type) {
+		return adminOnlyProjectAddExemptTypes.contains(type);
 	}
 
 	public static boolean adminOnlyProjectDelete() {

@@ -574,6 +574,7 @@ public class Constants {
 	public static final String PLAYWRIGHT_EXPORT = "PLAYWRIGHT_EXPORT";
 	// reduce operations to only admins
 	public static final String ADMIN_ONLY_PROJECT_ADD = "ADMIN_ONLY_PROJECT_ADD";
+	public static final String ADMIN_ONLY_PROJECT_ADD_EXEMPT_TYPES = "ADMIN_ONLY_PROJECT_ADD_EXEMPT_TYPES";
 	public static final String ADMIN_ONLY_PROJECT_DELETE = "ADMIN_ONLY_PROJECT_DELETE";
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
