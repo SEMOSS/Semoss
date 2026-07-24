@@ -81,6 +81,7 @@ public final class SystemEngineRegistry {
 	 */
 
 	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.security",
+			"prerna.reactor.appprofile", "prerna.reactor.platformprofile",
 			"prerna.semoss.web.services.config", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",

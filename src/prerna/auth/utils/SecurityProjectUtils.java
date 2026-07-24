@@ -93,6 +93,7 @@ import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.reactor.appprofile.AppProfileUtils;
 
 public class SecurityProjectUtils extends AbstractSecurityUtils {
 
@@ -1723,6 +1724,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		}
+		// cascade: remove any app profile assignment so no stale rows survive
+		AppProfileUtils.removeUserProfile(projectId, existingUserId);
 	}
 
 	/**
@@ -1749,6 +1752,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		// cascade: remove any app profile assignment so no stale rows survive
+		AppProfileUtils.removeUserProfile(projectId, userId);
 	}
 
 	/**
@@ -4720,6 +4725,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove project users", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		// cascade: remove any app profile assignments so no stale rows survive
+		for (String uid : existingUserIds) {
+			AppProfileUtils.removeUserProfile(projectId, uid);
 		}
 	}
 
