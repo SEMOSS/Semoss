@@ -129,8 +129,6 @@ class GoogleGenAiEmbedder(AbstractEmbedder):
             video, self._build_video_part
         )
 
-        contents = text_parts + image_parts + video_parts
-
         embedding_config = types.EmbedContentConfig(
             task_type=kwargs.get("task_type"),
             output_dimensionality=kwargs.get("output_dimensionality"),
@@ -138,42 +136,29 @@ class GoogleGenAiEmbedder(AbstractEmbedder):
         )
 
         try:
-            if not contents:
-                return MultiModalEmbeddingsResponse(
-                    text=text_items, image=image_items, video=video_items
-                )
-
-            response = self.client.models.embed_content(
-                model=self.model,
-                contents=contents,
-                config=embedding_config,
+            # One embed_content call per item, not one batched call for the whole
+            # request: several Gemini embedding models (e.g. gemini-embedding-2)
+            # merge every bare part in a batched `contents` list into a single
+            # joint embedding instead of returning one embedding per item, which
+            # silently drops all but one result. Sending exactly one content per
+            # call avoids that regardless of which Google embedding model is
+            # configured.
+            t_tokens, t_bcc = self._embed_items_individually(
+                text_items, text_pending, text_parts, embedding_config
             )
-            results = response.embeddings or []
-
-            n_text, n_image = len(text_parts), len(image_parts)
-            prompt_tokens = 0
-            prompt_tokens += self._assign_embeddings(
-                text_items, text_pending, results[:n_text]
+            i_tokens, i_bcc = self._embed_items_individually(
+                image_items, image_pending, image_parts, embedding_config
             )
-            prompt_tokens += self._assign_embeddings(
-                image_items, image_pending, results[n_text : n_text + n_image]
-            )
-            prompt_tokens += self._assign_embeddings(
-                video_items, video_pending, results[n_text + n_image :]
-            )
-
-            billable_character_count_meta = (
-                response.metadata.billable_character_count
-                if response.metadata and response.metadata.billable_character_count
-                else 0
+            v_tokens, v_bcc = self._embed_items_individually(
+                video_items, video_pending, video_parts, embedding_config
             )
 
             return MultiModalEmbeddingsResponse(
                 text=text_items,
                 image=image_items,
                 video=video_items,
-                prompt_tokens=int(prompt_tokens),
-                metadata={"billable_character_count": billable_character_count_meta},
+                prompt_tokens=int(t_tokens + i_tokens + v_tokens),
+                metadata={"billable_character_count": t_bcc + i_bcc + v_bcc},
             )
         except Exception as e:
             return ModelEngineException(
@@ -204,20 +189,46 @@ class GoogleGenAiEmbedder(AbstractEmbedder):
             items.append(item)
         return items, parts, pending
 
-    def _assign_embeddings(self, items, pending, results) -> int:
-        """Write embedding results back onto their pending slots; return token count."""
+    def _embed_items_individually(
+        self, items, pending, parts, embedding_config
+    ) -> Tuple[int, int]:
+        """Embed each part with its own embed_content call, writing the result back
+        onto its pending slot.
+
+        A failure on one item's API call (quota, a rejected payload, etc.) is
+        recorded as that item's error and does not affect the other items.
+
+        Returns (prompt_tokens, billable_character_count) accumulated across calls.
+        """
         prompt_tokens = 0
-        for pos, result in zip(pending, results):
+        billable_character_count = 0
+        for pos, part in zip(pending, parts):
             item = items[pos]
-            item.embedding = result.values if result.values else []
-            if result.statistics:
-                prompt_tokens += (
-                    result.statistics.token_count
-                    if result.statistics.token_count
-                    else 0
+            try:
+                response = self.client.models.embed_content(
+                    model=self.model,
+                    contents=[part],
+                    config=embedding_config,
                 )
-                item.truncated = result.statistics.truncated
-        return prompt_tokens
+                results = response.embeddings or []
+                if not results:
+                    raise ValueError("No embedding returned for input")
+                result = results[0]
+                item.embedding = result.values if result.values else []
+                if result.statistics:
+                    prompt_tokens += (
+                        result.statistics.token_count
+                        if result.statistics.token_count
+                        else 0
+                    )
+                    item.truncated = result.statistics.truncated
+                if response.metadata and response.metadata.billable_character_count:
+                    billable_character_count += (
+                        response.metadata.billable_character_count
+                    )
+            except Exception as e:
+                item.error = str(e)
+        return prompt_tokens, billable_character_count
 
     def _resolve_image_bytes(self, img: str) -> Tuple[bytes, str]:
         """Resolve an image input to (raw_bytes, mime_type).
