@@ -42,15 +42,6 @@ class AbstractEmbedder(ABC):
     ) -> EmbeddingsModelEngineResponse:
         pass
 
-    def image_embeddings(self, images_to_embed: List[str], **kwargs: Any) -> Dict:
-        return self.image_embeddings_call(images_to_embed, **kwargs).to_dict()
-
-    @abstractmethod
-    def image_embeddings_call(
-        self, images_to_embed, **kwargs: Any
-    ) -> EmbeddingsModelEngineResponse:
-        pass
-
     def multi_modal_embeddings(
         self,
         text: List[str] = None,

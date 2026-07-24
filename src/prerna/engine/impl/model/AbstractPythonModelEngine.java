@@ -412,42 +412,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters) {
-		checkSocketStatus();
-
-		String pythonListAsString = PyUtils.determineStringType(imagesToEmbed);
-
-		StringBuilder callMaker = new StringBuilder();
-		callMaker.append(varName).append(".image_embeddings(images_to_embed = ").append(pythonListAsString);
-
-		if (this.prefix != null) {
-			callMaker.append(", prefix='").append(this.prefix).append("'");
-		}
-
-		if (parameters != null && !parameters.isEmpty()) {
-			Iterator<String> paramKeys = parameters.keySet().iterator();
-			while (paramKeys.hasNext()) {
-				String key = paramKeys.next();
-				Object value = parameters.get(key);
-				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
-			}
-		}
-
-		callMaker.append(")");
-
-		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		EmbeddingsModelEngineResponse response = null;
-		try {
-			response = EmbeddingsModelEngineResponse.fromObject(output);
-		} catch (Exception e) {
-			classLogger.error("Could not create response object from output: {}", output, e);
-			throw new IllegalArgumentException(e.getMessage(), e);
-		}
-		return response;
-	}
-
-	@Override
 	public MultiModalEmbeddingsModelEngineResponse multiModalEmbeddings(List<String> text, List<String> image,
 			List<String> video, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();

@@ -123,25 +123,10 @@ public interface IModelEngine extends IEngine {
 			Map<String, Object> parameters);
 
 	/**
-	 * Passes a list of strings to the model client to be embedded. Each string in
-	 * the {@code stringsToEmbed} will be returned as its own vector.
-	 * 
-	 * @param stringsToEmbed The string that needs to be encoded
-	 * @param insight        The insight from where the call is being made. The
-	 *                       insight holds user credentials, project information and
-	 *                       conversation history tied to the insightId
-	 * @param parameters     Additional parameters such as temperature, top_k,
-	 *                       max_new_tokens etc
-	 * @return A list of embeddings
-	 */
-	EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters);
-
-	/**
 	 * Passes text, image, and/or video inputs to the model client to be embedded
-	 * together. Unlike {@link #embeddings} and {@link #imageEmbeddings}, the result
-	 * is broken out by modality so each returned embedding (and any per-input error)
-	 * lines up with the input that produced it.
+	 * together. Unlike {@link #embeddings}, the result is broken out by modality so
+	 * each returned embedding (and any per-input error) lines up with the input that
+	 * produced it.
 	 *
 	 * This is an optional capability. Engines whose underlying client does not
 	 * implement multi modal embeddings inherit this default, which reports that the
