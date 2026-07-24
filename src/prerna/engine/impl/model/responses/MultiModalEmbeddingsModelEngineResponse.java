@@ -161,7 +161,6 @@ public class MultiModalEmbeddingsModelEngineResponse implements Serializable {
 	private Integer numberOfTokensInPrompt = 0;
 	private Map<String, Object> metadata;
 
-	// non-embedding outcomes
 	private boolean implemented = true;
 	private String message;
 	private Map<String, Object> errorDetails;
@@ -234,11 +233,9 @@ public class MultiModalEmbeddingsModelEngineResponse implements Serializable {
 	}
 
 	public Map<String, Object> toMap() {
-		// hard model/API failure - carry the structured error (message, traceback) through
 		if (this.errorDetails != null) {
 			return this.errorDetails;
 		}
-		// engine does not implement multi modal embeddings
 		if (!this.implemented) {
 			Map<String, Object> map = new HashMap<>();
 			map.put(RESPONSE, this.message);
@@ -285,13 +282,11 @@ public class MultiModalEmbeddingsModelEngineResponse implements Serializable {
 	public static MultiModalEmbeddingsModelEngineResponse fromMap(Map<String, Object> modelResponse) {
 		MultiModalEmbeddingsModelEngineResponse response = new MultiModalEmbeddingsModelEngineResponse();
 
-		// hard model/API failure shape (ErrorDetails from the python client)
 		if (ERROR_MESSAGE_TYPE.equals(modelResponse.get(MESSAGE_TYPE))) {
 			response.errorDetails = modelResponse;
 			return response;
 		}
 
-		// not-implemented shape: {response: "...", implemented: false}
 		boolean hasModality = modelResponse.containsKey(TEXT) || modelResponse.containsKey(IMAGE)
 				|| modelResponse.containsKey(VIDEO);
 		if (Boolean.FALSE.equals(modelResponse.get(IMPLEMENTED)) || !hasModality) {
@@ -302,7 +297,6 @@ public class MultiModalEmbeddingsModelEngineResponse implements Serializable {
 			return response;
 		}
 
-		// broken-out-by-modality embeddings shape
 		response.text = parseItems(modelResponse.get(TEXT));
 		response.image = parseItems(modelResponse.get(IMAGE));
 		response.video = parseItems(modelResponse.get(VIDEO));
