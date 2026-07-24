@@ -298,44 +298,6 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
 
         return pixelReturn
 
-    def image_embeddings(
-        self,
-        images_to_embed: List[str],
-        param_dict: Optional[Dict] = None,
-        insight_id: Optional[str] = None,
-    ) -> List[Dict]:
-        if insight_id is None:
-            insight_id = self.insight_id
-
-        if isinstance(images_to_embed, str):
-            images_to_embed = [images_to_embed]
-
-        assert isinstance(images_to_embed, list)
-
-        epoc = super().get_next_epoc()
-
-        optionalParamDict = (
-            f",paramValues=[{json.dumps(param_dict, ensure_ascii=False)}]"
-            if (param_dict is not None)
-            else ""
-        )
-
-        pixel = f'ImageEmbeddings(engine="{self.engine_id}", values={images_to_embed}{optionalParamDict});'
-
-        pixelReturn = super().callReactor(
-            epoc=epoc,
-            pixel=pixel,
-            insight_id=insight_id,
-        )
-
-        if pixelReturn is not None and len(pixelReturn) > 0:
-            output = pixelReturn[0]["pixelReturn"][0]
-            if "ERROR" in output["operationType"]:
-                raise Exception(output["output"])
-            return output["output"]
-
-        return pixelReturn
-
     def keyword_extraction(
         self,
         input: List[str],
@@ -623,15 +585,6 @@ class ModelEngine(AbstractModelEngine):
         **kwargs,
     ) -> Dict:
         return self.model_engine.embeddings(**kwargs)
-
-    def image_embeddings(
-        self,
-        insight_id: Optional[
-            str
-        ] = None,  # TODO remove once users stop using it. No longer needs to be set.
-        **kwargs,
-    ) -> Dict:
-        return self.model_engine.image_embeddings(**kwargs)
 
     def keyword_extraction(
         self,
