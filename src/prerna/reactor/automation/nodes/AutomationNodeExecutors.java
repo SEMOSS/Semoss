@@ -46,6 +46,6 @@ public final class AutomationNodeExecutors {
 			AutomationConstants.NODE_VECTOR_ENGINE, new VectorEngineNodeExecutor(),
 			AutomationConstants.NODE_STORAGE_ENGINE, new StorageEngineNodeExecutor(),
 			AutomationConstants.NODE_FUNCTION_ENGINE, new FunctionEngineNodeExecutor(),
-			AutomationConstants.NODE_APP, new PixelNodeExecutor()
+			AutomationConstants.NODE_APP, new AppEngineNodeExecutor()
 	);
 }
