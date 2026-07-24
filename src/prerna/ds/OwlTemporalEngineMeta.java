@@ -38,11 +38,9 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -112,9 +110,9 @@ public class OwlTemporalEngineMeta {
 			myRepository.initialize();
 			rc = myRepository.getConnection();
 		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize in-memory OWL metadata repository", e);
 		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize in-memory OWL metadata repository", e);
 		}
 
 		// set the rc in the in-memory engine
@@ -142,13 +140,13 @@ public class OwlTemporalEngineMeta {
 				rc.add(file, SEMOSS_BASE, RDFFormat.RDFXML);
 			}
 		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		} catch (RDFParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		}
 
 		// set the rc in the in-memory engine
@@ -552,16 +550,27 @@ public class OwlTemporalEngineMeta {
 	public Set<String> getDatabaseIds() {
 		Set<String> eIds = new HashSet<>();
 
-		String query = "select distinct ?qs " + "where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + ALIAS_PRED + "> ?alias}" + "MINUS{?header <"
-				+ IS_PRIM_KEY_PRED + "> false}" + "{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "}" + "union" + "{"
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + ALIAS_PRED
-				+ "> ?alias}" + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}" + "MINUS{?header <"
-				+ IS_PRIM_KEY_PRED + "> false}" + "{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?qs "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				String qsString = values[0].toString();
@@ -572,15 +581,7 @@ public class OwlTemporalEngineMeta {
 				eIds.add(eId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return eIds;
@@ -594,17 +595,28 @@ public class OwlTemporalEngineMeta {
 	public Map<String, List<String[]>> getDatabaseInformation() {
 		Map<String, List<String[]>> ret = new HashMap<String, List<String[]>>();
 
-		String query = "select distinct " + "?header " + "?alias " + "(coalesce(?qs, 'unknown') as ?qsName) "
-				+ "where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <"
-				+ ALIAS_PRED + "> ?alias}" + "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}" + "optional{?header <"
-				+ QUERY_STRUCT_PRED + "> ?qs}" + "}" + "union" + "{" + "{?header <" + RDF.TYPE + "> <"
-				+ SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + ALIAS_PRED + "> ?alias}" + "{?parent <"
-				+ SEMOSS_PROPERTY_PREFIX + "> ?header}" + "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
-				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct " + "?header " + "?alias "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				String header = values[0].toString();
@@ -622,39 +634,41 @@ public class OwlTemporalEngineMeta {
 				if (ret.containsKey(header)) {
 					retList = ret.get(header);
 				} else {
-					retList = new Vector<String[]>();
+					retList = new ArrayList<>();
 					ret.put(header, retList);
 				}
 
 				retList.add(split);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return ret;
 	}
 
 	public List<String[]> getDatabaseInformation(String uniqueName) {
-		String query = "select distinct " + "?header " + "(coalesce(?qs, 'unknown') as ?qsName) " + "where {" + "{"
-				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "}"
-				+ "union" + "{" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)" + "{?header <"
-				+ RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?parent <" + SEMOSS_PROPERTY_PREFIX
-				+ "> ?header}" + "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct " + "?header "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "where {"
+				+ "{"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		List<String[]> ret = new Vector<String[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		List<String[]> ret = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				String qsString = values[1].toString();
@@ -662,15 +676,7 @@ public class OwlTemporalEngineMeta {
 				ret.add(split);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return ret;
@@ -684,169 +690,164 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public boolean validateUniqueName(String uniqueName) {
-		String query = "select distinct ?header " + "where {" + "{" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/"
-				+ uniqueName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "}" + "union" + "{" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "}" + "} limit 1";
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		// @formatter:off
+		String query = "select distinct ?header "
+				+ "where {"
+				+ "{"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "}"
+				+ "} limit 1";
+		// @formatter:on
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return false;
 	}
 
 	public List<String> getUniqueNames() {
-		String query = "select distinct ?header where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "}" + "UNION" + "{" + "{?header <" + RDF.TYPE + "> <"
-				+ SEMOSS_PROPERTY_PREFIX + ">}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		List<String> uNames = new Vector<String>();
+		List<String> uNames = new ArrayList<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				uNames.add(it.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return uNames;
 	}
 
 	public String getUniqueNameFromAlias(String alias) {
-		String query = "select distinct ?header where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + ALIAS_PRED + "> \"" + alias + "\"}" + "}" + "UNION"
-				+ "{" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + ALIAS_PRED
-				+ "> \"" + alias + "\"}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> \"" + alias + "\"}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> \"" + alias + "\"}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				return it.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
 	}
 
 	public Map<String, String> getUniqueNameToAlias() {
-		String query = "select distinct ?header ?alias where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + ALIAS_PRED + "> ?alias}" + "}" + "UNION" + "{"
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + ALIAS_PRED
-				+ "> ?alias}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?alias where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
 		Map<String, String> retMap = new HashMap<String, String>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				retMap.put(values[0].toString(), values[1].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return retMap;
 	}
 
 	public String getAliasFromUniqueName(String uniqueName) {
-		String query = "select distinct ?header ?alias where {" + "{" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/"
-				+ uniqueName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?header <" + ALIAS_PRED + "> ?alias}" + "}" + "UNION" + "{" + "bind(<" + SEMOSS_PROPERTY_PREFIX
-				+ "/" + uniqueName + "> as ?header)" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "{?header <" + ALIAS_PRED + "> ?alias}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?alias where {"
+				+ "{"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				Object[] values = it.next().getValues();
 				return values[1].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
 	}
 
 	public Object[] getComplexSelector(String uniqueName) {
-		String query = "select distinct " + "?header " + "?queryType " + "?queryJson " + "where {" + "{" + "bind(<"
-				+ SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)" + "{?header <"
-				+ QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}" + "{?header <" + QUERY_SELECTOR_TYPE_PRED
-				+ "> ?queryType}" + "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}" + "} UNION {"
-				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)" + "{?header <"
-				+ QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}" + "{?header <" + QUERY_SELECTOR_TYPE_PRED
-				+ "> ?queryType}" + "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct " + "?header " + "?queryType " + "?queryJson "
+				+ "where {"
+				+ "{"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "} UNION {"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			if (it.hasNext()) {
 				return it.next().getValues();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
@@ -857,19 +858,27 @@ public class OwlTemporalEngineMeta {
 	 * FE so we know Table and Column
 	 */
 	public List<String> getFrameSelectors() {
+		// @formatter:off
 		String query = "select distinct " + "?header (coalesce(?prim, 'false') as ?isPrim) "
-				+ "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) " + "where {" + "{" + "{?header <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "optional{?header <" + IS_PRIM_KEY_PRED
-				+ "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}" + "}" + "union" + "{" + "{?header <"
-				+ RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "optional{?header <" + IS_PRIM_KEY_PRED
-				+ "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}" + "}" + "filter(?header != <"
-				+ SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+				+ "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} order by ?loweralias";
+		// @formatter:on
 
-		List<String> headers = new Vector<String>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		List<String> headers = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				if (row[1].equals("false")) {
@@ -877,15 +886,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return headers;
@@ -897,19 +898,29 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public List<String> getOrderedAliasOrUniqueNames() {
-		String query = "select distinct " + "(coalesce(?alias, ?header) as ?frameName) "
-				+ "(coalesce(?prim, 'false') as ?isPrim) " + "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) "
-				+ "where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}"
-				+ "}" + "union" + "{" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}"
-				+ "}" + "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <"
-				+ SEMOSS_PROPERTY_PREFIX + ">)" + "} order by ?loweralias";
+		// @formatter:off
+		String query = "select distinct "
+				+ "(coalesce(?alias, ?header) as ?frameName) "
+				+ "(coalesce(?prim, 'false') as ?isPrim) "
+				+ "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+				+ "} order by ?loweralias";
+		// @formatter:on
 
-		List<String> headers = new Vector<String>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		List<String> headers = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				if (row[1].equals("false")) {
@@ -917,15 +928,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return headers;
@@ -938,27 +941,22 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public String getPhysicalName(String uniqueName) {
-		String query = "select distinct " + "?header ?physical " + "where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/"
-				+ uniqueName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?header <" + PHYSICAL_PRED + "> ?physical}" + "}";
+		// @formatter:off
+		String query = "select distinct " + "?header ?physical "
+				+ "where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + PHYSICAL_PRED + "> ?physical}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return uniqueName;
@@ -968,31 +966,26 @@ public class OwlTemporalEngineMeta {
 	 * Flush out the relationships from the OWL to a POJO
 	 */
 	public List<String[]> getAllRelationships() {
-		String query = "select ?fromNode ?toNode ?rel where {" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}"
-				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)" + "}";
+		// @formatter:off
+		String query = "select ?fromNode ?toNode ?rel where {"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		// @formatter:on
 
-		List<String[]> relationships = new Vector<String[]>();
+		List<String[]> relationships = new ArrayList<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				relationships
 						.add(new String[] { row[0].toString(), row[1].toString(), row[2].toString().split(":")[2] });
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return relationships;
@@ -1006,32 +999,27 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public List<String[]> getUpstreamRelationships(String node) {
-		String query = "select ?fromNode ?toNode ?rel where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node
-				+ "> as ?toNode)" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?rel <" + RDFS.SUBPROPERTYOF
-				+ "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}" + "filter(?rel != <"
-				+ SEMOSS_RELATION_PREFIX + ">)" + "}";
+		// @formatter:off
+		String query = "select ?fromNode ?toNode ?rel where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node + "> as ?toNode)"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		// @formatter:on
 
-		List<String[]> relationships = new Vector<String[]>();
+		List<String[]> relationships = new ArrayList<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				relationships
 						.add(new String[] { row[0].toString(), row[1].toString(), row[2].toString().split(":")[2] });
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return relationships;
@@ -1045,92 +1033,85 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public List<String[]> getDownstreamRelationships(String node) {
-		String query = "select ?fromNode ?toNode ?rel where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node
-				+ "> as ?fromNode)" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?rel <" + RDFS.SUBPROPERTYOF
-				+ "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}" + "filter(?rel != <"
-				+ SEMOSS_RELATION_PREFIX + ">)" + "}";
+		// @formatter:off
+		String query = "select ?fromNode ?toNode ?rel where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node + "> as ?fromNode)"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		// @formatter:on
 
-		List<String[]> relationships = new Vector<String[]>();
+		List<String[]> relationships = new ArrayList<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				relationships
 						.add(new String[] { row[0].toString(), row[1].toString(), row[2].toString().split(":")[2] });
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return relationships;
 	}
 
 	public Map<String, SemossDataType> getHeaderToTypeMap() {
-		String query = "select distinct ?header ?datatype where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}" + "}" + "union"
-				+ "{" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <"
-				+ OWL.DATATYPEPROPERTY + "> ?datatype}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?datatype where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
 		Map<String, SemossDataType> returnMap = new HashMap<String, SemossDataType>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				returnMap.put(row[0].toString(), SemossDataType.convertStringToDataType(row[1].toString()));
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return returnMap;
 	}
 
 	public Map<String, String> getHeaderToAdtlTypeMap() {
-		String query = "select distinct ?header ?adtlDataType where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}" + "}" + "union"
-				+ "{" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <"
-				+ ADDTL_DATATYPE_PRED + "> ?adtlDataType}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?adtlDataType where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
 		Map<String, String> returnMap = new HashMap<String, String>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				returnMap.put(row[0].toString(), row[1].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return returnMap;
@@ -1148,14 +1129,30 @@ public class OwlTemporalEngineMeta {
 		String query = null;
 		if (parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept
-			query = "select distinct ?header ?datatype where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName
-					+ "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}" + "}";
+			// @formatter:off
+			query = "select distinct ?header ?datatype where {"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+					+ "}";
+			// @formatter:on
 		} else {
 			// we have a property
-			query = "select distinct ?header ?datatype where {" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName
-					+ "> as ?header)" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <"
-					+ OWL.DATATYPEPROPERTY + "> ?datatype}"
+			// @formatter:off
+			query = "select distinct ?header ?datatype where {"
+					+ "bind(<"
+					+ SEMOSS_PROPERTY_PREFIX
+					+ "/"
+					+ uniqueName
+					+ "> as ?header)"
+					+ "{?header <"
+					+ RDF.TYPE
+					+ "> <"
+					+ SEMOSS_PROPERTY_PREFIX
+					+ ">}"
+					+ "{?header <"
+					+ OWL.DATATYPEPROPERTY
+					+ "> ?datatype}"
 					// in case you do a funky load
 					// and load a property without its parent
 					// we shouldn't bind and assume there is a parent present
@@ -1163,25 +1160,16 @@ public class OwlTemporalEngineMeta {
 //					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 //					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "}";
+			// @formatter:on
 		}
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				return SemossDataType.convertStringToDataType(row[1].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
@@ -1199,39 +1187,37 @@ public class OwlTemporalEngineMeta {
 		String query = null;
 		if (parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept
-			query = "select distinct ?header ?datatype where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName
-					+ "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}" + "}";
+			// @formatter:off
+			query = "select distinct ?header ?datatype where {"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+					+ "}";
+			// @formatter:on
 		} else {
 			// we have a property
-			query = "select distinct ?header ?datatype where {" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName
-					+ "> as ?header)" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+			// @formatter:off
+			query = "select distinct ?header ?datatype where {"
+					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 					// in case you do a funky load
 					// and load a property without its parent
 					// we shouldn't bind and assume there is a parent present
 //					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
 //					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 //					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
-					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}" + "}";
+					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+					+ "}";
+			// @formatter:on
 		}
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
@@ -1249,36 +1235,34 @@ public class OwlTemporalEngineMeta {
 		String query = null;
 		if (parentUniqueName == null || parentUniqueName.isEmpty()) {
 			// we have a concept
-			query = "select distinct ?header ?adtlDataType where {" + "bind(<" + SEMOSS_CONCEPT_PREFIX + "/"
-					+ uniqueName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX
-					+ ">}" + "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}" + "}";
+			// @formatter:off
+			query = "select distinct ?header ?adtlDataType where {"
+					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+					+ "}";
+			// @formatter:on
 		} else {
 			// we have a property
-			query = "select distinct ?header ?adtlDataType where {" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/"
-					+ uniqueName + "> as ?header)" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+			// @formatter:off
+			query = "select distinct ?header ?adtlDataType where {"
+					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 //					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
 //					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
 //					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
-					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}" + "}";
+					+ "{?header <" + ADDTL_DATATYPE_PRED + "> ?adtlDataType}"
+					+ "}";
+			// @formatter:on
 		}
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
@@ -1290,16 +1274,23 @@ public class OwlTemporalEngineMeta {
 	 * @return
 	 */
 	public Map<String, List<String>> getHeaderToSources() {
-		String query = "select distinct ?header ?qsInfo where {" + "{" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}" + "}" + "union" + "{"
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + QUERY_STRUCT_PRED
-				+ "> ?qsInfo}" + "}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?qsInfo where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}"
+				+ "}";
+		// @formatter:on
 
 		Map<String, List<String>> returnMap = new HashMap<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 
@@ -1309,21 +1300,13 @@ public class OwlTemporalEngineMeta {
 				if (returnMap.containsKey(header)) {
 					returnMap.get(header).add(qsInfo);
 				} else {
-					List<String> sources = new Vector<String>();
+					List<String> sources = new ArrayList<>();
 					sources.add(qsInfo);
 					returnMap.put(header, sources);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return returnMap;
@@ -1336,16 +1319,20 @@ public class OwlTemporalEngineMeta {
 	public Map<String, String[]> getComplexSelectorsMap() {
 		Map<String, String[]> returnMap = new HashMap<>();
 
-		String query = "select distinct " + "?header " + "?alias " + "?dataType " + "?qsInfo " + "?queryType "
-				+ "?queryJson " + "where {" + "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
-				+ "{?header <" + ALIAS_PRED + "> ?alias}" + "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
-				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}" + "{?header <" + QUERY_SELECTOR_TYPE_PRED
-				+ "> ?queryType}" + "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}" + "{?header <"
-				+ QUERY_STRUCT_PRED + "> ?qsInfo}" + "}";
+		// @formatter:off
+		String query = "select distinct " + "?header " + "?alias " + "?dataType " + "?qsInfo " + "?queryType " + "?queryJson "
+				+ "where {"
+				+ "{?header <" + QUERY_SELECTOR_COMPLEX_PRED + "> \"true\"^^xsd:boolean}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "{?header <" + QUERY_SELECTOR_TYPE_PRED + "> ?queryType}"
+				+ "{?header <" + QUERY_SELECTOR_AS_STRING_PRED + "> ?queryJson}"
+				+ "{?header <" + QUERY_STRUCT_PRED + "> ?qsInfo}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				String header = (String) row[0];
@@ -1357,15 +1344,7 @@ public class OwlTemporalEngineMeta {
 				returnMap.put(header, new String[] { alias, dataType, qsInfo, qType, qJson });
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return returnMap;
@@ -1392,29 +1371,24 @@ public class OwlTemporalEngineMeta {
 	 */
 	public String getOrderingAsString(String uniqueName, String parentUniqueName) {
 		// we have a property
-		String query = "select distinct ?header ?orderedLevels where {" + "bind(<" + SEMOSS_PROPERTY_PREFIX + "/"
-				+ uniqueName + "> as ?header)" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)" + "{?parent <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?parent <" + SEMOSS_PROPERTY_PREFIX
-				+ "> ?header}" + "{?header <" + ORDERING_PRED + "> ?orderedLevels}" + "}";
+		// @formatter:off
+		String query = "select distinct ?header ?orderedLevels where {"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+				+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "{?header <" + ORDERING_PRED + "> ?orderedLevels}"
+				+ "}";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				return row[1].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return null;
@@ -1463,29 +1437,44 @@ public class OwlTemporalEngineMeta {
 			filter.append(") {?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
 		}
 
-		String query = "select distinct " + "?header " + "(coalesce(?prim, 'false') as ?isPrim) "
-				+ "(coalesce(?dt, 'unknown') as ?dataType) " + "(coalesce(?adt, 'unknown') as ?adtlType) "
-				+ "(coalesce(?qs, 'unknown') as ?qsName) " + "(coalesce(?parent, 'none') as ?parentNode) "
-				+ "(coalesce(?display, 'none') as ?alias) " + "(coalesce(lcase(?display), 'none') as ?loweralias) "
-				+ "(coalesce(?derived, 'false') as ?isDerived) " + "where {" + "{" + "{?header <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + filter.toString() + "optional{?header <" + ADDTL_DATATYPE_PRED
-				+ "> ?adt}" + "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "optional{?header <"
-				+ IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?display}"
-				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}" + "bind('none' as ?parent)" + "}" + "union"
-				+ "{" + "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}" + "{?parent <"
-				+ SEMOSS_PROPERTY_PREFIX + "> ?header}" + filter.toString() + "optional{?header <" + ADDTL_DATATYPE_PRED
-				+ "> ?adt}" + "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "optional{?header <"
-				+ IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?display}"
-				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}" + "}" + "filter(?header != <"
-				+ SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+		// @formatter:off
+		String query = "select distinct " + "?header "
+				+ "(coalesce(?prim, 'false') as ?isPrim) "
+				+ "(coalesce(?dt, 'unknown') as ?dataType) "
+				+ "(coalesce(?adt, 'unknown') as ?adtlType) "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "(coalesce(?parent, 'none') as ?parentNode) "
+				+ "(coalesce(?display, 'none') as ?alias) "
+				+ "(coalesce(lcase(?display), 'none') as ?loweralias) "
+				+ "(coalesce(?derived, 'false') as ?isDerived) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + filter.toString()
+				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
+				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "bind('none' as ?parent)"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}" + filter.toString()
+				+ "optional{?header <" + ADDTL_DATATYPE_PRED + "> ?adt}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
+				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}"
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "} ORDER BY ?loweralias";
+		// @formatter:on
 
 		Map<String, Integer> nameToIndex = new HashMap<String, Integer>();
 		List<Map<String, Object>> headersList = new ArrayList<Map<String, Object>>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				IHeadersDataRow dataRow = it.next();
 
@@ -1515,7 +1504,7 @@ public class OwlTemporalEngineMeta {
 						if (headers[i].equals("qsName") && !values[i].toString().equals("unknown")) {
 							String[] split = values[i].toString().split(":::");
 							Map<String, List<String>> engineQsMap = new HashMap<String, List<String>>();
-							List<String> qsNamesList = new Vector<String>();
+							List<String> qsNamesList = new ArrayList<>();
 							qsNamesList.add(split[1]);
 							engineQsMap.put(split[0], qsNamesList);
 							rowMap.put(headers[i], engineQsMap);
@@ -1554,7 +1543,7 @@ public class OwlTemporalEngineMeta {
 								List<String> qsNamesList = engineQsMap.get(split[0]);
 								qsNamesList.add(split[1]);
 							} else {
-								List<String> qsNamesList = new Vector<String>();
+								List<String> qsNamesList = new ArrayList<>();
 								qsNamesList.add(split[1]);
 								engineQsMap.put(split[0], qsNamesList);
 							}
@@ -1563,25 +1552,21 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		String relQuery = "select ?fromNode ?toNode ?rel where {" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}"
-				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)" + "}";
+		// @formatter:off
+		String relQuery = "select ?fromNode ?toNode ?rel where {"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		// @formatter:on
 
 		List<Map<String, String>> relList = new ArrayList<Map<String, String>>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				Map<String, String> rel = new HashMap<String, String>();
@@ -1591,15 +1576,7 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		Map<String, Object> headersMap = new HashMap<String, Object>();
@@ -1617,24 +1594,35 @@ public class OwlTemporalEngineMeta {
 	public Map<String, Object> getComplexMetamodel() {
 		Map<String, Object> metamodel = new HashMap<String, Object>();
 		// get the nodes
-		String nodesQuery = "select distinct " + "?concept " + "(coalesce(?qs, 'unknown') as ?qsName) "
-				+ "(coalesce(?alias, ?concept) as ?displayName) " + "(coalesce(?prim, 'false') as ?primKey) "
-				+ "(coalesce(?prop, 'noprops') as ?property) " + "(coalesce(?property_qs, 'unknown') as ?propQsName) "
+		// @formatter:off
+		String nodesQuery = "select distinct " + "?concept "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "(coalesce(?alias, ?concept) as ?displayName) "
+				+ "(coalesce(?prim, 'false') as ?primKey) "
+				+ "(coalesce(?prop, 'noprops') as ?property) "
+				+ "(coalesce(?property_qs, 'unknown') as ?propQsName) "
 				+ "(coalesce(?property_alias, ?property) as ?propAlias) "
-				+ "(coalesce(?property_prim, 'false') as ?propPrimKey) " + "where {" + "{?concept <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">} " + "optional{?concept <" + QUERY_STRUCT_PRED + "> ?qs} "
-				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} " + "optional{?concept <" + IS_PRIM_KEY_PRED
-				+ "> ?prim} " + "optional " + "{" + "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
-				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} " + "optional{?prop <" + QUERY_STRUCT_PRED
-				+ "> ?property_qs} " + "optional{?prop <" + ALIAS_PRED + "> ?property_alias} " + "optional{?prop <"
-				+ IS_PRIM_KEY_PRED + "> ?property_prim} " + "} " + "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+				+ "(coalesce(?property_prim, 'false') as ?propPrimKey) "
+				+ "where {"
+				+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?concept <" + QUERY_STRUCT_PRED + "> ?qs} "
+				+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+				+ "optional{?concept <" + IS_PRIM_KEY_PRED + "> ?prim} "
+				+ "optional "
+				+ "{"
+				+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+				+ "optional{?prop <" + QUERY_STRUCT_PRED + "> ?property_qs} "
+				+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+				+ "optional{?prop <" + IS_PRIM_KEY_PRED + "> ?property_prim} "
+				+ "} "
+				+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
 //				+ "filter(?prop != <" + SEMOSS_PROPERTY_PREFIX + ">)"
 				+ "}";
+		// @formatter:on
 
 		Map<String, Map<String, Object>> nodesMap = new HashMap<>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				// concept values
@@ -1677,13 +1665,13 @@ public class OwlTemporalEngineMeta {
 							List<String> qsNamesList = conceptEngineQsMap.get(conceptQsSplit[0]);
 							qsNamesList.add(conceptQsSplit[1]);
 						} else {
-							List<String> qsNamesList = new Vector<String>();
+							List<String> qsNamesList = new ArrayList<>();
 							qsNamesList.add(conceptQsSplit[1]);
 							conceptEngineQsMap.put(conceptQsSplit[0], qsNamesList);
 						}
 					} else {
 						conceptEngineQsMap = new HashMap<String, List<String>>();
-						List<String> qsNamesList = new Vector<String>();
+						List<String> qsNamesList = new ArrayList<>();
 						qsNamesList.add(conceptQsSplit[1]);
 						conceptEngineQsMap.put(conceptQsSplit[0], qsNamesList);
 						node.put("engineQs", conceptEngineQsMap);
@@ -1721,13 +1709,13 @@ public class OwlTemporalEngineMeta {
 							List<String> qsNamesList = propEngineQsMap.get(propertyQsSplit[0]);
 							qsNamesList.add(propertyQsSplit[1]);
 						} else {
-							List<String> qsNamesList = new Vector<String>();
+							List<String> qsNamesList = new ArrayList<>();
 							qsNamesList.add(propertyQsSplit[1]);
 							propEngineQsMap.put(propertyQsSplit[0], qsNamesList);
 						}
 					} else {
 						propEngineQsMap = new HashMap<String, List<String>>();
-						List<String> qsNamesList = new Vector<String>();
+						List<String> qsNamesList = new ArrayList<>();
 						qsNamesList.add(propertyQsSplit[1]);
 						propEngineQsMap.put(propertyQsSplit[0], qsNamesList);
 						prop.put("engineQs", propEngineQsMap);
@@ -1735,15 +1723,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// flatten out the properties information
@@ -1756,14 +1736,17 @@ public class OwlTemporalEngineMeta {
 		// flatten out the nodes as well and store in return object
 		metamodel.put("nodes", nodesMap.values());
 
-		String relQuery = "select ?fromNode ?toNode where {" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}"
+		// @formatter:off
+		String relQuery = "select ?fromNode ?toNode where {"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
 				+ "}";
+		// @formatter:on
 
 		List<Map<String, String>> relList = new ArrayList<Map<String, String>>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				Map<String, String> rel = new HashMap<String, String>();
@@ -1772,15 +1755,7 @@ public class OwlTemporalEngineMeta {
 				relList.add(rel);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		metamodel.put("edges", relList);
@@ -1798,37 +1773,56 @@ public class OwlTemporalEngineMeta {
 		// get the nodes
 		String nodesQuery = null;
 		if (includeDataTypes) {
-			nodesQuery = "select distinct " + "?concept " + "(coalesce(?alias, ?concept) as ?displayName) "
+			// @formatter:off
+			nodesQuery = "select distinct " + "?concept "
+					+ "(coalesce(?alias, ?concept) as ?displayName) "
 					+ "(coalesce(?prop, 'noprops') as ?property) "
 					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
 					+ "(coalesce(?cType, 'unknown') as ?conceptType) "
 					+ "(coalesce(?cAdtlType, 'unknown') as ?conceptAdditionalType) "
 					+ "(coalesce(?pType, 'unknown') as ?propertyType) "
-					+ "(coalesce(?pAdtlType, 'unknown') as ?propertyAdditionalType) " + "where {" + "{?concept <"
-					+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} " + "optional{?concept <" + ALIAS_PRED
-					+ "> ?alias} " + "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?cType} " + "optional{?concept <"
-					+ ADDTL_DATATYPE_PRED + "> ?cAdtlType}" + "optional " + "{" + "{?prop <" + RDF.TYPE + "> <"
-					+ SEMOSS_PROPERTY_PREFIX + ">} " + "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
-					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} " + "optional{?prop <"
-					+ OWL.DATATYPEPROPERTY + "> ?pType} " + "optional{?prop <" + ADDTL_DATATYPE_PRED + "> ?pAdtlType}"
-					+ "} " + "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)" + "}";
+					+ "(coalesce(?pAdtlType, 'unknown') as ?propertyAdditionalType) "
+					+ "where {"
+					+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+					+ "optional{?concept <" + OWL.DATATYPEPROPERTY + "> ?cType} "
+					+ "optional{?concept <" + ADDTL_DATATYPE_PRED + "> ?cAdtlType}"
+					+ "optional "
+					+ "{"
+					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+					+ "optional{?prop <" + OWL.DATATYPEPROPERTY + "> ?pType} "
+					+ "optional{?prop <" + ADDTL_DATATYPE_PRED + "> ?pAdtlType}"
+					+ "} "
+					+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+					+ "}";
+			// @formatter:on
 		} else {
-			nodesQuery = "select distinct " + "?concept " + "(coalesce(?alias, ?concept) as ?displayName) "
+			// @formatter:off
+			nodesQuery = "select distinct " + "?concept "
+					+ "(coalesce(?alias, ?concept) as ?displayName) "
 					+ "(coalesce(?prop, 'noprops') as ?property) "
-					+ "(coalesce(?property_alias, ?property) as ?propAlias) " + "where {" + "{?concept <"
-					+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} " + "optional{?concept <" + ALIAS_PRED
-					+ "> ?alias} " + "optional " + "{" + "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
-					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} " + "optional{?prop <" + ALIAS_PRED
-					+ "> ?property_alias} " + "} " + "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)" + "}";
+					+ "(coalesce(?property_alias, ?property) as ?propAlias) "
+					+ "where {"
+					+ "{?concept <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+					+ "optional{?concept <" + ALIAS_PRED + "> ?alias} "
+					+ "optional "
+					+ "{"
+					+ "{?prop <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+					+ "{?concept <" + SEMOSS_PROPERTY_PREFIX + "> ?prop} "
+					+ "optional{?prop <" + ALIAS_PRED + "> ?property_alias} "
+					+ "} "
+					+ "filter(?concept != <" + SEMOSS_CONCEPT_PREFIX + ">)"
+					+ "}";
+			// @formatter:on
 		}
 
 		Map<String, MetamodelVertex> nodeHash = new HashMap<>();
 		Map<String, String> dataTypes = new HashMap<>();
 		Map<String, String> additionalDataTypes = new HashMap<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, nodesQuery)) {
 			while (it.hasNext()) {
 				int index = 0;
 				Object[] row = it.next().getValues();
@@ -1883,32 +1877,27 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		String relQuery = "select ?fromNode ?toNode where {" + "{?fromNode <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}" + "{?fromNode ?rel ?toNode}"
+		// @formatter:off
+		String relQuery = "select ?fromNode ?toNode where {"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
 				+ "}";
+		// @formatter:on
 
-		Map<String, Map<String, String>> edgeHash = new Hashtable<>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery);
+		Map<String, Map<String, String>> edgeHash = new HashMap<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, relQuery)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				String startName = row[0].toString();
 				String endName = row[1].toString();
 				String relName = row[2].toString();
 
-				Map<String, String> newEdge = new Hashtable<>();
+				Map<String, String> newEdge = new HashMap<>();
 				// need to check to see if the idHash has it else put it in
 				newEdge.put("source", startName);
 				newEdge.put("target", endName);
@@ -1916,18 +1905,10 @@ public class OwlTemporalEngineMeta {
 				edgeHash.put(endName + "-" + endName, newEdge);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
-		Map<String, Object> finalHash = new Hashtable<>();
+		Map<String, Object> finalHash = new HashMap<>();
 		finalHash.put("nodes", nodeHash.values().toArray());
 		finalHash.put("edges", edgeHash.values().toArray());
 		if (includeDataTypes) {
@@ -1946,19 +1927,28 @@ public class OwlTemporalEngineMeta {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// query to get all headers + aliases
-		String query = "select distinct " + "?header " + "(coalesce(?display, ?header) as ?alias) "
+		// @formatter:off
+		String query = "select distinct " + "?header "
+				+ "(coalesce(?display, ?header) as ?alias) "
 				+ "(coalesce(?prim, 'false') as ?isPrim) "
-				+ "(coalesce(lcase(?display), lcase(?header)) as ?loweralias) " + "where { " + "{ " + "{?header <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} " + "optional{?header <" + ALIAS_PRED
-				+ "> ?display} " + "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim} " + "} " + "union " + "{ "
-				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} " + "optional{?header <"
-				+ IS_PRIM_KEY_PRED + "> ?prim} " + "optional{?header <" + ALIAS_PRED + "> ?display} " + "} "
-				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX
-				+ ">) " + "} order by ?loweralias";
+				+ "(coalesce(lcase(?display), lcase(?header)) as ?loweralias) "
+				+ "where { "
+				+ "{ "
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">} "
+				+ "optional{?header <" + ALIAS_PRED + "> ?display} "
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim} "
+				+ "} "
+				+ "union "
+				+ "{ "
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">} "
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim} "
+				+ "optional{?header <" + ALIAS_PRED + "> ?display} "
+				+ "} "
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && " + "?header != <" + SEMOSS_PROPERTY_PREFIX + ">) "
+				+ "} order by ?loweralias";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				if (row[2].equals("false")) {
@@ -1985,15 +1975,7 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// set all the relationships
@@ -2017,15 +1999,22 @@ public class OwlTemporalEngineMeta {
 	public List<Object[]> getAllTablesAndColumns() {
 		List<Object[]> ret = new ArrayList<>();
 
-		String query = "select distinct ?header ?datatype (lcase(?header) as ?loweralias) " + "where {" + "{"
-				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <"
-				+ OWL.DATATYPEPROPERTY + "> ?datatype}" + "}" + "union" + "{" + "{?header <" + RDF.TYPE + "> <"
-				+ SEMOSS_PROPERTY_PREFIX + ">}" + "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}" + "}"
+		// @formatter:off
+		String query = "select distinct ?header ?datatype (lcase(?header) as ?loweralias) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
+				+ "}"
 				+ "} order by ?loweralias";
+		// @formatter:on
 
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				Object[] row = it.next().getValues();
 				String header = (String) row[0];
@@ -2038,24 +2027,11 @@ public class OwlTemporalEngineMeta {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return ret;
 	}
-
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
 
 	/*
 	 * METHODS TO MODIFY EXISTING META INFORMATION
@@ -2122,34 +2098,33 @@ public class OwlTemporalEngineMeta {
 
 		final String EMPTY_VALUE = "not_present";
 
-		String headerPropertiesQuery = "select distinct " + "?parent " + "?property " + "(coalesce(?prim, '"
-				+ EMPTY_VALUE + "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
-				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE
-				+ "') as ?displayName) " + "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?parent)" + "BIND(<"
-				+ SEMOSS_PROPERTY_PREFIX + "/" + propertyName + "> as ?property)" + "{?parent <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
-				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}" + "optional{?property <" + QUERY_STRUCT_PRED
-				+ "> ?qs}" + "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?property <"
-				+ ALIAS_PRED + "> ?alias}" + "optional{?property <" + IS_DERIVED_PRED + "> ?derived}" + "}";
+		// @formatter:off
+		String headerPropertiesQuery = "select distinct " + "?parent " + "?property "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?parent)"
+				+ "BIND(<" + SEMOSS_PROPERTY_PREFIX + "/" + propertyName + "> as ?property)"
+				+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
+				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?property <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?property <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?property <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> propertyInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+		List<Object[]> propertyInfo = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery)) {
 			while (it.hasNext()) {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		for (Object[] headerPropRow : propertyInfo) {
@@ -2207,114 +2182,103 @@ public class OwlTemporalEngineMeta {
 		final String EMPTY_VALUE = "not_present";
 
 		// first query to get all the information on the header
-		String headerInfoQuery = "select distinct " + "?header " + "(coalesce(?prim, '" + EMPTY_VALUE
-				+ "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) " + "(coalesce(?qs, '"
-				+ EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
-				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {" + "BIND(<"
-				+ SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}"
-				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "optional{?header <" + IS_PRIM_KEY_PRED
-				+ "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}" + "optional{?header <" + IS_DERIVED_PRED
-				+ "> ?derived}" + "}";
+		// @formatter:off
+		String headerInfoQuery = "select distinct " + "?header "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> headerInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
+		List<Object[]> headerInfo = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery)) {
 			while (it.hasNext()) {
 				headerInfo.add(it.next().getValues());
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// second query to get all the header to properties triples
-		String headerPropertiesQuery = "select distinct " + "?header " + "?property " + "(coalesce(?prim, '"
-				+ EMPTY_VALUE + "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
-				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE
-				+ "') as ?displayName) " + "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?header)" + "{?header <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + SEMOSS_PROPERTY_PREFIX
-				+ "> ?property}" + "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}" + "optional{?property <"
-				+ QUERY_STRUCT_PRED + "> ?qs}" + "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}"
-				+ "optional{?property <" + ALIAS_PRED + "> ?alias}" + "optional{?property <" + IS_DERIVED_PRED
-				+ "> ?derived}" + "}";
+		// @formatter:off
+		String headerPropertiesQuery = "select distinct " + "?header " + "?property "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
+				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?property <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?property <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?property <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> headerProperties = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+		List<Object[]> headerProperties = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery)) {
 			while (it.hasNext()) {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// third query to get all the upstream relationships
-		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader " + "where {" + "BIND(<"
-				+ SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)" + "{?header <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?otherHeader <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
-				+ "{?myHeader ?rel ?otherHeader}" + "}";
+		// @formatter:off
+		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?otherHeader <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?myHeader ?rel ?otherHeader}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> upstreamRels = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
+		List<Object[]> upstreamRels = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery)) {
 			while (it.hasNext()) {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// fourth query to get all the downstream relationships
-		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)" + "{?header <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?otherHeader <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
-				+ "{?otherHeader ?rel ?myHeader}" + "}";
+		// @formatter:off
+		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + oldTableName + "> as ?myHeader)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?otherHeader <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?otherHeader ?rel ?myHeader}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> downstreamRels = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
+		List<Object[]> downstreamRels = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery)) {
 			while (it.hasNext()) {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// the new triple we will be using for replacement
@@ -2432,112 +2396,102 @@ public class OwlTemporalEngineMeta {
 		final String EMPTY_VALUE = "not_present";
 
 		// first query to get all the information on the header
-		String headerInfoQuery = "select distinct " + "?header " + "(coalesce(?prim, '" + EMPTY_VALUE
-				+ "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) " + "(coalesce(?qs, '"
-				+ EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
-				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {" + "BIND(<"
-				+ SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}"
-				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}" + "optional{?header <" + IS_PRIM_KEY_PRED
-				+ "> ?prim}" + "optional{?header <" + ALIAS_PRED + "> ?alias}" + "optional{?header <" + IS_DERIVED_PRED
-				+ "> ?derived}" + "}";
+		// @formatter:off
+		String headerInfoQuery = "select distinct " + "?header "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?header <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> headerInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery);
+		List<Object[]> headerInfo = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerInfoQuery)) {
 			while (it.hasNext()) {
 				headerInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// second query to get all the header to properties triples
-		String headerPropertiesQuery = "select distinct " + "?header " + "?property " + "(coalesce(?prim, '"
-				+ EMPTY_VALUE + "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
-				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE
-				+ "') as ?displayName) " + "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?header)" + "{?header <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?header <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
-				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}" + "optional{?property <" + QUERY_STRUCT_PRED
-				+ "> ?qs}" + "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?property <"
-				+ ALIAS_PRED + "> ?alias}" + "optional{?property <" + IS_DERIVED_PRED + "> ?derived}" + "}";
+		// @formatter:off
+		String headerPropertiesQuery = "select distinct " + "?header " + "?property "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
+				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?property <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?property <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?property <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> headerProperties = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+		List<Object[]> headerProperties = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery)) {
 			while (it.hasNext()) {
 				headerProperties.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// third query to get all the upstream relationships
-		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader " + "where {" + "BIND(<"
-				+ SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)" + "{?header <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?otherHeader <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX
-				+ ">}" + "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
-				+ "{?myHeader ?rel ?otherHeader}" + "}";
+		// @formatter:off
+		String upstreamRelsQuery = "select distinct " + "?myHeader " + "?rel " + "?otherHeader "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?otherHeader <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?myHeader ?rel ?otherHeader}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> upstreamRels = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery);
+		List<Object[]> upstreamRels = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, upstreamRelsQuery)) {
 			while (it.hasNext()) {
 				upstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// fourth query to get all the downstream relationships
-		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)" + "{?header <"
-				+ RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?otherHeader <" + RDFS.SUBCLASSOF + "> <"
-				+ SEMOSS_CONCEPT_PREFIX + ">}" + "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
-				+ "{?otherHeader ?rel ?myHeader}" + "}";
+		// @formatter:off
+		String downstreamRelsQuery = "select distinct " + "?otherHeader " + "?rel " + "?myHeader "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?myHeader)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?otherHeader <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?otherHeader ?rel ?myHeader}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> downstreamRels = new Vector<Object[]>();
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery);
+		List<Object[]> downstreamRels = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, downstreamRelsQuery)) {
 			while (it.hasNext()) {
 				downstreamRels.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		// now that we have all the info, we remove and insert new triples
@@ -2624,34 +2578,33 @@ public class OwlTemporalEngineMeta {
 
 		final String EMPTY_VALUE = "not_present";
 
-		String headerPropertiesQuery = "select distinct " + "?parent " + "?property " + "(coalesce(?prim, '"
-				+ EMPTY_VALUE + "') as ?isPrim) " + "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
-				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) " + "(coalesce(?alias, '" + EMPTY_VALUE
-				+ "') as ?displayName) " + "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) " + "where {"
-				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?parent)" + "BIND(<"
-				+ SEMOSS_PROPERTY_PREFIX + "/" + propertyName + "> as ?property)" + "{?parent <" + RDFS.SUBCLASSOF
-				+ "> <" + SEMOSS_CONCEPT_PREFIX + ">}" + "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
-				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}" + "optional{?property <" + QUERY_STRUCT_PRED
-				+ "> ?qs}" + "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}" + "optional{?property <"
-				+ ALIAS_PRED + "> ?alias}" + "optional{?property <" + IS_DERIVED_PRED + "> ?derived}" + "}";
+		// @formatter:off
+		String headerPropertiesQuery = "select distinct " + "?parent " + "?property "
+				+ "(coalesce(?prim, '" + EMPTY_VALUE + "') as ?isPrim) "
+				+ "(coalesce(?dt, '" + EMPTY_VALUE + "') as ?dataType) "
+				+ "(coalesce(?qs, '" + EMPTY_VALUE + "') as ?qsName) "
+				+ "(coalesce(?alias, '" + EMPTY_VALUE + "') as ?displayName) "
+				+ "(coalesce(?derived, '" + EMPTY_VALUE + "') as ?isDerived) "
+				+ "where {"
+				+ "BIND(<" + SEMOSS_CONCEPT_PREFIX + "/" + tableName + "> as ?parent)"
+				+ "BIND(<" + SEMOSS_PROPERTY_PREFIX + "/" + propertyName + "> as ?property)"
+				+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?property}"
+				+ "optional{?property <" + OWL.DATATYPEPROPERTY + "> ?dt}"
+				+ "optional{?property <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "optional{?property <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?property <" + ALIAS_PRED + "> ?alias}"
+				+ "optional{?property <" + IS_DERIVED_PRED + "> ?derived}"
+				+ "}";
+		// @formatter:on
 
-		List<Object[]> propertyInfo = new Vector<Object[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery);
+		List<Object[]> propertyInfo = new ArrayList<>();
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, headerPropertiesQuery)) {
 			while (it.hasNext()) {
 				propertyInfo.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		for (Object[] headerPropRow : propertyInfo) {
@@ -2684,18 +2637,13 @@ public class OwlTemporalEngineMeta {
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-
 	public OwlTemporalEngineMeta copy() {
 		OwlTemporalEngineMeta newMeta = new OwlTemporalEngineMeta();
 
+		// @formatter:off
 		String query = "select distinct ?s ?p ?o where {?s ?p ?o}";
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		// @formatter:on
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query)) {
 			while (it.hasNext()) {
 				IHeadersDataRow row = it.next();
 				Object[] rawRow = row.getRawValues();
@@ -2720,15 +2668,7 @@ public class OwlTemporalEngineMeta {
 				newMeta.myEng.addStatement(new Object[] { subUri, predUri, obj, isConcept });
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Error querying frame metadata in OwlTemporalEngineMeta", e);
 		}
 
 		return newMeta;
@@ -2774,54 +2714,5 @@ public class OwlTemporalEngineMeta {
 	public void close() {
 		this.myEng.close();
 	}
-
-//	public void load(String fileName){
-//		Model model = ModelFactory.createDefaultModel();
-//		FileReader in = null;
-//		try {
-//			in = new FileReader(fileName);
-//			model.read(in, null);
-//			if (in!=null){
-//				in.close();
-//			}
-//			StmtIterator it = model.listStatements();
-//			while (it.hasNext()){
-//				Statement stmt = it.nextStatement();
-//				Resource subject = stmt.getSubject();
-//				Property predicate = stmt.getPredicate();
-//				RDFNode object = stmt.getObject();
-//				
-//				Boolean isConcept = false;
-//				String predStr = predicate.toString();
-//				if (predStr.equals(RDFS.SUBCLASSOF.toString()) || predStr.equals(RDF.TYPE.toString()) || 
-//						predStr.equals(SEMOSS_PROPERTY_PREFIX) || predStr.equals(RDFS.SUBPROPERTYOF.toString()) ||
-//						predStr.startsWith(SEMOSS_RELATION_PREFIX)){
-//					isConcept = true;
-//				}
-//				
-//				this.myEng.addStatement(new Object[]{subject, predicate, object, isConcept});
-//			}
-//		} catch (IOException e) {
-//			logger.error(Constants.STACKTRACE, e);
-//		}
-//	}
-
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/*
-	 * public static void main(String[] args) { String fileName =
-	 * "C:\\Users\\suzikim\\workspace\\Semoss\\InsightCache\\ENGINENAMETEMP__ENGINEIDTEMP\\ENGINENAMETEMP__2_70a0ada9-bb19-449b-8656-d5f8a525a578\\METADATA__FRAME697000.owl";
-	 * // OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta(); //
-	 * meta.addVertex("v1"); // meta.addProperty("v1", "p1"); //
-	 * meta.addProperty("v1", "p2"); // meta.addProperty("v1", "p3"); //
-	 * meta.addProperty("v1", "p4"); // meta.save(fileName);
-	 * 
-	 * OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta(fileName);
-	 * meta.getHeaderToTypeMap();
-	 * 
-	 * }
-	 */
 
 }
