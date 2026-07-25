@@ -1,3 +1,5 @@
+name: semoss-with-postgres-minio-zk
+
 # shared environment for every semoss node in the cluster
 x-semoss-env: &semoss-env
   SETSOCIAL: 'true'
@@ -96,12 +98,11 @@ x-semoss-env: &semoss-env
   MINIO_SECRET_KEY: 'minioadmin'
   MINIO_ENDPOINT: 'http://minio:9000'
 
-  # redis cluster synchronization
-  SEMOSS_IS_CLUSTER_REDIS: 'true'
-  REDIS_HOST: 'redis'
-  REDIS_PORT: '6379'
+  # zookeeper cluster synchronization
+  SEMOSS_IS_CLUSTER_ZK: 'true'
+  ZK_SERVER: 'zookeeper:2181'
   # NOTE: HOST_IP is intentionally NOT set here - it must be UNIQUE per node so
-  # each container registers as a distinct member in the cluster. It is set on
+  # each container registers as a distinct member in zookeeper. It is set on
   # each semoss service below.
 
 # shared service definition for every semoss node in the cluster
@@ -115,7 +116,7 @@ x-semoss-service: &semoss-service
       condition: service_healthy
     minio:
       condition: service_healthy
-    redis:
+    zookeeper:
       condition: service_healthy
   networks:
     - mynetwork
@@ -145,7 +146,7 @@ services:
       HOST_IP: 'semoss2:8080'
 
   db:
-    image: postgres:latest
+    image: postgres:18
     container_name: postgres
     restart: always
     environment:
@@ -191,41 +192,37 @@ services:
     networks:
       - mynetwork
 
-  # redis - used by semoss for cluster synchronization (RedisClusterSynchronizer)
-  redis:
-    image: redis:7
-    container_name: redis
+  # zookeeper - used by semoss for cluster synchronization (ClusterSynchronizer)
+  zookeeper:
+    image: zookeeper:3.9
+    container_name: zookeeper
     restart: always
     ports:
-      - "6379:6379"
+      - "2181:2181"  # client port
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_STANDALONE_ENABLED: 'true'
+      ZOO_4LW_COMMANDS_WHITELIST: 'ruok,srvr,stat'
     volumes:
-      - redis_data:/data
+      - zk_data:/data
+      - zk_datalog:/datalog
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # 'ruok' returns 'imok' when the server is healthy
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - mynetwork
 
-  # redisinsight - web UI for inspecting redis (http://localhost:5540)
-  # add a connection to host 'redis' port 6379 (use the service name, not localhost)
-  redis-ui:
-    image: redis/redisinsight:latest
-    container_name: redis-ui
-    restart: always
-    ports:
-      - "5540:5540"
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - mynetwork
-
 volumes:
   pgdata:
   minio_data:
-  redis_data:
+  zk_data:
+  zk_datalog:
 
 networks:
+  # shared with the engines/ services so they can reach these containers by name
   mynetwork:
+    external: true
+    name: semoss-net
