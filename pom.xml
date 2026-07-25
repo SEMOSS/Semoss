@@ -2325,6 +2325,11 @@
 			<artifactId>fst</artifactId>
 			<version>3.0.4-jdk17</version>
 			<exclusions>
+				<!-- fst-3.0.4-jdk17's pom decalres maven-bundle-plugin as a build-tool and erroneously as a dependency. -->
+				<exclusion>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
