@@ -36,8 +36,12 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 	
 	private static final long serialVersionUID = 4408956306133085964L;
 
+	public static final String METADATA = "metadata";
+
+	protected Map<String, Object> metadata;
+
 	/**
-	 * 
+	 *
 	 * @param response
 	 * @param numberOfTokensInPrompt
 	 * @param numberOfTokensInResponse
@@ -45,6 +49,23 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 	public EmbeddingsModelEngineResponse(List<List<Double>> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
+
+	public Map<String, Object> getMetadata() {
+		return this.metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
+	@Override
+	public Map<String, Object> toMap() {
+		Map<String, Object> responseMap = super.toMap();
+		if (this.metadata != null && !this.metadata.isEmpty()) {
+			responseMap.put(METADATA, this.metadata);
+		}
+		return responseMap;
+	}
 
 	@SuppressWarnings("unchecked")
 	public static EmbeddingsModelEngineResponse fromMap(Map<String, Object> modelResponse) {
@@ -55,8 +76,15 @@ public class EmbeddingsModelEngineResponse extends AbstractModelEngineResponse<L
 		List<List<Double>> responseObject = (List<List<Double>>) modelResponse.get(RESPONSE);
         Integer tokensInPrompt = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_PROMPT));
         Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
-        
-        return new EmbeddingsModelEngineResponse(responseObject, tokensInPrompt, tokensInResponse);
+
+        EmbeddingsModelEngineResponse embeddingsResponse = new EmbeddingsModelEngineResponse(responseObject, tokensInPrompt, tokensInResponse);
+
+        Object metadataObj = modelResponse.get(METADATA);
+        if (metadataObj instanceof Map) {
+        	embeddingsResponse.setMetadata((Map<String, Object>) metadataObj);
+        }
+
+        return embeddingsResponse;
     }
 	
 	@SuppressWarnings("unchecked")
