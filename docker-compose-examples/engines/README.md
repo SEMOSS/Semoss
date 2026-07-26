@@ -6,7 +6,7 @@ down when done.
 
 | File | Service | Host port(s) | Auth | SEMOSS `VECTOR_TYPE` |
 |------|---------|--------------|------|----------------------|
-| [semoss-weaviate.yml](semoss-weaviate.yml) | Weaviate 1.28.4 | 8081 (-> 8080) | API key `test-key` | `WEAVIATE` |
+| [semoss-weaviate.yml](semoss-weaviate.yml) | Weaviate 1.38.6 | 8081 (-> 8080) REST, 50051 gRPC | API key `test-key` | `WEAVIATE` |
 | [semoss-chroma.yml](semoss-chroma.yml) | Chroma 1.0.0 | 8000 | none | `CHROMA` |
 | [semoss-opensearch.yml](semoss-opensearch.yml) | OpenSearch 2.19.5 + Dashboards | 9200 (API), 5601 (UI) | admin / password | `OPEN_SEARCH` |
 | [semoss-pgvector.yml](semoss-pgvector.yml) | Postgres 18 + pgvector | 5433 (-> 5432) | pgvector / pgvector | `PGVECTOR` |
@@ -77,9 +77,17 @@ parameter names are the SMSS property keys the engines read.
 VECTOR_TYPE          WEAVIATE
 HOSTNAME             http://semoss-weaviate:8080   (SEMOSS in Docker; use http://localhost:8081 if SEMOSS runs on host)
 API_KEY              test-key
-WEAVIATE_CLASSNAME   Vector_Table
+WEAVIATE_CLASSNAME   default
+WEAVIATE_GRPC_PORT   50051                         (gRPC port)
+WEAVIATE_GRPC_HOST   <optional; defaults to the HOSTNAME host>
+WEAVIATE_HTTP_PORT   <optional; defaults to 443 for https / 80 for http, or the port in HOSTNAME>
 EMBEDDER_ENGINE_ID   <an existing embedder model engine>
 ```
+
+Weaviate uses gRPC in addition to REST. `WEAVIATE_GRPC_HOST` defaults to the host
+parsed from `HOSTNAME`, so with this compose you only need the settings above:
+`semoss-weaviate:50051` (SEMOSS in Docker) or `localhost:50051` (SEMOSS on host)
+resolves automatically.
 
 ### Chroma
 
