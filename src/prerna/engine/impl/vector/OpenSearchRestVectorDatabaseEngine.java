@@ -116,7 +116,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String NEAREST_NEIGHBOR_QUERY = "NEAREST_NEIGHBOR_QUERY";
 	private static final String NEAREST_NEIGHBOR_RESULTS_PATH = "NEAREST_NEIGHBOR_RESULTS_PATH";
 
-	public static final String USE_HYBRID_SEARCH = "USE_HYBRID_SEARCH";
 	private static final String HYBRID_SEARCH_PIPELINE_NAME = "semoss-hybrid-pipeline";
 	private static final String PIPELINES_ENDPOINT = "/_search/pipeline";
 
@@ -184,21 +183,21 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				}
 			""";
 	private static final String HYBRID_PIPELINE_BODY = """
-				{
-				  "phase_results_processors": [
-				    {
-				      "normalization-processor": {
-				        "normalization": {
-				          "technique": "min_max"
-				        },
-				        "combination": {
-				          "technique": "arithmetic_mean"
-				        }
-				      }
-				    }
-				  ]
-				}
-				""";
+			{
+			  "phase_results_processors": [
+			    {
+			      "normalization-processor": {
+			        "normalization": {
+			          "technique": "min_max"
+			        },
+			        "combination": {
+			          "technique": "arithmetic_mean"
+			        }
+			      }
+			    }
+			  ]
+			}
+			""";
 	private static final String DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY = """
 				{
 				  "from": ${FROM},
@@ -245,7 +244,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private boolean externallyManagedIndex = false;
 	private int queryLimit = 9999;
 	private int batchLimit = 9999;
-	private boolean useHybridSearch = false;
 
 	private String listDocumentsQuery = null;
 	private String listDocumentsResultsPath = null;
@@ -326,7 +324,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 		}
 
-		this.useHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(USE_HYBRID_SEARCH, "false"));
 		if (this.useHybridSearch) {
 			ensureHybridPipeline();
 		}
@@ -406,18 +403,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
-		Set<String> fileNamesSet = new HashSet<>();
-		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 			String source = row.getSource();
-			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
-			int index = 0;
-			if (sourceId.containsKey(source)) {
-				index = sourceId.get(source);
-				sourceId.put(source, ++index);
-			} else {
-				sourceId.put(source, 0);
-			}
+			int index = fileRecordCountMap.getOrDefault(source, 0) + 1;
+			fileRecordCountMap.put(source, index);
 
 			// store creation of the index
 			{
@@ -467,13 +456,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			Map<String, Object> index = (Map<String, Object>) item.get("index");
 			if (index.containsKey("error")) {
 				String id = (String) index.get("_id"); // format: fileName_index
-				String[] parts = id.split("_");
-				String fileName = parts[0];
+				int lastUnderscore = id.lastIndexOf('_');
+				String fileName = id.substring(0, lastUnderscore);
 				failedCountPerFile.put(fileName, failedCountPerFile.getOrDefault(fileName, 0) + 1);
 			}
 		}
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
-		for (String fileName : fileNamesSet) {
+		for (String fileName : fileRecordCountMap.keySet()) {
 			int total = fileRecordCountMap.getOrDefault(fileName, 0);
 			int failed = failedCountPerFile.getOrDefault(fileName, 0);
 			int inserted = total - failed;
@@ -588,7 +577,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
-		String nearestNeighborQueryToRun = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY : nearestNeighborQuery;
+		String nearestNeighborQueryToRun = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY
+				: nearestNeighborQuery;
 		String nearestNeighborSearchEndpoint = this.useHybridSearch
 				? SEARCH_ENDPOINT + "?search_pipeline=" + HYBRID_SEARCH_PIPELINE_NAME
 				: SEARCH_ENDPOINT;
@@ -1087,9 +1077,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	/**
-	 * Creates the OpenSearch search pipeline used for hybrid (vector + BM25) search.
-	 * Applies min-max score normalization and arithmetic mean combination, which is
-	 * the standard approach for OpenSearch hybrid search (GA since 2.10).
+	 * Creates the OpenSearch search pipeline used for hybrid (vector + BM25)
+	 * search. Applies min-max score normalization and arithmetic mean combination,
+	 * which is the standard approach for OpenSearch hybrid search (GA since 2.10).
 	 *
 	 * Safe to call on every engine startup — PUT is idempotent.
 	 */
