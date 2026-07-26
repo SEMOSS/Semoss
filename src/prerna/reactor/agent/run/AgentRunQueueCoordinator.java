@@ -54,10 +54,10 @@ final class AgentRunQueueCoordinator {
 	static boolean isQueueEnabled() {
 		String configured = Utility.getDIHelperProperty(QUEUE_ENABLED);
 		if (configured == null || configured.trim().isEmpty()) {
-			return RoomMessageStore.isRedisEnabled();
+			return RedisConnectionConfig.isRedisEnabled();
 		}
 		// the queue is Redis-backed, so an explicit opt-in still needs Redis enabled
-		return Boolean.parseBoolean(configured.trim()) && RedisConnectionConfig.isRedisConfigured();
+		return Boolean.parseBoolean(configured.trim()) && RedisConnectionConfig.isRedisEnabled();
 	}
 
 	ActiveRunLease tryClaimTurn(String runId, String roomId) {

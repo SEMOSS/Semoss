@@ -118,9 +118,21 @@ public final class RedisConnectionConfig {
 	 *
 	 * @return {@code true} if either Redis flag is set to {@code true}
 	 */
-	public static boolean isRedisConfigured() {
-		return Boolean.parseBoolean(property(REDIS_ENABLED))
-				|| Boolean.parseBoolean(property(IClusterSynchronizer.SEMOSS_IS_CLUSTER_REDIS_KEY));
+	private static boolean anyRedisConfigured() {
+		return isRedisEnabled() || Boolean.parseBoolean(property(IClusterSynchronizer.SEMOSS_IS_CLUSTER_REDIS_KEY));
+	}
+
+	/**
+	 * Whether the Redis-backed room-message and agent-run-queue features are turned
+	 * on via {@code REDIS_ENABLED}. This is narrower than the connection gate in
+	 * {@link #fromDIHelper()}: cluster synchronization has its own
+	 * {@code SEMOSS_IS_CLUSTER_REDIS} flag, so Redis can be reachable for cluster
+	 * sync while these features stay off.
+	 *
+	 * @return {@code true} if {@code REDIS_ENABLED} is set to {@code true}
+	 */
+	public static boolean isRedisEnabled() {
+		return Boolean.parseBoolean(property(REDIS_ENABLED));
 	}
 
 	/**
@@ -131,7 +143,7 @@ public final class RedisConnectionConfig {
 	 * @return the resolved settings, or {@code null} if Redis is not enabled
 	 */
 	public static RedisConnectionConfig fromDIHelper() {
-		if (!isRedisConfigured()) {
+		if (!anyRedisConfigured()) {
 			return null;
 		}
 		String host = trimToNull(property(REDIS_HOST));
