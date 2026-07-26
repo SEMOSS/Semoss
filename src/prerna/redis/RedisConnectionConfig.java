@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.util.clients.AppCloudClientProperties;
 import redis.clients.jedis.HostAndPort;
 
@@ -62,6 +63,10 @@ public final class RedisConnectionConfig {
 
 	private static final int DEFAULT_SENTINEL_PORT = 26379;
 	private static final int DEFAULT_REDIS_PORT = 6379;
+
+	// Shared message for callers that reach Redis without it being enabled.
+	static final String NOT_ENABLED_MESSAGE = "Redis is not enabled. Set " + REDIS_ENABLED + "=true or "
+			+ IClusterSynchronizer.SEMOSS_IS_CLUSTER_REDIS_KEY + "=true to use Redis-backed features.";
 
 	private static final AppCloudClientProperties PROPS = AppCloudClientProperties.build();
 
@@ -100,7 +105,35 @@ public final class RedisConnectionConfig {
 		this.clusterMaxAttempts = clusterMaxAttempts;
 	}
 
+	/**
+	 * Whether this deployment intends to talk to Redis at all. Two independent
+	 * features can turn Redis on and either one is sufficient:
+	 * {@code REDIS_ENABLED} for the room-message/agent-run features and
+	 * {@code SEMOSS_IS_CLUSTER_REDIS} for cluster synchronization.
+	 *
+	 * <p>
+	 * Note this only reports intent, not which features are active. Each feature
+	 * still checks its own flag before using Redis.
+	 * </p>
+	 *
+	 * @return {@code true} if either Redis flag is set to {@code true}
+	 */
+	public static boolean isRedisConfigured() {
+		return Boolean.parseBoolean(property(REDIS_ENABLED))
+				|| Boolean.parseBoolean(property(IClusterSynchronizer.SEMOSS_IS_CLUSTER_REDIS_KEY));
+	}
+
+	/**
+	 * Resolves the Redis settings, or {@code null} when no Redis-backed feature is
+	 * enabled. Returning {@code null} keeps deployments that never asked for Redis
+	 * from building a client against the {@code localhost} host default.
+	 *
+	 * @return the resolved settings, or {@code null} if Redis is not enabled
+	 */
 	public static RedisConnectionConfig fromDIHelper() {
+		if (!isRedisConfigured()) {
+			return null;
+		}
 		String host = trimToNull(property(REDIS_HOST));
 		if (host == null) {
 			host = "localhost";
@@ -123,6 +156,21 @@ public final class RedisConnectionConfig {
 		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle, poolMinIdle,
 				sentinelEnabled, masterName, sentinelNodes, sentinelPassword, clusterEnabled, clusterNodes,
 				clusterMaxAttempts);
+	}
+
+	/**
+	 * Same as {@link #fromDIHelper()} but fails loudly instead of returning
+	 * {@code null}, for callers that have already established Redis should be on.
+	 *
+	 * @return the resolved settings, never {@code null}
+	 * @throws IllegalStateException if no Redis-backed feature is enabled
+	 */
+	public static RedisConnectionConfig requireFromDIHelper() {
+		RedisConnectionConfig config = fromDIHelper();
+		if (config == null) {
+			throw new IllegalStateException(NOT_ENABLED_MESSAGE);
+		}
+		return config;
 	}
 
 	/**

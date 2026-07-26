@@ -373,7 +373,7 @@ public final class RoomMessageStore {
 	}
 
 	public static RoomMessageRedisClient redisClient() {
-		RedisConnectionConfig config = RedisConnectionConfig.fromDIHelper();
+		RedisConnectionConfig config = RedisConnectionConfig.requireFromDIHelper();
 		String cacheKey = config.cacheKey();
 		RoomMessageRedisClient client = cachedRedisClient;
 		if (client != null && cacheKey.equals(cachedRedisClientKey)) {
