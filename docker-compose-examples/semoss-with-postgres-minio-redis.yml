@@ -98,8 +98,12 @@ x-semoss-env: &semoss-env
   MINIO_SECRET_KEY: 'minioadmin'
   MINIO_ENDPOINT: 'http://minio:9000'
 
-  # redis cluster synchronization
+  # redis - two independent features, each with its own flag. either flag on its
+  # own is enough for semoss to connect; set both to exercise everything.
+  #   SEMOSS_IS_CLUSTER_REDIS - cluster synchronization (RedisClusterSynchronizer)
+  #   REDIS_ENABLED           - room message caching and the agent run queue
   SEMOSS_IS_CLUSTER_REDIS: 'true'
+  REDIS_ENABLED: 'true'
   REDIS_HOST: 'redis'
   REDIS_PORT: '6379'
   # NOTE: HOST_IP is intentionally NOT set here - it must be UNIQUE per node so
