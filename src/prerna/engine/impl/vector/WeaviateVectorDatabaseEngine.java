@@ -94,14 +94,14 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	// upper bound on the number of distinct documents returned by listDocuments
 	private static final int LIST_DOCUMENTS_GROUP_LIMIT = 10000;
 
-	// property names as stored in Weaviate (Weaviate lowercases the first letter of
-	// property names, so we keep them lowercase for insert, filter, and read)
-	private static final String PROP_SOURCE = "source";
-	private static final String PROP_MODALITY = "modality";
-	private static final String PROP_DIVIDER = "divider";
-	private static final String PROP_PART = "part";
-	private static final String PROP_TOKENS = "tokens";
-	private static final String PROP_CONTENT = "content";
+	// property names as stored in Weaviate - Weaviate lowercases the first letter
+	// of property names, so we derive them from the shared column constants
+	private static final String PROP_SOURCE = VectorDatabaseCSVTable.SOURCE.toLowerCase();
+	private static final String PROP_MODALITY = VectorDatabaseCSVTable.MODALITY.toLowerCase();
+	private static final String PROP_DIVIDER = VectorDatabaseCSVTable.DIVIDER.toLowerCase();
+	private static final String PROP_PART = VectorDatabaseCSVTable.PART.toLowerCase();
+	private static final String PROP_TOKENS = VectorDatabaseCSVTable.TOKENS.toLowerCase();
+	private static final String PROP_CONTENT = VectorDatabaseCSVTable.CONTENT.toLowerCase();
 
 	private WeaviateClient client = null;
 	private String host = null;
@@ -452,11 +452,11 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			QueryMetadata metadata = object.queryMetadata();
 
 			Map<String, Object> outputMap = new HashMap<>();
-			outputMap.put("Source", properties.get(PROP_SOURCE));
-			outputMap.put("Divider", properties.get(PROP_DIVIDER));
-			outputMap.put("Modality", properties.get(PROP_MODALITY));
-			outputMap.put("Part", properties.get(PROP_PART));
-			outputMap.put("Content", properties.get(PROP_CONTENT));
+			outputMap.put(VectorDatabaseCSVTable.SOURCE, properties.get(PROP_SOURCE));
+			outputMap.put(VectorDatabaseCSVTable.DIVIDER, properties.get(PROP_DIVIDER));
+			outputMap.put(VectorDatabaseCSVTable.MODALITY, properties.get(PROP_MODALITY));
+			outputMap.put(VectorDatabaseCSVTable.PART, properties.get(PROP_PART));
+			outputMap.put(VectorDatabaseCSVTable.CONTENT, properties.get(PROP_CONTENT));
 			if (this.useHybridSearch) {
 				outputMap.put("Score", metadata == null ? null : metadata.score());
 			} else {
