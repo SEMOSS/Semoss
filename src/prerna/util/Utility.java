@@ -34,7 +34,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -56,9 +55,6 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -73,21 +69,17 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -110,18 +102,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContextBuilder;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -336,13 +316,13 @@ public final class Utility {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		classLogger.debug("Param Hash is " + paramHash);
+		classLogger.debug("Param Hash is {}", paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key).get(0) + "";
-			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			classLogger.debug("Replacing {}<<>>{}{}", key, value, query.indexOf("@" + key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY)) {
 				query = query.replace("@" + key + "@", value);
 			}
@@ -363,7 +343,7 @@ public final class Utility {
 		// NOTE: this process always assumes only one parameter is selected
 		// Hashtable is of pattern <String to be replaced> <replacement>
 		// key will be surrounded with @ just to be in sync
-		classLogger.debug("Param Hash is " + paramHash);
+		classLogger.debug("Param Hash is {}", paramHash);
 
 		Iterator keys = paramHash.keySet().iterator();
 		while (keys.hasNext()) {
@@ -402,78 +382,6 @@ public final class Utility {
 		}
 
 		return instanceName;
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the node instance name for a display name of a property where the node's
-	 * display name is prior to the property display name.
-	 * 
-	 * @param String URI to be split into tokens.
-	 * @return String Instance name.
-	 */
-	public static String getInstanceNodeName(String uri) {
-		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
-		int totalTok = tokens.countTokens() - 1;
-		String instanceName = null;
-
-		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok) {
-				tokens.nextToken();
-			} else if (tokIndex + 1 == totalTok) {
-				instanceName = tokens.nextToken();
-			} else {
-				tokens.nextToken();
-			}
-		}
-
-		return instanceName;
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the primary key.
-	 * 
-	 * @param String URI to be split into tokens.
-	 *               (BASE_URI/Concept/PRIMARY_KEY/INSTANCE_NAME
-	 * 
-	 * @return String Primary Key
-	 */
-	public static String getPrimaryKeyFromURI(String uri) {
-		String[] elements = uri.split("/");
-		if (elements.length >= 2) {
-			return elements[elements.length - 2];
-		} else {
-			return uri;
-		}
-	}
-
-	public static String getFQNodeName(IDatabaseEngine engine, String URI) {
-		if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
-			return getInstanceName(URI) + "__" + getPrimaryKeyFromURI(URI);
-		} else {
-			return getInstanceName(URI);
-		}
-	}
-
-	/**
-	 * Splits up a URI into tokens based on "/" character and uses logic to return
-	 * the base URI
-	 * 
-	 * @param String URI to be split into tokens.
-	 * @return String Base URI
-	 */
-	public static String getBaseURI(String uri) {
-		int indexOf = uri.lastIndexOf('/');
-		String baseURI = uri.substring(0, indexOf);
-
-		indexOf = baseURI.lastIndexOf('/');
-		baseURI = baseURI.substring(0, indexOf);
-
-		indexOf = baseURI.lastIndexOf('/');
-		baseURI = baseURI.substring(0, indexOf);
-
-		return baseURI;
 	}
 
 	/**
@@ -774,15 +682,6 @@ public final class Utility {
 		return formatter.format(roundedValue);
 	}
 
-	public static boolean isFactorType(String dataType) {
-		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("FACTOR") || dataType.startsWith("ORDER")) {
-			return true;
-		}
-
-		return false;
-	}
-
 	/**
 	 * Changes a value within the properties file for a given key
 	 * 
@@ -1024,26 +923,26 @@ public final class Utility {
 		String retString = original;
 
 		retString = retString.trim();
-		retString = retString.replaceAll("\t", " ");// replace tabs with spaces
+		retString = retString.replace("\t", " ");// replace tabs with spaces
 		while (retString.contains("  ")) {
 			retString = retString.replace("  ", " ");
 		}
-		retString = retString.replaceAll("\\{", "(");
-		retString = retString.replaceAll("\\}", ")");
+		retString = retString.replace("{", "(");
+		retString = retString.replace("}", ")");
 		retString = retString.replace("'", "");// remove apostrophe
 		if (replaceForRDF) {
-			retString = retString.replaceAll("\"", "'");// replace double quotes with single quotes
+			retString = retString.replace("\"", "'");// replace double quotes with single quotes
 		}
 		retString = retString.replace(" ", "_");// replace spaces with underscores
 		if (!property) {
 			if (replaceForwardSlash) {
 				retString = retString.replace("/", "-");// replace forward slashes with dashes
 			}
-			retString = retString.replaceAll("\\\\", "-");// replace backslashes with dashes
+			retString = retString.replace("\\", "-");// replace backslashes with dashes
 		}
 
-		retString = retString.replaceAll("\\|", "-");// replace vertical lines with dashes
-		retString = retString.replaceAll("\n", " ");
+		retString = retString.replace("|", "-");// replace vertical lines with dashes
+		retString = retString.replace("\n", " ");
 		retString = retString.replace("<", "(");
 		retString = retString.replace(">", ")");
 
@@ -1118,148 +1017,9 @@ public final class Utility {
 		}
 	}
 
-	public static String retrieveResult(String api, Hashtable<String, String> params) {
-		String output = "";
-		BufferedReader stream = null;
-		InputStreamReader inputStream = null;
-		CloseableHttpClient httpclient = null;
-		try {
-			URIBuilder uri = new URIBuilder(api);
-
-			classLogger.debug("Getting data from the API...  " + api);
-			classLogger.debug("Params is " + params);
-
-			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
-					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
-			HttpPost get = new HttpPost(api);
-			if (params != null) // add the parameters
-			{
-				List<NameValuePair> nvps = new ArrayList<>();
-				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
-					String key = keys.nextElement();
-					String value = params.get(key);
-					uri.addParameter(key, cleanHttpResponse(value));
-					nvps.add(new BasicNameValuePair(key, value));
-				}
-				get.setEntity(new UrlEncodedFormEntity(nvps));
-				// get = new HttpPost(uri.build());
-			}
-
-			CloseableHttpResponse response = httpclient.execute(get);
-			HttpEntity entity = response.getEntity();
-
-			if (entity != null) {
-				inputStream = new InputStreamReader(entity.getContent());
-				stream = new BufferedReader(inputStream);
-				String data = null;
-				while ((data = stream.readLine()) != null) {
-					output = output + data;
-				}
-			}
-		} catch (RuntimeException ex) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", ex.getMessage(), ex);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", ioe.getMessage(), ioe);
-		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", nsae.getMessage(), nsae);
-		} catch (KeyStoreException kse) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", kse.getMessage(), kse);
-		} catch (URISyntaxException use) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", use.getMessage(), use);
-		} catch (KeyManagementException kme) {
-			classLogger.error("Failed to retrieve HTTP response body: {}", kme.getMessage(), kme);
-		} finally {
-			try {
-				if (inputStream != null) {
-					inputStream.close();
-				}
-				if (stream != null) {
-					stream.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close image response stream", e);
-			}
-			try {
-				if (httpclient != null) {
-					httpclient.close();
-				}
-				if (stream != null) {
-					stream.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close HTTP client while retrieving response body", e);
-			}
-		}
-		if (output.length() == 0) {
-			output = null;
-		}
-
-		return output;
-	}
-
-	public static InputStream getStream(String api, Hashtable<String, String> params) {
-		HttpEntity entity;
-		CloseableHttpClient httpclient = null;
-		try {
-			URIBuilder uri = new URIBuilder(api);
-
-			classLogger.info("Getting data from the API...  " + Utility.cleanLogString(api));
-			classLogger.info("Params are " + Utility.cleanLogMap(params, "HASHTABLE"));
-
-			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
-					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-
-			HttpPost get = new HttpPost(api);
-			if (params != null) // add the parameters
-			{
-				List<NameValuePair> nvps = new ArrayList<>();
-				for (Enumeration<String> keys = params.keys(); keys.hasMoreElements();) {
-					String key = keys.nextElement();
-					String value = params.get(key);
-					uri.addParameter(key, value);
-					nvps.add(new BasicNameValuePair(key, value));
-				}
-				get.setEntity(new UrlEncodedFormEntity(nvps));
-				// get = new HttpPost(uri.build());
-			}
-
-			CloseableHttpResponse response = httpclient.execute(get);
-			entity = response.getEntity();
-			return entity.getContent();
-
-		} catch (RuntimeException ex) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", ex.getMessage(), ex);
-		} catch (IOException ioe) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", ioe.getMessage(), ioe);
-		} catch (NoSuchAlgorithmException nsae) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", nsae.getMessage(), nsae);
-		} catch (KeyStoreException kse) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", kse.getMessage(), kse);
-		} catch (URISyntaxException use) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", use.getMessage(), use);
-		} catch (KeyManagementException kme) {
-			classLogger.error("Failed to retrieve HTTP response stream: {}", kme.getMessage(), kme);
-		}
-		return null;
-	}
-
 	public static ISelectWrapper processQuery(IDatabaseEngine engine, String query) {
-		classLogger.debug("PROCESSING QUERY: " + query);
-
+		classLogger.debug("PROCESSING QUERY: {}", query);
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper(); //run the query
-		 * against the engine provided sjsw.setEngine(engine); sjsw.setQuery(query);
-		 * sjsw.executeQuery(); return sjsw;
-		 */
 		return wrapper;
 	}
 
@@ -1372,7 +1132,7 @@ public final class Utility {
 	}
 
 	public static IPlaySheet getPlaySheet(IDatabaseEngine engine, String psName) {
-		classLogger.info("Trying to get playsheet for " + Utility.cleanLogString(psName));
+		classLogger.info("Trying to get playsheet for {}", Utility.cleanLogString(psName));
 		String psClassName = null;
 		if (engine != null) {
 			psClassName = engine.getProperty(psName);
@@ -1396,7 +1156,7 @@ public final class Utility {
 	}
 
 	public static IDataMaker getDataMaker(IDatabaseEngine engine, String dataMakerName) {
-		classLogger.info("Trying to get data maker for " + Utility.cleanLogString(dataMakerName));
+		classLogger.info("Trying to get data maker for {}", Utility.cleanLogString(dataMakerName));
 		String dmClassName = null;
 		if (engine != null) {
 			dmClassName = engine.getProperty(dataMakerName);
@@ -1420,7 +1180,7 @@ public final class Utility {
 	}
 
 	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
-		classLogger.info("Trying to get transformation for " + Utility.cleanLogString(transName));
+		classLogger.info("Trying to get transformation for {}", Utility.cleanLogString(transName));
 		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
 		if (transClassName == null) {
 			transClassName = Utility.getDIHelperProperty(transName);
@@ -1434,7 +1194,7 @@ public final class Utility {
 	}
 
 	public static ISEMOSSAction getAction(IDatabaseEngine engine, String actionName) {
-		classLogger.info("Trying to get action for " + Utility.cleanLogString(actionName));
+		classLogger.info("Trying to get action for {}", Utility.cleanLogString(actionName));
 		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
 		if (actionClassName == null) {
 			actionClassName = Utility.getDIHelperProperty(actionName);
@@ -1450,7 +1210,7 @@ public final class Utility {
 	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			classLogger.debug("Dataframe name is " + Utility.cleanLogString(className));
+			classLogger.debug("Dataframe name is {}", Utility.cleanLogString(className));
 			obj = Class.forName(className).getDeclaredConstructor().newInstance();
 		} catch (ClassNotFoundException cnfe) {
 			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
@@ -1665,7 +1425,7 @@ public final class Utility {
 
 	public static boolean isIntegerType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
+		return (dataType.startsWith("IDENTITY") || dataType.startsWith("LONG") || dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER") || dataType.startsWith("MEDIUMINT") || dataType.startsWith("INT4")
 				|| dataType.startsWith("SIGNED") || dataType.startsWith("SERIAL")
 
@@ -1679,41 +1439,29 @@ public final class Utility {
 				|| dataType.startsWith("BIGINT") || dataType.startsWith("INT8")
 
 				// PANDAS
-				|| dataType.contains("DTYPE('INT64')")) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('INT64')"));
 	}
 
 	public static boolean isBoolean(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("BOOL") || dataType.startsWith("BIT")) {
-			return true;
-		}
-
-		return false;
+		return (dataType.startsWith("BOOL") || dataType.startsWith("BIT"));
 	}
 
 	public static boolean isDoubleType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
+		return (dataType.startsWith("NUMBER") || dataType.startsWith("MONEY") || dataType.startsWith("SMALLMONEY")
 				|| dataType.startsWith("DECIMAL") || dataType.startsWith("DEC") || dataType.startsWith("NUMERIC")
 				|| dataType.startsWith("DOUBLE") || dataType.startsWith("PRECISION") || dataType.startsWith("FLOAT")
 				|| dataType.startsWith("FLOAT8")
 				// REAL TYPE
 				|| dataType.startsWith("REAL") || dataType.startsWith("FLOAT4")
 				// PANDAS
-				|| dataType.contains("DTYPE('FLOAT64')")) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('FLOAT64')"));
 	}
 
 	public static boolean isStringType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-		if (dataType.equals("STRING")
+		return (dataType.equals("STRING")
 				// VARCHAR TYPE
 				|| dataType.startsWith("VARCHAR") || dataType.startsWith("TEXT") || dataType.startsWith("LONGVARCHAR")
 				|| dataType.startsWith("VARCHAR2") || dataType.startsWith("NVARCHAR")
@@ -1729,25 +1477,22 @@ public final class Utility {
 				|| dataType.startsWith("FACTOR")
 
 				// PANDAS
-				|| dataType.contains("DTYPE('O')")
-
-		) {
-			return true;
-		}
-
-		return false;
+				|| dataType.contains("DTYPE('O')"));
 	}
 
 	public static boolean isDateType(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-
 		return dataType.equals("DATE");
 	}
 
 	public static boolean isTimeStamp(String dataType) {
 		dataType = dataType.toUpperCase().trim();
-
 		return dataType.startsWith("TIMESTAMP") || dataType.startsWith("DATETIME");
+	}
+
+	public static boolean isFactorType(String dataType) {
+		dataType = dataType.toUpperCase().trim();
+		return dataType.startsWith("FACTOR") || dataType.startsWith("ORDER");
 	}
 
 	/**
@@ -1820,7 +1565,7 @@ public final class Utility {
 			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
 		}
 
-		classLogger.info("Loading engine " + engineId + " of type = " + engineType);
+		classLogger.info("Loading engine {} of type = {}", engineId, engineType);
 		if (syncToLocalMaster) {
 			// sync up the engine metadata now
 			Utility.synchronizeEngineMetadata(engineId);
@@ -1860,7 +1605,7 @@ public final class Utility {
 
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 					|| engines.endsWith(";" + engineId)) {
-				classLogger.debug("Engine " + engineId + " is already loaded...");
+				classLogger.debug("Engine {} is already loaded...", engineId);
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
@@ -1883,8 +1628,8 @@ public final class Utility {
 			File engineAssets = new File(
 					EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engineName));
 			boolean hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
-			classLogger.info("Engine assets directory for " + SmssUtilities.getUniqueName(engineName, engineId)
-					+ " exists = " + hasAssetsFolder);
+			classLogger.info("Engine assets directory for {} exists = {}",
+					SmssUtilities.getUniqueName(engineName, engineId), hasAssetsFolder);
 
 			if (smssFilePath == null) {
 				engine.open(smssProp);
@@ -1918,12 +1663,13 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if (hasAssetsFolder) {
-					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-							+ " assets directory exists. Sync to cloud storage if enabled");
+					classLogger.info(
+							"After loading engine {} assets directory exists. Sync to cloud storage if enabled",
+							SmssUtilities.getUniqueName(engineName, engineId));
 					ClusterUtil.pushEngine(engineId);
 				} else {
-					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-							+ " assets directory still does not exist");
+					classLogger.info("After loading engine {} assets directory still does not exist",
+							SmssUtilities.getUniqueName(engineName, engineId));
 				}
 			}
 		} catch (Exception e) {
@@ -1957,7 +1703,7 @@ public final class Utility {
 
 			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
 					|| projects.endsWith(";" + projectId)) {
-				classLogger.debug("Project " + projectId + " is already loaded...");
+				classLogger.debug("Project {} is already loaded...", projectId);
 				// engines are by default loaded so that we can keep track on the front end of
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
@@ -2047,7 +1793,7 @@ public final class Utility {
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
 		if (owlFile == null) {
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
+			classLogger.warn("Engine {} does not have an OWL file", SmssUtilities.getUniqueName(prop));
 			return;
 		}
 		// block for removal in future version
@@ -2105,7 +1851,7 @@ public final class Utility {
 		SecureRandom secureRandom = new SecureRandom();
 		for (int i = 0; i < len; i++) {
 			double num = secureRandom.nextInt(alpha.length());
-			retString = retString + alpha.charAt(new Double(num).intValue());
+			retString = retString + alpha.charAt(Double.valueOf(num).intValue());
 		}
 
 		return retString;
@@ -2145,12 +1891,12 @@ public final class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				classLogger.info("Applying lock for project " + Utility.cleanLogString(projectId));
+				classLogger.info("Applying lock for project {}", Utility.cleanLogString(projectId));
 				ReentrantLock lock = null;
 				try {
 					lock = ProjectSyncUtility.getProjectLock(projectId);
 					lock.lock();
-					classLogger.info("Project " + Utility.cleanLogString(projectId) + " is locked");
+					classLogger.info("Project {} is locked", Utility.cleanLogString(projectId));
 
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -2175,13 +1921,13 @@ public final class Utility {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
 					} else {
-						classLogger.debug("There is no SMSS File for the project " + projectId + "...");
+						classLogger.debug("There is no SMSS File for the project {}...", projectId);
 					}
 				} finally {
 					if (lock != null) {
 						// Make sure to unlock now
 						lock.unlock();
-						classLogger.info("Project " + Utility.cleanLogString(projectId) + " is unlocked");
+						classLogger.info("Project {} is unlocked", Utility.cleanLogString(projectId));
 					}
 				}
 			}
@@ -2211,10 +1957,10 @@ public final class Utility {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			classLogger.info("Applying lock for user asset project " + projectId);
+			classLogger.info("Applying lock for user asset project {}", projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			classLogger.info("User asset project " + projectId + " is locked");
+			classLogger.info("User asset project {} is locked", projectId);
 
 			try {
 				// Need to do a double check here,
@@ -2240,12 +1986,12 @@ public final class Utility {
 					// actual load engine process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
-					classLogger.debug("There is no SMSS File for the user asset project " + projectId + "...");
+					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
 				}
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				classLogger.info("User asset project " + projectId + " is unlocked");
+				classLogger.info("User asset project {} is unlocked", projectId);
 			}
 		}
 
@@ -2351,12 +2097,12 @@ public final class Utility {
 				// Acquire the lock on the engine,
 				// don't want several calls to try and load the engine at the same
 				// time
-				classLogger.info("Applying lock for engine " + Utility.cleanLogString(engineId) + " to pull");
+				classLogger.info("Applying lock for engine {} to pull", Utility.cleanLogString(engineId));
 				ReentrantLock lock = null;
 				try {
 					lock = EngineSyncUtility.getEngineLock(engineId);
 					lock.lock();
-					classLogger.info("Engine " + Utility.cleanLogString(engineId) + " is locked");
+					classLogger.info("Engine {} is locked", Utility.cleanLogString(engineId));
 
 					// Need to do a double check here,
 					// so if a different thread was waiting for the engine to load,
@@ -2379,8 +2125,8 @@ public final class Utility {
 					} else if (prop != null) {
 						engine = Utility.loadEngine(null, prop);
 					} else {
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
+						classLogger.info("There is no SMSS File for the engine {}...",
+								Utility.cleanLogString(engineId));
 					}
 
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
@@ -2414,7 +2160,7 @@ public final class Utility {
 					// Make sure to unlock now
 					if (lock != null) {
 						lock.unlock();
-						classLogger.info("Engine " + Utility.cleanLogString(engineId) + " is unlocked");
+						classLogger.info("Engine {} is unlocked", Utility.cleanLogString(engineId));
 					}
 				}
 			}
@@ -2912,14 +2658,14 @@ public final class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:"
-				+ Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = {} ms. File written to:{}", (end - start),
+				Utility.normalizePath(fileLocation));
 
 		return f;
 	}
 
 	/**
-	 * 
+	 *
 	 * @param fileLocation
 	 * @param it
 	 * @return
@@ -3101,8 +2847,8 @@ public final class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to output file = " + (end - start) + " ms. File written to:"
-				+ Utility.normalizePath(fileLocation));
+		classLogger.info("Time to output file = {} ms. File written to:{}", (end - start),
+				Utility.normalizePath(fileLocation));
 
 		return f;
 	}
@@ -3220,7 +2966,7 @@ public final class Utility {
 		}
 
 		long end = System.currentTimeMillis();
-		classLogger.info("Time to output file = " + (end - start) + " ms.");
+		classLogger.info("Time to output file = {} ms.", (end - start));
 		return jsonArray;
 	}
 
@@ -3228,8 +2974,8 @@ public final class Utility {
 		if (s == null) {
 			return null;
 		}
-		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replaceAll("\\+", "%20").replace("!", "\\%21")
-				.replace("'", "\\%27").replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
+		s = URLEncoder.encode(s, StandardCharsets.UTF_8).replace("+", "%20").replace("!", "\\%21").replace("'", "\\%27")
+				.replace("(", "\\%28").replace(")", "\\%29").replace("~", "\\%7E");
 		return s;
 	}
 
@@ -3248,8 +2994,8 @@ public final class Utility {
 			}
 		}
 
-		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
-				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
+		String newS = s.replace("%20", "+").replace("%21", "!").replace("%27", "'").replace("%28", "(")
+				.replace("%29", ")").replace("%7E", "~");
 		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
 		return s;
 	}
@@ -3266,37 +3012,6 @@ public final class Utility {
 		}
 
 		return message;
-	}
-
-	public static Map<String, String> cleanLogMap(Map<String, String> paramTable, String typeOfMap) {
-		Map<String, String> cleanedParams = null;
-
-		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
-		case "HASHTABLE":
-			cleanedParams = new Hashtable<>();
-			break;
-		case "HASHMAP":
-			cleanedParams = new HashMap<>();
-			break;
-		case "LINKEDHASHMAP":
-			cleanedParams = new LinkedHashMap<>();
-			break;
-		case "TREEMAP":
-			cleanedParams = new TreeMap<>();
-			break;
-		default:
-			cleanedParams = new HashMap<>();
-			break;
-		}
-
-		for (Entry<String, String> map : paramTable.entrySet()) {
-			String cleanedKey = Utility.cleanLogString(map.getKey());
-			String cleanedValue = Utility.cleanLogString(map.getValue());
-
-			cleanedParams.put(cleanedKey, cleanedValue);
-		}
-
-		return cleanedParams;
 	}
 
 	// ensure no CRLF injection into responses for malicious attacks
@@ -4249,8 +3964,8 @@ public final class Utility {
 		valid.add("powershell");
 
 		if (!valid.contains(terminalMode) && !valid.contains(terminalMode.toLowerCase())) {
-			classLogger.warn("Invalid terminal mode = " + terminalMode
-					+ ". Switching to cmd for windows and bash for mac/linux.");
+			classLogger.warn("Invalid terminal mode = {}. Switching to cmd for windows and bash for mac/linux.",
+					terminalMode);
 		}
 
 		return terminalMode;
@@ -4335,8 +4050,8 @@ public final class Utility {
 
 		if (!sameSiteString.equalsIgnoreCase("strict") && !sameSiteString.equalsIgnoreCase("lax")
 				&& !sameSiteString.equalsIgnoreCase("none")) {
-			classLogger.warn(
-					"Invalid samesite cookie option = '" + sameSiteString + "'. Must be 'strict', 'lax', or 'none'");
+			classLogger.warn("Invalid samesite cookie option = '{}'. Must be 'strict', 'lax', or 'none'",
+					sameSiteString);
 			classLogger.warn("Default to samesite cookie option 'none'");
 			return "none";
 		}
@@ -4594,7 +4309,7 @@ public final class Utility {
 		Path path = Paths.get(Utility.normalizePath(javaFolder));
 
 		if (Files.isDirectory(path)) {
-			classLogger.info("Compiling Java in Folder " + javaFolder);
+			classLogger.info("Compiling Java in Folder {}", javaFolder);
 			try (Stream<Path> p = Files.walk(path, FileVisitOption.FOLLOW_LINKS)) {
 				List<File> files = p.filter(Files::isRegularFile).map(Path::toAbsolutePath).filter(Utility::isJavaFile)
 						.filter(s -> !Utility.fileInRelativeHiddenDirectory(s, path)).map(Path::toFile)
@@ -4606,7 +4321,7 @@ public final class Utility {
 			} catch (IOException e) {
 				classLogger.error("Failed to compile Java source files: {}", e.getMessage(), e);
 			}
-			classLogger.info("Done compiling Java in Folder " + javaFolder);
+			classLogger.info("Done compiling Java in Folder {}", javaFolder);
 		}
 
 		return status;
@@ -4862,7 +4577,7 @@ public final class Utility {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
-				System.out.println(line); // Replace with your logger
+				classLogger.info(line);
 			}
 		}
 
@@ -4873,10 +4588,7 @@ public final class Utility {
 			throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
 					+ ", chmod command exited with code " + exitCode);
 		} else {
-			System.out.println("Changed permissions on " + directory.getAbsolutePath() + " with exit code " + exitCode); // Replace
-																															// with
-																															// your
-																															// logger
+			classLogger.info("Changed permissions on {} with exit code {}", directory.getAbsolutePath(), exitCode);
 		}
 	}
 

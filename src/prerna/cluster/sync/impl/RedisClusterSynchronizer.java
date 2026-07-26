@@ -28,8 +28,6 @@
 package prerna.cluster.sync.impl;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,9 +39,8 @@ import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.util.ClusterSyncMethod;
 import prerna.redis.RedisConnectionConfig;
 import prerna.redis.RedisConnectionFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.UnifiedJedis;
 
 public class RedisClusterSynchronizer implements IClusterSynchronizer {
 
@@ -58,7 +55,7 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 	// delay before re-subscribing after a subscription failure
 	private static final long RESUBSCRIBE_BACKOFF_MS = 5000L;
 
-	private JedisPool pool;
+	private UnifiedJedis client;
 	private Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 	/**
@@ -94,13 +91,15 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 
 	private void initalizeClusterSyncronizer() {
 		RedisConnectionConfig config = RedisConnectionConfig.fromDIHelper();
-		pool = RedisConnectionFactory.getPool(config);
+		client = RedisConnectionFactory.getClient(config);
 
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		executor.submit(() -> {
+		// dedicated long-lived daemon thread for the blocking subscribe loop; it runs
+		// for the lifetime of the JVM
+		Thread subscriber = new Thread(() -> {
 			while (true) {
-				try (Jedis jedis = pool.getResource()) {
-					jedis.subscribe(new JedisPubSub() {
+				try {
+					// subscribe blocks; UnifiedJedis borrows a dedicated connection for it
+					client.subscribe(new JedisPubSub() {
 
 						@Override
 						public void onMessage(String channel, String message) {
@@ -121,13 +120,18 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 							}
 
 							if (pull) {
-								// can't use the same subscriber jedis
-								try (Jedis jedis = pool.getResource()) {
-									String json = jedis.get(channel + "/" + message);
+								// each command borrows its own pooled connection, so this
+								// does not collide with the blocking subscriber connection
+								{
+									String json = client.get(channel + "/" + message);
 									ClusterSyncEvent syncEvent = gson.fromJson(json, ClusterSyncEvent.class);
 									String updatedByNodeId = syncEvent.getNodeId();
 									// double check this host is not the one that pushed the message
-									if (!CONTAINER_IP.equals(updatedByNodeId)) {
+									if (CONTAINER_IP.equals(updatedByNodeId)) {
+										classLogger.info(
+												"Loaded project {} was updated on this container. Ignoring message.",
+												message);
+									} else {
 										try {
 											List<Object> params = syncEvent.getParams();
 											String methodToken = syncEvent.getMethodName();
@@ -163,7 +167,9 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 					}
 				}
 			}
-		});
+		}, "redis-cluster-sync-subscriber");
+		subscriber.setDaemon(true);
+		subscriber.start();
 	}
 
 	@Override
@@ -184,10 +190,8 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 	private void performWrite(String channel, String engineId, ClusterSyncMethod method, Object... params) {
 		String key = channel + "/" + engineId;
 		ClusterSyncEvent syncEvent = new ClusterSyncEvent(CONTAINER_IP, key, method.getWireName(), params);
-		try (Jedis jedis = pool.getResource()) {
-			jedis.set(key, gson.toJson(syncEvent));
-			jedis.publish(channel, engineId);
-		}
+		client.set(key, gson.toJson(syncEvent));
+		client.publish(channel, engineId);
 	}
 
 }

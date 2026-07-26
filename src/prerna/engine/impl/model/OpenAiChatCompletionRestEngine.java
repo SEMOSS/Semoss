@@ -463,13 +463,6 @@
 //		return new EmbeddingsModelEngineResponse(null, null, null);
 //	}
 //
-//	@Override
-//	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-//			Map<String, Object> parameters) {
-//		return new EmbeddingsModelEngineResponse(null, null, null);
-//	}
-//
-//
 //	/**
 //	 * This class is used to process the responses from the Open AI Chat Completions
 //	 * API. This is a static class so that an object can be instantiated without the

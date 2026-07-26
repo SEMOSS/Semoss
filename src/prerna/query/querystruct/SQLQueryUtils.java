@@ -338,7 +338,7 @@ public class SQLQueryUtils {
 		for (int selectorIndex = 0; selectorIndex < nSelectors.size(); selectorIndex++) {
 			GenExpression thisColumn = nSelectors.get(selectorIndex);
 			String exprActual = thisColumn.getLeftExpr();
-			String exprUniq = exprActual.replaceAll("\"", "");
+			String exprUniq = exprActual.replace("\"", "");
 
 			Integer exprCt = aliases.get(exprUniq);
 			if (exprCt == null) {

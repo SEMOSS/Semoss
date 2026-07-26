@@ -1,0 +1,44 @@
+name: semoss-pgvector
+
+# pgvector - Postgres with the pgvector extension, used as a vector DB.
+#
+# Run:    docker compose -f semoss-pgvector.yml up -d
+# Stop:   docker compose -f semoss-pgvector.yml down       (add -v to wipe data)
+# Check:  docker exec semoss-pgvector pg_isready -U pgvector
+#
+# NOTE ON PORTS: this is Postgres, same as the SEMOSS 'db' service (host 5432).
+# To avoid a clash it is published on host port 5433 instead. The in-container
+# port stays 5432, so SEMOSS-in-Docker still connects on 5432 by container name;
+# only host access uses 5433. Change the left side of "5433:5432" if 5433 is
+# also taken.
+#
+# The 'vector' extension is created automatically by SEMOSS on first connect
+# (PGVectorDatabaseEngine.enhanceConnection), so the pgvector image is required -
+# a plain postgres image does not ship the extension.
+services:
+  pgvector:
+    image: pgvector/pgvector:pg18
+    container_name: semoss-pgvector
+    environment:
+      POSTGRES_USER: pgvector
+      POSTGRES_PASSWORD: pgvector
+      POSTGRES_DB: vectordb
+    ports:
+      - "5433:5432"   # host 5433 -> container 5432 (avoids the SEMOSS db on 5432)
+    volumes:
+      - pgvector-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgvector -d vectordb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semoss-net
+
+volumes:
+  pgvector-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

@@ -146,7 +146,7 @@ public final class WrapperManager {
 				IQueryInterpreter interpreter = engine.getQueryInterpreter();
 				interpreter.setQueryStruct(qs);
 				String query = interpreter.composeQuery();
-				classLogger.debug("Executing query on engine " + engine.getEngineId());
+				classLogger.debug("Executing query on engine {}", engine.getEngineId());
 				returnWrapper.setEngine(engine);
 				returnWrapper.setQuery(query);
 				// we need to pass the qs to properly set the limit/offset
@@ -154,7 +154,7 @@ public final class WrapperManager {
 				// entries
 				((RawRSelectWrapper) returnWrapper).execute(qs);
 				long end = System.currentTimeMillis();
-				classLogger.debug("Engine execution time = " + (end - start) + "ms");
+				classLogger.debug("Engine execution time = {}ms", end - start);
 				break;
 			}
 			case JSON: {
@@ -188,7 +188,7 @@ public final class WrapperManager {
 				returnWrapper.execute();
 				queryT.setEndTimeNow();
 				long end = System.currentTimeMillis();
-				classLogger.debug("Engine execution time = " + (end - start) + "ms");
+				classLogger.debug("Engine execution time = {}ms", end - start);
 				break;
 			}
 			case JANUS_GRAPH: {
@@ -203,7 +203,7 @@ public final class WrapperManager {
 				returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 				returnWrapper.execute();
 				long end = System.currentTimeMillis();
-				classLogger.debug("Engine execution time = " + (end - start) + "ms");
+				classLogger.debug("Engine execution time = {}ms", end - start);
 				break;
 			}
 			case DATASTAX_GRAPH: {
@@ -218,11 +218,8 @@ public final class WrapperManager {
 				returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 				returnWrapper.execute();
 				long end = System.currentTimeMillis();
-				classLogger.debug("Engine execution time = " + (end - start) + "ms");
+				classLogger.debug("Engine execution time = {}ms", end - start);
 				break;
-			}
-			case REMOTE_SEMOSS: {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
 			}
 //				case NEO4J_EMBEDDED : {
 //					returnWrapper = new Neo4jWrapper();
@@ -233,7 +230,7 @@ public final class WrapperManager {
 				break;
 			}
 			default: {
-				// TODO: build iterator
+				classLogger.warn("No iterator found for type {}", engine.getDatabaseType());
 				break;
 			}
 			}
@@ -256,14 +253,14 @@ public final class WrapperManager {
 					returnWrapper.setQuery(query);
 					if (ignoreQueryLogging) {
 						if (!delayExecIfPossible) {
-							classLogger.debug(
-									User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+							classLogger.debug("{} Running query on {}", User.getSingleLogginName(user),
+									engine.getEngineId());
 							returnWrapper.execute();
 
 							long end = System.currentTimeMillis();
 							long execTime = end - start;
-							classLogger.debug(User.getSingleLogginName(user) + " Running query on "
-									+ engine.getEngineId() + " finished execution time = " + execTime + "ms");
+							classLogger.debug("{} Running query on {} finished execution time = {}ms",
+									User.getSingleLogginName(user), engine.getEngineId(), execTime);
 						} else {
 							classLogger.debug("Delaying query execution");
 						}
@@ -271,8 +268,8 @@ public final class WrapperManager {
 						// set the query for tracking
 						queryT.setQuery(query);
 						if (!delayExecIfPossible) {
-							classLogger
-									.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+							classLogger.info("{} Running query on {}", User.getSingleLogginName(user),
+									engine.getEngineId());
 							// set the start time
 							queryT.setStartTimeNow();
 							// run
@@ -282,11 +279,11 @@ public final class WrapperManager {
 
 							long end = System.currentTimeMillis();
 							long execTime = end - start;
-							classLogger.info(User.getSingleLogginName(user) + " Running query on "
-									+ engine.getEngineId() + " finished execution time = " + execTime + "ms");
+							classLogger.info("{} Running query on {} finished execution time = {}ms",
+									User.getSingleLogginName(user), engine.getEngineId(), execTime);
 						} else {
-							classLogger.info(User.getSingleLogginName(user) + " Delayed query execution on "
-									+ engine.getEngineId());
+							classLogger.info("{} Delayed query execution on {}", User.getSingleLogginName(user),
+									engine.getEngineId());
 						}
 					}
 				} catch (Exception e) {
@@ -294,9 +291,8 @@ public final class WrapperManager {
 						queryT.setFailed();
 					}
 					classLogger.error(
-							"Failed to compose or execute SelectQueryStruct query for engine " + engine.getEngineId()
-									+ " (database type " + engine.getDatabaseType() + "). Generated query = " + query,
-							e);
+							"Failed to compose or execute SelectQueryStruct query for engine {} (database type {}). Generated query = {}",
+							engine.getEngineId(), engine.getDatabaseType(), query, e);
 					error = true;
 					throw e;
 				} finally {
@@ -305,14 +301,14 @@ public final class WrapperManager {
 					// but not returned
 					if (error && returnWrapper != null) {
 						if (classLogger.isDebugEnabled()) {
-							classLogger.error("Error occurred executing query on engine " + engine.getEngineId()
-									+ " with query = " + query);
+							classLogger.error("Error occurred executing query on engine {} with query = {}",
+									engine.getEngineId(), query);
 						}
 						try {
 							returnWrapper.close();
 						} catch (IOException e) {
-							classLogger.error("Failed to close raw wrapper " + returnWrapper.getClass().getSimpleName()
-									+ " after query execution error on engine " + engine.getEngineId(), e);
+							classLogger.error("Failed to close raw wrapper {} after query execution error on engine {}",
+									returnWrapper.getClass().getSimpleName(), engine.getEngineId(), e);
 						}
 					}
 				}
@@ -321,7 +317,7 @@ public final class WrapperManager {
 			return returnWrapper;
 		} finally {
 			if (queryT != null && !ignoreQueryLogging && !delayExecIfPossible) {
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 	}
@@ -391,11 +387,6 @@ public final class WrapperManager {
 				returnWrapper = new WebWrapper();
 				break;
 			}
-			case REMOTE_SEMOSS: {
-				// TODO >>>timb: REST - either replace with rest remote or remove this
-				// TODO: build iterator
-				break;
-			}
 //				case NEO4J_EMBEDDED : {
 //					returnWrapper = new Neo4jWrapper();
 //					break;
@@ -405,7 +396,8 @@ public final class WrapperManager {
 				break;
 			}
 			default: {
-
+				classLogger.warn("No iterator found for type {}", engine.getDatabaseType());
+				break;
 			}
 			}
 
@@ -419,9 +411,9 @@ public final class WrapperManager {
 				returnWrapper.setEngine(engine);
 				returnWrapper.setQuery(query);
 				if (ignoreQueryLogging) {
-					classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+					classLogger.debug("{} Running query on {}", User.getSingleLogginName(user), engine.getEngineId());
 				} else {
-					classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId());
+					classLogger.info("{} Running query on {}", User.getSingleLogginName(user), engine.getEngineId());
 				}
 				long start = System.currentTimeMillis();
 				if (ignoreQueryLogging) {
@@ -441,11 +433,11 @@ public final class WrapperManager {
 				long execTime = end - start;
 
 				if (ignoreQueryLogging) {
-					classLogger.debug(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId()
-							+ " finished execution time = " + execTime + "ms");
+					classLogger.debug("{} Running query on {} finished execution time = {}ms",
+							User.getSingleLogginName(user), engine.getEngineId(), execTime);
 				} else {
-					classLogger.info(User.getSingleLogginName(user) + " Running query on " + engine.getEngineId()
-							+ " finished execution time = " + execTime + "ms");
+					classLogger.info("{} Running query on {} finished execution time = {}ms",
+							User.getSingleLogginName(user), engine.getEngineId(), execTime);
 				}
 
 			} catch (Exception e) {
@@ -453,8 +445,8 @@ public final class WrapperManager {
 					queryT.setFailed();
 				}
 				;
-				classLogger.error("Failed to execute raw query for engine " + engine.getEngineId() + " (database type "
-						+ engine.getDatabaseType() + "). Query = " + query, e);
+				classLogger.error("Failed to execute raw query for engine {} (database type {}). Query = {}",
+						engine.getEngineId(), engine.getDatabaseType(), query, e);
 				error = true;
 				throw e;
 			} finally {
@@ -463,14 +455,14 @@ public final class WrapperManager {
 				// but not returned
 				if (error && returnWrapper != null) {
 					if (classLogger.isDebugEnabled()) {
-						classLogger.error("Error occurred executing query on engine " + engine.getEngineId()
-								+ " with query = " + query);
+						classLogger.error("Error occurred executing query on engine {} with query = {}",
+								engine.getEngineId(), query);
 					}
 					try {
 						returnWrapper.close();
 					} catch (IOException e) {
-						classLogger.error("Failed to close raw wrapper " + returnWrapper.getClass().getSimpleName()
-								+ " after raw query execution error on engine " + engine.getEngineId(), e);
+						classLogger.error("Failed to close raw wrapper {} after raw query execution error on engine {}",
+								returnWrapper.getClass().getSimpleName(), engine.getEngineId(), e);
 					}
 				}
 			}
@@ -478,7 +470,7 @@ public final class WrapperManager {
 			return returnWrapper;
 		} finally {
 			if (!ignoreQueryLogging && queryT != null) {
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 	}
@@ -504,10 +496,6 @@ public final class WrapperManager {
 			returnWrapper = new JenaSelectWrapper();
 			break;
 		}
-		case SEMOSS_SESAME_REMOTE: {
-			returnWrapper = new RemoteSesameSelectWrapper();
-			break;
-		}
 		case RDBMS: {
 			returnWrapper = new RDBMSSelectWrapper();
 			break;
@@ -522,14 +510,15 @@ public final class WrapperManager {
 					"No wrapper has been identifier for engine of type " + engine.getDatabaseType());
 		}
 
-		classLogger.debug(returnWrapper.getClass() + " executing query: " + query);
+		classLogger.debug("{} executing query: {}", returnWrapper.getClass(), query);
 		returnWrapper.setEngine(engine);
 		returnWrapper.setQuery(query);
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error("Failed to execute deprecated getSWrapper query on engine " + engine.getEngineId()
-					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
+			classLogger.error(
+					"Failed to execute deprecated getSWrapper query on engine {} (database type {}). Query = {}",
+					engine.getEngineId(), engine.getDatabaseType(), query, e);
 		}
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
@@ -546,10 +535,6 @@ public final class WrapperManager {
 		}
 		case JENA: {
 			returnWrapper = new JenaConstructWrapper();
-			break;
-		}
-		case SEMOSS_SESAME_REMOTE: {
-			returnWrapper = new RemoteSesameConstructWrapper();
 			break;
 		}
 		case RDBMS: {
@@ -570,8 +555,9 @@ public final class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error("Failed to execute deprecated getCWrapper query on engine " + engine.getEngineId()
-					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
+			classLogger.error(
+					"Failed to execute deprecated getCWrapper query on engine {} (database type {}). Query = {}",
+					engine.getEngineId(), engine.getDatabaseType(), query, e);
 		}
 		return returnWrapper;
 	}
@@ -611,8 +597,9 @@ public final class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error("Failed to execute deprecated getChWrapper query on engine " + engine.getEngineId()
-					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
+			classLogger.error(
+					"Failed to execute deprecated getChWrapper query on engine {} (database type {}). Query = {}",
+					engine.getEngineId(), engine.getDatabaseType(), query, e);
 		}
 		return returnWrapper;
 	}

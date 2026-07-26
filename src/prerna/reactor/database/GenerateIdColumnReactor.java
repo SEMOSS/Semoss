@@ -80,6 +80,7 @@ public class GenerateIdColumnReactor extends AbstractReactor {
 		if (databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Need to add " + this.keysToGet[0]);
 		}
+		databaseId = testDatabaseId(databaseId, true);
 		String tableName = this.keyValue.get(this.keysToGet[1]);
 		if (tableName == null || tableName.isEmpty()) {
 			throw new IllegalArgumentException("Need to add table name");

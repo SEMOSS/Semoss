@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -62,6 +63,7 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 
 	protected ClientProcessWrapper cpw = null;
 	protected PyTranslator pyTranslator = null;
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
@@ -88,109 +90,116 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		}
 	}
 
-	protected synchronized void startServer(int port) {
-		// already created by another thread
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-
-		// spin the server
-		// start the client
-		// get the startup command and parameters - at some point we need a better way
-		// than the command
-
-		// execute all the basic commands
-		if (!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
-		}
-
-		// check if we have already created a process wrapper
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
-
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-
-		boolean debug = false;
-
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
-				}
+	protected void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// already created by another thread
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
 			}
-		}
 
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-										// python
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-					debug, timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			// @formatter:off
-			String execCommand = "import sys\n" 
-					+ "import os\n" 
-					+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
-					+ "sys.path.append('" + this.engineDirectoryPath + "/py')\n" 
-					+ "os.chdir('" + this.engineDirectoryPath + "')\n"
-					+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
-			// @formatter:on
+			// spin the server
+			// start the client
+			// get the startup command and parameters - at some point we need a better way
+			// than the command
 
 			// execute all the basic commands
-			String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
-			if (initCommands != null && !(initCommands = initCommands.trim()).isEmpty()) {
-				// break the commands separated by ;
-				String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-				// replace the Vars
-				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-					execCommand += "\n" + fillVars(commands[commandIndex]);
+			if (!this.cacheFolder.exists()) {
+				this.cacheFolder.mkdirs();
+			}
+
+			// check if we have already created a process wrapper
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
+
+			String timeout = "30";
+			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			}
+
+			boolean debug = false;
+
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+
+			if (port < 0) {
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						classLogger.warn("Function engine {} has an invalid FORCE_PORT value",
+								SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					}
 				}
 			}
 
-			this.pyTranslator.runScriptNoCancelTrace(execCommand);
-
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + String.join("\n", execCommand));
-
-			// finally set the cpw in the class
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for local python function engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
-				cpwToInit.shutdown(false);
+			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
+											// python
+			try {
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+						debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error("Failed to create python process client for local function engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
 			}
-			throw e;
-		}
 
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
+
+			try {
+				// @formatter:off
+				String execCommand = "import sys\n" 
+						+ "import os\n" 
+						+ "sys.path.append('" + this.engineDirectoryPath + "')\n" 
+						+ "sys.path.append('" + this.engineDirectoryPath + "/py')\n" 
+						+ "os.chdir('" + this.engineDirectoryPath + "')\n"
+						+ "exec(open('" + this.engineDirectoryPath + "/" + this.pythonFileName + "').read())";
+				// @formatter:on
+
+				// execute all the basic commands
+				String initCommands = this.smssProp.getProperty(INIT_FUNCTION_ENGINE);
+				if (initCommands != null && !(initCommands = initCommands.trim()).isEmpty()) {
+					// break the commands separated by ;
+					String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+					// replace the Vars
+					for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+						execCommand += "\n" + fillVars(commands[commandIndex]);
+					}
+				}
+
+				this.pyTranslator.runScriptNoCancelTrace(execCommand);
+
+				classLogger.info("Initializing '{}' python process with commands >>> {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), execCommand);
+
+				// finally set the cpw in the class
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				classLogger.error("Failed to initialize python startup script for local function engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				if (cpwToInit != null) {
+					classLogger.warn(
+							"Started python process for local function engine '{}' but the start script failed",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					cpwToInit.shutdown(false);
+				}
+				throw e;
+			}
+		} finally {
+			this.startServerLock.unlock();
+		}
 	}
 
 	/**
