@@ -9,7 +9,7 @@ name: semoss-weaviate
 # Equivalent to the docker run with API-key auth enabled (key: test-key).
 services:
   weaviate:
-    image: semitechnologies/weaviate:1.28.4
+    image: semitechnologies/weaviate:1.38.6
     container_name: semoss-weaviate
     command:
       - --host
@@ -19,7 +19,8 @@ services:
       - --scheme
       - http
     ports:
-      - "8081:8080"   # REST API on host 8081, container stays 8080
+      - "8081:8080"     # REST API on host 8081, container stays 8080
+      - "50051:50051"   # gRPC - required by the v6 (client6) Java client
     environment:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
       AUTHENTICATION_APIKEY_ENABLED: "true"
@@ -29,6 +30,10 @@ services:
       ENABLE_MODULES: ""
       PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
       QUERY_DEFAULTS_LIMIT: "25"
+      # stable node identity so single-node RAFT keeps its leader across restarts
+      # (without this Weaviate uses the random container hostname -> "leader not found")
+      CLUSTER_HOSTNAME: "node1"
+      RAFT_BOOTSTRAP_EXPECT: "1"
     volumes:
       - weaviate-data:/var/lib/weaviate
     networks:
