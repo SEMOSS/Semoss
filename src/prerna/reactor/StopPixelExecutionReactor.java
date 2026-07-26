@@ -75,7 +75,8 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 			insightId = jobRunner.getInsight().getInsightId();
 		}
 
-		// generic terminal envelope so any subscriber sees cancel without waiting on status polling
+		// generic terminal envelope so any subscriber sees cancel without waiting on
+		// status polling
 		JobStreamEnvelopes.jobCancelled(jobId, "user-requested");
 
 		InterruptResult interruptResult = jobManager.interruptThread(jobId);
@@ -85,26 +86,23 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 			pySocketClient.interruptInsightJob(insightId, jobId);
 		}
 
-		// agent-aware extras (subagent cascade + CLI sidecar interrupt); no-op for non-agent jobs
+		// agent-aware extras (subagent cascade + CLI sidecar interrupt); no-op for
+		// non-agent jobs
 		AgentCancelHook.onStop(jobId);
 
-		if (jobRunner == null) {
-			jobManager.clearJob(jobId);
-		} else {
-			final PixelJobRunner jobThread = jobRunner;
-			Thread cleanupThread = new Thread(() -> {
-				try {
-					jobThread.joinExecution();
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				} finally {
-					jobManager.clearJob(jobId);
-					jobManager.removeJob(jobId);
-				}
-			}, "pixel-job-cleanup-" + jobId);
-			cleanupThread.setDaemon(true);
-			cleanupThread.start();
-		}
+		final PixelJobRunner jobThread = jobRunner;
+		Thread cleanupThread = new Thread(() -> {
+			try {
+				jobThread.joinExecution();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} finally {
+				jobManager.clearJob(jobId);
+				jobManager.removeJob(jobId);
+			}
+		}, "pixel-job-cleanup-" + jobId);
+		cleanupThread.setDaemon(true);
+		cleanupThread.start();
 
 		String message;
 		if (interruptResult == InterruptResult.CANCEL_REQUESTED) {

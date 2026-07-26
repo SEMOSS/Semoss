@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -54,6 +55,7 @@ import prerna.engine.impl.model.responses.BatchResultsResponse;
 import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -410,18 +412,25 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	protected EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters) {
+	public MultiModalEmbeddingsModelEngineResponse multiModalEmbeddings(List<String> text, List<String> image,
+			List<String> video, Insight insight, Map<String, Object> parameters) {
 		checkSocketStatus();
 
-		String pythonListAsString = PyUtils.determineStringType(imagesToEmbed);
+		if (text == null) {
+			text = new ArrayList<>();
+		}
+		if (image == null) {
+			image = new ArrayList<>();
+		}
+		if (video == null) {
+			video = new ArrayList<>();
+		}
 
 		StringBuilder callMaker = new StringBuilder();
-		callMaker.append(varName).append(".image_embeddings(images_to_embed = ").append(pythonListAsString);
-
-		if (this.prefix != null) {
-			callMaker.append(", prefix='").append(this.prefix).append("'");
-		}
+		callMaker.append(varName).append(".multi_modal_embeddings(")
+				.append("text = ").append(PyUtils.determineStringType(text))
+				.append(", image = ").append(PyUtils.determineStringType(image))
+				.append(", video = ").append(PyUtils.determineStringType(video));
 
 		if (parameters != null && !parameters.isEmpty()) {
 			Iterator<String> paramKeys = parameters.keySet().iterator();
@@ -435,9 +444,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		callMaker.append(")");
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		EmbeddingsModelEngineResponse response = null;
+		MultiModalEmbeddingsModelEngineResponse response = null;
 		try {
-			response = EmbeddingsModelEngineResponse.fromObject(output);
+			response = MultiModalEmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage(), e);

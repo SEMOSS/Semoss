@@ -27,42 +27,35 @@
  *******************************************************************************/
 package prerna.engine.impl.owl;
 
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 
 public class OWLEngineFactory {
-	
-    private final Semaphore writeSemaphore = new Semaphore(1);
-	
+
+	private final ReentrantLock writeLock = new ReentrantLock();
+
 	private RDFFileSesameEngine baseDataEngine = null;
 	private IDatabaseEngine.DATABASE_TYPE dbType = IDatabaseEngine.DATABASE_TYPE.RDBMS;
 	private String engineId = null;
 	private String engineName = null;
-	
+
 	private ReadOnlyOWLEngine reader = null;
 	private WriteOWLEngine writer = null;
-	
-	public OWLEngineFactory(RDFFileSesameEngine baseDataEngine, 
-			IDatabaseEngine.DATABASE_TYPE dbType, 
-			String engineId, 
+
+	public OWLEngineFactory(RDFFileSesameEngine baseDataEngine, IDatabaseEngine.DATABASE_TYPE dbType, String engineId,
 			String engineName) {
 		this.baseDataEngine = baseDataEngine;
 		this.dbType = dbType;
 		this.engineId = engineId;
 		this.engineName = engineName;
-		
-		this.reader = new ReadOnlyOWLEngine(this.baseDataEngine, 
-				this.engineId, 
-				this.engineName);
-		this.writer = new WriteOWLEngine(this.writeSemaphore, 
-				this.baseDataEngine, 
-				this.dbType, 
-				this.engineId, 
+
+		this.reader = new ReadOnlyOWLEngine(this.baseDataEngine, this.engineId, this.engineName);
+		this.writer = new WriteOWLEngine(this.writeLock, this.baseDataEngine, this.dbType, this.engineId,
 				this.engineName);
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -72,15 +65,17 @@ public class OWLEngineFactory {
 	}
 
 	/**
-	 * Provides a construct to allow writes to the OWL
-	 * Must close the WriteOWLEngine to release the lock
+	 * Provides a construct to allow writes to the OWL Must close the WriteOWLEngine
+	 * to release the lock
+	 * 
 	 * @return
-	 * @throws InterruptedException
+	 * @throws InterruptedException if interrupted while waiting for the write lock
 	 */
 	public WriteOWLEngine getWriteOWL() throws InterruptedException {
-		this.writeSemaphore.acquire();
+		// lockInterruptibly() preserves the interruptible acquire behavior of the
+		// previous semaphore; the lock is reentrant and tracks its owning thread
+		this.writeLock.lockInterruptibly();
 		return this.writer;
 	}
 
 }
-
