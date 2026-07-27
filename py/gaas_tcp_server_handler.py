@@ -28,6 +28,19 @@ import math
 import contextlib
 import semoss_console as console
 
+# Pins the headless matplotlib backend on import and provides the notebook
+# style figure rendering used by handle_python. Imported here as well as in
+# gaas_tcp_socket_server because other entrypoints import this handler directly.
+import smss_inline_display
+
+# Same treatment for every other library that can pop a window or block on a
+# human. Dormant until one of those packages is actually imported.
+import smss_headless_guards
+
+# input() has to be replaced before any insight globals exist, since those take
+# a copy of the builtins dict and would keep the real one.
+smss_headless_guards.guard_stdin_builtins(_builtins_mod)
+
 
 def _lazy_import(name):
     """Bind the module now but defer its import cost to first attribute access."""
@@ -119,7 +132,21 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
                     sys.modules[ns_key] = mod
                     spec.loader.exec_module(mod)
                     return mod
-    return _orig_import(name, _globals, _locals, fromlist, level)
+    mod = _orig_import(name, _globals, _locals, fromlist, level)
+    # Patch the display libraries as soon as they appear, so a plt.show() in
+    # the very same execution that imported matplotlib is already covered.
+    # matplotlib also catches seaborn, whose own "import matplotlib.pyplot"
+    # routes back through here.
+    #
+    # Both checks are a set lookup against a root package name and both stop
+    # firing once everything is installed, which keeps this off the hot path
+    # for the import heavy libraries (torch and friends) that dominate startup.
+    root = name.partition(".")[0]
+    if root == "matplotlib" and not smss_inline_display.is_installed():
+        smss_inline_display.maybe_install()
+    elif root in smss_headless_guards.pending_roots():
+        smss_headless_guards.maybe_install(root)
+    return mod
 
 
 _builtins_mod.__import__ = _asset_aware_import
@@ -415,7 +442,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.stop_request()
                 else:
                     self.logger.warning(f"An unexpected error occurred: {e}")
-                    self.logger.warning("Closing this socket due to an unexpected error.")
+                    self.logger.warning(
+                        "Closing this socket due to an unexpected error."
+                    )
                     self.stop_request()
             except Exception as e:
                 self.logger.warning(f"An unexpected error occurred: {e}")
@@ -707,7 +736,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": (orig_payload.get("epoc") if orig_payload else ("py_" + "".join(random.choice(string.digits) for _ in range(17)))),
+            "epoc": (
+                orig_payload.get("epoc")
+                if orig_payload
+                else ("py_" + "".join(random.choice(string.digits) for _ in range(17)))
+            ),
             "response": response,
             "interim": interim,
             "payload": [output],
@@ -750,6 +783,62 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # download worker threads cannot interleave bytes and corrupt the protocol
         with self.send_lock:
             self.request.sendall(ret_array)
+
+    def emit_inline_display(self, rendered: str):
+        """
+        Push a line from the display layer onto this execution's stdout stream.
+
+        Carries the messages smss_headless_guards writes when it suppresses a
+        popup, and is the fallback for images that cannot ride the execution's
+        return value. Deliberately bypasses SemossConsole.write, which also
+        echoes to the real stdout - a base64 PNG has no business in the server
+        log.
+
+        Args:
+            rendered (`str`): a console line, or an HTML img element carrying a
+                base64 data URI, as produced by smss_inline_display.
+        """
+        if not rendered:
+            return
+        self.send_output(rendered, operation="STDOUT", response=False)
+
+    def merge_inline_display(self, output: Any, rendered: list, failed: bool) -> Any:
+        """
+        Fold rendered images into the value this execution returns.
+
+        Images belong in the response payload, not the console stream, so that
+        PyReactor hands them back as its output the way a notebook cell returns
+        its figures.
+
+        Two cases cannot carry them and fall back to the console stream, where
+        they are still delivered rather than silently dropped:
+
+          * the execution failed or was cancelled - the payload is a traceback
+            that Java turns into an exception message, and a base64 image has
+            no business in one.
+          * the last expression evaluated to something that is not text, such
+            as a dataframe or a dict. Appending would corrupt the value.
+
+        Args:
+            output: the value execute_and_capture produced.
+            rendered (`list`): html fragments from smss_inline_display.
+            failed (`bool`): whether the execution raised or was cancelled.
+
+        Returns:
+            the output to send back.
+        """
+        joined = "\n".join(rendered)
+
+        # '""' is what execute_and_capture returns for a statement with no
+        # value, and None is what an expression like plt.show() evaluates to.
+        if not failed and (output is None or output == '""' or output == ""):
+            return joined
+        if not failed and isinstance(output, str):
+            return output + "\n" + joined
+
+        for fragment in rendered:
+            self.emit_inline_display(fragment)
+        return output
 
     def send_request(self, payload: dict):
         """
@@ -984,6 +1073,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         insight_globals["smss_get_runtime_var"] = _smss_get_runtime_var
 
+        # smss_inline_display(False) turns off automatic figure rendering for
+        # this execution. The legacy PyPlotReactor / CollectSeabornReactor
+        # paths call it because they savefig and return the image themselves.
+        insight_globals["smss_inline_display"] = smss_inline_display.set_enabled
+
         # Define and inject the smss_stream function
         def smss_stream_func(
             data: Any, stream_type: str = "content", interim: bool = True
@@ -1037,7 +1131,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     # overhead on import-heavy init / ask scripts.
                     disable_cancel_trace = bool(payload.get("disableCancelTrace"))
                     previous_trace = sys.gettrace()
+                    rendered = []
                     try:
+                        # Arm notebook style figure rendering. plt.show() now
+                        # collects the figure instead of trying to open a
+                        # window, which on a worker thread would hang or abort
+                        # the process outright.
+                        smss_inline_display.begin_execution(self.emit_inline_display)
+                        # Catch anything imported through a path that skips
+                        # builtins.__import__, such as importlib.import_module.
+                        smss_headless_guards.maybe_install()
                         if not disable_cancel_trace:
                             sys.settrace(cancel_trace)
                         output, is_exception, user_cancelled = self.execute_and_capture(
@@ -1046,6 +1149,25 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     finally:
                         if not disable_cancel_trace:
                             sys.settrace(previous_trace)
+                        # Render whatever is still open, the equivalent of the
+                        # notebook's post execute flush. Runs after settrace is
+                        # restored so the render is not traced, and outside the
+                        # cancel path so a cancelled run still cleans up its
+                        # figures rather than leaking them into the next one.
+                        try:
+                            smss_inline_display.flush_figures()
+                        except Exception as flush_error:
+                            self.prod_logger(
+                                f"Failed to flush inline matplotlib figures: {flush_error}"
+                            )
+                        # Drain before end_execution, which resets the buffer.
+                        rendered = smss_inline_display.take_rendered()
+                        smss_inline_display.end_execution()
+
+                    if rendered:
+                        output = self.merge_inline_display(
+                            output, rendered, is_exception or user_cancelled
+                        )
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
