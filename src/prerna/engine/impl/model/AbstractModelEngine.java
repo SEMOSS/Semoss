@@ -366,61 +366,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		return embeddingsResponse;
 	}
 
-	/**
-	 * This is an abstract method for the implementation class such that tracking
-	 * occurs
-	 *
-	 * @param stringsToEmbed
-	 * @param insight
-	 * @param parameters
-	 * @return
-	 */
-	protected abstract EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters);
-
-	@Override
-	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters) {
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		EmbeddingsModelEngineResponse embeddingsResponse = imageEmbeddingsCall(imagesToEmbed, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			String messageId = GUID.v7().toUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId,
-					/*transactionId*/messageId,
-					/*messageMethod*/"embeddings",
-					/*engine*/this,
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/null,
-					/*prompt*/null,
-					/*fullPrompt*/imagesToEmbed,
-					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime,
-					/*response*/"",
-					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-					));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime,
-				outputTime);
-
-		return embeddingsResponse;
-	}
 
 	/**
 	 *

@@ -79,15 +79,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
-	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
-
 	private String vectorDatabaseSearcher = null;
-	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 
 		// if we've already opened don't automatically drop the searcher variable
 		if (this.vectorDatabaseSearcher == null
@@ -107,7 +103,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
 				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
 				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
-				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.useHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
@@ -515,7 +511,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			// also handle bm25 files
 			String updateBM25 = null;
-			if (this.enableHybridSearch) {
+			if (this.useHybridSearch) {
 				StringBuilder updateBM25Builder = new StringBuilder();
 				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
 						.append(indexClass).append("'])");

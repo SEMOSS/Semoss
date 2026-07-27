@@ -587,6 +587,13 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-bom</artifactId>
+				<version>1.79.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
 				<version>26.50.0</version>
@@ -651,6 +658,12 @@
 				<groupId>org.codehaus.plexus</groupId>
 				<artifactId>plexus-utils</artifactId>
 				<version>4.0.3</version>
+			</dependency>
+			<!-- Converge annotations-only jar: grpc 1.79 pulls 1.26, google-cloud pulls 1.24 -->
+			<dependency>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>animal-sniffer-annotations</artifactId>
+				<version>1.26</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -2325,6 +2338,11 @@
 			<artifactId>fst</artifactId>
 			<version>3.0.4-jdk17</version>
 			<exclusions>
+				<!-- fst-3.0.4-jdk17's pom decalres maven-bundle-plugin as a build-tool and erroneously as a dependency. -->
+				<exclusion>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
@@ -2824,11 +2842,11 @@
 			</exclusions>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
-		<!-- Source: https://mvnrepository.com/artifact/io.weaviate/client -->
+		<!-- Source: https://mvnrepository.com/artifact/io.weaviate/client6 -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
-			<artifactId>client</artifactId>
-			<version>5.5.0</version>
+			<artifactId>client6</artifactId>
+			<version>6.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
