@@ -235,6 +235,13 @@ class AbstractTextGenerationClient(ABC):
 
         return model_engine_response.to_dict()
 
+    def multi_modal_embeddings(self, *args: Any, **kwargs: Any) -> Dict:
+        """Optional capability. Text generation clients do not embed by default."""
+        return {
+            "response": "This model does not support multi modal embeddings.",
+            "implemented": False,
+        }
+
 
 # TODO remove once no errors are happening
 class BaseClient(AbstractTextGenerationClient):
