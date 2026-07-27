@@ -33,7 +33,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import prerna.om.Insight;
 
 /**
- * Single param object bundling everything an {@link IAutomationNodeExecutor} needs to run one node.
+ * Immutable param bundle passed to every {@link IAutomationNodeExecutor}.
+ *
+ * <p>Consolidates all per-node execution inputs so executor implementations have a single,
+ * typed object to work with rather than long parameter lists.
+ *
+ * @param runId      the automation run ID (use {@code "test"} for single-node test runs)
+ * @param projectId  the owning project UUID
+ * @param node       the raw node definition map from {@code automation.json}
+ * @param scope      mutable variable scope — string key→value pairs resolved by {@code ${varName}}
+ * @param configMap  project automation config key→value pairs resolved by {@code ${config.KEY}}
+ * @param insight    caller's {@link Insight} context (carries user, session, pixel engine)
+ * @param cancelFlag shared flag the executor checks to honour mid-node cancellation requests
  */
 public record AutomationNodeContext(
 		String runId,

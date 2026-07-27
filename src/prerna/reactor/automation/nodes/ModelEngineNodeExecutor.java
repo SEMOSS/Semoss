@@ -31,6 +31,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -38,6 +43,8 @@ import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
 public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
+
+	private static final Logger classLogger = LogManager.getLogger(ModelEngineNodeExecutor.class);
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -55,6 +62,7 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
+		classLogger.debug("Model-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
 			case "embeddings": {
 				String values = required(config, "values", nodeLabel);
@@ -85,7 +93,8 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 		if (paramValues == null) return null;
 		String resolved = AutomationExecutionUtils.resolve(paramValues, scope, configMap);
 		try {
-			return AutomationExecutionUtils.GSON.fromJson(resolved, Map.class);
+			return AutomationExecutionUtils.GSON.fromJson(resolved,
+					new TypeToken<Map<String, Object>>() {}.getType());
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": paramValues is not valid JSON: " + e.getMessage(), e);
 		}

@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-public class AutomationConstants {
+public final class AutomationConstants {
 
 	private AutomationConstants() {}
 

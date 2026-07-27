@@ -29,11 +29,18 @@ package prerna.reactor.automation.nodes;
 
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.google.gson.reflect.TypeToken;
+
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
 public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor {
+
+	private static final Logger classLogger = LogManager.getLogger(FunctionEngineNodeExecutor.class);
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -53,6 +60,7 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
+		classLogger.debug("Function-engine node \"{}\" executing via engine {}", nodeLabel, resolvedEngineId);
 		Map<String, Object> paramMap = parseParams(resolvedParams, nodeLabel);
 		return engine.execute(paramMap);
 	}
@@ -61,7 +69,8 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 	private static Map<String, Object> parseParams(String json, String nodeLabel) {
 		if (json == null || json.isBlank()) return Map.of();
 		try {
-			Map<String, Object> parsed = AutomationExecutionUtils.GSON.fromJson(json, Map.class);
+			Map<String, Object> parsed = AutomationExecutionUtils.GSON.fromJson(json,
+					new TypeToken<Map<String, Object>>() {}.getType());
 			return parsed != null ? parsed : Map.of();
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": params is not valid JSON: " + e.getMessage(), e);

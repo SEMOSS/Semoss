@@ -27,11 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
@@ -52,22 +43,20 @@ import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 
 /**
  * Executes a single automation node for testing/preview purposes.
  * Result is NOT persisted to any run record.
  *
- * Pixel: {@code RunAutomationNode(project=["appId"], nodeId=["node-id"], runId=["optional-context-run"])}
+ * <p>Pixel: {@code RunAutomationNode(project=["appId"], nodeId=["node-id"], runId=["optional-context-run"])}
  */
 public class RunAutomationNodeReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RunAutomationNodeReactor.class);
-	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	public RunAutomationNodeReactor() {
-		this.keysToGet = new String[]{ "project", "nodeId", "runId" };
-		this.keyRequired = new int[]{ 1, 1, 0 };
+		this.keysToGet = new String[] { "project", "nodeId", "runId" };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -119,8 +108,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
 			String transformed = AutomationExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
-			String preview = (transformed != null && transformed.length() > AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH)
-					? transformed.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH) : transformed;
+			String preview = AutomationExecutionUtils.generatePreview(transformed);
 
 			Map<String, Object> result = new HashMap<>();
 			result.put(AutomationConstants.NODE_ID, nodeId);
@@ -144,33 +132,20 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> findNode(String projectId, String nodeId) {
-		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-		File f = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
-		if (!f.exists()) {
-			throw new IllegalArgumentException("No automation.json found for this project");
-		}
-		try {
-			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			Map<String, Object> doc = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
-			Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
-			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
-			if (nodes != null) {
-				for (Map<String, Object> node : nodes) {
-					if (nodeId.equals(node.get("id"))) return node;
-				}
+	private static Map<String, Object> findNode(String projectId, String nodeId) {
+		Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
+		Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
+		if (nodes != null) {
+			for (Map<String, Object> node : nodes) {
+				if (nodeId.equals(node.get("id"))) return node;
 			}
-		} catch (IOException e) {
-			throw new IllegalStateException("Failed to read automation.json: " + e.getMessage(), e);
 		}
 		return null;
 	}
 
 	private Map<String, String> buildScope(String contextRunId) {
-		Map<String, String> scope = new HashMap<>();
-		String now = Instant.now().toString();
-		scope.put("date", now.substring(0, 10));
-		scope.put("triggered_at", now);
+		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(null);
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(contextRunId);
@@ -186,5 +161,10 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			}
 		}
 		return scope;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Executes a single automation node in isolation for testing — result is not persisted.";
 	}
 }

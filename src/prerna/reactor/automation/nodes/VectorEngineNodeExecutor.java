@@ -31,11 +31,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
 public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
+
+	private static final Logger classLogger = LogManager.getLogger(VectorEngineNodeExecutor.class);
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -53,6 +58,7 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 			throw new IllegalArgumentException("Vector-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
+		classLogger.debug("Vector-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
 			case "add-file":
 			case "add-csv": {

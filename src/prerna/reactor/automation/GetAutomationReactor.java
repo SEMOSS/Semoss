@@ -38,8 +38,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
@@ -51,13 +49,22 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
+/**
+ * Returns the automation <em>definition</em> (the saved {@code automation.json} graph) for a project.
+ * Returns an empty graph document when no automation has been saved yet.
+ *
+ * <p><strong>Not to be confused with {@link GetAutomationRunReactor}</strong>, which returns
+ * <em>run history</em> records from the scheduler DB (AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS).
+ * This reactor reads static config; that reactor reads live execution state.
+ *
+ * <p>Pixel: {@code GetAutomation(project=["appId"])}
+ */
 public class GetAutomationReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(GetAutomationReactor.class);
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     public GetAutomationReactor() {
-        this.keysToGet = new String[]{ "project" };
+        this.keysToGet = new String[] { "project" };
     }
 
     @Override
@@ -95,7 +102,8 @@ public class GetAutomationReactor extends AbstractReactor {
 
         try {
             String json = Files.readString(automationFile.toPath(), StandardCharsets.UTF_8);
-            Map<String, Object> doc = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+            Map<String, Object> doc = AutomationExecutionUtils.GSON.fromJson(json,
+                    new TypeToken<Map<String, Object>>() {}.getType());
             return new NounMetadata(doc, PixelDataType.MAP, PixelOperationType.OPERATION);
         } catch (IOException e) {
             classLogger.error("Error reading automation JSON", e);

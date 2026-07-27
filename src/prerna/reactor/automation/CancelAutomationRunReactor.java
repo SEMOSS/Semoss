@@ -48,7 +48,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Sets a cluster-safe cancellation flag ({@code AUTOMATION_RUNS.CANCEL_REQUESTED}, via
  * {@link AutomationDatabaseUtility#setCancelRequested(String)}) that the executing pod's
  * between-node check polls regardless of which pod that is - this is the source of truth. Also
- * attempts an in-memory same-pod signal ({@link TriggerAutomationReactor#requestCancellation(String)})
+ * attempts an in-memory same-pod signal ({@link AutomationRunEngine#requestCancellation(String)})
  * as a fast path when the run happens to be executing on the pod that received this request. The
  * run's {@code STATUS} is transitioned to CANCELLED by whichever pod is actually executing it,
  * not by this reactor - a truly orphaned run (no pod executing it) is instead caught by the
@@ -59,8 +59,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CancelAutomationRunReactor.class);
 
 	public CancelAutomationRunReactor() {
-		this.keysToGet = new String[]{ "project", "runId" };
-		this.keyRequired = new int[]{ 1, 1 };
+		this.keysToGet = new String[] { "project", "runId" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -103,7 +103,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		// would be a lie. The executing pod transitions STATUS to CANCELLED itself once it
 		// observes the flag; a truly orphaned run (crashed, nobody polling) is caught by the
 		// periodic stale-heartbeat sweep (AutomationDatabaseUtility.markStaleRunsInterrupted).
-		boolean signalledLocally = TriggerAutomationReactor.requestCancellation(runId);
+		boolean signalledLocally = AutomationRunEngine.requestCancellation(runId);
 		AutomationDatabaseUtility.setCancelRequested(runId);
 
 		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);

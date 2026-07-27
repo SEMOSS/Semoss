@@ -30,6 +30,9 @@ package prerna.reactor.automation.nodes;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.automation.AutomationCancelledException;
 import prerna.reactor.automation.AutomationDatabaseUtility;
 import prerna.reactor.automation.AutomationExecutionUtils;
@@ -46,6 +49,7 @@ import prerna.reactor.automation.AutomationExecutionUtils;
  */
 public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 
+	private static final Logger classLogger = LogManager.getLogger(WaitNodeExecutor.class);
 	private static final int CANCEL_CHECK_INTERVAL_SECONDS = 5;
 
 	@Override
@@ -65,6 +69,7 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 					"\" - seconds value is not a valid integer after resolution: \"" + resolved + "\"");
 		}
 		seconds = Math.min(Math.max(seconds, 0), 3600);
+		classLogger.debug("Wait node \"{}\" sleeping {} seconds", nodeLabel, seconds);
 
 		// Sleep in chunks so cancel requests are honored mid-wait rather than waiting
 		// for the full duration to complete.

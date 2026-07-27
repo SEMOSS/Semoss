@@ -31,11 +31,16 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
 public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor {
+
+	private static final Logger classLogger = LogManager.getLogger(StorageEngineNodeExecutor.class);
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -53,6 +58,7 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 			throw new IllegalArgumentException("Storage-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
 		}
 
+		classLogger.debug("Storage-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
 			case "download": {
 				String storagePath = required(config, "storagePath", nodeLabel);

@@ -27,21 +27,30 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
-import prerna.engine.api.IRDBMSEngine;
-import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.util.Utility;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.PixelExecutionUtils;
+
+/**
+ * Executor for {@code database-engine} nodes. Runs a SQL query against a configured database engine
+ * using the {@code SqlQuery} reactor — the same engine abstraction used elsewhere in the platform.
+ *
+ * <p>Config fields:
+ * <ul>
+ *   <li>{@code engineId} (required) — UUID or alias of the target database engine</li>
+ *   <li>{@code expression} (required) — SQL expression; supports {@code ${var}} substitution</li>
+ *   <li>{@code operation} (optional) — {@code "read"} (default) or {@code "write"}; informational
+ *       only since {@code SqlQuery} auto-detects SELECT vs DML from the SQL text</li>
+ *   <li>{@code limit} (optional) — max rows for SELECT results; default 50</li>
+ * </ul>
+ */
 public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor {
+
+	private static final Logger classLogger = LogManager.getLogger(DatabaseEngineNodeExecutor.class);
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -53,46 +62,21 @@ public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor
 		String engineId = required(config, "engineId", nodeLabel);
 		String sql = required(config, "expression", nodeLabel);
 		String operation = optional(config, "operation", "read");
+		int limit = optionalInt(config, "limit", 50);
 
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 		String resolvedSql = AutomationExecutionUtils.resolve(sql, scope, configMap);
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getEngine(resolvedEngineId);
-		if (engine == null) {
-			throw new IllegalArgumentException("Database-engine node \"" + nodeLabel + "\": engine not found: " + resolvedEngineId);
-		}
+		classLogger.debug("Database-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 
-		if ("write".equals(operation)) {
-			try (Connection conn = engine.getConnection();
-				 PreparedStatement ps = conn.prepareStatement(resolvedSql)) {
-				int rowsAffected = ps.executeUpdate();
-				return Map.of("rowsAffected", rowsAffected);
-			} catch (SQLException e) {
-				throw new IllegalStateException("Database-engine node \"" + nodeLabel + "\": write failed: " + e.getMessage(), e);
-			}
-		} else {
-			int limit = optionalInt(config, "limit", 50);
-			try (Connection conn = engine.getConnection();
-				 PreparedStatement ps = conn.prepareStatement(resolvedSql)) {
-				try (ResultSet rs = ps.executeQuery()) {
-					ResultSetMetaData meta = rs.getMetaData();
-					int colCount = meta.getColumnCount();
-					List<Map<String, Object>> rows = new ArrayList<>();
-					int count = 0;
-					while (rs.next() && count < limit) {
-						Map<String, Object> row = new LinkedHashMap<>();
-						for (int i = 1; i <= colCount; i++) {
-							row.put(meta.getColumnLabel(i), rs.getObject(i));
-						}
-						rows.add(row);
-						count++;
-					}
-					return rows;
-				}
-			} catch (SQLException e) {
-				throw new IllegalStateException("Database-engine node \"" + nodeLabel + "\": query failed: " + e.getMessage(), e);
-			}
-		}
+		// Escape double quotes in the SQL for the pixel string literal, then delegate to
+		// SqlQuery which uses the engine abstraction (HardSelectQueryStruct) and enforces
+		// the caller's database-level permissions automatically.
+		String escapedSql = resolvedSql.replace("\"", "\\\"");
+		String pixel = "SqlQuery(database=[\"" + resolvedEngineId + "\"], query=[\"" + escapedSql + "\"], limit=[" + limit + "]);";
+
+		int timeout = AutomationExecutionUtils.getNodeTimeout(ctx.node());
+		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeout);
 	}
 
 	private static String required(Map<String, Object> config, String key, String nodeLabel) {

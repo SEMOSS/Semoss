@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -278,6 +279,29 @@ public final class AutomationExecutionUtils {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+
+	// -- Scope building ------------------------------------------------------------
+
+	/**
+	 * Builds the initial variable scope for an automation run, seeded with {@code date},
+	 * {@code triggered_at}, and {@code run_id} (when non-blank).
+	 */
+	public static Map<String, String> buildInitialScope(String runId) {
+		Map<String, String> scope = new HashMap<>();
+		// TODO: use user's session timezone instead of UTC when the Insight timezone API is finalized
+		String now = Instant.now().toString();
+		scope.put("date", now.substring(0, 10));
+		scope.put("triggered_at", now);
+		if (runId != null && !runId.isBlank()) scope.put("run_id", runId);
+		return scope;
+	}
+
+	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
+	public static String generatePreview(String s) {
+		if (s == null) return null;
+		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH
+				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
 	}
 
 	// -- Config value coercion -----------------------------------------------------
