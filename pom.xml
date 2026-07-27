@@ -3450,6 +3450,12 @@
 			<version>1.3.1</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-fileupload2-jakarta-servlet6</artifactId>
+		    <!-- Use jakarta-servlet5 if you are specifically on Tomcat 10.0 -->
+		    <version>2.0.0-M5</version> 
+		</dependency>
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
 </project>

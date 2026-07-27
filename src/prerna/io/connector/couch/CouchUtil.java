@@ -43,11 +43,14 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.fileupload.FileItem;
+//import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import org.apache.commons.fileupload2.core.FileItem;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -303,6 +306,9 @@ public class CouchUtil {
 	 *                                  for the partition
 	 * @throws CouchException           If another exception is encountered
 	 */
+	
+
+
 	public static void upload(String partitionId, Map<String, String> referenceData, FileItem imageFile)
 			throws CouchException {
 		if (referenceData == null || !referenceData.containsKey(partitionId)) {
@@ -829,6 +835,7 @@ public class CouchUtil {
 		}
 	}
 
+	
 	/*
 	 * Run this to init a new database in couch: public static void main(String[]
 	 * args) throws Exception { // (re-)initialize a DB on localhost
