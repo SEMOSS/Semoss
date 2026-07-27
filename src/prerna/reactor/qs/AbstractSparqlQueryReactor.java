@@ -37,7 +37,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDFDatabase;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -53,7 +53,6 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AbstractSparqlQueryReactor.class);
 
 	private static final int DEFAULT_LIMIT = 50;
-	private static final int MAX_LIMIT = 5_000;
 
 	public AbstractSparqlQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
@@ -147,7 +146,7 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 		qs.setEngineId(databaseId);
 		qs.setEngine(engine);
 		qs.setQuery(sparqlQuery);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
 	}
 
@@ -156,13 +155,6 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 		if (limitStr != null && !limitStr.trim().isEmpty()) {
 			try {
 				limit = Integer.parseInt(limitStr.trim());
-				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
-					limit = DEFAULT_LIMIT;
-				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
-					limit = MAX_LIMIT;
-				}
 			} catch (NumberFormatException e) {
 				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}

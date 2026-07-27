@@ -43,14 +43,12 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -108,7 +106,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String panelId = getPanelId();
 
 		// start logger
-		logger.info(stepCounter + ". Performing Natural Language Search");
+		logger.info("{}. Performing Natural Language Search", stepCounter);
 		stepCounter++;
 
 		// Check Packages
@@ -150,7 +148,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		query = buildNamedArray(query);
 		queryString = getQStringFromArray(query);
 
-		logger.info(stepCounter + ". Generating search results");
+		logger.info("{}. Generating search results", stepCounter);
 		stepCounter++;
 		List<Object[]> retData = generateAndRunScript(query, dbFilters, rSessionTable, rSessionJoinTable, global);
 
@@ -161,7 +159,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			return noun;
 		}
 
-		logger.info(stepCounter + ". Generating pixel return from results");
+		logger.info("{}. Generating pixel return from results", stepCounter);
 		stepCounter++;
 		List<Map<String, Object>> returnPixels = generatePixels(retData, query, rSessionTable, global, panelId,
 				queryString);
@@ -190,7 +188,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// read string into list
 		List<Map<String, Object>> optMap = new Vector<Map<String, Object>>();
-		optMap = new Gson().fromJson(query, optMap.getClass());
+		optMap = GSON.fromJson(query, optMap.getClass());
 		StringBuilder arrayRsb = new StringBuilder();
 		StringBuilder namesRsb = new StringBuilder();
 		String request = "request_" + Utility.getRandomString(6);
@@ -496,10 +494,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put("Multiple" + combinedQs.size(), curQs);
 				combinedQs.put(currDatabaseId, curQs);
@@ -508,10 +506,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			} else if (!combined && currDatabaseId != null && !currDatabaseId.equals(rowDatabaseId)) {
@@ -520,10 +518,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				currDatabaseId = rowDatabaseId;
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			} else if (!combined && currDatabaseId != null && currDatabaseId.equals(rowDatabaseId)
@@ -531,10 +529,10 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// How do we handle multiple queries from the same database
 				curQs = new SelectQueryStruct();
 				if (global) {
-					curQs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 					curQs.setEngineId(currDatabaseId);
 				} else {
-					curQs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+					curQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 				}
 				qsList.put(label, curQs);
 			}
@@ -1101,18 +1099,18 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	}
 
 	private String getCleanFrameName(String queryString) {
-		queryString = queryString.replaceAll("<=", "less than or equal to");
-		queryString = queryString.replaceAll("- top", "offset_top");
-		queryString = queryString.replaceAll("- bottom", "offset_bottom");
-		queryString = queryString.replaceAll(">=", "greater than or equal to");
-		queryString = queryString.replaceAll("!=", "not equal to");
-		queryString = queryString.replaceAll("<", "less than");
-		queryString = queryString.replaceAll(">", "greater than");
-		queryString = queryString.replaceAll("=", "equals");
-		queryString = queryString.replaceAll(" ", "_");
-		queryString = queryString.replaceAll("-", "_");
-		queryString = queryString.replaceAll("/", "_");
-		queryString = queryString.replaceAll("\\\\", "_");
+		queryString = queryString.replace("<=", "less than or equal to");
+		queryString = queryString.replace("- top", "offset_top");
+		queryString = queryString.replace("- bottom", "offset_bottom");
+		queryString = queryString.replace(">=", "greater than or equal to");
+		queryString = queryString.replace("!=", "not equal to");
+		queryString = queryString.replace("<", "less than");
+		queryString = queryString.replace(">", "greater than");
+		queryString = queryString.replace("=", "equals");
+		queryString = queryString.replace(" ", "_");
+		queryString = queryString.replace("-", "_");
+		queryString = queryString.replace("/", "_");
+		queryString = queryString.replace("\\\\", "_");
 
 		return queryString;
 	}
@@ -1230,13 +1228,13 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	public String buildImportPixelFromQs(SelectQueryStruct qs, String databaseId, String frameName, boolean merge,
 			boolean global) {
 		StringBuilder psb = new StringBuilder();
-		QUERY_STRUCT_TYPE type = qs.getQsType();
+		AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
 
 		// continue with import if false
-		if (type == QUERY_STRUCT_TYPE.ENGINE) {
+		if (type == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			// pull from the appId
 			psb.append("Database ( database = [ \"" + databaseId + "\" ] ) | ");
-		} else if (type == QUERY_STRUCT_TYPE.FRAME) {
+		} else if (type == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			psb.append("Frame ( frame = [" + this.getFrame().getName() + "] ) | ");
 		}
 
@@ -1432,7 +1430,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					psb.append(joinType + ", ");
 					psb.append(col2 + " ) ");
 				} else {
-					classLogger.info("Cannot process relationship of type: " + relationship.getRelationType());
+					classLogger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 				}
 			}
 			psb.append(") | ");
@@ -1458,7 +1456,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// if its from the frame, then remove reference to the frame
 		String retString = psb.toString();
 		if (!global) {
-			retString = retString.replaceAll(this.getFrame().getName() + "__", "");
+			retString = retString.replace(this.getFrame().getName() + "__", "");
 		}
 
 		// return the pixel
@@ -1516,7 +1514,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// if this is being passed to the createviz reactor, need to remove frame name
 		if (replaceFrame) {
-			retString = retString.replaceAll(frameName + "__", "");
+			retString = retString.replace(frameName + "__", "");
 		}
 
 		return retString;
@@ -1629,7 +1627,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		// create the frame qs and other vars
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.setQsType(QUERY_STRUCT_TYPE.FRAME);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 		String colDropString = "";
 		String mergeString = "Merge ( joins = [ ";
 

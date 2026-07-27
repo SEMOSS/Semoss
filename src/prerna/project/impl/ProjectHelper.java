@@ -89,6 +89,14 @@ public final class ProjectHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
 
+	/**
+	 * PROJECTMETA tag value marking a SKILL-type project. Written by
+	 * {@link #createSkillProject} for user skills and by ProjectWatcher for the
+	 * built-in platform skill projects. (Legacy rows may carry the old value
+	 * "Skill_Project"; PROJECT.TYPE is the authoritative marker.)
+	 */
+	public static final String SKILL_PROJECT_TAG = "SKILL";
+
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
@@ -117,10 +125,9 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectName, IProject.PROJECT_TYPE projectType, boolean global,
-			boolean hasPortal, String portalName, String gitProvider, String gitCloneUrl, User user, Logger logger) {
+			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
-		return generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName, gitProvider,
-				gitCloneUrl, user, logger);
+		return generateNewProject(projectId, projectName, projectType, global, gitProvider, gitCloneUrl, user, logger);
 	}
 
 	/**
@@ -138,8 +145,7 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, IProject.PROJECT_TYPE projectType,
-			boolean global, boolean hasPortal, String portalName, String gitProvider, String gitCloneUrl, User user,
-			Logger logger) {
+			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
@@ -183,8 +189,8 @@ public final class ProjectHelper {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as
 			// well
-			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, hasPortal,
-					portalName, gitProvider, gitCloneUrl, null);
+			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, gitProvider,
+					gitCloneUrl, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 			// Only at end do we add to DIHelper
@@ -599,12 +605,22 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject createWorkspaceProject(String projectId, String projectName,
-			IProject.PROJECT_TYPE projectType, boolean global, boolean hasPortal, String portalName, String gitProvider,
-			String gitCloneUrl, User user, Logger logger) {
-		IProject project = generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName,
-				gitProvider, gitCloneUrl, user, logger);
+			IProject.PROJECT_TYPE projectType, boolean global, String gitProvider, String gitCloneUrl, User user,
+			Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, projectType, global, gitProvider, gitCloneUrl,
+				user, logger);
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
+		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		return project;
+	}
+
+	public static IProject createSkillProject(String projectId, String projectName, boolean global, String gitProvider,
+			String gitCloneUrl, User user, Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, gitProvider,
+				gitCloneUrl, user, logger);
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("tag", SKILL_PROJECT_TAG);
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		return project;
 	}

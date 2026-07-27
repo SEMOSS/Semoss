@@ -65,7 +65,7 @@ import prerna.util.Utility;
 
 @Deprecated
 public class FederationBlend extends AbstractRFrameReactor {
-	private static final Logger logger = LogManager.getLogger(FederationBlend.class);
+	private static final Logger classLogger = LogManager.getLogger(FederationBlend.class);
 
 	@Deprecated
 	public static final String JOIN_TYPE = "joinType";
@@ -98,6 +98,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 		String joinType = this.keyValue.get(this.keysToGet[0]);
 		String frameCol = this.keyValue.get(this.keysToGet[1]);
 		String newDb = this.keyValue.get(this.keysToGet[2]);
+		newDb = testDatabaseId(newDb, false);
 		String newTable = this.keyValue.get(this.keysToGet[3]);
 		String newCol = this.keyValue.get(this.keysToGet[4]);
 		List<String> columns = getColumns();
@@ -289,13 +290,13 @@ public class FederationBlend extends AbstractRFrameReactor {
 					+ Utility.getRandomString(6) + ".tsv";
 			newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

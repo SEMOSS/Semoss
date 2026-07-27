@@ -46,12 +46,13 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GenericGuardrailInputOutputReactor extends AbstractReactor implements IInputReactor,IOutputReactor {
+public class GenericGuardrailInputOutputReactor extends AbstractReactor implements IInputReactor, IOutputReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputOutputReactor.class);
-	
+
 	public static final String RETURN_PROMPT_KEY = "returnPrompt";
 	public static final String FULL_DETAILS_KEY = "fullDetails";
 
@@ -74,7 +75,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
 		}
-		
+
 		guardrailEngineParams.put(guardrailEngineId, guardrailEngine.getEngineName());
 
 		// Get the input mapping for the guardrail engine
@@ -146,7 +147,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 			String paramName = paramEntry.getKey();
 			Object paramValue = paramEntry.getValue();
 
-			GenRowStruct nounGrs = guardrailInputNounStore.makeNoun(paramName);
+			GenRowStruct nounGrs = guardrailInputNounStore.makeGenRowStruct(paramName);
 			if (paramValue instanceof Collection) {
 				Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
 				for (Object paramValueEle : paramValueCollection) {
@@ -157,10 +158,15 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 			}
 		}
 
+		if (this.insight != null) {
+			GenRowStruct insightGrs = guardrailInputNounStore.makeGenRowStruct(Constants.INSIGHT);
+			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
+		}
+
 		// Call the guardrail engine's execute method
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
-		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams,output, this.getClass().getName());
+		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams, output, this.getClass().getName());
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
@@ -168,7 +174,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		return new NounMetadata(processedArguments, PixelDataType.MAP);
 
 	}
-	
+
 	private String convertResponseToGson(Object obj) {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String json = gson.toJson(obj);
@@ -177,19 +183,20 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 
 	/**
 	 * Helper method to create the interim result map (already exists)
-	 * @param guardrailEngineParams 
+	 * 
+	 * @param guardrailEngineParams
 	 * @param pass
 	 * @param interceptorName
 	 * @return
 	 */
-    private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams, GuardrailNounMetadata output, String interceptorName) {
-        Map<String, Object> resultMap = new HashMap<>();
-        resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
-        resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
-        resultMap.put(FULL_DETAILS_KEY, output.getFullDetails());
-        resultMap.put("guardrailEngineParams", guardrailEngineParams);
-        resultMap.put(PipelineReactorUtils.PASS, output.isPass());
-        return resultMap;
-    }
+	private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams,
+			GuardrailNounMetadata output, String interceptorName) {
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
+		resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
+		resultMap.put(FULL_DETAILS_KEY, output.getFullDetails());
+		resultMap.put("guardrailEngineParams", guardrailEngineParams);
+		resultMap.put(PipelineReactorUtils.PASS, output.isPass());
+		return resultMap;
+	}
 }
-

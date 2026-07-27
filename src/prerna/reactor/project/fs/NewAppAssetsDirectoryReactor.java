@@ -35,12 +35,13 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -70,9 +71,10 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 		}
 		IProject project = Utility.getProject(projectId);
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
-				project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 
 		String filePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 		if (filePath == null || filePath.isEmpty()) {
@@ -94,7 +96,7 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 
 		GitRepoUtils.addSpecificFiles(versionGitFolder, gitRelativeFilePaths);
 		// commit it

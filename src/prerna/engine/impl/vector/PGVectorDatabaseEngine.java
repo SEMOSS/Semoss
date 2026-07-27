@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -137,11 +138,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
 	// maintain details in the log database
-	protected boolean keepInputOutput = false;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	@Override
@@ -165,8 +166,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			PGvector.addVectorType(conn);
 			initSQL(this.vectorTableName, this.vectorTableMetadataName);
 		} catch (SQLException e) {
-			classLogger.error("Failed to initialize PGVector tables '" + this.vectorTableName + "' and '"
-					+ this.vectorTableMetadataName + "'", e);
+			classLogger.error("Failed to initialize PGVector tables '{}' and '{}'", this.vectorTableName,
+					this.vectorTableMetadataName, e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
@@ -257,13 +258,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-			classLogger.info("Executing create table for " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " = " + createQuery);
+			classLogger.info("Executing create table for {} = {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), createQuery);
 			stmt.execute(createQuery);
 		} catch (SQLException e) {
-			classLogger.warn("Unable to create the table " + createQuery);
-			;
-			classLogger.error("Failed to execute create-table statement: " + createQuery, e);
+			classLogger.warn("Unable to create the table {}", createQuery);
+			classLogger.error("Failed to execute create-table statement: {}", createQuery, e);
 		} finally {
 			if (this.dataSource != null) {
 				ConnectionUtils.closeAllConnections(conn, stmt);
@@ -364,7 +364,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 				fileStatusList = addEmbeddings(vectorCsvTable, insight, parameters);
 			} catch (Exception e) {
-				classLogger.error("Failed to add embeddings from CSV file: " + vectorCsvFile.getAbsolutePath(), e);
+				classLogger.error("Failed to add embeddings from CSV file: {}", vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
 				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
@@ -417,8 +417,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
-			classLogger.error("Failed to generate embeddings for CSV data using model engine: " + this.embedderEngineId,
-					e);
+			classLogger.error("Failed to generate embeddings for CSV data using model engine: {}",
+					this.embedderEngineId, e);
 			throw new IllegalArgumentException(
 					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
 							+ e.getMessage());
@@ -458,21 +458,21 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				fileRecordCountMap.put(row.getSource(), fileRecordCountMap.getOrDefault(row.getSource(), 0) + 1);
 				// batch commit based on size
 				if (++count % batchSize == 0) {
-					classLogger.info("Executing embeddings batch .... row num = " + count);
+					classLogger.info("Executing embeddings batch .... row num = {}", count);
 					int[] results = ps.executeBatch();
 					updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 				}
 			}
 
 			// well, we are done looping through now
-			classLogger.info("Executing final embeddings batch .... row num = " + count);
+			classLogger.info("Executing final embeddings batch .... row num = {}", count);
 			int[] results = ps.executeBatch();
 			updateInsertCounts(results, vectorCsvTable, fileInsertedCountMap);
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to insert embeddings into table: " + this.vectorTableName, e);
+			classLogger.error("Failed to insert embeddings into table: {}", this.vectorTableName, e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
@@ -489,7 +489,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				try {
 					addMetadata(VectorDatabaseMetadataCSVTable.initCSVTable(new File(tempMetadataFile)));
 				} catch (SQLException | IOException e) {
-					classLogger.error("Failed to add metadata rows to table: " + this.vectorTableMetadataName, e);
+					classLogger.error("Failed to add metadata rows to table: {}", this.vectorTableMetadataName, e);
 					throw e;
 				}
 			}
@@ -560,10 +560,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to insert embedding row into table: " + this.vectorTableName, e);
+			classLogger.error("Failed to insert embedding row into table: {}", this.vectorTableName, e);
 			throw e;
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, null, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
 		}
 	}
 
@@ -633,9 +633,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				conn.commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to remove documents from PGVector for index class: " + indexClass, e);
+			classLogger.error("Failed to remove documents from PGVector for index class: {}", indexClass, e);
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, metaPs);
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
@@ -699,7 +699,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
-					classLogger.info("Executing metadata batch .... row num = " + count);
+					classLogger.info("Executing metadata batch .... row num = {}", count);
 					int[] results = ps.executeBatch();
 					for (int j = 0; j < results.length; j++) {
 						if (results[j] == PreparedStatement.EXECUTE_FAILED) {
@@ -710,7 +710,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			}
 
 			// well, we are done looping through now
-			classLogger.info("Executing final metadata batch .... row num = " + count);
+			classLogger.info("Executing final metadata batch .... row num = {}", count);
 			int[] results = ps.executeBatch();
 			for (int j = 0; j < results.length; j++) {
 				if (results[j] == PreparedStatement.EXECUTE_FAILED) {
@@ -722,7 +722,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to insert metadata rows into table: " + this.vectorTableMetadataName, e);
+			classLogger.error("Failed to insert metadata rows into table: {}", this.vectorTableMetadataName, e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, ps, null);
@@ -900,11 +900,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		super.close();
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * Methods below should really be an exact match to the same method names
 	 * 
@@ -933,102 +928,107 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * 
 	 * @param port
 	 */
-	private synchronized void startServer(int port) {
-		// already created by another thread
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		if (!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
+	private void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// already created by another thread
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
+			if (!modelPropsLoaded) {
+				verifyModelProps();
+			}
+			if (!this.pyDirectoryBasePath.exists()) {
+				this.pyDirectoryBasePath.mkdirs();
+			}
 
-		// check if we have already created a process wrapper
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
+			// check if we have already created a process wrapper
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
+			String timeout = "30";
+			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			}
 
-		boolean debug = false;
+			boolean debug = false;
 
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					// ignore
-					classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
+			if (port < 0) {
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						// ignore
+						classLogger.warn("Vector Database {} has an invalid FORCE_PORT value", this.engineName);
+					}
 				}
 			}
-		}
 
-		// if we have a python specific user, make sure that user can access the schema
-		// folder
-		setVectorFolderPermissions();
+			// if we have a python specific user, make sure that user can access the schema
+			// folder
+			setVectorFolderPermissions();
 
-		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-		// it has to be -- don't change this unless you can send engine calls from
-		// python
-		boolean nativePyServer = true;
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-					debug, timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Failed to create python process client for PGVector database: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String[] commands = getServerStartCommands();
-			// replace the vars
-			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-				String resolvedString = substitutor.replace(commands[commandIndex]);
-				commands[commandIndex] = resolvedString;
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+			// it has to be -- don't change this unless you can send engine calls from
+			// python
+			boolean nativePyServer = true;
+			try {
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+						debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error("Failed to create python process client for PGVector database: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
 			}
-			pyTranslator.runEmptyPy(commands);
 
-			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + String.join("\n", commands));
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
-			// finally set the cpw in the class
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			// set the model props to false
-			// incase those values were incorrect
-			modelPropsLoaded = false;
-			classLogger.error("Failed to initialize python start commands for PGVector database: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for the vector database "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
-				cpwToInit.shutdown(false);
+			try {
+				String[] commands = getServerStartCommands();
+				// replace the vars
+				StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					String resolvedString = substitutor.replace(commands[commandIndex]);
+					commands[commandIndex] = resolvedString;
+				}
+				pyTranslator.runEmptyPyNoCancelTrace(commands);
+
+				// for debugging...
+				classLogger.info("Initializing {} python process with commands >>> {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
+
+				// finally set the cpw in the class
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				// set the model props to false
+				// incase those values were incorrect
+				modelPropsLoaded = false;
+				classLogger.error("Failed to initialize python start commands for PGVector database: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				if (cpwToInit != null) {
+					classLogger.warn(
+							"Able to start the python process for the vector database {} but the start script failed.",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					cpwToInit.shutdown(false);
+				}
+				throw e;
 			}
-			throw e;
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 
@@ -1134,8 +1134,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					}
 					FileUtils.moveFileToDirectory(fileInInsightFolder, documentDir, true);
 				} catch (IOException e) {
-					classLogger.error("Failed to move document '" + fileInInsightFolder.getAbsolutePath()
-							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to move document '{}' to vector documents directory '{}'",
+							fileInInsightFolder.getAbsolutePath(), documentDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ destinationFile.getName() + " or move it to the document directory");
 				}
@@ -1153,12 +1153,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					String docLower = destinationFile.getName().toLowerCase();
 
 					if (docLower.endsWith(".csv")) {
-						classLogger.info("You are attempting to load in a structured table for " + documentName
-								+ ". Hopefully the structure is the right format we expect");
+						classLogger.info(
+								"You are attempting to load in a structured table for {}. Hopefully the structure is the right format we expect",
+								documentName);
 						// copy csv over
 						FileUtils.copyFileToDirectory(destinationFile, indexFilesFolder);
 					} else {
-						classLogger.info("Extracting text from document " + documentName);
+						classLogger.info("Extracting text from document {}", documentName);
 						// determine which text extraction method to use
 						boolean processed = false;
 						int rowsCreated = -1;
@@ -1203,7 +1204,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							continue;
 						}
 
-						classLogger.info("Creating chunks from extracted text for " + documentName);
+						classLogger.info("Creating chunks from extracted text for {}", documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
 						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
@@ -1212,13 +1213,13 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 								.append(tokenOverlapBetweenChunks).append(", chunking_strategy = ")
 								.append(chunkingStrategy).append(", cfg_tokenizer = cfg_tokenizer)");
 
-						pyTranslator.runScript(splitTextCommand.toString());
+						pyTranslator.runScriptNoCancelTrace(splitTextCommand.toString());
 					}
 
 					extractedFiles.add(extractedFile);
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
-					classLogger.error("Failed to process document: " + destinationFile.getName(), e);
+					classLogger.error("Failed to process document: {}", destinationFile.getName(), e);
 					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
 							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
@@ -1249,7 +1250,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 						filesToCopyToCloud.stream().toArray(String[]::new)));
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to add documents to PGVector for index class: " + indexClass, e);
+			classLogger.error("Failed to add documents to PGVector for index class: {}", indexClass, e);
 			// delete files moved into vector db documents folder
 			for (File document : movedDocuments) {
 				document.delete();
@@ -1311,8 +1312,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		try {
 			FileUtils.forceDelete(indexFilesFolder);
 		} catch (IOException e) {
-			classLogger.error("Failed to clean up temporary add-document folder: " + indexFilesFolder.getAbsolutePath(),
-					e);
+			classLogger.error("Failed to clean up temporary add-document folder: {}",
+					indexFilesFolder.getAbsolutePath(), e);
 		}
 	}
 
@@ -1385,11 +1386,11 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			try {
 				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
-				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
-						+ this.schemaFolder.getAbsolutePath(), e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: {}",
+						this.schemaFolder.getAbsolutePath(), e);
 			} catch (InterruptedException e) {
-				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
-						+ this.schemaFolder.getAbsolutePath(), e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: {}",
+						this.schemaFolder.getAbsolutePath(), e);
 			}
 		}
 	}

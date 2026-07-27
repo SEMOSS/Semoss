@@ -28,6 +28,7 @@
 package prerna.engine.impl;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -51,7 +52,6 @@ import io.modelcontextprotocol.spec.McpSchema.ListResourcesResult;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
 import prerna.engine.api.IMCP;
 import prerna.om.Insight;
-import prerna.util.Constants;
 
 public class RemoteMCP implements IMCP {
 
@@ -94,7 +94,7 @@ public class RemoteMCP implements IMCP {
 		try {
 			return new JSONObject(objectMapper.writeValueAsString(ir));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP initialize result for endpoint {}", endpoint, e);
 		}
 		return null;
 	}
@@ -106,7 +106,7 @@ public class RemoteMCP implements IMCP {
 		try {
 			return new JSONObject(objectMapper.writeValueAsString(lrr));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP resources for endpoint {}", endpoint, e);
 		}
 		return null;
 	}
@@ -118,7 +118,7 @@ public class RemoteMCP implements IMCP {
 		try {
 			return new JSONObject(objectMapper.writeValueAsString(lrtr));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP resource templates for endpoint {}", endpoint, e);
 		}
 		return null;
 	}
@@ -130,7 +130,7 @@ public class RemoteMCP implements IMCP {
 		try {
 			return new JSONObject(objectMapper.writeValueAsString(ltr));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP tools for endpoint {}", endpoint, e);
 		}
 		return null;
 	}
@@ -142,19 +142,19 @@ public class RemoteMCP implements IMCP {
 		try {
 			return new JSONObject(objectMapper.writeValueAsString(lpr));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP prompts for endpoint {}", endpoint, e);
 		}
 		return null;
 	}
 
 	@Override
 	public Object callTool(String toolName, Map<String, Object> params, Insight insight) {
-		CallToolResult result = client.callTool(new CallToolRequest(toolName, params));
+		CallToolResult result = client.callTool(new CallToolRequest(toolName, params, new HashMap<>()));
 		try {
 			JSONObject contentObj = new JSONObject(objectMapper.writeValueAsString(result.structuredContent()));
 			return objectMapper.writeValueAsString(contentObj.get("result"));
 		} catch (JsonProcessingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to serialize MCP tool result for tool {} on endpoint {}", toolName, endpoint, e);
 		}
 		return null;
 	}

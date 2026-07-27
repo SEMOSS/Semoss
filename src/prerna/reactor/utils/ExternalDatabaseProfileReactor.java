@@ -52,8 +52,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class ExternalDatabaseProfileReactor extends AbstractReactor {
-	
-	private static final Logger logger = LogManager.getLogger(ExternalDatabaseProfileReactor.class);
+
+	private static final Logger classLogger = LogManager.getLogger(ExternalDatabaseProfileReactor.class);
 
 	public ExternalDatabaseProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
@@ -65,11 +65,13 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		// output frame
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum" , "numOfNullValues"};
-		String[] dataTypes = new String[] { "String", "String", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE" , "DOUBLE"};
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min",
+				"average", "max", "sum", "numOfNullValues" };
+		String[] dataTypes = new String[] { "String", "String", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE",
+				"DOUBLE", "DOUBLE" };
 		H2Frame frame = (H2Frame) this.insight.getDataMaker();
 		String tableName = frame.getName();
-		
+
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		for (int i = 0; i < headers.length; i++) {
@@ -80,22 +82,22 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 			metaData.setAliasToProperty(uniqueHeader, alias);
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
-		
+
 		Connection con = null;
 		String driver = this.keyValue.get(this.keysToGet[0]);
-		if(driver == null) {
+		if (driver == null) {
 			throw new IllegalArgumentException("Must pass in the rdbms type");
 		}
 		RdbmsTypeEnum dbType = RdbmsTypeEnum.getEnumFromString(driver);
-		if(dbType == null) {
+		if (dbType == null) {
 			// try one more time
-			dbType =  RdbmsTypeEnum.getEnumFromDriver(driver);
-			if(dbType == null) {
+			dbType = RdbmsTypeEnum.getEnumFromDriver(driver);
+			if (dbType == null) {
 				throw new IllegalArgumentException("Unable to find driver for rdbms type = " + driver);
 			}
 		}
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(dbType);
-		
+
 		String host = this.keyValue.get(this.keysToGet[1]);
 		String port = this.keyValue.get(this.keysToGet[2]);
 		String username = this.keyValue.get(this.keysToGet[3]);
@@ -154,7 +156,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 						long countNull = execAndClose(con, query);
 						cells[8] = countNull + "";
 						// add data to frame
-						frame.addRow(tableName, headers,  cells, dataTypes);
+						frame.addRow(tableName, headers, cells, dataTypes);
 					} else {
 						// assume string
 						if (Utility.isStringType(type)) {
@@ -175,42 +177,43 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 							long countNull = execAndClose(con, query);
 							cells[8] = countNull + "";
 							// add data to frame
-							frame.addRow(tableName, headers,  cells, dataTypes);
+							frame.addRow(tableName, headers, cells, dataTypes);
 						}
 					}
 				}
 			}
 
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (con != null) {
 					con.close();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (tables != null) {
 					tables.close();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (columns != null) {
 					columns.close();
 				}
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-	
+
 	/**
 	 * Closing the opened statemnts/result sets
+	 * 
 	 * @param con
 	 * @param query
 	 * @return
@@ -226,23 +229,23 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 			rs.next();
 			return rs.getLong(1);
 		} finally {
-			if(rs != null) {
+			if (rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 	}
-	
+
 }

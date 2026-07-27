@@ -39,9 +39,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,10 +56,10 @@ import com.microsoft.playwright.BrowserContext;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
-import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
 import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
@@ -81,7 +83,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	private Map<String, Object> roomHash = new ConcurrentHashMap<>();
+	private Map<String, Room> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -102,23 +104,23 @@ public class User implements Serializable {
 	private transient volatile SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile Map<String, PlaywrightSession> playwrightSessionStore = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
-	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
+	private Map<AuthProvider, String> assetProjectMap = new ConcurrentHashMap<>();
 	private AuthProvider primaryLogin;
 
-	private transient Object assetSyncObject = null;
-	private transient Object workspaceSyncObject = null;
-
-	public transient CopyObject cp = null;
+	// in-memory mutex for user-scoped lazy init/mutations (asset project creation,
+	// symlink setup, temporal key generation, playwright context/session store
+	// setup)
+	private transient ReentrantLock userLock = new ReentrantLock();
 
 	private int rPort = -1;
 	private int pyPort = -1;
 
 	// need to move everything here
 	// since on reconnect we need to redo serialization.
-	private Map<String, Boolean> insightSerializedMap = new HashMap<String, Boolean>();
+	private Map<String, Boolean> insightSerializedMap = new HashMap<>();
 
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
@@ -132,12 +134,10 @@ public class User implements Serializable {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
 		this.openInsights = new HashMap<>();
-		this.assetSyncObject = new Object();
-		this.workspaceSyncObject = new Object();
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
-		this.playwrightSession = new ConcurrentHashMap<>();
+		this.playwrightSessionStore = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -266,26 +266,40 @@ public class User implements Serializable {
 	}
 
 	public String getAssetProjectId(AuthProvider token) {
-		if (this.assetProjectMap.get(token) != null) {
-			return this.assetProjectMap.get(token);
+		if (token == null) {
+			return null;
 		}
+
+		String cachedProjectId = this.assetProjectMap.get(token);
+		if (cachedProjectId != null) {
+			return cachedProjectId;
+		}
+
 		String projectId = UserAssetUtils.getUserAssetProject(this, token);
 
 		if (projectId != null) {
 			this.assetProjectMap.put(token, projectId);
 		} else {
+			ReentrantLock lock = getUserLock();
+			lock.lock();
 			try {
-				synchronized (assetSyncObject) {
-					projectId = UserAssetUtils.getUserAssetProject(this, token);
-					if (projectId == null) {
-						projectId = UserAssetUtils.createUserAssetProject(this, token);
-					}
+				projectId = UserAssetUtils.getUserAssetProject(this, token);
+				if (projectId == null) {
+					projectId = UserAssetUtils.createUserAssetProject(this, token);
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to load or create user asset project for token {}", token, e);
+			} finally {
+				lock.unlock();
 			}
 
-			this.assetProjectMap.put(token, projectId);
+			if (projectId != null) {
+				this.assetProjectMap.put(token, projectId);
+			}
+		}
+
+		if (projectId == null) {
+			return null;
 		}
 
 		// TODO actually sync the pull, not sure pull it
@@ -293,7 +307,7 @@ public class User implements Serializable {
 			ClusterUtil.pullUserAsset(projectId, false);
 		}
 
-		return this.assetProjectMap.get(token);
+		return projectId;
 	}
 
 	/**
@@ -340,27 +354,6 @@ public class User implements Serializable {
 
 	public void setRconRemote(RRemoteRserve rconRemote) {
 		this.rconRemote = rconRemote;
-	}
-
-	public void ctrlC(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-	}
-
-	public CopyObject getCtrlC() {
-		return cp;
-	}
-
-	public void ctrlX(String source, String showSource) {
-		this.cp = new CopyObject();
-		cp.source = source;
-		cp.showSource = showSource;
-		cp.delete = true;
-	}
-
-	public void escapeCopy() {
-		this.cp = null;
 	}
 
 	/**
@@ -449,11 +442,444 @@ public class User implements Serializable {
 	 * 
 	 * @return
 	 */
-	public Map<String, Object> getRoomHash() {
+	public Map<String, Room> getRoomHash() {
 		return roomHash;
 	}
 
-	/////////////////////////////////////////////////////
+	/**
+	 * Returns the user-level lock, lazily reinitializing after deserialization when
+	 * transient fields are null.
+	 */
+	private ReentrantLock getUserLock() {
+		ReentrantLock lock = this.userLock;
+		if (lock != null) {
+			return lock;
+		}
+		synchronized (this) {
+			lock = this.userLock;
+			if (lock == null) {
+				lock = new ReentrantLock();
+				this.userLock = lock;
+			}
+		}
+		return lock;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public ClientProcessWrapper getPythonClientProcessWrapper() {
+		return this.pythonCPW;
+	}
+
+	/**
+	 * 
+	 * @param create
+	 * @return
+	 */
+	public SocketClient getPythonSocketClient(boolean create) {
+		return getPythonSocketClient(create, -1, null);
+	}
+
+	/**
+	 * 
+	 * @param create
+	 * @param venvEngineId
+	 * @return
+	 */
+	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
+		return getPythonSocketClient(create, -1, venvEngineId);
+	}
+
+	/**
+	 * 
+	 * @param create
+	 * @param port
+	 * @return
+	 */
+	public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
+		if (!create) {
+			if (this.pythonCPW == null) {
+				return null;
+			}
+			return this.pythonCPW.getSocketClient();
+		}
+		if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
+			startPythonSocketServerAndClient(-1, venvEngineId);
+			this.pythonCPW.getSocketClient().setUser(this);
+		} else if (!this.pythonCPW.getSocketClient().isConnected()) {
+			this.pythonCPW.shutdown(false);
+			try {
+				this.pythonCPW.reconnect();
+			} catch (Exception e) {
+				classLogger.error("Failed to reconnect to user python process", e);
+				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+			}
+		}
+
+		// invalidate the serialization map
+		this.insightSerializedMap.clear();
+
+		return this.pythonCPW.getSocketClient();
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public SymlinkHelper getUserSymlinkHelper() {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if (symlinkHelper != null) {
+				return symlinkHelper;
+			}
+
+			ReentrantLock lock = getUserLock();
+			lock.lock();
+			try {
+				if (symlinkHelper == null) {
+					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
+					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
+					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
+					symlinkHelper = new SymlinkHelper(chrootPath);
+
+					// symlink the user asset folder into the chroot on boot
+					try {
+						symlinkHelper.symlinkUserAsset(this);
+					} catch (Exception e) {
+						classLogger.warn("Unable to symlink user asset folder into chroot", e);
+					}
+				}
+			} finally {
+				lock.unlock();
+			}
+			return symlinkHelper;
+		}
+
+		throw new IllegalArgumentException("Chroot is not enabled on this instance");
+	}
+
+	/**
+	 * 
+	 * @param port
+	 * @param venvEngineId
+	 */
+	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
+		if (this.pythonCPW == null) {
+			this.pythonCPW = new ClientProcessWrapper();
+		}
+		if (this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
+			boolean nativePyServer = false;
+			// defined in rdf map
+			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
+			if (nativePyServerStr != null && !(nativePyServerStr = nativePyServerStr.trim()).isEmpty()) {
+				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
+			}
+
+			boolean debug = false;
+			if (port < 0) {
+				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						// ignore
+						classLogger.warn("User {} has an invalid FORCE_PORT value", User.getSingleLogginName(this));
+					}
+				}
+			}
+
+			String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
+			if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
+				loggerLevel = "WARNING";
+			}
+
+			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
+			if (customClassPath == null) {
+				classLogger.info("No custom class path set");
+			}
+
+			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+			Path serverDirectoryPath = null;
+
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				// unique user is just for testing so when i ls on R, I can see it is me and not
+				// someone else
+				this.symlinkHelper = getUserSymlinkHelper();
+
+				// we do not define the Server Directory here - because it will dynamically
+				// generate in the chroot location
+				try {
+					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
+							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start chrooted python process for user {}",
+							User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to user server");
+				}
+			} else {
+				try {
+					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+				} catch (IOException e) {
+					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
+							serverDirectory, e);
+					throw new IllegalArgumentException("Could not create directory to launch project process");
+				}
+
+				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
+				try {
+					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
+							: null;
+					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath,
+							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
+							ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start non-chroot python process for user {}",
+							User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to user server");
+				}
+			}
+		}
+	}
+
+	public Process getrProcess() {
+		return rProcess;
+	}
+
+	public void setrProcess(Process rProcess) {
+		this.rProcess = rProcess;
+	}
+
+	public Process getPyProcess() {
+		return pyProcess;
+	}
+
+	public void setPyProcess(Process pyProcess) {
+		this.pyProcess = pyProcess;
+	}
+
+	public int getrPort() {
+		return rPort;
+	}
+
+	public void setrPort(int rPport) {
+		this.rPort = rPport;
+	}
+
+	public int getPyPort() {
+		return pyPort;
+	}
+
+	public void setPyPort(int pyPport) {
+		this.pyPort = pyPport;
+	}
+
+	private void addUserMemory() {
+		long memoryInGigs = 0;
+		// check if the user has memory
+		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
+		if (checkMem) {
+			long freeMem = MgmtUtil.getFreeMemory();
+			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
+			if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
+				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
+				memoryInGigs = Integer.parseInt(memLimitSettings);
+			}
+
+			MgmtUtil.addMemory4User(memoryInGigs);
+		}
+	}
+
+	public void removeUserMemory() {
+		long memoryInGigs = 0;
+		// check if the user has memory
+		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
+		if (checkMem) {
+			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
+			if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
+				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
+				memoryInGigs = Integer.parseInt(memLimitSettings);
+			}
+
+			MgmtUtil.removeMemory4User(memoryInGigs);
+		}
+	}
+
+	public String[] getUserCredential(AuthProvider prov) {
+		// just need some specific one the user is using
+		if (prov != null && accessTokens.containsKey(prov)) {
+			String[] creds = getUserEmail(accessTokens.get(prov));
+			if (creds[1] != null) {
+				return creds;
+			}
+		}
+
+		Iterator<AuthProvider> accessKeysItr = accessTokens.keySet().iterator();
+		while (accessKeysItr.hasNext()) {
+			AuthProvider provider = accessKeysItr.next();
+			AccessToken tok = accessTokens.get(provider);
+			String[] creds = getUserEmail(tok);
+			if (creds[1] != null) {
+				return creds;
+			}
+		}
+
+		return new String[] { "anonymous", "anonymous@not_logged_in.com" };
+	}
+
+	public String getCachedTemporalAccessKey() {
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey[0];
+		}
+		return null;
+	}
+
+	public String[] createCachedTemporalAccessSecretKey() {
+		AccessToken loginToken = this.getPrimaryLoginToken();
+		if (loginToken == null) {
+			throw new NullPointerException("User does not have a primary login token");
+		}
+
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey;
+		}
+
+		if (this.cachedTemporalAccessSecretKey == null) {
+			ReentrantLock lock = getUserLock();
+			lock.lock();
+			try {
+				if (this.cachedTemporalAccessSecretKey == null) {
+					String accessKey = UUID.randomUUID().toString();
+					String secretKey = UUID.randomUUID().toString();
+					this.cachedTemporalAccessSecretKey = new String[] { accessKey, secretKey };
+					LocalUserStore.getInstance().store(accessKey,
+							new Object[] { secretKey, loginToken.getId(), loginToken.getProvider() });
+					classLogger.info("Generated temporal access/secret key for user");
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
+
+		return this.cachedTemporalAccessSecretKey;
+	}
+
+	public void setInsightSerialization(String insightId, Boolean serialize) {
+		insightSerializedMap.put(insightId, serialize);
+	}
+
+	public Boolean getInsightSerialization(String insightId) {
+		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
+	}
+
+	private String[] getUserEmail(AccessToken token) {
+		String[] userEmail = new String[2];
+		userEmail[0] = token.getUsername();
+		userEmail[1] = token.getEmail();
+
+		return userEmail;
+	}
+
+	public PlaywrightSession getPlaywrightSession(String sessionId) {
+		PlaywrightSession thisSession = getPlaywrightSessionStore().get(sessionId);
+		if (thisSession == null) {
+			throw new IllegalArgumentException("Invalid/Expired playwright session: " + sessionId);
+		}
+		return thisSession;
+	}
+
+	public void setPlaywrightSession(String sessionId, PlaywrightSession playwrightSession) {
+		getPlaywrightSessionStore().put(sessionId, playwrightSession);
+	}
+
+	public void removePlaywrightSession(String sessionId) {
+		PlaywrightSession thisSession = getPlaywrightSessionStore().remove(sessionId);
+		if (thisSession != null) {
+			try {
+				thisSession.close();
+			} catch (Exception e) {
+				classLogger.error("Error occurred closing the playwright session {}", sessionId, e);
+			}
+		}
+	}
+
+	public Set<String> getPlaywrightSessionIds() {
+		return getPlaywrightSessionStore().keySet();
+	}
+
+	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
+		if (this.playwrightSessionStore != null) {
+			return this.playwrightSessionStore;
+		}
+
+		if (this.playwrightSessionStore == null) {
+			ReentrantLock lock = getUserLock();
+			lock.lock();
+			try {
+				if (this.playwrightSessionStore == null) {
+					this.playwrightSessionStore = new ConcurrentHashMap<>();
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
+		return this.playwrightSessionStore;
+	}
+
+	public BrowserContext getSharedPlaywrightContext() {
+		return sharedPlaywrightContext;
+	}
+
+	public void setSharedPlaywrightContext(BrowserContext context) {
+		this.sharedPlaywrightContext = context;
+	}
+
+	/**
+	 * Thread-safe get-or-create to avoid multiple contexts for the same user
+	 * 
+	 * @param browser
+	 * @param options
+	 * @return
+	 */
+	public BrowserContext getOrCreateSharedPlaywrightContext(Browser browser, Browser.NewContextOptions options) {
+		BrowserContext ctx = sharedPlaywrightContext;
+		if (ctx != null) {
+			return ctx;
+		}
+
+		if (ctx == null) {
+			ReentrantLock lock = getUserLock();
+			lock.lock();
+			try {
+				ctx = sharedPlaywrightContext;
+				if (ctx == null) {
+					ctx = browser.newContext(options);
+					ctx.setDefaultTimeout(60_000);
+					ctx.setDefaultNavigationTimeout(60_000);
+					sharedPlaywrightContext = ctx;
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
+		return ctx;
+	}
+
+	/**
+	 * Call this on logout/reset to close context and clear storage for this user
+	 */
+	public void closeAndClearSharedPlaywrightContext() {
+		BrowserContext ctx = sharedPlaywrightContext;
+		sharedPlaywrightContext = null;
+		if (ctx != null) {
+			try {
+				ctx.close();
+			} catch (Exception ignored) {
+			}
+		}
+	}
 
 	/*
 	 * Static utility methods
@@ -570,427 +996,6 @@ public class User implements Serializable {
 		}
 		String userid = user.getAccessToken(login).getId();
 		return Pair.with(userid, login.getLabel());
-	}
-
-	@Deprecated
-	public static List<Pair<String, String>> getPrimaryUserIdAndType(User user) {
-		if (user == null) {
-			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
-		}
-
-		List<Pair<String, String>> creds = new ArrayList<>();
-
-		AuthProvider login = user.getPrimaryLogin();
-		if (login == null) {
-			throw new IllegalArgumentException("User must have primary login");
-		}
-		String userid = user.getAccessToken(login).getId();
-		creds.add(Pair.with(userid, login.getLabel()));
-
-		if (creds.size() == 0) {
-			throw new IllegalArgumentException("User needs to be logged in.");
-		}
-
-		return creds;
-	}
-
-	/////////////////////////////////////////////////////
-
-	/**
-	 * 
-	 * @return
-	 */
-	public ClientProcessWrapper getPythonClientProcessWrapper() {
-		return this.pythonCPW;
-	}
-
-	/**
-	 * 
-	 * @param create
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create) {
-		return getPythonSocketClient(create, -1, null);
-	}
-
-	/**
-	 * 
-	 * @param create
-	 * @param venvEngineId
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
-		return getPythonSocketClient(create, -1, venvEngineId);
-	}
-
-	/**
-	 * 
-	 * @param create
-	 * @param port
-	 * @return
-	 */
-	public SocketClient getPythonSocketClient(boolean create, int port, String venvEngineId) {
-		if (!create) {
-			if (this.pythonCPW == null) {
-				return null;
-			}
-			return this.pythonCPW.getSocketClient();
-		}
-		if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startPythonSocketServerAndClient(-1, venvEngineId);
-			this.pythonCPW.getSocketClient().setUser(this);
-		} else if (!this.pythonCPW.getSocketClient().isConnected()) {
-			this.pythonCPW.shutdown(false);
-			try {
-				this.pythonCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user python process", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-			}
-		}
-
-		// invalidate the serialization map
-		this.insightSerializedMap.clear();
-
-		return this.pythonCPW.getSocketClient();
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public SymlinkHelper getUserSymlinkHelper() {
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (symlinkHelper != null) {
-				return symlinkHelper;
-			}
-
-			synchronized (this) {
-				if (symlinkHelper == null) {
-					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
-					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-					symlinkHelper = new SymlinkHelper(chrootPath);
-
-					// symlink the user asset folder into the chroot on boot
-					try {
-						symlinkHelper.symlinkUserAsset(this);
-					} catch (Exception e) {
-						classLogger.warn("Unable to symlink user asset folder into chroot", e);
-					}
-
-				}
-			}
-			return symlinkHelper;
-		}
-
-		throw new IllegalArgumentException("Chroot is not enabled on this instance");
-	}
-
-	/**
-	 * 
-	 * @param port
-	 * @param venvEngineId
-	 */
-	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
-		if (this.pythonCPW == null) {
-			this.pythonCPW = new ClientProcessWrapper();
-		}
-		if (this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
-			boolean nativePyServer = false;
-			// defined in rdf map
-			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
-			if (nativePyServerStr != null && !(nativePyServerStr = nativePyServerStr.trim()).isEmpty()) {
-				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
-			}
-
-			boolean debug = false;
-			if (port < 0) {
-				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
-				// port has not been forced
-				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch (NumberFormatException e) {
-						// ignore
-						classLogger.warn("User {} has an invalid FORCE_PORT value", User.getSingleLogginName(this));
-					}
-				}
-			}
-
-			String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
-			if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
-				loggerLevel = "WARNING";
-			}
-
-			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
-			if (customClassPath == null) {
-				classLogger.info("No custom class path set");
-			}
-
-			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
-			Path serverDirectoryPath = null;
-
-			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				// unique user is just for testing so when i ls on R, I can see it is me and not
-				// someone else
-				this.symlinkHelper = getUserSymlinkHelper();
-
-				// we do not define the Server Directory here - because it will dynamically
-				// generate in the chroot location
-				try {
-					// TODO update once venv with chroot is enabled
-					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
-							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
-				} catch (Exception e) {
-					classLogger.error("Failed to start chrooted python process for user {}",
-							User.getSingleLogginName(this), e);
-					throw new IllegalArgumentException("Unable to connect to user server");
-				}
-			} else {
-				try {
-					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
-				} catch (IOException e) {
-					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
-							serverDirectory, e);
-					throw new IllegalArgumentException("Could not create directory to launch project process");
-				}
-
-				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
-				try {
-					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
-							: null;
-					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath,
-							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
-							ThreadContext.getImmutableContext());
-				} catch (Exception e) {
-					classLogger.error("Failed to start non-chroot python process for user {}",
-							User.getSingleLogginName(this), e);
-					throw new IllegalArgumentException("Unable to connect to user server");
-				}
-			}
-		}
-	}
-
-	public Process getrProcess() {
-		return rProcess;
-	}
-
-	public void setrProcess(Process rProcess) {
-		this.rProcess = rProcess;
-	}
-
-	public Process getPyProcess() {
-		return pyProcess;
-	}
-
-	public void setPyProcess(Process pyProcess) {
-		this.pyProcess = pyProcess;
-	}
-
-	public int getrPort() {
-		return rPort;
-	}
-
-	public void setrPort(int rPport) {
-		this.rPort = rPport;
-	}
-
-	public int getPyPort() {
-		return pyPort;
-	}
-
-	public void setPyPort(int pyPport) {
-		this.pyPort = pyPport;
-	}
-
-	private void addUserMemory() {
-		long memoryInGigs = 0;
-		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
-		if (checkMem) {
-			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
-			if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
-				memoryInGigs = Integer.parseInt(memLimitSettings);
-			}
-
-			MgmtUtil.addMemory4User(memoryInGigs);
-		}
-	}
-
-	public void removeUserMemory() {
-		long memoryInGigs = 0;
-		// check if the user has memory
-		boolean checkMem = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CHECK_MEM) + "");
-		if (checkMem) {
-			long freeMem = MgmtUtil.getFreeMemory();
-			String memProfileSettings = Utility.getDIHelperProperty(Settings.MEM_PROFILE_SETTINGS);
-
-			if (memProfileSettings.equalsIgnoreCase(Settings.CONSTANT_MEM)) {
-				String memLimitSettings = Utility.getDIHelperProperty(Settings.USER_MEM_LIMIT);
-				memoryInGigs = Integer.parseInt(memLimitSettings);
-			}
-
-			MgmtUtil.removeMemory4User(memoryInGigs);
-		}
-	}
-
-	public String[] getUserCredential(AuthProvider prov) {
-		// just need some specific one the user is using
-		if (prov != null && accessTokens.containsKey(prov)) {
-			String[] creds = getUserEmail(accessTokens.get(prov));
-			if (creds[1] != null) {
-				return creds;
-			}
-		}
-
-		Iterator<AuthProvider> accessKeysItr = accessTokens.keySet().iterator();
-		while (accessKeysItr.hasNext()) {
-			AuthProvider provider = accessKeysItr.next();
-			AccessToken tok = accessTokens.get(provider);
-			String[] creds = getUserEmail(tok);
-			if (creds[1] != null) {
-				return creds;
-			}
-		}
-
-		return new String[] { "anonymous", "anonymous@not_logged_in.com" };
-	}
-
-	public String getCachedTemporalAccessKey() {
-		if (this.cachedTemporalAccessSecretKey != null) {
-			return this.cachedTemporalAccessSecretKey[0];
-		}
-		return null;
-	}
-
-	public String[] createCachedTemporalAccessSecretKey() {
-		AccessToken loginToken = this.getPrimaryLoginToken();
-		if (loginToken == null) {
-			throw new NullPointerException("User does not have a primary login token");
-		}
-
-		if (this.cachedTemporalAccessSecretKey != null) {
-			return this.cachedTemporalAccessSecretKey;
-		}
-
-		if (this.cachedTemporalAccessSecretKey == null) {
-			synchronized (this) {
-				if (this.cachedTemporalAccessSecretKey == null) {
-					String accessKey = UUID.randomUUID().toString();
-					String secretKey = UUID.randomUUID().toString();
-					this.cachedTemporalAccessSecretKey = new String[] { accessKey, secretKey };
-					LocalUserStore.getInstance().store(accessKey,
-							new Object[] { secretKey, loginToken.getId(), loginToken.getProvider() });
-					classLogger.info("Generated temporal access/secret key for user");
-				}
-			}
-		}
-
-		return this.cachedTemporalAccessSecretKey;
-	}
-
-	public void setInsightSerialization(String insightId, Boolean serialize) {
-		insightSerializedMap.put(insightId, serialize);
-	}
-
-	public Boolean getInsightSerialization(String insightId) {
-		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
-	}
-
-	private String[] getUserEmail(AccessToken token) {
-		String[] userEmail = new String[2];
-		userEmail[0] = token.getUsername();
-		userEmail[1] = token.getEmail();
-
-		return userEmail;
-	}
-
-	public PlaywrightSession getPlaywrightSession(String id) {
-		PlaywrightSession session = getPlaywrightSessionStore().get(id);
-		if (session == null) {
-			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
-		}
-		return session;
-	}
-
-	public void setPlaywrightSession(String id, PlaywrightSession s) {
-		getPlaywrightSessionStore().put(id, s);
-	}
-
-	public void removePlaywrightSession(String id) {
-		getPlaywrightSessionStore().remove(id);
-	}
-
-	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
-		if (this.playwrightSession != null) {
-			return this.playwrightSession;
-		}
-
-		if (this.playwrightSession == null) {
-			synchronized (this) {
-				if (this.playwrightSession == null) {
-					this.playwrightSession = new ConcurrentHashMap<>();
-				}
-			}
-		}
-		return this.playwrightSession;
-	}
-
-	public BrowserContext getSharedPlaywrightContext() {
-		return sharedPlaywrightContext;
-	}
-
-	public void setSharedPlaywrightContext(BrowserContext context) {
-		this.sharedPlaywrightContext = context;
-	}
-
-	/**
-	 * Thread-safe get-or-create to avoid multiple contexts for the same user
-	 * 
-	 * @param browser
-	 * @param options
-	 * @return
-	 */
-	public BrowserContext getOrCreateSharedPlaywrightContext(Browser browser, Browser.NewContextOptions options) {
-		BrowserContext ctx = sharedPlaywrightContext;
-		if (ctx != null) {
-			return ctx;
-		}
-
-		if (ctx == null) {
-			synchronized (this) {
-				ctx = sharedPlaywrightContext;
-				if (ctx == null) {
-					ctx = browser.newContext(options);
-					ctx.setDefaultTimeout(60_000);
-					ctx.setDefaultNavigationTimeout(60_000);
-					sharedPlaywrightContext = ctx;
-				}
-			}
-		}
-		return ctx;
-	}
-
-	/**
-	 * Call this on logout/reset to close context and clear storage for this user
-	 */
-	public void closeAndClearSharedPlaywrightContext() {
-		BrowserContext ctx = sharedPlaywrightContext;
-		sharedPlaywrightContext = null;
-		if (ctx != null) {
-			try {
-				ctx.close();
-			} catch (Exception ignored) {
-			}
-		}
 	}
 
 }

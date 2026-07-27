@@ -27,10 +27,9 @@
  *******************************************************************************/
 package prerna.testing.auth.utils.reactors.admin;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,18 +38,15 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.utils.reactors.admin.AdminEngineInfoReactor;
-import prerna.auth.utils.reactors.admin.AdminGetProjectPortalDetailsReactor;
 import prerna.auth.utils.reactors.admin.AdminProjectInfoReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUtils;
-import prerna.testing.utility.TestEngineUtilities;
 import prerna.testing.utility.TestProjectUtils;
 
-public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests{
-	
+public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests {
+
 	@Test
 	public void executeWithoutMetakeys() {
 		String project = TestProjectUtils.createBasicProject("testProject");
@@ -60,79 +56,79 @@ public class AdminProjectInfoReactorApiTests extends AbstractBaseSemossApiTests{
 
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		Map<String, Object> retValue = (Map<String, Object>) nm.getValue();
-		
+
 		assertFalse(Boolean.valueOf(retValue.get("project_discoverable").toString()));
-		assertFalse(Boolean.valueOf(retValue.get("project_has_portal").toString()));
+		assertTrue(retValue.containsKey("project_portal_url"));
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
-		
+
 		assertEquals(project, retValue.get("project_id").toString());
 		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
 	}
-	
+
 	@Test
 	public void executeWithMetakeysExcludesMarkdown() {
 		String project = TestProjectUtils.createBasicProject("testProject");
-		
+
 		Map<String, Object> map = new HashMap<>();
 		map.put("description", "test description");
 		map.put("markdown", "### test markdown");
 		TestProjectUtils.setProjectMetadata(project, map);
-		
+
 		List<String> metaValues = new ArrayList<>();
 		metaValues.add("description");
 		metaValues.add("markdown");
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminProjectInfoReactor.class, ReactorKeysEnum.PROJECT.getKey(), 
-				project, ReactorKeysEnum.META_KEYS.getKey(), metaValues);
-		
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminProjectInfoReactor.class,
+				ReactorKeysEnum.PROJECT.getKey(), project, ReactorKeysEnum.META_KEYS.getKey(), metaValues);
+
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		Map<String, Object> retValue = (Map<String, Object>) nm.getValue();
-		
+
 		assertFalse(Boolean.valueOf(retValue.get("project_discoverable").toString()));
-		assertFalse(Boolean.valueOf(retValue.get("project_has_portal").toString()));
+		assertTrue(retValue.containsKey("project_portal_url"));
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
-		
+
 		assertEquals(project, retValue.get("project_id").toString());
 		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
-		
+
 		assertFalse(retValue.containsKey("markdown"));
-        assertTrue(retValue.containsKey("description"));
+		assertTrue(retValue.containsKey("description"));
 	}
-	
+
 	@Test
 	public void executeWithMultipleMetakeys() {
 		String project = TestProjectUtils.createBasicProject("testProject");
-		
+
 		Map<String, Object> map = new HashMap<>();
 		map.put("description", "test description");
 		map.put("domain", "test domain");
 		TestProjectUtils.setProjectMetadata(project, map);
-		
+
 		List<String> metaValues = new ArrayList<>();
 		metaValues.add("description");
 		metaValues.add("domain");
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminProjectInfoReactor.class, ReactorKeysEnum.PROJECT.getKey(), 
-				project, ReactorKeysEnum.META_KEYS.getKey(), metaValues);
-		
+		String pixel = ApiSemossTestUtils.buildPixelCall(AdminProjectInfoReactor.class,
+				ReactorKeysEnum.PROJECT.getKey(), project, ReactorKeysEnum.META_KEYS.getKey(), metaValues);
+
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		Map<String, Object> retValue = (Map<String, Object>) nm.getValue();
-		
+
 		assertFalse(Boolean.valueOf(retValue.get("project_discoverable").toString()));
-		assertFalse(Boolean.valueOf(retValue.get("project_has_portal").toString()));
+		assertTrue(retValue.containsKey("project_portal_url"));
 		assertTrue(Boolean.valueOf(retValue.get("project_global").toString()));
-		
+
 		assertEquals(project, retValue.get("project_id").toString());
 		assertEquals("NATIVE", retValue.get("project_created_by_type").toString());
 		assertEquals("INSIGHTS", retValue.get("project_type").toString());
 		assertEquals("testProject", retValue.get("project_name").toString());
 		assertEquals("testproject", retValue.get("low_project_name").toString());
-		
-        assertTrue(retValue.containsKey("description"));
-        assertTrue(retValue.containsKey("domain"));
+
+		assertTrue(retValue.containsKey("description"));
+		assertTrue(retValue.containsKey("domain"));
 	}
 }

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.engine.impl.guardrail;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,24 +39,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.snowflake.client.jdbc.internal.google.gson.Gson;
-import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.model.AbstractPythonModelEngine;
-import prerna.om.ClientProcessWrapper;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
-import prerna.util.Constants;
-import prerna.util.EngineUtility;
-import prerna.util.Settings;
-import prerna.util.Utility;
 
-public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
+public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
@@ -73,11 +64,6 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 	private static final double DEFAULT_THRESHOLD = 0.7;
 	private static final int DEFAULT_MAX_LENGTH = 512;
 	private static final boolean DEFAULT_DECISION_ALLOW = false; // fail closed by default
-
-	private String engineDirectoryPath = null;
-	private File cacheFolder;
-	private ClientProcessWrapper cpw = null;
-	private PyTranslator pyTranslator = null;
 
 	private String modelName = null;
 	private Map<String, Boolean> labelDecisionMap = Collections.emptyMap();
@@ -110,9 +96,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 			try {
 				this.defaultThreshold = Double.parseDouble(defaultThresholdStr);
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid default threshold value " + defaultThresholdStr + ". Revert to default value of "
-						+ this.defaultThreshold);
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid default threshold value " + defaultThresholdStr
+						+ ". Revert to default value of " + this.defaultThreshold, e);
 			}
 		}
 
@@ -121,9 +106,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 			try {
 				this.defaultMaxLength = Integer.parseInt(defaultMaxLengthStr);
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid default maxLength value " + defaultMaxLengthStr + ". Revert to default value of "
-						+ this.defaultMaxLength);
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid default maxLength value " + defaultMaxLengthStr
+						+ ". Revert to default value of " + this.defaultMaxLength, e);
 			}
 		}
 
@@ -136,7 +120,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		if (trustRemoteCodeStr != null && !(trustRemoteCodeStr = trustRemoteCodeStr.trim()).isEmpty()) {
 			this.trustRemoteCode = Boolean.parseBoolean(trustRemoteCodeStr);
 			if (this.trustRemoteCode) {
-				classLogger.warn("Prompt injection guardrail engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
+				classLogger.warn("Prompt injection guardrail engine "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
 						+ " is configured with TRUST_REMOTE_CODE=true. This executes model repository code at load time.");
 			}
 		}
@@ -150,14 +135,10 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		if (deviceStr != null && !(deviceStr = deviceStr.trim()).isEmpty()) {
 			this.device = deviceStr;
 		}
-		this.engineDirectoryPath = EngineUtility.getSpecificEngineAssetsFolder(this.getCatalogType(), this.getEngineId(),
-				this.getEngineName());
-		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
-		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
-
 		this.functionDescription = "Classifies a prompt for prompt-injection attempts using a HuggingFace text-classification model.";
 		this.parameters = new ArrayList<>();
-		this.parameters.add(new FunctionParameter("prompt", "String", "This is the prompt we are applying the guardrail to"));
+		this.parameters
+				.add(new FunctionParameter("prompt", "String", "This is the prompt we are applying the guardrail to"));
 		this.parameters.add(new FunctionParameter("threshold", "Double",
 				"Number between 0-1. If any label mapped to BLOCK has score >= threshold, the prompt fails. Default is "
 						+ this.defaultThreshold));
@@ -188,7 +169,7 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 
 		String script = "classifier.classify(" + PyUtils.determineStringType(prompt) + ", max_length="
 				+ PyUtils.determineStringType(maxLength) + ")";
-		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPy(script);
+		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
 
 		Map<String, Double> scoresByLabel = extractScoresByLabel(predictions);
 		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecisionAllow);
@@ -266,7 +247,8 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 
 	static Map<String, Boolean> parseLabelDecisionMap(String labelDecisionMapStr) {
 		if (labelDecisionMapStr == null || (labelDecisionMapStr = labelDecisionMapStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->ALLOW/BLOCK");
+			throw new IllegalArgumentException(
+					"Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->ALLOW/BLOCK");
 		}
 
 		Map<String, Object> raw = new Gson().fromJson(labelDecisionMapStr, Map.class);
@@ -353,87 +335,18 @@ public class PromptInjectionGuardrailEngine extends AbstractGuardrailReactorFunc
 		return out;
 	}
 
-	private void checkSocketStatus() {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
-	}
-
-	private synchronized void startServer(int port) {
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-
-		if (!this.cacheFolder.exists()) {
-			this.cacheFolder.mkdirs();
-		}
-
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
-
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-
-		boolean debug = false;
-
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-		if (port < 0) {
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					classLogger.warn("Function Engine " + this.getEngineName() + " has an invalid FORCE_PORT value");
-				}
-			}
-		}
-
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true;
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath, debug,
-					timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Unable to connect to server for local python function engine.");
-		}
-
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String deviceLiteral = PyUtils.determineStringType(this.device);
-			String useCudaLiteral = PyUtils.determineStringType(this.useCuda);
-			String execCommand = "from smss_util.PromptInjection import PromptInjectionClassifier\n"
-					+ "classifier = PromptInjectionClassifier(model_id=" + PyUtils.determineStringType(this.modelName) + ", trust_remote_code="
-					+ PyUtils.determineStringType(this.trustRemoteCode) + ", use_cuda=" + useCudaLiteral + ", device="
-					+ deviceLiteral + ")";
-
-			this.pyTranslator.runScript(execCommand);
-
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + execCommand);
-
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for prompt injection guardrail engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId) + " but the start script failed.");
-				cpwToInit.shutdown(false);
-			}
-			throw e;
-		}
+	@Override
+	protected String getStartupScript() {
+		String deviceLiteral = PyUtils.determineStringType(this.device);
+		String useCudaLiteral = PyUtils.determineStringType(this.useCuda);
+		// @formatter:off
+		return "from smss_util.PromptInjection import PromptInjectionClassifier\n"
+				+ "classifier = PromptInjectionClassifier(model_id="
+				+ PyUtils.determineStringType(this.modelName)
+				+ ", trust_remote_code="
+				+ PyUtils.determineStringType(this.trustRemoteCode) + ", use_cuda=" + useCudaLiteral
+				+ ", device=" + deviceLiteral + ")";
+		// @formatter:on
 	}
 
 	@Override

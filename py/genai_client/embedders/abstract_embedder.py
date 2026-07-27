@@ -1,16 +1,18 @@
-from typing import Dict, Any, List
-
-import numpy as np
-
 from abc import ABC, abstractmethod
-from keybert.backend import BaseEmbedder
 
+from typing import Dict, Any, List, TYPE_CHECKING
+import numpy as np
 from ..constants import (
     MODEL_NAME,
     AskModelEngineResponse,
     EmbeddingsModelEngineResponse,
+    EmbeddingsModelEngineResponse2,
 )
 from ..tokenizers.abstract_tokenizer import AbstractTokenizer
+from ..text_generation.model_engine_exception import ErrorDetails
+
+if TYPE_CHECKING:
+    from keybert.backend import BaseEmbedder
 
 
 class AbstractEmbedder(ABC):
@@ -24,7 +26,15 @@ class AbstractEmbedder(ABC):
         pass
 
     def embeddings(self, strings_to_embed: List[str], **kwargs: Any) -> Dict:
-        return self.embeddings_call(strings_to_embed, **kwargs).to_dict()
+        response = self.embeddings_call(strings_to_embed, **kwargs)
+        if isinstance(response, EmbeddingsModelEngineResponse2) or isinstance(
+            response, ErrorDetails
+        ):
+            return response.model_dump()
+        elif isinstance(response, EmbeddingsModelEngineResponse):
+            return response.to_dict()
+        else:
+            raise Exception("Could not perform embeddings")
 
     @abstractmethod
     def embeddings_call(
@@ -32,14 +42,23 @@ class AbstractEmbedder(ABC):
     ) -> EmbeddingsModelEngineResponse:
         pass
 
-    def image_embeddings(self, images_to_embed: List[str], **kwargs: Any) -> Dict:
-        return self.image_embeddings_call(images_to_embed, **kwargs).to_dict()
+    def multi_modal_embeddings(
+        self,
+        text: List[str] = None,
+        image: List[str] = None,
+        video: List[str] = None,
+        **kwargs: Any,
+    ) -> Dict:
+        """Embed text/image/video together, broken out by modality.
 
-    @abstractmethod
-    def image_embeddings_call(
-        self, images_to_embed, **kwargs: Any
-    ) -> EmbeddingsModelEngineResponse:
-        pass
+        Optional capability: embedders that support it override this method.
+        The default reports that the operation is not implemented rather than
+        raising, so callers get a graceful response.
+        """
+        return {
+            "response": "This model does not support multi modal embeddings.",
+            "implemented": False,
+        }
 
     def ask(self, *args, **kwargs) -> Dict:
         response = "This model does not support text generation."
@@ -51,9 +70,10 @@ class AbstractEmbedder(ABC):
 
         return model_engine_response.to_dict()
 
-    def to_keybert_embedder(self) -> BaseEmbedder:
+    def to_keybert_embedder(self) -> "BaseEmbedder":
+        from keybert.backend import BaseEmbedder
 
-        class CfgEmbedderBackend(BaseEmbedder):
+        class KeyBertEmbedderBackend(BaseEmbedder):
 
             def __init__(self, embedding_model: AbstractEmbedder):
                 super().__init__()
@@ -82,4 +102,4 @@ class AbstractEmbedder(ABC):
 
                 return np.array(embeddings.response, dtype="float32")
 
-        return CfgEmbedderBackend(embedding_model=self)
+        return KeyBertEmbedderBackend(embedding_model=self)

@@ -27,48 +27,35 @@
  *******************************************************************************/
 package prerna.io.connector.jira;
 
-import java.util.HashMap;
-import java.util.Map;
+import prerna.io.connector.AbstractOAuthTokenFiller;
 
-import prerna.auth.AccessToken;
-import prerna.io.connector.IAccessTokenFiller;
-import prerna.security.HttpHelperUtility;
-import prerna.util.BeanFiller;
-
-public class JiraTokenFiller implements IAccessTokenFiller {
+/**
+ * Jira (Atlassian) OAuth2 provider. The interactive login runs through the
+ * dynamic {@code /login2/jira} endpoint (which passes a cloud-id-scoped
+ * userinfo URL), so only the profile fill defaults are defined here; the
+ * default userinfo endpoint is Atlassian's {@code /me}.
+ */
+public class JiraTokenFiller extends AbstractOAuthTokenFiller {
 
 	private static final String USER_INFO_URL = "https://api.atlassian.com/me";
-
-	private static final String[] BEAN_PROPS = { "name", "email", "locale" };
-	private static final String JSON_PATTERN = "[name, email, locale]";
+	// jsonPattern: JMESPath query projecting values out of the /me JSON.
+	// beanProps: AccessToken property each projected value maps to, by position.
+	private static final String DEFAULT_JSON_PATTERN = "[name, email, locale]";
+	private static final String[] DEFAULT_BEAN_PROPS = { "name", "email", "locale" };
 
 	@Override
-	public void fillAccessToken(AccessToken jiraAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params) {
-		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
-			userInfoUrl = USER_INFO_URL;
-		}
-		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
-			jsonPattern = JiraTokenFiller.JSON_PATTERN;
-		}
-		if (beanProps == null || beanProps.length == 0) {
-			beanProps = JiraTokenFiller.BEAN_PROPS;
-		}
-		if (params == null) {
-			params = new HashMap<>();
-		}
-
-		String accessToken = jiraAccessToken.getAccess_token();
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
-		if (output == null || output.trim().isEmpty()) {
-			throw new IllegalArgumentException("Jira user info response is empty");
-		}
-		BeanFiller.fillFromJson(output, jsonPattern, beanProps, jiraAccessToken);
+	protected String getDefaultUserInfoUrl(String prefix) {
+		return USER_INFO_URL;
 	}
 
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
-			Map<String, Object> params, boolean sanitizeResponse) {
-		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
+	protected String getDefaultJsonPattern() {
+		return DEFAULT_JSON_PATTERN;
 	}
+
+	@Override
+	protected String[] getDefaultBeanProps() {
+		return DEFAULT_BEAN_PROPS;
+	}
+
 }

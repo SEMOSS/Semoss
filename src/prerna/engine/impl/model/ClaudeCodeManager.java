@@ -31,7 +31,10 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.text.StringSubstitutor;
@@ -45,7 +48,7 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.reactor.agent.AppBuildingHarness;
+import prerna.reactor.agent.AgentCliSocketRegistry;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
@@ -68,6 +71,7 @@ public class ClaudeCodeManager {
 	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
 	private ClientProcessWrapper cpw = null;
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
@@ -87,8 +91,7 @@ public class ClaudeCodeManager {
 		if (allowedTools == null || allowedTools.isEmpty()) {
 			allowedToolsLiteral = "[]";
 		} else {
-			allowedToolsLiteral = allowedTools.stream()
-					.map(PyUtils::pyQuote)
+			allowedToolsLiteral = allowedTools.stream().map(PyUtils::pyQuote)
 					.collect(Collectors.joining(",", "[", "]"));
 		}
 
@@ -108,49 +111,45 @@ public class ClaudeCodeManager {
 					mcpsLiteral.append(",");
 				}
 				first = false;
-				mcpsLiteral.append("{")
-						.append("'name':").append(PyUtils.pyQuote(name)).append(",")
-						.append("'url':").append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms"))
-						.append("}");
+				mcpsLiteral.append("{").append("'name':").append(PyUtils.pyQuote(name)).append(",").append("'url':")
+						.append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms")).append("}");
 			}
 		}
 		mcpsLiteral.append("]");
 
 		StringBuilder script = new StringBuilder();
-		script.append("import genai_client;claude_code = genai_client.ClaudeCodeClient(")
-				.append("model=").append(PyUtils.pyQuote(model)).append(",")
-				.append("cwd_path=").append(PyUtils.pyQuote(filePath)).append(",")
-				.append("room_id=").append(PyUtils.pyQuote(roomId)).append(",")
-				.append("access_key=").append(PyUtils.pyQuote(accessKey)).append(",")
-				.append("secret_key=").append(PyUtils.pyQuote(secretKey)).append(",")
-				.append("allowed_tools=").append(allowedToolsLiteral).append(",")
-				.append("permission_mode=").append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default")).append(",")
-				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",")
-				.append("mcps=").append(mcpsLiteral).append(",")
-				.append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : "")).append(",")
-				.append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
+		script.append("import genai_client;claude_code = genai_client.ClaudeCodeClient(").append("model=")
+				.append(PyUtils.pyQuote(model)).append(",").append("cwd_path=").append(PyUtils.pyQuote(filePath))
+				.append(",").append("room_id=").append(PyUtils.pyQuote(roomId)).append(",").append("access_key=")
+				.append(PyUtils.pyQuote(accessKey)).append(",").append("secret_key=").append(PyUtils.pyQuote(secretKey))
+				.append(",").append("allowed_tools=").append(allowedToolsLiteral).append(",").append("permission_mode=")
+				.append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default")).append(",")
+				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",").append("mcps=").append(mcpsLiteral)
+				.append(",").append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : ""))
+				.append(",").append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
 				.append("agent_history_exists=").append(agentHistoryExists ? "True" : "False")
-				.append(buildSandboxKwargs(sandboxPolicy, filePath, roomFolderPath))
-				.append(")");
+				.append(buildSandboxKwargs(sandboxPolicy, filePath, roomFolderPath)).append(")");
 		return script.toString();
 	}
 
 	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
 		Path projectsDir = Paths.get(roomFolderPath, "projects");
 		boolean exists = Files.exists(projectsDir) && Files.isDirectory(projectsDir);
-		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId, exists ? "found" : "not found", projectsDir);
+		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId,
+				exists ? "found" : "not found", projectsDir);
 		return exists;
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
-		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
-				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
+		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "") + ", system_prompt="
+				+ PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
 	/**
-	 * Writes the sandbox policy/profile and returns the {@code ,sandbox_cli_path=...,sandbox_env={...}}
-	 * kwargs fragment. The SDK will launch the wrapper script instead of the bundled binary;
-	 * the wrapper applies sandbox-exec (macOS) or landlock (Linux) before exec'ing the real binary.
+	 * Writes the sandbox policy/profile and returns the
+	 * {@code ,sandbox_cli_path=...,sandbox_env={...}} kwargs fragment. The SDK will
+	 * launch the wrapper script instead of the bundled binary; the wrapper applies
+	 * sandbox-exec (macOS) or landlock (Linux) before exec'ing the real binary.
 	 * Returns an empty string when sandbox is disabled or no policy is set.
 	 */
 	private String buildSandboxKwargs(SandboxPolicy policy, String filePath, String roomFolderPath) {
@@ -163,26 +162,27 @@ public class ClaudeCodeManager {
 		StringBuilder envLiteral = new StringBuilder("{");
 		boolean first = true;
 		for (Map.Entry<String, String> e : plan.getEnvironmentAdditions().entrySet()) {
-			if (!first) envLiteral.append(", ");
+			if (!first) {
+				envLiteral.append(", ");
+			}
 			first = false;
-			envLiteral.append(PyUtils.pyQuote(e.getKey())).append(": ")
-					.append(PyUtils.pyQuote(e.getValue()));
+			envLiteral.append(PyUtils.pyQuote(e.getKey())).append(": ").append(PyUtils.pyQuote(e.getValue()));
 		}
 		envLiteral.append("}");
-		classLogger.info("Claude sandbox applied: backend={} target={} policy-paths={}",
-				plan.getBackend(), targetBinary, policy.getAllowedPaths().size());
+		classLogger.info("Claude sandbox applied: backend={} target={} policy-paths={}", plan.getBackend(),
+				targetBinary, policy.getAllowedPaths().size());
 		return ",sandbox_cli_path=" + PyUtils.pyQuote(plan.getCliPath()) + ",sandbox_env=" + envLiteral;
 	}
 
 	/**
 	 * Resolves the Claude CLI binary path. Resolution order:
 	 * <ol>
-	 *   <li>DIHelper override via {@link #CFG_CLAUDE_CLI_PATH}</li>
-	 *   <li>Binary bundled inside the installed {@code claude-agent-sdk} Python package
-	 *       ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) — the same binary
-	 *       the SDK uses when no {@code cli_path} is set</li>
-	 *   <li>Common npm / system install paths</li>
-	 *   <li>{@code "claude"} sentinel — OS PATH lookup at exec time</li>
+	 * <li>DIHelper override via {@link #CFG_CLAUDE_CLI_PATH}</li>
+	 * <li>Binary bundled inside the installed {@code claude-agent-sdk} Python
+	 * package ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) - the same
+	 * binary the SDK uses when no {@code cli_path} is set</li>
+	 * <li>Common npm / system install paths</li>
+	 * <li>{@code "claude"} sentinel - OS PATH lookup at exec time</li>
 	 * </ol>
 	 */
 	public static String resolveClaudeBinary() {
@@ -199,15 +199,12 @@ public class ClaudeCodeManager {
 		} catch (Exception e) {
 			classLogger.debug("claude-agent-sdk bundled binary not found via PY_HOME: {}", e.getMessage());
 		}
-		String[] candidates = {
-				"/usr/local/bin/claude",
-				"/usr/bin/claude",
+		String[] candidates = { "/usr/local/bin/claude", "/usr/bin/claude",
 				System.getProperty("user.home") + "/.npm-global/bin/claude",
 				System.getProperty("user.home") + "/.local/bin/claude",
 				System.getProperty("user.home") + "/node_modules/.bin/claude",
 				System.getProperty("user.home") + "/.yarn/bin/claude",
-				System.getProperty("user.home") + "/.claude/local/claude"
-		};
+				System.getProperty("user.home") + "/.claude/local/claude" };
 		for (String c : candidates) {
 			if (Files.isExecutable(Paths.get(c))) {
 				return c;
@@ -223,12 +220,8 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 
-		String base = (filePath != null && !filePath.trim().isEmpty())
-				? filePath
+		String finalFilePath = (filePath != null && !filePath.trim().isEmpty()) ? filePath
 				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		String finalFilePath = base + "/client";
-
-		AppBuildingHarness.ensureClaudeStructure(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
@@ -237,8 +230,16 @@ public class ClaudeCodeManager {
 				engineId, mcps, insightId, sandboxPolicy);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
-		Object output = pyTranslator.runDirectPy(insight, queryScript);
-		return String.valueOf(output);
+		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can
+		// route the interrupt opcode here
+		String jobId = ThreadStore.getJobId();
+		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
+		try {
+			Object output = pyTranslator.runDirectPyNoCancelTrace(insight, queryScript);
+			return String.valueOf(output);
+		} finally {
+			AgentCliSocketRegistry.unregister(jobId);
+		}
 	}
 
 	/**
@@ -248,82 +249,87 @@ public class ClaudeCodeManager {
 	 * @param port The port number to use when creating the server/client
 	 *             connection.
 	 */
-	protected synchronized void startServer(int port, String initScript) {
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-		if (this.workingDirectoryBasePath == null) {
-			this.createCacheFolder();
-		}
+	protected void startServer(int port, String initScript) {
+		this.startServerLock.lock();
+		try {
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
+			if (this.workingDirectoryBasePath == null) {
+				this.createCacheFolder();
+			}
 
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		String timeout = "30";
+			String timeout = "30";
 
-		if (cpwToInit.getSocketClient() == null) {
-			boolean debug = false;
+			if (cpwToInit.getSocketClient() == null) {
+				boolean debug = false;
 
-			String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
-			String customClassPath = null;
-			String loggerLevel = null;
+				String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
+				String customClassPath = null;
+				String loggerLevel = null;
 
-			if (port < 0) {
-				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch (NumberFormatException e) {
-						classLogger.warn("Claude Code" + " has an invalid FORCE_PORT value");
+				if (port < 0) {
+					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+						try {
+							port = Integer.parseInt(forcePort);
+							debug = true;
+						} catch (NumberFormatException e) {
+							classLogger.warn("Claude Code has an invalid FORCE_PORT value");
+						}
 					}
+				}
+
+				String serverDirectory = this.cacheFolder.getAbsolutePath();
+
+				try {
+					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
+							timeout, "INFO");
+				} catch (Exception e) {
+					classLogger.error("Failed to create python process for Claude Code agent", e);
+					throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
+				}
+			} else if (!cpwToInit.getSocketClient().isConnected()) {
+				cpwToInit.shutdown(false);
+				try {
+					cpwToInit.reconnect();
+				} catch (Exception e) {
+					classLogger.error("Failed to reconnect python process for Claude Code agent", e);
+					throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent: {}", e);
 				}
 			}
 
-			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
 			try {
-				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
-						timeout, "INFO");
+				String initCommands = initScript;
+				String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					commands[commandIndex] = fillVars(commands[commandIndex]);
+				}
+				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+				classLogger.info("Initializing Claude Code python process with commands >>> {}",
+						String.join("\n", commands));
+				setPrefix(cpwToInit);
+
+				this.cpw = cpwToInit;
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for Claude Code Agent: {}", e);
-				throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
+				classLogger.error("Failed to initialize Claude Code python process with startup commands", e);
+				if (cpwToInit != null) {
+					classLogger.warn("Able to start the python process for Claude Code but the start script failed");
+					cpwToInit.shutdown(false);
+				}
+				throw e;
 			}
-		} else if (!cpwToInit.getSocketClient().isConnected()) {
-			cpwToInit.shutdown(false);
-			try {
-				cpwToInit.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for Claude Code Agent: {}", e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent: {}", e);
-			}
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String initCommands = initScript;
-			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-				commands[commandIndex] = fillVars(commands[commandIndex]);
-			}
-			this.pyTranslator.runEmptyPy(commands);
-			classLogger.info(
-					"Initializing Claude Code" + " python process with commands >>> " + String.join("\n", commands));
-			setPrefix(cpwToInit);
-
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			classLogger.error("Failed to  to the python process for Claude Code", e);
-			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for Claude Code but the start script failed");
-				cpwToInit.shutdown(false);
-			}
-			throw e;
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 

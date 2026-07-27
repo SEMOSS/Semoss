@@ -395,6 +395,9 @@ public class Constants {
 	public static final String PROJECT_FOLDER = "project";
 	public static final String APP_ROOT_FOLDER = "app_root";
 	public static final String ASSETS_FOLDER = "assets";
+	// folder within the assets folder whose contents are visible to users with only
+	// read/view access
+	public static final String PUBLIC_ASSETS_FOLDER = "public";
 	public static final String PORTALS_FOLDER = "portals";
 	public static final String VERSION_FOLDER = "version";
 	public static final String USER_FOLDER = "user";
@@ -727,11 +730,17 @@ public class Constants {
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
+	public static final String PY_LOG_CAPTURE_ENABLED = "PY_LOG_CAPTURE_ENABLED";
+	public static final String PY_LOGGER_NAME = "py.native";
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
+
+	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -773,6 +782,9 @@ public class Constants {
 	public static final String MONOLITH_PREFIX = "MONOLITH_PREFIX";
 	public static final String ENDPOINT_REDIRECT_KEY = "ENDPOINT_REDIRECT_KEY";
 	public static final String MONOLITH_ROUTE = "MONOLITH_ROUTE";
+
+	// name of the FE webapp
+	public static final String FE_WEB_APP_NAME = "FE_WEB_APP_NAME";
 
 	// Graph engines
 	public static final String TYPE_MAP = "TYPE_MAP";
@@ -841,7 +853,6 @@ public class Constants {
 
 	public static final String SEMOSS_EXTENSION = ".smss";
 	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
-	public static final String ENCRYPT_SMSS = "ENCRYPT_SMSS";
 
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
@@ -1040,4 +1051,21 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// system (platform) skill names
+	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PYTHON = "python";
+	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_VECTOR = "vector";
+
+	// system (platform) mcp names
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
+
+	// system (platform) agent (workspace) names
+	public static final String AGENT_APP_BUILDER = "app-builder";
 }

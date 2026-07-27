@@ -35,12 +35,13 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
@@ -77,7 +78,8 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 			fileRelativePath = fileRelativePath.substring(1);
 		}
 
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		String zipFileLocation = assetFolder.replace("\\", "/") + "/" + fileRelativePath;
 
 		File zipFile = new File(zipFileLocation);
@@ -92,10 +94,11 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 		}
 
 		// track unzipped files in git
-		String gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
+		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		GitRepoUtils.addAllFiles(gitFolder, false);
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 		String email = accessToken.getEmail();
 		GitRepoUtils.commitAddedFiles(gitFolder, "add: unzipped " + fileRelativePath, author, email);
 

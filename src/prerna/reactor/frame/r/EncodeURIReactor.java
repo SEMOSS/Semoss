@@ -28,11 +28,9 @@
 package prerna.reactor.frame.r;
 
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -62,7 +60,7 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "urltools" };
 		this.rJavaTranslator.checkPackages(packages);
 		// get inputs
-		List<String> columns = getColumns();
+		List<String> columns = getListStringFromKeyOrCurRow(this.keysToGet[0]);
 		StringBuilder builder = new StringBuilder();
 		builder.append("library(\"urltools\");");
 		for (int i = 0; i < columns.size(); i++) {
@@ -85,39 +83,11 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 
 		// execute the r script
 		// script will be of the form:
-		// FRAME$column <- toupper(FRAME$column)
+		// FRAME$column <- url_encode(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
 		this.addExecutedCode(builder.toString());
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
-
-		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns.add(column);
-			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
-		}
-
-		return columns;
-	}
 }

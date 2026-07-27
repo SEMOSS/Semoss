@@ -39,6 +39,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -46,6 +47,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -117,10 +119,16 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User does not have access to room " + roomId);
 		}
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
+		}
+
+		if (room.hasToolCallBeenAnswered(toolId)) {
+			return new NounMetadata("Tool output not added: duplicate response for toolCallId " + toolId,
+					PixelDataType.CONST_STRING);
 		}
 
 		Map<String, Object> pixelReturn = new HashMap<>();
@@ -136,8 +144,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+					RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
 					room.updateToolResponseMeta(lastMessage);
 				}

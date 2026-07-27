@@ -57,10 +57,9 @@ public class SearchAssetReactor extends AbstractReactor {
 		String location = assetFolder;
 		if (keyValue.containsKey(keysToGet[1])) {
 			location = assetFolder + "/" + Utility.normalizePath(keyValue.get(keysToGet[1]));
-			location = location.replaceAll("\\\\", "/");
+			location = location.replace("\\\\", "/");
 		}
 
-		// location = location.replaceAll("/app_assets", "");
 		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null),
 				PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

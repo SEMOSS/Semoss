@@ -171,8 +171,6 @@ public class Project implements IProject {
 
 	// publish portals
 	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
-	private boolean hasPortal = false;
-	private String portalName = null;
 	private SemossDate lastPortalPublishDate = null;
 	private boolean publishedPortal = false;
 	private boolean republishPortal = false;
@@ -242,22 +240,8 @@ public class Project implements IProject {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
 
-		this.hasPortal = Boolean.parseBoolean(this.smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false") + "");
-
-		// project type is new
-		// if has portal
-		// will assume code if not provided
-		// else will assume it is insight
-		// TODO: potentially remove hasportal entirely
 		String projectTypeStr = this.smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
-		// is portal enabled in SMSS?
-		if (this.hasPortal) {
-			if (projectTypeStr == null) {
-				this.projectType = IProject.PROJECT_TYPE.CODE;
-			} else {
-				this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
-			}
-		} else if (projectTypeStr != null) {
+		if (projectTypeStr != null) {
 			this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
 		} else {
 			this.projectType = IProject.PROJECT_TYPE.INSIGHTS;
@@ -373,21 +357,6 @@ public class Project implements IProject {
 	@Override
 	public AuthProvider getGitProvider() {
 		return this.gitProvider;
-	}
-
-	@Override
-	public String getPortalName() {
-		return this.portalName;
-	}
-
-	@Override
-	public boolean isHasPortal() {
-		return hasPortal;
-	}
-
-	@Override
-	public void setHasPortal(boolean hasPortal) {
-		this.hasPortal = hasPortal;
 	}
 
 	@Override
@@ -1167,7 +1136,7 @@ public class Project implements IProject {
 
 		// if this are true we want to republish
 		// we just add the additional logic above if we have to pull from cloud
-		return this.republishPortal || outOfDate || (this.hasPortal && !this.publishedPortal);
+		return this.republishPortal || outOfDate || !this.publishedPortal;
 	}
 
 	@Override

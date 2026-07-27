@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.xmlbeans.impl.xb.xsdschema.Attribute.Use;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
@@ -71,11 +73,13 @@ public class ListWorkspacesReactor extends AbstractReactor {
 		TYPES_FOR_SUBQUERY_COLUMNS.put("is_active", SemossDataType.BOOLEAN);
 	}
 
+	@Deprecated
 	public ListWorkspacesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
 				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.SORT.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -117,7 +121,7 @@ public class ListWorkspacesReactor extends AbstractReactor {
 	private Set<String> getSharedWorkspaceIds(User user) {
 		Map<String, Object> projectMetadataFilter = new HashMap<>();
 		projectMetadataFilter.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, null, false, false,
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, null, false,
 				projectMetadataFilter, null, null, null, null);
 
 		Set<String> sharedWorkspaceIds = new HashSet<>();

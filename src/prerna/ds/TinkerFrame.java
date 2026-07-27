@@ -40,6 +40,8 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -62,7 +64,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
@@ -80,11 +82,12 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
 import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
+
+	private static final Logger classLogger = LogManager.getLogger(TinkerFrame.class);
 
 	public static final String DATA_MAKER_NAME = "TinkerFrame";
 
@@ -101,16 +104,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static final String TINKER_FILTER = "_T_FILTER";
 	public static final String TINKER_COUNT = "_T_COUNT";
 
+	// keeps the cache of whether a column is numerical or not, can this be stored
+	// on the meta model?
+	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); // store on meta
 
-	//keeps the cache of whether a column is numerical or not, can this be stored on the meta model?
-	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); //store on meta
-	
 	public TinkerGraph g = null;
 
 	private boolean iGraphSynched = false;
-	
-	/***********************************  CONSTRUCTORS  **********************************/
-	
+
+	/***********************************
+	 * CONSTRUCTORS
+	 **********************************/
+
 	public TinkerFrame() {
 		g = TinkerGraph.open();
 		g.createIndex(TINKER_TYPE, Vertex.class);
@@ -120,7 +125,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		setDefaultName();
 		this.originalName = this.frameName;
 	}
-	
+
 	public TinkerFrame(String alias) {
 		g = TinkerGraph.open();
 		g.createIndex(TINKER_TYPE, Vertex.class);
@@ -130,21 +135,20 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		this.frameName = alias;
 		this.originalName = this.frameName;
 	}
-	
+
 	public TinkerFrame(String[] headerNames) {
 		this();
 		this.qsNames = headerNames;
 //		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
 //		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
 	}
-	
+
 	private void setDefaultName() {
 		String uuid = UUID.randomUUID().toString().toUpperCase();
 		uuid = uuid.replace("-", "_");
 		setName("TINKER_" + uuid);
 	}
-	
-	
+
 	public boolean isIGraphSynched() {
 		return iGraphSynched;
 	}
@@ -153,10 +157,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		this.iGraphSynched = iGraphSynched;
 	}
 
-	/*********************************  END CONSTRUCTORS  ********************************/
+	/*********************************
+	 * END CONSTRUCTORS
+	 ********************************/
 
-
-	/********************************  DATA MAKER METHODS ********************************/
+	/********************************
+	 * DATA MAKER METHODS
+	 ********************************/
 
 //	private Map createVertStores(){
 //		Map<String, SEMOSSVertex> vertStore = new HashMap<String, SEMOSSVertex>();
@@ -184,78 +191,82 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		retHash.put("edges", edgeStore.values());
 //		return retHash;
 //	}
-	
+
 	private Map createVertStores2() {
 		Map<String, SEMOSSVertex> vertStore = new HashMap<>();
 		Map<String, SEMOSSEdge> edgeStore = new HashMap<>();
-		
-		//get all edges not attached to a filter node or is a filtered edge
-		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(TINKER_TYPE, TINKER_FILTER), __.bothV().in().has(TINKER_TYPE, TINKER_FILTER), __.V().has(PRIM_KEY, true)));
-		while(edgesIt.hasNext()) {
+
+		// get all edges not attached to a filter node or is a filtered edge
+		GraphTraversal<Edge, Edge> edgesIt = g.traversal().E().not(__.or(__.has(TINKER_TYPE, TINKER_FILTER),
+				__.bothV().in().has(TINKER_TYPE, TINKER_FILTER), __.V().has(PRIM_KEY, true)));
+		while (edgesIt.hasNext()) {
 			Edge e = edgesIt.next();
 			Vertex outV = e.outVertex();
-			
+
 			Vertex inV = e.inVertex();
 			SEMOSSVertex outVert = getSEMOSSVertex(vertStore, outV);
 			SEMOSSVertex inVert = getSEMOSSVertex(vertStore, inV);
-			
-			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert, "https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "");
-			edgeStore.put("https://semoss.org/Relation/"+e.property(TINKER_ID).value() + "", semossE);
-			
+
+			SEMOSSEdge semossE = new SEMOSSEdge(outVert, inVert,
+					"https://semoss.org/Relation/" + e.property(TINKER_ID).value() + "");
+			edgeStore.put("https://semoss.org/Relation/" + e.property(TINKER_ID).value() + "", semossE);
+
 			// need to add edge properties
 			Iterator<Property<Object>> edgeProperties = e.properties();
-			while(edgeProperties.hasNext()) {
+			while (edgeProperties.hasNext()) {
 				Property<Object> prop = edgeProperties.next();
 				String propName = prop.key();
-				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
+				if (!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
 					semossE.propHash.put(propName, prop.value());
 				}
 			}
 		}
-		
+
 		// now i just need to get the verts with no edges
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.both(),__.has(TINKER_TYPE, TINKER_FILTER),__.in().has(TINKER_TYPE, TINKER_FILTER)));
-		
-		//Not (has type filter or has in node type filter)  = not has type filter OR not has in node type filter
-		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(TINKER_TYPE, TINKER_FILTER), __.in().has(TINKER_TYPE, TINKER_FILTER), __.has(PRIM_KEY, true)));
+
+		// Not (has type filter or has in node type filter) = not has type filter OR not
+		// has in node type filter
+		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.or(__.has(TINKER_TYPE, TINKER_FILTER),
+				__.in().has(TINKER_TYPE, TINKER_FILTER), __.has(PRIM_KEY, true)));
 //		GraphTraversal<Vertex, Vertex> vertIt = g.traversal().V().not(__.in().has(TINKER_TYPE, TINKER_FILTER));
-		while(vertIt.hasNext()) {
+		while (vertIt.hasNext()) {
 			Vertex outV = vertIt.next();
 //			if(!outV.property("TYPE").equals(TINKER_FILTER)) {
-				getSEMOSSVertex(vertStore, outV);
+			getSEMOSSVertex(vertStore, outV);
 //			}
 		}
-		
-		
+
 		Map retHash = new HashMap();
 		retHash.put("nodes", vertStore);
 		retHash.put("edges", edgeStore.values());
 		return retHash;
 	}
-	
-    /**
-     * 
-     * @param vertStore
-     * @param tinkerVert
-     * @return
-     */
-	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert){
+
+	/**
+	 * 
+	 * @param vertStore
+	 * @param tinkerVert
+	 * @return
+	 */
+	private SEMOSSVertex getSEMOSSVertex(Map<String, SEMOSSVertex> vertStore, Vertex tinkerVert) {
 		Object value = tinkerVert.property(TINKER_NAME).value();
 		String type = tinkerVert.property(TINKER_TYPE).value() + "";
-		
-		// New logic to construct URI - don't need to take into account base URI beacuse it sits on OWL and is used upon query creation
+
+		// New logic to construct URI - don't need to take into account base URI beacuse
+		// it sits on OWL and is used upon query creation
 		String newValue = Utility.getInstanceName(value.toString());
 		String uri = "http://semoss.org/ontologies/Concept/" + type + "/" + newValue;
-		
+
 		SEMOSSVertex semossVert = vertStore.get(uri);
-		if(semossVert == null){
+		if (semossVert == null) {
 			semossVert = new SEMOSSVertex(uri);
 			// generic - move anything that is a property on the node
 			Iterator<VertexProperty<Object>> vertexProperties = tinkerVert.properties();
-			while(vertexProperties.hasNext()) {
+			while (vertexProperties.hasNext()) {
 				VertexProperty<Object> prop = vertexProperties.next();
 				String propName = prop.key();
-				if(!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
+				if (!propName.equals(TINKER_ID) && !propName.equals(TINKER_NAME) && !propName.equals(TINKER_TYPE)) {
 					semossVert.propHash.put(propName, prop.value());
 				}
 			}
@@ -263,39 +274,64 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 		return semossVert;
 	}
-	
-	/******************************  END DATA MAKER METHODS ******************************/
-	
-	/******************************  GRAPH SPECIFIC METHODS ******************************/
 
-	//TODO: need to update and remove uniqueName from method signature
+	/******************************
+	 * END DATA MAKER METHODS
+	 ******************************/
+
+	/******************************
+	 * GRAPH SPECIFIC METHODS
+	 ******************************/
+
+	// TODO: need to update and remove uniqueName from method signature
 	// create or add vertex
-	protected Vertex upsertVertex(String type, Object data)
-	{
-		if(data == null) data = EMPTY;
+	protected Vertex upsertVertex(String type, Object data) {
+		if (data == null) {
+			data = EMPTY;
+		}
 		// checks to see if the vertex is there already
 		// if so retrieves the vertex
 		// if not inserts the vertex and then returns that vertex
 		Vertex retVertex = null;
 		// try to find the vertex
-		//			GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE, type).has(TINKER_ID, type + ":" + data);
+		// GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_TYPE,
+		// type).has(TINKER_ID, type + ":" + data);
 		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + data);
-		if(gt.hasNext()) {
+		if (gt.hasNext()) {
 			retVertex = gt.next();
 		} else {
-			if(data instanceof Number) {
+			if (data instanceof Number) {
 				// need to keep values as they are, not with XMLSchema tag
-				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data);// push the actual value as well who knows when you would need it
+				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data);// push the
+																											// actual
+																											// value as
+																											// well who
+																											// knows
+																											// when you
+																											// would
+																											// need it
 			} else {
 //				LOGGER.debug(" adding vertex ::: " + TINKER_ID + " = " + type + ":" + data+ " & " + TINKER_VALUE+ " = " + value+ " & " + TINKER_TYPE+ " = " + type+ " & " + TINKER_NAME+ " = " + data);
 //				LOGGER.debug(" adding vertex ::: " + TINKER_ID + " = " + type + ":" + data+ " & " + " & " + TINKER_TYPE+ " = " + type+ " & " + TINKER_NAME+ " = " + data);
-				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data.toString());// push the actual value as well who knows when you would need it
+				retVertex = g.addVertex(TINKER_ID, type + ":" + data, TINKER_TYPE, type, TINKER_NAME, data.toString());// push
+																														// the
+																														// actual
+																														// value
+																														// as
+																														// well
+																														// who
+																														// knows
+																														// when
+																														// you
+																														// would
+																														// need
+																														// it
 			}
 
 		}
-		return retVertex; 
+		return retVertex;
 	}
-	
+
 	/**
 	 * 
 	 * @param fromVertex
@@ -304,31 +340,33 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * @param toVertexUniqueName
 	 * @return
 	 */
-	protected Edge upsertEdge(Vertex fromVertex, String fromVertexUniqueName, Vertex toVertex, String toVertexUniqueName)
-	{
+	protected Edge upsertEdge(Vertex fromVertex, String fromVertexUniqueName, Vertex toVertex,
+			String toVertexUniqueName) {
 		Edge retEdge = null;
 		String type = fromVertexUniqueName + EDGE_LABEL_DELIMETER + toVertexUniqueName;
 		String edgeID = type + "/" + fromVertex.value(TINKER_NAME) + ":" + toVertex.value(TINKER_NAME);
 		// try to find the vertex
 		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
-		if(gt.hasNext()) {
+		if (gt.hasNext()) {
 			retEdge = gt.next();
-			Integer count = (Integer)retEdge.value(TINKER_COUNT);
+			Integer count = (Integer) retEdge.value(TINKER_COUNT);
 			count++;
 			retEdge.property(TINKER_COUNT, count);
-		}
-		else {
+		} else {
 			retEdge = fromVertex.addEdge(type, toVertex, TINKER_ID, edgeID, TINKER_COUNT, 1);
 		}
 
 		return retEdge;
 	}
-	
-	/******************************  END GRAPH SPECIFIC METHODS **************************/
-	
-	/******************************  AGGREGATION METHODS *********************************/
-	
-	
+
+	/******************************
+	 * END GRAPH SPECIFIC METHODS
+	 **************************/
+
+	/******************************
+	 * AGGREGATION METHODS
+	 *********************************/
+
 	@Override
 	public void addRow(Object[] rowCleanData, String[] headerNames) {
 //		if(rowCleanData.length != headerNames.length) {
@@ -356,114 +394,124 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		} 
 	}
 
-	
-	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash, Map<String, String> logicalToTypeMap) {
+	public void addRelationship(Map<String, Object> rowCleanData, Map<String, Set<String>> edgeHash,
+			Map<String, String> logicalToTypeMap) {
 		boolean hasRel = false;
-		for(String startNode : rowCleanData.keySet()) {
+		for (String startNode : rowCleanData.keySet()) {
 			Set<String> set = edgeHash.get(startNode);
-			if(set == null) continue;
+			if (set == null) {
+				continue;
+			}
 
-			for(String endNode : set) {
-				if(rowCleanData.keySet().contains(endNode)) {
+			for (String endNode : set) {
+				if (rowCleanData.keySet().contains(endNode)) {
 					hasRel = true;
-					
-					//get from vertex
+
+					// get from vertex
 					Object startNodeValue = rowCleanData.get(startNode);
 					String startNodeType = logicalToTypeMap.get(startNode);
 					Vertex fromVertex = upsertVertex(startNodeType, startNodeValue);
-					
-					//get to vertex	
+
+					// get to vertex
 					Object endNodeValue = rowCleanData.get(endNode);
 					String endNodeType = logicalToTypeMap.get(endNode);
 					Vertex toVertex = upsertVertex(endNodeType, endNodeValue);
-					
+
 					upsertEdge(fromVertex, startNodeType, toVertex, endNodeType);
 				}
 			}
 		}
-		
-		// this is to replace the addRow method which needs to be called on the first iteration
+
+		// this is to replace the addRow method which needs to be called on the first
+		// iteration
 		// since edges do not exist yet
-		if(!hasRel) {
+		if (!hasRel) {
 			String singleColName = rowCleanData.keySet().iterator().next();
 			String singleNodeType = logicalToTypeMap.get(singleColName);
 			Object startNodeValue = rowCleanData.get(singleColName);
 			upsertVertex(singleNodeType, startNodeValue);
 		}
-		
+
 	}
 
 	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality) {
 		boolean hasRel = false;
-		
-		for(Integer startIndex : cardinality.keySet()) {
+
+		for (Integer startIndex : cardinality.keySet()) {
 			Set<Integer> endIndices = cardinality.get(startIndex);
-			if(endIndices==null) continue;
-			
-			for(Integer endIndex : endIndices) {
+			if (endIndices == null) {
+				continue;
+			}
+
+			for (Integer endIndex : endIndices) {
 				hasRel = true;
-				
-				//get from vertex
+
+				// get from vertex
 				String startNode = headers[startIndex];
 				String startUniqueName = headers[startIndex];
 				Object startNodeValue = values[startIndex];
 				Vertex fromVertex = upsertVertex(startNode, startNodeValue);
-				
-				//get to vertex	
+
+				// get to vertex
 				String endNode = headers[endIndex];
 				String endUniqueName = headers[endIndex];
 				Object endNodeValue = values[endIndex];
 				Vertex toVertex = upsertVertex(endNode, endNodeValue);
-				
+
 				upsertEdge(fromVertex, startUniqueName, toVertex, endUniqueName);
 			}
 		}
-		
-		// this is to replace the addRow method which needs to be called on the first iteration
+
+		// this is to replace the addRow method which needs to be called on the first
+		// iteration
 		// since edges do not exist yet
-		if(!hasRel) {
+		if (!hasRel) {
 			String singleColName = headers[0];
 			String singleNodeType = singleColName;
 			Object startNodeValue = values[0];
 			upsertVertex(singleNodeType, startNodeValue);
 		}
 	}
-	
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, Map<String, String> logicalToTypeMap) {
+
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality,
+			Map<String, String> logicalToTypeMap) {
 		boolean hasRel = false;
-		
-		for(Integer startIndex : cardinality.keySet()) {
+
+		for (Integer startIndex : cardinality.keySet()) {
 			Set<Integer> endIndices = cardinality.get(startIndex);
-			if(endIndices==null) continue;
-			
-			for(Integer endIndex : endIndices) {
+			if (endIndices == null) {
+				continue;
+			}
+
+			for (Integer endIndex : endIndices) {
 				hasRel = true;
-				
-				//get from vertex
+
+				// get from vertex
 				String startNode = headers[startIndex];
 				String startUniqueName = logicalToTypeMap.get(startNode);
-				if(startUniqueName == null) {
+				if (startUniqueName == null) {
 					startUniqueName = startNode;
 				}
 				Object startNodeValue = values[startIndex];
 				Vertex fromVertex = upsertVertex(startNode, startNodeValue);
-				
-				//get to vertex	
+
+				// get to vertex
 				String endNode = headers[endIndex];
 				String endUniqueName = logicalToTypeMap.get(endNode);
-				if(endUniqueName == null) {
+				if (endUniqueName == null) {
 					endUniqueName = endNode;
 				}
 				Object endNodeValue = values[endIndex];
 				Vertex toVertex = upsertVertex(endNode, endNodeValue);
-				
+
 				upsertEdge(fromVertex, startUniqueName, toVertex, endUniqueName);
 			}
 		}
-		
-		// this is to replace the addRow method which needs to be called on the first iteration
+
+		// this is to replace the addRow method which needs to be called on the first
+		// iteration
 		// since edges do not exist yet
-		if(!hasRel) {
+		if (!hasRel) {
 			String singleColName = headers[0];
 			String singleNodeType = logicalToTypeMap.get(singleColName);
 			Object startNodeValue = values[0];
@@ -471,41 +519,45 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		}
 	}
 
-	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality, String[] logicalToTypeMap) {
+	public void addRelationship(String[] headers, Object[] values, Map<Integer, Set<Integer>> cardinality,
+			String[] logicalToTypeMap) {
 		boolean hasRel = false;
-		
-		for(Integer startIndex : cardinality.keySet()) {
+
+		for (Integer startIndex : cardinality.keySet()) {
 			Set<Integer> endIndices = cardinality.get(startIndex);
-			if(endIndices==null) continue;
-			
-			for(Integer endIndex : endIndices) {
+			if (endIndices == null) {
+				continue;
+			}
+
+			for (Integer endIndex : endIndices) {
 				hasRel = true;
-				
-				//get from vertex
+
+				// get from vertex
 				String startNode = headers[startIndex];
 				String startUniqueName = logicalToTypeMap[startIndex];
 				Object startNodeValue = values[startIndex];
 				Vertex fromVertex = upsertVertex(startNode, startNodeValue);
-				
-				//get to vertex	
+
+				// get to vertex
 				String endNode = headers[endIndex];
 				String endUniqueName = logicalToTypeMap[endIndex];
 				Object endNodeValue = values[endIndex];
 				Vertex toVertex = upsertVertex(endNode, endNodeValue);
-				
+
 				upsertEdge(fromVertex, startUniqueName, toVertex, endUniqueName);
 			}
 		}
-		
-		// this is to replace the addRow method which needs to be called on the first iteration
+
+		// this is to replace the addRow method which needs to be called on the first
+		// iteration
 		// since edges do not exist yet
-		if(!hasRel) {
+		if (!hasRel) {
 			String singleNodeType = logicalToTypeMap[0];
 			Object startNodeValue = values[0];
 			upsertVertex(singleNodeType, startNodeValue);
 		}
 	}
-	
+
 //	private void removeIncompletePaths() {
 //		GraphTraversal deleteVertices = GremlinBuilder.getIncompleteVertices(getSelectors(), this.g);
 //		while(deleteVertices.hasNext()) {
@@ -549,36 +601,42 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 //	}
 
-	/****************************** END AGGREGATION METHODS *********************************/
-	
+	/******************************
+	 * END AGGREGATION METHODS
+	 *********************************/
+
 	/**
 	 * 
 	 * @param columnHeader - column to remove values from
 	 * @param removeValues - values to be removed
 	 * 
-	 * removes vertices from the graph that are associated with the column and values
+	 *                     removes vertices from the graph that are associated with
+	 *                     the column and values
 	 */
 	public void remove(String columnHeader, List<Object> removeValues) {
-		//for each value
-		for(Object val : removeValues) {
-			String id = columnHeader +":"+ val.toString();
+		// for each value
+		for (Object val : removeValues) {
+			String id = columnHeader + ":" + val.toString();
 
-			//find the vertex
+			// find the vertex
 			GraphTraversal<Vertex, Vertex> fgt = g.traversal().V().has(TINKER_ID, id);
 			Vertex nextVertex = null;
-			if(fgt.hasNext()) {
-				//remove
+			if (fgt.hasNext()) {
+				// remove
 				nextVertex = fgt.next();
 				nextVertex.remove();
 			}
 		}
 	}
-	
-	/****************************** END FILTER METHODS ******************************************/
-	
-	
-	/****************************** TRAVERSAL METHODS *******************************************/
-	
+
+	/******************************
+	 * END FILTER METHODS
+	 ******************************************/
+
+	/******************************
+	 * TRAVERSAL METHODS
+	 *******************************************/
+
 //	@Override
 //	public Iterator<List<Object[]>> scaledUniqueIterator(String columnHeader, List<String> attributeUniqueHeaderName) {
 ////		List<String> selectors = null;
@@ -606,7 +664,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
-		if(isNumeric(columnHeader)) {
+		if (isNumeric(columnHeader)) {
 			GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 			SelectQueryStruct qs = new SelectQueryStruct();
 			// add selector
@@ -616,14 +674,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
-			it.execute();
-			List<Object> columnList = new ArrayList<>();
-			while(it.hasNext()) {
-				columnList.add(it.next().getValues()[0]);
+			try (RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs)) {
+				it.execute();
+				List<Object> columnList = new ArrayList<>();
+				while (it.hasNext()) {
+					columnList.add(it.next().getValues()[0]);
+				}
+
+				return columnList.toArray(new Double[columnList.size()]);
+			} catch (IOException e) {
+				logger.error("Failed to flush column {} as a double array", columnHeader);
+				classLogger.error("Error flushing column {} as a double array", columnHeader, e);
 			}
-			
-			return columnList.toArray(new Double[columnList.size()]);
 		}
 		return null;
 	}
@@ -631,116 +693,125 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	@Override
 	public void removeColumn(String columnHeader) {
 		// if column header doesn't exist, do nothing
-		if(!ArrayUtilityMethods.arrayContainsValue(this.qsNames, columnHeader)) {
+		if (!ArrayUtilityMethods.arrayContainsValue(this.qsNames, columnHeader)) {
 			return;
 		}
-		
+
 		// A couple of thoughts from Bill Sutton
 		// there are quite a few interesting scenarios here
-		// the first question is: do we want to maintain duplicate rows after a column is removed? I could see yes and no depending on the scenario
-		// If yes, primary keys of some sort will have to be used. if the tinker already has PKs, we are good to go. Otherwise, we are probably best off just removing the column from the selectors since it will need PKs anyway
-		// If no, primary keys cause a big issue--would have to remove the nodes of interest and then clean up extra PKs
-		// If no and no primary keys we again have a couple scenarios. If the node is on the fringe of the tinker, good to go--just remove it. If the node is in the middle... not sure exactly what we can do--kind of similar to issue above (no and pks)
+		// the first question is: do we want to maintain duplicate rows after a column
+		// is removed? I could see yes and no depending on the scenario
+		// If yes, primary keys of some sort will have to be used. if the tinker already
+		// has PKs, we are good to go. Otherwise, we are probably best off just removing
+		// the column from the selectors since it will need PKs anyway
+		// If no, primary keys cause a big issue--would have to remove the nodes of
+		// interest and then clean up extra PKs
+		// If no and no primary keys we again have a couple scenarios. If the node is on
+		// the fringe of the tinker, good to go--just remove it. If the node is in the
+		// middle... not sure exactly what we can do--kind of similar to issue above (no
+		// and pks)
 
-		// For now, the most common use for this will be through explore when clicking through the metamodel. This scenario will also be don't keep duplicates, no pk, node is on the fringe. I am handling that here:
+		// For now, the most common use for this will be through explore when clicking
+		// through the metamodel. This scenario will also be don't keep duplicates, no
+		// pk, node is on the fringe. I am handling that here:
 		// Remove the actual nodes from tinker
-		logger.info("REMOVING COLUMN :::: " + columnHeader);
+		logger.info("REMOVING COLUMN :::: {}", columnHeader);
 		// delete from the instances
-		
-		//if columnHeader has incoming prim key with no other outgoing types, delete that prim key first, then delete the columnHeader
-		String columnValue = columnHeader; //this.metaData.getValueForUniqueName(columnHeader);
-		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(TINKER_NAME, PRIM_KEY).as("PrimKey").out(PRIM_KEY+EDGE_LABEL_DELIMETER+columnValue).has(TINKER_TYPE, columnValue).in(PRIM_KEY+EDGE_LABEL_DELIMETER+columnValue).has(TINKER_NAME, PRIM_KEY).as("PrimKey2").where("PrimKey", P.eq("PrimKey2"));
-		while(primKeyTraversal.hasNext()) {
+
+		// if columnHeader has incoming prim key with no other outgoing types, delete
+		// that prim key first, then delete the columnHeader
+		String columnValue = columnHeader; // this.metaData.getValueForUniqueName(columnHeader);
+		GraphTraversal<Vertex, Vertex> primKeyTraversal = g.traversal().V().has(TINKER_NAME, PRIM_KEY).as("PrimKey")
+				.out(PRIM_KEY + EDGE_LABEL_DELIMETER + columnValue).has(TINKER_TYPE, columnValue)
+				.in(PRIM_KEY + EDGE_LABEL_DELIMETER + columnValue).has(TINKER_NAME, PRIM_KEY).as("PrimKey2")
+				.where("PrimKey", P.eq("PrimKey2"));
+		while (primKeyTraversal.hasNext()) {
 			Vertex nextPrimKey = primKeyTraversal.next();
 			Iterator<Vertex> verts = nextPrimKey.vertices(Direction.OUT);
-			
+
 			boolean delete = true;
-			while(verts.hasNext()) {
+			while (verts.hasNext()) {
 				delete = verts.next().value(TINKER_TYPE).equals(columnHeader);
-				if(!delete) {
+				if (!delete) {
 					delete = false;
 					break;
 				}
 			}
-			if(delete) {
+			if (delete) {
 				nextPrimKey.remove();
 			}
 		}
-		
+
 		g.traversal().V().has(TINKER_TYPE, columnValue).drop().iterate();
 		// remove the node from meta
 		this.metaData.dropVertex(columnHeader);
 		this.syncHeaders();
 	}
 
-	
 	public Object degree(String type, String data) {
-		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).group().by().by(__.bothE().count());
+		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).group()
+				.by().by(__.bothE().count());
 		Object degree = null;
-		if(gt.hasNext()) {
-			Map <Object, Object> map = gt.next();
+		if (gt.hasNext()) {
+			Map<Object, Object> map = gt.next();
 			Iterator mapKeys = map.keySet().iterator();
-			while(mapKeys.hasNext())
-			{
+			while (mapKeys.hasNext()) {
 				Object key = mapKeys.next();
 				Object value = map.get(key);
 				degree = value;
-				
-				logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);				
-			}			
+
+				logger.info("{}<<>>{}", ((Vertex) key).value(TINKER_ID), value);
+			}
 		}
 		return degree;
 	}
-	
+
 	public Long eigen(String type, String data) {
 		Long retLong = null;
 		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V()
-				.repeat(__.groupCount("m").by(TINKER_ID).out())
-				.times(5).cap("m")
-				.V()
-				.select("m");
-		if(gt2.hasNext()) {
-			Map <String, Object> map = gt2.next();
-			retLong = (Long) map.get(type + ":" +  data);
+				.repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m").V().select("m");
+		if (gt2.hasNext()) {
+			Map<String, Object> map = gt2.next();
+			retLong = (Long) map.get(type + ":" + data);
 		}
-		
+
 		return retLong;
 	}
 
 	public void printEigenMatrix() {
-		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m"); //. //(1)
-        //order(Scope.local).by(__.values(), Order.decr).limit(Scope.local, 10); //.next(); //(2)
-		if(gt.hasNext())
-		{
-			Map <Object, Object> map = gt.next();
+		GraphTraversal<Vertex, Map<Object, Object>> gt = g.traversal().V()
+				.repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m"); // . //(1)
+		// order(Scope.local).by(__.values(), Order.decr).limit(Scope.local, 10);
+		// //.next(); //(2)
+		if (gt.hasNext()) {
+			Map<Object, Object> map = gt.next();
 			Iterator mapKeys = map.keySet().iterator();
-			while(mapKeys.hasNext())
-			{
+			while (mapKeys.hasNext()) {
 				Object key = mapKeys.next();
 				Object value = map.get(key);
-				logger.info(Utility.cleanLogString(key.toString()) + "<<>>" + value);				
-				//logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
-			}			
+				logger.info("{}<<>>{}", Utility.cleanLogString(key.toString()), value);
+				// logger.info(((Vertex)key).value(TINKER_ID) + "<<>>" + value);
+			}
 		}
 	}
 
 	@Override
 	public long size(String tableName) {
 		// get a flat QS
-		// which contains all the selectors 
-		// and all the joins as inner 
+		// which contains all the selectors
+		// and all the joins as inner
 		SelectQueryStruct qs = this.metaData.getFlatTableQs(false);
-		if(qs.getSelectors().isEmpty()) {
+		if (qs.getSelectors().isEmpty()) {
 			return 0;
 		}
-		
+
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
-		
+
 		// this will count all V's
 		GraphTraversal it = interp.composeIterator().count();
-		if(it.hasNext()) {
+		if (it.hasNext()) {
 			return ((Number) it.next()).longValue() / qs.getSelectors().size();
 		}
 
@@ -764,47 +835,42 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		}
 //		return numV;
 	}
-	
+
 	public boolean isOrphan(String type, String data) {
 		boolean retValue = false;
 		GraphTraversal<Vertex, Edge> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).bothE();
-		if(gt.hasNext()) {
+		if (gt.hasNext()) {
 			retValue = false;
 		} else {
 			retValue = true;
 		}
-		
+
 		return retValue;
 	}
-	
-
-
 
 	public Map<? extends String, ? extends Object> getGraphOutput() {
 		return createVertStores2();
 	}
-	
+
 	/*
-	 * a. Adding Data - nodes / relationships
-	 * b. Doing some analytical routine on top of the data
-	 * 	2 types here
-	 * 	Map - which does for every row some calculation i.e. transformation
-	 *  Reduce / Fold - which runs for all the rows i.e. Action
-	 *  Or some combination of it thereof.. 
-	 * c. Getting a particular set of data - some particular set of columns
-	 * d. Deriving a piece of data to be added
-	 * e. Getting a particular column
-	 * f. Getting the rows for a particular column of data selected - special case of c for all intents and purposes
-	 * g. Joining / adding a new piece of data based on existing piece of data
-	 * h. Save / Read - May be we even keep this somewhere outside
-	 * Given this.. can we see why we need so many methods ?
+	 * a. Adding Data - nodes / relationships b. Doing some analytical routine on
+	 * top of the data 2 types here Map - which does for every row some calculation
+	 * i.e. transformation Reduce / Fold - which runs for all the rows i.e. Action
+	 * Or some combination of it thereof.. c. Getting a particular set of data -
+	 * some particular set of columns d. Deriving a piece of data to be added e.
+	 * Getting a particular column f. Getting the rows for a particular column of
+	 * data selected - special case of c for all intents and purposes g. Joining /
+	 * adding a new piece of data based on existing piece of data h. Save / Read -
+	 * May be we even keep this somewhere outside Given this.. can we see why we
+	 * need so many methods ?
 	 * 
-	 */	
+	 */
 
 	/**
-	 * This method will remove all nodes that are not META and are not part of the main query return
-	 * This is to keep the graph as small as possible as we are making joins
-	 * Blank nodes must be used to keep nodes in the tinker that do not connect to every type
+	 * This method will remove all nodes that are not META and are not part of the
+	 * main query return This is to keep the graph as small as possible as we are
+	 * making joins Blank nodes must be used to keep nodes in the tinker that do not
+	 * connect to every type
 	 */
 	public void removeExtraneousNodes() {
 //		LOGGER.info("removing extraneous nodes");
@@ -824,7 +890,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		this.g = newG;
 //		LOGGER.info("extraneous nodes removed");
 	}
-	
+
 	@Override
 	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
@@ -840,7 +906,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		try {
 			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to write tinker graph frame to cache file {}", frameFileName);
+			classLogger.error("Failed to write tinker graph frame to cache file {}", frameFileName, e);
 			throw new IOException("Error occurred attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -849,7 +916,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		this.saveMeta(cf, folderDir, randFrameName, cipher);
 		return cf;
 	}
-	
+
 	@Override
 	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// load the frame
@@ -860,13 +927,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			GryoIo reader = builder.create();
 			reader.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to read tinker graph frame from cache file {}", cf.getFrameCacheLocation());
+			classLogger.error("Failed to read tinker graph frame from cache file {}", cf.getFrameCacheLocation(), e);
 		}
-		
+
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
 	}
-	
+
 	public void insertBlanks(String colName, List<String> addedColumns) {
 //		// for each node in colName
 //		// if it does not have a relationship to any node in any of the addedColumns
@@ -940,12 +1008,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		
 //		return reactorNames;
 //	}
-	
+
 	@Override
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.GRAPH;
 	}
-	
+
 	@Override
 	public String getDataMakerName() {
 		return TinkerFrame.DATA_MAKER_NAME;
@@ -954,21 +1022,21 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public void changeDataType(String columnName, String newType) {
 		String typeName = columnName; // getValueForUniqueName(columnName);
 		GraphTraversal<Vertex, Vertex> traversal = this.g.traversal().V().has(TinkerFrame.TINKER_TYPE, typeName);
-		if(newType.equalsIgnoreCase("NUMBER")) {
+		if (newType.equalsIgnoreCase("NUMBER")) {
 			// convert the string to a number
 			// if it cannot be cast to a number, make it into an empty node
-			while(traversal.hasNext()) {
+			while (traversal.hasNext()) {
 				Vertex v = traversal.next();
 				String currName = v.value(TinkerFrame.TINKER_NAME);
 				try {
 					double numName = Double.parseDouble(currName);
 					v.property(TinkerFrame.TINKER_NAME, numName);
-				} catch(NumberFormatException ex) {
+				} catch (NumberFormatException ex) {
 					// get the empty vertex, and do all the edge connections
 					Vertex emptyVertex = upsertVertex(columnName, TinkerFrame.EMPTY);
 					// first do the out connections
 					Iterator<Edge> outEdges = v.edges(Direction.OUT);
-					while(outEdges.hasNext()) {
+					while (outEdges.hasNext()) {
 						Edge e = outEdges.next();
 						Vertex inVertex = e.inVertex();
 						String[] label = e.label().split(EDGE_LABEL_DELIMETER_REGEX_SPLIT);
@@ -976,7 +1044,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 					}
 					// now do the in connections
 					Iterator<Edge> inEdges = v.edges(Direction.IN);
-					while(inEdges.hasNext()) {
+					while (inEdges.hasNext()) {
 						Edge e = inEdges.next();
 						Vertex outVertex = e.inVertex();
 						String[] label = e.label().split(EDGE_LABEL_DELIMETER_REGEX_SPLIT);
@@ -987,24 +1055,24 @@ public class TinkerFrame extends AbstractTableDataFrame {
 					v.remove();
 				}
 			}
-		} else if(newType.equalsIgnoreCase("STRING")) {
+		} else if (newType.equalsIgnoreCase("STRING")) {
 			// if converting to a string
 			// just loop through and get the current value and make it into a string type
-			while(traversal.hasNext()) {
+			while (traversal.hasNext()) {
 				Vertex v = traversal.next();
 				v.property(TinkerFrame.TINKER_NAME, v.value(TinkerFrame.TINKER_NAME) + "");
 			}
-		} else if(newType.equalsIgnoreCase("DATE")) {
+		} else if (newType.equalsIgnoreCase("DATE")) {
 			logger.info("TINKER FRAME DOES NOT SUPPORT DATE TYPES!!!");
 			throw new IllegalArgumentException("Graphs do not support date as a data type!");
 		}
 	}
-	
+
 	@Override
 	public IRawSelectWrapper query(String query) {
 		return null;
 	}
-	
+
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 //		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
@@ -1016,54 +1084,54 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interp, qs);
 		gdi.execute();
 		logger.info("Done generating query...");
-		
+
 		logger.info("Executing query...");
 		QueryStructExpressionIterator qsd = new QueryStructExpressionIterator(gdi, qs);
 		qsd.execute();
 		logger.info("Done executing query");
 		return qsd;
 	}
-	
+
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		return new GremlinInterpreter(this.g.traversal(), this.metaData);
 	}
-	
+
 	private Map<String, Map<String, List>> flushRelationships(List<String[]> rels) {
 		Map<String, Map<String, List>> relMap = new HashMap<>();
 		// iterate through list
 		// and make it into a map
-		for(String[] rel : rels) {
+		for (String[] rel : rels) {
 			String start = rel[0];
 			String end = rel[1];
 			String relType = rel[2];
-			
+
 			Map<String, List> nodeComparatorMap = new HashMap<>();
-			if(relMap.containsKey(start)) {
+			if (relMap.containsKey(start)) {
 				nodeComparatorMap = relMap.get(start);
 			} else {
 				// add it to the map
 				relMap.put(start, nodeComparatorMap);
 			}
-			
+
 			List values = new ArrayList();
-			if(nodeComparatorMap.containsKey(relType)) {
+			if (nodeComparatorMap.containsKey(relType)) {
 				values = nodeComparatorMap.get(relType);
 			} else {
 				nodeComparatorMap.put(relType, values);
 			}
-			
+
 			values.add(end);
 		}
 		return relMap;
 	}
-	
+
 	@Override
 	public boolean isEmpty() {
 		GraphTraversal<Vertex, Long> tv = g.traversal().V().count();
-		if(tv.hasNext()) {
+		if (tv.hasNext()) {
 			Long count = tv.next();
-			if(count > 0) {
+			if (count > 0) {
 				return false;
 			}
 		}
@@ -1081,7 +1149,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		qs1.setDistinct(false);
 		qs1.mergeImplicitFilters(getFrameFilters());
-		for(String[] rel : tinkerRelationships) {
+		for (String[] rel : tinkerRelationships) {
 			qs1.addRelation(rel[0], rel[1], rel[2]);
 
 		}
@@ -1092,7 +1160,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			QueryFunctionSelector countSelector = new QueryFunctionSelector();
 			countSelector.setFunction(QueryFunctionHelper.COUNT);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			if(columnName.contains("__")) {
+			if (columnName.contains("__")) {
 				String[] split = columnName.split("__");
 				innerSelector.setTable(split[0]);
 				innerSelector.setColumn(split[1]);
@@ -1108,14 +1176,14 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		qs1.setDistinct(true);
-		for(String[] rel : tinkerRelationships) {
+		for (String[] rel : tinkerRelationships) {
 			qs2.addRelation(rel[0], rel[1], rel[2]);
 		}
 		qs2.mergeImplicitFilters(getFrameFilters());
 		{
 			// TODO: WHY CAN'T I DO A UNIQUE COUNT!!! ???
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			if(columnName.contains("__")) {
+			if (columnName.contains("__")) {
 				String[] split = columnName.split("__");
 				innerSelector.setTable(split[0]);
 				innerSelector.setColumn(split[1]);
@@ -1128,44 +1196,36 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		Iterator<IHeadersDataRow> uniqueNRowIt = query(qs2);
 		Set<String> uniqueSet = new HashSet<String>();
-		while(uniqueNRowIt.hasNext()) {
+		while (uniqueNRowIt.hasNext()) {
 			uniqueSet.add(Arrays.toString(uniqueNRowIt.next().getValues()));
 		}
 		long uniqueNRow = uniqueSet.size();
 
-		isUnique = (long) nRow == (long) uniqueNRow;
+		isUnique = nRow == uniqueNRow;
 		return isUnique;
 	}
-	
+
 	@Override
 	public void close() {
 		super.close();
 		this.g.clear();
 		this.g.close();
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	/////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Deprecated stuff
 	 */
-	
+
 	@Override
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
 		long startTime = System.currentTimeMillis();
 		logger.info("Processing Component..................................");
 
-		List<ISEMOSSTransformation>  preTrans = component.getPreTrans();
-		List<Map<String,String>> joinColList= new ArrayList<> ();
+		List<ISEMOSSTransformation> preTrans = component.getPreTrans();
+		List<Map<String, String>> joinColList = new ArrayList<>();
 		String joinType = null;
 		List<prerna.sablecc2.om.Join> joins = new ArrayList<>();
 		for (ISEMOSSTransformation transformation : preTrans) {
@@ -1195,7 +1255,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			String query = component.getQuery();
 			qs2 = new HardSelectQueryStruct();
 			((HardSelectQueryStruct) qs2).setQuery(query);
-			qs2.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
 			qs2 = new SelectQueryStruct();
 			// add selectors
@@ -1208,17 +1268,17 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add relations
 			Set<IRelation> rels = new RelationSet();
 			Map<String, Map<String, List>> curRels = qs.getRelations();
-			for(String up : curRels.keySet()) {
+			for (String up : curRels.keySet()) {
 				Map<String, List> innerMap = curRels.get(up);
-				for(String jType : innerMap.keySet()) {
+				for (String jType : innerMap.keySet()) {
 					List downs = innerMap.get(jType);
-					for(Object d : downs) {
-						rels.add(new BasicRelationship(new String[]{up, jType, d.toString()}));
+					for (Object d : downs) {
+						rels.add(new BasicRelationship(new String[] { up, jType, d.toString() }));
 					}
 				}
 			}
 			qs2.mergeRelations(rels);
-			qs2.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		}
 
 		long time1 = System.currentTimeMillis();
@@ -1230,20 +1290,22 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Failed to insert data into tinker frame for engine {}", component.getEngineName());
+				classLogger.error("Failed to insert data into tinker frame for engine {}", component.getEngineName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		} else {
 			try {
 				importer.mergeData(joins);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Failed to merge data into tinker frame for engine {}", component.getEngineName());
+				classLogger.error("Failed to merge data into tinker frame for engine {}", component.getEngineName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}
 
 		long time2 = System.currentTimeMillis();
-		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
+		logger.info(" Processed Merging Data: {} ms", (time2 - time1));
 //
 //      processPreTransformations(component, component.getPreTrans() );
 //      long time1 = System.currentTimeMillis();
@@ -1338,11 +1400,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //
 //      long time4 = System.currentTimeMillis();
 //      LOGGER.info("Component Processed: " +(time4 - startTime)+" ms");
-  }
+	}
 
-
-	
-	
 //	// Backdoor entry
 //	public void openBackDoor(){
 //		Thread thread = new Thread(){
@@ -1428,7 +1487,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //                      }
 //                }
 //    }
-	
+
 //	public GraphTraversal runGremlin(String gremlinQuery){
 //		//instead of running the openCommandLine we are going to specify the query that we want to return data for. 
 //		GraphTraversal gt = null;
@@ -1486,8 +1545,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		return gt;
 //	}
 
-	/**********************    TESTING PLAYGROUND  ******************************************/
-	
+	/**********************
+	 * TESTING PLAYGROUND
+	 ******************************************/
+
 //	public static void main(String [] args) throws Exception
 //	{
 ////		testDeleteRows();
@@ -2310,5 +2371,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		return tester;
 //	}
 
-	/**********************   END TESTING PLAYGROUND  **************************************/
+	/**********************
+	 * END TESTING PLAYGROUND
+	 **************************************/
 }

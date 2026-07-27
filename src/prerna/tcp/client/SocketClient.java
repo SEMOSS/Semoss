@@ -32,6 +32,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.UnixDomainSocketAddress;
+import java.nio.channels.Channels;
+import java.nio.channels.SocketChannel;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -45,6 +49,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,12 +77,21 @@ public class SocketClient implements Runnable, Closeable {
 	String HOST = null;
 	int PORT = -1;
 	boolean SSL = false;
+	String udsPath = null;
 
 	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
 	Map<String, PayloadStruct> responseMap = new ConcurrentHashMap<>();
 	Map<String, Set<String>> insightToEpoc = new ConcurrentHashMap<>();
 	Map<String, Set<String>> jobToEpoc = new ConcurrentHashMap<>();
 	Set<String> cancelledEpocs = ConcurrentHashMap.<String>newKeySet();
+
+	// Hard cap on how long a caller blocks waiting for a python response before it
+	// gives up. We never wait forever: after this the caller surfaces a timeout,
+	// but
+	// python keeps running (we don't kill the process), so a script that persists
+	// its
+	// own results can still finish and be retrieved later.
+	protected static final Duration MAX_RESPONSE_WAIT = Duration.ofHours(24);
 
 	volatile boolean ready = false;
 	volatile boolean connected = false;
@@ -89,13 +104,17 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, String> startMdc = null;
 
 	Socket clientSocket = null;
+	SocketChannel udsChannel = null;
 	SocketClientHandler sch = new SocketClientHandler();
+
+	private final ReentrantLock readinessLock = new ReentrantLock();
+	private final Condition readinessChanged = readinessLock.newCondition();
 
 	volatile InputStream is = null;
 	volatile OutputStream os = null;
-	final Object WRITE_LOCK = new Object();
+	final ReentrantLock WRITE_LOCK = new ReentrantLock();
 
-	Gson gson = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+	final Gson GSON = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.create();
 
 	ClientProcessWrapper cpw = null;
@@ -120,9 +139,30 @@ public class SocketClient implements Runnable, Closeable {
 		this.SSL = SSL;
 	}
 
+	public void connectUds(final String udsPath) {
+		this.udsPath = udsPath;
+		this.SSL = false;
+	}
+
+	protected void openConnection() throws IOException {
+		if (this.udsPath != null) {
+			UnixDomainSocketAddress address = UnixDomainSocketAddress.of(this.udsPath);
+			this.udsChannel = SocketChannel.open(address);
+			this.is = Channels.newInputStream(this.udsChannel);
+			this.os = Channels.newOutputStream(this.udsChannel);
+		} else {
+			this.clientSocket = new Socket(this.HOST, this.PORT);
+			this.is = this.clientSocket.getInputStream();
+			this.os = this.clientSocket.getOutputStream();
+		}
+	}
+
+	protected String transportTarget() {
+		return this.udsPath != null ? ("unix:" + this.udsPath) : (this.HOST + ":" + this.PORT);
+	}
+
 	@Override
 	public void run() {
-		// Configure SSL.git
 		int attempt = 1;
 		int SLEEP_TIME = 800;
 		if (Utility.getDIHelperProperty("SLEEP_TIME") != null) {
@@ -130,8 +170,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		classLogger.info("Trying with sleep time {}", SLEEP_TIME);
-		while (!connected && attempt < 6) // I do an attempt here too hmm..
-		{
+		while (!connected && attempt < 6) {
 			try {
 				final SslContext sslCtx;
 				if (SSL) {
@@ -144,11 +183,7 @@ public class SocketClient implements Runnable, Closeable {
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 
-				clientSocket = new Socket(this.HOST, this.PORT);
-
-				// pick input and output stream and start the threads
-				this.is = clientSocket.getInputStream();
-				this.os = clientSocket.getOutputStream();
+				openConnection();
 				sch.setClient(this);
 				sch.setInputStream(this.is);
 
@@ -156,39 +191,73 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("Connected to socket server at {}:{}", this.HOST, this.PORT);
-				Thread.sleep(100); // sleep some before executing command
-				// prime it
-				// logger.info("First command.. Prime" + executeCommand("2+2"));
+				classLogger.info("Connected to socket server at {}", transportTarget());
+				Thread.sleep(100); // brief pause before issuing commands
 				connected = true;
 				ready = true;
 				killAll = false;
-				synchronized (this) {
-					this.notifyAll();
-				}
+				signalReadinessChanged();
 			} catch (Exception ex) {
 				attempt++;
 				classLogger.info("Attempting connection number {}", attempt);
-				// see if sleeping helps ?
 				try {
-					// sleeping only for 1 second here
-					// but the py executor sleeps in 2 second increments
 					Thread.sleep(attempt * SLEEP_TIME);
-				} catch (Exception ex2) {
-					// ignored
+				} catch (InterruptedException ex2) {
+					Thread.currentThread().interrupt();
 				}
 			}
 		}
 
 		if (attempt >= 6) {
-			classLogger.error("Failed to connect to socket server at {}:{} after {} attempts", this.HOST, this.PORT, attempt);
+			classLogger.error("Failed to connect to socket server at {} after {} attempts", transportTarget(), attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
-			synchronized (this) {
-				this.notifyAll();
-			}
+			signalReadinessChanged();
 			throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+		}
+	}
+
+	public void awaitReadyOrKill() {
+		awaitReadyOrKill(60_000L, 1_000L);
+	}
+
+	public void awaitReadyOrKill(long timeoutMillis, long pollIntervalMillis) {
+		long waitDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+		long pollNanos = TimeUnit.MILLISECONDS.toNanos(pollIntervalMillis);
+
+		readinessLock.lock();
+		try {
+			while (!this.ready && !this.killAll) {
+				long remainingNanos = waitDeadline - System.nanoTime();
+				if (remainingNanos <= 0) {
+					throw new IllegalArgumentException(
+							"Timed out waiting for isolated analytics engine socket client to become ready");
+				}
+				try {
+					long waitNanos = Math.min(pollNanos, remainingNanos);
+					readinessChanged.await(waitNanos, TimeUnit.NANOSECONDS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting for socket client readiness", e);
+					throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
+				}
+			}
+		} finally {
+			readinessLock.unlock();
+		}
+
+		if (this.killAll) {
+			throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+		}
+	}
+
+	protected void signalReadinessChanged() {
+		readinessLock.lock();
+		try {
+			readinessChanged.signalAll();
+		} finally {
+			readinessLock.unlock();
 		}
 	}
 
@@ -214,49 +283,57 @@ public class SocketClient implements Runnable, Closeable {
 		}
 		ps.longRunning = true;
 
-		synchronized (ps) // going back to single threaded .. earlier it was ps
-		{
-			// if(ps.hasReturn)
-			// put it into request map
+		// ReentrantLock + Condition (not synchronized/wait) so a virtual thread
+		// blocked here does not pin its carrier while it waits for the response
+		ps.lockResponse();
+		try {
 			if (!ps.response) {
 				requestMap.put(id, ps);
 			}
 			classLogger.info("Outgoing epoc {}", ps.epoc);
 			writePayload(ps);
-			// send the message
 
-			// time to wait = average time * 10
-			// if this is a request wait for it
-			if (!ps.response) // this is a response to something the socket has asked
-			{
-				int pollNum = 1; // 1 second
-				while (!responseMap.containsKey(ps.epoc) && (pollNum < 10 || ps.longRunning) && !killAll) {
-					// logger.info("Checking to see if there was a response");
+			// if this is a request, wait for the response to come back
+			if (!ps.response) {
+				long waitDeadline = System.nanoTime() + MAX_RESPONSE_WAIT.toNanos();
+				int pollNum = 1;
+				while (!responseMap.containsKey(ps.epoc) && (pollNum < 10 || ps.longRunning) && !killAll
+						&& System.nanoTime() < waitDeadline) {
 					try {
 						if (pollNum < 10) {
-							ps.wait(averageMillis);
-						} else { // if(ps.longRunning) // this is to make sure the kill all is being checked
-							ps.wait(); // wait eternally - we dont know how long some of the load operations would take
-										// besides, I am not sure if the null gets us anything
+							ps.awaitResponse(averageMillis, TimeUnit.MILLISECONDS);
+						} else {
+							// wait for the response, but no longer than the time remaining
+							// until the cap - we don't know how long load operations take, but
+							// we don't wait forever either
+							long remainingNanos = waitDeadline - System.nanoTime();
+							if (remainingNanos > 0) {
+								ps.awaitResponse(remainingNanos, TimeUnit.NANOSECONDS);
+							}
 						}
 						pollNum++;
 					} catch (InterruptedException e) {
 						classLogger.error("Interrupted while waiting for response to epoc: {}", ps.epoc, e);
 					}
-					/*
-					 * // trigger after 400 milliseconds if(pollNum == 2 && !ps.longRunning) {
-					 * logger.info("Writing empty message " + ps.epoc); writeEmptyPayload(); }
-					 */
 				}
-				if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
+				if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
+					// hit the hard cap - stop waiting but leave python running so a script
+					// that persists its own results can still finish
+					this.requestMap.remove(ps.epoc);
+					classLogger.warn(
+							"Stopped waiting for epoc {} method {} after the {}h max wait; python continues running in the background",
+							ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
+					throw new SemossPixelException("This execution exceeded the maximum wait time of "
+							+ MAX_RESPONSE_WAIT.toHours()
+							+ " hours. The python process is still running in the background - if your script persists its results, you can retrieve them later.");
+				} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
 					classLogger.info("Timed out waiting for epoc {} method {}", ps.epoc, ps.methodName);
-
 				}
 			}
 
-			// after 10 seconds give up
-			// printUnprocessed();
 			return responseMap.remove(ps.epoc);
+		} finally {
+			ps.unlockResponse();
 		}
 	}
 
@@ -266,13 +343,14 @@ public class SocketClient implements Runnable, Closeable {
 	 */
 	private void writePayload(PayloadStruct ps) {
 		byte[] psBytes = FstUtil.packBytes(ps);
+		WRITE_LOCK.lock();
 		try {
-			synchronized (WRITE_LOCK) {
-				os.write(psBytes);
-			}
+			os.write(psBytes);
 		} catch (IOException ex) {
 			classLogger.error("Failed to write payload to socket output stream for epoc: {}", ps.epoc, ex);
 			crash();
+		} finally {
+			WRITE_LOCK.unlock();
 		}
 	}
 
@@ -293,31 +371,29 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						// wait 1 minute at most
+						boolean result = future.get(60, TimeUnit.SECONDS);
+						classLogger.info("Stop PyServe result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
+						return false;
+					}
 				}
 			} else {
 				return true;
@@ -332,44 +408,35 @@ public class SocketClient implements Runnable, Closeable {
 	 * 
 	 */
 	public void crash() {
-		// this happens when the client has completely crashed
-		// make the connected to be false
-		// take everything that is waiting on it
-		// go through request map and start pushing
-
-		// run as executor since it is synchronized
-		// and dont want to get stuck if an issue occurs and the notify never happens
-		// we will close and kill process anyway
-		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-
-		Callable<String> callableTask = () -> {
-			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-					synchronized (ps) {
-						ps.notifyAll();
+		// the client has lost the server - release everything waiting on a response.
+		// run on a separate executor so a stuck signal can't block us; we close and
+		// kill the process regardless
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			Callable<String> callableTask = () -> {
+				try {
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
+						ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+						ps.signalResponse();
 					}
+				} catch (Exception e) {
+					classLogger.error("Error releasing pending payload structs during crash", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error releasing pending payload structs during crash", e);
-			}
-			return "Successfully released the payload structs";
-		};
+				return "Successfully released the payload structs";
+			};
 
-		Future<String> future = executor.submit(callableTask);
-		try {
-			// wait 1 minute at most
-			String result = future.get(60, TimeUnit.SECONDS);
-			classLogger.info(result);
-		} catch (TimeoutException e) {
-			classLogger.warn("Not able to release the payload structs within a timely fashion");
-			future.cancel(true);
-		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error("Error waiting for crash cleanup to complete", e);
-		} finally {
-			executor.shutdown();
+			Future<String> future = executor.submit(callableTask);
+			try {
+				// wait 1 minute at most
+				String result = future.get(60, TimeUnit.SECONDS);
+				classLogger.info(result);
+			} catch (TimeoutException e) {
+				classLogger.warn("Not able to release the payload structs within a timely fashion");
+				future.cancel(true);
+			} catch (InterruptedException | ExecutionException e) {
+				classLogger.error("Error waiting for crash cleanup to complete", e);
+			}
 		}
 
 		this.close();
@@ -394,6 +461,7 @@ public class SocketClient implements Runnable, Closeable {
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
+		closeStream(this.udsChannel);
 		this.killAll = true;
 		this.connected = false;
 	}
@@ -490,9 +558,7 @@ public class SocketClient implements Runnable, Closeable {
 			for (String epoc : epocs) {
 				PayloadStruct lock = this.requestMap.remove(epoc);
 				if (lock != null) {
-					synchronized (lock) {
-						lock.notifyAll();
-					}
+					lock.signalResponse();
 				}
 			}
 		}

@@ -47,7 +47,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.NounStore;
@@ -64,7 +64,6 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AbstractSqlQueryReactor.class);
 
 	private static final int DEFAULT_LIMIT = 50;
-	private static final int MAX_LIMIT = 5_000;
 
 	private enum QueryType {
 		SELECT, INSERT, UPDATE, DELETE, OTHER
@@ -286,36 +285,19 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		qs.setEngineId(databaseId);
 		qs.setEngine(engine);
 		qs.setQuery(sqlQuery);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return qs;
 	}
 
-	/**
-	 * Parse and validate limit parameter
-	 * 
-	 * @param limitStr
-	 * @return
-	 */
 	private int parseLimit(String limitStr) {
 		int limit = DEFAULT_LIMIT; // default
-
 		if (limitStr != null && !limitStr.trim().isEmpty()) {
 			try {
 				limit = Integer.parseInt(limitStr.trim());
-
-				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
-					limit = DEFAULT_LIMIT;
-				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
-					limit = MAX_LIMIT;
-				}
-
 			} catch (NumberFormatException e) {
 				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}
 		}
-
 		return limit;
 	}
 

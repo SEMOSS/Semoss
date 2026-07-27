@@ -28,7 +28,6 @@
 package prerna.usertracking;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,20 +36,23 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.Constants;
+import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public abstract class AbstractUserTrackingUtils implements IUserTracking {
 
-	private static Logger logger = LogManager.getLogger(AbstractUserTrackingUtils.class);
+	private static Logger classLogger = LogManager.getLogger(AbstractUserTrackingUtils.class);
 
 	/**
-	 * 
-	 * @param sessionId
-	 * @param utd
-	 * @param user
-	 * @param ap
+	 * Persists a login session for the user, keyed by the anonymous id for
+	 * anonymous users or by the access token id for the given auth provider
+	 * otherwise.
+	 *
+	 * @param sessionId the HTTP session id
+	 * @param utd       the tracking details (IP and geolocation) for the session
+	 * @param user      the user logging in
+	 * @param ap        the auth provider the login was performed against
 	 */
 	protected static void saveSession(String sessionId, UserTrackingDetails utd, User user, AuthProvider ap) {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
@@ -64,6 +66,16 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 		}
 	}
 
+	/**
+	 * Inserts a user-tracking session row with the resolved user id, type, and
+	 * geolocation details.
+	 *
+	 * @param sessionId the HTTP session id
+	 * @param utd       the tracking details (IP and geolocation) for the session
+	 * @param userId    the resolved user id (anonymous id or access token id)
+	 * @param type      the credential type (e.g. "ANONYMOUS" or the auth provider)
+	 * @param timestamp the session creation time
+	 */
 	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type,
 			java.sql.Timestamp timestamp) {
 		String query = "INSERT INTO USER_TRACKING " + "(SESSIONID, USERID, TYPE, CREATED_ON, ENDED_ON, "
@@ -115,27 +127,17 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to save user tracking session {} for user {} ({})", sessionId, userId, type, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (engine.isConnectionPooling()) {
-				try {
-					if (ps != null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
 		}
 	}
 
+	/**
+	 * Marks the session's tracking row as ended by stamping its end time.
+	 *
+	 * @param sessionId the HTTP session id that ended
+	 */
 	@Override
 	public void registerLogout(String sessionId) {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
@@ -154,24 +156,9 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user tracking logout time for session {}", sessionId, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (engine.isConnectionPooling()) {
-				try {
-					if (ps != null) {
-						ps.getConnection().close();
-					}
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
 		}
 	}
 

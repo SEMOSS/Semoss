@@ -29,7 +29,9 @@ package prerna.reactor.engine.fs;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
@@ -114,7 +117,7 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 
 		// Stage the file deletions in git
 		try (Git git = Git.open(new File(versionGitFolder))) {
@@ -151,4 +154,13 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		return super.getDescriptionForKey(key);
 	}
 
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
+	}
 }

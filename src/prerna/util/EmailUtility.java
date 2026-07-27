@@ -58,7 +58,7 @@ import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {
 
-	private static final Logger logger = LogManager.getLogger(EmailUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(EmailUtility.class);
 
 	private static final String PROJECT_ACCESS_APPROVAL_TEMPLATE = "projectAccessApproval.html";
 	private static final String ENGINE_ACCESS_APPROVAL_TEMPLATE = "engineAccessApproval.html";
@@ -135,7 +135,7 @@ public class EmailUtility {
 			String[] attachments) {
 		if ((toRecipients == null || toRecipients.length == 0) && (ccRecipients == null || ccRecipients.length == 0)
 				&& (bccRecipients == null || bccRecipients.length == 0)) {
-			logger.info("No receipients to send an email to");
+			classLogger.info("No receipients to send an email to");
 			return false;
 		}
 
@@ -186,7 +186,7 @@ public class EmailUtility {
 					try {
 						attachmentBodyPart.attachFile(new File(filePath));
 					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error(Constants.STACKTRACE, e);
 						throw new IllegalArgumentException("Error adding attachment");
 					}
 					attachmentBodyPart.setFileName(new File(filePath).getName());
@@ -208,14 +208,14 @@ public class EmailUtility {
 			if (bccRecipients != null) {
 				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(". ");
 			}
-			logger.info(logMessage.toString());
+			classLogger.info(logMessage.toString());
 
 			return true;
 		} catch (SendFailedException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new RuntimeException("Bad SMTP Connection");
 		} catch (MessagingException me) {
-			logger.error(Constants.STACKTRACE, me);
+			classLogger.error(Constants.STACKTRACE, me);
 		}
 
 		return false;
@@ -540,7 +540,7 @@ public class EmailUtility {
 			try {
 				template = FileUtils.readFileToString(templateFile, "UTF-8");
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return template;

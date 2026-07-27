@@ -88,6 +88,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.LocalDateTimeAdapter;
+import prerna.util.gson.ZoneIdTypeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
 
@@ -109,6 +110,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
 			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
+			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
 			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
 			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
@@ -116,6 +118,11 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
 	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";
+
+	// GUARDRAIL_ACTION audit column values - the notable action a guardrail row
+	// took
+	private static final String GUARDRAIL_ACTION_MASK = "MASK";
+	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -143,13 +150,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
 		// Capture realEngine in a closure - not accessible via reflection
-		this.engineInvoker = (method, args) -> {
-			try {
-				return method.invoke(realEngine, args);
-			} catch (InvocationTargetException e) {
-				throw e.getTargetException();
-			}
-		};
+		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
 		this.engineType = realEngine.getCatalogType().name();
@@ -236,8 +237,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					processedArguments = mapArguments(null, method, args, processedArguments);
 					String request = null;
 					String response = null;
-					int tokensInPrompt = 0;
-					int tokensInResponse = 0;
+					Integer tokensInPrompt = null;
+					Integer tokensInResponse = null;
 					if (keepInputOutput) {
 						request = GSON.toJson(processedArguments);
 						response = result == null ? "" : GSON.toJson(result);
@@ -245,13 +246,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						request = REQUEST_NOT_TRACKED;
 						response = RESPONSE_NOT_TRACKED;
 					}
+					Integer cacheReadTokens = null;
+					Integer cacheCreationTokens = null;
 					if (result instanceof AbstractModelEngineResponse) {
-						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
-						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+						AbstractModelEngineResponse modelResponse = (AbstractModelEngineResponse) result;
+						tokensInPrompt = modelResponse.getNumberOfTokensInPrompt();
+						tokensInResponse = modelResponse.getNumberOfTokensInResponse();
+						cacheReadTokens = modelResponse.getNumberOfCacheReadTokens();
+						cacheCreationTokens = modelResponse.getNumberOfCacheCreationTokens();
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
 				}
 			}
 
@@ -280,6 +286,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					inputNouns.addNoun(PipelineReactorUtils.ARGUMENTS, grs);
 					reactor.setNounStore(inputNouns);
 
+					// Snapshot the request as this reactor RECEIVES it (only when tracking
+					// I/O), before execute() can mutate the shared arguments (e.g. mask arg0).
+					// Without this the audit row serializes the post-mask value and the
+					// original input is lost.
+					String requestSnapshot = keepInputOutput ? GSON.toJson(processedArguments) : null;
+
 					Instant start = Instant.now();
 					NounMetadata resultNoun = reactor.execute();
 					Instant end = Instant.now();
@@ -288,14 +300,25 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					// updated processedArguments map
 					processedArguments = (Map<String, Object>) resultNoun.getValue();
 
+					// Fold any argument rewrites (e.g. PII masking) back into the args
+					// array so they (a) survive the next input reactor's mapArguments
+					// reseed and (b) are passed to the real engine method below.
+					args = unmapArguments(method, processedArguments);
+
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
+					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
+					// MASK when the guardrail neutralized content, BLOCK when it stopped the
+					// request, null when it ran clean - queryable via the GUARDRAIL_ACTION column
+					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
 
 					String request = null;
 					String response = null;
 					if (keepInputOutput || !pass) {
-						request = GSON.toJson(processedArguments);
+						// requestSnapshot holds the pre-mask input; fall back to the current
+						// args only for the block case when I/O tracking is off.
+						request = requestSnapshot != null ? requestSnapshot : GSON.toJson(processedArguments);
 						response = GSON.toJson(resultMap);
 					} else {
 						request = REQUEST_NOT_TRACKED;
@@ -303,7 +326,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
-							reactor.getClass().getSimpleName(), null, 0, 0);
+							reactor.getClass().getSimpleName(), null, null, null, guardrailAction);
 
 					if (!pass) {
 						throw new SemossPixelException(
@@ -312,9 +335,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				}
 			}
 
-			// The unmapArguments method will now correctly use the updated
-			// processedArguments
-			Object[] finalArgs = unmapArguments(method, processedArguments);
+			// Any input-reactor rewrites (e.g. masking) have already been folded back
+			// into `args` inside the input loop above, so the real method is invoked
+			// with the (possibly masked) arguments.
 
 			// === ACTUAL METHOD EXECUTION ===
 			{
@@ -331,8 +354,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					String request = null;
 					String response = null;
-					int tokensInPrompt = 0;
-					int tokensInResponse = 0;
+					Integer tokensInPrompt = null;
+					Integer tokensInResponse = null;
 					if (keepInputOutput) {
 						request = GSON.toJson(processedArguments);
 						response = result == null ? "" : GSON.toJson(result);
@@ -340,13 +363,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						request = REQUEST_NOT_TRACKED;
 						response = RESPONSE_NOT_TRACKED;
 					}
+					Integer cacheReadTokens = null;
+					Integer cacheCreationTokens = null;
 					if (result instanceof AbstractModelEngineResponse) {
-						tokensInPrompt = ((AbstractModelEngineResponse) result).getNumberOfTokensInPrompt();
-						tokensInResponse = ((AbstractModelEngineResponse) result).getNumberOfTokensInResponse();
+						AbstractModelEngineResponse modelResponse = (AbstractModelEngineResponse) result;
+						tokensInPrompt = modelResponse.getNumberOfTokensInPrompt();
+						tokensInResponse = modelResponse.getNumberOfTokensInResponse();
+						cacheReadTokens = modelResponse.getNumberOfCacheReadTokens();
+						cacheCreationTokens = modelResponse.getNumberOfCacheCreationTokens();
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
-							tokensInPrompt, tokensInResponse);
+							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null);
 				}
 			}
 
@@ -385,11 +413,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					Instant end = Instant.now();
 
 					processedArguments = (Map<String, Object>) resultNoun.getValue();
-					pipelineIndex++;
 
 					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
+					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
+					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
 
 					String request = null;
 					String response = null;
@@ -402,7 +431,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
-							reactor.getClass().getSimpleName(), 0, 0);
+							reactor.getClass().getSimpleName(), null, null, guardrailAction);
 
 					if (!pass) {
 						throw new SemossPixelException(
@@ -425,8 +454,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param outputReactorName
 	 */
 	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
-			String request, String response, String inputReactorName, String outputReactorName, int tokensInPrompt,
-			int tokensInResponse) {
+			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
+			Integer tokensInResponse, String guardrailAction) {
+		logEngineCall(engineSpecificLogger, start, end, isSuccess, request, response, inputReactorName,
+				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction);
+	}
+
+	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
+			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
+			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction) {
 		Logger logger = null;
 		if (engineSpecificLogger != null) {
 			logger = engineSpecificLogger;
@@ -444,10 +480,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			if (outputReactorName != null && !(outputReactorName = outputReactorName.trim()).isEmpty()) {
 				auditMap.put(SemossLogUtils.OUTPUT_REACTOR_NAME, outputReactorName);
 			}
+			if (guardrailAction != null) {
+				auditMap.put(SemossLogUtils.GUARDRAIL_ACTION, guardrailAction);
+			}
 			auditMap.put(SemossLogUtils.REQUEST, request);
 			auditMap.put(SemossLogUtils.RESPONSE, response);
 			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT, tokensInPrompt);
 			auditMap.put(SemossLogUtils.NUMBER_OF_TOKENS_IN_RESPONSE, tokensInResponse);
+			if (cacheReadTokens != null) {
+				auditMap.put(SemossLogUtils.NUMBER_OF_CACHE_READ_TOKENS, cacheReadTokens);
+			}
+			if (cacheCreationTokens != null) {
+				auditMap.put(SemossLogUtils.NUMBER_OF_CACHE_CREATION_TOKENS, cacheCreationTokens);
+			}
 			logger.info(auditMap);
 		}
 	}
@@ -510,8 +555,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		if (pipelineJson == null || pipelineJson.isBlank()) {
 			return;
 		}
+
 		JSONObject root = new JSONObject(pipelineJson);
-		JSONObject pipelines = root.getJSONObject("pipelines");
+		JSONObject pipelines = root.optJSONObject("pipelines");
+		if (pipelines == null) {
+			// Allow no/invalid pipelines object as an empty interceptor configuration.
+			return;
+		}
 
 		for (String methodName : pipelines.keySet()) {
 			JSONObject pipelineConfig = pipelines.getJSONObject(methodName);

@@ -56,7 +56,6 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -75,56 +74,59 @@ public class NotificationDbUtils {
 
 	public static void loadNotificationDatabase() throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		NotificationOwlCreator owlCreator = new NotificationOwlCreator(notificationDb);
-		if (owlCreator.needsRemake()) {
-			owlCreator.remakeOwl();
+		NotificationOwlCreator owlCreator = new NotificationOwlCreator(notificationDb.getQueryUtil());
+		if (owlCreator.needsRemake(notificationDb)) {
+			owlCreator.remakeOwl(notificationDb);
 		}
-		initialize();
+		initialize(owlCreator.getDBSchema());
 		initialized = true;
 	}
 
-	private static void initialize() throws Exception {
+	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String database = notificationDb.getDatabase();
 		String schema = notificationDb.getSchema();
 		Connection conn = notificationDb.getConnection();
 		try {
-			String[] colNames = null;
-			String[] types = null;
-
 			AbstractSqlQueryUtil queryUtil = notificationDb.getQueryUtil();
 			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 			boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-			final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
-			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
-			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 
-			// notification
-			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE",
-					"ACTIONTYPE", "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "CATALOGID", "CREATEDBY",
-					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USERTYPE", "USEREXISTINGROLE",
-					"USERNEWROLE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
-					"VARCHAR(50)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("NOTIFICATION", colNames, types);
-				classLogger.info("Running sql " + sql);
-				notificationDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "NOTIFICATION", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("NOTIFICATION", colNames, types);
-					classLogger.info("Running sql " + sql);
+			// create the tables and columns from the OWL creator schema
+			for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
+				String tableName = tableSchema.getValue0();
+				String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+				String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+				if (allowIfExistsTable) {
+					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
+				} else {
+					if (!queryUtil.tableExists(conn, tableName, database, schema)) {
+						String sql = queryUtil.createTable(tableName, colNames, types);
+						classLogger.info("Running sql {}", sql);
+						notificationDb.insertData(sql);
+					}
+				}
+
+				List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column {} missing from {} table; adding it. Existing columns: {}", col,
+								tableName, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						notificationDb.insertData(addColumnSql);
+					}
 				}
 			}
+
+			// NOTIFICATION index (kept)
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
 						"NOTIFICATIONID");
-				classLogger.info("Running sql " + sql);
+				classLogger.info("Running sql {}", sql);
 				notificationDb.insertData(sql);
 			} else {
 				// see if index exists
@@ -132,23 +134,8 @@ public class NotificationDbUtils {
 						database, schema)) {
 					String sql = queryUtil.createIndex("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
 							"NOTIFICATIONID");
-					classLogger.info("Running sql " + sql);
+					classLogger.info("Running sql {}", sql);
 					notificationDb.insertData(sql);
-				}
-			}
-
-			// check all the columns we want are there
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "NOTIFICATION", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '" + col + "' is not present in current list of columns: "
-								+ allCols.toString());
-						String addColumnSql = queryUtil.alterTableAddColumn("NOTIFICATION", col, types[i]);
-						classLogger.info("Running sql " + addColumnSql);
-						notificationDb.insertData(addColumnSql);
-					}
 				}
 			}
 
@@ -258,7 +245,8 @@ public class NotificationDbUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to insert notification for recipient {} (type {}) on catalog {}", recipientId,
+						recipientType, catalogId, e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 			}
@@ -391,12 +379,14 @@ public class NotificationDbUtils {
 		if (notificationId != null) {
 			conditions.add("NOTIFICATIONID = ?");
 			parameters.add(notificationId);
-		} else if (recipientId != null && recipientType != null) {
+		}
+		if (recipientId != null && recipientType != null) {
 			conditions.add("RECIPIENTID = ?");
 			parameters.add(recipientId);
 			conditions.add("RECIPIENTTYPE = ?");
 			parameters.add(recipientType);
-		} else {
+		}
+		if (conditions.isEmpty()) {
 			return 0; // nothing to delete
 		}
 
@@ -416,7 +406,8 @@ public class NotificationDbUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete notification(s) [notificationId={}, recipientId={}, recipientType={}]",
+					notificationId, recipientId, recipientType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -452,7 +443,8 @@ public class NotificationDbUtils {
 				conn.commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to reset notification action type from NEW to NONE for user id/type pairs {}",
+					userIdAndTypeList, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -461,24 +453,30 @@ public class NotificationDbUtils {
 	/**
 	 * Marks a notification as read and updates the read date.
 	 *
+	 * @param recipientId    -the notification recipient ID
+	 * @param recipientType  -the notification recipient type
 	 * @param notificationId -the ID of the notification
 	 * @param readDate       -the timestamp when the notification was read
 	 */
-	public static void markNotificationRead(String notificationId, Timestamp readDate) {
+	public static void markNotificationRead(String recipientId, String recipientType, String notificationId,
+			Timestamp readDate) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=? WHERE NOTIFICATIONID=?";
+		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=?"
+				+ " WHERE NOTIFICATIONID=? AND RECIPIENTID=? AND RECIPIENTTYPE=?";
 		PreparedStatement ps = null;
 		try {
 			ps = notificationDb.getPreparedStatement(query);
 			int parameterIndex = 1;
 			ps.setTimestamp(parameterIndex++, readDate);
 			ps.setString(parameterIndex++, notificationId);
+			ps.setString(parameterIndex++, recipientId);
+			ps.setString(parameterIndex++, recipientType);
 			ps.executeUpdate();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to mark notification {} as read (readDate={})", notificationId, readDate, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
@@ -507,7 +505,8 @@ public class NotificationDbUtils {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to fetch new notification count for recipient {} (type {})", recipientId,
+					recipientType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}

@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -174,16 +175,14 @@ public class BeanFiller {
 				if (beanProps.length > inputIndex) {
 					String beanProp = beanProps[inputIndex];
 					if (beanProp.startsWith("add_")) {
-						beanProp = beanProp.replaceAll("add_", "");
-						List thisList = null;
-						Object listObj = BeanUtils.getProperty(bean, beanProp);
-						if (listObj != null) {
-							thisList = (List) listObj;
-						} else {
-							thisList = new ArrayList();
+						beanProp = beanProp.replace("add_", "");
+						List<Object> thisList = new ArrayList<>();
+						Object listObj = PropertyUtils.getProperty(bean, beanProp);
+						if (listObj instanceof List<?>) {
+							thisList.addAll((List<?>) listObj);
 						}
 						thisList.add(thisInput);
-						BeanUtils.setProperty(bean, beanProp, listObj);
+						BeanUtils.setProperty(bean, beanProp, thisList);
 					} else {
 						BeanUtils.setProperty(bean, beanProp, thisInput);
 					}
@@ -243,16 +242,14 @@ public class BeanFiller {
 					String thisInput = thisInputObj.asText();
 					if (result.size() > inputIndex) {
 						if (beanProp.startsWith("add_")) {
-							beanProp = beanProp.replaceAll("add_", "");
-							List<Object> thisList = null;
-							Object listObj = BeanUtils.getProperty(bean, beanProp);
-							if (listObj != null) {
-								thisList = (List<Object>) listObj;
-							} else {
-								thisList = new ArrayList<Object>();
+							beanProp = beanProp.replace("add_", "");
+							List<Object> thisList = new ArrayList<>();
+							Object listObj = PropertyUtils.getProperty(bean, beanProp);
+							if (listObj instanceof List<?>) {
+								thisList.addAll((List<?>) listObj);
 							}
 							thisList.add(thisInput);
-							BeanUtils.setProperty(bean, beanProp, listObj);
+							BeanUtils.setProperty(bean, beanProp, thisList);
 						}
 						// normal assignment
 						else {

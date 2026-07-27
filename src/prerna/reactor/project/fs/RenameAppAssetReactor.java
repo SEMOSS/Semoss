@@ -35,12 +35,13 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
@@ -85,9 +86,10 @@ public class RenameAppAssetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must pass both existing name and new name");
 		}
 
-		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
-				project.getProjectId());
-		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
+		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
 			comment = "rename: Renaming " + currentFileName + " to " + newFileName;
@@ -106,7 +108,7 @@ public class RenameAppAssetReactor extends AbstractReactor {
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 		String email = accessToken.getEmail();
-		String author = accessToken.getUsername();
+		String author = accessToken.getResolvedUsername();
 
 		GitRepoUtils.addSpecificFiles(versionGitFolder, toAdd);
 		GitDestroyer.removeSpecificFiles(versionGitFolder, true, toRemove);

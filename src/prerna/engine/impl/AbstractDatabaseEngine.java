@@ -28,18 +28,12 @@
 package prerna.engine.impl;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -65,12 +59,11 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.security.SnowApi;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.SystemDefaultDatabases;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -149,21 +142,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		// try to set the db zone id if defined
 		setDatabaseZoneId();
 
-		// do the piece of encrypting here
-		boolean encryptFile = false;
-		if (Utility.getDIHelperProperty(Constants.ENCRYPT_SMSS) != null) {
-			encryptFile = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ENCRYPT_SMSS) + "");
-		}
-		// if not at application level, are we doing at app level
-		if (!encryptFile && this.smssProp.containsKey(Constants.ENCRYPT_SMSS)) {
-			encryptFile = Boolean.parseBoolean(smssProp.getProperty(Constants.ENCRYPT_SMSS));
-		}
-
-		if (this.smssFilePath != null && encryptFile && this.smssProp.containsKey(Constants.PASSWORD)
-				&& !((String) this.smssProp.get(Constants.PASSWORD)).equalsIgnoreCase("encrypted password")) {
-			this.smssProp = encryptPropFile(this.smssFilePath);
-		}
-
 		// load the rdf owl db
 		String owlFile = null;
 		String owlPropStr = this.smssProp.getProperty(Constants.OWL);
@@ -209,7 +187,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		boolean externalDatabaseMetadata = Boolean
 				.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED) + "");
 		if (externalDatabaseMetadata
-				&& !SystemDefaultDatabases.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+				&& !SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
 			try {
 				// store in the OWL
 				// so that the local master can pick up the OWL
@@ -913,121 +891,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			return null;
 		}
 		return owlEnginefactory.getReadOWL().getLegacyPrimKey4Table(physicalUri);
-	}
-
-	public String decryptPass(String propFile, boolean insight) {
-		propFile = Utility.normalizePath(propFile);
-		String retString = null;
-		try {
-			File propF = new File(propFile);
-			Properties prop = Utility.loadProperties(propFile);
-			String dir = propF.getParent() + FILE_SEPARATOR + SmssUtilities.getUniqueName(prop);
-			String passwordFileName = dir + FILE_SEPARATOR + ".pass";
-			if (insight) {
-				passwordFileName = dir + FILE_SEPARATOR + ".insight";
-			}
-
-			String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";
-			File inputFile = new File(Utility.normalizePath(passwordFileName));
-			if (inputFile.exists()) {
-				// if nothing is there return null
-				SnowApi snow = new SnowApi();
-				retString = snow.decryptMessage(creationTime, passwordFileName);
-			}
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-		return retString;
-	}
-
-	public CaseInsensitiveProperties encryptPropFile(String propFile) {
-		propFile = Utility.normalizePath(propFile);
-		OutputStream os = null;
-		try {
-			File propF = new File(propFile);
-			CaseInsensitiveProperties prop = new CaseInsensitiveProperties(Utility.loadProperties(propFile));
-
-			String passToEncrypt = null;
-			String insightPassToEncrypt = null;
-
-			Iterator<Object> keys = prop.keySet().iterator();
-			while (keys.hasNext()) {
-				String thisKey = (String) keys.next();
-				if (thisKey.equalsIgnoreCase("password")) {
-					passToEncrypt = prop.getProperty(thisKey);
-					if (!passToEncrypt.equalsIgnoreCase("encrypted password")) {
-						prop.put(thisKey, "encrypted password");
-					}
-				} else if (thisKey.equalsIgnoreCase("insight_password")) {
-					insightPassToEncrypt = prop.getProperty(thisKey);
-					if (!insightPassToEncrypt.equalsIgnoreCase("encrypted password")) {
-						prop.put(thisKey, "encrypted password");
-					}
-				}
-			}
-
-			if (insightPassToEncrypt == null) {
-				prop.put("insight_password", "encrypted password");
-				insightPassToEncrypt = "";
-			}
-
-			if (passToEncrypt != null && !passToEncrypt.equalsIgnoreCase("encrypted password")
-					|| (insightPassToEncrypt != null && insightPassToEncrypt.equalsIgnoreCase("encrypted password"))) {
-				// add the insight_password
-				os = new FileOutputStream(propF);
-				prop.store(os, "Encrypted the password");
-
-				// find the password to be used
-				// use the property file as a input
-				// I will use creation time as the password so if you move the file
-				// it wont work and you need reset the password
-				String creationTime = Files.getAttribute(Paths.get(propFile), "creationTime") + "";
-				String dir = propF.getParent() + FILE_SEPARATOR + SmssUtilities.getUniqueName(prop);
-				if (passToEncrypt != null) {
-					String passwordFileName = dir + FILE_SEPARATOR + ".pass";
-
-					File passFile = new File(Utility.normalizePath(passwordFileName));
-					if (passFile.exists()) {
-						passFile.delete();
-					}
-
-					SnowApi snow = new SnowApi();
-					// logger.info("Using creation time.. " + creationTime);
-					snow.encryptMessage(passToEncrypt, creationTime, propFile, passwordFileName);
-				}
-
-				if (insightPassToEncrypt != null) {
-					String passwordFileName = dir + FILE_SEPARATOR + ".insight";
-
-					File passFile = new File(Utility.normalizePath(passwordFileName));
-					if (passFile.exists()) {
-						passFile.delete();
-					}
-					SnowApi snow = new SnowApi();
-					// logger.info("Using creation time.. " + creationTime);
-					snow.encryptMessage(insightPassToEncrypt, creationTime, propFile, passwordFileName);
-				}
-			}
-
-			return prop;
-		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (os != null) {
-				try {
-					os.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-		}
-
-		return null;
 	}
 
 	/**

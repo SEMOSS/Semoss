@@ -54,10 +54,9 @@ import prerna.engine.impl.rdf.RDFJenaTDBEngine;
 import prerna.om.HeadersDataRow;
 import prerna.om.ThreadStore;
 import prerna.usertracking.UserQueryTrackingThread;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSelectWrapper {
+public class RawJenaTDBSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(RawJenaTDBSelectWrapper.class);
 	private Dataset dataset = null;
@@ -84,10 +83,10 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 		Object[] rawRow = new Object[numColumns];
 
 		QuerySolution row = rs.next();
-		for(int colIndex = 0;colIndex < numColumns; colIndex++) {
+		for (int colIndex = 0; colIndex < numColumns; colIndex++) {
 			RDFNode node = row.get(rawHeaders[colIndex]);
 			// raw value is the straight return from the binding set
-			if(node != null) {
+			if (node != null) {
 				rawRow[colIndex] = node.toString();
 				// get the real value of the node
 				cleanRow[colIndex] = getRealValue(node);
@@ -97,13 +96,12 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 		return new HeadersDataRow(headers, cleanRow, rawRow);
 	}
 
-
 	private void setVariables() {
 		// this makes the assumption that the query is constructed
 		// using the logic within the SPARQL Query Builder
 
-		// get the vars from the tuple result 
-		List <String> names = rs.getResultVars();
+		// get the vars from the tuple result
+		List<String> names = rs.getResultVars();
 		numColumns = names.size();
 
 		// what should be in physical names?
@@ -113,12 +111,12 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 		rawHeaders = names.toArray(new String[names.size()]);
 
 		headers = new String[numColumns];
-		for(int colIndex = 0; colIndex < numColumns; colIndex++){
-			// for the display, if we encounter a "__", we want to 
+		for (int colIndex = 0; colIndex < numColumns; colIndex++) {
+			// for the display, if we encounter a "__", we want to
 			// split and get the second part of the string
 			// that is the display for the column
 			String columnLabel = names.get(colIndex);
-			if(columnLabel.contains("__")){
+			if (columnLabel.contains("__")) {
 				String[] splitColAndTable = columnLabel.split("__");
 				columnLabel = splitColAndTable[1];
 			}
@@ -132,16 +130,16 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 		return headers;
 	}
 
-	private Object getRealValue(RDFNode node){
-		if(node.isLiteral()) {
+	private Object getRealValue(RDFNode node) {
+		if (node.isLiteral()) {
 			return node.asLiteral().getValue();
-		} 
+		}
 		return Utility.getInstanceName(node + "");
 	}
-	
+
 	@Override
 	public SemossDataType[] getTypes() {
-		if(this.types == null) {
+		if (this.types == null) {
 			try {
 				SPARQLParser parser = new SPARQLParser();
 				ParsedQuery parsedQuery = parser.parseQuery(query, null);
@@ -149,19 +147,20 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 				CustomSparqlAggregationParser aggregationVisitor = new CustomSparqlAggregationParser();
 				parsedQuery.getTupleExpr().visit(aggregationVisitor);
 				Set<String> aggregationValues = aggregationVisitor.getValue();
-				
+
 				this.types = new SemossDataType[this.numColumns];
-				for(int i = 0; i < this.numColumns; i++) {
-					if(aggregationValues.contains(this.rawHeaders[i])) {
+				for (int i = 0; i < this.numColumns; i++) {
+					if (aggregationValues.contains(this.rawHeaders[i])) {
 						this.types[i] = SemossDataType.DOUBLE;
 					} else {
 						this.types[i] = SemossDataType.STRING;
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error(
+						"Error parsing query to determine column data types; defaulting all columns to STRING", e);
 				this.types = new SemossDataType[this.numColumns];
-				for(int i = 0; i < this.numColumns; i++) {
+				for (int i = 0; i < this.numColumns; i++) {
 					this.types[i] = SemossDataType.STRING;
 				}
 			}
@@ -172,30 +171,30 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 	@Override
 	public void close() throws IOException {
 		try {
-			if(this.dataset != null) {
+			if (this.dataset != null) {
 				this.dataset.end();
 			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Error closing the Jena TDB dataset", e);
 		}
 	}
-	
+
 	@Override
 	public long getNumRows() {
-		if(this.numRows == 0) {
+		if (this.numRows == 0) {
 			User user = ThreadStore.getUser();
 			UserQueryTrackingThread queryT = new UserQueryTrackingThread(user, this.engine.getEngineId());
-			
+
 			// parse the original query
-	        Query originalQuery = QueryFactory.create(this.query, Syntax.syntaxSPARQL_11);
-	        // create a new query for counting
-	        Query countQuery = new Query();
-	        countQuery.setQuerySelectType();
-	        countQuery.setQueryPattern(originalQuery.getQueryPattern());
-	        // create the count expression
-	        ExprAggregator countExpr = new ExprAggregator(null, AggregatorFactory.createCount(false));
-	        // add the count expression as a result variable
-	        countQuery.addResultVar("mycount", countExpr);
+			Query originalQuery = QueryFactory.create(this.query, Syntax.syntaxSPARQL_11);
+			// create a new query for counting
+			Query countQuery = new Query();
+			countQuery.setQuerySelectType();
+			countQuery.setQueryPattern(originalQuery.getQueryPattern());
+			// create the count expression
+			ExprAggregator countExpr = new ExprAggregator(null, AggregatorFactory.createCount(false));
+			// add the count expression as a result variable
+			countQuery.addResultVar("mycount", countExpr);
 
 			String newQuery = countQuery.toString();
 			Dataset dataset = null;
@@ -206,32 +205,32 @@ public class RawJenaTDBSelectWrapper  extends AbstractWrapper implements IRawSel
 				dataset = (Dataset) map.get(RDFJenaTDBEngine.DATASET_OBJECT);
 				ResultSet resultSet = (ResultSet) map.get(RDFJenaTDBEngine.QUERY_RETURN);
 				queryT.setEndTimeNow();
-				if(resultSet != null && resultSet.hasNext()) {
+				if (resultSet != null && resultSet.hasNext()) {
 					QuerySolution row = resultSet.next();
 					RDFNode node = row.get("mycount");
 					Object cleanValue = getRealValue(node);
-					if(cleanValue instanceof Number) {
+					if (cleanValue instanceof Number) {
 						this.numRows = ((Number) cleanValue).longValue();
 					}
 				}
 			} catch (Exception e) {
 				queryT.setFailed();
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error executing count query to determine number of rows", e);
 			} finally {
-				if(dataset != null) {
+				if (dataset != null) {
 					dataset.end();
 				}
-				new Thread(queryT).start();
+				Thread.ofVirtual().start(queryT);
 			}
 		}
 		return this.numRows;
 	}
-	
+
 	@Override
 	public long getNumRecords() {
 		return getNumRows() * this.numColumns;
 	}
-	
+
 	@Override
 	public void reset() throws Exception {
 		close();

@@ -39,16 +39,19 @@ import prerna.util.Constants;
 public class UserActivityReactor extends AbstractQueryStructReactor {
 
 	// UserActivity example
-	// UserActivityH2 ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ "FRAME961184" ] ) ] ) ;
-	// Frame ( frame = [ FRAME961184 ] ) | UserActivityH2 ( ) | AutoTaskOptions ( panel = [ "0" ] , layout = [ "Grid" ] ) | Collect ( 2000 ) ;
-	
+	// UserActivityH2 ( ) | Import ( frame = [ CreateFrame ( frameType = [ GRID ] ,
+	// override = [ true ] ) .as ( [ "FRAME961184" ] ) ] ) ;
+	// Frame ( frame = [ FRAME961184 ] ) | UserActivityH2 ( ) | AutoTaskOptions (
+	// panel = [ "0" ] , layout = [ "Grid" ] ) | Collect ( 2000 ) ;
+
 	// date format function example
-	// Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( DATE_CREATED, "YYYY-MM-dd" ) ) | CollectAll ( ) ;
-	
+	// Frame ( frame = [ FRAME961184 ] ) | Select ( DateFormat ( DATE_CREATED,
+	// "YYYY-MM-dd" ) ) | CollectAll ( ) ;
+
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		this.qs.setEngineId(Constants.USER_TRACKING_DB);
-		this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+		this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
 		SelectQueryStruct sQs = new SelectQueryStruct();
 		// selectors
@@ -73,5 +76,10 @@ public class UserActivityReactor extends AbstractQueryStructReactor {
 		sQs.addGroupBy(fSelector);
 		this.qs.merge(sQs);
 		return this.qs;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Builds a query struct returning a daily count of user logins from the user tracking database.";
 	}
 }

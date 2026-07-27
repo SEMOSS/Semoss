@@ -40,7 +40,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JoinColumnsReactor extends AbstractFrameReactor {
 
@@ -69,7 +68,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			// prepare separator for sql
 			String separator = String.valueOf(inputsGRS.getNoun(1).getValue());
 			if (separator.contains("'")) {
-				separator = separator.replaceAll("'", "''");
+				separator = separator.replace("'", "''");
 			}
 			separator = "'" + separator + "'";
 
@@ -108,7 +107,8 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 				metaData.setDataTypeToProperty(table + "__" + colName, dataType);
 				frame.syncHeaders();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to join columns into {} on table {} with separator {}", colName, table,
+						separator, e);
 			}
 		}
 

@@ -1,4 +1,4 @@
-"""GitHub Copilot Python sidecar — mirrors ClaudeCodeClient.
+"""GitHub Copilot Python sidecar - mirrors ClaudeCodeClient.
 
 Drives the github-copilot-sdk on behalf of a Java GitHubCopilotPyManager.
 Java sends one init script and then one query script per RunAgent invocation;
@@ -128,8 +128,8 @@ class GitHubCopilotClient:
         self._available_tools = self._build_available_tools()
 
         bearer = f"{self.cfg.access_key}:{self.cfg.secret_key}:room-{self.cfg.room_id}"
-        # Mirror GitHubCopilotManager.java: pass --config-dir to the CLI on the
-        # subprocess argv from process start, NOT just as a create_session kwarg.
+        # Pass --config-dir to the CLI on the subprocess argv from process
+        # start, NOT just as a create_session kwarg.
         # The kwarg-only path lets the CLI bootstrap against its default
         # config dir (~/.copilot or similar) before the session is created,
         # which fails under chroot when that path isn't writable. With
@@ -158,7 +158,7 @@ class GitHubCopilotClient:
             cli_env["COPILOT_PROVIDER_BASE_URL"] = self.cfg.base_url
             cli_env["COPILOT_PROVIDER_TYPE"] = "openai"
         # Offline + BYOK mode validates config at CLI start, before
-        # create_session — so the model id has to be on the env / argv,
+        # create_session - so the model id has to be on the env / argv,
         # not just on the create_session kwarg. Otherwise the CLI exits
         # with: "BYOK providers require an explicit model."
         if self.cfg.model:
@@ -167,7 +167,7 @@ class GitHubCopilotClient:
             cli_env["COPILOT_PROVIDER_WIRE_MODEL"] = self.cfg.model
 
         # Sandbox wrapper reads SEMOSS_SANDBOX_* from its own env, but SubprocessConfig
-        # takes an explicit env dict that does not inherit os.environ — so forward them.
+        # takes an explicit env dict that does not inherit os.environ - so forward them.
         for key, val in os.environ.items():
             if key.startswith("SEMOSS_SANDBOX_"):
                 cli_env[key] = val
@@ -184,7 +184,7 @@ class GitHubCopilotClient:
         self._client = CopilotClient(subprocess_cfg)
         self._client_started = False
 
-    # Public sync entry point — Java calls this via PyTranslator.runDirectPy.
+    # Public sync entry point - Java calls this via PyTranslator.runDirectPy.
     def query_copilot(
         self,
         prompt: str,
@@ -258,7 +258,7 @@ class GitHubCopilotClient:
                 "content": system_prompt,
             }
 
-        # Pure pass-through — Java's `sessionStateExists` checks the CLI's own
+        # Pure pass-through - Java's `sessionStateExists` checks the CLI's own
         # `events.jsonl` (mirroring ClaudeCodeManager.agentHistoryExists), so
         # the same file we're about to hand the SDK is the file Java consulted.
         # No hand-rolled sentinel, no preemptive sanitize, no recovery purge:
@@ -279,7 +279,7 @@ class GitHubCopilotClient:
         # and the CLI then echoes a `permission.completed` event with
         # `kind: "approve-once"` that the installed github-copilot-sdk==0.3.0
         # cannot deserialize (PermissionCompletedKind enum expects
-        # "approved", not "approve-once" — wire-format asymmetry between
+        # "approved", not "approve-once" - wire-format asymmetry between
         # PermissionDecisionKind and PermissionCompletedKind in 0.3.0).
         # The unparseable event crashes the asyncio notification handler and
         # the bash tool fails with `Unhandled permission result kind:
@@ -296,7 +296,7 @@ class GitHubCopilotClient:
                 PermissionsSetApproveAllRequest(enabled=True)
             )
         except Exception as exc:  # pylint: disable=broad-except
-            # Non-fatal — fall back to the per-tool callback path.
+            # Non-fatal - fall back to the per-tool callback path.
             if smss_stream:
                 smss_stream(
                     build_session_error_envelope(
@@ -517,14 +517,13 @@ class GitHubCopilotClient:
     # Init-time builders.
 
     def _build_mcp_servers(self) -> dict[str, dict[str, Any]]:
-        # MCPHTTPServerConfig requires `tools` — the CLI rejects servers with
+        # MCPHTTPServerConfig requires `tools` - the CLI rejects servers with
         # no tools field ("No tools specified for server ... Skipping server
         # due to invalid configuration"). "*" enables every tool the server
         # advertises, matching the in-Java path that lets the CLI pull tool
         # lists at runtime.
         #
-        # Bearer must be the same 3-segment shape as the Java path
-        # (GitHubCopilotManager.buildBearerToken):
+        # Bearer must use the 3-segment shape expected by SEMOSS:
         #     accessKey:secretKey:room-{roomId}
         # Monolith CodeAssistantFilter splits on ":" and only extracts the
         # roomId when split.length == 3 with the third segment starting with
@@ -549,8 +548,7 @@ class GitHubCopilotClient:
     def _build_provider(self) -> Optional[dict[str, Any]]:
         if not self.cfg.base_url:
             return None
-        # Mirror GitHubCopilotManager.buildProviderConfig — the bearer_token
-        # must include the `:room-{roomId}` 3rd segment so
+        # The bearer_token must include the `:room-{roomId}` 3rd segment so
         # CodeAssistantFilter can pin the model call to the same SEMOSS
         # Room across follow-on turns. The api_key field is unused by the
         # filter (which only inspects Authorization: Bearer ...), but we

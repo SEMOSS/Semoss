@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -45,6 +46,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -86,7 +88,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			}
 
 			ProjectHelper.createWorkspaceProject(workspaceId, workspaceName, IProject.PROJECT_TYPE.WORKSPACE, false,
-					false, null, null, null, user, logger);
+					null, null, user, logger);
 		}
 
 		String permission = null;
@@ -111,6 +113,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
 		List<Map<String, String>> mcps = new ArrayList<>();
 		List<Map<String, String>> prompts = new ArrayList<>();
+		List<Map<String, String>> skills = new ArrayList<>();
 		for (Map<String, Object> r : resources) {
 			String resourceId = (String) r.get("resource_id");
 			String rType = (String) r.get("resource_type");
@@ -128,6 +131,17 @@ public class GetWorkspaceReactor extends AbstractReactor {
 					promptMap.put("name", promptTitle);
 				}
 				prompts.add(promptMap);
+			} else if (AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
+				SkillProjects.SkillInfo info = SkillProjects.resolve(resourceId);
+				Map<String, String> skillMap = new HashMap<>();
+				skillMap.put("id", resourceId);
+				skillMap.put("type", rType);
+				skillMap.put("name", info.displayName);
+				skillMap.put("slug", info.slug);
+				if (info.description != null) {
+					skillMap.put("description", info.description);
+				}
+				skills.add(skillMap);
 			} else {
 				CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
 				Map<String, String> mcpMap = new HashMap<>();
@@ -143,10 +157,24 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				mcps.add(mcpMap);
 			}
 		}
+
 		current.put("mcp", mcps);
 		current.put("prompts", prompts);
+		current.put("skills", skills);
 		current.put("permission", permission);
 		current.put("number_collaborators", userCount);
+
+		// Full per-agent config blob (hooks, budgets, subagents, model_id, etc.) that
+		// the normalized fields above don't surface. Best-effort; omitted on absence so
+		// callers can still rely on the normalized mcp/skills/system_prompt fields.
+		try {
+			JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+			if (cfg != null) {
+				current.put("config_json", cfg.toMap());
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to load CONFIG_JSON for workspace '{}': {}", workspaceId, e.getMessage());
+		}
 
 		return new NounMetadata(current, PixelDataType.MAP);
 	}

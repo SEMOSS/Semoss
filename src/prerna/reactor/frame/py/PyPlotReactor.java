@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -93,11 +92,8 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 				throw new IllegalArgumentException("Python terminal has been disabled.");
 			}
 		}
-		Logger logger = getLogger(CLASS_NAME);
 
 		this.code = this.curRow.get(0).toString();
-		int tokens = code.split("\\n").length;
-
 		return handlePyPlot(code);
 	}
 
@@ -105,12 +101,9 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 	// seaborn
 	// pyplot etc.
 	public NounMetadata handlePyPlot(String command) {
-		// organizeKeys();
-
 		String panelId = "new_seaborn_panel";
 
 		PyTranslator pyt = this.insight.getPyTranslator();
-
 		String format = "png";
 		boolean newWindow = true;
 
@@ -148,25 +141,20 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		}
 
 		SelectQueryStruct qs = InsightUtility.getFilteredQsForFrame(thisFrame, null);
-
 		qs.getRelations().clear();
-
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, thisFrame.getMetaData());
 
 		PandasInterpreter interp = new PandasInterpreter();
 		interp.setDataTableName(thisFrame.getName(), thisFrame.getName() + "w" + ".cache['data']");
 		interp.setDataTypeMap(thisFrame.getMetaData().getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
-		interp.setKeyCache(new ArrayList());
 
-		String frameName = thisFrame.getName();
 		String assigner = "";
-
 		String selectorQuery = interp.composeQuery();
 		// remove the splitter
 		selectorQuery = selectorQuery.replace(".to_dict('split')", "");
 
-		String subDataTable = "pd.DataFrame(" + selectorQuery + ")"; // + "['data'])";
+		String subDataTable = "pd.DataFrame(" + selectorQuery + ")";
 
 		command = command.replaceAll("\\s", ""); // remove all spaces
 		assigner = "plotterframe = " + subDataTable;
@@ -206,8 +194,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			mimeType = Files.probeContentType(new File(seabornFile).toPath());
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to encode generated plot image file {}.", seabornFile, e);
 		}
 
 		new File(seabornFile).delete();
@@ -227,7 +214,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
 		for (int headIndex = 0; headIndex < headers.length; headIndex++) {
 			String thisHeader = headers[headIndex];
-			Map thisMap = new HashMap();
+			Map<String, Object> thisMap = new HashMap<>();
 			thisMap.put("header", thisHeader);
 			thisMap.put("alias", thisHeader);
 			headerInfo.add(thisMap);
@@ -283,7 +270,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 
 		// delete the pivot later
 		if (bin.length() > 0) {
-			Vector<NounMetadata> retList = new Vector<>();
+			List<NounMetadata> retList = new ArrayList<>();
 			// can make panel id random moving forward
 			InsightPanel daPanel = insight.getInsightPanel(panelId);
 			// newWindow = daPanel != null;
@@ -301,10 +288,8 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 
 				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 			}
-			// return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET,
-			// PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		} else {
-			List<NounMetadata> outputs = new Vector<NounMetadata>(1);
+			List<NounMetadata> outputs = new ArrayList<NounMetadata>(1);
 			outputs.add(new NounMetadata(seabornFile, PixelDataType.CONST_STRING));
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		}

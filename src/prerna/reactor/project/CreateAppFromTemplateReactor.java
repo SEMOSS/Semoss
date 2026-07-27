@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,7 +49,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -92,12 +92,10 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 		// Use the template to populate the parameters needed to create the new project
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
-		boolean templateHasPortal = templateProject.isHasPortal();
-		String templatePortalName = templateProject.getPortalName();
 
 		// Create new project
-		IProject newProject = ProjectHelper.generateNewProject(newProjectName, projectEnumType, global,
-				templateHasPortal, templatePortalName, gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+		IProject newProject = ProjectHelper.generateNewProject(newProjectName, projectEnumType, global, gitProvider,
+				gitCloneUrl, this.insight.getUser(), logger);
 
 		String templateProjectVersionFolder = AssetUtility.getProjectVersionFolder(templateProject.getProjectName(),
 				projectTemplateId);
@@ -112,18 +110,19 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		Path destinationDir = Paths.get(newProjectAssetFolder);
 
 		try {
-			Files.walk(sourceDir).forEach(sourcePath -> {
-				try {
-					Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
-					if (sourcePath.toFile().isFile()) {
-						targetPath.toFile().getParentFile().mkdirs();
-						Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+			try (Stream<Path> stream = Files.walk(sourceDir)) {
+				stream.forEach(sourcePath -> {
+					try {
+						Path targetPath = destinationDir.resolve(sourceDir.relativize(sourcePath));
+						if (sourcePath.toFile().isFile()) {
+							targetPath.toFile().getParentFile().mkdirs();
+							Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+						}
+					} catch (IOException ex) {
+						classLogger.error("Failed to copy project template assets: {}", ex.getMessage(), ex);
 					}
-				} catch (IOException ex) {
-					classLogger.warn("Error with moving file from template");
-					classLogger.error(Constants.STACKTRACE, ex);
-				}
-			});
+				});
+			}
 
 			// also see for image
 			File templateImage = new File(templateProjectVersionFolder, "image.png");
@@ -137,7 +136,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				ClusterUtil.pushProjectFolder(newProject, newProjectVersionFolder);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy project template assets: {}", e.getMessage(), e);
 			throw new IllegalArgumentException(
 					"New project was created but could not transfer over the assets from the template. Errror = "
 							+ e.getMessage());

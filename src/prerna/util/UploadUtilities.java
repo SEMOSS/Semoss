@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +57,6 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -275,11 +273,6 @@ public final class UploadUtilities {
 		if (engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
-		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
-		if (containsDatabase) {
-			throw new IOException("Engine name already exists.  Please provide a unique engine name");
-		}
 
 		// need to make sure engine folder doesn't already exist
 		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
@@ -388,8 +381,8 @@ public final class UploadUtilities {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 
-		Hashtable<String, String> conceptHash = owlEngine.getConceptHash();
-		Hashtable<String, String> propHash = owlEngine.getPropHash();
+		Map<String, String> conceptHash = owlEngine.getConceptHash();
+		Map<String, String> propHash = owlEngine.getPropHash();
 		// take the node props
 		// so we know what is a concept
 		// and what is a property
@@ -448,7 +441,7 @@ public final class UploadUtilities {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 
-		Hashtable<String, String> propHash = owlEngine.getPropHash();
+		Map<String, String> propHash = owlEngine.getPropHash();
 
 		// we have already loaded everything into a single table
 		// so we will grab all the properties for that table
@@ -471,11 +464,6 @@ public final class UploadUtilities {
 			}
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Below methods pertain to the smss file
@@ -619,9 +607,6 @@ public final class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
-		FileReader fileRead = null;
-		BufferedReader bufferedReader = null;
-
 		try (FileWriter writer = new FileWriter(dbTempSmssLoc);
 				BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 
@@ -646,14 +631,15 @@ public final class UploadUtilities {
 					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
 
-					fileRead = new FileReader(rdfDefaultProps);
-					bufferedReader = new BufferedReader(fileRead);
-					String currentLine;
-					while ((currentLine = bufferedReader.readLine()) != null) {
-						if (currentLine.contains("@FileName@")) {
-							currentLine = currentLine.replace("@FileName@", jnlName);
+					try (FileReader fileRead = new FileReader(rdfDefaultProps);
+							BufferedReader bufferedReader = new BufferedReader(fileRead)) {
+						String currentLine;
+						while ((currentLine = bufferedReader.readLine()) != null) {
+							if (currentLine.contains("@FileName@")) {
+								currentLine = currentLine.replace("@FileName@", jnlName);
+							}
+							bufferedWriter.write(currentLine + newLine);
 						}
-						bufferedWriter.write(currentLine + newLine);
 					}
 				} else {
 					properties.put(Constants.RDF_FILE_NAME, databaseName + ".xml");
@@ -674,14 +660,15 @@ public final class UploadUtilities {
 					jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 					String rdfDefaultProps = Utility.getBaseFolder() + DIR_SEPARATOR + defaultDBPropName;
 
-					fileRead = new FileReader(rdfDefaultProps);
-					bufferedReader = new BufferedReader(fileRead);
-					String currentLine;
-					while ((currentLine = bufferedReader.readLine()) != null) {
-						if (currentLine.contains("@FileName@")) {
-							currentLine = currentLine.replace("@FileName@", jnlName);
+					try (FileReader fileRead = new FileReader(rdfDefaultProps);
+							BufferedReader bufferedReader = new BufferedReader(fileRead)) {
+						String currentLine;
+						while ((currentLine = bufferedReader.readLine()) != null) {
+							if (currentLine.contains("@FileName@")) {
+								currentLine = currentLine.replace("@FileName@", jnlName);
+							}
+							bufferedWriter.write(currentLine + newLine);
 						}
-						bufferedWriter.write(currentLine + newLine);
 					}
 				} else {
 					bufferedWriter.write(Constants.RDF_FILE_NAME + tab + databaseName + ".xml" + newLine);
@@ -692,18 +679,6 @@ public final class UploadUtilities {
 			classLogger.error("Failed to write RDF database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
 			throw new IOException("Could not generate temporary smss file for database");
-		} finally {
-			try {
-				if (fileRead != null) {
-					fileRead.close();
-				}
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close RDF default properties reader for database {}: {}", databaseName,
-						e.getMessage(), e);
-			}
 		}
 
 		return dbTempSmss;
@@ -1404,7 +1379,7 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryGuardrailSmss(String engineId, String engineName, String className,
 			Map<String, Object> properties) throws IOException {
-		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.GUARDRAIL, engineId, engineName, className, properties);
 	}
 
 	/**
@@ -1546,11 +1521,6 @@ public final class UploadUtilities {
 		// write owl
 		bufferedWriter.write(Constants.OWL + tab + owlFile.getName() + newLine);
 	}
-
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Below methods pertain to the insights database
@@ -2307,11 +2277,6 @@ public final class UploadUtilities {
 		return updateMap;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////
-
 	/**
 	 * Parse the file
 	 * 
@@ -2381,8 +2346,6 @@ public final class UploadUtilities {
 
 		return new Object[] { headers, types, additionalTypes };
 	}
-	//////////////////////////////////////////////
-	/////////////////////////////////////////////
 
 	/**
 	 * Save metamodel structure to json in database folder

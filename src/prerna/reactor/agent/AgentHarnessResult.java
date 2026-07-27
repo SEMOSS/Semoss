@@ -43,7 +43,7 @@ import java.util.List;
  */
 public final class AgentHarnessResult {
 
-    /** Final {@code RESPONSE_TEXT} content produced by the model. Never null; may be empty. */
+    /** Final assistant text produced by the model. Never null; may be empty. */
     private final String finalText;
 
     /** Total number of tool-call rounds completed (0 if the model responded without calling tools). */
@@ -55,20 +55,33 @@ public final class AgentHarnessResult {
     /** Number of reflection rounds actually executed (0 if reflection was disabled). */
     private final int reflectionsUsed;
 
-    /** Backward-compatible constructor — sets {@code reflectionsUsed = 0}. */
+    /** Initial input message id created for this run, when the harness has one. */
+    private final String inputMessageId;
+
+    /** Terminal assistant message id for this run, when the harness has one. */
+    private final String finalOutputMessageId;
+
+    /** Backward-compatible constructor - sets {@code reflectionsUsed = 0}. */
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords) {
         this(finalText, iterations, toolCallRecords, 0);
     }
 
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords,
                               int reflectionsUsed) {
+        this(finalText, iterations, toolCallRecords, reflectionsUsed, null, null);
+    }
+
+    public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords,
+                              int reflectionsUsed, String inputMessageId, String finalOutputMessageId) {
         this.finalText        = finalText != null ? finalText : "";
         this.iterations       = iterations;
         this.toolCallRecords  = Collections.unmodifiableList(toolCallRecords);
         this.reflectionsUsed  = reflectionsUsed;
+        this.inputMessageId   = inputMessageId;
+        this.finalOutputMessageId = finalOutputMessageId;
     }
 
-    /** Final text content of the model's {@code RESPONSE_TEXT} message. */
+    /** Final text content of the model's assistant response. */
     public String getFinalText() {
         return finalText;
     }
@@ -86,6 +99,14 @@ public final class AgentHarnessResult {
     /** Ordered list of all tool calls made during this run. */
     public List<ToolCallRecord> getToolCallRecords() {
         return toolCallRecords;
+    }
+
+    public String getInputMessageId() {
+        return inputMessageId;
+    }
+
+    public String getFinalOutputMessageId() {
+        return finalOutputMessageId;
     }
 
     // ToolCallRecord

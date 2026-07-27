@@ -27,58 +27,84 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * Immutable value object carrying all context needed by an {@link IAgentHarness} implementation.
+ * Immutable per-call state handed to an {@link IAgentHarness}.
  *
- * <p>Built via {@link #builder()}.
+ * <p>{@link AgentConfig} holds the resolved agent spec. This class holds the
+ * live invocation state for one run and keeps a few delegating accessors for
+ * older callers.
  */
 public final class AgentRunContext {
 
-    /** Default safety cap for tool-call rounds (a.k.a. "turns"). */
-    public static final int DEFAULT_MAX_TURNS       = 30;
-    /** Default reflection rounds — 0 means no reflection (backward-compatible). */
-    public static final int DEFAULT_MAX_REFLECTIONS = 0;
+    /** @deprecated read from {@code agentConfig.getBudgets()}. */
+    @Deprecated
+    public static final int DEFAULT_MAX_TURNS       = AgentConfig.Budgets.DEFAULT_MAX_TURNS;
+    /** @deprecated read from {@code agentConfig.getBudgets()}. */
+    @Deprecated
+    public static final int DEFAULT_MAX_REFLECTIONS = AgentConfig.Budgets.DEFAULT_MAX_REFLECTIONS;
 
-    private final Room                   room;
-    private final IModelEngine           modelEngine;
-    private final Insight                insight;
-    private final String                 userId;
-    private final String                 filePath;
-    private final String                 input;
-    private final Map<String, Object>    paramMap;
-    private final int                    maxTurns;
-    private final int                    maxReflections;
-    private final SandboxPolicy          sandboxPolicy;
+    // Root = not spawned by another agent. Each spawn increments by 1.
+    public static final int ROOT_SPAWN_DEPTH = 0;
+
+    // Live per-call state
+    private final Room          room;
+    private final IModelEngine  modelEngine;
+    private final Insight       insight;
+    private final String        userId;
+    private final String        input;
+    private final SandboxPolicy sandboxPolicy;
+    private final String        runId;
+    private final List<String>  mediaInputPaths;
+    private final List<String>  mediaUrls;
+
+    // 0 for a root run, parent.spawnDepth+1 for a subagent run.
+    private final int           spawnDepth;
+
+    // Resolved agent spec shared across harnesses.
+    private final AgentConfig   agentConfig;
+
+    /**
+     * When {@code true}, the harness skips the initial model ask and picks up
+     * from the latest message in the room. Set when resuming a run that was
+     * paused on {@code SMSS_MCP_EXECUTION=ask} tools — the tool results have
+     * already been written to the room by {@code RunMCPToolReactor}.
+     */
+    private final boolean       resumeMode;
 
     private AgentRunContext(Builder b) {
-        this.room           = b.room;
-        this.modelEngine    = b.modelEngine;
-        this.insight        = b.insight;
-        this.userId         = b.userId;
-        this.filePath       = b.filePath;
-        this.input          = b.input;
-        this.paramMap       = Collections.unmodifiableMap(b.paramMap);
-        this.maxTurns       = b.maxTurns;
-        this.maxReflections = b.maxReflections;
-        this.sandboxPolicy  = b.sandboxPolicy;
+        this.room          = b.room;
+        this.modelEngine   = b.modelEngine;
+        this.insight       = b.insight;
+        this.userId        = b.userId;
+        this.input         = b.input;
+        this.sandboxPolicy = b.sandboxPolicy;
+        this.runId         = b.runId;
+        this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
+        this.mediaUrls       = immutableStringList(b.mediaUrls);
+        this.spawnDepth    = b.spawnDepth;
+        this.agentConfig   = b.agentConfig;
+        this.resumeMode    = b.resumeMode;
     }
 
-    // Accessors
-    /** Pre-loaded SEMOSS Room supplying system prompt, history, and MCP tools. */
+    // Live per-call state
+    /** Pre-loaded SEMOSS Room supplying history and MCP tool plumbing. */
     public Room getRoom() {
         return room;
     }
 
-    /** Model engine resolved from {@code room.getModelId()}. */
+    /** Model engine resolved from {@code agentConfig.getModelId()} (or fallback). */
     public IModelEngine getModelEngine() {
         return modelEngine;
     }
@@ -88,18 +114,9 @@ public final class AgentRunContext {
         return insight;
     }
 
-    /** User ID from {@code room.getUserId()} — used when persisting messages. */
+    /** User id from {@code room.getUserId()} - used when persisting messages. */
     public String getUserId() {
         return userId;
-    }
-
-    /**
-     * Optional working directory or project ID for file-system tools.
-     * Used as {@code cwd} by {@link ClaudeCodeAgentHarness} and added to paramMap under
-     * {@code "file_path"} for {@link RoomAgentHarness}.
-     */
-    public String getFilePath() {
-        return filePath;
     }
 
     /** Initial user message to start the agentic loop. */
@@ -107,29 +124,93 @@ public final class AgentRunContext {
         return input;
     }
 
-    /** Extra parameters forwarded to the model engine. Immutable view. */
-    public Map<String, Object> getParamMap() {
-        return paramMap;
+    /** Durable {@code AGENT_RUN.RUN_ID} for this invocation. May be {@code null} for legacy direct callers. */
+    public String getRunId() {
+        return runId;
     }
 
-    /** Maximum tool-call rounds before the harness should throw or abort. */
-    public int getMaxTurns() {
-        return maxTurns;
+    /** Room-local media filenames copied for the initial user turn. */
+    public List<String> getMediaInputPaths() {
+        return mediaInputPaths;
     }
 
-    /** Maximum self-critique rounds after the first RESPONSE_TEXT. 0 disables reflection. */
-    public int getMaxReflections() {
-        return maxReflections;
+    /** Direct media URLs to attach to the initial user turn. */
+    public List<String> getMediaUrls() {
+        return mediaUrls;
     }
 
     /**
-     * Filesystem allowlist applied to the agent binary (claude-code, copilot, …)
-     * before it {@code execvp}s. {@code null} means the caller did not build
-     * a policy and the harness should either construct a default one or skip
-     * sandboxing — see {@link prerna.reactor.agent.sandbox.AgentSandboxConfig}.
+     * Filesystem allowlist applied to agent binaries before they {@code execvp}.
+     * {@code null} when the caller did not build a policy; harnesses may construct
+     * a default or skip sandboxing.
      */
     public SandboxPolicy getSandboxPolicy() {
         return sandboxPolicy;
+    }
+
+    /**
+     * Resolved agent configuration - the single source of truth every harness
+     * reads from. Built once by
+     * {@link prerna.reactor.agent.config.AgentConfigLoader#load(Room, String, String, Map, int, int)}
+     * at the top of {@link AgentRunner#run(String, String, String, String, int, int, Map, Insight)}.
+     * Never {@code null}.
+     */
+    public AgentConfig getAgentConfig() {
+        return agentConfig;
+    }
+
+    /** 0 = root run; checked against {@code agentConfig.getSpawnPolicy().getMaxSubagentDepth()}. */
+    public int getSpawnDepth() {
+        return spawnDepth;
+    }
+
+    /**
+     * @return {@code true} when this is a resumed run — the harness should
+     *         skip the initial model ask and continue from the room's latest
+     *         message.
+     */
+    public boolean isResumeMode() {
+        return resumeMode;
+    }
+
+    // Compatibility accessors (delegate to AgentConfig)
+    /**
+     * @return working directory; equivalent to {@code getAgentConfig().getWorkingDir()}.
+     * @deprecated read from {@link #getAgentConfig()}.
+     */
+    @Deprecated
+    public String getFilePath() {
+        return agentConfig.getWorkingDir();
+    }
+
+    /**
+     * @return extra parameters forwarded to the model engine. Unmodifiable view.
+     *         Equivalent to {@code getAgentConfig().getModelParams()}.
+     * @deprecated read from {@link #getAgentConfig()}.
+     */
+    @Deprecated
+    public Map<String, Object> getParamMap() {
+        return agentConfig.getModelParams();
+    }
+
+    /**
+     * @return tool-call round cap. Equivalent to
+     *         {@code getAgentConfig().getBudgets().getMaxTurns()}.
+     * @deprecated read from {@link #getAgentConfig()}.
+     */
+    @Deprecated
+    public int getMaxTurns() {
+        return agentConfig.getBudgets().getMaxTurns();
+    }
+
+    /**
+     * @return reflection round cap. Equivalent to
+     *         {@code getAgentConfig().getBudgets().getMaxReflections()}.
+     * @deprecated read from {@link #getAgentConfig()}.
+     */
+    @Deprecated
+    public int getMaxReflections() {
+        return agentConfig.getBudgets().getMaxReflections();
     }
 
     // Builder
@@ -137,31 +218,73 @@ public final class AgentRunContext {
         return new Builder();
     }
 
+    /**
+     * Builds an {@link AgentRunContext}.
+     *
+     * <p>New code should supply {@link #agentConfig(AgentConfig)} directly.
+     * The legacy setters still synthesize a minimal {@link AgentConfig} so
+     * older callers continue to work.
+     */
     public static final class Builder {
-        private Room                room;
-        private IModelEngine        modelEngine;
-        private Insight             insight;
-        private String              userId;
-        private String              filePath;
-        private String              input;
-        private Map<String, Object> paramMap       = new HashMap<>();
-        private int                 maxTurns       = DEFAULT_MAX_TURNS;
-        private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
-        private SandboxPolicy       sandboxPolicy;
+        // Live state
+        private Room          room;
+        private IModelEngine  modelEngine;
+        private Insight       insight;
+        private String        userId;
+        private String        input;
+        private SandboxPolicy sandboxPolicy;
+        private String        runId;
+        private List<String>  mediaInputPaths;
+        private List<String>  mediaUrls;
+
+        private int           spawnDepth = ROOT_SPAWN_DEPTH;
+
+        // Either supplied directly or assembled from the legacy setters below.
+        private AgentConfig   agentConfig;
+
+        private boolean       resumeMode = false;
+
+        // Legacy field holders (used only when agentConfig is not supplied directly)
+        private String              legacyFilePath;
+        private Map<String, Object> legacyParamMap;
+        private int                 legacyMaxTurns       = AgentConfig.Budgets.DEFAULT_MAX_TURNS;
+        private int                 legacyMaxReflections = AgentConfig.Budgets.DEFAULT_MAX_REFLECTIONS;
 
         public Builder room(Room room)                       { this.room = room;                   return this; }
         public Builder modelEngine(IModelEngine modelEngine) { this.modelEngine = modelEngine;     return this; }
         public Builder insight(Insight insight)              { this.insight = insight;             return this; }
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
-        public Builder filePath(String filePath)             { this.filePath = filePath;           return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
-        public Builder paramMap(Map<String, Object> paramMap){
-            this.paramMap = paramMap != null ? paramMap : new HashMap<>();
+        public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
+        public Builder runId(String runId)                   { this.runId = runId;                 return this; }
+        public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
+        public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
+
+        public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
+
+        public Builder resumeMode(boolean resumeMode)        { this.resumeMode = resumeMode;       return this; }
+
+        /** Sets the canonical agent spec. Preferred path. */
+        public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }
+
+        /** @deprecated set on {@link AgentConfig} via {@link #agentConfig(AgentConfig)}. */
+        @Deprecated
+        public Builder filePath(String filePath)             { this.legacyFilePath = filePath;     return this; }
+
+        /** @deprecated set on {@link AgentConfig} via {@link #agentConfig(AgentConfig)}. */
+        @Deprecated
+        public Builder paramMap(Map<String, Object> paramMap) {
+            this.legacyParamMap = paramMap != null ? paramMap : new HashMap<>();
             return this;
         }
-        public Builder maxTurns(int maxTurns)                { this.maxTurns = maxTurns;             return this; }
-        public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
-        public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;         return this; }
+
+        /** @deprecated set on {@link AgentConfig.Budgets} via {@link #agentConfig(AgentConfig)}. */
+        @Deprecated
+        public Builder maxTurns(int maxTurns)                { this.legacyMaxTurns = maxTurns;             return this; }
+
+        /** @deprecated set on {@link AgentConfig.Budgets} via {@link #agentConfig(AgentConfig)}. */
+        @Deprecated
+        public Builder maxReflections(int maxReflections)    { this.legacyMaxReflections = maxReflections; return this; }
 
         public AgentRunContext build() {
             if (room == null)        throw new IllegalStateException("room is required");
@@ -169,11 +292,30 @@ public final class AgentRunContext {
             if (insight == null)     throw new IllegalStateException("insight is required");
             if (input == null || input.trim().isEmpty())
                 throw new IllegalStateException("input is required");
-            if (maxTurns <= 0)
-                throw new IllegalArgumentException("maxTurns must be > 0");
-            if (maxReflections < 0)
-                throw new IllegalArgumentException("maxReflections must be >= 0");
+
+            if (agentConfig == null) {
+                // Backward-compat path: synthesize from legacy setters.
+                agentConfig = AgentConfig.builder()
+                        .workingDir(legacyFilePath)
+                        .modelParams(legacyParamMap)
+                        .budgets(AgentConfig.Budgets.of(legacyMaxTurns, legacyMaxReflections,
+                                AgentConfig.Budgets.DEFAULT_MAX_SECONDS))
+                        .build();
+            }
             return new AgentRunContext(this);
         }
+    }
+
+    private static List<String> immutableStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> copy = new ArrayList<>();
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                copy.add(value);
+            }
+        }
+        return copy.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(copy);
     }
 }

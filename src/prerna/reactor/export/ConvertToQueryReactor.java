@@ -32,7 +32,7 @@ import java.util.List;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -47,11 +47,11 @@ import prerna.util.insight.InsightUtility;
 public class ConvertToQueryReactor extends AbstractReactor {
 
 	private static final String IGNORE_STATE_KEY = "ignoreState";
-	
+
 	public ConvertToQueryReactor() {
-		this.keysToGet = new String[] {IGNORE_STATE_KEY};
+		this.keysToGet = new String[] { IGNORE_STATE_KEY };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -59,38 +59,38 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		String query = null;
 
 		SelectQueryStruct qs = getQs();
-		if(qs == null) {
+		if (qs == null) {
 			ITask task = getTask();
-			if(task != null && task instanceof BasicIteratorTask) {
+			if (task != null && task instanceof BasicIteratorTask) {
 				qs = ((BasicIteratorTask) task).getQueryStruct();
 			}
 		}
-		
-		if(qs == null) {
+
+		if (qs == null) {
 			throw new NullPointerException("Must input a query struct");
 		}
-		
+
 		// if query defined
 		// just grab it
-		if(qs instanceof HardSelectQueryStruct) {
+		if (qs instanceof HardSelectQueryStruct) {
 			query = ((HardSelectQueryStruct) qs).getQuery();
 			return new NounMetadata(query, PixelDataType.CONST_STRING);
 		}
-		
-		if(addInsightState) {
+
+		if (addInsightState) {
 			InsightUtility.fillQsReferencesAndMergeOptions(this.insight, qs);
 		}
-		
-		// else, we grab the interpreter 
+
+		// else, we grab the interpreter
 		// from the engine or frame
 		// if frame - must convert to physical from alias
 		IQueryInterpreter interp = null;
-		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			interp = qs.retrieveQueryStructEngine().getQueryInterpreter();
-		} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+		} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			ITableDataFrame frame = qs.getFrame();
 			interp = frame.getQueryInterpreter();
-			if(frame instanceof NativeFrame) {
+			if (frame instanceof NativeFrame) {
 				qs = ((NativeFrame) frame).prepQsForExecution(qs);
 			} else {
 				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
@@ -98,7 +98,7 @@ public class ConvertToQueryReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Cannot generate a query for this source");
 		}
-		
+
 		interp.setQueryStruct(qs);
 		// grab the query
 		query = interp.composeQuery();
@@ -108,42 +108,44 @@ public class ConvertToQueryReactor extends AbstractReactor {
 	private SelectQueryStruct getQs() {
 		GenRowStruct grsQs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
 		NounMetadata noun;
-		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
-		if(grsQs != null && !grsQs.isEmpty()) {
+		// if we don't have tasks in the curRow, check if it exists in genrow under the
+		// qs key
+		if (grsQs != null && !grsQs.isEmpty()) {
 			noun = grsQs.getNoun(0);
 			return (SelectQueryStruct) noun.getValue();
 		} else {
 			List<NounMetadata> qsList = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
-			if(qsList != null && !qsList.isEmpty()) {
+			if (qsList != null && !qsList.isEmpty()) {
 				noun = qsList.get(0);
 				return (SelectQueryStruct) noun.getValue();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	private ITask getTask() {
 		GenRowStruct grsTask = this.store.getGenRowStruct(PixelDataType.TASK.getKey());
 		NounMetadata noun;
-		//if we don't have tasks in the curRow, check if it exists in genrow under the task key
-		if(grsTask != null && !grsTask.isEmpty()) {
+		// if we don't have tasks in the curRow, check if it exists in genrow under the
+		// task key
+		if (grsTask != null && !grsTask.isEmpty()) {
 			noun = grsTask.getNoun(0);
 			return (ITask) noun.getValue();
 		} else {
 			List<NounMetadata> taskList = this.curRow.getNounsOfType(PixelDataType.TASK);
-			if(taskList != null && !taskList.isEmpty()) {
+			if (taskList != null && !taskList.isEmpty()) {
 				noun = taskList.get(0);
 				return (ITask) noun.getValue();
 			}
 		}
-		
+
 		return null;
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(IGNORE_STATE_KEY)) {
+		if (key.equals(IGNORE_STATE_KEY)) {
 			return "Boolean flag to ignore/not add the frame and panel level options to the query struct";
 		}
 		return super.getDescriptionForKey(key);

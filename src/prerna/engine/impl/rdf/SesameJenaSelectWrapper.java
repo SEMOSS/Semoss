@@ -30,7 +30,6 @@ package prerna.engine.impl.rdf;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -42,397 +41,331 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 
-import com.google.gson.Gson;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
-import prerna.util.Utility;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
- * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes SELECT statements. 
+ * The wrapper helps takes care of selection of the type of engine you are using
+ * (Jena/Sesame). This wrapper processes SELECT statements.
  */
 @Deprecated
 public class SesameJenaSelectWrapper extends AbstractWrapper {
-	
+
+	@Deprecated
+	private static final Logger classLogger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+
+	@Deprecated
 	public transient TupleQueryResult tqr = null;
 
+	@Deprecated
 	transient org.apache.jena.query.ResultSet rs = null;
-	transient org.apache.jena.query.QuerySolution curSt = null;	
+	@Deprecated
+	transient org.apache.jena.query.QuerySolution curSt = null;
 
+	@Deprecated
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-	transient public IDatabaseEngine engine = null;
-	transient String query = null;
-	static final Logger logger = LogManager.getLogger(SesameJenaSelectWrapper.class.getName());
+
+	@Deprecated
 	transient SesameJenaSelectWrapper remoteWrapperProxy = null;
+	@Deprecated
 	transient SesameJenaSelectStatement retSt = null;
+	@Deprecated
 	transient ObjectInputStream ris = null;
-	String [] var = null;
-	
-	public SesameJenaSelectWrapper()
-	{
-		
+	@Deprecated
+	String[] var = null;
+
+	@Deprecated
+	public SesameJenaSelectWrapper() {
+
 	}
-	
+
 	/**
-	 * Method setEngine.  Sets the engine type.
+	 * Method setEngine. Sets the engine type.
+	 * 
 	 * @param engine IDatabase - The engine type being set.
 	 */
-	public void setEngine(IDatabaseEngine engine)
-	{
-		logger.debug("Set the engine " );
+	@Deprecated
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
+		classLogger.debug("Set the engine ");
 		this.engine = engine;
-		if(engine == null) databaseType = IDatabaseEngine.DATABASE_TYPE.JENA;
-		else databaseType = engine.getDatabaseType();
-	}
-	
-	/**
-	 * Method setQuery. - Sets the SPARQL query statement.
-	 * @param query String - The string version of the SPARQL query.
-	 */
-	public void setQuery(String query)
-	{
-		logger.debug("Setting the query " + query);
-		this.query = query;
-	}
-	
-	/**
-	 * Method executeQuery.  Executes the SPARQL query based on the type of engine selected.
-	 * @throws Exception 
-	 */
-	public void executeQuery() throws Exception
-	{
-		if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			tqr = (TupleQueryResult) engine.execQuery(query);
-		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			rs = (org.apache.jena.query.ResultSet) engine.execQuery(query);
-		else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-		{
-			// get the actual SesameJenaConstructWrapper from the engine
-			// this is json output
-			System.out.println("Trying to get the wrapper remotely now");
-			remoteWrapperProxy = (SesameJenaSelectWrapper)engine.execQuery(query);
-			var = remoteWrapperProxy.var;
-			System.out.println("Output variables is " + remoteWrapperProxy.getVariables());
+		if (engine == null) {
+			databaseType = IDatabaseEngine.DATABASE_TYPE.JENA;
+		} else {
+			databaseType = engine.getDatabaseType();
 		}
 	}
-	
-	/**
-	 * Method getVariables.  Based on the type of engine, this returns the variables from the query result.
-	
-	 * @return String[] - An array containing the names of the variables from the result.
-	 * */
-	public String[] getVariables()
-	{
-		try {
-			if(var == null)
-			{
-				if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-				{
-					var = new String[tqr.getBindingNames().size()];
-					List <String> names = tqr.getBindingNames();
-					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-				}
-				else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-				{
-					var = new String[rs.getResultVars().size()];
-					List <String> names = rs.getResultVars();
-					for(int colIndex = 0;colIndex < names.size();var[colIndex] = names.get(colIndex), colIndex++);
-				}
-				else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-				{
-					var = remoteWrapperProxy.getVariables();
-				}
 
+	/**
+	 * Method setQuery. - Sets the SPARQL query statement.
+	 * 
+	 * @param query String - The string version of the SPARQL query.
+	 */
+	@Deprecated
+	@Override
+	public void setQuery(String query) {
+		classLogger.debug("Setting the query " + query);
+		this.query = query;
+	}
+
+	/**
+	 * Method executeQuery. Executes the SPARQL query based on the type of engine
+	 * selected.
+	 * 
+	 * @throws Exception
+	 */
+	@Deprecated
+	public void executeQuery() throws Exception {
+		if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+			tqr = (TupleQueryResult) engine.execQuery(query);
+		} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
+			rs = (org.apache.jena.query.ResultSet) engine.execQuery(query);
+		}
+	}
+
+	/**
+	 * Method getVariables. Based on the type of engine, this returns the variables
+	 * from the query result.
+	 * 
+	 * @return String[] - An array containing the names of the variables from the
+	 *         result.
+	 */
+	@Deprecated
+	public String[] getVariables() {
+		try {
+			if (var == null) {
+				if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+					var = new String[tqr.getBindingNames().size()];
+					List<String> names = tqr.getBindingNames();
+					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
+						;
+					}
+				} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
+					var = new String[rs.getResultVars().size()];
+					List<String> names = rs.getResultVars();
+					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
+						;
+					}
+				}
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return var;
 	}
-	
+
 	/**
-	 * Method hasNext.  Checks to see if the tuple query result has additional results.
-	
+	 * Method hasNext. Checks to see if the tuple query result has additional
+	 * results.
+	 * 
 	 * @return boolean - True if the Tuple Query result has additional results.
-	 * */
-	public boolean hasNext() 
-	{
+	 */
+	@Deprecated
+	public boolean hasNext() {
 		boolean retBool = false;
-		try
-		{
-			logger.debug("Checking for next " );
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+		try {
+			classLogger.debug("Checking for next ");
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				retBool = tqr.hasNext();
-				if(!retBool)
+				if (!retBool) {
 					tqr.close();
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+				}
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				retBool = rs.hasNext();
 			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				if(retSt != null) // this means they have not picked it up yet
-					return true;
-				retSt = new SesameJenaSelectStatement();
-				
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				if(ris == null)
-				{
-					Hashtable params = new Hashtable<String,String>();
-					params.put("id", remoteWrapperProxy.getRemoteId());
-					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-				}	
-				Object myObject = ris.readObject();
-				if(!myObject.toString().equalsIgnoreCase("null"))
-				{
-					BindingSet bs = (BindingSet)myObject;
-					//System.out.println("Proceeded to first");
-					retSt = getSJSSfromBinding(bs);
-					retBool = true;
-				}
-			}
-
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
-		} 
-		logger.debug(" Next " + retBool);
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		classLogger.debug(" Next " + retBool);
 		return retBool;
 	}
-	
+
 	/**
-	 * Method next.  Processes the select statement for either Sesame or Jena.
-	
+	 * Method next. Processes the select statement for either Sesame or Jena.
+	 * 
 	 * @return SesameJenaSelectStatement - returns the select statement.
-	 * */
-	public SesameJenaSelectStatement next()
-	{
-		//retSt.remote = remote;
+	 */
+	@Deprecated
+	public SesameJenaSelectStatement next() {
+		// retSt.remote = remote;
 		SesameJenaSelectStatement thisSt = null;
-		try
-		{
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
+		try {
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
 				thisSt = new SesameJenaSelectStatement();
-				logger.debug("Adding a sesame statement ");
+				classLogger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
 				thisSt = getSJSSfromBinding(bs);
-			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				thisSt = new SesameJenaSelectStatement();
 				org.apache.jena.query.QuerySolution row = rs.nextSolution();
-			    curSt = row; 
-				String [] values = new String[var.length];
-				for(int colIndex = 0;colIndex < var.length;colIndex++)
-				{
-					String value = row.get(var[colIndex])+"";
+				curSt = row;
+				String[] values = new String[var.length];
+				for (int colIndex = 0; colIndex < var.length; colIndex++) {
+					String value = row.get(var[colIndex]) + "";
 					org.apache.jena.rdf.model.RDFNode node = row.get(var[colIndex]);
-					if(node.isAnon())
-					{
-						logger.debug("Ok.. an anon node");
+					if (node.isAnon()) {
+						classLogger.debug("Ok.. an anon node");
 						String id = Utility.getNextID();
 						thisSt.setVar(var[colIndex], id);
-					}
-					else
-					{
-						
-						logger.debug("Raw data JENA For Column " +  var[colIndex]+" >>  " + value);
+					} else {
+
+						classLogger.debug("Raw data JENA For Column " + var[colIndex] + " >>  " + value);
 						String instanceName = Utility.getInstanceName(value);
 						thisSt.setVar(var[colIndex], instanceName);
 					}
 					thisSt.setRawVar(var[colIndex], value);
-					logger.debug("Binding Name " + var[colIndex]);
-					logger.debug("Binding Value " + value);
+					classLogger.debug("Binding Name " + var[colIndex]);
+					classLogger.debug("Binding Value " + value);
 				}
-			    logger.debug("Adding a JENA statement ");
+				classLogger.debug("Adding a JENA statement ");
 			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				thisSt = retSt;
-				retSt = null;
-			}
-
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return thisSt;
 	}
-	
-	private SesameJenaSelectStatement getSJSSfromBinding(BindingSet bs)
-	{
+
+	private SesameJenaSelectStatement getSJSSfromBinding(BindingSet bs) {
 		SesameJenaSelectStatement sjss = new SesameJenaSelectStatement();
-		for(int colIndex = 0;colIndex < var.length;colIndex++)
-		{
+		for (int colIndex = 0; colIndex < var.length; colIndex++) {
 			Object val = bs.getValue(var[colIndex]);
 			Double weightVal = null;
-			String dateStr=null;
+			String dateStr = null;
 			String stringVal = null;
-			try
-			{
-				if(val != null && val instanceof Literal)
-				{
-					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
-						stringVal = ((Literal)val).getLabel();
+			try {
+				if (val != null && val instanceof Literal) {
+					if (QueryEvaluationUtil.isStringLiteral((Value) val)) {
+						stringVal = ((Literal) val).getLabel();
+					} else if ((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")) {
+						dateStr = (val.toString()).substring((val.toString()).indexOf("\"") + 1,
+								(val.toString()).lastIndexOf("\""));
+					} else {
+						classLogger.debug("This is a literal impl >>>>>> " + ((Literal) val).doubleValue());
+						weightVal = new Double(((Literal) val).doubleValue());
 					}
-					else if((val.toString()).contains("http://www.w3.org/2001/XMLSchema#dateTime")){
-						dateStr = (val.toString()).substring((val.toString()).indexOf("\"")+1, (val.toString()).lastIndexOf("\""));
-					}
-					else{
-						logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-						weightVal = new Double(((Literal)val).doubleValue());
-					}
-				}else if(val != null && val instanceof org.apache.jena.rdf.model.Literal)
-				{
-					logger.debug("Class is " + val.getClass());
-					weightVal = new Double(((Literal)val).doubleValue());
+				} else if (val != null && val instanceof org.apache.jena.rdf.model.Literal) {
+					classLogger.debug("Class is " + val.getClass());
+					weightVal = new Double(((Literal) val).doubleValue());
 				}
-			}catch(RuntimeException ex)
-			{
-				logger.debug(ex);
+			} catch (RuntimeException ex) {
+				classLogger.debug(ex);
 			}
-			String value = bs.getValue(var[colIndex])+"";
+			String value = bs.getValue(var[colIndex]) + "";
 			String instanceName = Utility.getInstanceName(value);
-			if(weightVal == null && dateStr==null && stringVal==null && val != null)
+			if (weightVal == null && dateStr == null && stringVal == null && val != null) {
 				sjss.setVar(var[colIndex], instanceName);
-			else if (weightVal != null)
+			} else if (weightVal != null) {
 				sjss.setVar(var[colIndex], weightVal);
-			else if (dateStr != null)
+			} else if (dateStr != null) {
 				sjss.setVar(var[colIndex], dateStr);
-			else if (stringVal != null)
+			} else if (stringVal != null) {
 				sjss.setVar(var[colIndex], stringVal);
-			else if(val == null) {
+			} else if (val == null) {
 				sjss.setVar(var[colIndex], "");
 				continue;
 			}
 			sjss.setRawVar(var[colIndex], val);
-			logger.debug("Binding Name " + var[colIndex]);
-			logger.debug("Binding Value " + value);
-		}		
+			classLogger.debug("Binding Name " + var[colIndex]);
+			classLogger.debug("Binding Value " + value);
+		}
 		return sjss;
 	}
 
 	/**
-	 * Method BVnext. Returns full URIs instead of just the instances of the select statement.
-	 * This contains a check so that property values are only sent once.
-	
-	 * @return SesameJenaSelectStatement - The full URL version of the select statement. */
-	public SesameJenaSelectStatement BVnext()
-	{
+	 * Method BVnext. Returns full URIs instead of just the instances of the select
+	 * statement. This contains a check so that property values are only sent once.
+	 * 
+	 * @return SesameJenaSelectStatement - The full URL version of the select
+	 *         statement.
+	 */
+	@Deprecated
+	public SesameJenaSelectStatement BVnext() {
 		SesameJenaSelectStatement retSt = new SesameJenaSelectStatement();
 		ArrayList<String> checker = new ArrayList<String>();
-		try
-		{
-			if(databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME)
-			{
-				logger.debug("Adding a sesame statement ");
+		try {
+			if (databaseType == IDatabaseEngine.DATABASE_TYPE.SESAME) {
+				classLogger.debug("Adding a sesame statement ");
 				BindingSet bs = tqr.next();
-				String [] values = new String[var.length];
-				for(int colIndex = 0;colIndex < var.length;colIndex++)
-				{
-					//if(checker.contains(bs.getValue(var[0])+""+ bs.getValue(var[1])+bs.getValue(var[3])))return null;
+				String[] values = new String[var.length];
+				for (int colIndex = 0; colIndex < var.length; colIndex++) {
+					// if(checker.contains(bs.getValue(var[0])+""+
+					// bs.getValue(var[1])+bs.getValue(var[3])))return null;
 					Object val = bs.getValue(var[colIndex]);
 					Double weightVal = null;
-					try
-					{
-						if(val != null && val instanceof Literal)
-						{
-							logger.debug("This is a literal impl >>>>>> "  + ((Literal)val).doubleValue());
-							weightVal = new Double(((Literal)val).doubleValue());
-						}else if(val != null && val instanceof org.apache.jena.rdf.model.Literal)
-						{
-							logger.info("Class is " + val.getClass());
-							weightVal = new Double(((Literal)val).doubleValue());
+					try {
+						if (val != null && val instanceof Literal) {
+							classLogger.debug("This is a literal impl >>>>>> " + ((Literal) val).doubleValue());
+							weightVal = new Double(((Literal) val).doubleValue());
+						} else if (val != null && val instanceof org.apache.jena.rdf.model.Literal) {
+							classLogger.info("Class is " + val.getClass());
+							weightVal = new Double(((Literal) val).doubleValue());
 						}
-					}catch(RuntimeException ex)
-					{
-						logger.debug(ex);
+					} catch (RuntimeException ex) {
+						classLogger.debug(ex);
 					}
-					String value = bs.getValue(var[colIndex])+"";
-					if(weightVal == null && val != null)
+					String value = bs.getValue(var[colIndex]) + "";
+					if (weightVal == null && val != null) {
 						retSt.setVar(var[colIndex], value);
-					else if (weightVal != null)
+					} else if (weightVal != null) {
 						retSt.setVar(var[colIndex], weightVal);
-					logger.debug("Binding Name " + var[colIndex]);
-					logger.debug("Binding Value " + value);
+					}
+					classLogger.debug("Binding Name " + var[colIndex]);
+					classLogger.debug("Binding Value " + value);
 				}
-				//need to figure out what the checker should hold
-				//checker.add(bs.getValue(var[0])+""+ bs.getValue(var[1])+bs.getValue(var[3]));
-			}
-			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA)
-			{
+				// need to figure out what the checker should hold
+				// checker.add(bs.getValue(var[0])+""+ bs.getValue(var[1])+bs.getValue(var[3]));
+			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				org.apache.jena.query.QuerySolution row = rs.nextSolution();
-			    curSt = row;
-				String [] values = new String[var.length];
-				for(int colIndex = 0;colIndex < var.length;colIndex++)
-				{
-					String value = row.get(var[colIndex])+"";
+				curSt = row;
+				String[] values = new String[var.length];
+				for (int colIndex = 0; colIndex < var.length; colIndex++) {
+					String value = row.get(var[colIndex]) + "";
 					String instanceName = Utility.getInstanceName(value);
 					retSt.setVar(var[colIndex], instanceName);
-					logger.debug("Binding Name " + var[colIndex]);
-					logger.debug("Binding Value " + value);
+					classLogger.debug("Binding Name " + var[colIndex]);
+					classLogger.debug("Binding Value " + value);
 				}
-			    logger.debug("Adding a JENA statement ");
+				classLogger.debug("Adding a JENA statement ");
 			}
-			else if(databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE)
-			{
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				Hashtable params = new Hashtable<String,String>();
-				params.put("id", remoteWrapperProxy.getRemoteId());
-				System.out.println("ID for remote is " + remoteWrapperProxy.getRemoteId());
-				String output = Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/bvnext", params);
-				Gson gson = new Gson();
-				retSt = gson.fromJson(output, SesameJenaSelectStatement.class); // cleans up automatically at the remote end				
-			}
-		}catch(RuntimeException ex)
-		{
-			logger.error(Constants.STACKTRACE, ex);
+		} catch (RuntimeException ex) {
+			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return retSt;
 	}
-	
+
 	/**
-	 * Method getJenaStatement.  Gets the query solution for a JENA model.
-	
-	 * @return QuerySolution */
-	public org.apache.jena.query.QuerySolution getJenaStatement()
-	{
+	 * Method getJenaStatement. Gets the query solution for a JENA model.
+	 * 
+	 * @return QuerySolution
+	 */
+	@Deprecated
+	public org.apache.jena.query.QuerySolution getJenaStatement() {
 		return curSt;
 	}
-	
+
 	/**
-	 * Method setResultSet.  Sets the result set.
+	 * Method setResultSet. Sets the result set.
+	 * 
 	 * @param rs ResultSet - The result set.
 	 */
-	public void setResultSet(org.apache.jena.query.ResultSet rs)
-	{
+	@Deprecated
+	public void setResultSet(org.apache.jena.query.ResultSet rs) {
 		this.rs = rs;
 	}
-	
-	
+
 //	public static void main(String [] args) throws Exception
 //	{
 //		RemoteSemossSesameEngine engine = new RemoteSemossSesameEngine();
@@ -462,16 +395,18 @@ public class SesameJenaSelectWrapper extends AbstractWrapper {
 //		
 //	}
 
+	@Deprecated
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
+	@Deprecated
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }

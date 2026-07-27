@@ -168,7 +168,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertEquals(2, counts.size());
 	}
 
-	// ── Iterator exhaustion tests ──────────────────────────────────────────
+	// -- Iterator exhaustion tests ------------------------------------------
 
 	@Test
 	void testHasNextVert_returnsFalseAfterAllConsumed() {
@@ -202,7 +202,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertFalse(exporter.hasNextEdge());
 	}
 
-	// ── Color map tests ────────────────────────────────────────────────────
+	// -- Color map tests ----------------------------------------------------
 
 	@Test
 	void testGetNextVert_withColorMap() {
@@ -232,7 +232,7 @@ public class TinkerFrameGraphExporterUnitTests {
 
 	@Test
 	void testGetNextVert_withPartialColorMap() {
-		// Color map has PersonType but not PetType → falls back to TypeColorShapeTable
+		// Color map has PersonType but not PetType -> falls back to TypeColorShapeTable
 		Map<String, Color> colorMap = new HashMap<>();
 		colorMap.put("PersonType", Color.MAGENTA);
 		TinkerFrameGraphExporter exporter = new TinkerFrameGraphExporter(frame, colorMap);
@@ -254,7 +254,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		}
 	}
 
-	// ── Vertex property tests ──────────────────────────────────────────────
+	// -- Vertex property tests ----------------------------------------------
 
 	@Test
 	void testGetNextVert_vertexMapContents() {
@@ -282,7 +282,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertFalse(propHash.containsKey(TinkerFrame.TINKER_TYPE));
 	}
 
-	// ── Edge property tests ────────────────────────────────────────────────
+	// -- Edge property tests ------------------------------------------------
 
 	@Test
 	void testGetNextEdge_withoutVerticesHashed_returnsEmptyMap() {
@@ -318,7 +318,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertFalse(propHash.containsKey(TinkerFrame.TINKER_TYPE));
 	}
 
-	// ── getData tests ──────────────────────────────────────────────────────
+	// -- getData tests ------------------------------------------------------
 
 	@Test
 	void testGetData_structure() {
@@ -358,7 +358,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		}
 	}
 
-	// ── Filter traversal integration tests ────────────────────────────────
+	// -- Filter traversal integration tests --------------------------------
 
 	@Test
 	void testCreateVertsIt_withNonEmptyFilters() {
@@ -412,7 +412,7 @@ public class TinkerFrameGraphExporterUnitTests {
 		assertNotNull(data.get("graphMeta"));
 	}
 
-	// ── processFilterColToValues tests (via reflection) ─────────────────
+	// -- processFilterColToValues tests (via reflection) -----------------
 
 	@Nested
 	class ProcessFilterTests {

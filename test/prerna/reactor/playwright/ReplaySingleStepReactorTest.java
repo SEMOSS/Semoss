@@ -27,17 +27,16 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.*;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import prerna.auth.User;
 import prerna.om.Insight;
@@ -46,7 +45,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 
-@RunWith(MockitoJUnitRunner.class)
 public class ReplaySingleStepReactorTest {
 
     private ReplaySingleStepReactor reactor;
@@ -63,8 +61,9 @@ public class ReplaySingleStepReactorTest {
     @Mock
     private NounStore mockNounStore;
 
-    @Before
+    @BeforeEach
     public void setUp() {
+        MockitoAnnotations.openMocks(this);
         reactor = new ReplaySingleStepReactor();
         reactor.setInsight(mockInsight);
         reactor.setNounStore(mockNounStore);
@@ -276,7 +275,7 @@ public class ReplaySingleStepReactorTest {
         assertTrue(description.contains("tab") || description.contains("playwright"));
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test
     public void testExecute_InvalidStepIdFormat_ThrowsException() {
         reactor.keyValue.put("project", "project123");
         reactor.keyValue.put("sessionId", "session123");
@@ -284,13 +283,13 @@ public class ReplaySingleStepReactorTest {
         reactor.keyValue.put("stepId", "not-a-number");
         reactor.keyValue.put("tabId", "tab-1");
 
-        reactor.execute();
+        assertThrows(NumberFormatException.class, () -> reactor.execute());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testExecute_MissingRequiredKeys_ThrowsException() {
         reactor.keyValue.put("project", "project123");
-        reactor.execute();
+        assertThrows(IllegalArgumentException.class, () -> reactor.execute());
     }
 
     @Test

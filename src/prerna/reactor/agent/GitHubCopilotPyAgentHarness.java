@@ -32,24 +32,35 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.GitHubCopilotPyManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * Python-sidecar GitHub Copilot harness. Same behaviour and parameter shape as
- * {@link GitHubCopilotAgentHarness}, but routes through {@link GitHubCopilotPyManager}
- * (which spawns a Python sidecar that wraps the github-copilot-sdk) instead of
- * the in-Java copilot-sdk-java path.
+ * Python-sidecar GitHub Copilot harness. Routes through
+ * {@link GitHubCopilotPyManager}, which spawns a Python sidecar that wraps the
+ * github-copilot-sdk.
  *
  * <p>Registered under the harness name {@code "github_copilot_py"} so callers
  * can opt in via Pixel: {@code RunAgent(harnessType="github_copilot_py", ...)}.
+ *
+ * <p>Uses {@code ctx.getFilePath()} directly as the CLI cwd - callers wanting
+ * the legacy {@code /client} subdir must pass {@code subdir="client"}.
+ *
+ * <p>Like the other CLI harnesses, SEMOSS passes only the authored
+ * room/workspace system prompt. The external agent runtime is responsible for
+ * discovering filesystem instructions such as {@code AGENTS.md} or
+ * {@code CLAUDE.md} from the working directory.
  */
-public class GitHubCopilotPyAgentHarness extends AppBuildingHarness {
+public class GitHubCopilotPyAgentHarness implements IAgentHarness {
+
+	private static final Logger logger = LogManager.getLogger(GitHubCopilotPyAgentHarness.class);
 
 	public static final String NAME = "github_copilot_py";
 
@@ -59,16 +70,27 @@ public class GitHubCopilotPyAgentHarness extends AppBuildingHarness {
 	}
 
 	@Override
-	protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
+	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room                room  = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String              input = ctx.getInput();
+		String              cwd   = ctx.getFilePath();
 
-		String       engineId       = resolveEngineId(room);
-		String       systemPrompt   = resolveSystemPrompt(room);
+		String       engineId       = room.getModelId();
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
+		}
+			String       systemPrompt   = room.getSystemPromptForModel();
+		if (systemPrompt == null) {
+			systemPrompt = "";
+		}
+		User         user           = ctx.getInsight().getUser();
+		if (user == null) {
+			throw new IllegalArgumentException(NAME + ": insight has no user");
+		}
 		List<String> allowedTools   = resolveAllowedTools(params, Collections.emptyList());
 		String       permissionMode = resolvePermissionMode(params);
-		User         user           = resolveUser(ctx.getInsight());
+		List<Map<String, String>> mcps = ctx.getAgentConfig().getMcps();
 
 		IModelEngine modelEngine = ctx.getModelEngine();
 		if (modelEngine == null) {
@@ -76,16 +98,36 @@ public class GitHubCopilotPyAgentHarness extends AppBuildingHarness {
 		}
 		int contextWindow = modelEngine.getContextWindow();
 
-		String cwd = resolveClientPath(ctx);
-
-		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
+		String targetBinary = GitHubCopilotPyManager.resolveCopilotBinary();
 		SandboxPolicy sandboxPolicy = AgentSandboxConfig.buildEffectivePolicy(
-				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
+				room.getRoomFolderPath(), cwd, targetBinary, ctx.getSandboxPolicy());
+
+		logger.debug("GitHubCopilotPyAgentHarness: engine={} cwd={} mcps={}",
+				engineId, cwd, mcps == null ? 0 : mcps.size());
 
 		GitHubCopilotPyManager manager = new GitHubCopilotPyManager();
 		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt, room.getId(),
-				allowedTools, permissionMode, buildMcpList(room), contextWindow, sandboxPolicy);
+				allowedTools, permissionMode, mcps, contextWindow, sandboxPolicy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<String> resolveAllowedTools(Map<String, Object> params, List<String> defaults) {
+		if (params == null) {
+			return defaults;
+		}
+		Object o = params.get("allowed_tools");
+		if (o instanceof List) {
+			return (List<String>) o;
+		}
+		return defaults;
+	}
+
+	private static String resolvePermissionMode(Map<String, Object> params) {
+		if (params == null || !params.containsKey("permission_mode")) {
+			return "default";
+		}
+		return String.valueOf(params.get("permission_mode"));
 	}
 }

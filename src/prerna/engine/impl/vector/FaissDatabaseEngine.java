@@ -79,15 +79,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
-	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
-
 	private String vectorDatabaseSearcher = null;
-	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 
 		// if we've already opened don't automatically drop the searcher variable
 		if (this.vectorDatabaseSearcher == null
@@ -107,7 +103,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
 				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
 				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
-				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.useHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
@@ -224,8 +220,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
 					}
 				} catch (IOException e) {
-					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
-							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to copy CSV file '{}' to vector documents directory '{}'",
+							vectorF.getAbsolutePath(), documentDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ documentDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -243,8 +239,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					// store to move to cloud
 					filesToCopyToCloud.add(indexDestinationFile.getAbsolutePath());
 				} catch (IOException e) {
-					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
-							+ "' to indexed-files directory '" + indexFilesDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to copy CSV file '{}' to indexed-files directory '{}'",
+							vectorF.getAbsolutePath(), indexFilesDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ indexDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -294,7 +290,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String script = addDocumentPyCommand.toString();
 
-		classLogger.info("Running >>> " + script);
+		classLogger.info("Running >>> {}", script);
 		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator
 				.runDirectPy(insight, script);
 
@@ -357,7 +353,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 			}
 		} catch (IOException e) {
-			classLogger.error("Error reading file for line count: {}", file.getName(), e);
+			classLogger.error("Failed to count records in file '{}'", file.getName(), e);
 		}
 		return lines;
 	}
@@ -414,75 +410,65 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String indexedFilesPath = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ "indexed_files";
 		Path indexDirectory = Paths.get(indexedFilesPath);
-		DirectoryStream<Path> stream = null;
-		try {
-			List<String> sourceNames = new ArrayList<>();
-			for (String document : fileNames) {
-				String documentName = FilenameUtils.getName(document);
-				File f = new File(document);
-				if (f.exists() && f.getName().endsWith(".csv")) {
-					sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
-				} else {
-					sourceNames.add(documentName);
-				}
+		List<String> sourceNames = new ArrayList<>();
+		for (String document : fileNames) {
+			String documentName = FilenameUtils.getName(document);
+			File f = new File(document);
+			if (f.exists() && f.getName().endsWith(".csv")) {
+				sourceNames.addAll(VectorDatabaseCSVTable.pullSourceColumn(f));
+			} else {
+				sourceNames.add(documentName);
 			}
+		}
 
-			for (String document : sourceNames) {
-				String documentName = FilenameUtils.getName(document);
-				// Include both new safe extensions and the legacy .pkl pair so this method
-				// works against partially-migrated engines as well as freshly-written ones.
-				String[] fileNamesToDelete = { documentName + "_dataset.parquet", documentName + "_vectors.npy",
-						documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv" };
+		for (String document : sourceNames) {
+			String documentName = FilenameUtils.getName(document);
+			// Include both new safe extensions and the legacy .pkl pair so this method
+			// works against partially-migrated engines as well as freshly-written ones.
+			String[] fileNamesToDelete = { documentName + "_dataset.parquet", documentName + "_vectors.npy",
+					documentName + "_dataset.pkl", documentName + "_vectors.pkl", documentName + ".csv" };
 
-				// Create a filter for the file names
-				DirectoryStream.Filter<Path> fileNameFilters = entry -> {
-					String fileName = entry.getFileName().toString();
-					for (String fileNameToDelete : fileNamesToDelete) {
-						if (fileName.equals(fileNameToDelete)) {
-							return true;
-						}
+			// Create a filter for the file names
+			DirectoryStream.Filter<Path> fileNameFilters = entry -> {
+				String fileName = entry.getFileName().toString();
+				for (String fileNameToDelete : fileNamesToDelete) {
+					if (fileName.equals(fileNameToDelete)) {
+						return true;
 					}
-					return false;
-				};
-
-				try {
-					stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
-				} catch (IOException e) {
-					classLogger.error("Failed to list indexed files in directory: " + indexDirectory, e);
-					throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 				}
+				return false;
+			};
+
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(indexDirectory, fileNameFilters)) {
 				for (Path entry : stream) {
 					// Delete each file that matches the specified file name
 					try {
 						Files.delete(entry);
 						filesToRemoveFromCloud.add(entry.toString());
 					} catch (IOException e) {
-						classLogger.error("Failed to delete indexed file: " + entry, e);
+						classLogger.error("Failed to delete indexed file '{}'", entry, e);
 						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
 					}
-					classLogger.info("Deleted: " + entry.toString());
+					classLogger.info("Deleted: {}", entry);
 				}
-				try {
-					File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
-							+ FILE_SEPARATOR + "documents", document);
-					if (documentFile.exists() && documentFile.isFile()) {
-						FileUtils.forceDelete(documentFile);
-						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to delete document '" + document
-							+ "' from documents directory for index class: " + indexClass, e);
-					throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
-				}
+			} catch (IllegalArgumentException e) {
+				throw e;
+			} catch (IOException e) {
+				classLogger.error("Failed to list indexed files in directory '{}'", indexDirectory, e);
+				throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 			}
-		} finally {
-			if (stream != null) {
-				try {
-					stream.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close indexed-files directory stream for index class: " + indexClass,
-							e);
+
+			try {
+				File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
+						+ FILE_SEPARATOR + "documents", document);
+				if (documentFile.exists() && documentFile.isFile()) {
+					FileUtils.forceDelete(documentFile);
+					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
+			} catch (IOException e) {
+				classLogger.error("Failed to delete document '{}' from documents directory for index class '{}'",
+						document, indexClass, e);
+				throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
 			}
 		}
 
@@ -507,7 +493,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				// delete the entire folder
 				FileUtils.forceDelete(indexClassDirectory);
 			} catch (IOException e) {
-				classLogger.error("Failed to delete index class folder for index class: " + indexClass, e);
+				classLogger.error("Failed to delete index class folder for index class '{}'", indexClass, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
 			this.pyTranslator
@@ -521,17 +507,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
 			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
-			classLogger.info("Running >>> " + updateFaissMaster);
+			classLogger.info("Running >>> {}", updateFaissMaster);
 
 			// also handle bm25 files
 			String updateBM25 = null;
-			if (this.enableHybridSearch) {
+			if (this.useHybridSearch) {
 				StringBuilder updateBM25Builder = new StringBuilder();
 				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
 						.append(indexClass).append("'])");
 
 				updateBM25 = updateBM25Builder.toString();
-				classLogger.info("Running >>> " + updateBM25);
+				classLogger.info("Running >>> {}", updateBM25);
 			}
 			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
@@ -642,7 +628,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// close the method
 		callMaker.append(")");
-		classLogger.info("Running >>> " + callMaker.toString());
+		classLogger.info("Running >>> {}", callMaker);
 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight,
 				callMaker.toString());
 		return output;
@@ -752,21 +738,26 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param port the port the python server should bind to
 	 */
 	@Override
-	protected synchronized void startServer(int port) {
-		// Detect any legacy .pkl files BEFORE Python starts;
-		// FAISSSearcher.__init__ will
-		// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
-		// script.
-		Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
+	protected void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// Detect any legacy .pkl files BEFORE Python starts;
+			// FAISSSearcher.__init__ will
+			// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
+			// script.
+			Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
 
-		super.startServer(port);
+			super.startServer(port);
 
-		// In cluster mode the engine folder was just hydrated from cloud and likely
-		// still contains the legacy .pkl entries we just converted locally. Push the
-		// migrated counterparts up and remove the obsolete .pkl from cloud so peers
-		// don't re-pull them.
-		if (!pendingPickleMigrations.isEmpty()) {
-			syncMigratedFilesToCloud(pendingPickleMigrations);
+			// In cluster mode the engine folder was just hydrated from cloud and likely
+			// still contains the legacy .pkl entries we just converted locally. Push the
+			// migrated counterparts up and remove the obsolete .pkl from cloud so peers
+			// don't re-pull them.
+			if (!pendingPickleMigrations.isEmpty()) {
+				syncMigratedFilesToCloud(pendingPickleMigrations);
+			}
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 

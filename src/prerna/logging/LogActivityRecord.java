@@ -37,45 +37,63 @@ package prerna.logging;
  * enriches each row with request-level timing aggregates (min start, max end,
  * and duration).
  *
- * @param requestId    Correlation id ({@code requestId}) used to group all log
- *                     rows for a request.
- * @param startTime    Earliest {@code requestStartTime} found for
- *                     {@code requestId} (request-level aggregate from
- *                     {@code MIN(REQUEST_START_TIME)}).
- * @param endTime      Latest {@code responseEndTime} found for
- *                     {@code requestId} (request-level aggregate from
- *                     {@code MAX(RESPONSE_END_TIME)}).
- * @param request      Serialized request payload captured for this row. May be
- *                     {@code REQUEST NOT TRACKED} when input/output tracking is
- *                     disabled.
- * @param response     Serialized response payload captured for this row. May be
- *                     {@code RESPONSE NOT TRACKED} when input/output tracking
- *                     is disabled.
- * @param tokens       Sum of
- *                     {@code numberOfTokensInPrompt + numberOfTokensInResponse}
- *                     for this row.
- * @param latency      Request-level latency in seconds for {@code requestId},
- *                     computed from
- *                     {@code DATEDIFF(second, MIN(REQUEST_START_TIME), MAX(RESPONSE_END_TIME))}.
- * @param status       Row-level success flag from {@code isSuccess}.
- * @param engineName   Engine display name ({@code engineName}) from logging
- *                     context.
- * @param engineType   Engine catalog type ({@code engineType}) from logging
- *                     context.
- * @param methodName   Invoked engine method name ({@code methodName}).
- * @param userId       User identifier ({@code userId}) associated with the
- *                     event.
- * @param sessionId    Session identifier ({@code sessionId}) associated with
- *                     the event.
- * @param spanId       Span identifier ({@code spanId}) for one proxied engine
- *                     invocation, used to correlate guardrail/input/output log
- *                     rows.
- * @param logTimestamp Log event timestamp written by the appender
- *                     ({@code LOG_TIMESTAMP}), which can differ from request
- *                     start/end timestamps.
+ * @param requestId           Correlation id ({@code requestId}) used to group
+ *                            all log rows for a request.
+ * @param startTime           This row's own {@code requestStartTime}
+ *                            ({@code REQUEST_START_TIME}) as an ISO-8601 UTC
+ *                            string (e.g. {@code 2026-06-22T17:48:07.123Z}).
+ * @param endTime             This row's own {@code responseEndTime}
+ *                            ({@code RESPONSE_END_TIME}) as an ISO-8601 UTC
+ *                            string.
+ * @param request             Serialized request payload captured for this row.
+ *                            May be {@code REQUEST NOT TRACKED} when
+ *                            input/output tracking is disabled.
+ * @param response            Serialized response payload captured for this row.
+ *                            May be {@code RESPONSE NOT TRACKED} when
+ *                            input/output tracking is disabled.
+ * @param tokens              Sum of
+ *                            {@code numberOfTokensInPrompt + numberOfTokensInResponse}
+ *                            for this row.
+ * @param latency             This row's latency in milliseconds, computed from
+ *                            its own
+ *                            {@code RESPONSE_END_TIME - REQUEST_START_TIME}.
+ * @param status              Row-level success flag from {@code isSuccess}.
+ * @param engineName          Engine display name ({@code engineName}) from
+ *                            logging context.
+ * @param engineType          Engine catalog type ({@code engineType}) from
+ *                            logging context.
+ * @param methodName          Invoked engine method name ({@code methodName}).
+ * @param userId              User identifier ({@code userId}) associated with
+ *                            the event.
+ * @param userName            User name ({@code userName}) associated with the
+ *                            event.
+ * @param sessionId           Session identifier ({@code sessionId}) associated
+ *                            with the event.
+ * @param spanId              Span identifier ({@code spanId}) for one proxied
+ *                            engine invocation, used to correlate
+ *                            guardrail/input/output log rows.
+ * @param logTimestamp        Log event timestamp written by the appender
+ *                            ({@code LOG_TIMESTAMP}) as an ISO-8601 UTC string,
+ *                            which can differ from request start/end
+ *                            timestamps.
+ * @param guardrailAction     Notable action a guardrail took on this row
+ *                            ({@code GUARDRAIL_ACTION}): {@code MASK},
+ *                            {@code BLOCK}, or {@code null} when no guardrail
+ *                            acted.
+ * @param cacheReadTokens     Prompt tokens served from the provider cache
+ *                            ({@code NUMBER_OF_CACHE_READ_TOKENS}) - a subset
+ *                            of {@code tokens}, billed cheaper.
+ * @param cacheCreationTokens Prompt tokens written to the provider cache
+ *                            ({@code NUMBER_OF_CACHE_CREATION_TOKENS}) - a
+ *                            subset of {@code tokens}, billed at a premium.
+ * @param promptTokens        Prompt/input tokens for this row
+ *                            ({@code NUMBER_OF_TOKENS_IN_PROMPT}).
+ * @param responseTokens      Response/output tokens for this row
+ *                            ({@code NUMBER_OF_TOKENS_IN_RESPONSE}).
  */
-public record LogActivityRecord(String requestId, java.sql.Timestamp startTime, java.sql.Timestamp endTime,
-		String request, String response, int tokens, long latency, boolean status, String engineName, String engineType,
-		String methodName, String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
+public record LogActivityRecord(String requestId, String startTime, String endTime, String request, String response,
+		int tokens, long latency, boolean status, String engineName, String engineType, String methodName,
+		String userName, String userId, String sessionId, String spanId, String logTimestamp, String guardrailAction,
+		int cacheReadTokens, int cacheCreationTokens, int promptTokens, int responseTokens) {
 
 }

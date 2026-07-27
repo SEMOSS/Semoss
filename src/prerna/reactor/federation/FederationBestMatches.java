@@ -56,7 +56,7 @@ import prerna.util.Utility;
 
 @Deprecated
 public class FederationBestMatches extends AbstractRFrameReactor {
-	private static final Logger logger = LogManager.getLogger(FederationBestMatches.class);
+	private static final Logger classLogger = LogManager.getLogger(FederationBestMatches.class);
 
 	@Deprecated
 	public static final String FRAME_COLUMN = "frameCol";
@@ -95,6 +95,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		final String rCol2 = matchesFrame + "col2";
 
 		// accept input info, generate matches table
+		newDatabase = testDatabaseId(newDatabase, false);
 		IDatabaseEngine newColDatabase = Utility.getDatabase(newDatabase);
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getName();
@@ -140,13 +141,13 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 			// write to file
 			newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (it2 != null) {
 				try {
 					it2.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

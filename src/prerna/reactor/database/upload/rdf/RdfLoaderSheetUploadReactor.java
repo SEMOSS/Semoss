@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -75,6 +74,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Uploads an Excel file that follows the SEMOSS loader-sheet format to create an RDF (triplestore) database. "
+				+ "Supports node, relationship, matrix, and subclass sheets, generating the corresponding triples.";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
 		if (!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
@@ -86,22 +91,22 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Create metadata for database...");
+		logger.info("{}. Create metadata for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// need instance to write to smss
 		this.database = RDFDefaultDatabaseTypeFactory.getDefaultRdfEngine();
 
-		logger.info(stepCounter + ". Create properties file for database...");
+		logger.info("{}. Create properties file for database...", stepCounter);
 		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.database, this.databaseId, newDatabaseName, owlFile,
 				baseUri);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create database store...");
+		logger.info("{}. Create database store...", stepCounter);
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		this.database.open(this.tempSmss.getAbsolutePath());
@@ -113,13 +118,13 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
 		((IRDFDatabase) this.database).addStatement(new Object[] { sub, typeOf, obj, true });
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		/*
 		 * Load Data
 		 */
-		logger.info(stepCounter + ". Parsing file metadata...");
+		logger.info("{}. Parsing file metadata...", stepCounter);
 
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		owlEngine.addCustomBaseURI(baseUri);
@@ -161,7 +166,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		((IRDFDatabase) this.database).infer();
 		logger.info("Done with inferencing");
 		((IRDFDatabase) this.database).exportDB();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 	}
 
 	@Override
@@ -180,11 +185,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 	 */
 	public void importFile(IDatabaseEngine database, WriteOWLEngine owlEngine, String fileName, String baseUri)
 			throws FileNotFoundException, IOException {
-		Workbook workbook = null;
-		FileInputStream poiReader = null;
-		try {
-			poiReader = new FileInputStream(fileName);
-			workbook = WorkbookFactory.create(poiReader);
+		try (FileInputStream poiReader = new FileInputStream(fileName);
+				Workbook workbook = WorkbookFactory.create(poiReader);) {
 			// load the Loader tab to determine which sheets to load
 			Sheet lSheet = workbook.getSheet("Loader");
 			if (lSheet == null) {
@@ -213,7 +215,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 							loadTypeName = sheetTypeCell.getStringCellValue();
 						}
 						if (!sheetToLoad.isEmpty()) {
-							this.logger.debug("Cell Content is " + sheetToLoad);
+							this.logger.debug("Cell Content is {}", sheetToLoad);
 							// this is a relationship
 							if (loadTypeName.contains("Matrix")) {
 								loadMatrixSheet(database, owlEngine, sheetToLoad, workbook, baseUri);
@@ -225,40 +227,14 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 				}
 			}
 		} catch (FileNotFoundException e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			}
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Could not find Excel file at path '{}'", fileName, e);
 			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			}
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error reading Excel file at path '{}'", fileName, e);
 			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
-			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-				logger.error(e.getMessage());
-			}
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Invalid or unreadable Excel file at path '{}'", fileName, e);
 			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
-		} finally {
-			if (poiReader != null) {
-				try {
-					poiReader.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-					throw new IOException("Could not close Excel file stream");
-				}
-			}
-			if (workbook != null) {
-				try {
-					workbook.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-					// throw new IOException("Could not close Excel file stream");
-				}
-			}
 		}
 	}
 
@@ -318,7 +294,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		if (lSheet == null) {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
 		}
-		logger.info("Loading Sheet: " + sheetToLoad);
+		logger.info("Loading Sheet: {}", sheetToLoad);
 		int lastRow = lSheet.getLastRowNum() + 1;
 
 		// Get the first row to get column names
@@ -327,7 +303,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		// initialize variables
 		String objectNode = "";
 		String relName = "";
-		Vector<String> propNames = new Vector<String>();
+		List<String> propNames = new ArrayList<>();
 
 		// determine if relationship or property sheet
 		String sheetType = row.getCell(0).getStringCellValue();
@@ -346,16 +322,16 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++) {
 			// add property name to vector
 			if (row.getCell(colIndex) != null) {
-				propNames.addElement(row.getCell(colIndex).getStringCellValue());
+				propNames.add(row.getCell(colIndex).getStringCellValue());
 				lastColumn = colIndex;
 			}
 		}
-		logger.info(sheetToLoad + " has number of columns: " + (lastColumn + 1));
+		logger.info("{} has number of columns: {}", sheetToLoad, (lastColumn + 1));
 
 		List<Object[]> allInsertStatements = new ArrayList<>();
 
 		// processing starts
-		logger.info(sheetToLoad + " has number of rows: " + lastRow);
+		logger.info("{} has number of rows: {}", sheetToLoad, lastRow);
 		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
 			// first cell is the name of relationship
 			Row nextRow = lSheet.getRow(rowIndex);
@@ -418,7 +394,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 				if (propNames.size() <= (colIndex - offset)) {
 					continue;
 				}
-				String propName = propNames.elementAt(colIndex - offset).toString();
+				String propName = propNames.get(colIndex - offset).toString();
 				// ignore bad data
 				if (ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
 					continue;
@@ -433,13 +409,13 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if (rowIndex % 100 == 0) {
-					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
+					logger.info("Processing Relationship Sheet: {}, row = {}", sheetToLoad, rowIndex);
 				}
 				RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, subjectNode, objectNode,
 						instanceSubjectNode, instanceObjectNode, relName, propHash, allInsertStatements);
 			} else {
 				if (rowIndex % 100 == 0) {
-					logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
+					logger.info("Processing Node Sheet: {}, row = {}", sheetToLoad, rowIndex);
 				}
 				RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, subjectNode, instanceSubjectNode,
 						propHash, allInsertStatements);
@@ -447,16 +423,16 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 
 			if (allInsertStatements.size() > 1000) {
 				((IRDFDatabase) database).bulkInsert(allInsertStatements);
-				logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+				logger.info("Bulk inserted {} triples into the database", allInsertStatements.size());
 				allInsertStatements.clear();
 			}
 		}
 		if (!allInsertStatements.isEmpty()) {
 			((IRDFDatabase) database).bulkInsert(allInsertStatements);
-			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+			logger.info("Bulk inserted {} triples into the database", allInsertStatements.size());
 			allInsertStatements.clear();
 		}
-		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
+		logger.info("Done processing: {}. Total rows processed = {}", sheetToLoad, lastRow);
 	}
 
 	/**
@@ -469,9 +445,9 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 	public void loadMatrixSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, String sheetToLoad,
 			Workbook workbook, String baseUri) {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
-		logger.info("Loading Sheet: " + sheetToLoad);
+		logger.info("Loading Sheet: {}", sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
-		logger.info("Number of Rows: " + lastRow);
+		logger.info("Number of Rows: {}", lastRow);
 
 		// Get the first row to get column names
 		Row row = lSheet.getRow(0);
@@ -510,7 +486,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		}
 		// fix number of columns due to data shift in excel sheet
 		lastColumn--;
-		logger.info("Number of Columns: " + lastColumn);
+		logger.info("Number of Columns: {}", lastColumn);
 
 		List<Object[]> allInsertStatements = new ArrayList<>();
 
@@ -537,7 +513,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 								propHash.put(propertyName, matrixContent.getDateCellValue());
 								mapExists = true;
 							} else {
-								propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
+								propHash.put(propertyName, Double.valueOf(matrixContent.getNumericCellValue()));
 								mapExists = true;
 							}
 						} else {
@@ -555,31 +531,30 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 
 				if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
 					if (rowIndex % 100 == 0) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+						logger.info("Processing{} Row {} Column {}", sheetToLoad, rowIndex, colIndex);
 					}
 					RdfUploadReactorUtility.createRelationship(owlEngine, baseUri, subjectNodeType, objectNodeType,
 							instanceSubjectName, instanceObjectName, relName, propHash, allInsertStatements);
 				} else {
 					if (rowIndex % 100 == 0) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+						logger.info("Processing{} Row {} Column {}", sheetToLoad, rowIndex, colIndex);
 					}
 					RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, subjectNodeType, instanceSubjectName,
 							propHash, allInsertStatements);
 				}
-
 				if (allInsertStatements.size() > 1000) {
 					((IRDFDatabase) database).bulkInsert(allInsertStatements);
-					logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+					logger.info("Bulk inserted {} triples into the database", allInsertStatements.size());
 					allInsertStatements.clear();
 				}
 			}
 		}
 		if (!allInsertStatements.isEmpty()) {
 			((IRDFDatabase) database).bulkInsert(allInsertStatements);
-			logger.info("Bulk inserted " + allInsertStatements.size() + " triples into the database");
+			logger.info("Bulk inserted {} triples into the database", allInsertStatements.size());
 			allInsertStatements.clear();
 		}
-		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
+		logger.info("Done processing: {}. Total rows processed = {}", sheetToLoad, lastRow);
 	}
 
 }

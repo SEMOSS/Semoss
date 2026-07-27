@@ -28,7 +28,6 @@
 package prerna.reactor.project.fs;
 
 import java.io.File;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -36,13 +35,14 @@ import java.util.regex.PatternSyntaxException;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
@@ -58,13 +58,14 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
-				.withZone(user.getZoneId());
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+		// editors/owners can search everything; view-only users are confined to the
+		// public folder
+		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
+		if (!canEdit && !SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit assets.");
+					"Project " + projectId + " does not exist or user does not have access to view assets.");
 		}
 		IProject project = Utility.getProject(projectId);
 
@@ -76,8 +77,11 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 				relativeFilePath = "/" + relativeFilePath;
 			}
 		}
+		// confine view-only users to the public folder (throws if outside it)
+		relativeFilePath = FileSystemUtil.resolveReadableAssetPath(canEdit, relativeFilePath);
 
-		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String filePath = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getEngineId(), project.getEngineName());
 		int baseLen = filePath.length();
 		String searchRoot = filePath + (relativeFilePath != null ? relativeFilePath : "");
 
@@ -108,7 +112,7 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 		}
 
 		// Recursive search
-		List<Map<String, Object>> results = FileSystemUtil.search(rootDir, pattern, baseLen, dateTimeFormatter);
+		List<Map<String, Object>> results = FileSystemUtil.search(user, rootDir, pattern, baseLen);
 
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}

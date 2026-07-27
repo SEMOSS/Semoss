@@ -30,7 +30,6 @@ package prerna.reactor.qs.source;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
 import prerna.reactor.EmbeddedScriptReactor;
 import prerna.reactor.GenericReactor;
@@ -72,11 +71,11 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 			}
 		}
 		// need to account if this is a hard query struct
-		if (this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		if (this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		}
 		return this.qs;
 	}
@@ -108,11 +107,11 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		this.qs.setEngineId(engineId);
 
 		// need to account if this is a hard query struct
-		if (this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		if (this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		} else {
-			this.qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		}
 		return this.qs;
 	}

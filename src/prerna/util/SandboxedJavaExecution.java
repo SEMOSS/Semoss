@@ -125,9 +125,9 @@ public final class SandboxedJavaExecution {
 	 * <p>
 	 * Map semantics:
 	 * <ul>
-	 * <li>Key present, value non-null → return the provided value directly
+	 * <li>Key present, value non-null -> return the provided value directly
 	 * (platform override, reactor never sees the real system property).</li>
-	 * <li>Key present, value null → delegate to {@code System.getProperty(key)}
+	 * <li>Key present, value null -> delegate to {@code System.getProperty(key)}
 	 * (allow-list the key, expose its real value).</li>
 	 * </ul>
 	 */

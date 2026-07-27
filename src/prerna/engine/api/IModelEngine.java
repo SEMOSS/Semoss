@@ -33,7 +33,12 @@ import java.util.Map;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.BatchListResponse;
+import prerna.engine.impl.model.responses.BatchResultsResponse;
+import prerna.engine.impl.model.responses.BatchStatusResponse;
+import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
 
@@ -118,32 +123,98 @@ public interface IModelEngine extends IEngine {
 			Map<String, Object> parameters);
 
 	/**
-	 * Passes a list of strings to the model client to be embedded. Each string in
-	 * the {@code stringsToEmbed} will be returned as its own vector.
-	 * 
-	 * @param stringsToEmbed The string that needs to be encoded
-	 * @param insight        The insight from where the call is being made. The
-	 *                       insight holds user credentials, project information and
-	 *                       conversation history tied to the insightId
-	 * @param parameters     Additional parameters such as temperature, top_k,
-	 *                       max_new_tokens etc
-	 * @return A list of embeddings
+	 * Passes text, image, and/or video inputs to the model client to be embedded
+	 * together. Unlike {@link #embeddings}, the result is broken out by modality so
+	 * each returned embedding (and any per-input error) lines up with the input that
+	 * produced it.
+	 *
+	 * This is an optional capability. Engines whose underlying client does not
+	 * implement multi modal embeddings inherit this default, which reports that the
+	 * operation is not implemented rather than throwing.
+	 *
+	 * @param text       Text string(s) to embed. May be null/empty.
+	 * @param image      Image input(s) to embed - base64, data URL, or remote URL. May be null/empty.
+	 * @param video      Video input(s) to embed - base64, data URL, or remote URL. May be null/empty.
+	 * @param insight    The insight from where the call is being made.
+	 * @param parameters Additional parameters passed through to the model client.
+	 * @return The embeddings response broken out by modality.
 	 */
-	EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters);
+	default MultiModalEmbeddingsModelEngineResponse multiModalEmbeddings(List<String> text, List<String> image,
+			List<String> video, Insight insight, Map<String, Object> parameters) {
+		return MultiModalEmbeddingsModelEngineResponse
+				.notImplemented("This model does not support multi modal embeddings.");
+	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	@IgnoreEngineLogging
 	boolean keepsConversationHistory();
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	@IgnoreEngineLogging
 	int getContextWindow();
+
+	// ------------------------------------------------------------------
+	// Batch model calls (native provider Batch APIs).
+	//
+	// These are optional capabilities. Engines that do not support a native
+	// provider batch API inherit the defaults below, which report
+	// supportsBatch()==false and throw on use. Submit -> provider batch id ->
+	// poll status -> fetch results. There is no SEMOSS-side state: the provider
+	// is the source of truth and the engine is the security boundary.
+	// ------------------------------------------------------------------
+
+	/**
+	 * Whether this engine supports submitting native provider batch jobs.
+	 */
+	@IgnoreEngineLogging
+	default boolean supportsBatch() {
+		return false;
+	}
+
+	/**
+	 * Submit a batch of requests to the provider's batch API.
+	 *
+	 * @param requests   each entry is {@code {custom_id, body}} where body is the
+	 *                   provider-native per-request payload
+	 * @param parameters optional submission params (e.g. completion_window, endpoint)
+	 * @return the provider batch id and initial status
+	 */
+	default BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Fetch the live status of a previously submitted batch.
+	 */
+	default BatchStatusResponse getBatchStatus(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Fetch the per-request results of a batch (mapped back by custom_id).
+	 */
+	default BatchResultsResponse getBatchResults(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * List the batches visible to this engine's provider credentials.
+	 */
+	default BatchListResponse listBatches(Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
+
+	/**
+	 * Best-effort cancel of a submitted batch.
+	 */
+	default BatchStatusResponse cancelBatch(String providerBatchId, Map<String, Object> parameters) {
+		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
+	}
 
 }

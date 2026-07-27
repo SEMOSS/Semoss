@@ -52,6 +52,7 @@ import prerna.om.MosfetFile;
 import prerna.om.PixelList;
 import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -70,7 +71,7 @@ import prerna.util.insight.InsightUtility;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
-	private static final Logger logger = LogManager.getLogger(UpdateInsightReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(UpdateInsightReactor.class);
 	private static final String CLASS_NAME = UpdateInsightReactor.class.getName();
 
 	public UpdateInsightReactor() {
@@ -257,7 +258,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 					recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags,
 					schemaName, true);
 		} catch (IOException e) {
-			UpdateInsightReactor.logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");
@@ -366,5 +367,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
 		UserTrackingUtils.updateEngineUsage(queriedDatabaseIds, existingRdbmsId, projectId);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

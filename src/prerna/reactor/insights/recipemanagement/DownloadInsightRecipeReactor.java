@@ -43,6 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.om.OldInsight;
@@ -56,10 +57,10 @@ import prerna.util.Utility;
 
 public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 
-	private static final Logger logger = LogManager.getLogger(DownloadInsightRecipeReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(DownloadInsightRecipeReactor.class);
 
 	public DownloadInsightRecipeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey() };
 	}
 
 	@Override
@@ -69,12 +70,16 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		// need the engine name and id that has the recipe
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-		
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			throw new IllegalArgumentException("User does not have access to this insight");
+		}
+
 		// pull the insight from the security db
 		Insight newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
 
 		// OLD INSIGHT
-		if(newInsight instanceof OldInsight) {
+		if (newInsight instanceof OldInsight) {
 			Map<String, Object> insightMap = new HashMap<String, Object>();
 			// return to the FE the recipe
 			insightMap.put("name", newInsight.getInsightName());
@@ -89,16 +94,17 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS");
 		formatter.setTimeZone(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
 		String modifiedDate = formatter.format(date);
-		String fileLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + Utility.normalizePath("insight_recipe_" + rdbmsId + "_" + modifiedDate) + ".txt";
+		String fileLocation = this.insight.getInsightFolder() + DIR_SEPARATOR
+				+ Utility.normalizePath("insight_recipe_" + rdbmsId + "_" + modifiedDate) + ".txt";
 		File recipeFile = new File(fileLocation);
 		recipeFile.getParentFile().mkdirs();
 		try {
 			recipeFile.createNewFile();
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Error occurred creating new file with message: " + e.getMessage());
 		}
-		
+
 		List<String> recipeSteps = newInsight.getPixelList().getPixelRecipe();
 
 		String downloadKey = UUID.randomUUID().toString();
@@ -106,37 +112,39 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		insightFile.setFileKey(downloadKey);
 		insightFile.setFilePath(fileLocation);
 		insightFile.setDeleteOnInsightClose(true);
-		
+
 		FileWriter fw = null;
 		PrintWriter pw = null;
 		try {
 			fw = new FileWriter(recipeFile);
 			pw = new PrintWriter(fw);
-			for(String step : recipeSteps) {
+			for (String step : recipeSteps) {
 				pw.println(step);
 			}
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred writing the recipe to file with message: " + e.getMessage());
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(
+					"Error occurred writing the recipe to file with message: " + e.getMessage());
 		} finally {
-			if(pw != null) {
+			if (pw != null) {
 				pw.close();
 			}
-			if(fw != null) {
+			if (fw != null) {
 				try {
 					fw.close();
 				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
 
-		// store the insight file 
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
 		return retNoun;
 	}

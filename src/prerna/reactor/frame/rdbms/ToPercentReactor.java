@@ -39,7 +39,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ToPercentReactor extends AbstractFrameReactor {
@@ -116,7 +115,9 @@ public class ToPercentReactor extends AbstractFrameReactor {
 				}
 				return retNoun;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error(
+						"Failed to convert column {} to percent on table {} (newColumn={}, sigDigits={}, by100={})",
+						srcCol, table, newColName, sigDigits, by100, e);
 			}
 		}
 

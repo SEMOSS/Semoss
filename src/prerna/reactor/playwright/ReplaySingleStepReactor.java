@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,6 +78,13 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		Map<String, Object> inputs = getMap(this.keysToGet[3]);
 		int stepId = Integer.parseInt(this.keyValue.get(this.keysToGet[4]));
 		String tabId = this.keyValue.get(this.keysToGet[5]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+		}
 
 		Map<String, Object> response = replayStep(projectId, sessionId, fileName, stepId, inputs, tabId);
 
@@ -119,11 +127,10 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 
 			// If tabId was provided, verify it matches
 			if (tabId != null && !tabId.isEmpty() && !tabId.equals(actualTabId)) {
-				classLogger.warn("Provided tabId " + tabId + " doesn't match step's tabId " + actualTabId);
+				classLogger.warn("Provided tabId {} doesn't match step's tabId {}", tabId, actualTabId);
 			}
 
-			classLogger
-					.info("Found step " + stepId + " in tab " + actualTabId + ": " + json.valueToTree(step).toString());
+			classLogger.info("Found step {} in tab {}: {}", stepId, actualTabId, json.valueToTree(step).toString());
 
 			// Get session
 			PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
@@ -153,13 +160,18 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				stepToExecute = new PlaywrightStep(step, inputs.get(step.label()).toString());
 			}
 
-			Map<String, Object> executionResult = PlaywrightSessionUtility.applyStep(s, stepToExecute, actualTabId);
-
-			// Get screenshot after execution attempt
-			ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			Map<String, Object> executionResult;
+			ScreenshotResponse screenshot;
+			s.getOperationLock().lock();
+			try {
+				executionResult = PlaywrightSessionUtility.applyStep(s, stepToExecute, actualTabId);
+				screenshot = ScreenshotReactor.screenshot(s, actualTabId);
+			} finally {
+				s.getOperationLock().unlock();
+			}
 			response.put("screenshot", screenshot);
 
-			if (executionResult != null) {
+			if (executionResult != null && !"failed".equals(executionResult.get("status"))) {
 				response.put("status", "success");
 				response.put("stepId", stepId);
 				response.put("tabId", actualTabId);
@@ -175,7 +187,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 					response.put("isNewTab", true);
 					response.put("newTabId", newTabId);
 					response.put("tabTitle", tabTitle);
-					classLogger.info("Step created new tab: " + newTabId);
+					classLogger.info("Step created new tab: {}", newTabId);
 				} else {
 					response.put("isNewTab", false);
 				}
@@ -185,14 +197,16 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				}
 			} else {
 				response.put("status", "failed");
-				response.put("error", "Step execution failed");
+				response.put("error",
+						executionResult != null && executionResult.get("error") != null ? executionResult.get("error")
+								: "Step execution failed");
 				response.put("stepId", stepId);
 				response.put("tabId", actualTabId);
 				response.put("isNewTab", false);
 			}
 
 		} catch (Exception e) {
-			classLogger.error("Error replaying step " + stepId, e);
+			classLogger.error("Error replaying step {}", stepId, e);
 			response.put("status", "failed");
 			response.put("error", e.getMessage());
 			response.put("isNewTab", false);

@@ -66,16 +66,10 @@ import prerna.reactor.algorithms.CreateNLPVizReactor;
 import prerna.reactor.algorithms.NLPInstanceCacheReactor;
 import prerna.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.reactor.algorithms.NaturalLanguageSearchReactor;
-import prerna.reactor.algorithms.RAlgReactor;
 import prerna.reactor.algorithms.RatioReactor;
 import prerna.reactor.algorithms.RunAnomalyReactor;
-import prerna.reactor.algorithms.RunClusteringReactor;
-import prerna.reactor.algorithms.RunLOFReactor;
 import prerna.reactor.algorithms.RunMatrixRegressionReactor;
-import prerna.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.reactor.algorithms.RunNumericalCorrelationReactor;
-import prerna.reactor.algorithms.RunOutlierReactor;
-import prerna.reactor.algorithms.RunSimilarityReactor;
 import prerna.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -84,7 +78,6 @@ import prerna.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.reactor.cluster.OpenDatabaseReactor;
 import prerna.reactor.cluster.VersionReactor;
 import prerna.reactor.database.DatabaseColumnUniqueReactor;
@@ -381,11 +374,7 @@ import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
-import prerna.reactor.utils.BDelReactor;
-import prerna.reactor.utils.BQReactor;
 import prerna.reactor.utils.BackupDatabaseReactor;
-import prerna.reactor.utils.BaddReactor;
-import prerna.reactor.utils.BupdReactor;
 import prerna.reactor.utils.CheckRPackagesReactor;
 import prerna.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.reactor.utils.DatabaseProfileReactor;
@@ -405,30 +394,8 @@ import prerna.reactor.utils.VariableExistsReactor;
 import prerna.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.reactor.workflow.ModifyInsightDatasourceReactor;
-import prerna.reactor.workspace.DeleteUserAssetReactor;
-import prerna.reactor.workspace.MoveUserAssetReactor;
-import prerna.reactor.workspace.NewDirReactor;
-import prerna.reactor.workspace.UploadUserFileReactor;
-import prerna.reactor.workspace.UserDirReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.git.reactors.AddAppCollaborator;
-import prerna.util.git.reactors.CopyAppRepo;
-import prerna.util.git.reactors.DeleteAppRepo;
-import prerna.util.git.reactors.DropAppRepo;
-import prerna.util.git.reactors.GitStatusReactor;
-import prerna.util.git.reactors.InitAppRepo;
-import prerna.util.git.reactors.IsGit;
-import prerna.util.git.reactors.ListAppCollaborators;
-import prerna.util.git.reactors.ListAppRemotes;
-import prerna.util.git.reactors.ListUserApps;
-import prerna.util.git.reactors.LoginReactor;
-import prerna.util.git.reactors.RemoveAppCollaborator;
-import prerna.util.git.reactors.SearchAppCollaborator;
-import prerna.util.git.reactors.SyncApp;
-import prerna.util.git.reactors.SyncAppFiles;
-import prerna.util.git.reactors.SyncAppFilesO;
-import prerna.util.git.reactors.SyncAppOReactor;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
@@ -502,7 +469,7 @@ public class ReactorFactory {
 		try {
 			additionalPackages = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
 			if (additionalPackages != null && !(additionalPackages = additionalPackages.trim()).isEmpty()) {
-				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
+				classLogger.info("Loading additional reactors from packages [{}]", additionalPackages);
 				String[] packagesArr = additionalPackages.split(",");
 				for (String thisPackage : packagesArr) {
 					if (!(thisPackage = thisPackage.trim()).isEmpty()) {
@@ -519,6 +486,10 @@ public class ReactorFactory {
 		}
 
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
+	}
+
+	public static void load() {
+		// do nothing, just so the load from CP happens on application startup
 	}
 
 	/**
@@ -586,7 +557,7 @@ public class ReactorFactory {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error scanning classpath to load reactors", e);
 		}
 	}
 
@@ -950,12 +921,6 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
-		reactorHash.put("rAlg", RAlgReactor.class);
-		reactorHash.put("RunClustering", RunClusteringReactor.class);
-		reactorHash.put("RunMultiClustering", RunMultiClusteringReactor.class);
-		reactorHash.put("RunLOF", RunLOFReactor.class);
-		reactorHash.put("RunSimilarity", RunSimilarityReactor.class);
-		reactorHash.put("RunOutlier", RunOutlierReactor.class);
 		reactorHash.put("Ratio", RatioReactor.class);
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 
@@ -987,29 +952,6 @@ public class ReactorFactory {
 		reactorHash.put("RetrieveValue", RetrieveValue.class);
 		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 
-		// Git it
-		reactorHash.put("InitAppRepo", InitAppRepo.class);
-		reactorHash.put("AddAppCollaborator", AddAppCollaborator.class);
-		reactorHash.put("RemoveAppCollaborator", RemoveAppCollaborator.class);
-		reactorHash.put("SearchAppCollaborator", SearchAppCollaborator.class);
-		reactorHash.put("ListAppCollaborators", ListAppCollaborators.class);
-		reactorHash.put("CopyAppRepo", CopyAppRepo.class);
-		reactorHash.put("DeleteAppRepo", DeleteAppRepo.class);
-		reactorHash.put("DropAppRepo", DropAppRepo.class);
-		reactorHash.put("SyncApp", SyncApp.class);
-		reactorHash.put("SyncAppFiles", SyncAppFiles.class);
-		reactorHash.put("ListAppRemotes", ListAppRemotes.class);
-		reactorHash.put("ListUserApps", ListUserApps.class);
-		reactorHash.put("IsGit", IsGit.class);
-		reactorHash.put("Login", LoginReactor.class);
-		reactorHash.put("GitStatus", GitStatusReactor.class);
-		reactorHash.put("GitVersion", prerna.util.git.reactors.GitVersion.class);
-		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
-		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
-		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
-		reactorHash.put("SyncAppO", SyncAppOReactor.class);
-		reactorHash.put("SyncAppFilesO", SyncAppFilesO.class);
-
 		// App Metadata
 //		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
@@ -1028,18 +970,10 @@ public class ReactorFactory {
 
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
-		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
 		// reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
-
-		// User Space
-		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
-		reactorHash.put("UserDir", UserDirReactor.class);
-		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
-		reactorHash.put("NewDir", NewDirReactor.class);
-		reactorHash.put("MoveUserAsset", MoveUserAssetReactor.class);
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
@@ -1089,12 +1023,6 @@ public class ReactorFactory {
 //		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 //		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
 //		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
-
-		// bitly
-		reactorHash.put("badd", BaddReactor.class);
-		reactorHash.put("bupd", BupdReactor.class);
-		reactorHash.put("bdel", BDelReactor.class);
-		reactorHash.put("bq", BQReactor.class);
 
 		// Dates
 		reactorHash.put("DATE", DateReactor.class);
@@ -1378,7 +1306,7 @@ public class ReactorFactory {
 				return reactor;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error instantiating reactor for {}", reactorId, e);
 		}
 
 		/*
@@ -1440,10 +1368,10 @@ public class ReactorFactory {
 								Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
 								hash.put(reactorName, reactorClass);
 							} else {
-								classLogger.warn("Class " + classname + " does not implement IReactor interface!");
+								classLogger.warn("Class {} does not implement IReactor interface!", classname);
 							}
 						} catch (ClassNotFoundException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Could not find additional reactor class {}", classname, e);
 						}
 					}
 				}

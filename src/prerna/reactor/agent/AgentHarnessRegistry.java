@@ -41,35 +41,29 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  *
  * <p>Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — legacy vendor-delegating loop
- *   <li>{@code "semoss"}    → {@link SemossAgentHarness} — SEMOSS-native canonical harness
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
- *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
- *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
+ *   <li>{@code "semoss"}    -> {@link SemossAgentHarness} - SEMOSS-native canonical harness
+ *   <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
- * The default harness (used when the requested name is unknown) is {@code "room_loop"}.
+ * The default harness (used when no name is requested) is {@code "semoss"}.
  */
 public final class AgentHarnessRegistry {
 
     private static final Logger logger = LogManager.getLogger(AgentHarnessRegistry.class);
 
-    public static final String DEFAULT_HARNESS = "room_loop";
+    public static final String DEFAULT_HARNESS = "semoss";
 
     private static final Map<String, IAgentHarness> REGISTRY;
 
     static {
         Map<String, IAgentHarness> m = new HashMap<>();
-        IAgentHarness roomLoop        = new RoomAgentHarness();
         IAgentHarness semoss          = new SemossAgentHarness();
         IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
-        IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
         IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
-        m.put(roomLoop.getName(),        roomLoop);
         m.put(semoss.getName(),          semoss);
         m.put(claudeCode.getName(),      claudeCode);
-        m.put(githubCopilot.getName(),   githubCopilot);
         m.put(githubCopilotPy.getName(), githubCopilotPy);
         REGISTRY = Collections.synchronizedMap(m);
     }
@@ -99,18 +93,22 @@ public final class AgentHarnessRegistry {
 
     /**
      * Returns the harness registered under {@code name}.
-     * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null,
-     * blank, or unrecognised.
+     * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null
+     * or blank. Explicit, unrecognised names are rejected.
      *
      * @param name registry key; may be null or empty
+     * @throws IllegalArgumentException if a nonblank name is not registered
      */
     public static IAgentHarness getOrDefault(String name) {
-        if (name != null && !name.trim().isEmpty()) {
-            IAgentHarness h = REGISTRY.get(name.trim());
-            if (h != null) return h;
-            logger.warn("AgentHarnessRegistry: unknown harness '{}' — falling back to '{}'",
-                    name, DEFAULT_HARNESS);
+        String normalizedName = name == null ? null : name.trim();
+        if (normalizedName == null || normalizedName.isEmpty()) {
+            return REGISTRY.get(DEFAULT_HARNESS);
         }
-        return REGISTRY.get(DEFAULT_HARNESS);
+
+        IAgentHarness harness = REGISTRY.get(normalizedName);
+        if (harness == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + normalizedName);
+        }
+        return harness;
     }
 }

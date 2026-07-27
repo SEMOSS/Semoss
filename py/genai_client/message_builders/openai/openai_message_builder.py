@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 import json
 from pydantic import BaseModel
 from ...utils import get_image_extension, string_to_bool
+from ..semoss_base.reasoning import normalize_reasoning
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -134,7 +135,9 @@ class OpenAIMessageBuilder:
                         if is_assistant:
                             # OpenAI does not allow image blocks in assistant turns;
                             # add a text placeholder and queue the image for a synthetic user message.
-                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            file_name = (
+                                getattr(p.media_info, "file_name", None) or "image"
+                            )
                             content_parts.append(
                                 self._build_text_content_part(
                                     f"[Generated image: {file_name}]",
@@ -354,7 +357,9 @@ class OpenAIMessageBuilder:
                         if is_assistant:
                             # OpenAI does not allow image blocks in assistant turns;
                             # add a text placeholder and queue the image for a synthetic user message.
-                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            file_name = (
+                                getattr(p.media_info, "file_name", None) or "image"
+                            )
                             content_parts.append(
                                 self._build_text_content_part(
                                     f"[Generated image: {file_name}]"
@@ -550,6 +555,14 @@ class OpenAIMessageBuilder:
 
                 if is_last:
                     param_map.update(message.param_map)
+
+        try:
+            reasoning_effort = self._resolve_reasoning_effort(param_map)
+            if reasoning_effort:
+                param_map["reasoning_effort"] = reasoning_effort
+                param_map.pop("temperature", None)
+        except Exception:
+            pass
 
         has_schema = param_map.get("schema", False)
         if has_schema:
@@ -1108,166 +1121,33 @@ class OpenAIMessageBuilder:
                 )
                 return OpenAIFileContentPart(file=file_data)
 
+    # Canonical effort -> OpenAI effort. OpenAI has no "max"; clamp it to "high".
+    # "none"/"minimal"/"xhigh" pass through (support varies by model — e.g. only
+    # gpt-5.1+ accepts "none", only gpt-5.5 accepts "xhigh" — so only emit those
+    # when the caller explicitly asked for them).
+    _OPENAI_EFFORT = {
+        "none": "none",
+        "minimal": "minimal",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "xhigh": "xhigh",
+        "max": "high",
+    }
+
     def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
-        thinking = param_map.pop("thinking", None)
-        if thinking and isinstance(thinking, str):
-            try:
-                thinking = string_to_bool(thinking)
-            except ValueError:
-                thinking = None
-        thinking_budget = param_map.pop("thinking_budget", None)
+        """Responses API: returns {"effort": ..., "summary": "auto"} or None."""
+        resolved = normalize_reasoning(param_map, self.model_settings)
+        if resolved is None:
+            return None
+        return {
+            "effort": self._OPENAI_EFFORT.get(resolved.effort, "medium"),
+            "summary": "auto",
+        }
 
-        if not thinking and self.model_settings.thinking:
-            thinking = self.model_settings.thinking
-        if not thinking_budget and self.model_settings.thinking_budget:
-            thinking_budget = self.model_settings.thinking_budget
-
-        if thinking:
-            return {
-                "effort": self._budget_to_effort(thinking_budget),
-                "summary": "auto",
-            }
-        return None
-
-    def _budget_to_effort(self, budget_tokens=None) -> str:
-        """
-        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
-        """
-        if budget_tokens is None:
-            return "medium"
-        if isinstance(budget_tokens, str):
-            s = budget_tokens.strip().lower()
-            if s in ("low", "medium", "high"):
-                return s
-            try:  # Try to parse string integer
-                n = int(s)
-                budget_tokens = n
-            except Exception:
-                return "medium"  # fallback
-        # If not string, must be int now
-        try:
-            val = int(budget_tokens)
-        except Exception:
-            return "medium"
-        if val >= 20000:
-            return "high"
-        if val >= 5000:
-            return "medium"
-        return "low"
-
-    # def _truncate_by_tokens(
-    #     self,
-    #     messages: List[dict],
-    #     safe_window: int,
-    #     keep_system: bool = True,
-    # ) -> List[dict]:
-    #     """
-    #     Returns a ChatML history whose **total** token count
-    #     is ≤ safe_window.
-    #     Oldest non-system messages are dropped first; when only
-    #     one message needs trimming we cut tokens from its *start*.
-    #     """
-
-    #     # --- Tokenise *once* ----------------------------------------
-    #     toks_per_msg = []
-    #     total = 0
-    #     for m in messages:
-    #         toks = self.tokenizer._safe_encode(m["content"])
-    #         toks_per_msg.append(toks)
-    #         total += len(toks)
-
-    #     if total <= safe_window:
-    #         return messages  # nothing to do
-
-    #     to_cut = total - safe_window  # exact excess
-    #     keep_flags = [True] * len(messages)
-
-    #     # --- Build truncation order ---------------------------------
-    #     # oldest->newest
-    #     # if keep_system, then we will maintain it up until the last message
-    #     order = list(range(len(messages)))
-    #     if keep_system and messages and messages[0]["role"] == "system":
-    #         # assuming we have [system_prompt, message2, message3, message4]
-    #         # Process order: message2, message3, system_prompt, message4
-    #         order = list(range(1, len(messages) - 1)) + [
-    #             0,
-    #             len(messages) - 1,
-    #         ]
-
-    #     # --- Drop or trim -------------------------------------------
-    #     for idx in order:
-    #         if to_cut == 0:
-    #             break
-    #         toks = toks_per_msg[idx]
-    #         if len(toks) <= to_cut:
-    #             # drop whole message
-    #             keep_flags[idx] = False
-    #             to_cut -= len(toks)
-    #         else:
-    #             # keep tail part of this message
-    #             toks_per_msg[idx] = toks[-(len(toks) - to_cut) :]
-    #             to_cut = 0
-
-    #     # --- Re-build ChatML ----------------------------------------
-    #     new_messages = []
-    #     for keep, m, toks in zip(keep_flags, messages, toks_per_msg):
-    #         if not keep:
-    #             continue
-    #         m = m.copy()
-    #         m["content"] = self.tokenizer._safe_decode(toks)
-    #         new_messages.append(m)
-    #     return new_messages
-
-    # def check_token_limits(
-    #     self,
-    #     messages: List,
-    #     max_tokens: int,
-    #     context_window: int,
-    # ) -> Tuple[List, int, AskModelEngineResponse]:
-    #     """
-    #     Calculate tokens in the prompt and adjust max_completion_tokens to fit within context window.
-    #     Args:
-    #         messages (List): The prompt in the form of chat history
-    #         max_tokens (int): The maximum tokens for completion
-    #         context_window (int): The model's context window size
-    #     Returns:
-    #         Tuple[List, int, AskModelEngineResponse]: The truncated messages, adjusted max_tokens, and response object
-    #     """
-    #     model_engine_response = AskModelEngineResponse()
-    #     warnings = []
-
-    #     # Saving 10% of the context window for completion tokens at minimum
-    #     # We can consider updating this in the future to something more nuanced
-    #     safe_window = int(context_window * 0.9)
-
-    #     # Get token count for all messages
-    #     message_tokens = self.tokenizer.count_tokens(messages)
-
-    #     updated_messages = messages.copy()
-
-    #     # The total tokens we have to remove (if a positive number)
-    #     tokens_over_limit = message_tokens - safe_window
-
-    #     if tokens_over_limit > 0:
-    #         updated_messages = self._truncate_by_tokens(updated_messages, safe_window)
-
-    #         updated_token_count = self.tokenizer.count_tokens(updated_messages)
-
-    #         message_tokens = updated_token_count
-
-    #     # Calculating the max completion tokens we have available from the context window
-    #     # I need a buffer of 5% to be safe due to discrepancies in the tokenization process
-    #     final_max_tokens = math.floor(
-    #         min(context_window - message_tokens, max_tokens) * 0.95
-    #     )  # 5% buffer
-    #     # If the final max tokens is greater than the passed in max tokens, we set it to passed in max tokens
-    #     # This is to ensure we are not exceeding the max tokens set by the user or config
-    #     if final_max_tokens > max_tokens:
-    #         final_max_tokens = max_tokens
-
-    #     model_engine_response.prompt_tokens = message_tokens
-
-    #     if warnings:
-    #         model_engine_response.warning = "\n\n".join(warnings)
-
-    #     return updated_messages, final_max_tokens, model_engine_response
+    def _resolve_reasoning_effort(self, param_map: Dict[str, Any]) -> str | None:
+        """Chat Completions API: returns the flat reasoning_effort string or None."""
+        resolved = normalize_reasoning(param_map, self.model_settings)
+        if resolved is None:
+            return None
+        return self._OPENAI_EFFORT.get(resolved.effort, "medium")

@@ -47,6 +47,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
@@ -112,24 +114,16 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void initModelInferenceLogsDatabase() throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
-		if (modelInfCreator.needsRemake()) {
-			modelInfCreator.remakeOwl();
+		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(
+				modelInferenceLogsDb.getQueryUtil());
+		if (modelInfCreator.needsRemake(modelInferenceLogsDb)) {
+			modelInfCreator.remakeOwl(modelInferenceLogsDb);
 		}
 
 		Connection conn = null;
 		try {
 			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
-
-			// boolean primaryKeysAdded =
-			// addAllPrimaryKeys(modelInferenceLogsDb, conn,
-			// modelInfCreator.getDBPrimaryKeys());
-			// if (primaryKeysAdded) {
-			// addAllForeignKeys(modelInferenceLogsDb, conn,
-			// modelInfCreator.getDBForeignKeys());
-			// }
-
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -241,7 +235,16 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
 			executeSql(conn, sql);
-		} else {
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
+			executeSql(conn, sql);
+			} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 				executeSql(conn, sql);
@@ -286,117 +289,20 @@ public class ModelInferenceLogsUtils {
 				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
 				executeSql(conn, sql);
 			}
-		}
-	}
 
-	/**
-	 * Attempts to add primary-key constraints for configured tables.
-	 *
-	 * @param engine      target engine
-	 * @param conn        database connection
-	 * @param primaryKeys table-to-primary-key definitions
-	 * @return {@code true} when processing completes (including no-op fallbacks)
-	 */
-	private static boolean addAllPrimaryKeys(IRDBMSEngine engine, Connection conn,
-			List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys) {
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		for (Pair<String, Pair<List<String>, List<String>>> tablePrimaryKeys : primaryKeys) {
-			String tableName = tablePrimaryKeys.getValue0();
-			Pair<List<String>, List<String>> primaryKeyInfo = tablePrimaryKeys.getValue1();
-			List<String> primaryKeyNames = primaryKeyInfo.getValue0();
-			List<String> primaryKeyTypes = primaryKeyInfo.getValue1();
-
-			// first try make sure its not null
-			for (int i = 0; i < primaryKeyNames.size(); i++) {
-				String name = primaryKeyNames.get(i);
-				String type = primaryKeyTypes.get(i);
-				String notNullQuery = queryUtil.modColumnNotNull(tableName, name, type);
-				try {
-					executeSql(conn, notNullQuery);
-				} catch (SQLException se) {
-					classLogger.error("Failed to set column '{}' as NOT NULL before adding primary key on table '{}'.",
-							name, tableName, se);
-					// We can't change it to NOT NULL so probably can't create the PRIMARY KEY
-					return true;
-				}
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
+				executeSql(conn, sql);
 			}
-			String primaryKeyConstraintName = tableName + "_KEY";
-			if (queryUtil.allowIfExistsAddConstraint()) {
-				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT IF NOT EXISTS "
-						+ primaryKeyConstraintName + " PRIMARY KEY ( " + String.join(",", primaryKeyNames) + " );";
-				try {
-					executeSql(conn, primaryKeyQuery);
-				} catch (SQLException se) {
-					classLogger.error("Failed to add primary key constraint '{}' on table '{}'.",
-							primaryKeyConstraintName, tableName, se);
-				}
-			} else {
-				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT " + primaryKeyConstraintName
-						+ " PRIMARY KEY ( " + String.join(",", primaryKeyNames) + " );";
-				try {
-					if (!queryUtil.tableConstraintExists(conn, primaryKeyConstraintName, tableName,
-							engine.getDatabase(), engine.getSchema())) {
-						executeSql(conn, primaryKeyQuery);
-					}
-				} catch (SQLException se) {
-					classLogger.error("Failed to verify or add primary key constraint '{}' on table '{}'.",
-							primaryKeyConstraintName, tableName, se);
-				}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
+				executeSql(conn, sql);
 			}
-		}
-		return true;
-	}
 
-	/**
-	 * Attempts to add foreign-key constraints for configured tables.
-	 *
-	 * @param engine      target engine
-	 * @param conn        database connection
-	 * @param foreignKeys table-to-foreign-key definitions
-	 */
-	private static void addAllForeignKeys(IRDBMSEngine engine, Connection conn,
-			List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> foreignKeys) {
-		ATTEMPT_TO__ADD_FOREIGN_KEY: for (Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>> tableForeignKeys : foreignKeys) {
-			String tableName = tableForeignKeys.getValue0();
-			Pair<List<String>, Pair<List<String>, List<String>>> foreignKeyInfo = tableForeignKeys.getValue1();
-			List<String> tableColumns = foreignKeyInfo.getValue0();
-			Pair<List<String>, List<String>> referenceDetails = foreignKeyInfo.getValue1();
-			List<String> referenceTables = referenceDetails.getValue0();
-			List<String> referenceColumns = referenceDetails.getValue1();
-
-			for (int i = 0; i < tableColumns.size(); i++) {
-				String tableColumn = tableColumns.get(i);
-				String refTable = referenceTables.get(i);
-				String refColumn = referenceColumns.get(i);
-
-				String constraintName = tableName + "_" + tableColumn + "_" + refTable + "_" + refColumn + "_KEY";
-				constraintName = constraintName.replace(",", "");
-				if (engine.getQueryUtil().allowIfExistsAddConstraint()) {
-					String sqlStatement = String.format(
-							"ALTER TABLE %s ADD CONSTRAINT IF NOT EXISTS %s FOREIGN KEY (%s) REFERENCES %s (%s);",
-							tableName, constraintName, tableColumn, refTable, refColumn);
-					try {
-						executeSql(conn, sqlStatement);
-					} catch (SQLException se) {
-						classLogger.error("Failed to add foreign key constraint '{}' on table '{}'.", constraintName,
-								tableName, se);
-						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
-					}
-				} else {
-					String sqlStatement = String.format(
-							"ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s);", tableName,
-							constraintName, tableColumn, refTable, refColumn);
-					try {
-						if (!engine.getQueryUtil().tableConstraintExists(conn, constraintName, tableName,
-								engine.getDatabase(), engine.getSchema())) {
-							executeSql(conn, sqlStatement);
-						}
-					} catch (SQLException se) {
-						classLogger.error("Failed to verify or add foreign key constraint '{}' on table '{}'.",
-								constraintName, tableName, se);
-						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
-					}
-				}
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
+				executeSql(conn, sql);
 			}
 		}
 	}
@@ -450,13 +356,12 @@ public class ModelInferenceLogsUtils {
 		try {
 			executeSql(conn, dropMessageFK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist: {}",
-					ex.getMessage());
+			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist", ex);
 		}
 		try {
 			executeSql(conn, dropRoomPK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist: {}", ex.getMessage());
+			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist", ex);
 		}
 	}
 
@@ -504,6 +409,149 @@ public class ModelInferenceLogsUtils {
 					messageId, e);
 		}
 		return false;
+	}
+
+	/**
+	 * Returns true when the user submitted the given batch (batch_submit row exists).
+	 */
+	public static boolean userOwnsBatch(String userId, String providerBatchId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return false;
+		}
+		String query = "SELECT COUNT(*) FROM MESSAGE WHERE TRANSACTION_ID = ? AND USER_ID = ? AND MESSAGE_METHOD = 'batch_submit'";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, providerBatchId);
+			ps.setString(2, userId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getInt(1) > 0;
+			}
+		} catch (Exception e) {
+			classLogger.warn("Batch ownership check failed for batch '{}': {}", providerBatchId, e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return false;
+	}
+
+	/**
+	 * Returns the user's batch submissions for an engine, most recent first.
+	 * Each map has: providerBatchId, submittedAt, engineId, requestCount.
+	 */
+	public static List<Map<String, Object>> getUserBatches(String userId, String engineId, int limit) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return out;
+		}
+		String query = "SELECT TRANSACTION_ID, DATE_CREATED, AGENT_ID, MESSAGE_DATA FROM MESSAGE"
+				+ " WHERE USER_ID = ? AND AGENT_ID = ? AND MESSAGE_METHOD = 'batch_submit'"
+				+ " ORDER BY DATE_CREATED DESC LIMIT ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, engineId);
+			ps.setInt(3, limit);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> row = new HashMap<>();
+				row.put("batchId", rs.getString("TRANSACTION_ID"));
+				row.put("submittedAt", rs.getString("DATE_CREATED"));
+				row.put("engineId", rs.getString("AGENT_ID"));
+				String msgData = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
+				if (msgData != null) {
+					try {
+						row.put("requestCount", Integer.parseInt(msgData.trim()));
+					} catch (NumberFormatException ignore) {
+						// non-numeric stored data
+					}
+				}
+				out.add(row);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to list batches for user '{}'", userId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return out;
+	}
+
+	/**
+	 * Returns the stored input prompts for a batch as customId -> command map.
+	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written
+	 * at submit time. TRANSACTION_ID has the form "batchId.customId", so customId
+	 * is extracted as the suffix after "batchId.".
+	 */
+	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
+		Map<String, String> out = new HashMap<>();
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return out;
+		}
+		String roomId = "mb_" + providerBatchId;
+		String prefix = providerBatchId + ".";
+		String query = "SELECT TRANSACTION_ID, MESSAGE_DATA FROM MESSAGE"
+				+ " WHERE ROOM_ID = ? AND USER_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, roomId);
+			ps.setString(2, userId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				String txnId = rs.getString("TRANSACTION_ID");
+				String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
+				if (txnId != null && txnId.startsWith(prefix) && command != null) {
+					out.put(txnId.substring(prefix.length()), command);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to retrieve batch inputs for batch '{}'", providerBatchId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return out;
+	}
+
+	/**
+	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch item.
+	 * The INPUT row is written at submit time before token counts are known; this
+	 * back-fills them at results time so usage analytics (which derive the input/
+	 * response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
+	 * Matched by the per-item TRANSACTION_ID ("batchId.customId").
+	 */
+	public static void updateBatchInputTokens(String transactionId, Integer inputTokens) {
+		if (inputTokens == null) {
+			return;
+		}
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			return;
+		}
+		String query = "UPDATE MESSAGE SET MESSAGE_TOKENS = ?, INPUT_TOKENS = ?"
+				+ " WHERE TRANSACTION_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			ps.setInt(1, inputTokens);
+			ps.setInt(2, inputTokens);
+			ps.setString(3, transactionId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to update batch input tokens for transaction '{}'", transactionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
 	}
 
 	/**
@@ -1244,7 +1292,11 @@ public class ModelInferenceLogsUtils {
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
-			ps.setDouble(index++, reponseTime);
+			if (reponseTime != null) {
+				ps.setDouble(index++, reponseTime);
+			} else {
+				ps.setNull(index++, java.sql.Types.DOUBLE);
+			}
 			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
 			ps.setString(index++, agentId);
 			ps.setString(index++, insightId);
@@ -1632,7 +1684,7 @@ public class ModelInferenceLogsUtils {
 					PixelDataType.CONST_STRING));
 		}
 
-		// ROOM OPTIONS SEARCH — free-text substring match on the OPTIONS text column.
+		// ROOM OPTIONS SEARCH - free-text substring match on the OPTIONS text column.
 		// Portable across H2 and PostgreSQL since OPTIONS is stored as plain text.
 		if (roomOptionsSearch != null && !roomOptionsSearch.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?like",
@@ -1706,6 +1758,9 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+		// Also return the persisted room name so callers (e.g. the playground
+		// room breadcrumb) can display it on load without a separate query.
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
@@ -2168,7 +2223,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
-			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
+			classLogger.error("Failed to retrieve room for roomId '{}' and userId '{}'.", roomId, userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, stmt, resultSet);
 		}
@@ -2283,14 +2338,24 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Updates a workspace record and replaces its resource associations.
+	 * Updates a workspace record and replaces <b>all</b> of its resource
+	 * associations - MCP engines/projects, prompts, and skills alike.
+	 * <p>
+	 * The supplied {@code resources} list is treated as the complete desired set:
+	 * every existing {@code WORKSPACE_RESOURCE} row for the workspace is deleted
+	 * and replaced with the rows derived from {@code resources}. Callers must
+	 * therefore pass the full resource set (including any skills to keep); a
+	 * resource omitted from the list is detached. (Incremental skill attach/detach
+	 * without a full rewrite is available via {@code AttachSkillToWorkspaceReactor}
+	 * / {@code DetachSkillFromWorkspaceReactor}.)
 	 *
 	 * @param workspaceId          workspace identifier
 	 * @param workspaceName        workspace display name
 	 * @param workspaceDescription workspace description payload
 	 * @param systemPrompt         workspace system prompt payload
 	 * @param isActive             active state
-	 * @param resources            replacement resource list
+	 * @param resources            complete replacement resource list (engines,
+	 *                             projects, prompts, and skills)
 	 * @throws Exception if update fails
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
@@ -2397,6 +2462,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__CONFIG_JSON", "config_json"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
@@ -2432,6 +2498,178 @@ public class ModelInferenceLogsUtils {
 			classLogger.error("Failed to fetch workspace entry for workspaceId '{}'.", workspaceId, e);
 		}
 		return result;
+	}
+
+	/**
+	 * Returns the parsed {@code WORKSPACE.CONFIG_JSON} for a workspace, or
+	 * {@code null} when the column is missing / empty / unparseable.
+	 *
+	 * <p>
+	 * {@code CONFIG_JSON} carries the per-workspace agent config - system prompt
+	 * mirror, MCPs, budgets, hooks. Consumers (AgentConfigLoader,
+	 * Room.getAllToolsJsonForRoom) layer this on top of the legacy column /
+	 * WORKSPACE_RESOURCE reads.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @return parsed JSON object, or {@code null}
+	 */
+	public static JSONObject getWorkspaceConfigJson(String workspaceId) {
+		if (workspaceId == null) {
+			return null;
+		}
+		Map<String, Object> row = getWorkspaceEntry(workspaceId);
+		if (row == null) {
+			return null;
+		}
+		Object raw = row.get("config_json");
+		if (raw == null) {
+			return null;
+		}
+		String text = String.valueOf(raw).trim();
+		if (text.isEmpty()) {
+			return null;
+		}
+		try {
+			return new JSONObject(text);
+		} catch (Exception e) {
+			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}", workspaceId,
+					e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Writes {@code WORKSPACE.CONFIG_JSON} for a workspace. Pass {@code null} to
+	 * clear the column.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param configJson  parsed JSON to persist, or {@code null} to clear
+	 * @throws SQLException if the update fails
+	 */
+	public static void updateWorkspaceConfigJson(String workspaceId, JSONObject configJson) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		String serialized = configJson == null ? null : configJson.toString();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+				int index = 1;
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, serialized, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
+			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
+	 * the authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in
+	 * sync - the same dual-write pattern MCPs use
+	 * ({@code EditWorkspaceReactor.mirrorCoreFieldsIntoConfigJson}). Idempotent: a
+	 * skill already present (matched by {@code skill_id}) is left untouched and no
+	 * write is issued.
+	 *
+	 * <p>
+	 * The entry shape matches what {@code AgentConfigLoader.resolveSkills} reads:
+	 * {@code { "skill_id": <id>, "pinned_version": <optional> }}. Note the key is
+	 * {@code skill_id} - NOT {@code id} as the MCP mirror uses.
+	 *
+	 * @param workspaceId   workspace identifier
+	 * @param skillId       skill identifier to add
+	 * @param pinnedVersion optional pinned version; the key is omitted when
+	 *                      null/empty
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void addSkillToWorkspaceConfigJson(String workspaceId, String skillId, String pinnedVersion)
+			throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (skillId == null || skillId.isEmpty()) {
+			throw new IllegalArgumentException("skillId is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		JSONArray skills = cfg.optJSONArray("skills");
+		if (skills == null) {
+			skills = new JSONArray();
+		}
+		// Dedup by skill_id - keep the mirror idempotent like the attach reactor
+		// itself.
+		for (int i = 0; i < skills.length(); i++) {
+			JSONObject s = skills.optJSONObject(i);
+			if (s != null && skillId.equals(s.optString("skill_id", null))) {
+				return;
+			}
+		}
+		JSONObject entry = new JSONObject();
+		entry.put("skill_id", skillId);
+		if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
+			entry.put("pinned_version", pinnedVersion);
+		}
+		skills.put(entry);
+		cfg.put("skills", skills);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Removes a skill reference from {@code WORKSPACE.CONFIG_JSON.skills[]},
+	 * mirroring deletion of the {@code WORKSPACE_RESOURCE} row. No-op (no write)
+	 * when the workspace has no CONFIG_JSON, no {@code skills} array, or the skill
+	 * is not present.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param skillId     skill identifier to remove
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void removeSkillFromWorkspaceConfigJson(String workspaceId, String skillId) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (skillId == null || skillId.isEmpty()) {
+			throw new IllegalArgumentException("skillId is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			return;
+		}
+		JSONArray skills = cfg.optJSONArray("skills");
+		if (skills == null || skills.length() == 0) {
+			return;
+		}
+		JSONArray kept = new JSONArray();
+		boolean removed = false;
+		for (int i = 0; i < skills.length(); i++) {
+			JSONObject s = skills.optJSONObject(i);
+			if (s != null && skillId.equals(s.optString("skill_id", null))) {
+				removed = true;
+				continue;
+			}
+			kept.put(skills.get(i));
+		}
+		if (!removed) {
+			return;
+		}
+		cfg.put("skills", kept);
+		updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
 	/**
@@ -2734,7 +2972,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__RESOURCE_SUBTYPE", "resource_subtype"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__WORKSPACE_ID", "==", workspaceId));
-		if (resourceTypes != null && resourceTypes.isEmpty()) {
+		if (resourceTypes != null && !resourceTypes.isEmpty()) {
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "!=", resourceTypes));
 		}
@@ -2800,6 +3038,86 @@ public class ModelInferenceLogsUtils {
 			classLogger.error("Failed to create workspace resource '{}' for workspaceId '{}'.", workspaceResourceId,
 					workspaceId, e);
 			throw new IllegalArgumentException("Error creating workspace resource: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Returns the workspace-resource row matching the (workspaceId, resourceId,
+	 * resourceType) tuple, or {@code null} when no row exists. Used by the skill
+	 * attach reactor to detect already-attached skills before issuing an insert.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param resourceId   resource identifier (e.g. SKILL_ID)
+	 * @param resourceType resource type discriminator (e.g. "SKILL")
+	 * @return row with keys {@code workspace_resource_id, workspace_id,
+	 *         resource_id, resource_type, resource_subtype}, or {@code null}
+	 */
+	public static Map<String, Object> findWorkspaceResource(String workspaceId, String resourceId,
+			String resourceType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"SELECT WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE "
+							+ "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
+				ps.setString(1, workspaceId);
+				ps.setString(2, resourceId);
+				ps.setString(3, resourceType);
+				try (ResultSet rs = ps.executeQuery()) {
+					if (rs.next()) {
+						Map<String, Object> row = new HashMap<>();
+						row.put("workspace_resource_id", rs.getString(1));
+						row.put("workspace_id", rs.getString(2));
+						row.put("resource_id", rs.getString(3));
+						row.put("resource_type", rs.getString(4));
+						row.put("resource_subtype", rs.getString(5));
+						return row;
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(
+					"Failed to look up workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
+					workspaceId, resourceId, resourceType, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+		return null;
+	}
+
+	/**
+	 * Deletes the workspace-resource row(s) matching the (workspaceId, resourceId,
+	 * resourceType) tuple. No-op when no row exists.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param resourceId   resource identifier (e.g. SKILL_ID)
+	 * @param resourceType resource type discriminator (e.g. "SKILL")
+	 * @return number of rows deleted
+	 */
+	public static int deleteWorkspaceResource(String workspaceId, String resourceId, String resourceType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
+				ps.setString(1, workspaceId);
+				ps.setString(2, resourceId);
+				ps.setString(3, resourceType);
+				int deleted = ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+				return deleted;
+			}
+		} catch (Exception e) {
+			classLogger.error(
+					"Failed to delete workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
+					workspaceId, resourceId, resourceType, e);
+			throw new IllegalArgumentException("Error deleting workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
@@ -3017,19 +3335,17 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Select engine ID and name
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
-		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
-		// INPUT_TOKENS
+		// INPUT_TOKENS / RESPONSE_TOKENS: derived from MESSAGE_TOKENS via CASE so
+		// that
+		// records written before per-type granular columns existed are still included.
 		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
 				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
 				"INPUT_IF");
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, inputIf, "INPUT_TOKENS"));
 
-		// SUM(CASE WHEN MESSAGE_TYPE='RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS
-		// RESPONSE_TOKENS
 		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
 				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
@@ -3037,9 +3353,35 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
 
-		// Sum total tokens
+		// TOTAL_TOKENS: sum across all rows covers the full history.
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
 				MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", "TOTAL_TOKENS"));
+
+		// Granular token detail columns: only populated for records written after
+		// per-type tracking was introduced. Prefixed DETAIL_ so the reactor can nest
+		// them into a TOKEN_DETAIL sub-object without conflicting with the legacy
+		// names.
+		qs.addSelector(
+				QueryFunctionSelector.makeCoalesceSelector(
+						QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+								MESSAGE_TABLE_NAME + "INPUT_TOKENS", null),
+						new QueryConstantSelector(0), "DETAIL_INPUT_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", null),
+				new QueryConstantSelector(0), "DETAIL_OUTPUT_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "CACHE_READ_TOKENS", null),
+				new QueryConstantSelector(0), "DETAIL_CACHE_READ_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "CACHE_CREATION_TOKENS", null),
+				new QueryConstantSelector(0), "DETAIL_CACHE_CREATION_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
+				new QueryConstantSelector(0), "DETAIL_THINKING_TOKENS"));
 
 		// Count number of requests (INPUT messages only)
 		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(
@@ -3286,6 +3628,82 @@ public class ModelInferenceLogsUtils {
 		andFilters.addFilter(
 				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(andFilters);
+	}
+
+	// ============================================================
+	// Skills
+	//
+	// A skill is a Project of type SKILL; the Project owns content (SKILL.md
+	// under version/assets/skill/), versioning (git in version/), and
+	// permissions. WORKSPACE_RESOURCE__ rows with RESOURCE_TYPE='SKILL' attach
+	// skills to workspaces, mirrored into CONFIG_JSON.skills[].
+	// ============================================================
+
+	/**
+	 * Detaches a skill project from every workspace that references it: deletes the
+	 * WORKSPACE_RESOURCE__ rows (RESOURCE_TYPE='SKILL') and scrubs the matching
+	 * {@code CONFIG_JSON.skills[]} mirror entry in each affected workspace. Does NOT
+	 * delete the underlying Project - callers (typically the project-delete path)
+	 * own that.
+	 *
+	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
+	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
+	 * the mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
+	 * still returns, so the run-time {@code SkillStager} fails it every run. The
+	 * referencing workspaces are captured before the row deletes so the mirror can be
+	 * scrubbed afterward.
+	 *
+	 * @param projectId skill project identifier
+	 */
+	public static void detachSkillFromAllWorkspaces(String projectId) {
+		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
+			classLogger.warn("Model inference logs db is not loaded; skipping workspace scrub for skill '{}'",
+					projectId);
+			return;
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		List<String> affectedWorkspaceIds = new ArrayList<>();
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement sel = con.prepareStatement(
+					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				sel.setString(1, "SKILL");
+				sel.setString(2, projectId);
+				try (ResultSet rs = sel.executeQuery()) {
+					while (rs.next()) {
+						String wsId = rs.getString(1);
+						if (wsId != null && !wsId.trim().isEmpty()) {
+							affectedWorkspaceIds.add(wsId);
+						}
+					}
+				}
+			}
+			try (PreparedStatement ps = con
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				ps.setString(1, "SKILL");
+				ps.setString(2, projectId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to detach skill '{}' from workspaces.", projectId, e);
+			throw new IllegalArgumentException("Error detaching skill from workspaces: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+
+		for (String workspaceId : affectedWorkspaceIds) {
+			try {
+				removeSkillFromWorkspaceConfigJson(workspaceId, projectId);
+			} catch (Exception e) {
+				classLogger.warn(
+						"Detached skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
+						projectId, workspaceId, e.getMessage());
+			}
+		}
 	}
 
 }

@@ -81,7 +81,7 @@ public final class SystemEngineRegistry {
 	 */
 
 	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.security",
-			"prerna.util", "prerna.web.conf", "prerna.semoss.web.services.config");
+			"prerna.semoss.web.services.config", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
@@ -105,7 +105,7 @@ public final class SystemEngineRegistry {
 			"prerna.logging", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> MODEL_INFERENCE_LOGS_DB_ALLOWED = Set.of("prerna.auth",
-			"prerna.engine.impl.model.inferencetracking", "prerna.util", "prerna.web.conf");
+			"prerna.engine.impl.model.inferencetracking", "prerna.reactor.agent.run", "prerna.util", "prerna.web.conf");
 
 	/**
 	 * Registration allowlist - the startup/init classes that can register an engine

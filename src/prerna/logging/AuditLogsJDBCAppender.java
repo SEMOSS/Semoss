@@ -94,16 +94,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 		// SQL for inserting into audit_logs table
 		this.INSERT_SQL = """
 				INSERT INTO AUDIT_LOGS (
-				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
-				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME,
+				    LOG_ID, REQUEST_ID, IS_SUCCESS, SESSION_ID, USER_ID, USER_NAME, USER_TYPE, SPAN_ID, INSIGHT_ID, PROJECT_ID, PROJECT_NAME, ROOM_ID,
+				    ENGINE_ID, ENGINE_NAME, ENGINE_TYPE, METHOD_NAME, ENGINE_SUBTYPE, INPUT_REACTOR_NAME, OUTPUT_REACTOR_NAME, GUARDRAIL_ACTION,
 				    MESSAGE, REQUEST, RESPONSE,
-				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE,
+				    NUMBER_OF_TOKENS_IN_PROMPT, NUMBER_OF_TOKENS_IN_RESPONSE, NUMBER_OF_CACHE_READ_TOKENS, NUMBER_OF_CACHE_CREATION_TOKENS,
 				    REQUEST_START_TIME, RESPONSE_END_TIME,
 				    LOG_LEVEL, LOG_TIMESTAMP, LOGGER_NAME, LOGGER_LOCATION
 				) VALUES (
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
 				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-				    ?, ?, ?, ?, ?, ?, ?, ?, ?
+				    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+				    ?, ?, ?
 				);
 				""";
 
@@ -199,6 +200,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setBoolean(paramIdx++, getBooleanValue(SemossLogUtils.IS_SUCCESS, contextData, message)); // is_success
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SESSION_ID, contextData, message)); // session_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_ID, contextData, message)); // user_id
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_NAME, contextData, message)); // user_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.USER_TYPE, contextData, message)); // user_type
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.SPAN_ID, contextData, message)); // span_id
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INSIGHT_ID, contextData, message)); // insight_id
@@ -212,6 +214,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.ENGINE_SUBTYPE, contextData, message)); // engine_subtype
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.INPUT_REACTOR_NAME, contextData, message)); // input_reactor_name
 				stmt.setString(paramIdx++, getValue(SemossLogUtils.OUTPUT_REACTOR_NAME, contextData, message)); // output_reactor_name
+				stmt.setString(paramIdx++, getValue(SemossLogUtils.GUARDRAIL_ACTION, contextData, message)); // guardrail_action
 				queryUtil.handleInsertionOfClob(stmt, event.getMessage().getFormattedMessage(), paramIdx++, GSON); // message
 				queryUtil.handleInsertionOfClob(stmt, getValue(SemossLogUtils.REQUEST, contextData, message),
 						paramIdx++, GSON); // request
@@ -231,6 +234,22 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
 					} else {
 						stmt.setInt(paramIdx++, tokens); // number_of_tokens_in_response
+					}
+				}
+				{
+					Integer tokens = getInteger(SemossLogUtils.NUMBER_OF_CACHE_READ_TOKENS, contextData, message);
+					if (tokens == null) {
+						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
+					} else {
+						stmt.setInt(paramIdx++, tokens); // number_of_cache_read_tokens
+					}
+				}
+				{
+					Integer tokens = getInteger(SemossLogUtils.NUMBER_OF_CACHE_CREATION_TOKENS, contextData, message);
+					if (tokens == null) {
+						stmt.setNull(paramIdx++, java.sql.Types.INTEGER);
+					} else {
+						stmt.setInt(paramIdx++, tokens); // number_of_cache_creation_tokens
 					}
 				}
 				stmt.setTimestamp(paramIdx++,

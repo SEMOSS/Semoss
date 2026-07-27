@@ -46,20 +46,18 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.AbstractWrapper;
-import prerna.util.Constants;
 
 public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private Logger classLogger = LogManager.getLogger(RawGemlinSelectWrapper.class);
-	
+
 	private GremlinInterpreter interp;
 	private SelectQueryStruct qs;
-	private Map<String,String> nameMap;
-	private IDatabaseEngine engine;
+	private Map<String, String> nameMap;
 	private OwlTemporalEngineMeta meta;
 
 	private GraphTraversal baseIterator;
-	
+
 	public RawGemlinSelectWrapper(GremlinInterpreter interp, SelectQueryStruct qs) {
 		this.interp = interp;
 		this.nameMap = interp.getNameMap();
@@ -67,54 +65,55 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		this.engine = interp.getEngine();
 		this.meta = interp.getMeta();
 	}
-	
+
 	@Override
 	public void execute() {
 		this.interp.setQueryStruct(this.qs);
 		this.baseIterator = this.interp.composeIterator();
-		
+
 		List<IQuerySelector> selectors = this.qs.getSelectors();
 		this.numColumns = selectors.size();
 		this.rawHeaders = new String[numColumns];
 		this.headers = new String[numColumns];
 		this.types = new SemossDataType[numColumns];
-		
+
 		int index = 0;
-		for(IQuerySelector header : selectors) {
-			if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+		for (IQuerySelector header : selectors) {
+			if (header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				String alias = header.getAlias();
 				String qsName = header.getQueryStructName();
 
 				this.rawHeaders[index] = qsName;
 				this.headers[index] = getNodeAlias(alias);
 				this.types[index] = getTypes(qsName);
-			}
-			else if(header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+			} else if (header.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				List<IQuerySelector> innerSelectorList = ((QueryFunctionSelector) header).getInnerSelector();
-				for(IQuerySelector innerSelector : innerSelectorList) {
-					if(innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				for (IQuerySelector innerSelector : innerSelectorList) {
+					if (innerSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 						String alias = innerSelector.getAlias();
 						String qsName = innerSelector.getQueryStructName();
-						
+
 						this.rawHeaders[index] = qsName;
 						this.headers[index] = getNodeAlias(alias);
-						this.types[index] = SemossDataType.convertStringToDataType(((QueryFunctionSelector) header).getDataType());
+						this.types[index] = SemossDataType
+								.convertStringToDataType(((QueryFunctionSelector) header).getDataType());
 					}
 				}
 			}
 			index++;
 		}
 	}
-	
+
 	/**
-	 * For some of the nodes that have not been given an alias
-	 * If there is an implicit alias on it (a physical name that matches an existing name)
-	 * We will use that
+	 * For some of the nodes that have not been given an alias If there is an
+	 * implicit alias on it (a physical name that matches an existing name) We will
+	 * use that
+	 * 
 	 * @param node
 	 * @return
 	 */
 	private String getNodeAlias(String node) {
-		if(this.meta == null) {
+		if (this.meta == null) {
 			return node;
 		}
 		return this.meta.getPhysicalName(node);
@@ -122,17 +121,18 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 
 	/**
 	 * Get the type from the OWL if present
+	 * 
 	 * @param qsName
 	 * @return
 	 */
 	private SemossDataType getTypes(String qsName) {
-		if(this.meta == null) {
+		if (this.meta == null) {
 			String physicalUri = this.engine.getPhysicalUriFromPixelSelector(qsName);
-			return SemossDataType.convertStringToDataType( this.engine.getDataTypes(physicalUri) );
+			return SemossDataType.convertStringToDataType(this.engine.getDataTypes(physicalUri));
 		}
 		return meta.getHeaderTypeAsEnum(qsName);
 	}
-	
+
 	@Override
 	public boolean hasNext() {
 		boolean ret = baseIterator.hasNext();
@@ -145,11 +145,11 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		Object[] retObject = null;
 
 		// data will be a map for multi nodes being returned
-		if(data instanceof Map) {
+		if (data instanceof Map) {
 			Map<String, Object> mapData = (Map<String, Object>) data;
 			retObject = new Object[this.numColumns];
 
-			for(int colIndex = 0; colIndex < this.numColumns; colIndex++) {
+			for (int colIndex = 0; colIndex < this.numColumns; colIndex++) {
 				Object vertOrProp = mapData.get(this.rawHeaders[colIndex]);
 				Object value = null;
 				if (vertOrProp instanceof Vertex) {
@@ -162,64 +162,66 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 				retObject[colIndex] = value;
 			}
 		} else {
-			// not sure what will happen once we add group bys -> is this a map like above or different???
+			// not sure what will happen once we add group bys -> is this a map like above
+			// or different???
 
 			// for right now, assuming it is just a single vertex to return
-			if(data instanceof Vertex) {
+			if (data instanceof Vertex) {
 				Vertex vertex = (Vertex) data;
 				String node = this.rawHeaders[0];
 				String name = getNodeName(node);
-				retObject = new Object[]{vertex.value(name)};
+				retObject = new Object[] { vertex.value(name) };
 			} else {
 				// some object to return
-				retObject = new Object[]{data};
+				retObject = new Object[] { data };
 			}
 		}
 
 		HeadersDataRow nextData = new HeadersDataRow(this.headers, this.rawHeaders, retObject);
 		return nextData;
 	}
-	
+
 	private String getNodeName(String node) {
-		if(this.nameMap != null) {
-			if(this.nameMap.containsKey(node)) {
+		if (this.nameMap != null) {
+			if (this.nameMap.containsKey(node)) {
 				return this.nameMap.get(node);
 			}
 		}
 		return TinkerFrame.TINKER_NAME;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
-		try {
-			baseIterator.close();
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IOException("Unable to close traversal with message = " + e.getMessage());
+		if (baseIterator != null) {
+			try {
+				baseIterator.close();
+			} catch (Exception e) {
+				classLogger.error("Error occurred closing the gremlin traversal iterator", e);
+				throw new IOException("Unable to close traversal with message = " + e.getMessage());
+			}
 		}
 	}
-	
+
 	@Override
 	public long getNumRows() {
-		if(this.numRows == 0) {
+		if (this.numRows == 0) {
 			GremlinInterpreter interp = this.interp.copy();
 			GraphTraversal it = interp.composeIterator();
 			GraphTraversal<Vertex, Long> numValues = it.count();
 			try {
-				if(numValues.hasNext()) {
+				if (numValues.hasNext()) {
 					this.numRows = numValues.next();
 				}
 			} finally {
 				try {
 					numValues.close();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error occurred closing the count traversal while getting the number of rows", e);
 				}
 				try {
 					it.close();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-
+					classLogger.error("Error occurred closing the traversal iterator while getting the number of rows", e);
 				}
 			}
 		}
@@ -236,12 +238,12 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		try {
 			close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred closing the gremlin traversal iterator during reset", e);
 		}
 		this.interp.reset();
 		this.baseIterator = this.interp.composeIterator();
 	}
-	
+
 	@Override
 	public String[] getHeaders() {
 		return this.headers;
@@ -252,6 +254,34 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		return this.types;
 	}
 
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public String getQuery() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setEngine(IDatabaseEngine engine) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+
+	@Override
+	public String flush() {
+		return null;
+	}
+
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -259,7 +289,7 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	/*
 	 * Main for testing
 	 */
-	
+
 //	public static void main(String[] args) throws Exception {
 //		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 //		{
@@ -293,32 +323,4 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 //		it.execute();
 //		System.out.println(it.getNumRecords());
 //	}
-
-	@Override
-	public void setQuery(String query) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getQuery() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void setEngine(IDatabaseEngine engine) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean flushable() {
-		return false;
-	}
-	
-	@Override
-	public String flush() {
-		return null;
-	}
 }

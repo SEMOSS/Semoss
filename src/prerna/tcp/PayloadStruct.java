@@ -29,6 +29,9 @@ package prerna.tcp;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class PayloadStruct implements Serializable {
 
@@ -37,7 +40,8 @@ public class PayloadStruct implements Serializable {
 	public String epoc = null;
 
 	public enum OPERATION {
-		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED
+		R, PYTHON, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM, CANCELLED,
+		LOG
 	};
 
 	public OPERATION operation = OPERATION.R; // setting default to R
@@ -88,6 +92,15 @@ public class PayloadStruct implements Serializable {
 	// set the job id
 	public String jobId = null;
 
+	/**
+	 * When true, the python server must NOT install the per-execution cancel trace
+	 * (sys.settrace) for this command. Engine-owned python processes never surface
+	 * their jobId / insightId to the user, so their executions can never be
+	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
+	 * import-heavy init / ask scripts.
+	 */
+	public boolean disableCancelTrace = false;
+
 	// set the session id
 	public String sessionId = null;
 
@@ -130,4 +143,67 @@ public class PayloadStruct implements Serializable {
 	 * For logging purposes Sharing the MDC context for request parameters
 	 */
 	public Map<String, String> mdc;
+
+	/*
+	 * Coordination primitives for the request/response handoff between the caller
+	 * thread (blocked in the socket client's executeCommand) and the socket reader
+	 * thread (which delivers the response). We use a ReentrantLock + Condition
+	 * instead of synchronized/wait/notify because a virtual thread that blocks on
+	 * synchronized/Object.wait() pins its carrier (prior to Java 24) - and these
+	 * waits can be long-running (python loads, model inference). ReentrantLock does
+	 * not pin, so the virtual thread unmounts cleanly.
+	 *
+	 * Transient so gson/FST serialization ignores them - they are only meaningful
+	 * in-process for the instance held in the client's requestMap, never on the
+	 * wire.
+	 */
+	private final transient ReentrantLock responseLock = new ReentrantLock();
+	private final transient Condition responseReady = this.responseLock.newCondition();
+
+	/**
+	 * Acquire the response lock. Must be held to call {@link #awaitResponse}.
+	 */
+	public void lockResponse() {
+		this.responseLock.lock();
+	}
+
+	/**
+	 * Release the response lock previously acquired via {@link #lockResponse()}.
+	 */
+	public void unlockResponse() {
+		this.responseLock.unlock();
+	}
+
+	/**
+	 * Wait for the response signal for at most the given time. The caller MUST
+	 * already hold the response lock (via {@link #lockResponse()}).
+	 *
+	 * @return {@code false} if the waiting time elapsed before a signal arrived
+	 */
+	public boolean awaitResponse(long timeout, TimeUnit unit) throws InterruptedException {
+		return this.responseReady.await(timeout, unit);
+	}
+
+	/**
+	 * Wait indefinitely for the response signal. The caller MUST already hold the
+	 * response lock (via {@link #lockResponse()}). Unlike {@code Object.wait()},
+	 * this does not pin a virtual thread's carrier while it blocks.
+	 */
+	public void awaitResponse() throws InterruptedException {
+		this.responseReady.await();
+	}
+
+	/**
+	 * Signal any thread waiting in {@link #awaitResponse}. Acquires the response
+	 * lock internally, so callers must NOT already hold it (mirrors the old
+	 * {@code synchronized(ps){ ps.notifyAll(); }} usage).
+	 */
+	public void signalResponse() {
+		this.responseLock.lock();
+		try {
+			this.responseReady.signalAll();
+		} finally {
+			this.responseLock.unlock();
+		}
+	}
 }

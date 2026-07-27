@@ -29,115 +29,66 @@ package prerna.engine.impl.model.inferencetracking;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.javatuples.Pair;
 
-import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.util.Utility;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class ModelInferenceLogsOwlCreator {
-	
-	// each column name paired to its type in a var
-	private List<Pair<String, String>> agentColumns = null;
-	private List<Pair<String, String>> roomColumns = null;
-	private List<Pair<String, String>> messageColumns = null;
-	private List<Pair<String, String>> feedbackColumns = null;
-	private List<Pair<String, String>> workspaceColumns = null;
-	private List<Pair<String, String>> workspaceResourceColumns = null;
+public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 
-	// pairs table name with table's primary keys 
-	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
-	
-	// pairs table name with table's foreign keys 
-	private List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> foreignKeys = null;
-	// Pairs table name with its respective columns
-	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
-	
-	// concepts are tables within db
-	// props are cols w/i concepts
-	private static List<String> conceptsRequired = new ArrayList<>();
-	static {
-		conceptsRequired.add("AGENT");
-		conceptsRequired.add("ROOM");
-		conceptsRequired.add("MESSAGE");
-		conceptsRequired.add("FEEDBACK");
-		conceptsRequired.add("WORKSPACE");
-		conceptsRequired.add("WORKSPACE_RESOURCE");
+	public ModelInferenceLogsOwlCreator(AbstractSqlQueryUtil queryUtil) {
+		createColumnsAndTypes(queryUtil);
 	}
-	
-	private IRDBMSEngine modelInferenceDb;
-	
-	public ModelInferenceLogsOwlCreator(IRDBMSEngine modelInferenceDb) {
-		this.modelInferenceDb = modelInferenceDb;
-		createColumnsAndTypes(this.modelInferenceDb.getQueryUtil());
-//		definePrimaryKeys();
-//		defineForeignKeys(); // TODO make this generic for all rdms engines
-	}
-	
-	private void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
+
+	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 		final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 		final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
 		final String DOUBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
+		final String VARCHAR_50 = "VARCHAR(50)";
+		final String VARCHAR_255 = "VARCHAR(255)";
 
-		this.agentColumns = Arrays.asList(
-				Pair.with("AGENT_ID", "VARCHAR(50)"),
-				Pair.with("AGENT_NAME", "VARCHAR(255)"),
-				Pair.with("DESCRIPTION", "VARCHAR(255)"),
-				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-				Pair.with("AUTHOR", "VARCHAR(255)"),
-				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)
-			);
-		
-//		this.roomColumns = Arrays.asList(
-//				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-//				Pair.with("ROOM_NAME", "VARCHAR(255)"),
-//				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
-//				//Pair.with("ROOM_CONFIG_DATA", CLOB_DATATYPE_NAME),
-//				Pair.with("USER_ID", "VARCHAR(255)"),
-//				Pair.with("USER_NAME", "VARCHAR(255)"),
-//                Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
-//				Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-//                Pair.with("AGENT_ID", "VARCHAR(50)"),
-//				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
-//				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-//				Pair.with("PROJECT_ID", "VARCHAR(50)"),
-//				Pair.with("PROJECT_NAME", "VARCHAR(255)")
-//			);
-		
-		this.roomColumns = Arrays.asList(
-			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-			    Pair.with("ROOM_ID", "VARCHAR(50)"),
-			    Pair.with("ROOM_NAME", "VARCHAR(255)"),
-			    Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
-			    Pair.with("USER_ID", "VARCHAR(255)"),
-			    Pair.with("USER_NAME", "VARCHAR(255)"),
-			    Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
-			    Pair.with("AGENT_TYPE", "VARCHAR(50)"),
-			    Pair.with("AGENT_ID", "VARCHAR(50)"),
-			    Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
-			    Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
-			    Pair.with("PROJECT_ID", "VARCHAR(50)"),
-			    Pair.with("PROJECT_NAME", "VARCHAR(255)"),
-			    Pair.with("MODEL_ID", "VARCHAR(255)"),
-			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),
-			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),
-			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),
-			    Pair.with("SHARE_ID", "VARCHAR(255)"),
-			    Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
-			    Pair.with("PARENT_ROOM_ID", "VARCHAR(50)")
-			);
+		this.allSchemas = new ArrayList<>();
 
-		this.messageColumns = Arrays.asList(
-				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),
-				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
+		// @formatter:off
+		addTable("AGENT", Arrays.asList(
+				Pair.with("AGENT_ID", VARCHAR_50),
+				Pair.with("AGENT_NAME", VARCHAR_255),
+				Pair.with("DESCRIPTION", VARCHAR_255),
+				Pair.with("AGENT_TYPE", VARCHAR_50),
+				Pair.with("AUTHOR", VARCHAR_255),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("ROOM", Arrays.asList(
+				Pair.with("INSIGHT_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("ROOM_NAME", VARCHAR_255),
+				Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_NAME", VARCHAR_255),
+				Pair.with("USER_EMAIL_ID", VARCHAR_50),
+				Pair.with("AGENT_TYPE", VARCHAR_50),
+				Pair.with("AGENT_ID", VARCHAR_50),
+				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PROJECT_ID", VARCHAR_50),
+				Pair.with("PROJECT_NAME", VARCHAR_255),
+				Pair.with("MODEL_ID", VARCHAR_255),
+				Pair.with("MESSAGES", CLOB_DATATYPE_NAME),
+				Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("OPTIONS", CLOB_DATATYPE_NAME),
+				Pair.with("SHARE_ID", VARCHAR_255),
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("PARENT_ROOM_ID", VARCHAR_50)));
+
+		addTable("MESSAGE", Arrays.asList(
+				Pair.with("MESSAGE_ID", VARCHAR_50),
+				Pair.with("TRANSACTION_ID", VARCHAR_50),
+				Pair.with("MESSAGE_TYPE", VARCHAR_50),
 				Pair.with("MESSAGE_DATA", BLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("INPUT_TOKENS", INTEGER_DATATYPE_NAME),
@@ -145,175 +96,85 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("THINKING_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("CACHE_READ_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("CACHE_CREATION_TOKENS", INTEGER_DATATYPE_NAME),
-				Pair.with("MESSAGE_METHOD", "VARCHAR(50)"),
-				//Pair.with("MESSAGE_SEPARATOR", "VARCHAR(50)"),
+				Pair.with("MESSAGE_METHOD", VARCHAR_50),
+				//Pair.with("MESSAGE_SEPARATOR", VARCHAR_50),
 				Pair.with("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("AGENT_ID", "VARCHAR(50)"),
-				Pair.with("MODEL_ID", "VARCHAR(50)"),
-				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-			    Pair.with("ROOM_ID", "VARCHAR(50)"),
-				Pair.with("SESSIONID", "VARCHAR(255)"),
-				Pair.with("USER_ID", "VARCHAR(255)"),
-				Pair.with("USER_NAME", "VARCHAR(255)"),
-				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
-			);
-		
-		this.feedbackColumns = Arrays.asList(
-				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
+				Pair.with("AGENT_ID", VARCHAR_50),
+				Pair.with("MODEL_ID", VARCHAR_50),
+				Pair.with("INSIGHT_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("SESSIONID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_NAME", VARCHAR_255),
+				Pair.with("USER_EMAIL_ID", VARCHAR_50)));
+
+		addTable("FEEDBACK", Arrays.asList(
+				Pair.with("MESSAGE_ID", VARCHAR_50),
+				Pair.with("MESSAGE_TYPE", VARCHAR_50),
 				Pair.with("FEEDBACK_TEXT", CLOB_DATATYPE_NAME),
 				Pair.with("FEEDBACK_DATE", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
-			);
-		
-		this.workspaceColumns = Arrays.asList(
-				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
-				Pair.with("OWNER", "VARCHAR(255)"),
-				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)));
+
+		// CONFIG_JSON holds the full AgentConfig serialization for this workspace -
+		// system_prompt mirror, mcps, budgets, hooks. See AgentConfigLoader for the
+		// read order (CONFIG_JSON-first with legacy column/WORKSPACE_RESOURCE fallback)
+		// and the workspace setter reactors (SetAgentHooks etc.) for the write path.
+		addTable("WORKSPACE", Arrays.asList(
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("OWNER", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
-			);
-		
-		this.workspaceResourceColumns = Arrays.asList(
-				Pair.with("WORKSPACE_RESOURCE_ID", "VARCHAR(255)"),
-				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
-				Pair.with("RESOURCE_ID", "VARCHAR(255)"),
-				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
-				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
-			);
-		
-		this.allSchemas = Arrays.asList(
-				Pair.with("AGENT", agentColumns),
-				Pair.with("ROOM", roomColumns),
-				Pair.with("MESSAGE", messageColumns),
-				Pair.with("FEEDBACK", feedbackColumns),
-				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
-			);
-	}
-	
-//	public void definePrimaryKeys() {
-//		// returns ArrayList so its ordered
-//		this.primaryKeys = Arrays.asList(
-//				Pair.with("AGENT", Pair.with(Arrays.asList("AGENT_ID"), Arrays.asList("VARCHAR(50)"))),
-////				Pair.with("ROOM", Pair.with(Arrays.asList("INSIGHT_ID"), Arrays.asList("VARCHAR(50)"))),
-//				Pair.with("MESSAGE", Pair.with(Arrays.asList("MESSAGE_ID","MESSAGE_TYPE"), Arrays.asList("VARCHAR(50)","VARCHAR(50)"))),
-//				Pair.with("WORKSPACE", Pair.with(Arrays.asList("WORKSPACE_ID"), Arrays.asList("VARCHAR(255)"))),
-//				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_RESOURCE_ID"), Arrays.asList("VARCHAR(255)")))
-//			);
-//	}
-//	
-//	public void defineForeignKeys() {
-//		this.foreignKeys = Arrays.asList(
-//				// remove this so that UI joins are clean
-//				//Pair.with("ROOM", Pair.with(Arrays.asList("AGENT_ID"), Pair.with(Arrays.asList("AGENT"), Arrays.asList("AGENT_ID")))),
-//				Pair.with("MESSAGE", Pair.with(Arrays.asList("INSIGHT_ID","AGENT_ID"), Pair.with(Arrays.asList("ROOM","AGENT"), Arrays.asList("INSIGHT_ID","AGENT_ID")))),
-//				Pair.with("FEEDBACK", Pair.with(Arrays.asList("MESSAGE_ID,MESSAGE_TYPE"), Pair.with(Arrays.asList("MESSAGE"), Arrays.asList("MESSAGE_ID,MESSAGE_TYPE")))),
-//				Pair.with("WORKSPACE_RESOURCE", Pair.with(Arrays.asList("WORKSPACE_ID"), Pair.with(Arrays.asList("WORKSPACE"), Arrays.asList("WORKSPACE_ID"))))
-//			);
-//	}
-	
-	/**
-	 * Determine if we need to remake the OWL
-	 * @return
-	 */
-	public boolean needsRemake() {
-		/*
-		 * This is a very simple check
-		 * Just looking at the tables
-		 * Not doing anything with columns but should eventually do that
-		 */
-		
-		List<String> cleanConcepts = new ArrayList<>();
-		List<String> concepts = modelInferenceDb.getPhysicalConcepts();
-		for(String concept : concepts) {
-			if(concept.equals("http://semoss.org/ontologies/Concept")) {
-				continue;
-			}
-			String cTable = Utility.getInstanceName(concept);
-			cleanConcepts.add(cTable);
-		}
-		
-		if (!cleanConcepts.containsAll(conceptsRequired)) {
-			return true;
-		}
-		
-		// check all columns
-		for (Pair<String, List<Pair<String, String>>> tableWithColumns : allSchemas) {
-			String tableName = tableWithColumns.getValue0();
-			String[] columnNames = tableWithColumns.getValue1().stream()
-					.map(Pair::getValue0).toArray(String[]::new);
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)));
 
-			for (String columnName : columnNames) {
-				if (columnChecks(tableName, columnName)) {
-					return true;
-				}
-			}
-		}
-		
-		// does not need to be remade
-		return false;
-	}
-	
-	
-	private boolean columnChecks(String tableName, String columnName) {
-		String propsURI = "http://semoss.org/ontologies/Concept/" + tableName;
-		String relationURI = "http://semoss.org/ontologies/Relation/Contains/" 
-				+ columnName + "/" + tableName; 
+		addTable("WORKSPACE_RESOURCE", Arrays.asList(
+				Pair.with("WORKSPACE_RESOURCE_ID", VARCHAR_255),
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("RESOURCE_ID", VARCHAR_255),
+				Pair.with("RESOURCE_TYPE", VARCHAR_255),
+				Pair.with("RESOURCE_SUBTYPE", VARCHAR_255)));
 
-		List<String> props = modelInferenceDb.getPropertyUris4PhysicalUri(propsURI);	
-		if(!props.contains(relationURI)) {
-			return true;
-		}
-		
-		return false;
+		addTable("AGENT_RUN", Arrays.asList(
+				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("MODEL_ID", VARCHAR_255),
+				Pair.with("HARNESS_TYPE", VARCHAR_50),
+				Pair.with("JOB_ID", VARCHAR_50),
+				Pair.with("STATUS", VARCHAR_50),
+				Pair.with("INPUT", CLOB_DATATYPE_NAME),
+				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("INPUT_MESSAGE_ID", VARCHAR_50),
+				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
+				Pair.with("FINAL_OUTPUT_MESSAGE_ID", VARCHAR_50),
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("COMPLETED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255)));
+
+		addTable("AGENT_RUN_ACTION", Arrays.asList(
+				Pair.with("ACTION_ID", VARCHAR_50),
+				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("PARENT_MESSAGE_ID", VARCHAR_50),
+				Pair.with("TOOL_CALL_ID", VARCHAR_255),
+				Pair.with("TOOL_NAME", VARCHAR_255),
+				Pair.with("TOOL_ARGS", CLOB_DATATYPE_NAME),
+				Pair.with("EDITED_ARGS", CLOB_DATATYPE_NAME),
+				Pair.with("TOOL_META", CLOB_DATATYPE_NAME),
+				Pair.with("HAS_UI", VARCHAR_50),
+				Pair.with("UI_URL", CLOB_DATATYPE_NAME),
+				Pair.with("STATUS", VARCHAR_50),
+				Pair.with("RESULT", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255)));
+		// @formatter:on
 	}
-		
-	
-	/**
-	 * Remake the OWL 
-	 * @throws Exception 
-	 */
-	public void remakeOwl() throws Exception {
-		try(WriteOWLEngine owlEngine = modelInferenceDb.getOWLEngineFactory().getWriteOWL()) {
-			owlEngine.createEmptyOWLFile();
-			// write the new OWL
-			writeNewOwl(owlEngine);
-		}
-	}
-	
-	/**
-	 * Method that uses the OWLER to generate a new OWL structure
-	 * @param owlLocation
-	 * @throws Exception 
-	 */
-	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
-		for (Pair<String, List<Pair<String, String>>> columns : allSchemas) {
-			String tableName = columns.getValue0();
-			owler.addConcept(tableName, null, null);
-			for (Pair<String, String> x : columns.getValue1()) {	
-				owler.addProp(tableName, x.getValue0(), x.getValue1());
-			}
-		}
-		
-		owler.commit();
-		owler.export();
-	}
-	
-	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
-		return this.allSchemas;
-	}
-	
-	public List<Pair<String, Pair<List<String>, List<String>>>> getDBPrimaryKeys() {
-		return this.primaryKeys;
-	}
-	
-	public List<Pair<String, Pair<List<String>, Pair<List<String>, List<String>>>>> getDBForeignKeys() {
-		return this.foreignKeys;
-	}
-	
+
 }

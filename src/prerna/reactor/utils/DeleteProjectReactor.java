@@ -28,7 +28,9 @@
 package prerna.reactor.utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,14 +42,17 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -81,8 +86,20 @@ public class DeleteProjectReactor extends AbstractReactor {
 				}
 			}
 
+			if (SystemDefaultEngines.getSystemSkills().contains(projectId)
+					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)
+					|| SystemDefaultEngines.getSystemAgents().contains(projectId)) {
+				throw new IllegalArgumentException(
+						"Project " + projectId + " is a built-in platform MCP/skill/agent and cannot be deleted");
+			}
+
 			IProject project = Utility.getProject(projectId);
 			deleteProject(project);
+			// also remove this project in case it is the current insight's project id
+			if (projectId.equals(this.insight.getContextProjectId())) {
+				this.insight.setContextProjectId(null);
+				this.insight.setContextProjectName(null);
+			}
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
@@ -100,6 +117,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
+		// skill-projects carry WORKSPACE_RESOURCE__ refs + CONFIG_JSON.skills[]
+		// mirrors in modellogs; scrub those before tearing down the project itself
+		if (project.getProjectType() == IProject.PROJECT_TYPE.SKILL) {
+			try {
+				ModelInferenceLogsUtils.detachSkillFromAllWorkspaces(projectId);
+			} catch (Exception e) {
+				classLogger.error("Failed to detach skill project '{}' from workspaces.", projectId, e);
+			}
+		}
 		// remove from DIHelper
 		UploadUtilities.removeProjectFromDIHelper(projectId);
 		// remove from security
@@ -141,5 +167,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectIds.add(this.curRow.get(i).toString());
 		}
 		return projectIds;
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

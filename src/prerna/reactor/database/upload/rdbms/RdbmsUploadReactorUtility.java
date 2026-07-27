@@ -46,7 +46,7 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsUploadReactorUtility {
 
-	private static final Logger logger = LogManager.getLogger(RdbmsUploadReactorUtility.class);
+	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadReactorUtility.class);
 
 	public static final String UNIQUE_ROW_ID = "_UNIQUE_ROW_ID";
 
@@ -198,7 +198,7 @@ public class RdbmsUploadReactorUtility {
 			try {
 				engine.removeData(deleteQuery);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

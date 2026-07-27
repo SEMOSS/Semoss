@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,7 +63,6 @@ import prerna.reactor.IReactor;
 import prerna.reactor.qs.SubQueryExpression;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
@@ -73,28 +71,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 	private String frameName = null;
 	private String wrapperFrameName = null;
-	private String swifter = "";
-	private String exp = ""; // says if this feature is experimental
 
 	private Map<String, SemossDataType> colDataTypes;
 
 	private StringBuilder selectorCriteria;
 	private StringBuilder filterCriteria;
 	private StringBuilder havingCriteria;
-	private StringBuilder renameCriteria = new StringBuilder(""); // look into renCriteria below. I don't think it's
-																	// necessary.
+	private StringBuilder renameCriteria = new StringBuilder("");
 	private StringBuilder groupCriteria = new StringBuilder("");
 	private StringBuilder dateCriteria = new StringBuilder("");
 	private StringBuilder arithmeticCriteria = new StringBuilder();
 	private StringBuilder caseWhenCriteria = new StringBuilder();
 	private StringBuilder aggCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria2 = new StringBuilder("");
-	private StringBuilder renCriteria = new StringBuilder(
-			".rename(columns={'mean':'Average', 'nunique':'UniqueCount', 'sum':'Sum', 'median':'Median', 'max':'Max', 'min':'Min', 'count':'Count'})");
 	private StringBuilder orderBy = new StringBuilder("");
-	private StringBuilder orderBy2 = new StringBuilder("");
 	private StringBuilder ascending = new StringBuilder("");
-	private StringBuilder ascending2 = new StringBuilder("");
 	private StringBuilder overrideQuery = null;
 
 	private StringBuilder normalizer = new StringBuilder(".to_dict('split')['data']");
@@ -130,8 +121,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private List<String> caseWhenFunctionList = null;
 	private boolean caseWhenFunction;
 
-	static final String DEF_FILTER = "this.cache['data']__f";
-
 	private Map<String, String> functionMap = null;
 
 	Map<String, Boolean> processedSelector = new HashMap<>();
@@ -150,31 +139,28 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	long start = 0;
 	long end = 500;
 
-	// need to keep the ordinality of the selectors and match that with the aliases
-	ArrayList<String> groupColumns = null;
 	PyTranslator pyt = null;
 
 	boolean scalar = false;
 
-	// experimental stuff trying the numpy groupies guy
-	List groupColList = new ArrayList();
-	Map aggColMap = new HashMap();
-	List aggColList = new ArrayList();
-	List functionList = new ArrayList();
-	List orderList = new ArrayList();
-	Map orderListMap = new HashMap(); // keeps track of what the items are called
-
-	// cache of all the keys
-	List keyCache = new ArrayList();
-
 	// this is because we need to handle subquery
 	private transient PandasFrame pandasFrame;
 
+	/**
+	 * Registers the column -> SemossDataType map used throughout query building to
+	 * decide type-specific pandas syntax (e.g. string vs. date vs. numeric
+	 * filters). Immediately normalizes the keys via {@link #updateTypes()}.
+	 */
 	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
 		this.colDataTypes = dataTypeMap;
 		updateTypes();
 	}
 
+	/**
+	 * Normalizes the keys of {@code colDataTypes} by stripping any "table__column"
+	 * qualifier down to the bare column name, so later lookups (which use plain
+	 * pandas column names) resolve correctly. Does not emit query text itself.
+	 */
 	private void updateTypes() {
 		Map<String, SemossDataType> newTypesMap = new HashMap<>();
 		for (String k : this.colDataTypes.keySet()) {
@@ -190,46 +176,46 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		this.colDataTypes = newTypesMap;
 	}
 
-	public void setKeyCache(List keyCache) {
-		this.keyCache = keyCache;
-	}
-
+	/**
+	 * Returns whether the composed query collapses to a single scalar value (set
+	 * during {@link #closeAll()} for a lone aggregate with no group by), which
+	 * changes how the result is normalized/serialized.
+	 */
 	public boolean isScalar() {
 		return scalar;
 	}
 
+	/** Sets the source PandasFrame, needed to execute nested subquery filters. */
 	public void setPandasFrame(PandasFrame pandasFrame) {
 		this.pandasFrame = pandasFrame;
 	}
 
+	/**
+	 * Builds and returns the complete single-line pandas expression for the
+	 * SelectQueryStruct. After resetting all fragment buffers, it calls
+	 * {@link #fillParts()} to populate each criteria fragment and
+	 * {@link #closeAll()} to finalize them, then concatenates the fragments onto
+	 * the frame wrapper ({@code wrapperFrameName}, which resolves to
+	 * {@code ...cache['data']}) in execution order:
+	 * {@code <frame> + dateCriteria + arithmeticCriteria + filterCriteria +
+	 * havingCriteria + groupCriteria + aggCriteria2 + caseWhenCriteria +
+	 * renameCriteria + selectorCriteria + [.drop_duplicates()] + orderBy +
+	 * .iloc[start:end] + .to_dict('split')}. Honors LIMIT/OFFSET from the query
+	 * struct and returns any {@code overrideQuery} verbatim when one was supplied.
+	 *
+	 * @return the full pandas query string to evaluate against the DataFrame
+	 */
 	@Override
 	public String composeQuery() {
 		StringBuilder query = new StringBuilder();
-
-		if (Utility.getDIHelperProperty("SWIFTER") != null
-				&& !Utility.getDIHelperProperty("SWIFTER").trim().isEmpty()) {
-			swifter = Utility.getDIHelperProperty("SWIFTER").trim();
-		} else {
-			swifter = "";
-		}
-		// force swifter
-		swifter = "";
-
-		if (Utility.getDIHelperProperty("EXP") != null && !Utility.getDIHelperProperty("EXP").trim().isEmpty()) {
-			exp = Utility.getDIHelperProperty("EXP").trim();
-		} else {
-			exp = "";
-		}
 
 		headers = new ArrayList<>();
 		groupIndex = 0;
 		actHeaders = new ArrayList<>();
 		types = new ArrayList<>();
-		groupColumns = new ArrayList<>();
 		selectorCriteria = new StringBuilder("");
 		groupCriteria = new StringBuilder("");
 		aggCriteria = new StringBuilder("");
-		renCriteria = new StringBuilder("");
 		filterCriteria = new StringBuilder("");
 		havingCriteria = new StringBuilder("");
 		scalar = false;
@@ -237,7 +223,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggHash = new HashMap<>();
 		aggKeys = new ArrayList<>();
 		aggHash2 = new HashMap<>();
-		typesHash = new HashMap<>(); // EXPERIMENTING
+		typesHash = new HashMap<>();
 		orderHash = new HashMap<>();
 		aliasHash = new HashMap<>();
 		orderBy = new StringBuilder("");
@@ -282,15 +268,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if (!scalar && aggCriteria2.toString().isEmpty()) {
 				query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
 			}
-			// TODO: need to be more elegant than this
-			query.append(scalar ? "" : orderBy).append(addLimitOffset(start, end))
-					// .append(orderBy2)
-					.append(normalizer);
-			// .append(".fillna('')");
-			// TODO: NEED TO DISTINCT THE LIST RETURNED
-//				if(!scalar && !aggCriteria2.toString().isEmpty()) {
-//					query.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()));
-//				}
+			query.append(scalar ? "" : orderBy).append(addLimitOffset(start, end)).append(normalizer);
 		} else {
 			query = overrideQuery;
 			if (actHeaders != null && actHeaders.size() > 0) {
@@ -300,93 +278,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 
-	private void buildListMap() {
-		// step1 - iterate through order list
-		// for every order try to see if it is a groupby or is it a aggregate
-		// based on either one build that list
-		// as you build the aggregate also build the function list
-
-		// this ONLY works when there is one groupby
-		// this ONLY works when the groupby is ahead of calculated column.. although I
-		// will force it to the first one just now
-
-		try {
-			if (!groupColList.isEmpty()) {
-				String filter = "''";
-				if (filterCriteria.length() > 0) {
-					filter = "\"" + composeFilterString() + "\"";
-				}
-				filter = filter.replace("__f", "");
-				filter = filter.replace(frameName, "this.cache['data']");
-				StringBuilder gList = new StringBuilder("[");
-				StringBuilder aggList = new StringBuilder("[");
-				StringBuilder fList = new StringBuilder("[");
-				String groupcol = (String) groupColList.get(0);
-				for (int selectIndex = 0; selectIndex < orderList.size(); selectIndex++) {
-					String thisSelector = (String) orderList.get(selectIndex);
-					if (groupColList.contains(thisSelector)) {
-						// process it as group
-						gList.append("'").append(thisSelector).append("'");
-						composeGroupCacheString(thisSelector, true);
-					} else if (aggColMap.containsKey(thisSelector)) {
-						// process this as an aggregate
-						String aggCol = (String) aggColMap.get(thisSelector);
-						String aggFunc = (String) aggColMap.get(thisSelector + "__f");
-						aggList.append("'").append(aggCol).append("'");
-						fList.append("'").append(aggFunc).append("'");
-						composeAggCacheString(groupcol, aggCol, thisSelector, aggFunc, true);
-					}
-				}
-				gList.append("]");
-				aggList.append("]");
-				fList.append("]");
-
-				logger.info("index  >>" + gList);
-				logger.info("agg  >>" + aggList);
-				logger.info("Function  >>" + fList);
-
-				// order map
-				logger.info("Order Map" + orderListMap);
-
-				StringBuilder orderString = new StringBuilder("[");
-				String cacheName = frameName + "w.cache";
-
-				for (int orderIndex = 0; orderIndex < orderList.size(); orderIndex++) {
-					String thisOrder = (String) orderList.get(orderIndex);
-					if (orderIndex != 0) {
-						orderString.append(",");
-					}
-
-					// pull the name of selector
-					String orderSelector = (String) orderListMap.get(thisOrder);
-					// if this was a group tag a list with it
-					if (!aggColMap.containsKey(thisOrder)) {
-						orderString.append("list(").append(cacheName).append("[\"").append(orderSelector).append("\"]")
-								.append(")");
-					} else {
-						orderString.append(cacheName).append("[\"").append(orderSelector).append("\"]");
-					}
-				}
-				orderString.append("]");
-
-				String script = frameName + "w.runGroupy(" + filter + ", " + gList + ", " + aggList + ", " + fList
-						+ ", '')";
-				Object obj = pyt.runScript(script);
-
-				// this will ultimately be the query
-				logger.info("And the order string " + orderString);
-
-				// try replacing the query
-				this.overrideQuery = orderString;
-				qs.getPragmap().put("format", "parquet");
-			} else {
-				// nothing to see please move on
-			}
-		} catch (Exception e) {
-			logger.error("StackTrace: ", e);
-		}
-	}
-
+	/**
+	 * Populates every query fragment buffer from the SelectQueryStruct. For each
+	 * query part (FILTER, HAVING, SELECT, SORT, AGGREGATE, GROUP), it either copies
+	 * a pre-built fragment supplied directly in the query struct's part map, or
+	 * generates it by delegating: {@link #addFilters()} -> {@code filterCriteria},
+	 * {@link #addHavings()} -> {@code havingCriteria}, {@link #addSelectors()} ->
+	 * {@code selectorCriteria}, {@link #processOrderBy()} -> {@code orderBy},
+	 * {@link #genAggString()} -> {@code aggCriteria2},
+	 * {@link #processGroupSelectors()} -> {@code groupCriteria}. Finally it always
+	 * runs {@link #genIfElseString()}, {@link #genDateFunctionString()} and
+	 * {@link #genArithmeticString()} to assemble the {@code .assign(...)} fragments
+	 * for CASE WHEN, date-part and arithmetic derived columns.
+	 */
 	private void fillParts() {
 		SelectQueryStruct sqs = (SelectQueryStruct) qs;
 		Map partMap = sqs.getParts();
@@ -430,28 +334,36 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		genArithmeticString();
 	}
 
+	/**
+	 * Emits the SQL DISTINCT fragment: returns {@code .drop_duplicates()} when the
+	 * query is distinct, otherwise an empty string. Appended by
+	 * {@link #composeQuery()} right after the selector projection.
+	 *
+	 * @param distinct whether the query struct requested distinct rows
+	 * @return {@code ".drop_duplicates()"} or {@code ""}
+	 */
 	private String addDistinct(boolean distinct) {
 		if (distinct) {
-			// try to find if there is more than 1 column
-//			if(orderHash.size() > 1)
-//				return "";
-//			else if(orderHash.size() == 1 && aggHash.size() == 0)
 			return ".drop_duplicates()";
 		}
 		return "";
 	}
 
-	private void closeFilters() {
-		if (filterCriteria.length() > 0) {
-			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
-			// update the selector only if if there is no agg
-			// if(selectorCriteria.length() == 0)
-			// selectorCriteria.append(".drop_duplicates()");
-		}
-	}
-
+	/**
+	 * Finalizes/wraps the partially built fragment buffers into valid pandas syntax
+	 * before {@link #composeQuery()} concatenates them. Specifically it: closes the
+	 * aggregation into {@code .agg(...).reset_index()} (or a random-column
+	 * {@code .assign(tmp=0).groupby('tmp')...} wrapper when there is no group by
+	 * but multiple headers, or collapses to a scalar for a single header); wraps
+	 * the selector list into the projection {@code [[ ... ]]} and builds the
+	 * {@code .rename(columns={...})} fragment; wraps having into
+	 * {@code .groupby([...]).filter(lambda x: ...)}; closes group by with
+	 * {@code ], sort=False)} (plus {@code .count().reset_index()} when only group
+	 * columns are selected); wraps the filter mask into {@code .loc[ ... ]}; and
+	 * closes order by into {@code sort_values([...], ascending=[...])}. Skips any
+	 * part that was supplied pre-built in the query struct's part map.
+	 */
 	public void closeAll() {
-		boolean aggregate = false;
 		SelectQueryStruct sqs = (SelectQueryStruct) qs;
 		Map partMap = sqs.getParts();
 
@@ -459,7 +371,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if (!((SelectQueryStruct) this.qs).getGroupBy().isEmpty()) {
 				this.aggCriteria = aggCriteria.append("})").append(".reset_index()");
 				this.aggCriteria2 = aggCriteria2.append(")").append(".reset_index()");
-				this.renCriteria = renCriteria.append("}).reset_index()");
 			} else if (headers.size() > 1) {
 				String tempCol = Utility.getRandomString(6);
 				this.aggCriteria2 = new StringBuilder(".assign(" + tempCol + "=0).groupby('" + tempCol + "')")
@@ -471,7 +382,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				aggCriteria2 = aggCriteria;
 				scalar = true;
 			}
-			aggregate = true;
 		}
 
 		if (this.selectorCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT)
@@ -516,12 +426,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			// combine it
 			orderBy.append("],").append(ascending).append("])");
 		}
-		if (orderBy2.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT)) {
-			// combine it
-			orderBy2.append("],").append(ascending2).append("])");
-		}
 	}
 
+	/**
+	 * Builds the {@code orderBy} fragment ({@code .sort_values([...],
+	 * ascending=[...])}) from the query struct's combined ORDER BY selectors. For
+	 * each column sort it resolves the alias to the actual output column name, maps
+	 * ASC/DESC to {@code True}/{@code False}, and delegates to
+	 * {@link #addOrder(StringBuilder, String)} to accumulate the column and
+	 * ascending lists.
+	 */
 	private void processOrderBy() {
 		List<IQuerySort> qcos = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
 		for (int orderIndex = 0; orderIndex < qcos.size(); orderIndex++) {
@@ -557,17 +471,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					} else {
 						addOrder(new StringBuilder(aliasHash.get(alias)), sort);
 					}
-
-					// also add the other piece to test
-					addOrder2(orderByClause, sort);
 				}
 			}
 		}
-
-		// if(!processed)
-		// orderBy = new StringBuilder("");
 	}
 
+	/**
+	 * Appends one column to the {@code orderBy} fragment, opening it as
+	 * {@code .sort_values(['col'} on the first call and comma-separating subsequent
+	 * columns, while accumulating the matching {@code ascending=[...]} list (closed
+	 * later in {@link #closeAll()}).
+	 *
+	 * @param curOrder the output column name to sort on
+	 * @param asc      {@code "True"} for ascending, {@code "False"} for descending
+	 */
 	private void addOrder(StringBuilder curOrder, String asc) {
 		// I need to find out which are the pieces I need to drop
 		if (orderBy.length() == 0) {
@@ -585,24 +502,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		orderBy.append("'").append(curOrder).append("'");
 	}
 
-	private void addOrder2(StringBuilder curOrder, String asc) {
-		// I need to find out which are the pieces I need to drop
-		// get the ordinal value
-		// int colIndex = headers.indexOf(curOrder);
-		if (orderBy2.length() == 0) {
-			orderBy2 = new StringBuilder(".sort_index(level=[");
-			ascending2 = new StringBuilder("ascending=[");
-		} else {
-			orderBy2.append(",");
-			ascending2.append(",");
-		}
-
-		// add the ascending
-		ascending2.append(asc);
-		// add the order by
-		orderBy2.append(curOrder);
-	}
-
+	/**
+	 * Builds the LIMIT/OFFSET fragment {@code .iloc[start:end]} (the trailing end
+	 * index is omitted when {@code end <= 0}, meaning "no upper bound"). Appended
+	 * near the end of the query by {@link #composeQuery()}.
+	 *
+	 * @param start row offset (inclusive)
+	 * @param end   exclusive end row, or {@code <= 0} for open-ended
+	 * @return the {@code .iloc[...]} slice fragment
+	 */
 	private String addLimitOffset(long start, long end) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(".iloc[" + start + ":");
@@ -613,17 +521,33 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return sb.toString();
 	}
 
+	/**
+	 * Convenience entry point that builds the WHERE-clause {@code filterCriteria}
+	 * (the boolean mask later wrapped as {@code .loc[...]}) from the query struct's
+	 * combined filters, delegating to
+	 * {@link #addFilters(List, String, StringBuilder, boolean)}.
+	 */
 	public void addFilters() {
 		addFilters(qs.getCombinedFilters().getFilters(), this.wrapperFrameName, this.filterCriteria, false);
 	}
 
+	/**
+	 * Convenience entry point that builds the HAVING-clause {@code havingCriteria}
+	 * (later wrapped as {@code .groupby([...]).filter(lambda x: ...)}) from the
+	 * query struct's having filters, delegating to
+	 * {@link #addHavingFilters(List, String, StringBuilder, boolean)}.
+	 */
 	public void addHavings() {
 		addHavingFilters(qs.getHavingFilters().getFilters(), this.wrapperFrameName, this.havingCriteria, false);
 	}
 
 	/**
-	 * Adds all the parameters passed through the SELECT statement. Keeps track of
-	 * SELECTOR headers and types for sync with output in PandasFrame.
+	 * Builds the {@code selectorCriteria} fragment, i.e. the comma-separated list
+	 * of quoted column names that {@link #closeAll()} wraps into the SELECT
+	 * projection {@code [['col1','col2', ...]]}. Each selector is resolved via
+	 * {@link #processSelector} (which may also register date/arithmetic/case-when
+	 * derived columns), and the method tracks output headers and their
+	 * SemossDataTypes so the produced pandas result stays in sync with PandasFrame.
 	 */
 	public void addSelectors() {
 		this.selectorCriteria = new StringBuilder();
@@ -663,6 +587,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
+	/**
+	 * Returns the output column headers collected while building the SELECT
+	 * projection.
+	 */
 	public String[] getHeaders() {
 		if (headers != null) {
 			String[] headerArray = new String[this.headers.size()];
@@ -672,6 +600,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 
+	/**
+	 * Returns the SemossDataTypes of the output columns, aligned with
+	 * {@link #getHeaders()}.
+	 */
 	public SemossDataType[] getTypes() {
 		if (headers != null) {
 			SemossDataType[] typeArray = new SemossDataType[this.headers.size()];
@@ -681,8 +613,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 
-	/*
-	 * Process the types of Selectors being passed through the SELECT statement.
+	/**
+	 * Central dispatcher that resolves a single selector to the pandas text used to
+	 * reference/derive it, routing by selector type to the specialized processor:
+	 * COLUMN -> {@link #processColumnSelector}, CONSTANT ->
+	 * {@link #processConstantSelector}, FUNCTION ->
+	 * {@link #processFunctionSelector} (aggregate or date-part), ARITHMETIC ->
+	 * {@link #processArithmeticSelector}, IF_ELSE ->
+	 * {@link #processIfElseSelector}. Returns the fragment/column reference
+	 * (typically a quoted column name like {@code 'col'} or a {@code frame['col']}
+	 * accessor) that callers splice into larger fragments.
+	 *
+	 * @param useTable when {@code true}, qualifies the reference with the
+	 *                 frame/table name
+	 * @return the pandas reference/expression for this selector, or {@code null} if
+	 *         the type is unsupported
 	 */
 	public String processSelector(IQuerySelector selector, String tableName, boolean includeTableName, boolean useAlias,
 			boolean... useTable) {
@@ -710,11 +655,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process function calls for pandas date methods to extract fields from
-	 * datetime objects.
-	 * 
-	 * @param selector
-	 * @param tableName
+	 * Registers a date-part extraction derived column and contributes one clause to
+	 * the {@code dateCriteria} fragment. Emits (into {@code dateHash}, keyed by
+	 * alias) the assignment
+	 * {@code <alias>=<col>.apply(pd.to_datetime).dt.<field>.values} for the
+	 * requested field (year/quarter/month/week/day), which
+	 * {@link #genDateFunctionString()} later wraps into
+	 * {@code .assign(<alias>=..., ...)}. Returns the quoted alias {@code 'alias'}
+	 * so the derived column can be projected/referenced.
+	 *
+	 * @param selector  the date function selector (function + inner column)
+	 * @param tableName the frame/table reference for the underlying column
 	 */
 	private String processDateFunctionSelector(QueryFunctionSelector selector, String tableName) {
 		IQuerySelector innerSelector = selector.getInnerSelector().get(0);
@@ -734,12 +685,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// Add to functionMap. I need an example of this working, for processAgg and
 		// processDAte
 		functionMap.put(pandasFunction + columnName, selector.getAlias());
-
 		return "'" + alias.toString() + "'";
 	}
 
 	/**
-	 * Combine any date methods previously called by SELECT variables.
+	 * Assembles the {@code dateCriteria} fragment by joining every per-alias date
+	 * clause registered by {@link #processDateFunctionSelector} into a single
+	 * {@code .assign(<alias1>=..., <alias2>=..., ...)} call (empty if no date-part
+	 * selectors were used).
 	 */
 	private void genDateFunctionString() {
 		for (String key : dateKeys) {
@@ -757,12 +710,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Processes QueryFunctionSelector. Currently handles aggregate and date field
-	 * extraction methods.
-	 * 
-	 * @param selector
-	 * @param tableName
-	 * @return
+	 * Routes a FUNCTION selector to the right builder: a date-part function
+	 * (year/quarter/month/week/day) goes to {@link #processDateFunctionSelector}
+	 * (contributing to {@code dateCriteria}), anything else is treated as an
+	 * aggregation and goes to {@link #processAggSelector} (contributing to
+	 * {@code aggCriteria2}). Returns the quoted alias for the derived column.
+	 *
+	 * @param selector  the function selector
+	 * @param tableName the frame/table reference
 	 */
 	private String processFunctionSelector(QueryFunctionSelector selector, String tableName) {
 		if (DATE_FUNCTION_LIST.contains(selector.getFunction())) {
@@ -773,14 +728,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process CASEH WHEN statement (SQL translation). Currently handles column and
-	 * function selectors in the filter logic, and Column to values / values to
-	 * columns. Does not yet handle column to column or arithmetic in the filter
-	 * logic.
-	 * 
-	 * @param selector
-	 * @param tableName
-	 * @return
+	 * Translates a SQL CASE WHEN (IF_ELSE) selector into a derived column that will
+	 * become part of the {@code caseWhenCriteria} fragment. Builds the per-alias
+	 * lambda body {@code <precedent> if(<condition>) else <antecedent-or-np.nan>}
+	 * (using {@link #processFilter(IQueryFilter, String)} for the condition and
+	 * {@link #processSelector} for the value branches) and stores it in
+	 * {@code caseWhenHash}; {@link #genIfElseString()} later wraps these into
+	 * {@code .assign(<alias>=<frame>.apply(lambda x: ... , axis=1).values)}.
+	 * Handles column and function selectors and column-to-values / values-to-column
+	 * conditions; column-to-column and arithmetic conditions are not yet supported.
+	 * Returns the quoted alias for the new column.
+	 *
+	 * @param selector  the CASE WHEN selector
+	 * @param tableName the frame/table reference
 	 */
 	private String processIfElseSelector(QueryIfSelector selector, String tableName) {
 		IQueryFilter filter = selector.getCondition();
@@ -816,7 +776,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Creates the assign(...) method to create new column(s) from CASE_WHEN logic.
+	 * Assembles the {@code caseWhenCriteria} fragment from the per-alias CASE WHEN
+	 * bodies registered by {@link #processIfElseSelector}, producing
+	 * {@code .assign(<alias>=<frame>.apply(lambda x: <val> if(<cond>) else <val>,
+	 * axis=1).values, ...)}. For aggregate-backed case-when columns it applies the
+	 * lambda over the grouped/aggregated frame instead of the raw frame (empty if
+	 * no CASE WHEN selectors were used).
 	 */
 	private void genIfElseString() {
 		for (String key : caseWhenKeys) {
@@ -843,12 +808,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process selectors that are normal columns. Accounts for columns that need to
-	 * be renamed.
-	 * 
-	 * @param selector
-	 * @param tableName
-	 * @return
+	 * Resolves a plain COLUMN selector to its pandas reference. When the alias
+	 * differs from the column name it records a {@code 'column':'alias'} entry in
+	 * {@code renameColList} (which {@link #closeAll()} folds into the
+	 * {@code .rename(columns={...})} fragment). Returns {@code tableName['alias']}
+	 * when a table/frame qualifier is requested, otherwise just the quoted alias
+	 * {@code 'alias'} for use in the selector projection.
+	 *
+	 * @param selector  the column selector
+	 * @param tableName frame/table reference, or {@code null} for an unqualified
+	 *                  name
 	 */
 	private String processColumnSelector(QueryColumnSelector selector, String tableName) {
 		StringBuilder sb = new StringBuilder();
@@ -875,10 +844,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * 
-	 * @param frameName
-	 * @param wrapperFrameName
-	 * @param originalFrameName
+	 * Sets the frame references used to build every fragment: {@code frameName} is
+	 * the raw DataFrame handle and {@code wrapperFrameName} is the cache wrapper
+	 * (resolving to {@code ...cache['data']}) that {@link #composeQuery()} uses as
+	 * the base the criteria are appended onto.
 	 */
 	public void setDataTableName(String frameName, String wrapperFrameName) {
 		this.frameName = frameName;
@@ -886,11 +855,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process a constance selector. Different output is returned base off of passed
-	 * in boolean inputs.
-	 * 
-	 * @param selector
-	 * @return
+	 * Resolves a CONSTANT selector to a literal pandas token spliced inline into
+	 * the query. Numbers are emitted bare, strings are double-quoted, and a
+	 * subquery-expression constant is executed here and replaced by its scalar
+	 * result (a bare number, a quoted string, or {@code pd.NA} if it yields
+	 * nothing).
+	 *
+	 * @param selector the constant selector
+	 * @return the literal pandas token
 	 */
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
@@ -908,13 +880,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error executing the subquery to resolve the constant selector value", e);
 			} finally {
 				if (innerTask != null) {
 					try {
 						innerTask.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error closing the subquery task", e);
 					}
 				}
 			}
@@ -928,6 +900,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
+	/**
+	 * Iterates the query struct's GROUP BY selectors and builds the
+	 * {@code groupCriteria} fragment by delegating each column to
+	 * {@link #processGroupSelector(QueryColumnSelector)}. Only column group-bys are
+	 * supported; any other selector type raises an IllegalArgumentException.
+	 */
 	private void processGroupSelectors() {
 		List<IQuerySelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
 
@@ -942,25 +920,24 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				logger.error(errorMessage);
 				throw new IllegalArgumentException(errorMessage);
 			}
-
-			String colName = queryColumnSelector.getColumn();
-			// EXPERIMENTAL BLOCK
-			this.groupColList.add(colName);
 		}
 	}
 
+	/**
+	 * Appends one column to the {@code groupCriteria} fragment, opening it as
+	 * {@code .groupby(['col'} on the first column and comma-separating the rest
+	 * ({@link #closeAll()} closes it with {@code ], sort=False)}). Also reorders
+	 * this grouped column to the front of the output header list so grouped keys
+	 * lead the result columns.
+	 */
 	private void processGroupSelector(QueryColumnSelector selector) {
-//		if(!processedSelector.containsKey(selector.getAlias())) {
-//			if(!aggHash.containsKey(selector.getTable()))
-		{
-			if (groupCriteria.length() == 0) {
-				groupCriteria.append(".groupby([");
-			} else {
-				groupCriteria.append(",");
-			}
-
-			groupCriteria.append("'").append(selector.getColumn()).append("'");
+		if (groupCriteria.length() == 0) {
+			groupCriteria.append(".groupby([");
+		} else {
+			groupCriteria.append(",");
 		}
+
+		groupCriteria.append("'").append(selector.getColumn()).append("'");
 
 		if (actHeaders.contains(selector.getColumn())) {
 			int index = actHeaders.indexOf(selector.getColumn());
@@ -976,17 +953,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			processedSelector.put(selector.getColumn(), Boolean.TRUE);
 			headers.add(selector.getColumn());
 		}
-//		}
 	}
 
+	/**
+	 * Returns the map of pandas-function+column keys to their output alias, built
+	 * up while processing aggregate and date selectors (used to reconcile generated
+	 * column names with their aliases).
+	 */
 	public Map<String, String> functionMap() {
 		return this.functionMap;
 	}
 
 	/**
-	 * Generates the aggregate string to use in the pandas query. Takes into account
-	 * the instances when an aggregation is needed but no aggregation parameters are
-	 * passed through (i.e when querying a column and using GROUPBY & having.
+	 * Assembles the aggregation fragments from the per-column clauses registered by
+	 * {@link #processAggSelector}. Builds {@code aggCriteria2} as the
+	 * named-aggregation form {@code .agg(<alias>=('<col>','<func>'), ...)} (the
+	 * primary fragment concatenated by {@link #composeQuery()}; {@link #closeAll()}
+	 * appends {@code ).reset_index()}), alongside the legacy dict form
+	 * {@code aggCriteria} ({@code .agg({'<col>':['<func>'], ...})}). Also handles
+	 * the case of a GROUP BY with HAVING but no explicit aggregate by folding in
+	 * the HAVING aggregate, or dropping the group-by fragment entirely when neither
+	 * is present.
 	 */
 	private void genAggString() {
 		aggCriteria = new StringBuilder("");
@@ -1030,19 +1017,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Processes the Selectors that use aggregation. Need to be harmonized w/
-	 * addSelector.
-	 * 
-	 * @param selector
-	 * @return
+	 * Registers one aggregate selector and stages its aggregation clause. Emits
+	 * (into {@code aggHash2}, keyed by alias) the named-aggregation clause
+	 * {@code <alias>=('<col>','<func>')} that {@link #genAggString()} joins into
+	 * {@code .agg(...)}, and also records the dict-form clause and the output type.
+	 * As a special case, an ungrouped min/max is redirected into an
+	 * {@code overrideQuery} of the form {@code <frame>['<col>'].min()/max()}.
+	 * Returns the quoted alias for projection. (Still to be harmonized with
+	 * addSelectors.)
+	 *
+	 * @param selector the aggregate function selector
 	 */
 	private String processAggSelector(QueryFunctionSelector selector) {
 		// if it is using a function.. usually it is an aggregation
 		String function = selector.getFunction();
 		String columnName = selector.getAllQueryColumns().get(0).getAlias();
-
-		logger.info("Column Name .. >>" + selector.getAllQueryColumns().get(0).getColumn() + "<<>>"
-				+ selector.getAllQueryColumns().get(0).getTable());
 
 		// you need to get to the column selector and then get the alias
 		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
@@ -1116,29 +1105,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					.append("()");
 		}
 
-		// EXPERIMENTAL BLOCK
-		// I need to add this as well as the alias some place
-		// I dont think I need the column name at all
-		// aggCol_map.put(columnName, selector.getAlias());
-		aggColMap.put(selector.getAlias(), columnName);
-		aggColMap.put(selector.getAlias() + "__f", pandasFunction);
-
-		aggColList.add(columnName);
-		// EXPERIMENTAL BLOCK
-
 		return "'" + aggAlias + "'";
 	}
 
 	/**
-	 * Process arithmetic selector. Can handle column or Numeric input. Returns
-	 * empty string - similar method build as the function processing methods.
-	 * 
-	 * @param selector
-	 * @param tableName
-	 * @param includeTableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Registers an arithmetic derived column and contributes one clause to the
+	 * {@code arithmeticCriteria} fragment. Resolves both operands via
+	 * {@link #processSelector} (each may be a column or numeric constant), enforces
+	 * INT/DOUBLE operands, and emits (into {@code arithmeticHash}, keyed by alias)
+	 * {@code <alias>=(<left> <op> <right>).values} (adding
+	 * {@code .replace([np.inf,-np.inf], np.nan)} for division) which
+	 * {@link #genArithmeticString()} wraps into {@code .assign(...)}. Returns the
+	 * quoted alias for the new column.
+	 *
+	 * @param selector the arithmetic selector (left op right)
 	 */
 	private String processArithmeticSelector(QueryArithmeticSelector selector, String tableName,
 			boolean includeTableName, boolean useAlias, boolean... useTable) {
@@ -1194,8 +1174,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Create the assign(...) method to put together a new column based off of
-	 * arithmetic.
+	 * Assembles the {@code arithmeticCriteria} fragment by joining the per-alias
+	 * clauses registered by {@link #processArithmeticSelector} into a single
+	 * {@code .assign(<alias>=(<expr>).values, ...)} call (empty if no arithmetic
+	 * selectors were used).
 	 */
 	private void genArithmeticString() {
 		for (String key : arithmeticKeys) {
@@ -1223,6 +1205,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	 * 
 	 */
 
+	/**
+	 * Builds the WHERE-clause boolean mask into {@code builder} (normally
+	 * {@code filterCriteria}, later wrapped as {@code .loc[<mask>]}). Each filter
+	 * is converted via
+	 * {@link #processFilter(IQueryFilter, String, boolean, boolean...)} and the
+	 * resulting boolean expressions are combined with pandas {@code &}.
+	 *
+	 * @param filters   the list of WHERE filters
+	 * @param tableName the frame/table reference used inside the mask
+	 * @param builder   the fragment buffer to append the mask to
+	 * @param useAlias  whether to reference columns by alias
+	 */
 	public void addFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder, boolean useAlias) {
 		for (IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter, tableName, useAlias);
@@ -1235,20 +1229,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 
-	/*
-	 * 
-	 * filter for python lambda functions
-	 * 
-	 */
-
 	/**
-	 * Decode general filter into its simpler parts. Method is sued for selectors
-	 * that use lambda functions for filtering, specifically those used in the
-	 * IF_ELSE logic.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @return
+	 * Lambda-flavored filter dispatcher used for the CASE WHEN / IF_ELSE condition.
+	 * Unlike the {@code .loc[...]} overload, this produces a boolean expression in
+	 * terms of a per-row {@code x} (e.g. {@code x['col'] == ...}) suitable for
+	 * embedding inside {@code apply(lambda x: ...)}. Recurses through AND/OR nodes
+	 * and delegates SIMPLE nodes to
+	 * {@link #processSimpleQueryFilter(SimpleQueryFilter, String)}.
+	 *
+	 * @param filter    the filter tree of the CASE WHEN condition
+	 * @param tableName the frame/table reference
+	 * @return the lambda-body boolean expression, or {@code null} if unsupported
 	 */
 	private StringBuilder processFilter(IQueryFilter filter, String tableName) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
@@ -1263,12 +1254,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process Simple query filters. Passes to methods that construct lambda
-	 * functions for filtering.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @return
+	 * Lambda-flavored simple-filter handler for the CASE WHEN condition. Depending
+	 * on the filter type (col-to-values, values-to-col, col-to-query) it delegates
+	 * to {@link #createLambdaFilter} (or {@link #createSubqueryLambdaFilter}) to
+	 * build the {@code x[...] <op> value} lambda-body expression, reversing the
+	 * comparator when the column is on the right-hand side.
+	 *
+	 * @param filter    the simple filter
+	 * @param tableName the frame/table reference
+	 * @return the lambda-body boolean expression, or {@code null} if unsupported
 	 */
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName) {
 		NounMetadata leftComp = filter.getLComparison();
@@ -1282,7 +1276,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			return createLambdaFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator),
 					tableName);
 		} else if (fType == FILTER_TYPE.COL_TO_COL) {
-			// TODO
+			// TODO: need to implement
 		} else if (fType == FILTER_TYPE.COL_TO_QUERY) {
 			return createSubqueryLambdaFilter(leftComp, rightComp, thisComparator, tableName);
 		} else if (fType == FILTER_TYPE.QUERY_TO_COL) {
@@ -1293,14 +1287,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Create lambda string for filtering. Used specifically in the IF_ELSE
-	 * processor.
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 * @param tableName
-	 * @return
+	 * Builds the per-row lambda-body boolean expression for a column-vs-values
+	 * comparison used inside a CASE WHEN {@code apply(lambda x: ...)}. Emits
+	 * type-aware pandas per each value: numeric/string equality and inequality
+	 * ({@code (x[col] <op> val)}), date/timestamp comparisons via
+	 * {@code x[col].strftime(...)}, substring search via
+	 * {@code in x[col].casefold()}, and begins/ends via
+	 * {@code x[col].casefold().startswith/endswith(...)}, joining multiple values
+	 * with {@code and}/{@code or} as appropriate.
+	 *
+	 * @param leftComp       the column-side comparison operand
+	 * @param rightComp      the value(s) operand
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @return the lambda-body boolean expression
 	 */
 	private StringBuilder createLambdaFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator,
 			String tableName) {
@@ -1320,7 +1320,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 		List<Object> objects = new ArrayList<>();
 		if (rightComp.getValue() instanceof List) {
-			objects.addAll((List) rightComp.getValue());
+			objects.addAll((List<Object>) rightComp.getValue());
 		} else {
 			objects.add(rightComp.getValue());
 		}
@@ -1432,15 +1432,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Flush the subquery to a list of values and add a normal filter
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 * @param tableName
-	 * @param useAlias
-	 * @param captureColumns
-	 * @return
+	 * Lambda-filter variant for a column-to-subquery CASE WHEN condition: executes
+	 * the right-side subquery against the PandasFrame, flattens its first column to
+	 * a value list, then delegates to {@link #createLambdaFilter} to produce the
+	 * {@code x[...]} lambda-body expression against those values.
+	 *
+	 * @param leftComp       the column-side operand
+	 * @param rightComp      the subquery operand (a SelectQueryStruct)
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @return the lambda-body boolean expression
 	 */
 	private StringBuilder createSubqueryLambdaFilter(NounMetadata leftComp, NounMetadata rightComp,
 			String thisComparator, String tableName) {
@@ -1458,11 +1459,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * process filter that uses lambda functions.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @return
+	 * Lambda-flavored OR combiner for the CASE WHEN condition: joins the child
+	 * filter expressions with Python {@code or} and parenthesizes them, producing a
+	 * lambda-body boolean suitable for {@code apply(lambda x: ...)}.
+	 *
+	 * @param filter    the OR filter node
+	 * @param tableName the frame/table reference
+	 * @return the combined lambda-body boolean expression
 	 */
 	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName) {
 		StringBuilder sb = new StringBuilder();
@@ -1479,11 +1482,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * process filter that uses lambda functions.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @return
+	 * Lambda-flavored AND combiner for the CASE WHEN condition: joins the child
+	 * filter expressions with Python {@code and} and parenthesizes them, producing
+	 * a lambda-body boolean suitable for {@code apply(lambda x: ...)}.
+	 *
+	 * @param filter    the AND filter node
+	 * @param tableName the frame/table reference
+	 * @return the combined lambda-body boolean expression
 	 */
 	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName) {
 		StringBuilder sb = new StringBuilder();
@@ -1499,15 +1504,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return sb.append(")");
 	}
 
-	/*
-	 * 
-	 * end filters for python lambda functions
-	 * 
-	 */
-
-	/*
-	 * Process filters. Handles both SQL HAVING and WHERE syntax. For general
-	 * filters that use .loc[...].
+	/**
+	 * Mask-flavored filter dispatcher for WHERE ({@code .loc[<mask>]}) and HAVING
+	 * ({@code .filter(lambda x: ...)}) clauses, selected by the
+	 * {@code isHavingFilter} flag. Routes by filter type: SIMPLE ->
+	 * {@link #processSimpleHavingFilter} or
+	 * {@link #processSimpleQueryFilter(SimpleQueryFilter, String, boolean, boolean...)},
+	 * AND/OR -> the varargs
+	 * {@code processAndQueryFilter}/{@code processOrQueryFilter} combiners, BETWEEN
+	 * -> {@link #processBetweenQueryFilter}. Unlike the two-argument overload, the
+	 * WHERE branch builds vectorized frame-level boolean masks (e.g.
+	 * {@code frame['col'].isin(...)}) rather than per-row {@code lambda x}
+	 * expressions.
+	 *
+	 * @param filter    the filter node
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the boolean mask / having expression, or {@code null} if unsupported
 	 */
 	private StringBuilder processFilter(IQueryFilter filter, String tableName, boolean useAlias, boolean... useTable) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
@@ -1525,9 +1538,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return null;
 	}
 
-	/*
-	 * Process filter statements including OR parameter. Handles both SQL WHERE and
-	 * HAVING syntax.
+	/**
+	 * Mask-flavored OR combiner for WHERE/HAVING. Joins child filter expressions
+	 * with the pandas vectorized {@code |} for a WHERE mask, or Python {@code or}
+	 * when {@code isHavingFilter} is set, parenthesizing each operand.
+	 *
+	 * @param filter    the OR filter node
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the combined boolean mask / having expression
 	 */
 	private StringBuilder processOrQueryFilter(OrQueryFilter filter, String tableName, boolean useAlias,
 			boolean... useTable) {
@@ -1551,8 +1570,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process filter statements including AND parameter. Handles logic comparable
-	 * to SQL WHERE and HAVING clauses.
+	 * Mask-flavored AND combiner for WHERE/HAVING. Joins child filter expressions
+	 * with the pandas vectorized {@code &} for a WHERE mask, or Python {@code and}
+	 * when {@code isHavingFilter} is set, parenthesizing each operand.
+	 *
+	 * @param filter    the AND filter node
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the combined boolean mask / having expression
 	 */
 	private StringBuilder processAndQueryFilter(AndQueryFilter filter, String tableName, boolean useAlias,
 			boolean... useTable) {
@@ -1576,15 +1601,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Process the BetweenQueryFilter content. Output is either attached to
-	 * filterCriteria or havingCriteria, depending on whether a function is being
-	 * used as input.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Builds a BETWEEN range predicate as
+	 * {@code ((<col> >= start) & (<col> <= end))}. For a plain column it produces a
+	 * WHERE-mask expression (numeric direct comparison, or date/timestamp via
+	 * {@code .apply(pd.to_datetime)...}); for a function column it produces a
+	 * HAVING-style {@code (x['col'].<func>() >= start)
+	 * & (x['col'].<func>() <= end)} expression and registers the aggregate clause
+	 * in {@code havingList} so a group aggregate can be synthesized.
+	 *
+	 * @param filter    the BETWEEN filter (column, start, end)
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the range predicate expression
 	 */
 	private StringBuilder processBetweenQueryFilter(BetweenQueryFilter filter, String tableName, boolean useAlias,
 			boolean... useTable) {
@@ -1635,6 +1663,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return retBuilder.append(")");
 	}
 
+	/**
+	 * Mask-flavored simple-filter handler for the WHERE clause. Dispatches by
+	 * filter type to the appropriate builder that emits a vectorized frame-level
+	 * boolean mask: col-to-col -> {@link #addSelectorToSelectorFilter}, col/values
+	 * -> {@link #addSelectorToValuesFilter}, col/query ->
+	 * {@link #addSelectorToQueryFilter}, col/lambda ->
+	 * {@link #addSelectorToLambda}, reversing the comparator when the column is on
+	 * the right-hand side.
+	 *
+	 * @param filter    the simple filter
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the boolean mask expression, or {@code null} if unsupported
+	 */
 	private StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter, String tableName, boolean useAlias,
 			boolean... useTable) {
 		NounMetadata leftComp = filter.getLComparison();
@@ -1644,9 +1686,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
-			// EXPERIMENT
-			// return testAddSelectorToSelectorFilter(leftComp, rightComp, thisComparator,
-			// tableName, useAlias, useTable);
 		} else if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias, useTable);
 		} else if (fType == FILTER_TYPE.VALUES_TO_COL) {
@@ -1671,11 +1710,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 * @return
+	 * Resolves a column-to-lambda WHERE filter by executing the right-side reactor
+	 * to obtain a concrete value, then delegating to
+	 * {@link #addSelectorToValuesFilter} to build the frame-level boolean mask.
+	 * Only scalar-producing lambdas are supported.
+	 *
+	 * @param leftComp       the column-side operand
+	 * @param rightComp      the lambda/reactor operand
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @param useAlias       whether the column is referenced by alias
+	 * @return the boolean mask expression
 	 */
 	private StringBuilder addSelectorToLambda(NounMetadata leftComp, NounMetadata rightComp, String thisComparator,
 			String tableName, boolean useAlias) {
@@ -1691,44 +1736,24 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		throw new IllegalArgumentException("Unknown qs format to merge");
 	}
 
-	private StringBuilder testAddSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp,
-			String thisComparator, String tableName, boolean useAlias, boolean... useTable) {
-		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
-		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
-
-		String lSelector = processSelector(leftSelector, tableName, true, useAlias, true);
-		String rSelector = processSelector(rightSelector, tableName, true, useAlias, true);
-
-		StringBuilder filterBuilder = new StringBuilder();
-
-		if (thisComparator.equals("<>")) {
-			thisComparator = "!=";
-		}
-		if (!PandasSyntaxHelper.OPERATOR_LIST.contains(thisComparator)) {
-			throw new IllegalArgumentException("");
-		}
-
-		filterBuilder.append("(").append(lSelector).append(thisComparator).append(rSelector).append(")");
-
-		return filterBuilder;
-	}
-
 	/**
-	 * Add filter for column to column
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
+	 * Builds a column-to-column WHERE-mask expression comparing two resolved
+	 * selectors (e.g. {@code lSelector == rSelector}, with NA-aware handling for
+	 * equality/inequality and like/not-like search operators). Contributes to the
+	 * {@code filterCriteria} mask.
+	 *
+	 * @param leftComp       the left column operand
+	 * @param rightComp      the right column operand
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @param useAlias       whether columns are referenced by alias
+	 * @return the boolean mask expression
 	 */
 	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp,
 			String thisComparator, String tableName, boolean useAlias, boolean... useTable) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
-
-		/*
-		 * Add the filter syntax here once we have the correct physical names
-		 */
 
 		String lSelector = processSelector(leftSelector, tableName, true, useAlias, useTable);
 		String rSelector = processSelector(rightSelector, tableName, true, useAlias, useTable);
@@ -1762,16 +1787,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Method to create the filter syntax for pandas frames. Handles incorrect
-	 * operand input for the given filter type.
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 * @param tableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Core builder of the WHERE-clause boolean mask (the {@code filterCriteria}
+	 * later wrapped as {@code .loc[...]}) for a column-vs-value(s) comparison.
+	 * Produces type- and operator-specific vectorized pandas: string equality via
+	 * {@code frame[col].isin((...))} (negated with {@code ~}), substring search via
+	 * {@code frame[col].str.contains('v',case=False)}, begins/ends via
+	 * {@code frame[col].str.casefold().str.startswith/endswith(...)},
+	 * date/timestamp comparisons via {@code frame[col].apply(pd.to_datetime)...},
+	 * and numeric via {@code frame[col].apply(lambda x: x <op> v)}, OR-combined
+	 * ({@code |}) across values. Also emits a {@code frame[col].isna()} /
+	 * {@code ~...isna()} clause when a null value is being matched.
+	 *
+	 * @param leftComp       the column-side operand
+	 * @param rightComp      the value(s) operand
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @param useAlias       whether the column is referenced by alias
+	 * @return the boolean mask expression
 	 */
 	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp,
 			String thisComparator, String tableName, boolean useAlias, boolean... useTable) {
@@ -1791,7 +1823,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		List<Object> objects = new ArrayList<>();
 		boolean multi = false;
 		if (rightComp.getValue() instanceof List) {
-			objects.addAll((List) rightComp.getValue());
+			objects.addAll((List<Object>) rightComp.getValue());
 			multi = true;
 		} else {
 			objects.add(rightComp.getValue());
@@ -1826,16 +1858,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			filterBuilder = null;
 		}
 
-		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE
-				|| leftDataType == SemossDataType.TIMESTAMP) {
+		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.FACTOR
+				|| leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP) {
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
 
-			if (leftDataType == SemossDataType.STRING && (thisComparator.equals("==") || thisComparator.equals("!="))) {
+			if ((leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.FACTOR)
+					&& (thisComparator.equals("==") || thisComparator.equals("!="))) {
 				retBuilder.append("(");
 				if (thisComparator.equals("!=")) {
 					retBuilder.append("~");
 				}
-				retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].isin")
+				retBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].isin")
 						.append(myFilterFormatted).append(")");
 			} else if (thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
 				for (int i = 0; i < objects.size(); i++) {
@@ -1880,7 +1913,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 							.append("].str.casefold().str.").append(function).append("('")
 							.append(objects.get(i).toString().toLowerCase()).append("'))");
 				}
-			} else if (leftDataType != SemossDataType.STRING) {
+			} else if (leftDataType != SemossDataType.STRING && leftDataType != SemossDataType.FACTOR) {
 				if (multi) {
 					if (!(thisComparator.equals("==") || thisComparator.equals("!="))) {
 						throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator
@@ -1890,10 +1923,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					if (thisComparator.equals("!=")) {
 						retBuilder.append("~");
 					}
-					retBuilder.append(frameName).append("[").append(leftSelectorExpression)
+					retBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression)
 							.append("].apply(pd.to_datetime).isin").append(myFilterFormatted).append(")");
 				} else {
-					retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression)
+					retBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression)
 							.append("].apply(pd.to_datetime) ").append(thisComparator).append(" pd.to_datetime('")
 							.append(objects.get(0)).append("'))");
 				}
@@ -1910,7 +1943,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				if (retBuilder.length() > 0) {
 					retBuilder.append(" | ");
 				}
-				retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression)
+				retBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression)
 						.append("].apply(lambda x: x").append(thisComparator);
 				if (objects.get(i) instanceof String && ((String) objects.get(i)).isEmpty()) {
 					retBuilder.append("\"\"").append("))");
@@ -1929,15 +1962,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Flush the subquery to a list of values and add a normal filter
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param thisComparator
-	 * @param tableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Resolves a column-to-subquery WHERE filter by executing the right-side
+	 * subquery against the PandasFrame, flattening its first column to a value
+	 * list, then delegating to {@link #addSelectorToValuesFilter} to build the
+	 * frame-level boolean mask.
+	 *
+	 * @param leftComp       the column-side operand
+	 * @param rightComp      the subquery operand (a SelectQueryStruct)
+	 * @param thisComparator the comparator/operator
+	 * @param tableName      the frame/table reference
+	 * @param useAlias       whether the column is referenced by alias
+	 * @return the boolean mask expression
 	 */
 	private StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator,
 			String tableName, boolean useAlias, boolean... useTable) {
@@ -1955,14 +1990,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Passes the query containing the HAVING clause to be processed. Potentially
-	 * could combine with other methods, doesn't need to be as fleshed out as
-	 * addFilters.
-	 * 
-	 * @param filters
-	 * @param tableName
-	 * @param builder
-	 * @param useAlias
+	 * Builds the HAVING expression into {@code builder} (normally
+	 * {@code havingCriteria}, later wrapped by {@link #closeAll()} as
+	 * {@code .groupby([...]).filter(lambda x: <expr>)}). Sets the
+	 * {@code isHavingFilter} flag so {@link #processFilter} emits having-style
+	 * per-group lambda expressions, converts each filter, joins them with Python
+	 * {@code and}, and requires a GROUP BY to be present.
+	 *
+	 * @param filters   the list of HAVING filters
+	 * @param tableName the frame/table reference
+	 * @param builder   the fragment buffer to append the having expression to
+	 * @param useAlias  whether columns are referenced by alias
 	 */
 	public void addHavingFilters(List<IQueryFilter> filters, String tableName, StringBuilder builder,
 			boolean useAlias) {
@@ -1987,15 +2025,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * additional processing of HAVING query. At the moment will only contain column
-	 * - > value operation. Need to look at examples of other operations to see if
-	 * they're relevant.
-	 * 
-	 * @param filter
-	 * @param tableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Handles a simple HAVING filter by delegating to {@link #createHavingFilter}
+	 * to build the per-group {@code (x['col'].<func>() <op> value)} expression
+	 * (reversing the comparator for values-to-column), which becomes part of the
+	 * {@code .filter(lambda x: ...)} having fragment. Currently only
+	 * column-to-value comparisons are supported.
+	 *
+	 * @param filter    the simple having filter
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the having expression, or {@code null} if unsupported
 	 */
 	private StringBuilder processSimpleHavingFilter(SimpleQueryFilter filter, String tableName, boolean useAlias,
 			boolean... useTable) {
@@ -2014,17 +2053,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 
 	/**
-	 * Creates the HAVING expression. StringBuilder is set up for (... operator ...)
-	 * format. Populates a private List that is used to construct an aggregate if
-	 * none is passed through the query.
-	 * 
-	 * @param leftComp
-	 * @param rightComp
-	 * @param operator
-	 * @param tableName
-	 * @param useAlias
-	 * @param useTable
-	 * @return
+	 * Builds the per-group HAVING predicate
+	 * {@code (x['<col>'].<func>() <op> value)} for each comparison value, forming
+	 * the body that {@link #closeAll()} wraps as
+	 * {@code .groupby([...]).filter(lambda x: ...)}. Also registers the aggregate
+	 * clause {@code <alias>=('<col>','<func>')} in {@code havingList}, which
+	 * {@link #genAggString()} uses to synthesize an aggregation when the query has
+	 * no explicit aggregate selector.
+	 *
+	 * @param leftComp  the aggregate-function column operand
+	 * @param rightComp the comparison value(s)
+	 * @param operator  the comparator/operator
+	 * @param tableName the frame/table reference
+	 * @param useAlias  whether columns are referenced by alias
+	 * @return the having predicate expression
 	 */
 	private StringBuilder createHavingFilter(NounMetadata leftComp, NounMetadata rightComp, String operator,
 			String tableName, boolean useAlias, boolean... useTable) {
@@ -2035,9 +2077,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String columnName = selector.getAllQueryColumns().get(0).getAlias();
 		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
 
-		List<Object> values = new Vector<Object>();
+		List<Object> values = new ArrayList<Object>();
 		if (rightComp.getValue() instanceof List) {
-			values.addAll((List) rightComp.getValue());
+			values.addAll((List<Object>) rightComp.getValue());
 		} else {
 			values.add(rightComp.getValue());
 		}
@@ -2056,166 +2098,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return retBuilder;
 	}
 
+	/** Sets the PyTranslator used to execute pandas/python against the frame. */
 	public void setPyTranslator(PyTranslator pyt) {
 		this.pyt = pyt;
 	}
-
-	// create the filter cache
-	// this should also try group by
-	// try the groupby first
-	// if not try the filter
-
-	// see if the groupby exists
-	// if not see if the filter exists
-	// if not create the filter
-	// then create the group by
-	// stepout
-
-	private void createFilterOnlyCache(String filter, String query) {
-		// if the filter is not existing then create the cache
-
-		StringBuilder command = new StringBuilder("");
-		command.append("if \"").append(filter).append("\" not in ").append(frameName).append("w.cache:");
-		command.append("\n");
-		String rand = "r" + Utility.getRandomString(6);
-		command.append("\t").append(rand);
-		command.append(" = ");
-		command.append(query);
-		command.append("\n");
-		command.append("\t").append(frameName).append("w.cache[\"").append(filter).append("\"]");
-		command.append(" = ");
-		command.append(rand);
-		// try to print a else command ? to see if there was use from it ?
-		pyt.runEmptyPy(command.toString());
-	}
-
-	// see if the groupby exists
-	// if not see if the filter exists
-	// if not create the filter
-	// then create the group by
-	// stepout
-
-	private void createGroupAndFilterCache(String filterKey, String groupKey, String filterQuery, String groupQuery) {
-		// if the filter is not existing then create the cache
-
-		StringBuilder command = new StringBuilder("");
-		String rand = "r" + Utility.getRandomString(6);
-		String rand2 = "r" + Utility.getRandomString(6);
-		command.append("if \"").append(groupKey).append("\" not in ").append(frameName).append("w.cache:");
-		command.append("\n");
-		// see if the filter exists if not create
-		command.append("\t").append("if \"").append(filterKey).append("\" not in ").append(frameName)
-				.append("w.cache:");
-		command.append("\n");
-		command.append("\t\t").append(rand);
-		command.append(" = ");
-		command.append(filterQuery);
-		command.append("\n");
-		command.append("\t\t").append(frameName).append("w.cache[\"").append(filterKey).append("\"]");
-		command.append(" = ");
-		command.append(rand);
-		command.append("\n");
-		command.append("\t").append(rand2);
-		command.append("=");
-		command.append(frameName).append("w.cache[\"").append(filterKey).append("\"]").append(groupQuery);
-		command.append("\n");
-		command.append("\t").append(frameName).append("w.cache[\"").append(groupKey).append("\"]");
-		command.append("=");
-		command.append(rand2);
-		command.append("\n");
-		command.append("\t").append("print('Created new cache')");
-		command.append("\n");
-		command.append("else:");
-		command.append("\n");
-		command.append("\t").append("print('Using Cache')");
-		command.append("\n");
-		// try to print a else command ? to see if there was use from it ?
-		String output = pyt.runDirectPy(command.toString()) + "";
-		logger.info("Cache " + output);
-	}
-
-	private void createGroupOnlyCache(String groupKey, String groupQuery) {
-		// if the filter is not existing then create the cache
-		// essentially I can replace this with the idxColFilter
-		StringBuilder command = new StringBuilder("");
-		String rand2 = "r" + Utility.getRandomString(6);
-		command.append("if \"").append(groupKey).append("\" not in ").append(frameName).append("w.cache:");
-		command.append("\n");
-		command.append("\t").append(rand2);
-		command.append(" = ");
-		command.append(groupQuery);
-		command.append("\n");
-		command.append("\t").append(frameName).append("w.cache[\"").append(groupKey).append("\"]");
-		command.append(" = ");
-		command.append(rand2);
-		command.append("\n");
-		command.append("\t").append("print('Created new Group Only cache')");
-		command.append("\n");
-		command.append("else:");
-		command.append("\n");
-		command.append("\t").append("print('Using Group Only Cache')");
-		command.append("\n");
-		// try to print a else command ? to see if there was use from it ?
-		String output = pyt.runDirectPy(command.toString()) + "";
-		logger.info("Cache " + output);
-	}
-
-	private String indexColumn(String col) {
-		String ffKey = "this.cache['data']" + "__f";
-		String gKey = ffKey + "__" + col;
-		if (keyCache.contains(gKey)) {
-			// categories and names
-			String catCodes = gKey + "__cat__cat.code";
-			String catNames = gKey + "__cat__cat.categories";
-
-			// pyt.runScript(new String [] {frameName + "w.idxColFilter('', " + col + ")"});
-			pyt.runScript(frameName + "w.idxColFilter('', " + col + ")");
-			keyCache.add(gKey); // this is really the numpy key
-			keyCache.add(catCodes);
-			keyCache.add(catNames);
-
-		}
-		return gKey;
-
-	}
-
-	private String composeGroupCacheString(String col, boolean add) {
-		/*
-		 * col_index = ffKey + "__" + col col_index_u = col_index + "__u" # upper case
-		 * col_key = ffKey + "__" + col + "__cat" col_catCodes = col_key + "__cat.code"
-		 * col_catNames = col_key + "__cat.categories" gKey = ffKey + "__" + g + "__cat"
-		 * col = g catCodes = gKey + "__cat.code" catNames = gKey + "__cat.categories"
-		 */
-		String ffKey = composeFilterString();
-		String gKey = ffKey + "__" + col;
-		String catCodes = gKey + "__cat__cat.code";
-		String catNames = gKey + "__cat__cat.categories";
-		if (add) {
-			this.orderListMap.put(col, catNames);
-		}
-		return gKey;
-
-	}
-
-	private void composeAggCacheString(String col, String aggColName, String aggColAlias, String func, boolean add) {
-		// outKey = gKey + "__" + a + "__" + f
-		String ffKey = composeFilterString();
-		String gKey = ffKey + "__" + col;
-		String outKey = gKey + "__cat__" + aggColName + "__" + func;
-		if (add) {
-			this.orderListMap.put(aggColAlias, outKey);
-		}
-	}
-
-	private String composeFilterString() {
-		if (this.filterCriteria.length() > 0) {
-			// String ffKey = frameName + filterCriteria +"__f"; //"w.cache['data']" +
-			String ffKey = "this.cache['data']" + filterCriteria + "__f"; // "w.cache['data']" +
-			return ffKey;
-		} else {
-			String ffKey = "this.cache['data']" + "__f";
-			return ffKey;
-		}
-	}
-
 }

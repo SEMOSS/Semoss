@@ -46,7 +46,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
-import prerna.cluster.util.ClusterSynchronizer;
+import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -143,8 +143,12 @@ public final class CentralCloudStorage implements ICloudClient {
 				instance = new CentralCloudStorage();
 
 				// instantiate the sync
-				if (ClusterUtil.IS_CLUSTER_ZK) {
-					ClusterSynchronizer.getInstance();
+				if (ClusterSynchronizerFactory.IS_CLUSTER_SYNC_SETUP) {
+					classLogger.info("Cluster synchronization is enabled - initializing the cluster synchronizer");
+					ClusterSynchronizerFactory.getClusterSynchronizer();
+					classLogger.info("Cluster synchronizer initialized");
+				} else {
+					classLogger.info("Cluster synchronization is not enabled - skipping cluster synchronizer setup");
 				}
 			}
 		}
@@ -154,7 +158,7 @@ public final class CentralCloudStorage implements ICloudClient {
 
 	private static synchronized void buildStorageEngine() throws Exception {
 		Properties props = new Properties();
-		AppCloudClientProperties clientProps = new AppCloudClientProperties();
+		AppCloudClientProperties clientProps = AppCloudClientProperties.build();
 
 		propertiesMigratePut(props, AbstractRCloneStorageEngine.RCLONE_KEY, clientProps,
 				AbstractRCloneStorageEngine.RCLONE_KEY);
@@ -479,6 +483,11 @@ public final class CentralCloudStorage implements ICloudClient {
 		} else if (engineType == null) {
 			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 			engineType = (CATALOG_TYPE) typeAndSubtype[0];
+		}
+
+		if (!SecurityEngineUtils.engineExists(engineId)) {
+			classLogger.warn("Engine id '{}' is being requested but does not exist", engineId);
+			return;
 		}
 
 		// We need to pull the folder alias__databaseId and the file
@@ -1265,6 +1274,11 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 		}
 
+		if (!SecurityProjectUtils.projectExists(projectId)) {
+			classLogger.warn("Project id '{}' is being requested but does not exist", projectId);
+			return;
+		}
+
 		// We need to pull the folder alias__projectId and the file
 		// alias__projectId.smss
 		String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -1400,35 +1414,30 @@ public final class CentralCloudStorage implements ICloudClient {
 		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDbFileName;
 		// synchronize on the project id
 		classLogger.info("Applying lock for {} to pull insights db", aliasAndProjectId);
+
 		ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 		lock.lock();
 		classLogger.info("Project {} is locked", aliasAndProjectId);
 		try {
-			project.getInsightDatabase().close();
-			centralStorageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
-		} finally {
 			try {
-				// open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
-				if (insightDbLoc != null) {
-					try {
-						project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
-								LogManager.getLogger(AbstractDatabaseEngine.class)));
-					} catch (Exception e) {
-						classLogger.error(
-								"Failed to reload insights database engine after pullInsightsDB for project {} ({}).",
-								projectId, aliasAndProjectId, e);
-						throw new IllegalArgumentException(
-								"Error in loading new insights database for project " + aliasAndProjectId);
-					}
-				} else {
-					throw new IllegalArgumentException("Insight database was not able to be found");
+				project.getInsightDatabase().close();
+				centralStorageEngine.copyToLocal(storageProjectInsightFilePath, localProjectFolder);
+			} catch (Exception primary) {
+				// pull failed: still reopen the db we closed, but don't let a reload failure
+				// hide the cause
+				try {
+					reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pullInsightsDB");
+				} catch (Exception reopenEx) {
+					primary.addSuppressed(reopenEx);
 				}
-			} finally {
-				// always unlock regardless of errors
-				lock.unlock();
-				classLogger.info("Project {} is unlocked", aliasAndProjectId);
+				throw primary;
 			}
+			// pull succeeded: reopen and surface any reload failure to the caller
+			reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pullInsightsDB");
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project {} is unlocked", aliasAndProjectId);
 		}
 	}
 
@@ -1453,31 +1462,50 @@ public final class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project {} is locked", aliasAndProjectId);
 		try {
-			project.getInsightDatabase().close();
-			centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder, null);
-		} finally {
 			try {
-				// open the insight db
-				String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
-				if (insightDbLoc != null) {
-					try {
-						project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
-								LogManager.getLogger(AbstractDatabaseEngine.class)));
-					} catch (Exception e) {
-						classLogger.error(
-								"Failed to reload insights database engine after pushInsightDB for project {} ({}).",
-								projectId, aliasAndProjectId, e);
-						throw new IllegalArgumentException(
-								"Error in loading new insights database for project " + aliasAndProjectId);
-					}
-				} else {
-					throw new IllegalArgumentException("Insight database was not able to be found");
+				project.getInsightDatabase().close();
+				centralStorageEngine.copyToStorage(localProjectInsightDb, storageProjectFolder, null);
+			} catch (Exception primary) {
+				// push failed: still reopen the db we closed, but don't let a reload failure
+				// hide the cause
+				try {
+					reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pushInsightDB");
+				} catch (Exception reopenEx) {
+					primary.addSuppressed(reopenEx);
 				}
-			} finally {
-				// always unlock regardless of errors
-				lock.unlock();
-				classLogger.info("Project {} is unlocked", aliasAndProjectId);
+				throw primary;
 			}
+			// push succeeded: reopen and surface any reload failure to the caller
+			reopenInsightsDatabase(project, projectId, aliasAndProjectId, "pushInsightDB");
+		} finally {
+			// always unlock regardless of errors
+			lock.unlock();
+			classLogger.info("Project {} is unlocked", aliasAndProjectId);
+		}
+	}
+
+	/**
+	 * Re-opens the project's insight database after it was closed for an insights
+	 * DB pull/push. Invoked on both the success and failure paths so the project is
+	 * never left with a closed insight database.
+	 *
+	 * @throws IllegalArgumentException if the insight database cannot be
+	 *                                  located/reloaded
+	 */
+	private void reopenInsightsDatabase(IProject project, String projectId, String aliasAndProjectId,
+			String operation) {
+		String insightDbLoc = SmssUtilities.getInsightsRdbmsFile(project.getSmssProp()).getAbsolutePath();
+		if (insightDbLoc == null) {
+			throw new IllegalArgumentException("Insight database was not able to be found");
+		}
+		try {
+			project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
+					LogManager.getLogger(AbstractDatabaseEngine.class)));
+		} catch (Exception e) {
+			classLogger.error("Failed to reload insights database engine after {} for project {} ({}).", operation,
+					projectId, aliasAndProjectId, e);
+			throw new IllegalArgumentException(
+					"Error in loading new insights database for project " + aliasAndProjectId);
 		}
 	}
 
@@ -1826,7 +1854,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
 				+ roomId;
-		// Use rclone copy (not sync) — sync deletes local files missing on cloud,
+		// Use rclone copy (not sync) - sync deletes local files missing on cloud,
 		// which wipes in-flight session-state mid-turn when cloud is empty.
 		centralStorageEngine.copyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
 	}

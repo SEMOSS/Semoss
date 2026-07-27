@@ -102,7 +102,6 @@
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
 									<include>com.amazon.athena:athena-jdbc-uber</include>
-									<include>org.neo4j:neo4j-jdbc-bolt</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -120,22 +119,16 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
-										<!-- Exclude any Jackson bundled by shaded artifacts (neo4j, parquet, etc.)
+										<!-- Exclude any Jackson bundled by shaded artifacts (athena, parquet, etc.)
 										     so the declared jackson-core/databind 2.21.1 JARs are the sole source -->
 										<exclude>com/fasterxml/jackson/**</exclude>
-									</excludes>
+									</excludes> 
 								</filter>
 								<filter>
 									<artifact>com.amazon.athena:athena-jdbc-uber</artifact>
 									<excludes>
 										<exclude>org/**</exclude>
 										<exclude>javax/**</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.neo4j:neo4j-jdbc-bolt</artifact>
-									<excludes>
-										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -163,13 +156,6 @@
 									<artifact>org.apache.parquet:parquet-hadoop</artifact>
 									<excludes>
 										<exclude>shaded/parquet/it/unimi/dsi/fastutil/**</exclude>
-									</excludes>
-								</filter>
-								<filter>
-									<artifact>org.neo4j:*</artifact>
-									<excludes>
-										<exclude>com/fasterxml/**</exclude>
-										<exclude>org/slf4j/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
@@ -231,7 +217,7 @@
 								<path>
 									<groupId>org.apache.logging.log4j</groupId>
 									<artifactId>log4j-core</artifactId>
-									<version>2.25.1</version>
+									<version>2.25.4</version>
 								</path>
 							</annotationProcessorPaths>
 							<annotationProcessors>
@@ -331,14 +317,14 @@
 							<target>
 								<mkdir dir="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}"/>
 								<tstamp>
-									<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC" />
+									<format property="build.timestamp.utc" pattern="yyyy-MM-dd HH:mm:ss z" timezone="UTC"/>
 								</tstamp>
 								<propertyfile file="${project.build.outputDirectory}/META-INF/maven/${project.groupId}/${project.artifactId}/pom.properties">
-									<entry key="groupId" value="${project.groupId}" />
-									<entry key="artifactId" value="${project.artifactId}" />
-									<entry key="version" value="${project.version}" />
-									<entry key="ci.version" value="${project.version}" />
-									<entry key="build.date" value="${build.timestamp.utc}" />
+									<entry key="groupId" value="${project.groupId}"/>
+									<entry key="artifactId" value="${project.artifactId}"/>
+									<entry key="version" value="${project.version}"/>
+									<entry key="ci.version" value="${project.version}"/>
+									<entry key="build.date" value="${build.timestamp.utc}"/>
 								</propertyfile>
 							</target>
 						</configuration>
@@ -352,10 +338,7 @@
 						<configuration>
 							<target>
 								<mkdir dir="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins"/>
-								<copy file="${project.build.outputDirectory}/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat"
-									tofile="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat"
-									overwrite="true"
-									failonerror="false"/>
+								<copy file="${project.build.outputDirectory}/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat" tofile="${project.basedir}/src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat" overwrite="true" failonerror="false"/>
 							</target>
 						</configuration>
 					</execution>
@@ -595,20 +578,21 @@
 			<url>https://maven.semoss.org/repository/3rdPartyJARs</url>
 			<releases>
 				<enabled>true</enabled>
-			</releases>
+			</releases> 
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-		<!-- repository for Apache Storm -->
-		<!-- <repository><id>clojars.org</id><url>http://clojars.org/repo</url></repository> -->
-		<repository>
-			<id>redshift</id>
-			<url>https://s3.amazonaws.com/redshift-maven-repository/release</url>
-		</repository>
 	</repositories>
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-bom</artifactId>
+				<version>1.79.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
@@ -626,7 +610,7 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.132.Final</version>
+				<version>4.1.133.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -645,17 +629,17 @@
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
-				<version>2.21.1</version>
+				<version>2.22.0</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.21.1</version>
+				<version>2.22.0</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-annotations</artifactId>
-				<version>2.21</version>
+				<version>2.22</version>
 			</dependency>
 			<!-- CVE force: CVE-2026-24400 - override transitive assertj-core version (2.4.1) -->
 			<dependency>
@@ -675,14 +659,15 @@
 				<artifactId>plexus-utils</artifactId>
 				<version>4.0.3</version>
 			</dependency>
+			<!-- Converge annotations-only jar: grpc 1.79 pulls 1.26, google-cloud pulls 1.24 -->
+			<dependency>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>animal-sniffer-annotations</artifactId>
+				<version>1.26</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
-		<dependency>
-			<groupId>com.github</groupId>
-			<artifactId>copilot-sdk-java</artifactId>
-			<version>0.2.2-java.1</version>
-		</dependency>
 		<dependency>
 			<groupId>org.semoss</groupId>
 			<artifactId>semoss-jdbc</artifactId>
@@ -755,7 +740,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-core</artifactId>
-		    <version>11.5.9</version>
+		    <version>11.5.14</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -812,7 +797,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-ImportXHTML-core</artifactId>
-		    <version>11.5.6</version>
+		    <version>11.5.14</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -885,7 +870,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
-		    <version>11.5.9</version>
+		    <version>11.5.14</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -950,18 +935,11 @@
 		        </exclusion>
 		    </exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
-		<dependency>
-		    <groupId>org.glassfish.jaxb</groupId>
-		    <artifactId>jaxb-runtime</artifactId>
-		    <version>4.0.6</version>
-		    <scope>compile</scope>
-		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api -->
 		<dependency>
 		    <groupId>jakarta.xml.bind</groupId>
 		    <artifactId>jakarta.xml.bind-api</artifactId>
-		    <version>4.0.2</version>
+		    <version>4.0.5</version>
 		    <scope>compile</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
@@ -1102,10 +1080,46 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/redis.clients/jedis -->
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+			<version>7.5.3</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.commons</groupId>
+					<artifactId>commons-pool2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.code.gson</groupId>
+					<artifactId>gson</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.json</groupId>
+					<artifactId>json</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-jdbc</artifactId>
+			<version>6.13.1</version>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
+		<dependency>
+			<groupId>org.apache.tinkerpop</groupId>
+			<artifactId>neo4j-gremlin</artifactId>
+			<version>3.7.6</version>
+		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1116,7 +1130,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1128,7 +1142,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1139,7 +1153,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1150,7 +1164,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.7.4</version>
+			<version>3.7.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1339,7 +1353,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.25.1</version>
+			<version>2.25.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1351,7 +1365,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.25.1</version>
+			<version>2.25.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1370,7 +1384,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-web</artifactId>
-			<version>2.25.1</version>
+			<version>2.25.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1380,8 +1394,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>2.25.1</version>
+			<artifactId>log4j-slf4j2-impl</artifactId>
+			<version>2.25.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.f4b6a3</groupId>
@@ -1476,7 +1490,7 @@
 		<dependency>
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
-			<version>4.0.0</version>
+			<version>4.0.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1574,7 +1588,7 @@
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>11.2.0.jre8</version>
+			<version>11.2.4.jre11</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1582,20 +1596,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/com.github.lucarosellini.rJava/JRI -->
 		<dependency>
-			<groupId>org.rosuda</groupId>
-			<artifactId>JRI</artifactId>
-			<version>1.0-11</version>
+		    <groupId>com.github.lucarosellini.rJava</groupId>
+		    <artifactId>JRI</artifactId>
+		    <version>0.9-7</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.rosuda.REngine/REngine -->
 		<dependency>
-			<groupId>org.rosuda</groupId>
-			<artifactId>JRIEngine</artifactId>
-			<version>1.0-11</version>
-		</dependency>
-		<dependency>
-			<groupId>org.rosuda</groupId>
-			<artifactId>REngine</artifactId>
-			<version>1.0-11</version>
+		    <groupId>org.rosuda.REngine</groupId>
+		    <artifactId>REngine</artifactId>
+		    <version>2.1.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.rosuda.REngine/Rserve -->
 		<dependency>
@@ -1720,7 +1731,7 @@
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
-			<version>2.5.0</version>
+			<version>2.5.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.zaxxer</groupId>
@@ -1729,6 +1740,10 @@
 				<exclusion>
 					<groupId>com.mchange</groupId>
 					<artifactId>c3p0</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>jakarta.xml.bind</groupId>
+					<artifactId>jakarta.xml.bind-api</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1740,7 +1755,7 @@
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz-jobs</artifactId>
-			<version>2.5.0</version>
+			<version>2.5.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.quartz-scheduler</groupId>
@@ -1756,13 +1771,13 @@
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>jakarta.mail</artifactId>
-			<version>2.0.1</version>
+			<version>2.0.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.postgresql/postgresql -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.7.7</version>
+			<version>42.7.11</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
@@ -1782,17 +1797,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
-		<dependency>
-			<groupId>org.apache.tinkerpop</groupId>
-			<artifactId>neo4j-gremlin</artifactId>
-			<version>3.7.4</version>
-		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
 			<groupId>commons-validator</groupId>
 			<artifactId>commons-validator</artifactId>
-			<version>1.10.0</version>
+			<version>1.10.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-beanutils</groupId>
@@ -1815,6 +1824,12 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk18on</artifactId>
+			<version>1.78.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
@@ -1851,25 +1866,25 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.21.1</version>
+			<version>2.22.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.21.1</version>
+			<version>2.22.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.21</version>
+			<version>2.22</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.21.1</version>
+			<version>2.22.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
 		<dependency>
@@ -1911,10 +1926,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/com.squareup/javapoet -->
-		<!--
-		<dependency><groupId>com.squareup</groupId><artifactId>javapoet</artifactId><version>1.2.0</version></dependency>
-		-->
 		<!-- Source: https://mvnrepository.com/artifact/com.github.wnameless.json/json-flattener -->
 		<dependency>
 			<groupId>com.github.wnameless.json</groupId>
@@ -2037,7 +2048,7 @@
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-json</artifactId>
-			<version>1.5.0</version>
+			<version>1.5.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
 		<dependency>
@@ -2217,7 +2228,7 @@
 		<dependency>
 			<groupId>io.github.classgraph</groupId>
 			<artifactId>classgraph</artifactId>
-			<version>4.8.174</version>
+			<version>4.8.184</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.janusgraph/janusgraph-core -->
 		<dependency>
@@ -2283,7 +2294,7 @@
 		<dependency>
 			<groupId>io.dropwizard.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
-			<version>4.2.27</version>
+			<version>4.2.39</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2328,6 +2339,11 @@
 			<artifactId>fst</artifactId>
 			<version>3.0.4-jdk17</version>
 			<exclusions>
+				<!-- fst-3.0.4-jdk17's pom decalres maven-bundle-plugin as a build-tool and erroneously as a dependency. -->
+				<exclusion>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
@@ -2406,7 +2422,7 @@
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-core</artifactId>
-			<version>3.9.9</version>
+			<version>3.9.16</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
@@ -2668,8 +2684,9 @@
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
-			<version>9.1.4</version>
+			<version>9.4.2</version>
 		</dependency>
+		<!-- self hostged -->
 		<dependency>
 			<groupId>opensearch</groupId>
 			<artifactId>sql-jdbc</artifactId>
@@ -2715,13 +2732,13 @@
 		<dependency>
 		    <groupId>io.github.jopenlibs</groupId>
 		    <artifactId>vault-java-driver</artifactId>
-		    <version>6.2.1</version>
+		    <version>6.2.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
-			<version>3.0.5</version>
+			<version>3.0.7</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-logging</groupId>
@@ -2732,7 +2749,7 @@
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>jbig2-imageio</artifactId>
-			<version>3.0.4</version>
+			<version>3.0.5</version>
 		</dependency>
 		<!-- https://github.com/cdarras/clamav-client -->
 		<!-- Source: https://mvnrepository.com/artifact/xyz.capybara/clamav-client -->
@@ -2826,11 +2843,11 @@
 			</exclusions>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
-		<!-- Source: https://mvnrepository.com/artifact/io.weaviate/client -->
+		<!-- Source: https://mvnrepository.com/artifact/io.weaviate/client6 -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
-			<artifactId>client</artifactId>
-			<version>5.5.0</version>
+			<artifactId>client6</artifactId>
+			<version>6.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -2954,6 +2971,10 @@
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
 					<artifactId>checker-qual</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.guava</groupId>
+					<artifactId>failureaccess</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -3186,7 +3207,7 @@
 		<dependency>
 			<groupId>com.microsoft.playwright</groupId>
 			<artifactId>playwright</artifactId>
-			<version>1.48.0</version>
+			<version>1.58.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>
@@ -3208,7 +3229,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>1.0.0</version>
+			<version>2.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -3232,7 +3253,7 @@
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.uuid/java-uuid-generator -->
 		<dependency>
-			<groupId>com.fasterxml.uuid</groupId>
+			<groupId>com.fasterxml.uuid</groupId> 
 			<artifactId>java-uuid-generator</artifactId>
 			<version>5.1.0</version>
 			<exclusions>
@@ -3360,18 +3381,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>5.0.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->
 		<!-- Source: https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
@@ -3392,7 +3401,7 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
-			<version>1.21.3</version>
+			<version>1.21.4</version>
 			<scope>test</scope>
 			<exclusions>
 				<exclusion>
@@ -3445,7 +3454,7 @@
 		<dependency>
 			<groupId>com.google.jimfs</groupId>
 			<artifactId>jimfs</artifactId>
-			<version>1.3.0</version>
+			<version>1.3.1</version>
 			<scope>test</scope>
 		</dependency>
 		<!--  please add jars above and not within the testing block -->

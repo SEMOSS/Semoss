@@ -33,81 +33,40 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineWrapper;
-import prerna.engine.api.IRemoteQueryable;
-import prerna.util.Utility;
 
-public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrapper {
+public abstract class AbstractWrapper implements IEngineWrapper {
 
-	private static final Logger logger = LogManager.getLogger(AbstractWrapper.class);
-	
+	private static final Logger classLogger = LogManager.getLogger(AbstractWrapper.class);
+
 	protected transient IDatabaseEngine engine = null;
 	protected transient String query = null;
 
-	/*
-	 * Remote queryable class variables
-	 */
-	protected String id = null;
-	protected String api = null;
-	protected boolean remote = false;
-	
 	/*
 	 * Engine wrapper class variables
 	 */
 	protected String[] headers = null;
 	protected String[] rawHeaders = null;
-	//TODO: move to pixel data type
+	// TODO: move to pixel data type
 	protected SemossDataType[] types = null;
 	protected int numColumns;
 
 	protected long numRows;
-	
-	@Override
-	public void setRemoteId(String id) {
-		this.id = id;
-	}
-
-	@Override
-	public String getRemoteId() {
-		return this.id;
-	}
-
-	@Override
-	public void setRemoteAPI(String api) {
-		this.api = api;
-	}
-
-	@Override
-	public String getRemoteAPI() {
-		return this.api;
-	}
-	
-	@Override
-	public void setRemote(boolean remote) {
-		this.remote = remote;
-	}
-	
-	@Override
-	public boolean isRemote() {
-		return this.remote;
-	}
 
 	@Override
 	public void setQuery(String query) {
-		//logger.debug("Setting the query " + Utility.cleanLogString(query));
 		this.query = query;
 	}
-	
+
 	@Override
 	public String getQuery() {
 		return this.query;
 	}
-	
+
 	@Override
 	public void setEngine(IDatabaseEngine engine) {
-		//logger.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
 	}
-	
+
 	@Override
 	public IDatabaseEngine getEngine() {
 		return this.engine;
