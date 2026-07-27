@@ -116,7 +116,7 @@ jobs:
         shell: bash
         run: |
           TAGS=( "-t" "${IMAGE}:${TOMCAT_VERSION}" )
-          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
+          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
             TAGS+=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${{ vars.VERSION }}" )
           fi
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
