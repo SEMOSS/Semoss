@@ -32,12 +32,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,31 +54,30 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import com.google.gson.internal.LinkedTreeMap;
-
-import io.weaviate.client.WeaviateAuthClient;
-import io.weaviate.client.WeaviateClient;
-import io.weaviate.client.base.Result;
-import io.weaviate.client.v1.batch.Batch;
-import io.weaviate.client.v1.batch.api.ObjectsBatchDeleter;
-import io.weaviate.client.v1.batch.api.ObjectsBatcher;
-import io.weaviate.client.v1.batch.model.BatchDeleteResponse;
-import io.weaviate.client.v1.batch.model.BatchDeleteResponse.Results;
-import io.weaviate.client.v1.graphql.GraphQL;
-import io.weaviate.client.v1.graphql.model.GraphQLResponse;
-import io.weaviate.client.v1.graphql.query.Get;
-import io.weaviate.client.v1.graphql.query.fields.Field;
-import io.weaviate.client.v1.schema.Schema;
-import io.weaviate.client.v1.schema.api.ClassCreator;
-import io.weaviate.client.v1.schema.api.SchemaGetter;
+import io.weaviate.client6.v1.api.WeaviateClient;
+import io.weaviate.client6.v1.api.collections.CollectionHandle;
+import io.weaviate.client6.v1.api.collections.WeaviateCollectionsClient;
+import io.weaviate.client6.v1.api.collections.WeaviateObject;
+import io.weaviate.client6.v1.api.collections.aggregate.AggregateResponseGroup;
+import io.weaviate.client6.v1.api.collections.aggregate.AggregateResponseGrouped;
+import io.weaviate.client6.v1.api.collections.aggregate.GroupBy;
+import io.weaviate.client6.v1.api.collections.aggregate.GroupedBy;
+import io.weaviate.client6.v1.api.collections.aggregate.WeaviateAggregateClient;
+import io.weaviate.client6.v1.api.collections.data.DeleteManyResponse;
+import io.weaviate.client6.v1.api.collections.data.InsertManyResponse;
+import io.weaviate.client6.v1.api.collections.data.WeaviateDataClient;
+import io.weaviate.client6.v1.api.collections.query.Filter;
+import io.weaviate.client6.v1.api.collections.query.QueryMetadata;
+import io.weaviate.client6.v1.api.collections.query.QueryResponse;
+import io.weaviate.client6.v1.api.collections.query.WeaviateQueryClient;
 import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -88,17 +90,27 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private WeaviateVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
-	
+
+	// v6 client sub-objects are exposed as public final fields / concrete classes,
+	// so we mock the classes and inject them into the fields via reflection
+	private WeaviateClient clientMock;
+	private WeaviateCollectionsClient collectionsMock;
+	private CollectionHandle handleMock;
+	private WeaviateDataClient dataMock;
+	private WeaviateQueryClient queryMock;
+	private WeaviateAggregateClient aggregateMock;
+
 	final private String source = "source";
 	final private String modality = "modality";
 	final private String divider = "divider";
 	final private String part = "part";
 	final private String content = "content";
-	
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
@@ -107,7 +119,54 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
 	}
-	
+
+	/**
+	 * Sets a (possibly final) instance field via reflection - used to wire our mock
+	 * sub-clients into the v6 client's public final fields.
+	 */
+	private static void setField(Object target, String fieldName, Object value) throws Exception {
+		Field field = null;
+		Class<?> current = target.getClass();
+		while (current != null && field == null) {
+			try {
+				field = current.getDeclaredField(fieldName);
+			} catch (NoSuchFieldException e) {
+				current = current.getSuperclass();
+			}
+		}
+		if (field == null) {
+			throw new NoSuchFieldException(fieldName);
+		}
+		field.setAccessible(true);
+		field.set(target, value);
+	}
+
+	/**
+	 * Stubs the static v6 connection factory and wires up the collections / data /
+	 * query mock chain so open() and the CRUD/search methods have something to call.
+	 */
+	private void wireWeaviate(MockedStatic<WeaviateClient> wc) throws Exception {
+		clientMock = mock(WeaviateClient.class);
+		wc.when(() -> WeaviateClient.connectToCustom(any())).thenReturn(clientMock);
+
+		collectionsMock = mock(WeaviateCollectionsClient.class);
+		setField(clientMock, "collections", collectionsMock);
+		// createClass: collection does not exist yet, so create() is invoked
+		when(collectionsMock.exists(anyString())).thenReturn(false);
+
+		handleMock = mock(CollectionHandle.class);
+		// createClass now defines properties, so it calls create(name, config)
+		when(collectionsMock.create(anyString(), any())).thenReturn(handleMock);
+		when(collectionsMock.use(anyString())).thenReturn(handleMock);
+
+		dataMock = mock(WeaviateDataClient.class);
+		queryMock = mock(WeaviateQueryClient.class);
+		aggregateMock = mock(WeaviateAggregateClient.class);
+		setField(handleMock, "data", dataMock);
+		setField(handleMock, "query", queryMock);
+		setField(handleMock, "aggregate", aggregateMock);
+	}
+
 	@Test
 	void testOpen() throws Exception {
 		Properties testProps = new Properties();
@@ -139,7 +198,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -147,28 +206,11 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
-				// used in connect2Weviate
-				WeaviateClient clientMock = mock();
-				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
-				// used in createClass
-				Schema schemaMock = mock();
-				when(clientMock.schema()).thenReturn(schemaMock);
-				SchemaGetter getterMock = mock();
-				when(schemaMock.getter()).thenReturn(getterMock);
-				Result<io.weaviate.client.v1.schema.model.Schema> resultMock = mock();
-				when(getterMock.run()).thenReturn(resultMock);
-				io.weaviate.client.v1.schema.model.Schema schMock = mock();
-				when(resultMock.getResult()).thenReturn(schMock);
-				when(schMock.getClasses()).thenReturn(new Vector<>());
-				ClassCreator clssMock = mock();
-				when(schemaMock.classCreator()).thenReturn(clssMock);
-				when(clssMock.withClass(any())).thenReturn(clssMock);
-				when(clssMock.run()).thenReturn(null);
-				
-				
+				wireWeaviate(wc);
+
 				engine.open(testProps);
 				assertTrue(Files.exists(engineAssetFolder));
 				Properties engineProps = engine.getSmssProp();
@@ -179,11 +221,10 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenNoHostname() throws Exception {
 		Properties testProps = new Properties();
-		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ALIAS";
 		String contentLength = "10";
@@ -209,7 +250,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -217,17 +258,15 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
-				IllegalArgumentException e = assertThrows(
-						IllegalArgumentException.class,
-						()->engine.open(testProps));
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
 				assertEquals("Must define the host", e.getMessage());
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
@@ -237,7 +276,6 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String contentLength = "10";
 		String contentOverlap = "10";
 		String keepInputOutput = "false";
-		String apiKey = "API_KEY";
 
 		testProps.setProperty(Constants.ENGINE, testEngine);
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineAlias);
@@ -257,7 +295,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -265,23 +303,21 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				
-				IllegalArgumentException e = assertThrows(
-						IllegalArgumentException.class,
-						()->engine.open(testProps));
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
 				assertEquals("Must define the api key", e.getMessage());
 			}
 		}
 	}
-	
+
 	@Test
 	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
-		
+
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -301,8 +337,6 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.HOSTNAME, url);
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
 		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
-		
-		String indexClass = "INDEX_CLASS";
 
 		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
@@ -314,7 +348,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -322,48 +356,32 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				// used in connect2Weviate
-				WeaviateClient clientMock = mock();
-				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
-				// used in createClass
-				Schema schemaMock = mock();
-				when(clientMock.schema()).thenReturn(schemaMock);
-				SchemaGetter getterMock = mock();
-				when(schemaMock.getter()).thenReturn(getterMock);
-				Result<io.weaviate.client.v1.schema.model.Schema> resultMock = mock();
-				when(getterMock.run()).thenReturn(resultMock);
-				io.weaviate.client.v1.schema.model.Schema schMock = mock();
-				when(resultMock.getResult()).thenReturn(schMock);
-				when(schMock.getClasses()).thenReturn(new Vector<>());
-				ClassCreator clssMock = mock();
-				when(schemaMock.classCreator()).thenReturn(clssMock);
-				when(clssMock.withClass(any())).thenReturn(clssMock);
-				when(clssMock.run()).thenReturn(null);
-				
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				wireWeaviate(wc);
+
 				engine.open(testProps);
-				
-				try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);){
-					u.when(()-> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+
+				try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+					u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
 					// model embedder properties
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
-					
+
 					// used in addEmbeddings()
 					VectorDatabaseCSVTable vectorCsvTable = mock();
 					vectorCsvTable.rows = new Vector<>(); // empty list for rows
 					doNothing().when(vectorCsvTable).generateAndAssignEmbeddings(modelEmbedder, insight);
-					
-					Batch batchMock = mock();
-					when(clientMock.batch()).thenReturn(batchMock);
-					ObjectsBatcher obMock = mock();
-					when(batchMock.objectsBatcher()).thenReturn(obMock);
-					
+
+					// nothing to insert -> empty response
+					when(dataMock.insertMany(anyList())).thenReturn(
+							new InsertManyResponse(0f, new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+
 					engine.addEmbeddings(vectorCsvTable, insight, null);
-						
+
 					assertTrue(Files.exists(engineAssetFolder));
 					Properties engineProps = engine.getSmssProp();
 					for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -374,7 +392,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testRemoveDocument() throws Exception {
 		Properties testProps = new Properties();
@@ -395,9 +413,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.HOSTNAME, url);
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
-		
-		String indexClass = "INDEX_CLASS";
 
+		String indexClass = "INDEX_CLASS";
 
 		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
@@ -417,7 +434,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -425,60 +442,32 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
-				// used in connect2Weviate
-				WeaviateClient clientMock = mock();
-				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
-				// used in createClass
-				Schema schemaMock = mock();
-				when(clientMock.schema()).thenReturn(schemaMock);
-				SchemaGetter getterMock = mock();
-				when(schemaMock.getter()).thenReturn(getterMock);
-				Result<io.weaviate.client.v1.schema.model.Schema> resultMock = mock();
-				when(getterMock.run()).thenReturn(resultMock);
-				io.weaviate.client.v1.schema.model.Schema schMock = mock();
-				when(resultMock.getResult()).thenReturn(schMock);
-				when(schMock.getClasses()).thenReturn(new Vector<>());
-				ClassCreator clssMock = mock();
-				when(schemaMock.classCreator()).thenReturn(clssMock);
-				when(clssMock.withClass(any())).thenReturn(clssMock);
-				when(clssMock.run()).thenReturn(null);
-				
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				wireWeaviate(wc);
+
 				engine.open(testProps);
-				
+
 				// used in removeDocument()
-				Batch batchMock = mock();
-				when(clientMock.batch()).thenReturn(batchMock);
-				ObjectsBatchDeleter obdMock = mock();
-				when(batchMock.objectsBatchDeleter()).thenReturn(obdMock);
-				when(obdMock.withClassName(weaviateClassname)).thenReturn(obdMock);
-				when(obdMock.withWhere(any())).thenReturn(obdMock);
-				Result<BatchDeleteResponse> batchRespResMock = mock();
-				when(obdMock.run()).thenReturn(batchRespResMock);
-				BatchDeleteResponse bdRespMock = mock();
-				when(batchRespResMock.getResult()).thenReturn(bdRespMock);
-				Results bdResults = mock();
-				when(bdRespMock.getResults()).thenReturn(bdResults);
-				when(bdResults.getSuccessful()).thenReturn(1L);
-				
+				when(dataMock.deleteMany(any(Filter.class)))
+						.thenReturn(new DeleteManyResponse(0f, 0L, 1L, 1L, new ArrayList<>()));
 
 				Map<String, Object> parameters = new HashMap<>();
 				parameters.put("indexClass", indexClass);
 				assertTrue(Files.exists(newFilePath));
 				engine.removeDocument(fileNames, parameters);
 				assertFalse(Files.exists(newFilePath));
-				
 			}
 		}
 	}
-	
+
 	@Test
-	void testNearestNeighborCall() throws Exception {
+	void testNearestNeighborCallHybrid() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
-		
+
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -498,28 +487,19 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.HOSTNAME, url);
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
 		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
-		
-		String indexClass = "INDEX_CLASS";
+		// hybrid search is on by default (ENABLE_HYBRID_SEARCH defaults to true)
 
 		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
-		Files.createDirectories(docDirPath);
-		String fileName = "newFile1.txt";
-		List<String> fileNames = new Vector<>();
-		fileNames.add(fileName);
-		Path newFilePath = docDirPath.resolve(fileName);
-		Files.createFile(newFilePath);
-
 		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
 			DIHelper diMock = mock(DIHelper.class);
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -527,32 +507,15 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
-				// used in connect2Weviate
-				WeaviateClient clientMock = mock();
-				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
-				// used in createClass
-				Schema schemaMock = mock();
-				when(clientMock.schema()).thenReturn(schemaMock);
-				SchemaGetter getterMock = mock();
-				when(schemaMock.getter()).thenReturn(getterMock);
-				Result<io.weaviate.client.v1.schema.model.Schema> resultMock = mock();
-				when(getterMock.run()).thenReturn(resultMock);
-				io.weaviate.client.v1.schema.model.Schema schMock = mock();
-				when(resultMock.getResult()).thenReturn(schMock);
-				when(schMock.getClasses()).thenReturn(new Vector<>());
-				ClassCreator clssMock = mock();
-				when(schemaMock.classCreator()).thenReturn(clssMock);
-				when(clssMock.withClass(any())).thenReturn(clssMock);
-				when(clssMock.run()).thenReturn(null);
-				
+				wireWeaviate(wc);
+
 				engine.open(testProps);
-				
-				try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);){
-					u.when(()-> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-					// model embedder properties
+
+				try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+					u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -564,51 +527,15 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					List<List<Double>> emb = new Vector<>();
 					emb.add(new Vector<>());
 					when(embeddingRespMock.getResponse()).thenReturn(emb);
-					
-					// used in nearestNeighborCall()
-					GraphQL gqlMock = mock();
-					when(clientMock.graphQL()).thenReturn(gqlMock);
-					Get getMock = mock();
-					when(gqlMock.get()).thenReturn(getMock);
-					when(getMock.withClassName(any())).thenReturn(getMock);
-					when(getMock.withFields(any(Field.class), any(Field.class), any(Field.class), any(Field.class),
-							any(Field.class), any(Field.class))).thenReturn(getMock);
-					when(getMock.withNearVector(any())).thenReturn(getMock);
-					when(getMock.withAutocut(any())).thenReturn(getMock);
-					when(getMock.withLimit(any())).thenReturn(getMock);
-					Result<GraphQLResponse> gqlResultMock = mock();
-					when(getMock.run()).thenReturn(gqlResultMock);
-					GraphQLResponse gqlResponseMock = mock();
-					when(gqlResultMock.getResult()).thenReturn(gqlResponseMock);
-					
-					LinkedTreeMap treemap = new LinkedTreeMap<>();
-					LinkedTreeMap innerTreemap = new LinkedTreeMap<>();
-					{
-						List<Object> outputList = new ArrayList<>();
-						{
-							LinkedTreeMap outputTreemap = new LinkedTreeMap<>();
-							outputTreemap.put(source, source);
-							outputTreemap.put(divider, divider);
-							outputTreemap.put(modality, modality);
-							outputTreemap.put(part, part);
-							outputTreemap.put(content, content);
-							{
-								LinkedTreeMap additionalTreemap = new LinkedTreeMap<>();
-								additionalTreemap.put("certainty", 10);
-								additionalTreemap.put("distance", 5);
-								outputTreemap.put("_additional", additionalTreemap);
-							}
-							outputList.add(outputTreemap);
-						}
-						innerTreemap.put(weaviateClassname, outputList);
-					}
-					treemap.put("Get", innerTreemap);
-					when(gqlResponseMock.getData()).thenReturn(treemap);
-					
-					
+
+					// hybrid returns a single fused score
+					QueryResponse response = buildQueryResponse(weaviateClassname, new QueryMetadata(null, null, 0.9f, null));
+					when(queryMock.hybrid(anyString(), any(Function.class))).thenReturn(response);
+
 					String searchStatement = "searchStatement";
 					int limit = 1;
-					List<Map<String, Object>> retOut = engine.nearestNeighborCall(insight, searchStatement, limit, new HashMap<>());
+					List<Map<String, Object>> retOut = engine.nearestNeighborCall(insight, searchStatement, limit,
+							new HashMap<>());
 					assertEquals(1, retOut.size());
 					for (Map<String, Object> outputMap : retOut) {
 						assertEquals(source, outputMap.get(VectorDatabaseCSVTable.SOURCE));
@@ -616,22 +543,130 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						assertEquals(divider, outputMap.get(VectorDatabaseCSVTable.DIVIDER));
 						assertEquals(part, outputMap.get(VectorDatabaseCSVTable.PART));
 						assertEquals(content, outputMap.get(VectorDatabaseCSVTable.CONTENT));
-						assertEquals(10, outputMap.get("Score"));
-						assertEquals(5, outputMap.get("Distance"));
+						assertEquals(Float.valueOf(0.9f), outputMap.get("Score"));
+						assertFalse(outputMap.containsKey("Distance"));
 					}
 				}
 			}
 		}
 	}
-	
+
+	@Test
+	void testNearestNeighborCallVectorOnly() throws Exception {
+		String embedderModel = "embedder_model";
+		String embedderModelType = "embedder_model_type";
+		String testEmbedderId = "123-456-789";
+
+		Properties testProps = new Properties();
+		String url = "http://fake.url/";
+		String testEngine = "asdf-1234";
+		String testEngineAlias = "TEST_ALIAS";
+		String contentLength = "10";
+		String contentOverlap = "10";
+		String keepInputOutput = "false";
+		String apiKey = "API_KEY";
+		String weaviateClassname = "WEAVIATE_CLASS_NAME";
+
+		testProps.setProperty(Constants.ENGINE, testEngine);
+		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineAlias);
+		testProps.setProperty(Constants.CONTENT_LENGTH, contentLength);
+		testProps.setProperty(Constants.CONTENT_OVERLAP, contentOverlap);
+		testProps.setProperty(Constants.KEEP_INPUT_OUTPUT, keepInputOutput);
+		testProps.setProperty(Constants.API_KEY, apiKey);
+		testProps.setProperty(Constants.HOSTNAME, url);
+		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
+		testProps.setProperty(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
+		// explicitly disable hybrid to exercise the vector-only path
+		testProps.setProperty(AbstractVectorDatabaseEngine.ENABLE_HYBRID_SEARCH, "false");
+
+		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
+		Path engineAssetFolder = engineFolder.resolve("assets");
+		Path engineVersionFolder = engineFolder.resolve("version");
+
+		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
+			DIHelper diMock = mock(DIHelper.class);
+			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
+			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
+
+				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
+						.thenReturn(engineVersionFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
+
+				wireWeaviate(wc);
+
+				engine.open(testProps);
+
+				try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+					u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+					Properties embedderProps = new Properties();
+					embedderProps.setProperty(Constants.MODEL, embedderModel);
+					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
+					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					// used in getEmbeddingsFloat()
+					EmbeddingsModelEngineResponse embeddingRespMock = mock();
+					when(modelEmbedder.embeddings(any(List.class), any(Insight.class), nullable(Map.class)))
+							.thenReturn(embeddingRespMock);
+					List<List<Double>> emb = new Vector<>();
+					emb.add(new Vector<>());
+					when(embeddingRespMock.getResponse()).thenReturn(emb);
+
+					// vector-only returns certainty (as Score) + distance
+					QueryResponse response = buildQueryResponse(weaviateClassname, new QueryMetadata(5f, 10f, null, null));
+					when(queryMock.nearVector(any(float[].class), any(Function.class))).thenReturn(response);
+
+					String searchStatement = "searchStatement";
+					int limit = 1;
+					List<Map<String, Object>> retOut = engine.nearestNeighborCall(insight, searchStatement, limit,
+							new HashMap<>());
+					assertEquals(1, retOut.size());
+					for (Map<String, Object> outputMap : retOut) {
+						assertEquals(source, outputMap.get(VectorDatabaseCSVTable.SOURCE));
+						assertEquals(modality, outputMap.get(VectorDatabaseCSVTable.MODALITY));
+						assertEquals(divider, outputMap.get(VectorDatabaseCSVTable.DIVIDER));
+						assertEquals(part, outputMap.get(VectorDatabaseCSVTable.PART));
+						assertEquals(content, outputMap.get(VectorDatabaseCSVTable.CONTENT));
+						assertEquals(Float.valueOf(10f), outputMap.get("Score"));
+						assertEquals(Float.valueOf(5f), outputMap.get("Distance"));
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Builds a real (record) query response holding a single result whose property
+	 * values echo their names, mirroring what the engine reads back.
+	 */
+	private QueryResponse buildQueryResponse(String className, QueryMetadata metadata) {
+		Map<String, Object> properties = new HashMap<>();
+		properties.put(source, source);
+		properties.put(divider, divider);
+		properties.put(modality, modality);
+		properties.put(part, part);
+		properties.put(content, content);
+
+		WeaviateObject<Map<String, Object>> object = new WeaviateObject<>("uuid", className, null, properties, null,
+				null, null, metadata, null);
+		List<WeaviateObject<Map<String, Object>>> objects = new ArrayList<>();
+		objects.add(object);
+		return new QueryResponse<>(objects, null);
+	}
+
 	@Test
 	void testNearestNeighborCallNoInsight() {
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.nearestNeighbor(null, null, null, null));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.nearestNeighbor(null, null, null, null));
 		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
 	}
-	
+
 	@Test
 	void testListDocuments() throws Exception {
 		Properties testProps = new Properties();
@@ -652,7 +687,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		testProps.setProperty(Constants.API_KEY, apiKey);
 		testProps.setProperty(Constants.HOSTNAME, url);
 		testProps.setProperty("WEAVIATE_CLASSNAME", weaviateClassname);
-		
+
 		String indexClass = "INDEX_CLASS";
 
 		String engineNameAndId = SmssUtilities.getUniqueName(testEngineAlias, testEngine);
@@ -675,7 +710,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
 			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
-				 MockedStatic<WeaviateAuthClient>wac = Mockito.mockStatic(WeaviateAuthClient.class)) {
+					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -683,35 +718,28 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						.thenReturn(engineAssetFolder.toString());
 				eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineVersionFolder.toString());
-				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-						.thenReturn(engineAssetFolder.toString());
+				eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+						testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
-				// used in connect2Weviate
-				WeaviateClient clientMock = mock();
-				wac.when(()->WeaviateAuthClient.apiKey(any(), any())).thenReturn(clientMock);
-				// used in createClass
-				Schema schemaMock = mock();
-				when(clientMock.schema()).thenReturn(schemaMock);
-				SchemaGetter getterMock = mock();
-				when(schemaMock.getter()).thenReturn(getterMock);
-				Result<io.weaviate.client.v1.schema.model.Schema> resultMock = mock();
-				when(getterMock.run()).thenReturn(resultMock);
-				io.weaviate.client.v1.schema.model.Schema schMock = mock();
-				when(resultMock.getResult()).thenReturn(schMock);
-				when(schMock.getClasses()).thenReturn(new Vector<>());
-				ClassCreator clssMock = mock();
-				when(schemaMock.classCreator()).thenReturn(clssMock);
-				when(clssMock.withClass(any())).thenReturn(clssMock);
-				when(clssMock.run()).thenReturn(null);
-				
+				wireWeaviate(wc);
+
 				engine.open(testProps);
+
+				// listDocuments groups on the source property in weaviate; return one group
+				// per file created on disk
+				List<AggregateResponseGroup<?>> groups = new ArrayList<>();
+				for (String fileName : fileNames) {
+					GroupedBy<String> groupedBy = new GroupedBy<>("source", fileName);
+					groups.add(new AggregateResponseGroup<>(groupedBy, new HashMap<>(), 1L));
+				}
+				when(aggregateMock.overAll(any(GroupBy.class))).thenReturn(new AggregateResponseGrouped(groups));
 
 				Map<String, Object> parameters = new HashMap<>();
 				parameters.put("indexClass", indexClass);
 				List<Map<String, Object>> docsOutput = engine.listDocuments(parameters);
 				assertEquals(fileNames.size(), docsOutput.size());
 				for (int fileIdx = 0; fileIdx < fileNames.size(); fileIdx++) {
-					Map<String, Object> outputDoc = docsOutput.get(fileIdx); 
+					Map<String, Object> outputDoc = docsOutput.get(fileIdx);
 					assertTrue(fileNames.contains(outputDoc.get("fileName")));
 					assertEquals(0.0, outputDoc.get("fileSize"));
 					LocalDateTime fileDateTime = LocalDateTime.parse((String) outputDoc.get("lastModified"),
@@ -723,15 +751,13 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testListAllRecords() {
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.listAllRecords(null));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.listAllRecords(null));
 		assertEquals("This method has not been implemented yet", e.getMessage());
 	}
-	
+
 	@Test
 	void testGetVectorDatabaseType() {
 		assertEquals(VectorDatabaseTypeEnum.WEAVIATE, engine.getVectorDatabaseType());

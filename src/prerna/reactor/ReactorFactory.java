@@ -66,16 +66,10 @@ import prerna.reactor.algorithms.CreateNLPVizReactor;
 import prerna.reactor.algorithms.NLPInstanceCacheReactor;
 import prerna.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.reactor.algorithms.NaturalLanguageSearchReactor;
-import prerna.reactor.algorithms.RAlgReactor;
 import prerna.reactor.algorithms.RatioReactor;
 import prerna.reactor.algorithms.RunAnomalyReactor;
-import prerna.reactor.algorithms.RunClusteringReactor;
-import prerna.reactor.algorithms.RunLOFReactor;
 import prerna.reactor.algorithms.RunMatrixRegressionReactor;
-import prerna.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.reactor.algorithms.RunNumericalCorrelationReactor;
-import prerna.reactor.algorithms.RunOutlierReactor;
-import prerna.reactor.algorithms.RunSimilarityReactor;
 import prerna.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -492,6 +486,10 @@ public class ReactorFactory {
 		}
 
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
+	}
+
+	public static void load() {
+		// do nothing, just so the load from CP happens on application startup
 	}
 
 	/**
@@ -923,12 +921,6 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
-		reactorHash.put("rAlg", RAlgReactor.class);
-		reactorHash.put("RunClustering", RunClusteringReactor.class);
-		reactorHash.put("RunMultiClustering", RunMultiClusteringReactor.class);
-		reactorHash.put("RunLOF", RunLOFReactor.class);
-		reactorHash.put("RunSimilarity", RunSimilarityReactor.class);
-		reactorHash.put("RunOutlier", RunOutlierReactor.class);
 		reactorHash.put("Ratio", RatioReactor.class);
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 
