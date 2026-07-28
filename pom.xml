@@ -2945,6 +2945,11 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>transcribe</artifactId>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/secretsmanager -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>secretsmanager</artifactId>
+		</dependency>
 		<!-- self hosted athena jar -->
 		<dependency>
 			<groupId>com.amazon.athena</groupId>
