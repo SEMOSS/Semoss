@@ -71,6 +71,7 @@ public final class AutomationDatabaseUtility {
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = AutomationConstants.TABLE_AUTOMATION_RUNS;
 	private static final String TABLE_NODE_OUTPUTS = AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+	private static final String TABLE_ACTIVE_RUN = AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
 
 	private AutomationDatabaseUtility() {
 		// static utility - no instantiation
@@ -340,6 +341,32 @@ public final class AutomationDatabaseUtility {
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
+	}
+
+	/**
+	 * Returns the active run ID for a project directly from the {@code AUTOMATION_ACTIVE_RUN} lock
+	 * table. Unlike {@link #getActiveRun(String)}, this is populated at {@link #claimActiveRun} time
+	 * — before {@code AUTOMATION_RUNS} is written — so callers polling for a newly started run will
+	 * see it sooner.
+	 *
+	 * @return the run ID, or {@code null} if no run is currently active for the project
+	 */
+	public static String getClaimedActiveRun(String projectId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return null;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_ACTIVE_RUN + "__RUN_ID", "RUN_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_ACTIVE_RUN + "__PROJECT_ID", "==", projectId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results != null && !results.isEmpty()) {
+			Object runId = results.get(0).get("RUN_ID");
+			return runId != null ? runId.toString() : null;
+		}
+		return null;
 	}
 
 	/**

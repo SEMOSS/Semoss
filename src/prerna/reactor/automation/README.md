@@ -5,24 +5,30 @@ Executes sequential node pipelines against SEMOSS engines. Users build a pipelin
 ## How it works
 
 ```
-TriggerAutomationReactor
-  → reads automation.json (nodes in order)
-  → claims single-run slot (AUTOMATION_ACTIVE_RUN)
-  → submits to ThreadPoolExecutor (2–20 threads)
-  → returns runId immediately
+FE calls runPixelAsync("TriggerAutomation(...)")
+  → Monolith spawns a virtual thread, returns jobId immediately
+  → FE polls GetActiveAutomationRun every 500ms (up to 10×) to get runId
 
-AutomationRunEngine (background thread)
+TriggerAutomationReactor (virtual thread, synchronous)
+  → reads automation.json (nodes in order)
+  → claims single-run slot (AUTOMATION_ACTIVE_RUN) → runId visible to FE
+  → inserts AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS rows
+  → calls AutomationRunEngine.run() synchronously
+  → returns completed run result to jobId slot when done
+
+AutomationRunEngine (same virtual thread)
   → iterates nodes in saved order
   → dispatches each node to its IAutomationNodeExecutor
-  → writes node output + status to AUTOMATION_NODE_OUTPUTS
-  → FE polls GetAutomationRunReactor every 3s
+  → writes node output + status to AUTOMATION_NODE_OUTPUTS after each node
+  → FE polls GetAutomationRun every 3s while runId is known
 ```
 
 ## Reactors
 
 | Reactor | Pixel | What it does |
 | --- | --- | --- |
-| `TriggerAutomationReactor` | `TriggerAutomation(project=["id"])` | Starts a run, returns runId |
+| `TriggerAutomationReactor` | `TriggerAutomation(project=["id"])` | Starts a run synchronously; returns completed run result |
+| `GetActiveAutomationRunReactor` | `GetActiveAutomationRun(project=["id"])` | Returns `{RUN_ID, PROJECT_ID}` from active-run lock table; empty map when idle |
 | `GetAutomationReactor` | `GetAutomation(project=["id"])` | Returns saved pipeline definition (automation.json) |
 | `GetAutomationConfigReactor` | `GetAutomationConfig(project=["id"])` | Returns env var/secret config; masks sensitive values |
 | `GetAutomationRunReactor` | `GetAutomationRun(project=["id"], runId=["id"])` | Returns live run state for FE polling |

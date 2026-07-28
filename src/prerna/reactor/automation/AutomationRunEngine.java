@@ -50,15 +50,16 @@ import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.util.Utility;
 
 /**
- * Executes an automation run on a background thread. Separated from
- * {@link TriggerAutomationReactor} so the reactor stays thin — it only parses params,
- * claims a run slot, submits to the thread pool, and returns the run ID immediately.
+ * Executes an automation run synchronously. Called by {@link TriggerAutomationReactor}
+ * on the virtual thread provided by the platform's {@code runPixelAsync} endpoint.
+ * Iterates nodes in order, dispatches each to its {@link IAutomationNodeExecutor},
+ * and writes per-node status to the DB as it goes.
  */
 public final class AutomationRunEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationRunEngine.class);
 
-	/** In-memory cancellation flags — fast path; the DB flag is the cluster-safe source of truth. */
+	/** In-memory cancellation flags - fast path; the DB flag is the cluster-safe source of truth. */
 	static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
 
 	private AutomationRunEngine() {}
@@ -78,12 +79,12 @@ public final class AutomationRunEngine {
 
 	/**
 	 * Runs the full automation node list, blocking until all nodes complete or the run is
-	 * cancelled/failed. Must be called from a background thread (the automation executor).
+	 * cancelled/failed. Runs synchronously on the calling virtual thread.
 	 *
 	 * @param runId     the run record ID (already inserted into DB by the caller)
 	 * @param projectId the owning project
-	 * @param ordered   topologically sorted node list
-	 * @param configMap project automation config key→value pairs
+	 * @param ordered   nodes in execution order
+	 * @param configMap project automation config key-value pairs
 	 * @param insight   the caller's insight context (propagated to each node executor)
 	 */
 	public static void run(String runId, String projectId,
@@ -93,7 +94,7 @@ public final class AutomationRunEngine {
 		CANCELLATION_FLAGS.put(runId, cancelled);
 		ScheduledExecutorService heartbeat = startHeartbeat(runId);
 
-		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(runId);
+		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(runId, insight.getUser());
 		int completedCount = 0;
 
 		try {

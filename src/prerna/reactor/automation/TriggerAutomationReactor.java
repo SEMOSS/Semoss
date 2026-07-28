@@ -32,42 +32,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
+import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Manually triggers an automation run for a project. Validates access, claims the single-run slot,
- * submits execution to a background thread pool, and returns the run ID immediately for polling.
+ * runs the automation synchronously on the calling thread (expected to be a virtual thread from
+ * the platform's {@code runPixelAsync} endpoint), and returns the completed run result.
  *
  * <p>Pixel: {@code TriggerAutomation(project=["appId"])}
  */
 public class TriggerAutomationReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
-
-	private static final ExecutorService AUTOMATION_EXECUTOR = new ThreadPoolExecutor(
-			2, 20, 60L, TimeUnit.SECONDS,
-			new LinkedBlockingQueue<>(10),
-			r -> {
-				Thread t = new Thread(r, "automation-run-" + System.nanoTime());
-				t.setDaemon(true);
-				return t;
-			},
-			new ThreadPoolExecutor.AbortPolicy()
-	);
 
 	public TriggerAutomationReactor() {
 		this.keysToGet = new String[] { "project" };
@@ -88,19 +75,16 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					". Wait for it to complete or cancel it before starting a new run.");
 		}
 
+		boolean runStarted = false;
 		try {
 			Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> edges = (List<Map<String, Object>>) graph.get("edges");
 			Map<String, String> configMap = AutomationExecutionUtils.loadConfig(projectId);
 
-			// The form view always produces a sequential node list with no edges, so topoSort
-			// degrades to node-list order. Edges + sort are kept for a future visual flow editor.
-			List<Map<String, Object>> ordered = AutomationExecutionUtils.topoSort(nodes, edges);
+			List<Map<String, Object>> ordered = nodes != null ? nodes : new ArrayList<>();
 			if (ordered.isEmpty()) {
 				throw new IllegalArgumentException("Automation has no nodes to execute");
 			}
@@ -109,57 +93,47 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					AutomationConstants.TRIGGER_MANUAL, ordered.size(), userId);
 			AutomationDatabaseUtility.insertAllNodeOutputs(runId, ordered);
 
-			Map<String, Object> parentContext = ThreadStore.getTheadMapObject();
-			final Map<String, Object> contextSnapshot =
-					parentContext != null ? new HashMap<>(parentContext) : null;
+			classLogger.info("Automation run {} starting for project {}", runId, projectId);
+			runStarted = true;
+			AutomationRunEngine.run(runId, projectId, ordered, configMap, this.insight);
 
-			try {
-				AUTOMATION_EXECUTOR.submit(() -> {
-					installThreadContext(contextSnapshot);
-					try {
-						AutomationRunEngine.run(runId, projectId, ordered, configMap, this.insight);
-					} catch (Exception e) {
-						classLogger.error("Unhandled error in automation run {}: {}", runId, e.getMessage(), e);
-						AutomationDatabaseUtility.updateRunStatus(runId,
-								AutomationConstants.STATUS_FAILED, null, e.getMessage());
-					} finally {
-						ThreadStore.remove();
-					}
-				});
-			} catch (RejectedExecutionException e) {
-				AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_FAILED,
-						null, "Server is at capacity - too many concurrent automation runs");
-				throw new IllegalStateException("Too many concurrent automation runs. Please try again shortly.");
+			// Build final result in the same shape as GetAutomationRunReactor
+			Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
+			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
+			List<Map<String, Object>> nodeResults = new ArrayList<>();
+			if (nodeOutputs != null) {
+				for (Map<String, Object> output : nodeOutputs) {
+					Map<String, Object> nodeResult = new HashMap<>();
+					nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
+					nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
+					nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
+					nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
+					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, output.get(AutomationConstants.OUTPUT_PREVIEW));
+					nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+					nodeResults.add(nodeResult);
+				}
 			}
-
-			classLogger.info("Automation run {} submitted for project {}", runId, projectId);
-
-			Map<String, Object> stored = AutomationDatabaseUtility.getRunDetail(runId);
-			Map<String, Object> result = new HashMap<>();
-			result.put(AutomationConstants.RUN_ID, runId);
-			result.put(AutomationConstants.PROJECT_ID, projectId);
-			result.put(AutomationConstants.STATUS, AutomationConstants.STATUS_RUNNING);
-			result.put(AutomationConstants.TOTAL_NODES, ordered.size());
-			result.put(AutomationConstants.COMPLETED_NODES, 0);
-			if (stored != null) {
-				result.put(AutomationConstants.STARTED_AT, stored.get(AutomationConstants.STARTED_AT));
+			if (runDetail == null) {
+				runDetail = new HashMap<>();
+				runDetail.put(AutomationConstants.RUN_ID, runId);
+				runDetail.put(AutomationConstants.PROJECT_ID, projectId);
 			}
-			result.put("nodeResults", new ArrayList<>());
-			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+			runDetail.put("nodeResults", nodeResults);
+			return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 
-		} catch (RuntimeException e) {
-			AutomationDatabaseUtility.releaseActiveRun(projectId, runId);
-			throw e;
+		} catch (Exception e) {
+			classLogger.error("Automation run setup failed for project {}, run {}", projectId, runId, e);
+			// Only release if AutomationRunEngine.run() was never called - once it starts,
+			// its own finally block handles releaseActiveRun.
+			if (!runStarted) {
+				AutomationDatabaseUtility.releaseActiveRun(projectId, runId);
+			}
+			if (e instanceof RuntimeException re) throw re;
+			throw new RuntimeException(e);
 		}
 	}
 
 	// -- Helpers -------------------------------------------------------------------
-
-	private static void installThreadContext(Map<String, Object> snapshot) {
-		if (snapshot == null || snapshot.isEmpty()) return;
-		ThreadStore.getInsightId();
-		ThreadStore.setThreadMapObject(snapshot);
-	}
 
 	private String getProjectId() {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
@@ -181,7 +155,21 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return "Manually triggers an automation run for the given project and returns a run ID for polling.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if ("project".equals(key)) return "The project (app) ID or alias to run the automation for.";
+		return super.getDescriptionForKey(key);
 	}
 }

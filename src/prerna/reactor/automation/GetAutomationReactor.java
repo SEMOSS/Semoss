@@ -88,7 +88,7 @@ public class GetAutomationReactor extends AbstractReactor {
         }
 
         IProject project = Utility.getProject(projectId);
-        if (project.requirePublish(true)) {
+        if (project != null && project.requirePublish(true)) {
             classLogger.info("Pulled project {} from cluster", projectId);
         }
 
@@ -112,8 +112,13 @@ public class GetAutomationReactor extends AbstractReactor {
                     new TypeToken<Map<String, Object>>() {}.getType());
             return new NounMetadata(doc, PixelDataType.MAP, PixelOperationType.OPERATION);
         } catch (IOException e) {
-            classLogger.error("Error reading automation JSON", e);
+            classLogger.error("Error reading automation.json for project {}", projectId, e);
             throw new IllegalArgumentException("Unable to read automation: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Returns the automation pipeline definition (automation.json) for a project; returns an empty graph when none has been saved.";
     }
 }

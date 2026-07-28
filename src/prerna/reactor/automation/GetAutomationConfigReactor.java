@@ -38,8 +38,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
@@ -49,13 +47,25 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
+/**
+ * Returns the automation environment config ({@code automation_config.json}) for a project.
+ * Sensitive values are masked in the response — only the key and a placeholder are returned.
+ *
+ * <p>There are three "get" reactors — each reads something different:
+ * <ul>
+ *   <li>{@link GetAutomationReactor GetAutomation} — reads {@code automation.json}: the pipeline graph</li>
+ *   <li>{@code GetAutomationConfig} (this reactor) — reads {@code automation_config.json}: key/value env vars and secrets</li>
+ *   <li>{@link GetAutomationRunReactor GetAutomationRun} — reads live run state from the DB</li>
+ * </ul>
+ *
+ * <p>Pixel: {@code GetAutomationConfig(project=["appId"])}
+ */
 public class GetAutomationConfigReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(GetAutomationConfigReactor.class);
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     public GetAutomationConfigReactor() {
-        this.keysToGet = new String[]{ "project" };
+        this.keysToGet = new String[] { "project" };
     }
 
     @Override
@@ -81,7 +91,7 @@ public class GetAutomationConfigReactor extends AbstractReactor {
 
         try {
             String json = Files.readString(configFile.toPath(), StandardCharsets.UTF_8);
-            List<Map<String, Object>> entries = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
+            List<Map<String, Object>> entries = AutomationExecutionUtils.GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (entries != null) {
                 for (Map<String, Object> entry : entries) {
                     Object sensitive = entry.get("sensitive");
@@ -92,8 +102,13 @@ public class GetAutomationConfigReactor extends AbstractReactor {
             }
             return new NounMetadata(entries != null ? entries : new ArrayList<>(), PixelDataType.VECTOR, PixelOperationType.OPERATION);
         } catch (IOException e) {
-            classLogger.error("Error reading automation config", e);
+            classLogger.error("Error reading automation_config.json for project {}", projectId, e);
             return new NounMetadata(new ArrayList<>(), PixelDataType.VECTOR, PixelOperationType.OPERATION);
         }
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Returns the automation environment config (automation_config.json) for a project; sensitive values are masked.";
     }
 }

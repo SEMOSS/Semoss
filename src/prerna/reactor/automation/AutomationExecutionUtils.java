@@ -31,13 +31,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +46,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.User;
 import prerna.util.AssetUtility;
 
 /**
@@ -286,13 +287,18 @@ public final class AutomationExecutionUtils {
 	/**
 	 * Builds the initial variable scope for an automation run, seeded with {@code date},
 	 * {@code triggered_at}, and {@code run_id} (when non-blank).
+	 *
+	 * @param runId the run ID to seed into scope, or {@code null} for test runs
+	 * @param user  the triggering user — used to localise {@code date} and {@code triggered_at}
+	 *              to the user's configured timezone; falls back to UTC when {@code null} or
+	 *              when no zone has been set on the user
 	 */
-	public static Map<String, String> buildInitialScope(String runId) {
+	public static Map<String, String> buildInitialScope(String runId, User user) {
 		Map<String, String> scope = new HashMap<>();
-		// TODO: use user's session timezone instead of UTC when the Insight timezone API is finalized
-		String now = Instant.now().toString();
-		scope.put("date", now.substring(0, 10));
-		scope.put("triggered_at", now);
+		ZoneId zone = (user != null && user.getZoneId() != null) ? user.getZoneId() : ZoneId.of("UTC");
+		ZonedDateTime now = ZonedDateTime.now(zone);
+		scope.put("date", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+		scope.put("triggered_at", now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 		if (runId != null && !runId.isBlank()) scope.put("run_id", runId);
 		return scope;
 	}
@@ -352,56 +358,4 @@ public final class AutomationExecutionUtils {
 		}
 	}
 
-	// -- Topological sort ----------------------------------------------------------
-
-	/**
-	 * Topologically sorts a node/edge graph (Kahn's algorithm). Nodes with no incoming edges
-	 * are seeded in node-array order, so a linear automation with no edges still runs
-	 * top-to-bottom in the order the nodes were defined.
-	 */
-	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> topoSort(List<Map<String, Object>> nodes,
-			List<Map<String, Object>> edges) {
-		if (nodes == null || nodes.isEmpty()) return new ArrayList<>();
-
-		Map<String, Integer> inDegree = new HashMap<>();
-		Map<String, List<String>> adj = new HashMap<>();
-
-		for (Map<String, Object> n : nodes) {
-			String id = (String) n.get("id");
-			inDegree.put(id, 0);
-			adj.put(id, new ArrayList<>());
-		}
-		if (edges != null) {
-			for (Map<String, Object> e : edges) {
-				String src = (String) e.get("source");
-				String tgt = (String) e.get("target");
-				adj.computeIfAbsent(src, k -> new ArrayList<>()).add(tgt);
-				inDegree.merge(tgt, 1, Integer::sum);
-			}
-		}
-
-		Queue<String> queue = new LinkedList<>();
-		for (Map<String, Object> n : nodes) {
-			String id = (String) n.get("id");
-			if (inDegree.getOrDefault(id, 0) == 0) queue.add(id);
-		}
-
-		Map<String, Map<String, Object>> nodeById = new HashMap<>();
-		for (Map<String, Object> n : nodes) nodeById.put((String) n.get("id"), n);
-
-		List<Map<String, Object>> sorted = new ArrayList<>();
-		while (!queue.isEmpty()) {
-			String id = queue.poll();
-			sorted.add(nodeById.get(id));
-			for (String neighbor : adj.getOrDefault(id, new ArrayList<>())) {
-				int deg = inDegree.merge(neighbor, -1, Integer::sum);
-				if (deg == 0) queue.add(neighbor);
-			}
-		}
-		if (sorted.size() != nodes.size()) {
-			throw new IllegalArgumentException("Automation graph contains a cycle — cannot determine execution order");
-		}
-		return sorted;
-	}
 }

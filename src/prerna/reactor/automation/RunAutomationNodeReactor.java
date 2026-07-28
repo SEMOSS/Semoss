@@ -145,7 +145,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 	}
 
 	private Map<String, String> buildScope(String contextRunId) {
-		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(null);
+		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(null, this.insight.getUser());
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(contextRunId);
