@@ -517,7 +517,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
 		}
 
-		// linked to workspaces via WORKSPACE_RESOURCE with RESOURCE_TYPE = "PROMPT"
 		List<String> promptIds = getNounAsStringList(PROMPTS);
 		if (!promptIds.isEmpty()) {
 			if (!SystemEngineRegistry.isPromptDbLoaded()) {
@@ -542,9 +541,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
-			// Skills are projects (type=SKILL), so they belong in PROJECTDEPENDENCIES
-			// alongside MCP engines/projects. ENGINETYPE = "PROJECT" because the
-			// catalog stores skills as projects.
 			Map<String, Object> skillDep = new HashMap<>();
 			skillDep.put("ENGINEID", skillId);
 			skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
