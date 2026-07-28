@@ -236,7 +236,9 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			if (!Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
 				throw new IllegalArgumentException("Subagent workspace is inactive: " + targetWorkspaceId);
 			}
-			String targetName = valueAsTrimmedString(targetWorkspace.get("name"));
+			
+			String targetName = targetWorkspace.get("name").toString().trim();
+			targetName = targetName.isEmpty() ? null : targetName;
 			if (targetName == null) {
 				throw new IllegalArgumentException("Subagent workspace has no name: " + targetWorkspaceId);
 			}
@@ -246,14 +248,6 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			normalized.add(entry);
 		}
 		return normalized;
-	}
-
-	private static String valueAsTrimmedString(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String stringValue = value.toString().trim();
-		return stringValue.isEmpty() ? null : stringValue;
 	}
 
 	/**
