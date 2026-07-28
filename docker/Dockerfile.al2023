@@ -3,8 +3,6 @@ ARG BASE_REGISTRY=public.ecr.aws/amazonlinux
 ARG BASE_IMAGE=amazonlinux
 ARG BASE_TAG=2023
 
-# Codex CLI (Linux x86_64) release version (tag format: rust-vX.Y.Z)
-ARG CODEX_VERSION=0.80.0
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
@@ -14,33 +12,25 @@ ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
-ARG CODEX_VERSION
 ARG COPILOT_VERSION
 # Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
-# without buildx (TARGETARCH unset). codex uses x86_64/aarch64; copilot uses x64/arm64.
+# without buildx (TARGETARCH unset). copilot uses x64/arm64.
 ARG TARGETARCH
 
 # Using apt-get since tomcat builder is based on ubuntu:22.04
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
 	&& rm -rf /var/lib/apt/lists/* \
-	&& case "${TARGETARCH:-amd64}" in \
-		arm64) codex_arch="aarch64"; copilot_arch="arm64" ;; \
-		*)     codex_arch="x86_64";  copilot_arch="x64" ;; \
-	   esac \
 	&& tmp="$(mktemp -d)" \
 	&& case "${COPILOT_VERSION}" in \
 		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${copilot_arch}.tar.gz" ;; \
 		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-${copilot_arch}.tar.gz" ;; \
 	   esac \
-	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-${codex_arch}-unknown-linux-musl.tar.gz" \
-	&& tar -xzf "$tmp/codex.tgz" -C "$tmp" \
-	&& install -m 0755 "$tmp/codex-${codex_arch}-unknown-linux-musl" /usr/local/bin/codex \
 	&& curl -fsSL -o "$tmp/copilot.tgz" "$copilot_url" \
 	&& tar -xzf "$tmp/copilot.tgz" -C "$tmp" \
 	&& install -m 0755 "$tmp/copilot" /usr/local/bin/copilot \
 	&& rm -rf "$tmp" \
-	&& chown 1001:0 /usr/local/bin/codex /usr/local/bin/copilot
+	&& chown 1001:0 /usr/local/bin/copilot
 
 # FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
@@ -124,7 +114,6 @@ ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
-COPY --from=tomcat_builder /usr/local/bin/codex /usr/local/bin/codex
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 COPY --from=fakechroot_builder /usr/local/bin/fakechroot /usr/local/bin/fakechroot
 COPY --from=fakechroot_builder /usr/local/lib/fakechroot /usr/local/lib/fakechroot

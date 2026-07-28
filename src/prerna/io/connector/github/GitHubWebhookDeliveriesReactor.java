@@ -35,7 +35,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -85,6 +87,11 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if (projectId != null && !projectId.trim().isEmpty()) {
 			projectId = projectId.trim();
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+				throw new SemossPixelException(
+						"Project does not exist or user does not have access to view the project.");
+			}
 			Map<String, Object> link = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 			if (link == null) {
 				throw new SemossPixelException("Project " + projectId + " is not linked to a GitHub repository.");
@@ -93,6 +100,9 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 			if (installObj != null) {
 				installationFilter = ((Number) installObj).longValue();
 			}
+		} else if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
+			throw new SemossPixelException(
+					"A project is required unless the user has administrator access.");
 		}
 
 		try {

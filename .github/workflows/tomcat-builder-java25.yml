@@ -123,7 +123,7 @@ jobs:
         shell: bash
         run: |
           TAGS=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${JAVA_SUFFIX}" )
-          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
+          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
             TAGS+=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${{ vars.VERSION }}-${JAVA_SUFFIX}" )
           fi
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"

@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -61,6 +62,11 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 
 		if (space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY)
 				&& !space.equals(AssetUtility.USER_SPACE_KEY)) {
+			space = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), space);
+			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), space)) {
+				throw new IllegalArgumentException(
+						"Project does not exist or user does not have access to view the project");
+			}
 			appFolder = AssetUtility.getProjectAssetsFolder(space) + "/" + Constants.PY_BASE_FOLDER;
 			appFolder = appFolder.replace("\\", "/");
 		} else {

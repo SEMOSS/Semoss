@@ -498,7 +498,7 @@ public final class AgentConfigLoader {
         return null;
     }
 
-    private static int resolveMaxSeconds(Map<String, Object> paramMap) {
+    private static int resolveRequestedMaxSeconds(Map<String, Object> paramMap) {
         if (paramMap == null) {
             return 0;
         }
@@ -520,6 +520,25 @@ public final class AgentConfigLoader {
     }
 
     /**
+     * Resolve the wall-clock budget that the harness must enforce.
+     *
+     * <p>A nonpositive workspace value means the workspace does not impose a cap.
+     * A caller value of zero means the caller requested no limit, so a positive
+     * workspace cap becomes the effective limit. When both values are positive,
+     * the smaller value wins. Negative caller values are intentionally preserved
+     * so {@link AgentConfig.Budgets} can reject them.
+     */
+    private static int resolveEffectiveMaxSeconds(int requestedSeconds, int workspaceCapSeconds) {
+        if (workspaceCapSeconds <= 0) {
+            return requestedSeconds;
+        }
+        if (requestedSeconds == 0) {
+            return workspaceCapSeconds;
+        }
+        return Math.min(requestedSeconds, workspaceCapSeconds);
+    }
+
+    /**
      * Build the run budgets.
      *
      * <p>{@code CONFIG_JSON.budgets} sets hard caps per field. The runtime
@@ -534,22 +553,22 @@ public final class AgentConfigLoader {
             int callerMaxTurns, int callerMaxReflections) {
         int maxTurns       = callerMaxTurns;
         int maxReflections = callerMaxReflections;
-        int maxSeconds     = resolveMaxSeconds(paramMap);
+        int requestedMaxSeconds = resolveRequestedMaxSeconds(paramMap);
+        int effectiveMaxSeconds = requestedMaxSeconds;
 
         if (cfgJson != null && cfgJson.has("budgets")) {
             JSONObject bj = cfgJson.optJSONObject("budgets");
             if (bj != null) {
-                int capTurns   = bj.optInt("max_turns",       -1);
-                int capRefl    = bj.optInt("max_reflections", -1);
-                int capSeconds = bj.optInt("max_seconds",     -1);
+                int capTurns           = bj.optInt("max_turns",       -1);
+                int capRefl            = bj.optInt("max_reflections", -1);
+                int workspaceCapSeconds = bj.optInt("max_seconds",     -1);
                 // Clamp runtime values to the configured caps — runtime can go lower, never higher.
                 if (capTurns   > 0)  maxTurns       = Math.min(maxTurns, capTurns);
                 if (capRefl    >= 0) maxReflections = Math.min(maxReflections, capRefl);
-                if (capSeconds >= 0) maxSeconds     = (maxSeconds <= 0) ? capSeconds
-                                                        : Math.min(maxSeconds, capSeconds);
+                effectiveMaxSeconds = resolveEffectiveMaxSeconds(requestedMaxSeconds, workspaceCapSeconds);
             }
         }
-        return AgentConfig.Budgets.of(maxTurns, maxReflections, maxSeconds);
+        return AgentConfig.Budgets.of(maxTurns, maxReflections, effectiveMaxSeconds);
     }
 
     /** CONFIG_JSON.spawn_policy keys: max_subagent_depth, max_subagents_per_run, max_spawns_per_turn. */
@@ -628,16 +647,17 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Resolve named subagent slots from {@code CONFIG_JSON.subagents[]}. Each entry must
-     * have non-blank {@code alias} and {@code workspaceId}; {@code description} is optional.
-     * Duplicate aliases within the same list are dropped with a warn log (first wins).
+     * Resolve named subagent slots from {@code CONFIG_JSON.subagents[]}. Persisted entries
+     * contain only a target {@code workspaceId}; the current agent name and description are
+     * loaded from the target workspace for every run. Tool aliases are generated from those
+     * names, so renamed or re-described agents do not leave stale parent configuration.
      *
      * <p>The semoss harness synthesizes one MCP tool per returned spec; CLI harnesses
      * ignore the list.
      *
      * @return unmodifiable list, never {@code null}
      */
-    private static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+    static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
         if (cfgJson == null || !cfgJson.has("subagents")) {
             return Collections.emptyList();
         }
@@ -646,26 +666,42 @@ public final class AgentConfigLoader {
             return Collections.emptyList();
         }
         List<SubAgentSpec> out = new ArrayList<>(arr.length());
+        Set<String> seenWorkspaceIds = new LinkedHashSet<>();
         Set<String> seenAliases = new LinkedHashSet<>();
         for (int i = 0; i < arr.length(); i++) {
             JSONObject spec = arr.optJSONObject(i);
             if (spec == null) continue;
-            String alias       = StringUtils.trimToNull(spec.optString("alias",       null));
             String workspaceId = StringUtils.trimToNull(spec.optString("workspaceId", null));
-            String description = StringUtils.trimToNull(spec.optString("description", null));
-            if (alias == null || workspaceId == null) {
-                logger.warn("AgentConfigLoader: subagent entry missing alias or workspaceId - skipping (index={})", i);
+            if (workspaceId == null) {
+                logger.warn("AgentConfigLoader: subagent entry missing workspaceId - skipping (index={})", i);
                 continue;
             }
-            if (!seenAliases.add(alias)) {
-                logger.warn("AgentConfigLoader: duplicate subagent alias '{}' - keeping first, skipping later entry", alias);
+            if (!seenWorkspaceIds.add(workspaceId)) {
+                logger.warn("AgentConfigLoader: duplicate subagent workspaceId '{}' - keeping first, skipping later entry",
+                        workspaceId);
                 continue;
             }
+
+            Map<String, Object> targetWorkspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+            if (targetWorkspace == null || !Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
+                logger.warn("AgentConfigLoader: subagent workspace '{}' is missing or inactive - skipping", workspaceId);
+                continue;
+            }
+            String agentName = targetWorkspace.get("name") == null
+                    ? null
+                    : StringUtils.trimToNull(String.valueOf(targetWorkspace.get("name")));
+            if (agentName == null) {
+                logger.warn("AgentConfigLoader: subagent workspace '{}' has no name - skipping", workspaceId);
+                continue;
+            }
+            String description = targetWorkspace.get("description") == null
+                    ? null
+                    : StringUtils.trimToNull(String.valueOf(targetWorkspace.get("description")));
             try {
+                String alias = SubAgentSpec.generateAlias(agentName, workspaceId, seenAliases);
                 out.add(new SubAgentSpec(alias, workspaceId, description));
             } catch (IllegalArgumentException e) {
-                logger.warn("AgentConfigLoader: invalid subagent entry alias='{}' workspaceId='{}': {}",
-                        alias, workspaceId, e.getMessage());
+                logger.warn("AgentConfigLoader: invalid subagent workspaceId='{}': {}", workspaceId, e.getMessage());
             }
         }
         return Collections.unmodifiableList(out);
@@ -682,8 +718,8 @@ public final class AgentConfigLoader {
      * both, and register it via
      * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}
      * (built-ins live in the registry's static init block). The registry is
-     * the same source of truth {@code SetAgentHooksReactor} validates
-     * against on write.
+     * the same source of truth {@code AbstractWorkspaceReactor.validateHooks}
+     * (used by {@code EditWorkspace}) validates against on write.
      *
      * @return new hook instance, or {@code null} for an unknown kind (logged warn)
      */

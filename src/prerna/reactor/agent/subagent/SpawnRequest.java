@@ -47,7 +47,7 @@ public final class SpawnRequest {
     /** Room id of the caller; sets {@code PARENT_ROOM_ID} on the freshly created child room. */
     public String parentRoomId;
 
-    /** Configured alias from {@code CONFIG_JSON.subagents[]}; {@code null} for anonymous spawns. */
+    /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
     public String alias;
 
     /** Target child workspace id; {@code null} for anonymous (parent-clone) spawns. */
@@ -56,8 +56,20 @@ public final class SpawnRequest {
     /** User prompt sent into the child agent. Required. */
     public String prompt;
 
-    /** Optional override that becomes the child room's system prompt. {@code null} = inherit. */
+    /**
+     * Optional per-spawn system-prompt override. When absent, anonymous children
+     * inherit {@link #parentAuthoredSystemPrompt}; named children use their own workspace
+     * system prompt.
+     */
     public String additionalContext;
+
+    /**
+     * Parent's clean, user-authored system prompt, captured before the harness
+     * temporarily composes runtime instructions into {@code room.options.instructions}.
+     * Used only as the default for anonymous children; named children load their own
+     * workspace system prompt.
+     */
+    public String parentAuthoredSystemPrompt;
 
     /** Optional engine fallback when neither room nor workspace specifies a model. */
     public String engine;
