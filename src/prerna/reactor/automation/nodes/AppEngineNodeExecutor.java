@@ -29,6 +29,9 @@ package prerna.reactor.automation.nodes;
 
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.automation.AutomationExecutionUtils;
@@ -52,6 +55,8 @@ import prerna.util.Utility;
  */
 public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 
+	private static final Logger classLogger = LogManager.getLogger(AppEngineNodeExecutor.class);
+
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
@@ -63,6 +68,8 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 		String appId = optional(config, "appId");
 		String resolvedPixel = AutomationExecutionUtils.resolve(pixel, scope, configMap);
 		String resolvedAppId = appId != null ? AutomationExecutionUtils.resolve(appId, scope, configMap) : null;
+
+		classLogger.debug("App-engine node \"{}\" executing pixel in appId={}", nodeLabel, resolvedAppId != null ? resolvedAppId : "caller context");
 
 		if (resolvedAppId != null && !resolvedAppId.isBlank()) {
 			IProject project = Utility.getProject(resolvedAppId);

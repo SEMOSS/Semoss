@@ -53,9 +53,15 @@ import prerna.util.Utility;
  * Returns the automation <em>definition</em> (the saved {@code automation.json} graph) for a project.
  * Returns an empty graph document when no automation has been saved yet.
  *
- * <p><strong>Not to be confused with {@link GetAutomationRunReactor}</strong>, which returns
- * <em>run history</em> records from the scheduler DB (AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS).
- * This reactor reads static config; that reactor reads live execution state.
+ * <p>There are three "get" reactors — each reads something different:
+ * <ul>
+ *   <li>{@code GetAutomation} (this reactor) — reads {@code automation.json}: the pipeline graph
+ *       (nodes, edges, output transforms). Static config written by {@link SaveAutomationReactor}.</li>
+ *   <li>{@link GetAutomationConfigReactor GetAutomationConfig} — reads {@code automation_config.json}:
+ *       key/value env vars and secrets; sensitive values are masked in the response.</li>
+ *   <li>{@link GetAutomationRunReactor GetAutomationRun} — reads live run state from the DB
+ *       (AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS); used by the FE to poll execution progress.</li>
+ * </ul>
  *
  * <p>Pixel: {@code GetAutomation(project=["appId"])}
  */
