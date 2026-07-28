@@ -166,7 +166,7 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
-		// close-session, navigate-back, navigate-forward, reload — no payload to
+		// close-session, navigate-back, navigate-forward, reload - no payload to
 		// validate
 		default:
 			break;
@@ -186,7 +186,7 @@ public class RemoteBrowserInputEventValidator {
 		if (event.getX() == null || event.getY() == null) {
 			throw new IllegalArgumentException("Event type '" + event.getType() + "' requires x and y");
 		}
-		// Clamp coordinates to viewport (mutate in place — safe because we own this
+		// Clamp coordinates to viewport (mutate in place - safe because we own this
 		// object)
 		event.setX(Math.max(0, Math.min(event.getX(), vpWidth)));
 		event.setY(Math.max(0, Math.min(event.getY(), vpHeight)));

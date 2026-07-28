@@ -48,7 +48,6 @@ import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
 
-import prerna.engine.impl.InsightMCP;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.Utility;
 
@@ -84,8 +83,8 @@ class RoomInsightMCPTest {
 
 		Map<String, Object> options = Map.of("mcp", List.of(Map.of(
 				"type", "INSIGHT",
-				"id", InsightMCP.INSIGHT_MCP_ID,
-				"name", InsightMCP.INSIGHT_MCP_NAME)));
+				"id", MCPUtility.INSIGHT_MCP_ID,
+				"name", MCPUtility.INSIGHT_MCP_NAME)));
 		Timestamp now = Timestamp.from(Instant.now());
 		Room room;
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
@@ -100,7 +99,7 @@ class RoomInsightMCPTest {
 		Map<String, Object> lookup = room.getToolLookupByLLMName().get(llmName);
 		assertTrue(lookup.containsKey("_meta"));
 		Map<String, Object> meta = (Map<String, Object>) lookup.get("_meta");
-		assertEquals(InsightMCP.INSIGHT_MCP_ID, meta.get(MCPUtility.SMSS_ENGINE_ID));
+		assertEquals(MCPUtility.INSIGHT_MCP_ID, meta.get(MCPUtility.SMSS_ENGINE_ID));
 		assertEquals("playwright-project", meta.get(MCPUtility.SMSS_PROJECT_ID));
 		assertEquals("play_checkout", meta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME));
 	}

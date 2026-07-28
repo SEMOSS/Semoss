@@ -50,12 +50,12 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -263,7 +263,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 			meta.put("SMSS_PROJECT_ID", projectId);
 		}
 		if (roomMode) {
-			meta.put("SMSS_ENGINE_ID", InsightMCP.INSIGHT_MCP_ID);
+			meta.put("SMSS_ENGINE_ID", MCPUtility.INSIGHT_MCP_ID);
 			// Execution belongs to the room insight, but the sidebar UI is hosted
 			// by the Playwright Sockets project.
 			meta.put("SMSS_ENGINE_TYPE", "PROJECT");

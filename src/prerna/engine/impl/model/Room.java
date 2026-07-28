@@ -62,6 +62,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -79,7 +80,6 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
-import prerna.engine.impl.InsightMCP;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
@@ -987,14 +987,15 @@ public class Room implements Serializable {
 	 */
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
-		// ── Insight MCP: virtual toolbox backed by the room's insight assets ──────
-		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
-			InsightMCP insightMcp = new InsightMCP(this.getRoomFolderPath());
+		// insight level MCPs
+		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
+			InternalMCP insightMcp = InternalMCP.genFromInsightFolder(this.getRoomFolderPath());
 			JSONObject toolMap = insightMcp.getMCPTools();
 			if (toolMap == null) {
 				return new ArrayList<>();
 			}
-			Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap() : new HashMap<>();
+			Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap()
+					: new HashMap<>();
 			Map<Integer, String> originalNames = new HashMap<>();
 			if (toolMap.has("tools")) {
 				JSONArray toolsBefore = toolMap.getJSONArray("tools");
@@ -1005,7 +1006,8 @@ public class Room implements Serializable {
 					}
 				}
 			}
-			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(InsightMCP.INSIGHT_MCP_ID, toolMap, maxLength);
+			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.INSIGHT_MCP_ID, toolMap,
+					maxLength);
 			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
 				return new ArrayList<>();
 			}
@@ -1013,7 +1015,9 @@ public class Room implements Serializable {
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
 				JSONObject toolObj = arr.optJSONObject(i);
-				if (toolObj == null) continue;
+				if (toolObj == null) {
+					continue;
+				}
 				JSONObject meta = toolObj.optJSONObject("_meta");
 				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
@@ -1022,8 +1026,10 @@ public class Room implements Serializable {
 					String llmName = toolObj.getString("name");
 					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
 					Object rawMeta = entry.get("_meta");
-					if (rawMeta instanceof Map) lookupMeta.putAll((Map<String, Object>) rawMeta);
-					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, InsightMCP.INSIGHT_MCP_ID);
+					if (rawMeta instanceof Map) {
+						lookupMeta.putAll((Map<String, Object>) rawMeta);
+					}
+					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.INSIGHT_MCP_ID);
 					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
 
 					Map<String, Object> lookupEntry = new HashMap<>();
@@ -1040,6 +1046,7 @@ public class Room implements Serializable {
 			return result;
 		}
 
+		// normal engine/project mcp
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);

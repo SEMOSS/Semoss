@@ -1,0 +1,172 @@
+name: semoss-with-postgres-minio
+
+services:
+  semoss:
+    image: quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest
+    container_name: semoss
+    pull_policy: always
+    user: "1001:1001"
+    ports:
+      - "9090:8080"
+    environment:
+      SETSOCIAL: 'true'
+      REDIRECT: "http://localhost:9090/#/"
+      # should not use native for production use cases, instead integrate with external SSO
+      ENABLE_NATIVE: 'true'
+      ENABLE_NATIVE_REGISTRATION: 'true'
+      ENABLE_NATIVE_ACCESS_KEY_ALLOWED: 'true'
+      OPTIONAL_COOKIES: 'false'
+      FE_ROUTE: /Monolith
+      NETTY_PYTHON: 'true'
+      NATIVE_PY_SERVER: 'true'
+      SMSS_PYTHONHOME: /usr/lib/python/semossvenv
+      R_ON: 'false'
+      MODEL_INFERENCE_LOGS_ENABLED: 'true'
+      USER_TRACKING_ENABLED: 'true'
+      PROMPT_DB_ENABLED: 'true'
+      AUDIT_LOGS_DATABASE_ENABLED: 'true'
+
+      # chroot
+      CHROOT_ENABLE: 'true'
+      CHROOT_DIR: /opt/chroot
+      CHROOT_SYMLINK_PATHS: /usr/lib/python
+      FAKECHROOT_EXCLUDE_PATH: /dev
+
+      # local master
+      CUSTOM_LM_RDBMS_TYPE : "postgres"
+      CUSTOM_LM_DRIVER: "org.postgresql.Driver"
+      CUSTOM_LM_DATABASE: "semoss_localmaster"
+      CUSTOM_LM_SCHEMA: "public"
+      CUSTOM_LM_USERNAME: "myuser"
+      CUSTOM_LM_PASSWORD: "mypassword"
+      CUSTOM_LM_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_localmaster?currentSchema=public"
+      # model inference logs
+      CUSTOM_MODEL_INFERENCE_LOGS_RDBMS_TYPE : "postgres"
+      CUSTOM_MODEL_INFERENCE_LOGS_DRIVER: "org.postgresql.Driver"
+      CUSTOM_MODEL_INFERENCE_LOGS_DATABASE: "semoss_modellogs"
+      CUSTOM_MODEL_INFERENCE_LOGS_SCHEMA: "public"
+      CUSTOM_MODEL_INFERENCE_LOGS_USERNAME: "myuser"
+      CUSTOM_MODEL_INFERENCE_LOGS_PASSWORD: "mypassword"
+      CUSTOM_MODEL_INFERENCE_LOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_modellogs?currentSchema=public"
+      # prompt db
+      CUSTOM_PROMPT_RDBMS_TYPE : "postgres"
+      CUSTOM_PROMPT_DRIVER: "org.postgresql.Driver"
+      CUSTOM_PROMPT_DATABASE: "semoss_prompt"
+      CUSTOM_PROMPT_SCHEMA: "public"
+      CUSTOM_PROMPT_USERNAME: "myuser"
+      CUSTOM_PROMPT_PASSWORD: "mypassword"
+      CUSTOM_PROMPT_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_prompt?currentSchema=public"
+      # scheduler db
+      CUSTOM_SCHEDULER_RDBMS_TYPE : "postgres"
+      CUSTOM_SCHEDULER_DRIVER: "org.postgresql.Driver"
+      CUSTOM_SCHEDULER_DATABASE: "semoss_scheduler"
+      CUSTOM_SCHEDULER_SCHEMA: "public"
+      CUSTOM_SCHEDULER_USERNAME: "myuser"
+      CUSTOM_SCHEDULER_PASSWORD: "mypassword"
+      CUSTOM_SCHEDULER_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_scheduler?currentSchema=public"
+      # security db
+      CUSTOM_SECURITY_RDBMS_TYPE : "postgres"
+      CUSTOM_SECURITY_DRIVER: "org.postgresql.Driver"
+      CUSTOM_SECURITY_DATABASE: "semoss_security"
+      CUSTOM_SECURITY_SCHEMA: "public"
+      CUSTOM_SECURITY_USERNAME: "myuser"
+      CUSTOM_SECURITY_PASSWORD: "mypassword"
+      CUSTOM_SECURITY_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_security?currentSchema=public"
+      # themes db
+      CUSTOM_THEMES_RDBMS_TYPE : "postgres"
+      CUSTOM_THEMES_DRIVER: "org.postgresql.Driver"
+      CUSTOM_THEMES_DATABASE: "semoss_themes"
+      CUSTOM_THEMES_SCHEMA: "public"
+      CUSTOM_THEMES_USERNAME: "myuser"
+      CUSTOM_THEMES_PASSWORD: "mypassword"
+      CUSTOM_THEMES_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_themes?currentSchema=public"
+      # user tracking db
+      CUSTOM_USER_TRACKING_RDBMS_TYPE : "postgres"
+      CUSTOM_USER_TRACKING_DRIVER: "org.postgresql.Driver"
+      CUSTOM_USER_TRACKING_DATABASE: "semoss_usertracking"
+      CUSTOM_USER_TRACKING_SCHEMA: "public"
+      CUSTOM_USER_TRACKING_USERNAME: "myuser"
+      CUSTOM_USER_TRACKING_PASSWORD: "mypassword"
+      CUSTOM_USER_TRACKING_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_usertracking?currentSchema=public"
+      # audit logs
+      CUSTOM_AUDITLOGS_RDBMS_TYPE : "postgres"
+      CUSTOM_AUDITLOGS_DRIVER: "org.postgresql.Driver"
+      CUSTOM_AUDITLOGS_DATABASE: "semoss_audit"
+      CUSTOM_AUDITLOGS_SCHEMA: "public"
+      CUSTOM_AUDITLOGS_USERNAME: "myuser"
+      CUSTOM_AUDITLOGS_PASSWORD: "mypassword"
+      CUSTOM_AUDITLOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_audit?currentSchema=public"
+
+      # cloud storage
+      SEMOSS_IS_CLUSTER: 'true'
+      SEMOSS_STORAGE_PROVIDER: 'minio'
+      MINIO_REGION: 'us-east'
+      MINIO_BUCKET: 'semoss'
+      MINIO_ACCESS_KEY: 'minioadmin'
+      MINIO_SECRET_KEY: 'minioadmin'
+      MINIO_ENDPOINT: 'http://minio:9000'
+    command: /bin/bash -c "runCS.sh"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  db:
+    image: postgres:18
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: myuser
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mynetwork
+
+  # cloud storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web UI
+    environment:
+      MINIO_ROOT_USER: 'minioadmin'
+      MINIO_ROOT_PASSWORD: 'minioadmin'
+    volumes:
+      - minio_data:/data
+      - ./init-bucket.sh:/usr/local/bin/init-bucket.sh
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/docker-entrypoint.sh minio server /data --console-address :9001 & 
+      sleep 10 && chmod +x /usr/local/bin/init-bucket.sh && /usr/local/bin/init-bucket.sh && 
+      wait"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mynetwork
+
+volumes:
+  pgdata:
+  minio_data:
+
+networks:
+  # shared with the engines/ services so they can reach these containers by name
+  mynetwork:
+    external: true
+    name: semoss-net

@@ -38,7 +38,6 @@ import com.google.gson.Gson;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -135,7 +134,7 @@ public final class AgentToolDecisionHandler {
 		}
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
-		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
+		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
 			Room executionRoom = RoomUtils.getOrLoadRoom(roomId, this.insight);
 			this.insight.setRoomForInsight(executionRoom);
 		}

@@ -49,7 +49,7 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
 /**
  * Maps validated frontend input events onto Playwright browser actions. For
- * CLICK events, uses a 3-tier fallback: selector → coords → skip. After
+ * CLICK events, uses a 3-tier fallback: selector -> coords -> skip. After
  * each action, respects waitAfterMs and waits for page to settle.
  *
  * All calls must be made from the session's dedicated Playwright thread.
@@ -338,7 +338,7 @@ public class RemoteBrowserInputService {
 			}
 		}
 
-		classLogger.warn("Click could not be performed — no selector and no coords");
+		classLogger.warn("Click could not be performed - no selector and no coords");
 		return false;
 	}
 
@@ -412,7 +412,7 @@ public class RemoteBrowserInputService {
 
 		String urlAfter = safeUrl(page);
 		if (!urlBefore.equals(urlAfter)) {
-			// Click triggered a navigation — wait for it to settle
+			// Click triggered a navigation - wait for it to settle
 			classLogger.info("Remote viewer postActionWait detected URL change type={} from={} to={}", type, urlBefore,
 					urlAfter);
 			try {

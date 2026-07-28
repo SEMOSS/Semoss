@@ -1858,11 +1858,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			filterBuilder = null;
 		}
 
-		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.DATE
-				|| leftDataType == SemossDataType.TIMESTAMP) {
+		if (leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.FACTOR
+				|| leftDataType == SemossDataType.DATE || leftDataType == SemossDataType.TIMESTAMP) {
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
 
-			if (leftDataType == SemossDataType.STRING && (thisComparator.equals("==") || thisComparator.equals("!="))) {
+			if ((leftDataType == SemossDataType.STRING || leftDataType == SemossDataType.FACTOR)
+					&& (thisComparator.equals("==") || thisComparator.equals("!="))) {
 				retBuilder.append("(");
 				if (thisComparator.equals("!=")) {
 					retBuilder.append("~");
@@ -1912,7 +1913,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 							.append("].str.casefold().str.").append(function).append("('")
 							.append(objects.get(i).toString().toLowerCase()).append("'))");
 				}
-			} else if (leftDataType != SemossDataType.STRING) {
+			} else if (leftDataType != SemossDataType.STRING && leftDataType != SemossDataType.FACTOR) {
 				if (multi) {
 					if (!(thisComparator.equals("==") || thisComparator.equals("!="))) {
 						throw new IllegalArgumentException("Unsupported operand argument '" + thisComparator

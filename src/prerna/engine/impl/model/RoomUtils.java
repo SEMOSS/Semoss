@@ -65,6 +65,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
+import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -179,8 +180,9 @@ public final class RoomUtils {
 		return roomId;
 	}
 
-	private static void createRoomRowIfMissing(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
+	private static void createRoomRowIfMissing(String roomId, Insight insight, IModelEngine modelEngine,
+			String question, String workspaceId, Map<String, Object> options, String context, String projectId,
+			String parentRoomId) {
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
 		if (roomExistsInDB) {
 			return;
@@ -318,7 +320,7 @@ public final class RoomUtils {
 	}
 
 	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
-		if (room == null || insight == null || insight.getUser() == null || !RoomMessageStore.isRedisEnabled()) {
+		if (room == null || insight == null || insight.getUser() == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());
