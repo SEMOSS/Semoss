@@ -166,6 +166,10 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String ROOT = insight.getInsightFolder();
 		ROOT = ROOT.replace("\\", "/");
 
+		// this reactor saves the figure itself and returns it as the task output,
+		// so turn off the automatic inline rendering that would otherwise also
+		// push a copy of the image onto the console stream
+		String disableInlineDisplay = "smss_inline_display(False)";
 		String importSeaborn = "import seaborn as sns";
 		String importMatPlot = "import matplotlib.pyplot as plt";
 		String clearPlot = "plt.clf()";
@@ -179,8 +183,9 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String removeMatPlot = "del(plt)";
 		String removeSaveFile = "del(saveFile)";
 
-		seabornFile = (String) pyt.runDirectPy(loadDT, adjustTypes, importSeaborn, importMatPlot, clearPlot, assigner,
-				saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot, printFile, removeSaveFile);
+		seabornFile = (String) pyt.runDirectPy(disableInlineDisplay, loadDT, adjustTypes, importSeaborn, importMatPlot,
+				clearPlot, assigner, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, removeMatPlot,
+				printFile, removeSaveFile);
 
 		String IF = insight.getInsightFolder();
 		seabornFile = Utility.normalizePath(seabornFile.replace("$IF", IF));

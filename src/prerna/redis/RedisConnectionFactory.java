@@ -70,10 +70,19 @@ public final class RedisConnectionFactory {
 	}
 
 	public static UnifiedJedis getClient() {
-		return getClient(RedisConnectionConfig.fromDIHelper());
+		return getClient(RedisConnectionConfig.requireFromDIHelper());
 	}
 
+	/**
+	 * @param config the resolved Redis settings
+	 * @return the shared client for {@code config}
+	 * @throws IllegalStateException if {@code config} is null, which means Redis is
+	 *                               not enabled for this deployment
+	 */
 	public static UnifiedJedis getClient(RedisConnectionConfig config) {
+		if (config == null) {
+			throw new IllegalStateException(RedisConnectionConfig.NOT_ENABLED_MESSAGE);
+		}
 		return CLIENTS.computeIfAbsent(config.cacheKey(), ignored -> createClient(config));
 	}
 
