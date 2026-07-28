@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -56,6 +57,8 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.rdbms.migration.MigrationFileUtils;
+import prerna.engine.impl.rdbms.migration.SchemaMigrationRunner;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -337,6 +340,23 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		} catch (SQLException e) {
 			classLogger.error("Failed to establish database connection during open: {}", e.getMessage(), e);
 		}
+
+		if (this.engineConnected && Boolean.parseBoolean(this.smssProp.getProperty(Constants.ENABLE_MIGRATIONS))) {
+			runPendingMigrations();
+		}
+	}
+
+	/**
+	 * Runs any pending {@code V<version>__<description>.sql} files under this
+	 * engine's own {@code assets/.migrations} folder. Unlike the connection
+	 * failure above, a migration failure is intentionally allowed to propagate
+	 * out of {@code open()} -- {@code Utility.loadEngine()} never registers an
+	 * engine whose {@code open()} throws, so a bad migration leaves the engine
+	 * fully unusable rather than usable with a half-migrated, unreliable schema.
+	 */
+	private void runPendingMigrations() {
+		File migrationsFolder = MigrationFileUtils.getMigrationsFolder(this);
+		SchemaMigrationRunner.runPendingMigrations(this, migrationsFolder);
 	}
 
 	/**

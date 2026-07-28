@@ -223,7 +223,7 @@ public final class FileSystemUtil {
 
 		for (File f : entries) {
 			String name = f.getName();
-			// hide .git directory and .admin directory
+			// hide .git, .admin, and .migrations directories
 			if (isHiddenAsset(f)) {
 				continue;
 			}
@@ -270,10 +270,14 @@ public final class FileSystemUtil {
 
 	/**
 	 * Determine whether an asset should be hidden from file explorer listings.
-	 * Hides the ".git" directory and the ".admin" directory. Only the leaf name is
-	 * inspected, so this is suitable for filtering the direct children of an
-	 * already-validated directory; to also reject entries that live <em>inside</em>
-	 * a hidden directory, use {@link #isWithinHiddenAsset(File, int)}.
+	 * Hides the ".git" directory, the ".admin" directory, and the ".migrations"
+	 * directory (an engine's own SQL migration files -- system-managed, not
+	 * meant to be browsed/edited by hand; see
+	 * {@code prerna.engine.impl.rdbms.migration.MigrationFileUtils}). Only the
+	 * leaf name is inspected, so this is suitable for filtering the direct
+	 * children of an already-validated directory; to also reject entries that
+	 * live <em>inside</em> a hidden directory, use
+	 * {@link #isWithinHiddenAsset(File, int)}.
 	 *
 	 * @param f the file or directory being considered
 	 * @return true if the entry should be excluded from the results
@@ -284,10 +288,11 @@ public final class FileSystemUtil {
 
 	/**
 	 * Determine whether a file or directory sits at or beneath a hidden asset
-	 * (".git" or ".admin") by inspecting every segment of its assets-relative path.
-	 * Unlike {@link #isHiddenAsset(File)}, which only looks at the leaf name, this
-	 * also blocks access when an <em>ancestor</em> segment is hidden — e.g. a
-	 * caller targeting ".git/hooks" or ".admin/secrets" as the starting point of a
+	 * (".git", ".admin", or ".migrations") by inspecting every segment of its
+	 * assets-relative path. Unlike {@link #isHiddenAsset(File)}, which only
+	 * looks at the leaf name, this also blocks access when an <em>ancestor</em>
+	 * segment is hidden — e.g. a caller targeting ".git/hooks",
+	 * ".admin/secrets", or ".migrations/V1__init.sql" as the starting point of a
 	 * browse or search.
 	 *
 	 * @param f       the file or directory being considered
@@ -308,11 +313,11 @@ public final class FileSystemUtil {
 
 	/**
 	 * @param name a single path-segment name
-	 * @return true if the name is one of the hidden asset directories (".git" or
-	 *         ".admin")
+	 * @return true if the name is one of the hidden asset directories (".git",
+	 *         ".admin", or ".migrations")
 	 */
 	private static boolean isHiddenName(String name) {
-		return name.equals(".git") || name.equals(".admin");
+		return name.equals(".git") || name.equals(".admin") || name.equals(".migrations");
 	}
 
 	/**

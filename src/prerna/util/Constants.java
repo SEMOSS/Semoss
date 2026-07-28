@@ -654,6 +654,9 @@ public class Constants {
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of
 																	// inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
+	// if present and true, run pending SQL migrations from the engine's own
+	// assets/migrations folder on every open()
+	public static final String ENABLE_MIGRATIONS = "ENABLE_MIGRATIONS";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
 			+ System.getProperty("file.separator")
