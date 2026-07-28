@@ -108,19 +108,8 @@ public final class MCPUtility {
 	@Deprecated
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
 
-	/**
-	 * Sentinel id used in {@code room.options.mcp} to reference the virtual MCP
-	 * backed by a room's own asset folder rather than by a catalog engine. This
-	 * value is persisted in room OPTIONS, so it must not be renamed without a
-	 * migration.
-	 */
-	public static final String INSIGHT_MCP_ID = "__insight__";
-
-	/** Display name shown in the room's MCP list. */
-	public static final String INSIGHT_MCP_NAME = "Room Recordings";
-
-	/** Value published as {@link #SMSS_ENGINE_TYPE} for the insight MCP. */
-	public static final String INSIGHT_MCP_TYPE = "INSIGHT";
+	/** MCP type for tools backed by an authenticated internal asset folder. */
+	public static final String INTERNAL_MCP_TYPE = "INTERNAL";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
@@ -725,9 +714,14 @@ public final class MCPUtility {
 				if (origFunctionName == null) {
 					origFunctionName = llmFacingName;
 				}
+				String originalToolName = (String) enrichedMeta.get(SMSS_ORIGINAL_TOOL_NAME);
+				if (originalToolName == null || originalToolName.isBlank()) {
+					originalToolName = origFunctionName;
+				}
 
 				responseToolMap.put("_tool_found", true);
-				responseToolMap.put("original_name", origFunctionName);
+				responseToolMap.put("original_name", originalToolName);
+				applyTopLevelSchemaDefaults(responseToolMap, toolEntry);
 
 				if (toolEntry.containsKey("title")) {
 					responseToolMap.put("title", toolEntry.get("title"));
@@ -812,6 +806,44 @@ public final class MCPUtility {
 				}
 			} else {
 				responseToolMap.put("_tool_found", false);
+			}
+		}
+	}
+
+	/**
+	 * Materializes fixed/defaulted top-level tool arguments when a model omits
+	 * them. Explicit model/user arguments always win.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void applyTopLevelSchemaDefaults(Map<String, Object> responseToolMap,
+			Map<String, Object> toolEntry) {
+		Object rawSchema = toolEntry.get("inputSchema");
+		if (!(rawSchema instanceof Map)) {
+			return;
+		}
+		Object rawProperties = ((Map<String, Object>) rawSchema).get("properties");
+		if (!(rawProperties instanceof Map)) {
+			return;
+		}
+
+		Map<String, Object> arguments;
+		Object rawArguments = responseToolMap.get("arguments");
+		if (rawArguments instanceof Map) {
+			arguments = (Map<String, Object>) rawArguments;
+		} else {
+			arguments = new HashMap<>();
+			responseToolMap.put("arguments", arguments);
+		}
+
+		for (Map.Entry<String, Object> property : ((Map<String, Object>) rawProperties).entrySet()) {
+			if (arguments.containsKey(property.getKey()) || !(property.getValue() instanceof Map)) {
+				continue;
+			}
+			Map<String, Object> propertySchema = (Map<String, Object>) property.getValue();
+			if (propertySchema.containsKey("const")) {
+				arguments.put(property.getKey(), propertySchema.get("const"));
+			} else if (propertySchema.containsKey("default")) {
+				arguments.put(property.getKey(), propertySchema.get("default"));
 			}
 		}
 	}
@@ -1264,14 +1296,13 @@ public final class MCPUtility {
 	 * AgentToolDecisionHandler (HITL approve/edit).
 	 */
 	public static Object executeTool(String engineId, String toolName, Map<String, Object> paramMap, Insight insight) {
-		// -- Insight MCP: virtual toolbox backed by the room's insight assets ------
-		if (INSIGHT_MCP_ID.equals(engineId)) {
-			if (insight == null) {
-				throw new IllegalArgumentException("Caller insight is required to execute an insight MCP tool");
-			}
-			InternalMCP insightMcp = InternalMCP.genFromInsightFolder(insight.getInsightFolder());
+		// A room-owned internal MCP publishes the room ID as its engine ID. The
+		// caller must already be authenticated and bound to that same room.
+		if (engineId != null && insight != null && engineId.equals(insight.getRoomId())) {
+			InternalMCP internalMcp = InternalMCP.genFromFolder(insight.getInsightFolder(), engineId,
+					"Room Recordings", INTERNAL_MCP_TYPE);
 			String cleaned = removeEngineIdFromToolsMethodName(engineId, toolName);
-			return insightMcp.callTool(cleaned, paramMap, insight);
+			return internalMcp.callTool(cleaned, paramMap, insight);
 		}
 
 		IEngine engine = null;

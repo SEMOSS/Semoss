@@ -156,8 +156,9 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 
 			// Execute the step and capture result
 			PlaywrightStep stepToExecute = step;
-			if (step.type() == PlaywrightStepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
-				stepToExecute = new PlaywrightStep(step, inputs.get(step.label()).toString());
+			Object inputValue = resolveInputValue(step, inputs);
+			if (step.type() == PlaywrightStepType.TYPE && inputValue != null) {
+				stepToExecute = new PlaywrightStep(step, inputValue.toString());
 			}
 
 			Map<String, Object> executionResult;
@@ -227,6 +228,31 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		}
 
 		return response;
+	}
+
+	/**
+	 * Resolves a TYPE override using every parameter-key format published by the
+	 * Playwright MCP generators. Exact labels remain supported for legacy callers.
+	 */
+	private static Object resolveInputValue(PlaywrightStep step, Map<String, Object> inputs) {
+		if (step.type() != PlaywrightStepType.TYPE || inputs == null || inputs.isEmpty()) {
+			return null;
+		}
+		if (step.label() != null && inputs.containsKey(step.label())) {
+			return inputs.get(step.label());
+		}
+		if (step.label() != null) {
+			String sanitizedLabel = MakePlaywrightRecordingsMCPReactor.sanitize(step.label());
+			if (inputs.containsKey(sanitizedLabel)) {
+				return inputs.get(sanitizedLabel);
+			}
+		}
+		String stepKey = "step_" + step.id();
+		if (inputs.containsKey(stepKey)) {
+			return inputs.get(stepKey);
+		}
+		String numericKey = String.valueOf(step.id());
+		return inputs.get(numericKey);
 	}
 
 	/**

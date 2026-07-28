@@ -908,7 +908,18 @@ public class Room implements Serializable {
 						if (mcpMap.containsKey("id")) {
 							String id = (String) mcpMap.get("id");
 							if (!ensureUnique.contains(id)) {
-								aggregated.addAll(getToolJson(id, maxLength));
+								if (MCPUtility.INTERNAL_MCP_TYPE.equals(mcpMap.get("type"))) {
+									if (!this.getId().equals(id)) {
+										throw new IllegalArgumentException(
+												"Internal MCP id must match its owning room");
+									}
+									String name = mcpMap.get("name") instanceof String
+											? (String) mcpMap.get("name")
+											: "Room Recordings";
+									aggregated.addAll(getInternalToolJson(id, name, maxLength));
+								} else {
+									aggregated.addAll(getToolJson(id, maxLength));
+								}
 								ensureUnique.add(id);
 							}
 						} else {
@@ -986,66 +997,70 @@ public class Room implements Serializable {
 	 * @return list of non-disabled tool definition maps
 	 */
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
-		// insight level MCPs
-		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
-			InternalMCP insightMcp = InternalMCP.genFromInsightFolder(this.getRoomFolderPath());
-			JSONObject toolMap = insightMcp.getMCPTools();
-			if (toolMap == null) {
-				return new ArrayList<>();
-			}
-			Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap()
-					: new HashMap<>();
-			Map<Integer, String> originalNames = new HashMap<>();
-			if (toolMap.has("tools")) {
-				JSONArray toolsBefore = toolMap.getJSONArray("tools");
-				for (int i = 0; i < toolsBefore.length(); i++) {
-					JSONObject toolBefore = toolsBefore.optJSONObject(i);
-					if (toolBefore != null && toolBefore.has("name")) {
-						originalNames.put(i, toolBefore.getString("name"));
-					}
-				}
-			}
-			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.INSIGHT_MCP_ID, toolMap,
-					maxLength);
-			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
-				return new ArrayList<>();
-			}
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
-			List<Map<String, Object>> result = new ArrayList<>();
-			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.optJSONObject(i);
-				if (toolObj == null) {
-					continue;
-				}
-				JSONObject meta = toolObj.optJSONObject("_meta");
-				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
-				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
-					Map<String, Object> entry = toolObj.toMap();
-					result.add(entry);
-					String llmName = toolObj.getString("name");
-					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
-					Object rawMeta = entry.get("_meta");
-					if (rawMeta instanceof Map) {
-						lookupMeta.putAll((Map<String, Object>) rawMeta);
-					}
-					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.INSIGHT_MCP_ID);
-					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
-
-					Map<String, Object> lookupEntry = new HashMap<>();
-					if (entry.containsKey("title")) {
-						lookupEntry.put("title", entry.get("title"));
-					}
-					if (entry.containsKey("description")) {
-						lookupEntry.put("description", entry.get("description"));
-					}
-					lookupEntry.put("_meta", lookupMeta);
-					toolLookupByLLMName.put(llmName, lookupEntry);
-				}
-			}
-			return result;
+	private List<Map<String, Object>> getInternalToolJson(String engineId, String engineName, int maxLength) {
+		InternalMCP internalMcp = InternalMCP.genFromFolder(this.getRoomFolderPath(), engineId, engineName,
+				MCPUtility.INTERNAL_MCP_TYPE);
+		JSONObject toolMap = internalMcp.getMCPTools();
+		if (toolMap == null) {
+			return new ArrayList<>();
 		}
+		Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap()
+				: new HashMap<>();
+		Map<Integer, String> originalNames = new HashMap<>();
+		if (toolMap.has("tools")) {
+			JSONArray toolsBefore = toolMap.getJSONArray("tools");
+			for (int i = 0; i < toolsBefore.length(); i++) {
+				JSONObject toolBefore = toolsBefore.optJSONObject(i);
+				if (toolBefore != null && toolBefore.has("name")) {
+					originalNames.put(i, toolBefore.getString("name"));
+				}
+			}
+		}
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength);
+		if (updatedToolMap == null || !updatedToolMap.has("tools")) {
+			return new ArrayList<>();
+		}
+		JSONArray arr = updatedToolMap.getJSONArray("tools");
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (int i = 0; i < arr.length(); i++) {
+			JSONObject toolObj = arr.optJSONObject(i);
+			if (toolObj == null) {
+				continue;
+			}
+			JSONObject meta = toolObj.optJSONObject("_meta");
+			Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
+			if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+				Map<String, Object> entry = toolObj.toMap();
+				result.add(entry);
+				String llmName = toolObj.getString("name");
+				Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
+				Object rawMeta = entry.get("_meta");
+				if (rawMeta instanceof Map) {
+					lookupMeta.putAll((Map<String, Object>) rawMeta);
+				}
+				lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, engineId);
+				lookupMeta.put(MCPUtility.SMSS_ENGINE_TYPE, MCPUtility.INTERNAL_MCP_TYPE);
+				lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
 
+				Map<String, Object> lookupEntry = new HashMap<>();
+				if (entry.containsKey("title")) {
+					lookupEntry.put("title", entry.get("title"));
+				}
+				if (entry.containsKey("description")) {
+					lookupEntry.put("description", entry.get("description"));
+				}
+				if (entry.containsKey("inputSchema")) {
+					lookupEntry.put("inputSchema", entry.get("inputSchema"));
+				}
+				lookupEntry.put("_meta", lookupMeta);
+				toolLookupByLLMName.put(llmName, lookupEntry);
+			}
+		}
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
 		// normal engine/project mcp
 		IEngine engine = null;
 		try {
@@ -1118,6 +1133,9 @@ public class Room implements Serializable {
 					}
 					if (toolMapEntry.containsKey("description")) {
 						lookupEntry.put("description", toolMapEntry.get("description"));
+					}
+					if (toolMapEntry.containsKey("inputSchema")) {
+						lookupEntry.put("inputSchema", toolMapEntry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
 					toolLookupByLLMName.put(llmFacingName, lookupEntry);

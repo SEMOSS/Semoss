@@ -51,7 +51,7 @@ import com.google.gson.Gson;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.Utility;
 
-class RoomInsightMCPTest {
+class RoomInternalMCPTest {
 
 	@TempDir
 	Path tempDir;
@@ -71,7 +71,8 @@ class RoomInsightMCPTest {
 				    "description": "Replay checkout",
 				    "inputSchema": {"type": "object", "properties": {}},
 				    "_meta": {
-				      "SMSS_ENGINE_ID": "__insight__",
+				      "SMSS_ENGINE_ID": "room-mcp-test",
+				      "SMSS_ENGINE_TYPE": "INTERNAL",
 				      "SMSS_PROJECT_ID": "playwright-project",
 				      "SMSS_FUNCTION_NAME": "PlayPlaywrightSocketsRoomRecording",
 				      "SMSS_MCP_EXECUTION": "ask",
@@ -82,9 +83,9 @@ class RoomInsightMCPTest {
 				""");
 
 		Map<String, Object> options = Map.of("mcp", List.of(Map.of(
-				"type", "INSIGHT",
-				"id", MCPUtility.INSIGHT_MCP_ID,
-				"name", MCPUtility.INSIGHT_MCP_NAME)));
+				"type", MCPUtility.INTERNAL_MCP_TYPE,
+				"id", roomId,
+				"name", "Room Recordings")));
 		Timestamp now = Timestamp.from(Instant.now());
 		Room room;
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
@@ -99,7 +100,8 @@ class RoomInsightMCPTest {
 		Map<String, Object> lookup = room.getToolLookupByLLMName().get(llmName);
 		assertTrue(lookup.containsKey("_meta"));
 		Map<String, Object> meta = (Map<String, Object>) lookup.get("_meta");
-		assertEquals(MCPUtility.INSIGHT_MCP_ID, meta.get(MCPUtility.SMSS_ENGINE_ID));
+		assertEquals(roomId, meta.get(MCPUtility.SMSS_ENGINE_ID));
+		assertEquals(MCPUtility.INTERNAL_MCP_TYPE, meta.get(MCPUtility.SMSS_ENGINE_TYPE));
 		assertEquals("playwright-project", meta.get(MCPUtility.SMSS_PROJECT_ID));
 		assertEquals("play_checkout", meta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME));
 	}

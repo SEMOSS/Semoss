@@ -134,7 +134,7 @@ public final class AgentToolDecisionHandler {
 		}
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
-		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
+		if (roomId != null && roomId.equals(engineId)) {
 			Room executionRoom = RoomUtils.getOrLoadRoom(roomId, this.insight);
 			this.insight.setRoomForInsight(executionRoom);
 		}

@@ -105,9 +105,9 @@ public class RunMCPToolReactor extends AbstractReactor {
 		}
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
-		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
-			String roomId = this.keyValue.get(ROOM_ID_KEY);
-			if (roomId != null && !roomId.isBlank()) {
+		String roomId = this.keyValue.get(ROOM_ID_KEY);
+		if (roomId != null && roomId.equals(engineId)) {
+			if (!roomId.isBlank()) {
 				Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 				this.insight.setRoomForInsight(room);
 			}

@@ -56,6 +56,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.room.AddInternalMCPToRoomReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -106,8 +107,9 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 	}
 
 	private NounMetadata generateRoomMcp(String roomId, String portalProjectId) {
+		Room room;
 		try {
-			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 			this.insight.setRoomForInsight(room);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Could not bind to room " + roomId, e);
@@ -123,7 +125,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		}
 
 		File recordingsDir = new File(assetFolder + ROOM_RECORDINGS_REL);
-		JSONArray tools = createRecordingTools(recordingsDir, portalProjectId, true);
+		JSONArray tools = createRecordingTools(recordingsDir, portalProjectId, roomId);
 		if (tools.isEmpty()) {
 			throw new IllegalArgumentException(
 					"No valid Playwright recordings found under " + ROOM_RECORDINGS_REL);
@@ -131,7 +133,11 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 
 		JSONObject mcpJson = createMcpDocument(tools, false);
 		FileSystemUtil.saveAssetFiles(assetFolder, List.of(OUTPUT_REL), List.of(mcpJson.toString(4)));
+		boolean registered = AddInternalMCPToRoomReactor.registerRoomInternalMcp(
+				this.insight.getUser(), room, roomId);
 		classLogger.info("Saved room Playwright MCP with {} tool(s) to {}{}", tools.length(), assetFolder, OUTPUT_REL);
+		classLogger.info("Room Playwright MCP {} in room options for '{}'",
+				registered ? "registered" : "already registered", roomId);
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 
@@ -150,7 +156,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		String assetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		Path recordingsPath = PlaywrightUtility.initRecordingsDir(projectId);
-		JSONArray tools = createRecordingTools(recordingsPath.toFile(), projectId, false);
+		JSONArray tools = createRecordingTools(recordingsPath.toFile(), projectId, "");
 		tools = prepend(tools, createOpenPlaywrightSocketsTool());
 
 		JSONObject mcpJson = createMcpDocument(tools, true);
@@ -170,7 +176,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 
-	private JSONArray createRecordingTools(File recordingsDir, String projectId, boolean roomMode) {
+	private JSONArray createRecordingTools(File recordingsDir, String projectId, String roomId) {
 		File[] files = recordingsDir.isDirectory()
 				? recordingsDir.listFiles((directory, name) -> name.toLowerCase().endsWith(".json"))
 				: null;
@@ -182,7 +188,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		JSONArray tools = new JSONArray();
 		for (File file : files) {
 			try {
-				tools.put(createToolFromRecording(file, projectId, roomMode));
+				tools.put(createToolFromRecording(file, projectId, roomId));
 			} catch (Exception e) {
 				classLogger.warn("Skipping recording file '{}'; could not parse it", file.getName(), e);
 			}
@@ -190,7 +196,8 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		return tools;
 	}
 
-	private JSONObject createToolFromRecording(File file, String projectId, boolean roomMode) throws Exception {
+	private JSONObject createToolFromRecording(File file, String projectId, String roomId) throws Exception {
+		boolean roomMode = hasText(roomId);
 		StepsEnvelope envelope = json.readValue(file, StepsEnvelope.class);
 		String fileName = file.getName();
 		String fallbackTitle = fileName.replaceFirst("(?i)\\.json$", "");
@@ -263,10 +270,10 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 			meta.put("SMSS_PROJECT_ID", projectId);
 		}
 		if (roomMode) {
-			meta.put("SMSS_ENGINE_ID", MCPUtility.INSIGHT_MCP_ID);
+			meta.put("SMSS_ENGINE_ID", roomId);
 			// Execution belongs to the room insight, but the sidebar UI is hosted
 			// by the Playwright Sockets project.
-			meta.put("SMSS_ENGINE_TYPE", "PROJECT");
+			meta.put("SMSS_ENGINE_TYPE", MCPUtility.INTERNAL_MCP_TYPE);
 		}
 
 		JSONObject tool = new JSONObject()
@@ -395,7 +402,7 @@ public class MakePlaywrightRecordingsMCPReactor extends AbstractReactor {
 		return tools;
 	}
 
-	private static String sanitize(String value) {
+	static String sanitize(String value) {
 		String sanitized = value.replaceAll("[^a-zA-Z0-9\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase();
 		return sanitized.isEmpty() || !Character.isLetter(sanitized.charAt(0)) ? "tool_" + sanitized : sanitized;
 	}

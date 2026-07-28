@@ -73,15 +73,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Safely adds the {@link MCPUtility#INSIGHT_MCP_ID} entry to a room's
- * {@code options.mcp} list without overwriting any other room settings.
+ * Safely adds the room's folder-backed internal MCP to {@code options.mcp}
+ * without overwriting any other room settings.
  *
  * <p>
  * Unlike a raw {@code UpdateRoomOptions()} call (which replaces the entire
  * OPTIONS blob), this reactor does a read-modify-write:
  * <ol>
  * <li>Read current room OPTIONS from the database.</li>
- * <li>Add {@code {type:"INSIGHT", id:"__insight__", name:"Room Recordings"}} to
+ * <li>Add {@code {type:"INTERNAL", id:roomId, name:"Room Recordings"}} to
  * the {@code mcp} array if not already present.</li>
  * <li>Write the merged OPTIONS back.</li>
  * </ol>
@@ -90,14 +90,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Pixel usage:
  * 
  * <pre>
- * AddInsightMCPToRoom(roomId = "...");
+ * AddInternalMCPToRoom(roomId = "...");
  * </pre>
  */
-public class AddInsightMCPToRoomReactor extends AbstractReactor {
+public class AddInternalMCPToRoomReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AddInsightMCPToRoomReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AddInternalMCPToRoomReactor.class);
 
-	public AddInsightMCPToRoomReactor() {
+	public AddInternalMCPToRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -118,8 +118,38 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 
 		String userId = user.getPrimaryLoginToken().getId();
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		boolean added = registerRoomInternalMcp(user, room, roomId);
 
-		// -- Read existing options ----------------------------------------------
+		classLogger.info("AddInternalMCPToRoom: internal MCP {} for room '{}'",
+				added ? "registered" : "already registered", roomId);
+		Map<String, Object> result = new HashMap<>();
+		result.put("added", added);
+		result.put("roomId", roomId);
+		return new NounMetadata(result, PixelDataType.MAP);
+	}
+
+	/**
+	 * Registers the folder-backed MCP owned by a room without replacing any
+	 * existing room options or MCP entries.
+	 *
+	 * @param user   authenticated room user
+	 * @param room   loaded room whose in-memory options must also be refreshed
+	 * @param roomId room identifier and internal MCP identifier
+	 * @return {@code true} when a new entry was added
+	 */
+	@SuppressWarnings("unchecked")
+	public static boolean registerRoomInternalMcp(User user, Room room, String roomId) {
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
+		if (room == null) {
+			throw new IllegalArgumentException("A loaded room is required");
+		}
+		if (roomId == null || roomId.isBlank()) {
+			throw new IllegalArgumentException("roomId is required");
+		}
+
+		String userId = user.getPrimaryLoginToken().getId();
 		List<Map<String, Object>> rows = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
 
 		Map<String, Object> options = new HashMap<>();
@@ -127,7 +157,7 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 			options = new HashMap<>((Map<String, Object>) rows.get(0).get("OPTIONS"));
 		}
 
-		// -- Merge insight MCP entry --------------------------------------------
+		// -- Merge the room-owned internal MCP entry ----------------------------
 		List<Map<String, Object>> mcpList = new ArrayList<>();
 		Object existingMcp = options.get("mcp");
 		if (existingMcp instanceof List) {
@@ -138,46 +168,38 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 			}
 		}
 
-		boolean alreadyPresent = mcpList.stream().anyMatch(m -> MCPUtility.INSIGHT_MCP_ID.equals(m.get("id")));
+		boolean alreadyPresent = mcpList.stream().anyMatch(
+				m -> roomId.equals(m.get("id")) && MCPUtility.INTERNAL_MCP_TYPE.equals(m.get("type")));
 
 		if (alreadyPresent) {
 			// Repair a stale in-memory Room even when the database is already correct.
 			room.setOptionsMap(options);
-			classLogger.info("AddInsightMCPToRoom: __insight__ already in room '{}' - no change", roomId);
-			Map<String, Object> result = new HashMap<>();
-			result.put("added", false);
-			result.put("roomId", roomId);
-			return new NounMetadata(result, PixelDataType.MAP);
+			return false;
 		}
 
-		Map<String, Object> insightEntry = new HashMap<>();
-		insightEntry.put("type", "INSIGHT");
-		insightEntry.put("id", MCPUtility.INSIGHT_MCP_ID);
-		insightEntry.put("name", MCPUtility.INSIGHT_MCP_NAME);
-		mcpList.add(insightEntry);
+		Map<String, Object> internalEntry = new HashMap<>();
+		internalEntry.put("type", MCPUtility.INTERNAL_MCP_TYPE);
+		internalEntry.put("id", roomId);
+		internalEntry.put("name", "Room Recordings");
+		mcpList.add(internalEntry);
 
 		options.put("mcp", mcpList);
 
 		// -- Write merged options back ------------------------------------------
 		ModelInferenceLogsUtils.setRoomOptions(roomId, userId, options);
 		room.setOptionsMap(options);
-
-		classLogger.info("AddInsightMCPToRoom: added __insight__ MCP to room '{}'", roomId);
-		Map<String, Object> result = new HashMap<>();
-		result.put("added", true);
-		result.put("roomId", roomId);
-		return new NounMetadata(result, PixelDataType.MAP);
+		return true;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Safely adds the insight MCP (__insight__) to a room's tool list without overwriting other room settings.";
+		return "Safely registers a room-owned internal MCP without overwriting other room settings.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The ID of the Playground room to add the insight MCP to.";
+			return "The ID of the Playground room whose internal MCP should be registered.";
 		}
 		return super.getDescriptionForKey(key);
 	}

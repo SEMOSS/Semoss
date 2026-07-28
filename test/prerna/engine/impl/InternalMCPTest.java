@@ -62,10 +62,11 @@ class InternalMCPTest {
 				}
 				""");
 
-		JSONObject result = InternalMCP.genFromInsightFolder(tempDir.toString()).getMCPTools();
+		JSONObject result = InternalMCP.genFromFolder(tempDir.toString(), "room-123", "Room Recordings",
+				MCPUtility.INTERNAL_MCP_TYPE).getMCPTools();
 
 		assertEquals("play_checkout", result.getJSONArray("tools").getJSONObject(0).getString("name"));
-		assertEquals(MCPUtility.INSIGHT_MCP_ID,
+		assertEquals("room-123",
 				result.getJSONObject("_meta").getString(MCPUtility.SMSS_ENGINE_ID));
 	}
 
@@ -90,13 +91,15 @@ class InternalMCPTest {
 				}
 				""");
 
-		JSONObject result = InternalMCP.genFromInsightFolder(tempDir.toString()).getMCPTools();
+		JSONObject result = InternalMCP.genFromFolder(tempDir.toString(), "room-123", "Room Recordings",
+				MCPUtility.INTERNAL_MCP_TYPE).getMCPTools();
 
 		assertEquals(2, result.getJSONArray("tools").length());
 	}
 
 	@Test
 	void rejectsABlankFolder() {
-		assertThrows(IllegalArgumentException.class, () -> InternalMCP.genFromInsightFolder("  "));
+		assertThrows(IllegalArgumentException.class,
+				() -> InternalMCP.genFromFolder("  ", "room-123", "Room Recordings", MCPUtility.INTERNAL_MCP_TYPE));
 	}
 }

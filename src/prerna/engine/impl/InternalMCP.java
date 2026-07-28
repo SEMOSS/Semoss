@@ -30,7 +30,6 @@ package prerna.engine.impl;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -74,11 +73,10 @@ public class InternalMCP implements IMCP {
 
 	/**
 	 * Key used to namespace python module state in the shared insight globals. This
-	 * is deliberately NOT {@link #engineId}: folder-backed MCPs may share a
-	 * published id (every room publishes {@code __insight__}) while pointing at
-	 * different folders, and a shared key would make concurrent rooms clobber each
-	 * other's loaded driver. Engines keep their id so existing aliases are
-	 * unchanged.
+	 * is deliberately NOT {@link #engineId}: folder-backed MCPs are isolated by
+	 * their authenticated asset folders, preventing concurrent scopes from
+	 * clobbering each other's loaded driver. Engines keep their id so existing
+	 * aliases are unchanged.
 	 */
 	private final String scopeId;
 
@@ -146,9 +144,8 @@ public class InternalMCP implements IMCP {
 	 * against {@code <assetsFolder>/py} using the insight's python translator.
 	 *
 	 * <p>
-	 * {@code id} does not need to be unique. Several scopes may legitimately
-	 * publish the same id (every room publishes {@code __insight__}); python module
-	 * state is namespaced off the folder instead. See {@link #scopeId}.
+	 * Python module state is namespaced off the folder instead of the published
+	 * engine ID. See {@link #scopeId}.
 	 *
 	 * @param assetsFolder absolute path to the folder containing {@code mcp/}
 	 * @param id           id published as SMSS_ENGINE_ID / SMSS_PROJECT_ID
@@ -158,26 +155,6 @@ public class InternalMCP implements IMCP {
 	 */
 	public static InternalMCP genFromFolder(String assetsFolder, String id, String name, String type) {
 		return new InternalMCP(null, assetsFolder, id, name, type);
-	}
-
-	/**
-	 * Builds the virtual MCP backed by a room/insight asset folder, published under
-	 * {@link MCPUtility#INSIGHT_MCP_ID}.
-	 *
-	 * <p>
-	 * Every room publishes the same sentinel id, which is fine: python module state
-	 * is namespaced off the folder, not the id. See {@link #scopeId}.
-	 *
-	 * @param insightFolder the room or insight folder containing {@code mcp/}
-	 * @return an MCP backed by that folder
-	 */
-	public static InternalMCP genFromInsightFolder(String insightFolder) {
-		if (insightFolder == null || insightFolder.isBlank()) {
-			throw new IllegalArgumentException("Insight folder must not be blank for an insight MCP");
-		}
-		String normalized = Paths.get(insightFolder).toAbsolutePath().normalize().toString();
-		return genFromFolder(normalized, MCPUtility.INSIGHT_MCP_ID, MCPUtility.INSIGHT_MCP_NAME,
-				MCPUtility.INSIGHT_MCP_TYPE);
 	}
 
 	private String pyMcpPath() {
