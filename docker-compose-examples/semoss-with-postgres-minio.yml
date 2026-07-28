@@ -1,3 +1,5 @@
+name: semoss-with-postgres-minio
+
 services:
   semoss:
     image: quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest
@@ -94,23 +96,26 @@ services:
       CUSTOM_AUDITLOGS_USERNAME: "myuser"
       CUSTOM_AUDITLOGS_PASSWORD: "mypassword"
       CUSTOM_AUDITLOGS_CONNECTION_URL: "jdbc:postgresql://db:5432/semoss_audit?currentSchema=public"
+
+      # cloud storage
+      SEMOSS_IS_CLUSTER: 'true'
+      SEMOSS_STORAGE_PROVIDER: 'minio'
+      MINIO_REGION: 'us-east'
+      MINIO_BUCKET: 'semoss'
+      MINIO_ACCESS_KEY: 'minioadmin'
+      MINIO_SECRET_KEY: 'minioadmin'
+      MINIO_ENDPOINT: 'http://minio:9000'
     command: /bin/bash -c "runCS.sh"
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - semoss_db:/opt/semosshome/db
-      - semoss_project:/opt/semosshome/project
-      - semoss_model:/opt/semosshome/model
-      - semoss_vector:/opt/semosshome/vector
-      - semoss_storage:/opt/semosshome/storage
-      - semoss_function:/opt/semosshome/function
-      - semoss_guardrail:/opt/semosshome/guardrail
+      minio:
+        condition: service_healthy
     networks:
       - mynetwork
 
   db:
-    image: postgres:latest
+    image: postgres:18
     container_name: postgres
     restart: always
     environment:
@@ -120,7 +125,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U myuser"]
@@ -130,15 +135,38 @@ services:
     networks:
       - mynetwork
 
+  # cloud storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web UI
+    environment:
+      MINIO_ROOT_USER: 'minioadmin'
+      MINIO_ROOT_PASSWORD: 'minioadmin'
+    volumes:
+      - minio_data:/data
+      - ./init-bucket.sh:/usr/local/bin/init-bucket.sh
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/docker-entrypoint.sh minio server /data --console-address :9001 & 
+      sleep 10 && chmod +x /usr/local/bin/init-bucket.sh && /usr/local/bin/init-bucket.sh && 
+      wait"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - mynetwork
+
 volumes:
-  semoss_db:
-  semoss_project:
-  semoss_model:
-  semoss_vector:
-  semoss_storage:
-  semoss_function:
-  semoss_guardrail:
   pgdata:
+  minio_data:
 
 networks:
+  # shared with the engines/ services so they can reach these containers by name
   mynetwork:
+    external: true
+    name: semoss-net
