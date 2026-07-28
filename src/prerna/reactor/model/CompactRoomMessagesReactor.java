@@ -141,6 +141,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
 
+		// Compaction must be anchored to a completed assistant response. An input
+		// message is not a valid conversation boundary for either pruning or summary.
+		if (!branch.isEmpty() && branch.getLast() instanceof InputMessage) {
+			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
+					+ " is an input message. Compact after the assistant has responded.");
+		}
+
 		// Do not compact against a message that still has unanswered tool calls
 		if (!branch.isEmpty() && branch.getLast().hasToolCallPart()) {
 			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
