@@ -483,6 +483,12 @@ public class Constants {
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
+	public static final String MODEL_PROVIDER = "MODEL_PROVIDER";
+	public static final String SERVING_PROVIDER = "SERVING_PROVIDER";
+	public static final String MODEL_CAPABILITY = "CAPABILITY";
+	public static final String INPUT_MODALITIES = "INPUT_MODALITIES";
+	public static final String OUTPUT_MODALITIES = "OUTPUT_MODALITIES";
+	public static final String BUILTIN_TOOLS = "BUILTIN_TOOLS";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";

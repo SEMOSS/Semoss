@@ -745,6 +745,32 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// MODELMETADATA
+			colNames = new String[] { "ENGINEID", "MODELID", "MODELPROVIDER", "SERVINGPROVIDER", "CAPABILITY",
+					"INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXOUTPUTTOKENS", "BUILTINTOOLS" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME,
+					CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", CLOB_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "MODELMETADATA", database, schema)) {
+				String sql = queryUtil.createTable("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.indexExists(securityDb, "MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", "ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",
