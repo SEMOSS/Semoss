@@ -81,12 +81,6 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		try {
-			validateForPersistence(room, messages);
-		} catch (Exception e) {
-			classLogger.warn("Failed to validate messages for persistence for room={}", room.getId(), e);
-		}
-
 		warmRedisProjection(room, projection);
 		return messages;
 	}
@@ -131,7 +125,6 @@ public final class RoomMessageStore {
 			}
 			List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 			List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-			validateForPersistence(room, messages);
 			room.setMessages(messages);
 			room.setMessagesJson(projection);
 			return true;
@@ -164,11 +157,7 @@ public final class RoomMessageStore {
 		if (sanitized != messages) {
 			room.setMessages(sanitized);
 		}
-		try {
-			validateForPersistence(room, room.getMessages());
-		} catch (Exception e) {
-			classLogger.warn("Failed to validate messages for provider payload for room={}", room.getId(), e);
-		}
+		validateForPersistence(room, room.getMessages());
 	}
 
 	public static boolean persist(Room room, String userId) {
@@ -231,12 +220,7 @@ public final class RoomMessageStore {
 
 	private static void validateSerializedProjection(Room room, String messageHistory) {
 		List<AbstractMessage> parsed = parseWithoutSanitizing(room, messageHistory);
-		try {
-			validateForPersistence(room, parsed);
-		} catch (Exception e) {
-			classLogger.warn("Failed to validate serialized projection for room={}",
-					room != null ? room.getId() : "<unknown>", e);
-		}
+		validateForPersistence(room, parsed);
 	}
 
 	private static void validateForPersistence(Room room, List<AbstractMessage> messages) {
@@ -273,12 +257,7 @@ public final class RoomMessageStore {
 	}
 
 	private static void validateProviderPayload(Room room, List<AbstractMessage> messages) {
-		try {
-			validateForPersistence(room, messages);
-		} catch (Exception e) {
-			classLogger.warn("Failed to validate messages for provider payload for room={}",
-					room != null ? room.getId() : "<unknown>", e);
-		}
+		validateForPersistence(room, messages);
 
 		Set<String> toolCallIds = new HashSet<>();
 		Set<String> toolResultIds = new HashSet<>();
