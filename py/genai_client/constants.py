@@ -128,3 +128,50 @@ class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
     response: List[float]
     response_tokens: int = 0
     prompt_tokens: int = 0
+
+
+class EmbeddingsModelEngineResponse2(BaseModel):
+    response: List[List[float]]
+    response_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInResponse"
+    )
+    prompt_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInPrompt"
+    )
+    metadata: Optional[Dict[str, Any]] = None
+
+    model_config = {"populate_by_name": True, "serialize_by_alias": True}
+
+
+class MultiModalEmbeddingItem(BaseModel):
+    """A single per-input embedding result kept at its original input index.
+
+    On success ``embedding`` is populated; when the input failed (currently only
+    normalization failures that happen before the request is sent) ``error`` is
+    populated instead. ``position`` is the 0-based index within that modality's
+    input list, so errors line up with the inputs the caller provided.
+    """
+
+    position: int
+    embedding: Optional[List[float]] = None
+    error: Optional[str] = None
+    truncated: Optional[bool] = None
+
+
+class MultiModalEmbeddingsResponse(BaseModel):
+    """Embeddings response broken out by modality.
+
+    Each list is aligned 1:1 (by position) with the corresponding input list, so
+    a normalization error for, say, the 2nd image occupies index 1 of ``image``
+    while the successfully embedded images keep their original slots.
+    """
+
+    text: List[MultiModalEmbeddingItem] = Field(default_factory=list)
+    image: List[MultiModalEmbeddingItem] = Field(default_factory=list)
+    video: List[MultiModalEmbeddingItem] = Field(default_factory=list)
+    prompt_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInPrompt"
+    )
+    metadata: Optional[Dict[str, Any]] = None
+
+    model_config = {"populate_by_name": True, "serialize_by_alias": True}

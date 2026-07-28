@@ -81,11 +81,6 @@ class BedrockEmbedder(AbstractEmbedder):
             response_tokens=0,
         )
 
-    def image_embeddings_call(
-        self, images_to_embed: List[str], **kwargs
-    ) -> EmbeddingsModelEngineResponse:
-        raise NotImplementedError("This model does not support image embeddings.")
-
     def createJsonObjForModel(self, text):
         if "amazon.titan-embed-text" in self.model_name:
             return {"inputText": text}
