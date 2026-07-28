@@ -32,6 +32,7 @@
 package prerna.engine.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,7 +43,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import prerna.reactor.agent.mcp.MCPUtility;
 
-class InsightMCPTest {
+class InternalMCPTest {
 
 	@TempDir
 	Path tempDir;
@@ -61,10 +62,41 @@ class InsightMCPTest {
 				}
 				""");
 
-		JSONObject result = new InsightMCP(tempDir.toString()).getMCPTools();
+		JSONObject result = InternalMCP.genFromInsightFolder(tempDir.toString()).getMCPTools();
 
 		assertEquals("play_checkout", result.getJSONArray("tools").getJSONObject(0).getString("name"));
-		assertEquals(InsightMCP.INSIGHT_MCP_ID,
+		assertEquals(MCPUtility.INSIGHT_MCP_ID,
 				result.getJSONObject("_meta").getString(MCPUtility.SMSS_ENGINE_ID));
+	}
+
+	@Test
+	void mergesPythonAndPixelToolsFromTheSameFolder() throws Exception {
+		Path mcpDir = tempDir.resolve("mcp");
+		Files.createDirectories(mcpDir);
+		Files.writeString(mcpDir.resolve("py_mcp.json"), """
+				{
+				  "tools": [{
+				    "name": "summarize",
+				    "inputSchema": {"type": "object", "properties": {}}
+				  }]
+				}
+				""");
+		Files.writeString(mcpDir.resolve("pixel_mcp.json"), """
+				{
+				  "tools": [{
+				    "name": "play_checkout",
+				    "inputSchema": {"type": "object", "properties": {}}
+				  }]
+				}
+				""");
+
+		JSONObject result = InternalMCP.genFromInsightFolder(tempDir.toString()).getMCPTools();
+
+		assertEquals(2, result.getJSONArray("tools").length());
+	}
+
+	@Test
+	void rejectsABlankFolder() {
+		assertThrows(IllegalArgumentException.class, () -> InternalMCP.genFromInsightFolder("  "));
 	}
 }

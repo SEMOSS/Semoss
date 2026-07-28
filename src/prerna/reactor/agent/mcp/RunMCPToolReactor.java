@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
@@ -106,7 +105,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		}
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
-		if (InsightMCP.INSIGHT_MCP_ID.equals(engineId)) {
+		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
 			String roomId = this.keyValue.get(ROOM_ID_KEY);
 			if (roomId != null && !roomId.isBlank()) {
 				Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);

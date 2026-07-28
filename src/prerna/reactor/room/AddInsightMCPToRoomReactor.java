@@ -63,31 +63,34 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.engine.impl.InsightMCP;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Safely adds the {@link InsightMCP#INSIGHT_MCP_ID} entry to a room's
+ * Safely adds the {@link MCPUtility#INSIGHT_MCP_ID} entry to a room's
  * {@code options.mcp} list without overwriting any other room settings.
  *
- * <p>Unlike a raw {@code UpdateRoomOptions()} call (which replaces the entire
+ * <p>
+ * Unlike a raw {@code UpdateRoomOptions()} call (which replaces the entire
  * OPTIONS blob), this reactor does a read-modify-write:
  * <ol>
- *   <li>Read current room OPTIONS from the database.</li>
- *   <li>Add {@code {type:"INSIGHT", id:"__insight__", name:"Room Recordings"}}
- *       to the {@code mcp} array if not already present.</li>
- *   <li>Write the merged OPTIONS back.</li>
+ * <li>Read current room OPTIONS from the database.</li>
+ * <li>Add {@code {type:"INSIGHT", id:"__insight__", name:"Room Recordings"}} to
+ * the {@code mcp} array if not already present.</li>
+ * <li>Write the merged OPTIONS back.</li>
  * </ol>
  *
- * <p>Pixel usage:
+ * <p>
+ * Pixel usage:
+ * 
  * <pre>
- *   AddInsightMCPToRoom(roomId="...");
+ * AddInsightMCPToRoom(roomId = "...");
  * </pre>
  */
 public class AddInsightMCPToRoomReactor extends AbstractReactor {
@@ -116,7 +119,7 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 		String userId = user.getPrimaryLoginToken().getId();
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
-		// ── Read existing options ──────────────────────────────────────────────
+		// -- Read existing options ----------------------------------------------
 		List<Map<String, Object>> rows = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
 
 		Map<String, Object> options = new HashMap<>();
@@ -124,7 +127,7 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 			options = new HashMap<>((Map<String, Object>) rows.get(0).get("OPTIONS"));
 		}
 
-		// ── Merge insight MCP entry ────────────────────────────────────────────
+		// -- Merge insight MCP entry --------------------------------------------
 		List<Map<String, Object>> mcpList = new ArrayList<>();
 		Object existingMcp = options.get("mcp");
 		if (existingMcp instanceof List) {
@@ -135,13 +138,12 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 			}
 		}
 
-		boolean alreadyPresent = mcpList.stream()
-				.anyMatch(m -> InsightMCP.INSIGHT_MCP_ID.equals(m.get("id")));
+		boolean alreadyPresent = mcpList.stream().anyMatch(m -> MCPUtility.INSIGHT_MCP_ID.equals(m.get("id")));
 
 		if (alreadyPresent) {
 			// Repair a stale in-memory Room even when the database is already correct.
 			room.setOptionsMap(options);
-			classLogger.info("AddInsightMCPToRoom: __insight__ already in room '{}' — no change", roomId);
+			classLogger.info("AddInsightMCPToRoom: __insight__ already in room '{}' - no change", roomId);
 			Map<String, Object> result = new HashMap<>();
 			result.put("added", false);
 			result.put("roomId", roomId);
@@ -150,13 +152,13 @@ public class AddInsightMCPToRoomReactor extends AbstractReactor {
 
 		Map<String, Object> insightEntry = new HashMap<>();
 		insightEntry.put("type", "INSIGHT");
-		insightEntry.put("id", InsightMCP.INSIGHT_MCP_ID);
-		insightEntry.put("name", InsightMCP.INSIGHT_MCP_NAME);
+		insightEntry.put("id", MCPUtility.INSIGHT_MCP_ID);
+		insightEntry.put("name", MCPUtility.INSIGHT_MCP_NAME);
 		mcpList.add(insightEntry);
 
 		options.put("mcp", mcpList);
 
-		// ── Write merged options back ──────────────────────────────────────────
+		// -- Write merged options back ------------------------------------------
 		ModelInferenceLogsUtils.setRoomOptions(roomId, userId, options);
 		room.setOptionsMap(options);
 

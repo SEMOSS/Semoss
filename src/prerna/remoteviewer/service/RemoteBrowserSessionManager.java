@@ -211,7 +211,7 @@ public class RemoteBrowserSessionManager {
 			try {
 				page.navigate(requestedUrl);
 			} catch (Exception e) {
-				// Navigation failure is non-fatal — the client will see an error frame
+				// Navigation failure is non-fatal - the client will see an error frame
 				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
 						e.getMessage());
 			} finally {
