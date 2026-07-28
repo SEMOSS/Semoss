@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -77,6 +78,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.BUILTIN_TOOLS);
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
 	private static final Pattern TOOL_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
+	private static final int MODEL_METADATA_QUERY_BATCH_SIZE = 500;
 
 	private SecurityModelMetadataUtils() {
 	}
@@ -228,24 +230,60 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				return null;
 			}
 
-			Map<String, Object> metadata = new LinkedHashMap<>();
-			metadata.put("engineId", rs.getString("ENGINEID"));
-			metadata.put("modelId", rs.getString("MODELID"));
-			metadata.put("modelProvider", rs.getString("MODELPROVIDER"));
-			metadata.put("servingProvider", rs.getString("SERVINGPROVIDER"));
-			metadata.put("capability", rs.getString("CAPABILITY"));
-			metadata.put("inputModalities", parseStoredList(rs.getString("INPUTMODALITIES")));
-			metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
-			metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
-			metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
-			metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
-			return metadata;
+			return readModelMetadata(rs);
 		} catch (SQLException e) {
 			classLogger.error("Failed to retrieve model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to retrieve model metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
 		}
+	}
+
+	/**
+	 * Return model metadata keyed by engine id for the requested engines. Queries
+	 * are batched to avoid database-specific limits on IN-clause parameters.
+	 */
+	public static Map<String, Map<String, Object>> getModelMetadata(Collection<String> engineIds) {
+		Map<String, Map<String, Object>> metadataByEngine = new LinkedHashMap<>();
+		if (engineIds == null || engineIds.isEmpty()) {
+			return metadataByEngine;
+		}
+
+		List<String> normalizedEngineIds = new ArrayList<>();
+		for (String engineId : new LinkedHashSet<>(engineIds)) {
+			if (engineId != null && !engineId.trim().isEmpty()) {
+				normalizedEngineIds.add(engineId.trim());
+			}
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		for (int start = 0; start < normalizedEngineIds.size(); start += MODEL_METADATA_QUERY_BATCH_SIZE) {
+			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
+			List<String> batch = normalizedEngineIds.subList(start, end);
+			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
+			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS FROM MODELMETADATA WHERE ENGINEID IN ("
+					+ placeholders + ")";
+
+			PreparedStatement ps = null;
+			ResultSet rs = null;
+			try {
+				ps = securityDb.getPreparedStatement(sql);
+				for (int i = 0; i < batch.size(); i++) {
+					ps.setString(i + 1, batch.get(i));
+				}
+				rs = ps.executeQuery();
+				while (rs.next()) {
+					Map<String, Object> metadata = readModelMetadata(rs);
+					metadataByEngine.put((String) metadata.get("engineId"), metadata);
+				}
+			} catch (SQLException e) {
+				classLogger.error("Failed to retrieve model metadata for engines", e);
+				throw new IllegalArgumentException("Failed to retrieve model metadata", e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
+			}
+		}
+		return metadataByEngine;
 	}
 
 	public static void deleteModelMetadata(String engineId) {
@@ -394,6 +432,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static List<String> parseStoredList(String json) {
 		return json == null ? null : parseList(json);
+	}
+
+	private static Map<String, Object> readModelMetadata(ResultSet rs) throws SQLException {
+		Map<String, Object> metadata = new LinkedHashMap<>();
+		metadata.put("engineId", rs.getString("ENGINEID"));
+		metadata.put("modelId", rs.getString("MODELID"));
+		metadata.put("modelProvider", rs.getString("MODELPROVIDER"));
+		metadata.put("servingProvider", rs.getString("SERVINGPROVIDER"));
+		metadata.put("capability", rs.getString("CAPABILITY"));
+		metadata.put("inputModalities", parseStoredList(rs.getString("INPUTMODALITIES")));
+		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
+		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
+		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
+		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
+		return metadata;
 	}
 
 	private static void normalizePositiveLongProperty(Map<String, Object> details, String key) {

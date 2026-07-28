@@ -30,6 +30,7 @@ package prerna.reactor.security;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -134,6 +136,32 @@ public class MyEnginesReactor extends AbstractReactor {
 						}
 					}
 				}
+
+				try {
+					List<String> modelEngineIds = new ArrayList<>();
+					for (Map<String, Object> engine : engineInfo) {
+						if ("MODEL".equals(String.valueOf(engine.get("engine_type")))) {
+							modelEngineIds.add(engine.get("engine_id").toString());
+						}
+					}
+
+					Map<String, Map<String, Object>> modelMetadata = SecurityModelMetadataUtils
+							.getModelMetadata(modelEngineIds);
+					for (Map.Entry<String, Map<String, Object>> entry : modelMetadata.entrySet()) {
+						Integer engineIndex = index.get(entry.getKey());
+						if (engineIndex == null) {
+							continue;
+						}
+						Map<String, Object> engine = engineInfo.get(engineIndex);
+						Map<String, Object> capabilities = new LinkedHashMap<>(entry.getValue());
+						capabilities.remove("engineId");
+						capabilities.remove("modelProvider");
+						capabilities.remove("servingProvider");
+						engine.put("capabilities", capabilities);
+					}
+				} catch (Exception e) {
+					classLogger.error("Error retrieving model metadata in MyEnginesReactor", e);
+				}
 			}
 			if (includeUserT && Utility.isUserTrackingEnabled()) {
 				try (IRawSelectWrapper wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet())) {
@@ -173,6 +201,7 @@ public class MyEnginesReactor extends AbstractReactor {
 
 				Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
 				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite).
+				Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
 				Any response key prefixed with app_* or database_* is legacy and should not be used.
 				""";
 	}
