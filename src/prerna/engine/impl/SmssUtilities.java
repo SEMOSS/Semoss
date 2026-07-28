@@ -479,7 +479,7 @@ public class SmssUtilities {
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 					+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR
-					+ "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+					+ "insights_database;query_timeout=180000;cache_size=32768";
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');

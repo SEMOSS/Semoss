@@ -657,7 +657,7 @@ public class Constants {
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
 			+ System.getProperty("file.separator")
-			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			+ "database;query_timeout=180000;cache_size=32768";
 
 	// default rdbms insights type
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
