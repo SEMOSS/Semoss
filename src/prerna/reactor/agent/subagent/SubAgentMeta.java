@@ -69,7 +69,7 @@ public final class SubAgentMeta {
         return parentJobId;
     }
 
-    /** Configured alias from {@code CONFIG_JSON.subagents[]}; {@code null} for anonymous spawns. */
+    /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
     public String getAlias() {
         return alias;
     }
