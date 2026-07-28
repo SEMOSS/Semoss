@@ -647,16 +647,17 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Resolve named subagent slots from {@code CONFIG_JSON.subagents[]}. Each entry must
-     * have non-blank {@code alias} and {@code workspaceId}; {@code description} is optional.
-     * Duplicate aliases within the same list are dropped with a warn log (first wins).
+     * Resolve named subagent slots from {@code CONFIG_JSON.subagents[]}. Persisted entries
+     * contain only a target {@code workspaceId}; the current agent name and description are
+     * loaded from the target workspace for every run. Tool aliases are generated from those
+     * names, so renamed or re-described agents do not leave stale parent configuration.
      *
      * <p>The semoss harness synthesizes one MCP tool per returned spec; CLI harnesses
      * ignore the list.
      *
      * @return unmodifiable list, never {@code null}
      */
-    private static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+    static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
         if (cfgJson == null || !cfgJson.has("subagents")) {
             return Collections.emptyList();
         }
@@ -665,26 +666,42 @@ public final class AgentConfigLoader {
             return Collections.emptyList();
         }
         List<SubAgentSpec> out = new ArrayList<>(arr.length());
+        Set<String> seenWorkspaceIds = new LinkedHashSet<>();
         Set<String> seenAliases = new LinkedHashSet<>();
         for (int i = 0; i < arr.length(); i++) {
             JSONObject spec = arr.optJSONObject(i);
             if (spec == null) continue;
-            String alias       = StringUtils.trimToNull(spec.optString("alias",       null));
             String workspaceId = StringUtils.trimToNull(spec.optString("workspaceId", null));
-            String description = StringUtils.trimToNull(spec.optString("description", null));
-            if (alias == null || workspaceId == null) {
-                logger.warn("AgentConfigLoader: subagent entry missing alias or workspaceId - skipping (index={})", i);
+            if (workspaceId == null) {
+                logger.warn("AgentConfigLoader: subagent entry missing workspaceId - skipping (index={})", i);
                 continue;
             }
-            if (!seenAliases.add(alias)) {
-                logger.warn("AgentConfigLoader: duplicate subagent alias '{}' - keeping first, skipping later entry", alias);
+            if (!seenWorkspaceIds.add(workspaceId)) {
+                logger.warn("AgentConfigLoader: duplicate subagent workspaceId '{}' - keeping first, skipping later entry",
+                        workspaceId);
                 continue;
             }
+
+            Map<String, Object> targetWorkspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+            if (targetWorkspace == null || !Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
+                logger.warn("AgentConfigLoader: subagent workspace '{}' is missing or inactive - skipping", workspaceId);
+                continue;
+            }
+            String agentName = targetWorkspace.get("name") == null
+                    ? null
+                    : StringUtils.trimToNull(String.valueOf(targetWorkspace.get("name")));
+            if (agentName == null) {
+                logger.warn("AgentConfigLoader: subagent workspace '{}' has no name - skipping", workspaceId);
+                continue;
+            }
+            String description = targetWorkspace.get("description") == null
+                    ? null
+                    : StringUtils.trimToNull(String.valueOf(targetWorkspace.get("description")));
             try {
+                String alias = SubAgentSpec.generateAlias(agentName, workspaceId, seenAliases);
                 out.add(new SubAgentSpec(alias, workspaceId, description));
             } catch (IllegalArgumentException e) {
-                logger.warn("AgentConfigLoader: invalid subagent entry alias='{}' workspaceId='{}': {}",
-                        alias, workspaceId, e.getMessage());
+                logger.warn("AgentConfigLoader: invalid subagent workspaceId='{}': {}", workspaceId, e.getMessage());
             }
         }
         return Collections.unmodifiableList(out);

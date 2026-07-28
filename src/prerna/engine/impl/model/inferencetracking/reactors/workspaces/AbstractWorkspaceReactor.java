@@ -181,7 +181,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Returns named subagent spec entries ({@code {alias, workspaceId, description}}) from the
+	 * Returns named subagent spec entries ({@code {workspaceId}}) from the
 	 * incoming reactor request payload.
 	 *
 	 * @return list of subagent maps; each map represents one requested subagent slot
@@ -191,16 +191,16 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Validates and normalizes {@code rawSubagents} into the shape
+	 * Validates and normalizes {@code rawSubagents} into the internal shape
 	 * {@link #mirrorCoreFieldsIntoConfigJson} writes to {@code CONFIG_JSON.subagents[]}.
-	 * Mirrors the read-side rules in {@code AgentConfigLoader.resolveSubagents} (non-blank
-	 * alias + workspaceId, first-wins... except here a duplicate alias is a hard error
-	 * instead of a silent drop, since this is the authoring path and the caller should know).
+	 * The request and persisted config only identify a target {@code workspaceId}; alias and
+	 * description are authoritative target-agent metadata resolved by {@code AgentConfigLoader}
+	 * for each run.
 	 *
-	 * <p>Also rejects a subagent workspaceId equal to {@code workspaceId} itself (trivial
+	 * <p>Rejects a subagent workspaceId equal to {@code workspaceId} itself (trivial
 	 * self-delegation loop - {@code spawn_policy.max_subagent_depth} bounds it at run time
-	 * regardless, but there's no legitimate reason to author one) and any workspaceId the
-	 * user lacks view permission on.
+	 * regardless, but there's no legitimate reason to author one), duplicate targets, inactive
+	 * or missing target agents, and any workspaceId the user lacks view permission on.
 	 *
 	 * @throws IllegalArgumentException with a human-readable message on validation failure
 	 *                                   (callers catch and convert to {@code getError(...)})
@@ -208,40 +208,52 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static List<Map<String, Object>> validateAndNormalizeSubagents(User user, String workspaceId,
 			List<Map<String, Object>> rawSubagents) {
 		List<Map<String, Object>> normalized = new ArrayList<>(rawSubagents.size());
-		Set<String> seenAliases = new LinkedHashSet<>();
+		Set<String> seenWorkspaceIds = new LinkedHashSet<>();
 		for (Map<String, Object> raw : rawSubagents) {
-			Object aliasObj = raw.get("alias");
-			Object workspaceIdObj = raw.get("workspaceId");
-			String alias = aliasObj == null ? null : aliasObj.toString().trim();
-			String targetWorkspaceId = workspaceIdObj == null ? null : workspaceIdObj.toString().trim();
-			if (alias == null || alias.isEmpty()) {
-				throw new IllegalArgumentException("Subagent entry is missing an alias");
+			if (raw == null) {
+				throw new IllegalArgumentException("Subagent entry cannot be null");
 			}
+			Object workspaceIdObj = raw.get("workspaceId");
+			String targetWorkspaceId = workspaceIdObj == null ? null : workspaceIdObj.toString().trim();
 			if (targetWorkspaceId == null || targetWorkspaceId.isEmpty()) {
-				throw new IllegalArgumentException("Subagent '" + alias + "' is missing a target workspaceId");
+				throw new IllegalArgumentException("Subagent entry is missing a target workspaceId");
 			}
 			if (targetWorkspaceId.equals(workspaceId)) {
-				throw new IllegalArgumentException("Subagent '" + alias + "' cannot target its own workspace");
+				throw new IllegalArgumentException("A subagent cannot target its own workspace");
 			}
-			if (!seenAliases.add(alias)) {
-				throw new IllegalArgumentException("Duplicate subagent alias: " + alias);
+			if (!seenWorkspaceIds.add(targetWorkspaceId)) {
+				throw new IllegalArgumentException("Duplicate subagent workspace: " + targetWorkspaceId);
 			}
 			if (!SecurityProjectUtils.userCanViewProject(user, targetWorkspaceId)) {
 				throw new IllegalArgumentException(
 						"User lacks permission to one of the given subagent workspaces: " + targetWorkspaceId);
 			}
-			Object descriptionObj = raw.get("description");
-			String description = descriptionObj == null ? null : descriptionObj.toString().trim();
+
+			Map<String, Object> targetWorkspace = ModelInferenceLogsUtils.getWorkspaceEntry(targetWorkspaceId);
+			if (targetWorkspace == null) {
+				throw new IllegalArgumentException("Subagent workspace not found: " + targetWorkspaceId);
+			}
+			if (!Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
+				throw new IllegalArgumentException("Subagent workspace is inactive: " + targetWorkspaceId);
+			}
+			String targetName = valueAsTrimmedString(targetWorkspace.get("name"));
+			if (targetName == null) {
+				throw new IllegalArgumentException("Subagent workspace has no name: " + targetWorkspaceId);
+			}
 
 			Map<String, Object> entry = new HashMap<>();
-			entry.put("alias", alias);
 			entry.put("workspaceId", targetWorkspaceId);
-			if (description != null && !description.isEmpty()) {
-				entry.put("description", description);
-			}
 			normalized.add(entry);
 		}
 		return normalized;
+	}
+
+	private static String valueAsTrimmedString(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String stringValue = value.toString().trim();
+		return stringValue.isEmpty() ? null : stringValue;
 	}
 
 	/**
@@ -339,7 +351,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * @param subagentsProvided  whether the caller passed a {@code subagents} key at all;
 	 *                           when {@code false}, {@code CONFIG_JSON.subagents} is left
 	 *                           untouched regardless of {@code subagents}.
-	 * @param subagents          normalized entries (see
+	 * @param subagents          validated target workspace references (see
 	 *                           {@link #validateAndNormalizeSubagents}) to fully replace
 	 *                           {@code CONFIG_JSON.subagents[]} with; an empty list clears
 	 *                           it. Ignored when {@code subagentsProvided} is {@code false}.
@@ -409,11 +421,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			JSONArray subagentsJson = new JSONArray();
 			for (Map<String, Object> entry : subagents) {
 				JSONObject entryJson = new JSONObject();
-				entryJson.put("alias", entry.get("alias"));
 				entryJson.put("workspaceId", entry.get("workspaceId"));
-				if (entry.get("description") != null) {
-					entryJson.put("description", entry.get("description"));
-				}
 				subagentsJson.put(entryJson);
 			}
 			cfg.put("subagents", subagentsJson);
