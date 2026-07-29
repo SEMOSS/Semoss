@@ -18,7 +18,7 @@ on:
       tomcat_version:
         description: 'Tomcat-builder version to use'
         required: true
-        default: '9.0.119'
+        default: '9.0.120'
   schedule:
     - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
 
@@ -64,7 +64,7 @@ jobs:
   build:
     needs: prepare
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.tomcat_version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.tomcat_version || '9.0.120' }}
     strategy:
       fail-fast: false
       matrix:

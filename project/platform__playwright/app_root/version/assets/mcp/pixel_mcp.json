@@ -1,0 +1,105 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-07-28"
+  },
+  "tools": [
+    {
+      "name": "OpenPlaywrightSocketsRoomRecording",
+      "title": "Open Playwright Sockets Room Recording",
+      "description": "Open the Playwright Sockets remote browser app, navigate to start_url, begin recording, and save the recording into the current Playground room when returned. If the user did not provide a URL, ask for one before calling this tool.",
+      "inputSchema": {
+        "type": "object",
+        "title": "OpenPlaywrightSocketsRoomRecording_Arguments",
+        "properties": {
+          "start_url": {
+            "type": "string",
+            "title": "Start URL",
+            "description": "URL to open. Bare hostnames such as google.com are prefixed with https://."
+          },
+          "recording_name_hint": {
+            "type": "string",
+            "title": "Recording Name Hint",
+            "description": "Provide a concise semantic name derived from the user's request, such as Google homepage or customer login flow. This is saved with the recording for later discovery."
+          }
+        },
+        "required": [
+          "start_url"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar",
+          "resourceURI": "system://playwright-browser-sockets/"
+        },
+        "SMSS_FUNCTION_NAME": "OpenPlaywrightSocketsRoomRecording"
+      }
+    },
+    {
+      "name": "FindPlaywrightRoomRecordings",
+      "title": "Find Playwright Room Recordings",
+      "description": "Inspect Playwright recordings saved in the current Playground room and return compact summaries containing filenames, metadata, URLs, hosts, and recorded steps. Use this before replay when the user did not provide an exact recording filename. Compare the returned candidates, tell the user which recording appears closest, and ask for confirmation. After confirmation, call PlayPlaywrightSocketsRoomRecording with the exact recording_file.",
+      "inputSchema": {
+        "type": "object",
+        "title": "FindPlaywrightRoomRecordings_Arguments",
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Recording Description",
+            "description": "Natural-language description of the desired recording, such as google.com or checkout login flow. Leave empty to list room recordings."
+          },
+          "max_candidates": {
+            "type": "integer",
+            "title": "Maximum Candidates",
+            "description": "Maximum recording summaries to return. Defaults to 20 and cannot exceed 50."
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "FindPlaywrightRoomRecordings"
+      }
+    },
+    {
+      "name": "PlayPlaywrightSocketsRoomRecording",
+      "title": "Play Playwright Sockets Room Recording",
+      "description": "Open Playwright Sockets and replay a confirmed recording from the current Playground room. Prefer an exact recording_file selected from FindPlaywrightRoomRecordings. If only a natural-language description is available, call FindPlaywrightRoomRecordings first, explain the closest candidates, and ask the user to confirm before opening this tool.",
+      "inputSchema": {
+        "type": "object",
+        "title": "PlayPlaywrightSocketsRoomRecording_Arguments",
+        "properties": {
+          "recording_name_hint": {
+            "type": "string",
+            "title": "Room Recording Name Hint",
+            "description": "Natural-language description of the Playground room recording, such as google.com or login flow."
+          },
+          "recording_file": {
+            "type": "string",
+            "title": "Room Recording File",
+            "description": "Optional exact recording JSON filename."
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Fallback Project ID",
+            "description": "Optional accessible Playwright project to search as a fallback."
+          },
+          "start_url": {
+            "type": "string",
+            "title": "Start URL",
+            "description": "Optional URL override to open before replaying the recording."
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar",
+          "resourceURI": "system://playwright-browser-sockets/"
+        },
+        "SMSS_FUNCTION_NAME": "PlayPlaywrightSocketsRoomRecording"
+      }
+    }
+  ]
+}
