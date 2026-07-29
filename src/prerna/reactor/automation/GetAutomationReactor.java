@@ -45,6 +45,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -70,7 +71,7 @@ public class GetAutomationReactor extends AbstractReactor {
     private static final Logger classLogger = LogManager.getLogger(GetAutomationReactor.class);
 
     public GetAutomationReactor() {
-        this.keysToGet = new String[] { "project" };
+        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
     }
 
     @Override
@@ -98,11 +99,11 @@ public class GetAutomationReactor extends AbstractReactor {
         if (!automationFile.exists() || !automationFile.isFile()) {
             // return empty graph document for brand-new automations
             Map<String, Object> empty = new HashMap<>();
-            empty.put("version", 1);
+            empty.put(AutomationConstants.DOC_VERSION, AutomationConstants.DOC_CURRENT_VERSION);
             Map<String, Object> graph = new HashMap<>();
-            graph.put("nodes", new ArrayList<>());
-            graph.put("edges", new ArrayList<>());
-            empty.put("graph", graph);
+            graph.put(AutomationConstants.DOC_NODES, new ArrayList<>());
+            graph.put(AutomationConstants.DOC_EDGES, new ArrayList<>());
+            empty.put(AutomationConstants.DOC_GRAPH, graph);
             return new NounMetadata(empty, PixelDataType.MAP, PixelOperationType.OPERATION);
         }
 

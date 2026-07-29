@@ -37,11 +37,13 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
 import prerna.reactor.automation.nodes.AutomationNodeExecutors;
 import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -54,8 +56,13 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RunAutomationNodeReactor.class);
 
+	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
+	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
+	private static final String NODE_ID_KEY = "nodeId";
+	private static final String RUN_ID_KEY = "runId";
+
 	public RunAutomationNodeReactor() {
-		this.keysToGet = new String[] { "project", "nodeId", "runId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, RUN_ID_KEY };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
@@ -83,29 +90,29 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Node not found in automation: " + nodeId);
 		}
 
-		Map<String, String> scope = buildScope(contextRunId);
+		Map<String, String> scope = buildScope(projectId, contextRunId);
 		Map<String, String> configMap = AutomationExecutionUtils.loadConfig(projectId);
 
 		long startMs = System.currentTimeMillis();
 		try {
-			String type = (String) node.get("type");
+			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			Object rawOutput;
 
 			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
-				rawOutput = scope.get("triggered_at");
+				rawOutput = scope.get(AutomationConstants.SCOPE_TRIGGERED_AT);
 			} else {
 				IAutomationNodeExecutor executor = AutomationNodeExecutors.EXECUTORS.get(type);
 				if (executor == null) {
 					throw new IllegalArgumentException("Unsupported node type: " + type);
 				}
 				AutomationNodeContext ctx = new AutomationNodeContext(
-						"test", projectId, node, scope, configMap,
+						AutomationConstants.TEST_RUN_ID, projectId, node, scope, configMap,
 						this.insight, new AtomicBoolean(false));
 				rawOutput = executor.execute(ctx);
 			}
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
+			Map<String, Object> transformConfig = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_OUTPUT_TRANSFORM);
 			String transformed = AutomationExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
 			String preview = AutomationExecutionUtils.generatePreview(transformed);
@@ -134,20 +141,28 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> findNode(String projectId, String nodeId) {
 		Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
-		Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
-		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
+		Map<String, Object> graph = (Map<String, Object>) doc.get(AutomationConstants.DOC_GRAPH);
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
 		if (nodes != null) {
 			for (Map<String, Object> node : nodes) {
-				if (nodeId.equals(node.get("id"))) return node;
+				if (nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) return node;
 			}
 		}
 		return null;
 	}
 
-	private Map<String, String> buildScope(String contextRunId) {
+	private Map<String, String> buildScope(String projectId, String contextRunId) {
 		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(null, this.insight.getUser());
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
+			// Scope the context run to this project — otherwise a user could pull node outputs
+			// (potentially containing other apps' secrets/data) from a run belonging to a
+			// project they don't have access to by passing an arbitrary runId.
+			Map<String, Object> contextRunDetail = AutomationDatabaseUtility.getRunDetail(contextRunId);
+			if (contextRunDetail == null || !projectId.equals(contextRunDetail.get(AutomationConstants.PROJECT_ID))) {
+				throw new IllegalArgumentException("Run not found: " + contextRunId);
+			}
+
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(contextRunId);
 			for (Map<String, Object> output : nodeOutputs) {
 				String status = (String) output.get(AutomationConstants.STATUS);
@@ -166,5 +181,14 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Executes a single automation node in isolation for testing — result is not persisted.";
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// Node executors can perform real side effects (DB writes, storage uploads/deletes,
+		// arbitrary pixel execution) — requires explicit human confirmation.
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

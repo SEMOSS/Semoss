@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
@@ -65,7 +66,7 @@ public class GetAutomationConfigReactor extends AbstractReactor {
     private static final Logger classLogger = LogManager.getLogger(GetAutomationConfigReactor.class);
 
     public GetAutomationConfigReactor() {
-        this.keysToGet = new String[] { "project" };
+        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
     }
 
     @Override
@@ -94,9 +95,9 @@ public class GetAutomationConfigReactor extends AbstractReactor {
             List<Map<String, Object>> entries = AutomationExecutionUtils.GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (entries != null) {
                 for (Map<String, Object> entry : entries) {
-                    Object sensitive = entry.get("sensitive");
+                    Object sensitive = entry.get(AutomationConstants.CONFIG_ENTRY_SENSITIVE);
                     if (Boolean.TRUE.equals(sensitive)) {
-                        entry.put("value", AutomationConstants.SENSITIVE_MASK);
+                        entry.put(AutomationConstants.CONFIG_ENTRY_VALUE, AutomationConstants.SENSITIVE_MASK);
                     }
                 }
             }

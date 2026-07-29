@@ -36,6 +36,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -47,8 +48,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class GetAutomationRunReactor extends AbstractReactor {
 
+	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
+	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
+	private static final String RUN_ID_KEY = "runId";
+
 	public GetAutomationRunReactor() {
-		this.keysToGet = new String[]{ "project", "runId" };
+		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
 		this.keyRequired = new int[]{ 1, 1 };
 	}
 
@@ -71,10 +76,12 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
-		if (runDetail == null) {
+		// Scope by PROJECT_ID so a user with view access to one project cannot read another
+		// project's run detail/node outputs by guessing or reusing a runId.
+		if (runDetail == null || !projectId.equals(runDetail.get(AutomationConstants.PROJECT_ID))) {
 			Map<String, Object> notFound = new HashMap<>();
 			notFound.put(AutomationConstants.RUN_ID, runId);
-			notFound.put("nodeResults", new ArrayList<>());
+			notFound.put(AutomationConstants.RESULT_NODE_RESULTS, new ArrayList<>());
 			return new NounMetadata(notFound, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
 
@@ -92,7 +99,12 @@ public class GetAutomationRunReactor extends AbstractReactor {
 			nodeResults.add(nodeResult);
 		}
 
-		runDetail.put("nodeResults", nodeResults);
+		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns detail for a single automation run, including per-node results.";
 	}
 }

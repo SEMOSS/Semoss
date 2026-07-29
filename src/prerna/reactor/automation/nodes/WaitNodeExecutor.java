@@ -34,31 +34,33 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.automation.AutomationCancelledException;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationDatabaseUtility;
 import prerna.reactor.automation.AutomationExecutionUtils;
 
 /**
  * Executes a "wait" node: sleeps for the configured number of seconds.
  * The {@code seconds} value supports {@code ${var}} template substitution.
- * Maximum 3600 seconds (1 hour) per invocation.
+ * Maximum {@value AutomationConstants#WAIT_MAX_SECONDS} seconds (1 hour) per invocation.
  *
- * <p>Sleeps in 5-second chunks, checking the cancellation flag between each chunk.
- * This fixes the bug where a single {@code Thread.sleep(N)} call would block for the full
- * duration even after a cancel request was received - the cancel check was only between
- * nodes, so a long wait could not be interrupted until it completed naturally.
+ * <p>Sleeps in {@value AutomationConstants#WAIT_CANCEL_CHECK_INTERVAL_SECONDS}-second chunks,
+ * checking the cancellation flag between each chunk. This fixes the bug where a single
+ * {@code Thread.sleep(N)} call would block for the full duration even after a cancel request
+ * was received - the cancel check was only between nodes, so a long wait could not be
+ * interrupted until it completed naturally.
  */
 public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(WaitNodeExecutor.class);
-	private static final int CANCEL_CHECK_INTERVAL_SECONDS = 5;
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 
-		String secondsTemplate = config.get("seconds") != null
-				? config.get("seconds").toString() : "1";
+		String secondsTemplate = config.get(AutomationConstants.CONFIG_SECONDS) != null
+				? config.get(AutomationConstants.CONFIG_SECONDS).toString()
+				: String.valueOf(AutomationConstants.WAIT_DEFAULT_SECONDS);
 		String resolved = AutomationExecutionUtils.resolve(secondsTemplate, ctx.scope(), ctx.configMap());
 
 		int seconds;
@@ -68,7 +70,7 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 			throw new IllegalArgumentException("Wait node \"" + nodeLabel +
 					"\" - seconds value is not a valid integer after resolution: \"" + resolved + "\"");
 		}
-		seconds = Math.min(Math.max(seconds, 0), 3600);
+		seconds = Math.min(Math.max(seconds, AutomationConstants.WAIT_MIN_SECONDS), AutomationConstants.WAIT_MAX_SECONDS);
 		classLogger.debug("Wait node \"{}\" sleeping {} seconds", nodeLabel, seconds);
 
 		// Sleep in chunks so cancel requests are honored mid-wait rather than waiting
@@ -78,7 +80,7 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 			if (ctx.cancelFlag().get() || AutomationDatabaseUtility.isCancelRequested(ctx.runId())) {
 				throw new AutomationCancelledException("Wait node \"" + nodeLabel + "\" cancelled");
 			}
-			int chunk = Math.min(remaining, CANCEL_CHECK_INTERVAL_SECONDS);
+			int chunk = Math.min(remaining, AutomationConstants.WAIT_CANCEL_CHECK_INTERVAL_SECONDS);
 			try {
 				TimeUnit.SECONDS.sleep(chunk);
 			} catch (InterruptedException e) {

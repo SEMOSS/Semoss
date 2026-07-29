@@ -35,8 +35,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -58,8 +60,12 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CancelAutomationRunReactor.class);
 
+	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
+	// prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
+	private static final String RUN_ID_KEY = "runId";
+
 	public CancelAutomationRunReactor() {
-		this.keysToGet = new String[] { "project", "runId" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -82,9 +88,11 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project does not exist or user does not have edit access");
 		}
 
-		// Validate the run exists and is running
+		// Validate the run exists, belongs to this project, and is running. Scoping by
+		// PROJECT_ID prevents a user with edit access to their own project from cancelling
+		// a run that belongs to a project they were never granted access to.
 		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
-		if (runDetail == null) {
+		if (runDetail == null || !projectId.equals(runDetail.get(AutomationConstants.PROJECT_ID))) {
 			throw new IllegalArgumentException("Run not found: " + runId);
 		}
 
@@ -110,8 +118,21 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(AutomationConstants.RUN_ID, runId);
-		result.put("cancelRequested", true);
-		result.put("signalledLocally", signalledLocally);
+		result.put(AutomationConstants.RESULT_CANCEL_REQUESTED, true);
+		result.put(AutomationConstants.RESULT_SIGNALLED_LOCALLY, signalledLocally);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Requests cancellation of a running automation run for the given project.";
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// Cancelling a run is a mutating, side-effecting action — requires explicit confirmation.
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

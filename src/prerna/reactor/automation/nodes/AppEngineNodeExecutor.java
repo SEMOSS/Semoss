@@ -32,8 +32,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.reactor.automation.PixelExecutionUtils;
 import prerna.util.Utility;
@@ -52,6 +54,10 @@ import prerna.util.Utility;
  * before execution. {@link PixelExecutionUtils#runAndCollect} snapshots the caller's thread
  * context (including these overrides) before submitting to the timeout thread, so the context
  * propagates correctly even under timeout enforcement.
+ *
+ * <p>The caller must have edit access to {@code appId} — this executor runs an arbitrary pixel
+ * expression in that project's context, so a view-only check would let any automation editor
+ * reach into projects they cannot otherwise modify.
  */
 public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 
@@ -64,14 +70,19 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String pixel = required(config, "pixel", nodeLabel);
-		String appId = optional(config, "appId");
+		String pixel = required(config, AutomationConstants.CONFIG_PIXEL, nodeLabel);
+		String appId = optional(config, AutomationConstants.CONFIG_APP_ID);
 		String resolvedPixel = AutomationExecutionUtils.resolve(pixel, scope, configMap);
 		String resolvedAppId = appId != null ? AutomationExecutionUtils.resolve(appId, scope, configMap) : null;
 
 		classLogger.debug("App-engine node \"{}\" executing pixel in appId={}", nodeLabel, resolvedAppId != null ? resolvedAppId : "caller context");
 
 		if (resolvedAppId != null && !resolvedAppId.isBlank()) {
+			resolvedAppId = SecurityProjectUtils.testUserProjectIdForAlias(ctx.insight().getUser(), resolvedAppId);
+			if (!SecurityProjectUtils.userCanEditProject(ctx.insight().getUser(), resolvedAppId)) {
+				throw new IllegalArgumentException(
+						"App node \"" + nodeLabel + "\": project does not exist or user does not have access: " + resolvedAppId);
+			}
 			IProject project = Utility.getProject(resolvedAppId);
 			if (project == null) {
 				throw new IllegalArgumentException(

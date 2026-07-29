@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.reactor.automation.PixelExecutionUtils;
 
@@ -59,21 +60,22 @@ public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, "engineId", nodeLabel);
-		String sql = required(config, "expression", nodeLabel);
-		String operation = optional(config, "operation", "read");
-		int limit = optionalInt(config, "limit", 50);
+		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String sql = required(config, AutomationConstants.CONFIG_EXPRESSION, nodeLabel);
+		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_READ);
+		int limit = optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_DB_QUERY_LIMIT);
 
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 		String resolvedSql = AutomationExecutionUtils.resolve(sql, scope, configMap);
 
 		classLogger.debug("Database-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 
-		// Escape double quotes in the SQL for the pixel string literal, then delegate to
-		// SqlQuery which uses the engine abstraction (HardSelectQueryStruct) and enforces
-		// the caller's database-level permissions automatically.
+		// Escape double quotes in the SQL and engine id for the pixel string literal, then
+		// delegate to SqlQuery which uses the engine abstraction (HardSelectQueryStruct) and
+		// enforces the caller's database-level permissions automatically.
+		String escapedEngineId = resolvedEngineId.replace("\"", "\\\"");
 		String escapedSql = resolvedSql.replace("\"", "\\\"");
-		String pixel = "SqlQuery(database=[\"" + resolvedEngineId + "\"], query=[\"" + escapedSql + "\"], limit=[" + limit + "]);";
+		String pixel = "SqlQuery(database=[\"" + escapedEngineId + "\"], query=[\"" + escapedSql + "\"], limit=[" + limit + "]);";
 
 		int timeout = AutomationExecutionUtils.getNodeTimeout(ctx.node());
 		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeout);

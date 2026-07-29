@@ -39,24 +39,23 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
 public class SaveAutomationConfigReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(SaveAutomationConfigReactor.class);
-    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     public SaveAutomationConfigReactor() {
-        this.keysToGet = new String[]{ "project", "config" };
+        this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
     }
 
     @Override
@@ -76,9 +75,9 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
 
         String config;
         try {
-            config = URLDecoder.decode(configEncoded != null ? configEncoded : "[]", StandardCharsets.UTF_8);
+            config = URLDecoder.decode(configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            config = configEncoded != null ? configEncoded : "[]";
+            config = configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY;
         }
 
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
@@ -112,10 +111,10 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
             return incomingJson;
         }
         try {
-            List<Map<String, Object>> incoming = GSON.fromJson(incomingJson,
+            List<Map<String, Object>> incoming = AutomationExecutionUtils.GSON.fromJson(incomingJson,
                     new TypeToken<List<Map<String, Object>>>() {}.getType());
             String existingJson = Files.readString(existingFile.toPath(), StandardCharsets.UTF_8);
-            List<Map<String, Object>> existing = GSON.fromJson(existingJson,
+            List<Map<String, Object>> existing = AutomationExecutionUtils.GSON.fromJson(existingJson,
                     new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (incoming == null || existing == null || existing.isEmpty()) {
                 return incomingJson;
@@ -123,21 +122,21 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
 
             Map<String, Object> existingValueByKey = new HashMap<>();
             for (Map<String, Object> e : existing) {
-                existingValueByKey.put(String.valueOf(e.get("key")), e.get("value"));
+                existingValueByKey.put(String.valueOf(e.get(AutomationConstants.CONFIG_ENTRY_KEY)), e.get(AutomationConstants.CONFIG_ENTRY_VALUE));
             }
 
             boolean restoredAny = false;
             for (Map<String, Object> entry : incoming) {
-                if (Boolean.TRUE.equals(entry.get("sensitive"))
-                        && AutomationConstants.SENSITIVE_MASK.equals(entry.get("value"))) {
-                    Object real = existingValueByKey.get(String.valueOf(entry.get("key")));
+                if (Boolean.TRUE.equals(entry.get(AutomationConstants.CONFIG_ENTRY_SENSITIVE))
+                        && AutomationConstants.SENSITIVE_MASK.equals(entry.get(AutomationConstants.CONFIG_ENTRY_VALUE))) {
+                    Object real = existingValueByKey.get(String.valueOf(entry.get(AutomationConstants.CONFIG_ENTRY_KEY)));
                     if (real != null) {
-                        entry.put("value", real);
+                        entry.put(AutomationConstants.CONFIG_ENTRY_VALUE, real);
                         restoredAny = true;
                     }
                 }
             }
-            return restoredAny ? GSON.toJson(incoming) : incomingJson;
+            return restoredAny ? AutomationExecutionUtils.GSON.toJson(incoming) : incomingJson;
         } catch (Exception e) {
             // Never let a merge problem overwrite good secrets - keep the existing file untouched.
             classLogger.warn("Could not merge sensitive automation config; keeping existing file. Cause: {}",
@@ -148,5 +147,18 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
                 return incomingJson;
             }
         }
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Saves the automation config (key/value env vars and secrets) for a project.";
+    }
+
+    @Override
+    public Map<String, String> getMcpToolMetadata() {
+        Map<String, String> meta = new HashMap<>();
+        // Overwrites saved config values/secrets — requires explicit human confirmation.
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        return meta;
     }
 }

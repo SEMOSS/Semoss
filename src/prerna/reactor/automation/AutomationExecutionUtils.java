@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -59,6 +60,9 @@ public final class AutomationExecutionUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationExecutionUtils.class);
 
+	/** Prefix for config-map lookups within a template, e.g. {@code ${config.API_KEY}}. */
+	private static final String CONFIG_VAR_PREFIX = "config.";
+
 	/**
 	 * Shared Gson instance for the whole automation engine — public so the
 	 * {@code nodes} sub-package has one shared instance to reuse instead of each
@@ -70,20 +74,28 @@ public final class AutomationExecutionUtils {
 
 	/**
 	 * Resolves {@code ${varName}} and {@code ${config.KEY}} placeholders in a template string
-	 * via plain {@link String#replace} — no validation or escaping is applied.
+	 * using {@link StringSubstitutor} (the platform's standard {@code ${...}} templating helper,
+	 * also used by {@code AbstractPythonModelEngine.fillVars}). Recursive substitution is
+	 * disabled so a resolved value is never itself re-scanned for placeholders, and unresolved
+	 * placeholders are left untouched rather than throwing.
 	 */
 	public static String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
 		if (template == null) return "";
-		String result = template;
+
+		Map<String, String> vars = new HashMap<>();
 		for (Map.Entry<String, String> e : configMap.entrySet()) {
-			result = result.replace("${config." + e.getKey() + "}", e.getValue());
+			vars.put(CONFIG_VAR_PREFIX + e.getKey(), e.getValue());
 		}
 		for (Map.Entry<String, String> e : scope.entrySet()) {
 			if (e.getValue() != null) {
-				result = result.replace("${" + e.getKey() + "}", e.getValue());
+				vars.put(e.getKey(), e.getValue());
 			}
 		}
-		return result;
+
+		StringSubstitutor sub = new StringSubstitutor(vars);
+		sub.setEnableUndefinedVariableException(false);
+		sub.setDisableSubstitutionInValues(true);
+		return sub.replace(template);
 	}
 
 	/**
@@ -91,7 +103,7 @@ public final class AutomationExecutionUtils {
 	 * {@link AutomationConstants#DEFAULT_TIMEOUT_SECONDS}.
 	 */
 	public static int getNodeTimeout(Map<String, Object> node) {
-		Object timeout = node.get("timeoutSeconds");
+		Object timeout = node.get(AutomationConstants.CONFIG_TIMEOUT_SECONDS);
 		if (timeout instanceof Number) {
 			return ((Number) timeout).intValue();
 		}
@@ -114,8 +126,8 @@ public final class AutomationExecutionUtils {
 					new TypeToken<List<Map<String, Object>>>() {}.getType());
 			if (entries != null) {
 				for (Map<String, Object> entry : entries) {
-					String key = (String) entry.get("key");
-					String value = (String) entry.get("value");
+					String key = (String) entry.get(AutomationConstants.CONFIG_ENTRY_KEY);
+					String value = (String) entry.get(AutomationConstants.CONFIG_ENTRY_VALUE);
 					if (key != null && value != null) map.put(key, value);
 				}
 			}
@@ -136,12 +148,12 @@ public final class AutomationExecutionUtils {
 		String rawStr = serializeRaw(rawResult);
 		if (transformConfig == null) return rawStr;
 
-		String mode = (String) transformConfig.getOrDefault("mode", "raw");
+		String mode = (String) transformConfig.getOrDefault(AutomationConstants.TRANSFORM_MODE, AutomationConstants.TRANSFORM_MODE_RAW);
 		switch (mode) {
-			case "rows-as-objects": return transformRowsAsObjects(rawStr);
-			case "first-row":       return transformFirstRow(rawStr);
-			case "column":          return transformColumn(rawStr, (String) transformConfig.get("column"));
-			case "jsonpath":        return transformJsonPath(rawStr, (String) transformConfig.get("path"));
+			case AutomationConstants.TRANSFORM_MODE_ROWS_AS_OBJECTS: return transformRowsAsObjects(rawStr);
+			case AutomationConstants.TRANSFORM_MODE_FIRST_ROW: return transformFirstRow(rawStr);
+			case AutomationConstants.TRANSFORM_MODE_COLUMN: return transformColumn(rawStr, (String) transformConfig.get(AutomationConstants.TRANSFORM_COLUMN));
+			case AutomationConstants.TRANSFORM_MODE_JSONPATH: return transformJsonPath(rawStr, (String) transformConfig.get(AutomationConstants.TRANSFORM_PATH));
 			default:                return rawStr;
 		}
 	}
@@ -159,8 +171,8 @@ public final class AutomationExecutionUtils {
 	private static String transformRowsAsObjects(String rawStr) {
 		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
+		List<String> headers = (List<String>) data.get(AutomationConstants.DATASET_HEADERS);
+		List<List<Object>> rows = (List<List<Object>>) data.get(AutomationConstants.DATASET_VALUES);
 		if (headers == null || rows == null) return rawStr;
 		List<Map<String, Object>> result = new ArrayList<>();
 		for (List<Object> row : rows) {
@@ -177,8 +189,8 @@ public final class AutomationExecutionUtils {
 	private static String transformFirstRow(String rawStr) {
 		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
+		List<String> headers = (List<String>) data.get(AutomationConstants.DATASET_HEADERS);
+		List<List<Object>> rows = (List<List<Object>>) data.get(AutomationConstants.DATASET_VALUES);
 		if (headers == null || rows == null || rows.isEmpty()) return rawStr;
 		Map<String, Object> rowMap = new HashMap<>();
 		List<Object> first = rows.get(0);
@@ -193,8 +205,8 @@ public final class AutomationExecutionUtils {
 		if (colName == null || colName.isEmpty()) return rawStr;
 		Map<String, Object> data = extractDataset(parseJsonAny(rawStr));
 		if (data == null) return rawStr;
-		List<String> headers = (List<String>) data.get("headers");
-		List<List<Object>> rows = (List<List<Object>>) data.get("values");
+		List<String> headers = (List<String>) data.get(AutomationConstants.DATASET_HEADERS);
+		List<List<Object>> rows = (List<List<Object>>) data.get(AutomationConstants.DATASET_VALUES);
 		if (headers == null || rows == null) return rawStr;
 		int colIdx = headers.indexOf(colName);
 		if (colIdx < 0) return rawStr;
@@ -246,8 +258,8 @@ public final class AutomationExecutionUtils {
 				}
 			}
 			Map<String, Object> result = new HashMap<>();
-			result.put("headers", headers);
-			result.put("values", values);
+			result.put(AutomationConstants.DATASET_HEADERS, headers);
+			result.put(AutomationConstants.DATASET_VALUES, values);
 			return result;
 		}
 
@@ -255,11 +267,11 @@ public final class AutomationExecutionUtils {
 		Map<String, Object> map = (Map<String, Object>) parsed;
 
 		// Format 2: {data: {headers, values}}
-		if (map.containsKey("data") && map.get("data") instanceof Map) {
-			return (Map<String, Object>) map.get("data");
+		if (map.containsKey(AutomationConstants.DATASET_DATA) && map.get(AutomationConstants.DATASET_DATA) instanceof Map) {
+			return (Map<String, Object>) map.get(AutomationConstants.DATASET_DATA);
 		}
 		// Format 3: {headers, values}
-		if (map.containsKey("headers") && map.containsKey("values")) return map;
+		if (map.containsKey(AutomationConstants.DATASET_HEADERS) && map.containsKey(AutomationConstants.DATASET_VALUES)) return map;
 		return null;
 	}
 
@@ -297,9 +309,9 @@ public final class AutomationExecutionUtils {
 		Map<String, String> scope = new HashMap<>();
 		ZoneId zone = (user != null && user.getZoneId() != null) ? user.getZoneId() : ZoneId.of("UTC");
 		ZonedDateTime now = ZonedDateTime.now(zone);
-		scope.put("date", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
-		scope.put("triggered_at", now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-		if (runId != null && !runId.isBlank()) scope.put("run_id", runId);
+		scope.put(AutomationConstants.SCOPE_DATE, now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+		scope.put(AutomationConstants.SCOPE_TRIGGERED_AT, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+		if (runId != null && !runId.isBlank()) scope.put(AutomationConstants.SCOPE_RUN_ID, runId);
 		return scope;
 	}
 

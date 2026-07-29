@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import prerna.om.Insight;
+import prerna.reactor.automation.AutomationConstants;
 
 /**
  * Immutable param bundle passed to every {@link IAutomationNodeExecutor}.
@@ -56,21 +57,21 @@ public record AutomationNodeContext(
 		AtomicBoolean cancelFlag) {
 
 	public String nodeId() {
-		return (String) node.get("id");
+		return (String) node.get(AutomationConstants.NODE_FIELD_ID);
 	}
 
 	public String nodeLabel() {
-		Object label = node.get("label");
-		return label != null ? label.toString() : "unnamed";
+		Object label = node.get(AutomationConstants.NODE_FIELD_LABEL);
+		return label != null ? label.toString() : AutomationConstants.UNNAMED_NODE_LABEL;
 	}
 
 	public String nodeType() {
-		return (String) node.get("type");
+		return (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 	}
 
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> config() {
-		Object config = node.get("config");
+		Object config = node.get(AutomationConstants.NODE_FIELD_CONFIG);
 		return config instanceof Map ? (Map<String, Object>) config : Map.of();
 	}
 }

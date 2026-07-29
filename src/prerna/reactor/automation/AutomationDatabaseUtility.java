@@ -27,6 +27,55 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
+import static prerna.reactor.automation.AutomationConstants.BIGINT;
+import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
+import static prerna.reactor.automation.AutomationConstants.CLAIMED_AT;
+import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
+import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
+import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
+import static prerna.reactor.automation.AutomationConstants.DURATION_MS;
+import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
+import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
+import static prerna.reactor.automation.AutomationConstants.FAILED_NODE_ID;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
+import static prerna.reactor.automation.AutomationConstants.INTEGER;
+import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
+import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_ID;
+import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_LABEL;
+import static prerna.reactor.automation.AutomationConstants.NODE_ID;
+import static prerna.reactor.automation.AutomationConstants.NODE_LABEL;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_FAILED;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_PENDING;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_RUNNING;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
+import static prerna.reactor.automation.AutomationConstants.NOT_NULL;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_ACTIVE_RUN;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
+import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
+import static prerna.reactor.automation.AutomationConstants.RUN_ID;
+import static prerna.reactor.automation.AutomationConstants.STALE_HEARTBEAT_THRESHOLD_MINUTES;
+import static prerna.reactor.automation.AutomationConstants.STARTED_AT;
+import static prerna.reactor.automation.AutomationConstants.STATUS;
+import static prerna.reactor.automation.AutomationConstants.STATUS_INTERRUPTED;
+import static prerna.reactor.automation.AutomationConstants.STATUS_RUNNING;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
+import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_2000;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_255;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_50;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_500;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -69,9 +118,9 @@ public final class AutomationDatabaseUtility {
 	private static final Logger classLogger = LogManager.getLogger(AutomationDatabaseUtility.class);
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
-	private static final String TABLE_RUNS = AutomationConstants.TABLE_AUTOMATION_RUNS;
-	private static final String TABLE_NODE_OUTPUTS = AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
-	private static final String TABLE_ACTIVE_RUN = AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
+	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
+	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
+	private static final String TABLE_ACTIVE_RUN = TABLE_AUTOMATION_ACTIVE_RUN;
 
 	private AutomationDatabaseUtility() {
 		// static utility - no instantiation
@@ -178,11 +227,11 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__PROJECT_ID", "PROJECT_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__LAST_HEARTBEAT", "LAST_HEARTBEAT"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + LAST_HEARTBEAT, LAST_HEARTBEAT));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__STATUS", "==", AutomationConstants.STATUS_RUNNING, PixelDataType.CONST_STRING));
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		if (results == null || results.isEmpty()) {
@@ -190,21 +239,21 @@ public final class AutomationDatabaseUtility {
 		}
 
 		Timestamp threshold = toTimestamp(Instant.now().minusSeconds(
-				AutomationConstants.STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
+				STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
 		Timestamp now = toTimestamp(Instant.now());
 
 		Connection conn = null;
 		try {
 			conn = schedulerDb.getConnection();
 			for (Map<String, Object> row : results) {
-				String runId = (String) row.get("RUN_ID");
-				String projectId = (String) row.get("PROJECT_ID");
+				String runId = (String) row.get(RUN_ID);
+				String projectId = (String) row.get(PROJECT_ID);
 
 				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
 				// heartbeat is still alive (e.g. executing on another node in a cluster), so
 				// interrupting it would clobber active work. A missing/unparseable heartbeat
 				// is treated as stale (a crashed run that never checkpointed).
-				Timestamp lastHeartbeat = toTimestampSafe(row.get("LAST_HEARTBEAT"));
+				Timestamp lastHeartbeat = toTimestampSafe(row.get(LAST_HEARTBEAT));
 				if (lastHeartbeat != null && lastHeartbeat.after(threshold)) {
 					classLogger.debug("Skipping automation run {} - heartbeat {} is newer than stale threshold {}",
 							runId, lastHeartbeat, threshold);
@@ -213,7 +262,7 @@ public final class AutomationDatabaseUtility {
 
 				try (PreparedStatement ps = conn.prepareStatement(MARK_STALE_INTERRUPTED)) {
 					int index = 1;
-					ps.setString(index++, AutomationConstants.STATUS_INTERRUPTED);
+					ps.setString(index++, STATUS_INTERRUPTED);
 					ps.setTimestamp(index++, now);
 					ps.setString(index++, "Server restarted during execution");
 					ps.setString(index++, runId);
@@ -250,16 +299,16 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return null;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__PROJECT_ID", "==", projectId, PixelDataType.CONST_STRING));
+				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__STATUS", "==", AutomationConstants.STATUS_RUNNING, PixelDataType.CONST_STRING));
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
 		qs.setLimit(1);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		if (results != null && !results.isEmpty()) {
-			Object runId = results.get(0).get("RUN_ID");
+			Object runId = results.get(0).get(RUN_ID);
 			return runId != null ? runId.toString() : null;
 		}
 		return null;
@@ -356,14 +405,14 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return null;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_ACTIVE_RUN + "__RUN_ID", "RUN_ID"));
+		qs.addSelector(new QueryColumnSelector(TABLE_ACTIVE_RUN + "__" + RUN_ID, RUN_ID));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_ACTIVE_RUN + "__PROJECT_ID", "==", projectId, PixelDataType.CONST_STRING));
+				TABLE_ACTIVE_RUN + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
 		qs.setLimit(1);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		if (results != null && !results.isEmpty()) {
-			Object runId = results.get(0).get("RUN_ID");
+			Object runId = results.get(0).get(RUN_ID);
 			return runId != null ? runId.toString() : null;
 		}
 		return null;
@@ -409,17 +458,17 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return false;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AutomationConstants.CANCEL_REQUESTED,
-				AutomationConstants.CANCEL_REQUESTED));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CANCEL_REQUESTED,
+				CANCEL_REQUESTED));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
 		qs.setLimit(1);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		if (results == null || results.isEmpty()) {
 			return false;
 		}
-		Object flag = results.get(0).get(AutomationConstants.CANCEL_REQUESTED);
+		Object flag = results.get(0).get(CANCEL_REQUESTED);
 		if (flag instanceof Boolean) {
 			return (Boolean) flag;
 		}
@@ -444,7 +493,7 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, runId);
 				ps.setString(index++, projectId);
 				ps.setString(index++, automationId);
-				ps.setString(index++, AutomationConstants.STATUS_RUNNING);
+				ps.setString(index++, STATUS_RUNNING);
 				ps.setString(index++, triggerType);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
@@ -566,21 +615,21 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__PROJECT_ID", "PROJECT_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__AUTOMATION_ID", "AUTOMATION_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STATUS", "STATUS"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TRIGGER_TYPE", "TRIGGER_TYPE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STARTED_AT", "STARTED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_AT", "COMPLETED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__FAILED_NODE_ID", "FAILED_NODE_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TOTAL_NODES", "TOTAL_NODES"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_NODES", "COMPLETED_NODES"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__CREATED_BY", "CREATED_BY"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + FAILED_NODE_ID, FAILED_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__PROJECT_ID", "==", projectId, PixelDataType.CONST_STRING));
-		qs.addOrderBy(TABLE_RUNS + "__STARTED_AT",
+				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT,
 				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
 		qs.setLimit(limit);
 
@@ -596,21 +645,21 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return null;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__RUN_ID", "RUN_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__PROJECT_ID", "PROJECT_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__AUTOMATION_ID", "AUTOMATION_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STATUS", "STATUS"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TRIGGER_TYPE", "TRIGGER_TYPE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__STARTED_AT", "STARTED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_AT", "COMPLETED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__FAILED_NODE_ID", "FAILED_NODE_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__ERROR_MESSAGE", "ERROR_MESSAGE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__TOTAL_NODES", "TOTAL_NODES"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__COMPLETED_NODES", "COMPLETED_NODES"));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__CREATED_BY", "CREATED_BY"));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + FAILED_NODE_ID, FAILED_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_RUNS + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
 		qs.setLimit(1);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
@@ -637,10 +686,10 @@ public final class AutomationDatabaseUtility {
 					Map<String, Object> node = orderedNodes.get(i);
 					int index = 1;
 					ps.setString(index++, runId);
-					ps.setString(index++, (String) node.get("id"));
-					ps.setString(index++, (String) node.get("label"));
+					ps.setString(index++, (String) node.get(NODE_FIELD_ID));
+					ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
 					ps.setInt(index++, i);
-					ps.setString(index++, AutomationConstants.NODE_STATUS_PENDING);
+					ps.setString(index++, NODE_STATUS_PENDING);
 					ps.addBatch();
 				}
 				ps.executeBatch();
@@ -669,7 +718,7 @@ public final class AutomationDatabaseUtility {
 			conn = schedulerDb.getConnection();
 			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_STATUS)) {
 				int index = 1;
-				ps.setString(index++, AutomationConstants.NODE_STATUS_RUNNING);
+				ps.setString(index++, NODE_STATUS_RUNNING);
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
@@ -703,7 +752,7 @@ public final class AutomationDatabaseUtility {
 
 			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_SUCCESS)) {
 				int index = 1;
-				ps.setString(index++, AutomationConstants.NODE_STATUS_SUCCESS);
+				ps.setString(index++, NODE_STATUS_SUCCESS);
 				ps.setTimestamp(index++, startedAt);
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setLong(index++, durationMs);
@@ -741,7 +790,7 @@ public final class AutomationDatabaseUtility {
 			conn = schedulerDb.getConnection();
 			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED)) {
 				int index = 1;
-				ps.setString(index++, AutomationConstants.NODE_STATUS_FAILED);
+				ps.setString(index++, NODE_STATUS_FAILED);
 				ps.setTimestamp(index++, startedAt);
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setLong(index++, durationMs);
@@ -771,21 +820,21 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__NODE_ID", "NODE_ID"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__NODE_LABEL", "NODE_LABEL"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__EXECUTION_ORDER", "EXECUTION_ORDER"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__STATUS", "STATUS"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__STARTED_AT", "STARTED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__COMPLETED_AT", "COMPLETED_AT"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__DURATION_MS", "DURATION_MS"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_VAR", "OUTPUT_VAR"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_VALUE", "OUTPUT_VALUE"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__OUTPUT_PREVIEW", "OUTPUT_PREVIEW"));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__ERROR_MESSAGE", "ERROR_MESSAGE"));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_ID, NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_LABEL, NODE_LABEL));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + EXECUTION_ORDER, EXECUTION_ORDER));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + DURATION_MS, DURATION_MS));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR, OUTPUT_VAR));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_NODE_OUTPUTS + "__RUN_ID", "==", runId, PixelDataType.CONST_STRING));
-		qs.addOrderBy(TABLE_NODE_OUTPUTS + "__EXECUTION_ORDER",
+				TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_NODE_OUTPUTS + "__" + EXECUTION_ORDER,
 				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.ASC.toString());
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
@@ -797,24 +846,21 @@ public final class AutomationDatabaseUtility {
 	private static void createAutomationRunsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
 
-		String tableName = AutomationConstants.TABLE_AUTOMATION_RUNS;
+		String tableName = TABLE_AUTOMATION_RUNS;
 
 		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
 			return;
 		}
 
-		String[] colNames = { "RUN_ID", "PROJECT_ID", "AUTOMATION_ID", "STATUS", "TRIGGER_TYPE",
-				"STARTED_AT", "COMPLETED_AT", "FAILED_NODE_ID",
-				"ERROR_MESSAGE", "LAST_HEARTBEAT", "TOTAL_NODES", "COMPLETED_NODES", "CREATED_BY",
-				"CANCEL_REQUESTED" };
-		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(50)", "VARCHAR(50)",
-				dateTimeType, dateTimeType, "VARCHAR(255)",
-				clobType, dateTimeType, "INTEGER", "INTEGER", "VARCHAR(255)",
-				queryUtil.getBooleanDataTypeName() };
-		String[] constraints = { "NOT NULL", "NOT NULL", null, "NOT NULL", "NOT NULL",
-				"NOT NULL", null, null,
-				null, null, null, null, null,
-				null };
+		String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE,
+				STARTED_AT, COMPLETED_AT, FAILED_NODE_ID, ERROR_MESSAGE, LAST_HEARTBEAT,
+				TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED };
+		String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_50, VARCHAR_50,
+				dateTimeType, dateTimeType, VARCHAR_255, clobType, dateTimeType,
+				INTEGER, INTEGER, VARCHAR_255, queryUtil.getBooleanDataTypeName() };
+		String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
+				NOT_NULL, null, null, null, null,
+				null, null, null, null };
 
 		String sql;
 		if (allowIfExists) {
@@ -828,33 +874,37 @@ public final class AutomationDatabaseUtility {
 		}
 
 		// Migrate installs that predate cluster-safe cancel
-		addColumnIfNotExists(conn, queryUtil, tableName, "CANCEL_REQUESTED", queryUtil.getBooleanDataTypeName());
+		addColumnIfNotExists(conn, queryUtil, tableName, CANCEL_REQUESTED, queryUtil.getBooleanDataTypeName());
 
 		// Primary key
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_AUTOMATION_RUNS", new String[]{"RUN_ID"});
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,
+				new String[]{ RUN_ID });
 
 		// Indexes
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_PROJECT", tableName, new String[]{"PROJECT_ID"});
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_STATUS", tableName, new String[]{"PROJECT_ID", "STATUS"});
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_AR_STARTED", tableName, new String[]{"PROJECT_ID", "STARTED_AT"});
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_PROJECT, tableName,
+				new String[]{ PROJECT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STATUS, tableName,
+				new String[]{ PROJECT_ID, STATUS });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STARTED, tableName,
+				new String[]{ PROJECT_ID, STARTED_AT });
 	}
 
 	private static void createAutomationNodeOutputsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
 
-		String tableName = AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+		String tableName = TABLE_AUTOMATION_NODE_OUTPUTS;
 
 		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
 			return;
 		}
 
-		String[] colNames = { "RUN_ID", "NODE_ID", "NODE_LABEL", "EXECUTION_ORDER", "STATUS",
-				"STARTED_AT", "COMPLETED_AT", "DURATION_MS", "OUTPUT_VAR",
-				"OUTPUT_VALUE", "OUTPUT_PREVIEW", "ERROR_MESSAGE" };
-		String[] types = { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(500)", "INTEGER", "VARCHAR(50)",
-				dateTimeType, dateTimeType, "BIGINT", "VARCHAR(255)",
-				clobType, "VARCHAR(2000)", clobType };
-		String[] constraints = { "NOT NULL", "NOT NULL", null, "NOT NULL", "NOT NULL",
+		String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS,
+				STARTED_AT, COMPLETED_AT, DURATION_MS, OUTPUT_VAR,
+				OUTPUT_VALUE, OUTPUT_PREVIEW, ERROR_MESSAGE };
+		String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50,
+				dateTimeType, dateTimeType, BIGINT, VARCHAR_255,
+				clobType, VARCHAR_2000, clobType };
+		String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
 				null, null, null, null,
 				null, null, null };
 
@@ -870,10 +920,12 @@ public final class AutomationDatabaseUtility {
 		}
 
 		// Composite primary key
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_AUTO_NODE_OUT", new String[]{"RUN_ID", "NODE_ID"});
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_NODE_OUT,
+				new String[]{ RUN_ID, NODE_ID });
 
 		// Indexes
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, "IDX_ANO_RUN", tableName, new String[]{"RUN_ID"});
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_RUN, tableName,
+				new String[]{ RUN_ID });
 	}
 
 	/**
@@ -884,15 +936,15 @@ public final class AutomationDatabaseUtility {
 	private static void createAutomationActiveRunTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
 
-		String tableName = AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
+		String tableName = TABLE_AUTOMATION_ACTIVE_RUN;
 
 		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
 			return;
 		}
 
-		String[] colNames = { "PROJECT_ID", "RUN_ID", "CLAIMED_AT" };
-		String[] types = { "VARCHAR(255)", "VARCHAR(255)", dateTimeType };
-		String[] constraints = { "NOT NULL", "NOT NULL", "NOT NULL" };
+		String[] colNames = { PROJECT_ID, RUN_ID, CLAIMED_AT };
+		String[] types = { VARCHAR_255, VARCHAR_255, dateTimeType };
+		String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL };
 
 		String sql;
 		if (allowIfExists) {
@@ -907,7 +959,8 @@ public final class AutomationDatabaseUtility {
 
 		// Primary key on PROJECT_ID alone (not RUN_ID) is what makes claimActiveRun atomic:
 		// a second INSERT for the same project - from any pod - violates this constraint.
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, "PK_AUTO_ACTIVE_RUN", new String[]{"PROJECT_ID"});
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_ACTIVE_RUN,
+				new String[]{ PROJECT_ID });
 	}
 
 	// -- Helpers -------------------------------------------------------------------

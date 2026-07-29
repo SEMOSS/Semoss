@@ -99,10 +99,10 @@ public final class AutomationRunEngine {
 
 		try {
 			for (Map<String, Object> node : ordered) {
-				String nodeId = (String) node.get("id");
-				String nodeLabel = (String) node.get("label");
-				String outputVar = (String) node.get("outputVar");
-				String nodeType = (String) node.get("type");
+				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+				String nodeLabel = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
+				String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+				String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 
 				if (cancelled.get() || AutomationDatabaseUtility.isCancelRequested(runId)) {
 					classLogger.info("Automation run {} cancelled before node {} ({})", runId, nodeId, nodeLabel);
@@ -126,7 +126,7 @@ public final class AutomationRunEngine {
 				if (AutomationConstants.NODE_STATUS_SUCCESS.equals(status)) {
 					if (outputVar != null && !outputVar.isEmpty()
 							&& !AutomationConstants.NODE_TRIGGER.equals(nodeType)) {
-						String outputValue = (String) nodeResult.get("outputValue");
+						String outputValue = (String) nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
 						scope.put(outputVar, outputValue != null ? outputValue : "");
 					}
 					completedCount++;
@@ -156,14 +156,14 @@ public final class AutomationRunEngine {
 			Map<String, Object> node, Map<String, String> scope, Map<String, String> configMap,
 			AtomicBoolean cancelFlag, Insight insight) {
 
-		String nodeId = (String) node.get("id");
-		String nodeLabel = (String) node.get("label");
-		String outputVar = (String) node.get("outputVar");
-		String type = (String) node.get("type");
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String nodeLabel = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
+		String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 
 		if (AutomationConstants.NODE_TRIGGER.equals(type)) {
 			return buildNodeResult(nodeId, nodeLabel, AutomationConstants.NODE_STATUS_SUCCESS, 0,
-					scope.get("triggered_at"), null);
+					scope.get(AutomationConstants.SCOPE_TRIGGERED_AT), null);
 		}
 
 		classLogger.debug("Executing node {} ({}) type={} in run {}", nodeId, nodeLabel, type, runId);
@@ -182,7 +182,7 @@ public final class AutomationRunEngine {
 			Object rawOutput = executor.execute(ctx);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> transformConfig = (Map<String, Object>) node.get("outputTransform");
+			Map<String, Object> transformConfig = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_OUTPUT_TRANSFORM);
 			String transformed = AutomationExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
 			String preview = AutomationExecutionUtils.generatePreview(transformed);
@@ -192,7 +192,7 @@ public final class AutomationRunEngine {
 			classLogger.debug("Node {} ({}) succeeded in {}ms in run {}", nodeId, nodeLabel, durationMs, runId);
 			Map<String, Object> result = buildNodeResult(nodeId, nodeLabel,
 					AutomationConstants.NODE_STATUS_SUCCESS, durationMs, preview, null);
-			result.put("outputValue", transformed);
+			result.put(AutomationConstants.RESULT_OUTPUT_VALUE, transformed);
 			return result;
 
 		} catch (AutomationCancelledException ace) {

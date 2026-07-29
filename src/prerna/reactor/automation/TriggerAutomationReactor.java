@@ -42,6 +42,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -57,7 +58,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
 
 	public TriggerAutomationReactor() {
-		this.keysToGet = new String[] { "project" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -79,9 +80,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		try {
 			Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> graph = (Map<String, Object>) doc.get("graph");
+			Map<String, Object> graph = (Map<String, Object>) doc.get(AutomationConstants.DOC_GRAPH);
 			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get("nodes");
+			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
 			Map<String, String> configMap = AutomationExecutionUtils.loadConfig(projectId);
 
 			List<Map<String, Object>> ordered = nodes != null ? nodes : new ArrayList<>();
@@ -118,7 +119,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				runDetail.put(AutomationConstants.RUN_ID, runId);
 				runDetail.put(AutomationConstants.PROJECT_ID, projectId);
 			}
-			runDetail.put("nodeResults", nodeResults);
+			runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 			return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
@@ -151,7 +152,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		if (this.insight.getUser() != null && this.insight.getUser().getPrimaryLoginToken() != null) {
 			return this.insight.getUser().getPrimaryLoginToken().getId();
 		}
-		return "system";
+		return AutomationConstants.SYSTEM_USER_ID;
 	}
 
 	@Override
@@ -169,7 +170,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if ("project".equals(key)) return "The project (app) ID or alias to run the automation for.";
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) return "The project (app) ID or alias to run the automation for.";
 		return super.getDescriptionForKey(key);
 	}
 }

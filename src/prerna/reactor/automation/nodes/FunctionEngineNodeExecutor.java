@@ -34,7 +34,10 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IFunctionEngine;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
@@ -49,11 +52,17 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, "engineId", nodeLabel);
-		String params = optional(config, "params", "{}");
+		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String params = optional(config, AutomationConstants.CONFIG_PARAMS, AutomationConstants.EMPTY_JSON_OBJECT);
 
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 		String resolvedParams = AutomationExecutionUtils.resolve(params, scope, configMap);
+
+		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
+		if (!SecurityEngineUtils.userCanViewEngine(ctx.insight().getUser(), resolvedEngineId)) {
+			throw new IllegalArgumentException(
+					"Function-engine node \"" + nodeLabel + "\": engine does not exist or user does not have access: " + resolvedEngineId);
+		}
 
 		IFunctionEngine engine = Utility.getFunctionEngine(resolvedEngineId);
 		if (engine == null) {

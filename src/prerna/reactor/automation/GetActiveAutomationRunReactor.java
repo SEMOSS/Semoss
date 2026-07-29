@@ -37,6 +37,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -57,7 +58,7 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetActiveAutomationRunReactor.class);
 
 	public GetActiveAutomationRunReactor() {
-		this.keysToGet = new String[] { "project" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -95,7 +96,7 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if ("project".equals(key)) return "The project (app) ID or alias to check for an active run.";
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) return "The project (app) ID or alias to check for an active run.";
 		return super.getDescriptionForKey(key);
 	}
 }

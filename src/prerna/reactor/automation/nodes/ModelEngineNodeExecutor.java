@@ -36,9 +36,12 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
@@ -53,9 +56,15 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, "engineId", nodeLabel);
-		String operation = optional(config, "operation", "llm");
+		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_LLM);
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
+		if (!SecurityEngineUtils.userCanViewEngine(ctx.insight().getUser(), resolvedEngineId)) {
+			throw new IllegalArgumentException(
+					"Model-engine node \"" + nodeLabel + "\": engine does not exist or user does not have access: " + resolvedEngineId);
+		}
 
 		IModelEngine engine = Utility.getModel(resolvedEngineId);
 		if (engine == null) {
@@ -64,8 +73,8 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 
 		classLogger.debug("Model-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
-			case "embeddings": {
-				String values = required(config, "values", nodeLabel);
+			case AutomationConstants.OP_EMBEDDINGS: {
+				String values = required(config, AutomationConstants.CONFIG_VALUES, nodeLabel);
 				String resolvedValues = AutomationExecutionUtils.resolve(values, scope, configMap);
 				List<String> valueList = Arrays.asList(resolvedValues.split(","));
 				EmbeddingsModelEngineResponse response = engine.embeddings(valueList, ctx.insight(), null);
@@ -73,9 +82,9 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 			}
 			default: {
 				// llm (and vision/ner as fallback — both use ask() with the primary command field)
-				String command = required(config, "command", nodeLabel);
+				String command = required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
 				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
-				String context = optional(config, "context");
+				String context = optional(config, AutomationConstants.CONFIG_CONTEXT);
 				String resolvedContext = (context != null)
 						? AutomationExecutionUtils.resolve(context, scope, configMap) : null;
 				Map<String, Object> params = parseParams(config, scope, configMap, nodeLabel);
@@ -89,7 +98,7 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> parseParams(Map<String, Object> config,
 			Map<String, String> scope, Map<String, String> configMap, String nodeLabel) {
-		String paramValues = optional(config, "paramValues");
+		String paramValues = optional(config, AutomationConstants.CONFIG_PARAM_VALUES);
 		if (paramValues == null) return null;
 		String resolved = AutomationExecutionUtils.resolve(paramValues, scope, configMap);
 		try {

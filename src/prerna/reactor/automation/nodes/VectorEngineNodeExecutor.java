@@ -34,7 +34,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
@@ -49,9 +52,21 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, "engineId", nodeLabel);
-		String operation = optional(config, "operation", "search");
+		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_SEARCH);
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
+		boolean mutating = AutomationConstants.OP_ADD_FILE.equals(operation)
+				|| AutomationConstants.OP_ADD_CSV.equals(operation)
+				|| AutomationConstants.OP_DELETE.equals(operation);
+		boolean authorized = mutating
+				? SecurityEngineUtils.userCanEditEngine(ctx.insight().getUser(), resolvedEngineId)
+				: SecurityEngineUtils.userCanViewEngine(ctx.insight().getUser(), resolvedEngineId);
+		if (!authorized) {
+			throw new IllegalArgumentException(
+					"Vector-engine node \"" + nodeLabel + "\": engine does not exist or user does not have access: " + resolvedEngineId);
+		}
 
 		IVectorDatabaseEngine engine = Utility.getVectorDatabase(resolvedEngineId);
 		if (engine == null) {
@@ -60,20 +75,20 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 
 		classLogger.debug("Vector-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
-			case "add-file":
-			case "add-csv": {
-				String filePaths = required(config, "filePath", nodeLabel);
+			case AutomationConstants.OP_ADD_FILE:
+			case AutomationConstants.OP_ADD_CSV: {
+				String filePaths = required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedPaths = AutomationExecutionUtils.resolve(filePaths, scope, configMap);
 				List<String> paths = Arrays.asList(resolvedPaths.split(","));
 				engine.addDocument(paths, null);
 				return "Added " + paths.size() + " file(s)";
 			}
-			case "list": {
+			case AutomationConstants.OP_LIST: {
 				List<Map<String, Object>> docs = engine.listDocuments(null);
 				return docs;
 			}
-			case "delete": {
-				String fileNames = required(config, "fileNames", nodeLabel);
+			case AutomationConstants.OP_DELETE: {
+				String fileNames = required(config, AutomationConstants.CONFIG_FILE_NAMES, nodeLabel);
 				String resolvedNames = AutomationExecutionUtils.resolve(fileNames, scope, configMap);
 				List<String> names = Arrays.asList(resolvedNames.split(","));
 				engine.removeDocument(names, null);
@@ -81,9 +96,9 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 			}
 			default: {
 				// search
-				String command = required(config, "command", nodeLabel);
+				String command = required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
 				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
-				int limit = optionalInt(config, "limit", 5);
+				int limit = optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_VECTOR_SEARCH_LIMIT);
 				List<Map<String, Object>> results = engine.nearestNeighbor(ctx.insight(), resolvedCommand, limit, null);
 				return results;
 			}

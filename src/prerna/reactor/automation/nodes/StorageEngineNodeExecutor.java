@@ -34,7 +34,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IStorageEngine;
+import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
@@ -49,9 +52,20 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, "engineId", nodeLabel);
-		String operation = optional(config, "operation", "list");
+		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_LIST);
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
+
+		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
+		boolean mutating = AutomationConstants.OP_UPLOAD.equals(operation)
+				|| AutomationConstants.OP_DELETE.equals(operation);
+		boolean authorized = mutating
+				? SecurityEngineUtils.userCanEditEngine(ctx.insight().getUser(), resolvedEngineId)
+				: SecurityEngineUtils.userCanViewEngine(ctx.insight().getUser(), resolvedEngineId);
+		if (!authorized) {
+			throw new IllegalArgumentException(
+					"Storage-engine node \"" + nodeLabel + "\": engine does not exist or user does not have access: " + resolvedEngineId);
+		}
 
 		IStorageEngine engine = Utility.getStorage(resolvedEngineId);
 		if (engine == null) {
@@ -60,37 +74,37 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 
 		classLogger.debug("Storage-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
-			case "download": {
-				String storagePath = required(config, "storagePath", nodeLabel);
-				String filePath = required(config, "filePath", nodeLabel);
+			case AutomationConstants.OP_DOWNLOAD: {
+				String storagePath = required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
+				String filePath = required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
 				engine.copyToLocal(resolvedStorage, resolvedFile);
 				return "Downloaded: " + resolvedStorage;
 			}
-			case "upload": {
-				String storagePath = required(config, "storagePath", nodeLabel);
-				String filePath = required(config, "filePath", nodeLabel);
+			case AutomationConstants.OP_UPLOAD: {
+				String storagePath = required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
+				String filePath = required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
 				engine.copyToStorage(resolvedFile, resolvedStorage, null);
 				return "Uploaded: " + resolvedFile;
 			}
-			case "delete": {
-				String storagePath = required(config, "storagePath", nodeLabel);
+			case AutomationConstants.OP_DELETE: {
+				String storagePath = required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				engine.deleteFromStorage(resolvedStorage);
 				return "Deleted: " + resolvedStorage;
 			}
-			case "read-base64": {
-				String storagePath = required(config, "storagePath", nodeLabel);
+			case AutomationConstants.OP_READ_BASE64: {
+				String storagePath = required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				byte[] bytes = engine.readBlobToMemory(resolvedStorage);
 				return Base64.getEncoder().encodeToString(bytes);
 			}
 			default: {
 				// list
-				String storagePath = optional(config, "storagePath", "/");
+				String storagePath = optional(config, AutomationConstants.CONFIG_STORAGE_PATH, AutomationConstants.DEFAULT_STORAGE_PATH);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				List<String> files = engine.list(resolvedStorage);
 				return files;

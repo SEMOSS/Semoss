@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -47,7 +48,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ListAutomationRunsReactor extends AbstractReactor {
 
 	public ListAutomationRunsReactor() {
-		this.keysToGet = new String[]{ "project", "limit" };
+		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[]{ 1, 0 };
 	}
 
@@ -72,11 +73,16 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 	}
 
 	private int parseLimit(String limitStr) {
-		if (limitStr == null || limitStr.isEmpty()) return 25;
+		if (limitStr == null || limitStr.isEmpty()) return AutomationConstants.DEFAULT_LIST_RUNS_LIMIT;
 		try {
 			return Integer.parseInt(limitStr.trim());
 		} catch (NumberFormatException e) {
-			return 25;
+			return AutomationConstants.DEFAULT_LIST_RUNS_LIMIT;
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Lists automation run history for a project, newest first.";
 	}
 }

@@ -33,7 +33,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,8 +44,10 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -54,7 +58,7 @@ public class SaveAutomationReactor extends AbstractReactor {
     private static final Logger classLogger = LogManager.getLogger(SaveAutomationReactor.class);
 
     public SaveAutomationReactor() {
-        this.keysToGet = new String[]{ "project", "json" };
+        this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey() };
     }
 
     @Override
@@ -114,5 +118,19 @@ public class SaveAutomationReactor extends AbstractReactor {
 
         SecurityProjectUtils.updateProjectLastEditedDate(projectId);
         return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Saves the automation graph (automation.json) for a project.";
+    }
+
+    @Override
+    public Map<String, String> getMcpToolMetadata() {
+        Map<String, String> meta = new HashMap<>();
+        // Overwrites the saved automation graph and commits it to source control —
+        // requires explicit human confirmation.
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        return meta;
     }
 }

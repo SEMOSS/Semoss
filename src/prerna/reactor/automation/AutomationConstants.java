@@ -106,17 +106,133 @@ public final class AutomationConstants {
 	public static final String NODE_WAIT = "wait";
 	public static final String NODE_APP = "app";
 
+	// -- Node config keys (node.config map fields, shared across executors) --------
+
+	public static final String CONFIG_ENGINE_ID = "engineId";
+	public static final String CONFIG_OPERATION = "operation";
+	public static final String CONFIG_EXPRESSION = "expression";
+	public static final String CONFIG_LIMIT = "limit";
+	public static final String CONFIG_VALUES = "values";
+	public static final String CONFIG_COMMAND = "command";
+	public static final String CONFIG_CONTEXT = "context";
+	public static final String CONFIG_PARAM_VALUES = "paramValues";
+	public static final String CONFIG_PARAMS = "params";
+	public static final String CONFIG_STORAGE_PATH = "storagePath";
+	public static final String CONFIG_FILE_PATH = "filePath";
+	public static final String CONFIG_FILE_NAMES = "fileNames";
+	public static final String CONFIG_SECONDS = "seconds";
+	public static final String CONFIG_PIXEL = "pixel";
+	public static final String CONFIG_APP_ID = "appId";
+	public static final String CONFIG_TIMEOUT_SECONDS = "timeoutSeconds";
+	public static final String DEFAULT_STORAGE_PATH = "/";
+	public static final String EMPTY_JSON_OBJECT = "{}";
+	public static final String EMPTY_JSON_ARRAY = "[]";
+
+	// -- Node operation values -------------------------------------------------------
+
+	public static final String OP_READ = "read";
+	public static final String OP_WRITE = "write";
+	public static final String OP_LLM = "llm";
+	public static final String OP_EMBEDDINGS = "embeddings";
+	public static final String OP_VISION = "vision";
+	public static final String OP_NER = "ner";
+	public static final String OP_SEARCH = "search";
+	public static final String OP_ADD_FILE = "add-file";
+	public static final String OP_ADD_CSV = "add-csv";
+	public static final String OP_LIST = "list";
+	public static final String OP_DELETE = "delete";
+	public static final String OP_DOWNLOAD = "download";
+	public static final String OP_UPLOAD = "upload";
+	public static final String OP_READ_BASE64 = "read-base64";
+
+	// -- Node execution defaults / bounds --------------------------------------------
+
+	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
+	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
+	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
+	public static final int WAIT_MIN_SECONDS = 0;
+	public static final int WAIT_MAX_SECONDS = 3600;
+	public static final int WAIT_DEFAULT_SECONDS = 1;
+	public static final int WAIT_CANCEL_CHECK_INTERVAL_SECONDS = 5;
+
+	// -- automation.json document field names ----------------------------------------
+
+	public static final String DOC_VERSION = "version";
+	public static final String DOC_GRAPH = "graph";
+	public static final String DOC_NODES = "nodes";
+	public static final String DOC_EDGES = "edges";
+	public static final int DOC_CURRENT_VERSION = 1;
+
+	// -- Node/edge field names --------------------------------------------------------
+
+	public static final String NODE_FIELD_ID = "id";
+	public static final String NODE_FIELD_TYPE = "type";
+	public static final String NODE_FIELD_LABEL = "label";
+	public static final String NODE_FIELD_CONFIG = "config";
+	public static final String NODE_FIELD_OUTPUT_TRANSFORM = "outputTransform";
+	public static final String NODE_FIELD_OUTPUT_VAR = "outputVar";
+	public static final String EDGE_FIELD_SOURCE = "source";
+	public static final String EDGE_FIELD_TARGET = "target";
+	public static final String UNNAMED_NODE_LABEL = "unnamed";
+
+	// -- automation-config.json entry field names ------------------------------------
+
+	public static final String CONFIG_ENTRY_KEY = "key";
+	public static final String CONFIG_ENTRY_VALUE = "value";
+	public static final String CONFIG_ENTRY_SENSITIVE = "sensitive";
+
+	// -- Output transform field names / modes ----------------------------------------
+
+	public static final String TRANSFORM_MODE = "mode";
+	public static final String TRANSFORM_COLUMN = "column";
+	public static final String TRANSFORM_PATH = "path";
+	public static final String TRANSFORM_MODE_RAW = "raw";
+	public static final String TRANSFORM_MODE_ROWS_AS_OBJECTS = "rows-as-objects";
+	public static final String TRANSFORM_MODE_FIRST_ROW = "first-row";
+	public static final String TRANSFORM_MODE_COLUMN = "column";
+	public static final String TRANSFORM_MODE_JSONPATH = "jsonpath";
+	public static final String DATASET_HEADERS = "headers";
+	public static final String DATASET_VALUES = "values";
+	public static final String DATASET_DATA = "data";
+
+	// -- Scope variable names ---------------------------------------------------------
+
+	public static final String SCOPE_DATE = "date";
+	public static final String SCOPE_TRIGGERED_AT = "triggered_at";
+	public static final String SCOPE_RUN_ID = "run_id";
+	public static final String TEST_RUN_ID = "test";
+	public static final String SYSTEM_USER_ID = "system";
+
+	// -- Result map keys ---------------------------------------------------------------
+
+	public static final String RESULT_NODE_RESULTS = "nodeResults";
+	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
+	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
+	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+
 	// -- Pixel execution defaults ----------------------------------------------------
 
 	public static final int DEFAULT_TIMEOUT_SECONDS = 300;
 
 	// -- Data type constants (for table creation) ----------------------------------
 
+	public static final String VARCHAR_50 = "VARCHAR(50)";
 	public static final String VARCHAR_255 = "VARCHAR(255)";
 	public static final String VARCHAR_500 = "VARCHAR(500)";
+	public static final String VARCHAR_2000 = "VARCHAR(2000)";
 	public static final String INTEGER = "INTEGER";
 	public static final String BIGINT = "BIGINT";
 	public static final String NOT_NULL = "NOT NULL";
+
+	// -- DDL object names (indexes / primary keys) ----------------------------------
+
+	public static final String PK_AUTOMATION_RUNS = "PK_AUTOMATION_RUNS";
+	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
+	public static final String PK_AUTO_ACTIVE_RUN = "PK_AUTO_ACTIVE_RUN";
+	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";
+	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
+	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
+	public static final String IDX_ANO_RUN = "IDX_ANO_RUN";
 
 	// -- Defaults ------------------------------------------------------------------
 
