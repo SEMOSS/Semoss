@@ -8,6 +8,10 @@ dependency-reduced-pom.xml
 # Log file
 *.log
 
+# Local dev notes
+output.txt
+pgvector_setup_notes.txt
+
 # BlueJ files
 *.ctxt
 
