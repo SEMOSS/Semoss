@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,6 +62,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -89,13 +91,21 @@ public class Room implements Serializable {
 
 	private static final Logger classLogger = LogManager.getLogger(Room.class);
 
-	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
 	private static final Pattern SYSTEM_PROMPT_VARIABLE_PATTERN = Pattern
 			.compile("\\{\\{\\s*([A-Z][A-Z0-9_]*)\\s*((?:\\.|\\[)[^}]*)?\\s*\\}\\}");
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
 			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
+
+	private static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
+
+	/**
+	 * Per-room in-memory mutex for message mutations. Kept transient because lock
+	 * state is not part of persisted room state.
+	 */
+	private transient ReentrantLock messageLock = new ReentrantLock();
 
 	private String room_id;
 	private String userId;
@@ -119,8 +129,6 @@ public class Room implements Serializable {
 	private transient Insight insight;
 	private String roomFolderPath;
 
-	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
-
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
 	 * (containing engine metadata and original untruncated function name).
@@ -134,6 +142,25 @@ public class Room implements Serializable {
 	 * and ad-hoc object construction.
 	 */
 	public Room() {
+	}
+
+	/**
+	 * Returns the room-level message lock, lazily reinitializing after
+	 * deserialization when transient fields are null.
+	 */
+	private ReentrantLock getMessageLock() {
+		ReentrantLock lock = this.messageLock;
+		if (lock != null) {
+			return lock;
+		}
+		synchronized (this) {
+			lock = this.messageLock;
+			if (lock == null) {
+				lock = new ReentrantLock();
+				this.messageLock = lock;
+			}
+		}
+		return lock;
 	}
 
 	/**
@@ -171,7 +198,7 @@ public class Room implements Serializable {
 		this.modelId = modelId;
 		this.parentRoomId = parentRoomId;
 		this.messagesJson = messagesJson;
-		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+		this.roomFolderPath = roomFolderPath(this.room_id);
 
 		parseMessages();
 
@@ -235,128 +262,133 @@ public class Room implements Serializable {
 	 * @param appendToHistory whether to append and persist messages to room history
 	 * @return assistant response message
 	 */
-	public synchronized ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
 			Boolean appendToHistory) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
-		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
-
-		// if it is full prompt, process that first.
-		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			applyInputUsageFromModelResponse(msg, llmResponse);
-			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
-		}
-
-		// if a specific system message is sent to use, overwrite the existing in the db
-		if (msg.getSystemPrompt() != null) {
-			ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
-					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
-		}
-
-		// this will modify tools if name is too large
-		appendToolsToParams(kwArgMap, modelEngine);
-
-		applyTextModelParams(kwArgMap);
-
-		boolean useHistory = true;
-		Object useHistoryObj = kwArgMap.get("use_history");
-		if (useHistoryObj instanceof Boolean) {
-			useHistory = (Boolean) useHistoryObj;
-			kwArgMap.remove("use_history");
-		} else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
-			useHistory = false;
-			kwArgMap.remove("use_history");
-		}
-
-		// does the model have keep keep input output off or is use_history false? if so
-		// then just ask the model and send the response back.
-		if (!modelEngine.keepInputOutput() || !useHistory) {
-			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
-			kwArgMap.put("message_json", singleMessageJson);
-
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			applyInputUsageFromModelResponse(msg, llmResponse);
-			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
-		}
-
-		String userId = insight.getUser().getPrimaryLoginToken().getId();
-		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
-			RoomMessageStore.refreshFromLatestProjection(this, userId);
-			// if we dont have to keep history. then wipe all previous messages.
-			if (!modelEngine.keepsConversationHistory()) {
-				messages.clear();
+			// if it is full prompt, process that first.
+			if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				applyInputUsageFromModelResponse(msg, llmResponse);
+				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
 
-			// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
-			// branch so providers do not reject the next payload
-			RoomMessageStore.normalizeForProviderPayload(this);
-
-			// Set model type and add message to history
-			msg.setModel(modelEngine);
-
-			// Set parentMessageId for this message
-			// first check that messages is not empty. otherwise its the first message of
-			// the thread and parent is null
-			if (!messages.isEmpty()) {
-				// if a parent message id is passed in, validate it exists and use it.
-				if (parentMessageId != null && !parentMessageId.isEmpty()) {
-					msg.setParentMessageId(parentMessageId);
-				} else {
-					// if no parent message id is passed in, use the last message as the parent.
-					AbstractMessage lastMsg = messages.get(messages.size() - 1);
-					msg.setParentMessageId(lastMsg.getMessageId());
-				}
-			} else {
-				msg.setParentMessageId(null); // first message
+			// if a specific system message is sent to use, overwrite the existing in the db
+			if (msg.getSystemPrompt() != null) {
+				ModelInferenceLogsUtils.setRoomContext(this.insight.getInsightId(),
+						this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 			}
 
-			ResponseMessage response = null;
-			try {
-				String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
-				kwArgMap.put("message_json", messageJsonString);
+			// this will modify tools if name is too large
+			appendToolsToParams(kwArgMap, modelEngine);
+
+			applyTextModelParams(kwArgMap);
+
+			boolean useHistory = true;
+			Object useHistoryObj = kwArgMap.get("use_history");
+			if (useHistoryObj instanceof Boolean) {
+				useHistory = (Boolean) useHistoryObj;
+				kwArgMap.remove("use_history");
+			} else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
+				useHistory = false;
+				kwArgMap.remove("use_history");
+			}
+
+			// does the model have keep keep input output off or is use_history false? if so
+			// then just ask the model and send the response back.
+			if (!modelEngine.keepInputOutput() || !useHistory) {
+				String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
+				kwArgMap.put("message_json", singleMessageJson);
 
 				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
-				response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
-			} catch (Exception e) {
-				classLogger.error("Error running new message in room", e);
-				throw e;
-			}
-			// on success, add the message
-			if (appendToHistory) {
-				messages.add(msg);
-				messages.add(response);
+				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
 
-			// Save the old (before) roomName for comparison
-			String prevRoomName = this.roomName;
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				// if we dont have to keep history. then wipe all previous messages.
+				if (!modelEngine.keepsConversationHistory()) {
+					messages.clear();
+				}
 
-			// Try to infer/set roomName if missing
-			if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-				for (AbstractMessage m : this.messages) {
-					if (m instanceof InputMessage) {
-						InputMessage im = (InputMessage) m;
-						String prompt = im.getInputUIPrompt();
-						if (prompt != null && !prompt.trim().isEmpty()) {
-							this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-							break;
+				// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
+				// branch so providers do not reject the next payload
+				RoomMessageStore.normalizeForProviderPayload(this);
+
+				// Set model type and add message to history
+				msg.setModel(modelEngine);
+
+				// Set parentMessageId for this message
+				// first check that messages is not empty. otherwise its the first message of
+				// the thread and parent is null
+				if (!messages.isEmpty()) {
+					// if a parent message id is passed in, validate it exists and use it.
+					if (parentMessageId != null && !parentMessageId.isEmpty()) {
+						msg.setParentMessageId(parentMessageId);
+					} else {
+						// if no parent message id is passed in, use the last message as the parent.
+						AbstractMessage lastMsg = messages.get(messages.size() - 1);
+						msg.setParentMessageId(lastMsg.getMessageId());
+					}
+				} else {
+					msg.setParentMessageId(null); // first message
+				}
+
+				ResponseMessage response = null;
+				try {
+					String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
+					kwArgMap.put("message_json", messageJsonString);
+
+					AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+					applyInputUsageFromModelResponse(msg, llmResponse);
+					response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
+				} catch (Exception e) {
+					classLogger.error("Error running new message in room", e);
+					throw e;
+				}
+				// on success, add the message
+				if (appendToHistory) {
+					messages.add(msg);
+					messages.add(response);
+				}
+
+				// Save the old (before) roomName for comparison
+				String prevRoomName = this.roomName;
+
+				// Try to infer/set roomName if missing
+				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+					for (AbstractMessage m : this.messages) {
+						if (m instanceof InputMessage) {
+							InputMessage im = (InputMessage) m;
+							String prompt = im.getInputUIPrompt();
+							if (prompt != null && !prompt.trim().isEmpty()) {
+								this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+								break;
+							}
 						}
 					}
 				}
-			}
 
-			// Persist message history - room name was just updated
-			if (appendToHistory) {
-				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-						&& !this.roomName.trim().isEmpty()) {
-					// Only update with room name if we just set it now!
-					RoomMessageStore.persist(this, userId, this.roomName, modelEngine.getEngineId());
-				} else {
-					// Otherwise, regular update
-					RoomMessageStore.persist(this, userId);
+				// Persist message history - room name was just updated
+				if (appendToHistory) {
+					if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+							&& !this.roomName.trim().isEmpty()) {
+						// Only update with room name if we just set it now!
+						RoomMessageStore.persist(this, userId, this.roomName, modelEngine.getEngineId());
+					} else {
+						// Otherwise, regular update
+						RoomMessageStore.persist(this, userId);
+					}
 				}
+				return response;
 			}
-			return response;
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -382,11 +414,17 @@ public class Room implements Serializable {
 	 * @throws IllegalArgumentException if {@code toolCallId} does not match the
 	 *                                  current assistant tool-call payload
 	 */
-	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
-		return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
-				paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true);
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
+					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	/**
@@ -394,38 +432,50 @@ public class Room implements Serializable {
 	 * without invoking the model. Used by durable agent HITL resumes so the worker
 	 * owns the follow-up model call.
 	 */
-	public synchronized void addToolExecutionResultWithoutModel(String toolCallId, String toolName,
-			String toolExecutionResponse, Map<String, Object> toolParameterValues, String parentMessageId,
-			IModelEngine modelEngine, Insight insight, String toolStatus) {
-		addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues, null,
-				parentMessageId, modelEngine, insight, toolStatus, false);
+	public void addToolExecutionResultWithoutModel(String toolCallId, String toolName, String toolExecutionResponse,
+			Map<String, Object> toolParameterValues, String parentMessageId, IModelEngine modelEngine, Insight insight,
+			String toolStatus) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues, null,
+					parentMessageId, modelEngine, insight, toolStatus, false);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	/**
 	 * Continues from a completed tool-result input message. Returns {@code null}
 	 * when the tool-call batch is still incomplete.
 	 */
-	public synchronized AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight) {
-		String userId = insight.getUser().getPrimaryLoginToken().getId();
-		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
-			RoomMessageStore.refreshFromLatestProjection(this, userId);
-			if (messages.isEmpty()) {
-				throw new IllegalStateException("No messages to match tool call context");
-			}
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				if (messages.isEmpty()) {
+					throw new IllegalStateException("No messages to match tool call context");
+				}
 
-			String lastMessageId = resolveToolContinuationMessageId(parentMessageId);
-			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
-			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
-			if (toolResultsMessage == null) {
-				throw new IllegalStateException("No tool execution result message found to continue.");
+				String lastMessageId = resolveToolContinuationMessageId(parentMessageId);
+				ToolExecutionContext context = findToolExecutionContext(lastMessageId);
+				InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
+				if (toolResultsMessage == null) {
+					throw new IllegalStateException("No tool execution result message found to continue.");
+				}
+				if (!allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, null)) {
+					RoomMessageStore.persist(this, userId);
+					return null;
+				}
+				return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
+						modelEngine, userId, false);
 			}
-			if (!allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, null)) {
-				RoomMessageStore.persist(this, userId);
-				return null;
-			}
-			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-					modelEngine, userId, false);
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -445,7 +495,8 @@ public class Room implements Serializable {
 			validateToolCallId(context.toolResponse, toolCallId);
 
 			if (hasToolCallBeenAnswered(toolCallId)) {
-				classLogger.warn("Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
+				classLogger.warn(
+						"Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
 						toolCallId, toolName, context.toolResponse.getMessageId());
 				RoomMessageStore.persist(this, userId);
 				return null;
@@ -455,9 +506,9 @@ public class Room implements Serializable {
 			boolean isToolResultsInputMessage = false;
 			if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
-				toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getSystemPromptForModel())
-						.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus,
-								false)
+				toolResultsMessage = InputMessage
+						.builder(this).withSystemPrompt(this.getSystemPromptForModel()).withToolResult(toolCallId,
+								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(context.toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
@@ -471,7 +522,8 @@ public class Room implements Serializable {
 			if (isToolResultsInputMessage) {
 				messages.add(toolResultsMessage);
 			}
-			if (!continueWhenReady || !allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
+			if (!continueWhenReady
+					|| !allToolCallsAnswered(context.toolResponse, context.toolResponseIdx, toolCallId)) {
 				RoomMessageStore.persist(this, userId);
 				return null;
 			}
@@ -550,24 +602,30 @@ public class Room implements Serializable {
 		return null;
 	}
 
-	public synchronized boolean hasToolCallBeenAnswered(String toolCallId) {
-		for (AbstractMessage m : messages) {
-			if (!(m instanceof InputMessage) || !m.hasToolResultPart()) {
-				continue;
-			}
-			for (MessagePart p : m.getParts()) {
-				if (p instanceof ToolResultMessagePart) {
-					ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
-					if (tr != null && toolCallId.equals(tr.getToolCallId())) {
-						return true;
+	public boolean hasToolCallBeenAnswered(String toolCallId) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			for (AbstractMessage m : messages) {
+				if (!(m instanceof InputMessage) || !m.hasToolResultPart()) {
+					continue;
+				}
+				for (MessagePart p : m.getParts()) {
+					if (p instanceof ToolResultMessagePart) {
+						ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+						if (tr != null && toolCallId.equals(tr.getToolCallId())) {
+							return true;
+						}
 					}
 				}
+				if (toolCallId.equals(((InputMessage) m).getToolCallId())) {
+					return true;
+				}
 			}
-			if (toolCallId.equals(((InputMessage) m).getToolCallId())) {
-				return true;
-			}
+			return false;
+		} finally {
+			lock.unlock();
 		}
-		return false;
 	}
 
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
@@ -818,11 +876,10 @@ public class Room implements Serializable {
 	 *
 	 * <p>
 	 * External-CLI harnesses ({@code claude_code}, {@code github_copilot_py}) take
-	 * a sibling path:
-	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
-	 * the same two sources, but returning engine refs ({@code id}/{@code name})
-	 * rather than resolved tool defs - the external CLI does its own MCP handshake
-	 * to discover tools.
+	 * a sibling path: {@code AgentConfig.getMcps()}, populated by
+	 * {@code AgentConfigLoader} from the same two sources, but returning engine
+	 * refs ({@code id}/{@code name}) rather than resolved tool defs - the external
+	 * CLI does its own MCP handshake to discover tools.
 	 *
 	 * <p>
 	 * Both paths honor {@code room.options.workspace.workspace_id}, so the
@@ -843,6 +900,17 @@ public class Room implements Serializable {
 		// make sure the same toolbox is not accidentally added more than once
 		Set<String> ensureUnique = new HashSet<>();
 
+		// The room's own toolbox comes from disk, with no options.mcp entry needed.
+		// Done first so ensureUnique skips a room whose options also list the room id.
+		if (InternalMCP.hasDefinitions(getRoomFolderPath())) {
+			ensureUnique.add(MCPUtility.ROOM_MCP_ID);
+			try {
+				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength));
+			} catch (Exception e) {
+				classLogger.error("Unable to add the room's own MCP tools", e);
+			}
+		}
+
 		if (o.containsKey("mcp")) {
 			try {
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
@@ -855,7 +923,8 @@ public class Room implements Serializable {
 								ensureUnique.add(id);
 							}
 						} else {
-							throw new IllegalArgumentException("Tool map must contain both type and id");
+							// id is the only field that is read; type and name are display only
+							throw new IllegalArgumentException("Tool map must contain an id");
 						}
 					} catch (Exception e) {
 						classLogger.error("Unable to add tool map from room mcp", e);
@@ -930,6 +999,66 @@ public class Room implements Serializable {
 	 */
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
+		// room level MCPs
+		if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
+			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(this.getRoomFolderPath());
+			JSONObject toolMap = roomMcp.getMCPTools();
+			if (toolMap == null) {
+				return new ArrayList<>();
+			}
+			Map<String, Object> engineMeta = toolMap.has("_meta") ? toolMap.getJSONObject("_meta").toMap()
+					: new HashMap<>();
+			Map<Integer, String> originalNames = new HashMap<>();
+			if (toolMap.has("tools")) {
+				JSONArray toolsBefore = toolMap.getJSONArray("tools");
+				for (int i = 0; i < toolsBefore.length(); i++) {
+					JSONObject toolBefore = toolsBefore.optJSONObject(i);
+					if (toolBefore != null && toolBefore.has("name")) {
+						originalNames.put(i, toolBefore.getString("name"));
+					}
+				}
+			}
+			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.ROOM_MCP_ID, toolMap,
+					maxLength);
+			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
+				return new ArrayList<>();
+			}
+			JSONArray arr = updatedToolMap.getJSONArray("tools");
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject toolObj = arr.optJSONObject(i);
+				if (toolObj == null) {
+					continue;
+				}
+				JSONObject meta = toolObj.optJSONObject("_meta");
+				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
+				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+					Map<String, Object> entry = toolObj.toMap();
+					result.add(entry);
+					String llmName = toolObj.getString("name");
+					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
+					Object rawMeta = entry.get("_meta");
+					if (rawMeta instanceof Map) {
+						lookupMeta.putAll((Map<String, Object>) rawMeta);
+					}
+					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.ROOM_MCP_ID);
+					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
+
+					Map<String, Object> lookupEntry = new HashMap<>();
+					if (entry.containsKey("title")) {
+						lookupEntry.put("title", entry.get("title"));
+					}
+					if (entry.containsKey("description")) {
+						lookupEntry.put("description", entry.get("description"));
+					}
+					lookupEntry.put("_meta", lookupMeta);
+					toolLookupByLLMName.put(llmName, lookupEntry);
+				}
+			}
+			return result;
+		}
+
+		// normal engine/project mcp
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -1034,6 +1163,45 @@ public class Room implements Serializable {
 	 */
 	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
 		return Collections.unmodifiableMap(toolLookupByLLMName);
+	}
+
+	/**
+	 * Undoes the name aliasing applied when the tools were shown to the model.
+	 *
+	 * <p>
+	 * {@link MCPUtility#appendEngineIdToToolsMethodName(String, JSONObject, int)}
+	 * both prefixes a tool name with its engine id and, for providers that cap tool
+	 * name length, truncates it. Stripping the prefix reverses only the first half;
+	 * the truncation is lossy. This resolves the real name from the same map that
+	 * recorded it, so callers get an exact name back instead of pattern matching a
+	 * shortened one.
+	 *
+	 * <p>
+	 * The map is populated by {@link #getAllToolsJsonForRoom(int)} and lives on the
+	 * cached Room, which outlives the HTTP insight that built it, so it is normally
+	 * still warm on the follow-up request that executes the tool. When it is not,
+	 * the name is returned unchanged and the caller falls back to matching.
+	 *
+	 * @param llmFacingName the name as the model called it
+	 * @return the original tool name, or the input unchanged when unknown
+	 */
+	@SuppressWarnings("unchecked")
+	public String resolveOriginalToolName(String llmFacingName) {
+		if (llmFacingName == null || llmFacingName.isBlank()) {
+			return llmFacingName;
+		}
+		Map<String, Object> entry = toolLookupByLLMName.get(llmFacingName);
+		if (entry == null) {
+			return llmFacingName;
+		}
+		Object rawMeta = entry.get("_meta");
+		if (rawMeta instanceof Map) {
+			Object original = ((Map<String, Object>) rawMeta).get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+			if (original instanceof String && !((String) original).isBlank()) {
+				return (String) original;
+			}
+		}
+		return llmFacingName;
 	}
 
 	/**
@@ -1722,6 +1890,17 @@ public class Room implements Serializable {
 	 */
 	public String getRoomFolderPath() {
 		return roomFolderPath;
+	}
+
+	/**
+	 * Resolves a room's folder from its id, for callers that need the path without
+	 * loading the room.
+	 *
+	 * @param roomId the room id
+	 * @return the room folder path
+	 */
+	public static String roomFolderPath(String roomId) {
+		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 	}
 
 	// Core message accessors

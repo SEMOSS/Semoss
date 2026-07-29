@@ -28,9 +28,11 @@
 package prerna.engine.impl;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -41,29 +43,195 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IMCP;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPErrorCode;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.execptions.SemossMCPException;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 
 public class InternalMCP implements IMCP {
 
 	private static final Logger classLogger = LogManager.getLogger(InternalMCP.class);
 
-	private IEngine engine;
-	private String engineId;
-	private String engineName;
-	private CATALOG_TYPE engineType;
+	/**
+	 * Resolved once at construction. Every tool/resource/prompt read and every
+	 * execution is relative to this folder.
+	 */
+	private final String assetsFolder;
 
-	public InternalMCP(IEngine engine) {
+	/**
+	 * The backing engine/project. {@code null} for folder-backed MCPs (rooms,
+	 * insights) that have no catalog entry.
+	 */
+	private final IEngine engine;
+
+	private final String engineId;
+	private final String engineName;
+
+	/** Value published as {@link MCPUtility#SMSS_ENGINE_TYPE}. */
+	private final String engineType;
+
+	/**
+	 * Key used to namespace python module state in the shared insight globals. This
+	 * is deliberately NOT {@link #engineId}: folder-backed MCPs may share a
+	 * published id (every room publishes {@code __room__}) while pointing at
+	 * different folders, and a shared key would make concurrent rooms clobber each
+	 * other's loaded driver. Engines keep their id so existing aliases are
+	 * unchanged.
+	 */
+	private final String scopeId;
+
+	private InternalMCP(IEngine engine, String assetsFolder, String engineId, String engineName, String engineType) {
+		if (assetsFolder == null || assetsFolder.isBlank()) {
+			throw new IllegalArgumentException("An assets folder is required to build an MCP");
+		}
 		this.engine = engine;
-		this.engineId = engine.getEngineId();
-		this.engineName = engine.getEngineName();
-		this.engineType = engine.getCatalogType();
+		this.assetsFolder = assetsFolder.replace("\\", "/");
+		this.engineId = engineId;
+		this.engineName = engineName;
+		this.engineType = engineType;
+		this.scopeId = (engine != null) ? engineId : folderScopeId(this.assetsFolder);
+	}
+
+	/**
+	 * Builds a stable, identifier-safe namespace key for a folder-backed MCP. The
+	 * folder is unique per scope, so hashing it gives uniqueness without asking the
+	 * caller to invent an id.
+	 *
+	 * @param assetsFolder the normalized assets folder
+	 * @return a scope key of the form {@code folder_<hex>}
+	 */
+	private static String folderScopeId(String assetsFolder) {
+		try {
+			MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = messageDigest.digest(assetsFolder.getBytes(StandardCharsets.UTF_8));
+			// convert bytes to hexadecimal
+			StringBuilder s = new StringBuilder();
+			for (byte b : hash) {
+				s.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
+			}
+			return "folder_" + s.substring(0, 16);
+		} catch (NoSuchAlgorithmException e) {
+			classLogger.error("Unable to build an MCP scope key for '{}'", assetsFolder, e);
+			throw new IllegalStateException("Unable to build an MCP scope key for " + assetsFolder, e);
+		}
+	}
+
+	/**
+	 * Builds an MCP backed by a catalog engine or project. The assets folder is
+	 * derived from the engine's catalog type, id, and name.
+	 *
+	 * @param engine the engine or project to expose as an MCP
+	 * @return an MCP that supports both pixel and python tools
+	 */
+	public static InternalMCP genFromEngine(IEngine engine) {
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine must not be null");
+		}
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		return new InternalMCP(engine, assetsFolder, engine.getEngineId(), engine.getEngineName(),
+				engine.getCatalogType().name());
+	}
+
+	/**
+	 * Builds an MCP backed by an explicit assets folder rather than a catalog
+	 * engine. Use this for scopes that own {@code mcp/pixel_mcp.json} without being
+	 * registered as an engine, such as a room or insight folder.
+	 *
+	 * <p>
+	 * Both pixel and python tools are supported. Pixel tools run directly in the
+	 * caller's insight rather than under a project context, and python tools run
+	 * against {@code <assetsFolder>/py} using the insight's python translator.
+	 *
+	 * <p>
+	 * {@code id} does not need to be unique. Several scopes may legitimately
+	 * publish the same id (every room publishes {@code __room__}); python module
+	 * state is namespaced off the folder instead. See {@link #scopeId}.
+	 *
+	 * @param assetsFolder absolute path to the folder containing {@code mcp/}
+	 * @param id           id published as SMSS_ENGINE_ID / SMSS_PROJECT_ID
+	 * @param name         display name published as SMSS_ENGINE_NAME
+	 * @param type         value published as SMSS_ENGINE_TYPE
+	 * @return an MCP backed by the given folder
+	 */
+	public static InternalMCP genFromFolder(String assetsFolder, String id, String name, String type) {
+		return new InternalMCP(null, assetsFolder, id, name, type);
+	}
+
+	/**
+	 * Builds the virtual MCP backed by a room's asset folder, published under
+	 * {@link MCPUtility#ROOM_MCP_ID}.
+	 *
+	 * <p>
+	 * This is a general purpose per-room toolbox. It serves whatever is in the
+	 * folder's {@code mcp/pixel_mcp.json} and {@code mcp/py_mcp.json}, so any
+	 * generator can contribute room scoped tools and each tool picks its own
+	 * {@code SMSS_MCP_UI}, execution mode, and {@code SMSS_FUNCTION_NAME}.
+	 * Playwright playback uses this and tools happen to point their UI at a
+	 * {@code system://} app; nothing here requires that, and a tool may omit the UI
+	 * block entirely.
+	 *
+	 * <p>
+	 * Where {@code SMSS_ENGINE_ID} normally holds a real engine or project UUID,
+	 * {@link MCPUtility#ROOM_MCP_ID} tells the resolver to read the room folder
+	 * rather than look the id up in the catalog.
+	 *
+	 * <p>
+	 * Every room publishes that same reserved id, which is fine: python module
+	 * state is namespaced off the folder, not the id. See {@link #scopeId}.
+	 *
+	 * @param roomFolder the room folder containing {@code mcp/}
+	 * @return an MCP backed by that folder
+	 */
+	public static InternalMCP genFromRoomFolder(String roomFolder) {
+		if (roomFolder == null || roomFolder.isBlank()) {
+			throw new IllegalArgumentException("Room folder must not be blank for a room MCP");
+		}
+		String normalized = Paths.get(roomFolder).toAbsolutePath().normalize().toString();
+		return genFromFolder(normalized, MCPUtility.ROOM_MCP_ID, MCPUtility.ROOM_MCP_NAME, MCPUtility.ROOM_MCP_TYPE);
+	}
+
+	/** Python tool definitions, relative to an assets folder. */
+	private static final String PY_MCP_REL = "/mcp/py_mcp.json";
+
+	/** Pixel tool definitions, relative to an assets folder. */
+	private static final String PIXEL_MCP_REL = "/mcp/pixel_mcp.json";
+
+	private String pyMcpPath() {
+		return this.assetsFolder + PY_MCP_REL;
+	}
+
+	private String pixelMcpPath() {
+		return this.assetsFolder + PIXEL_MCP_REL;
+	}
+
+	/**
+	 * True when a folder holds MCP tool definitions, without building an MCP for
+	 * it.
+	 *
+	 * @param assetsFolder folder that may contain an {@code mcp/} directory
+	 * @return true when a pixel or python definition file is present
+	 */
+	public static boolean hasDefinitions(String assetsFolder) {
+		if (assetsFolder == null || assetsFolder.isBlank()) {
+			return false;
+		}
+		return new File(assetsFolder + PIXEL_MCP_REL).isFile() || new File(assetsFolder + PY_MCP_REL).isFile();
+	}
+
+	/**
+	 * Reads the given node from both the python and pixel MCP definitions and
+	 * merges them into a single array.
+	 *
+	 * @param nodeName one of tools, resources, resourceTemplates, prompts
+	 * @return the merged array, empty when neither file defines the node
+	 */
+	private JSONArray getMergedNode(String nodeName) {
+		JSONArray merged = MCPUtility.getNode(pyMcpPath(), nodeName);
+		merged.putAll(MCPUtility.getNode(pixelMcpPath(), nodeName));
+		return merged;
 	}
 
 	@Override
@@ -102,67 +270,35 @@ public class InternalMCP implements IMCP {
 
 	@Override
 	public JSONObject getMCPResources() {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
-				this.engineName);
 		// we have python and java mcp
-		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
-		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resources");
-		pyToolArray.putAll(javaToolArray);
-
 		JSONObject jsonMap = new JSONObject();
-		jsonMap.put("resources", pyToolArray);
+		jsonMap.put("resources", getMergedNode("resources"));
 
 		return jsonMap;
 	}
 
 	@Override
 	public JSONObject getMCPResourcesTemplates() {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
-				this.engineName);
 		// we have python and java mcp
-		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
-		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "resourceTemplates");
-		pyToolArray.putAll(javaToolArray);
-
 		JSONObject jsonMap = new JSONObject();
-		jsonMap.put("resourceTemplates", pyToolArray);
+		jsonMap.put("resourceTemplates", getMergedNode("resourceTemplates"));
 
 		return jsonMap;
 	}
 
 	@Override
 	public JSONObject getMCPPrompts() {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
-				this.engineName);
 		// we have python and java mcp
-		String jsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		JSONArray pyToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
-		jsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-		JSONArray javaToolArray = MCPUtility.getNode(jsonFileLoc, "prompts");
-		pyToolArray.putAll(javaToolArray);
-
 		JSONObject jsonMap = new JSONObject();
-		jsonMap.put("prompts", pyToolArray);
+		jsonMap.put("prompts", getMergedNode("prompts"));
 		return jsonMap;
 	}
 
 	@Override
 	public JSONObject getMCPTools() {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
-				this.engineName);
 		// we have python and java mcp
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-
 		JSONObject toolMap = new JSONObject();
-		JSONArray toolsArray = new JSONArray();
-		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
-		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
-		toolMap.put("tools", toolsArray);
+		toolMap.put("tools", getMergedNode("tools"));
 
 		// add in meta as well
 		JSONObject _meta = new JSONObject();
@@ -170,7 +306,7 @@ public class InternalMCP implements IMCP {
 		_meta.put(MCPUtility.SMSS_PROJECT_NAME, this.engineName);
 		_meta.put(MCPUtility.SMSS_ENGINE_ID, this.engineId);
 		_meta.put(MCPUtility.SMSS_ENGINE_NAME, this.engineName);
-		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, this.engineType.name());
+		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, this.engineType);
 		toolMap.put("_meta", _meta);
 
 		return toolMap;
@@ -181,53 +317,118 @@ public class InternalMCP implements IMCP {
 		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
-		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
+		toolName = MCPUtility.removeEngineIdFromToolsMethodName(this.engineId, toolName);
 		// first need to find the right tool
 
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(this.engineType, this.engineId,
-				this.engineName);
-		assetsFolder = assetsFolder.replace("\\", "/");
-
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-
-		JSONObject toolDefinition = getFunction(toolName, pythonJsonFileLoc);
+		JSONObject toolDefinition = getFunction(toolName, pyMcpPath());
 		Object output = null;
 		if (toolDefinition != null) {
 			// this is a python mcp
-			JSONObject toolProperties = ((JSONObject) toolDefinition.get("inputSchema")).getJSONObject("properties");
-			// check if we have an aliased name pointing to a function
-			// this is so we can have the same tool/function exposed more than once with
-			// different parameters exposed as multiple tools
-			String functionName = ((JSONObject) toolDefinition.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
-			functionName = (functionName != null && !functionName.isBlank()) ? functionName : toolName;
-
-			output = MCPUtility.runPythonTool(this.engine, insight, functionName, toolProperties, params);
+			output = MCPUtility.runPythonTool(this.engine, this.assetsFolder, this.scopeId, insight,
+					resolveFunctionName(toolDefinition, toolName), getToolProperties(toolDefinition), params);
 			return output;
 		}
 
-		toolDefinition = getFunction(toolName, pixelJsonFileLoc);
+		toolDefinition = getFunction(toolName, pixelMcpPath());
 		if (toolDefinition != null) {
 			// this is a pixel mcp tool
-			JSONObject toolProperties = ((JSONObject) toolDefinition.get("inputSchema")).getJSONObject("properties");
-			// check if we have an aliased name pointing to a function
-			// this is so we can have the same tool/function exposed more than once with
-			// different parameters exposed as multiple tools
-			String functionName = ((JSONObject) toolDefinition.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
-			functionName = (functionName != null && !functionName.isBlank()) ? functionName : toolName;
-
-			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params);
+			output = MCPUtility.runPixelTool(this.engine, insight, resolveFunctionName(toolDefinition, toolName),
+					getToolProperties(toolDefinition), params);
 			return output;
 		}
 
-		throw new SemossMCPException("Unknown tool: invalid_tool_name", MCPErrorCode.INVALID_PARAMS);
+		throw new SemossMCPException("Unknown tool '" + toolName + "' in mcp definitions under " + this.assetsFolder
+				+ describeNearMiss(toolName), MCPErrorCode.INVALID_PARAMS);
 	}
 
 	/**
+	 * Builds a diagnostic suffix for the unknown-tool error when the requested name
+	 * looks like a defined name that was cut short.
 	 *
-	 * @param inputName
-	 * @param jsonFileLoc
-	 * @return
+	 * <p>
+	 * Deliberately reports rather than repairs. A name that is a strict prefix of a
+	 * defined tool almost always means the provider truncated it to fit a tool name
+	 * limit and the reversal in {@code Room#resolveOriginalToolName} did not run -
+	 * usually because that room's lookup map was cold. Naming the candidate makes
+	 * that diagnosable without silently running a tool the caller did not ask for.
+	 *
+	 * <p>
+	 * Only walked on the failure path, so it costs nothing in normal operation.
+	 *
+	 * @param toolName the name that failed to resolve
+	 * @return a message suffix, empty when no candidate looks related
+	 */
+	private String describeNearMiss(String toolName) {
+		if (toolName == null || toolName.isBlank()) {
+			return "";
+		}
+		for (String file : new String[] { pyMcpPath(), pixelMcpPath() }) {
+			JSONArray tools = MCPUtility.getNode(file, "tools");
+			for (int i = 0; i < tools.length(); i++) {
+				JSONObject tool = tools.optJSONObject(i);
+				String defined = tool == null ? null : tool.optString("name", null);
+				if (defined != null && defined.length() > toolName.length() && defined.startsWith(toolName)) {
+					return ". '" + defined + "' starts with the requested name, so this looks like a tool name"
+							+ " truncated to a provider limit that was not resolved back to its original"
+							+ " (see Room#resolveOriginalToolName)";
+				}
+			}
+		}
+		return "";
+	}
+
+	/**
+	 * Extracts {@code inputSchema.properties}, defaulting to an empty object when
+	 * the tool declares no parameters or omits the schema entirely.
+	 *
+	 * @param toolDefinition the tool definition
+	 * @return the parameter schema, never null
+	 */
+	private static JSONObject getToolProperties(JSONObject toolDefinition) {
+		JSONObject inputSchema = toolDefinition.optJSONObject("inputSchema");
+		JSONObject properties = inputSchema != null ? inputSchema.optJSONObject("properties") : null;
+		return properties != null ? properties : new JSONObject();
+	}
+
+	/**
+	 * Resolves the function to invoke. Tools may alias a function via
+	 * SMSS_FUNCTION_NAME so the same function can be exposed more than once with
+	 * different parameters as multiple tools.
+	 *
+	 * @param toolDefinition the tool definition
+	 * @param toolName       the requested tool name, used when there is no alias
+	 * @return the function name to invoke
+	 */
+	private static String resolveFunctionName(JSONObject toolDefinition, String toolName) {
+		JSONObject toolMeta = toolDefinition.optJSONObject("_meta");
+		String functionName = toolMeta != null ? toolMeta.optString(MCPUtility.SMSS_FUNCTION_NAME) : null;
+		return (functionName != null && !functionName.isBlank()) ? functionName : toolName;
+	}
+
+	/**
+	 * Finds a tool definition by exact name.
+	 *
+	 * <p>
+	 * Matching is deliberately exact. Name aliasing is reversed upstream by
+	 * {@code Room#resolveOriginalToolName}, so callers arriving through
+	 * {@code RunMCPToolReactor} or {@code AgentToolDecisionHandler} already hold
+	 * the real name. If a name reaches here that matches nothing, something
+	 * upstream is wrong and this reports it rather than picking the closest
+	 * candidate: an approximate match would run a different recording than the user
+	 * approved, which is worse than failing.
+	 *
+	 * <p>
+	 * The failure worth recognizing is a truncated name. For providers that cap
+	 * tool name length (OpenAI and Azure at 64 chars),
+	 * {@code MCPUtility.appendEngineIdToToolsMethodName} shortens names with
+	 * {@code currentName.substring(0, availableChars)}, and stripping the engine id
+	 * prefix does not put those characters back. {@link #describeNearMiss(String)}
+	 * detects that shape and names it in the error so the cause is obvious.
+	 *
+	 * @param inputName   the requested tool name, already stripped of its engine id
+	 *                    prefix
+	 * @param jsonFileLoc the mcp definition file to search
+	 * @return the matching tool definition, or null when no name matches exactly
 	 */
 	private JSONObject getFunction(String inputName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
@@ -242,18 +443,16 @@ public class InternalMCP implements IMCP {
 					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
-						if (toolName.contains(inputName)) {
+						if (toolName.equals(inputName)) {
 							// return the full tool
 							return thisTool;
 						}
 					}
 				}
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
 			} catch (JSONException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to parse mcp definitions at '{}'", jsonFileLoc, e);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to read mcp definitions at '{}'", jsonFileLoc, e);
 			}
 		}
 		return null;

@@ -4,7 +4,7 @@ A skill is a **Project of type `SKILL`**. There is no separate skill registry: t
 `PROJECT` table is the catalog (with a `PROJECTMETA` row `tag = SKILL` as a secondary marker),
 and the skill's content lives in the project's assets folder. This includes the built-in
 **platform skills** (`database`, `model`, `python`, `vector`, `room`, `file-uploads`,
-`agent-memory`, `build-and-publish`), which ship as `project/platform__<id>` project folders and
+`build-and-publish`), which ship as `project/platform__<id>` project folders and
 are loaded at startup as global projects - their project id IS the old slug (e.g. `database`).
 
 Two ways to see skills, answering different questions:

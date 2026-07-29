@@ -44,6 +44,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -62,6 +63,11 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+
+		if (SystemDefaultEngines.getSystemAgents().contains(workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " is a built-in system agent and cannot be deleted");
+		}
 
 		if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
 			throwFunctionalityOnlyExposedForAdminsError();

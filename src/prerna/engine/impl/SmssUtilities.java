@@ -27,10 +27,8 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -40,12 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
@@ -144,7 +141,8 @@ public class SmssUtilities {
 			try {
 				Utility.changePropertiesFileValue(smssFilePath, Constants.OWL, filename);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update the OWL file location in the smss file {} for engine {}",
+						smssFilePath, engineId, e);
 			}
 			prop = Utility.loadProperties(smssFilePath);
 		}
@@ -396,40 +394,6 @@ public class SmssUtilities {
 				Utility.normalizePath(janusFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId))));
 	}
 
-	/**
-	 * Custom file reader/writer to modify the app name and keep the same order of
-	 * the smss properties. Need to change the engine alias
-	 * 
-	 * @param smssFile
-	 * @param newSmssFile
-	 * @param newAppName
-	 * @throws IOException
-	 */
-	public static void changeAppName(String smssFile, String newSmssFile, String newAppName) throws IOException {
-		final String newLine = "\n";
-		final String tab = "\t";
-		File f1 = new File(smssFile);
-		String line = null;
-		try (FileReader fr = new FileReader(f1);
-				BufferedReader br = new BufferedReader(fr);
-				FileWriter fw = new FileWriter(newSmssFile);
-				BufferedWriter out = new BufferedWriter(fw);) {
-			while ((line = br.readLine()) != null) {
-				if (line.contains(Constants.ENGINE_ALIAS)) {
-					line = Constants.ENGINE_ALIAS + tab + newAppName;
-				}
-				// if (line.startsWith(Constants.OWL)) {
-				// String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT +
-				// DIR_SEPARATOR + newAppName
-				// + "_OWL.OWL";
-				// owlLocation = owlLocation.replace('\\', '/');
-				// line = Constants.OWL + tab + owlLocation;
-				// }
-				out.write(line + newLine);
-			}
-		}
-	}
-
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
@@ -553,12 +517,8 @@ public class SmssUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(projectTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		File newFile = new File(projectTempSmssLoc);
+		try (FileWriter writer = new FileWriter(newFile); BufferedWriter bufferedWriter = new BufferedWriter(writer);) {
 			bufferedWriter.write("#Base Properties" + newLine);
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
@@ -606,19 +566,8 @@ public class SmssUtilities {
 
 			bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 		} catch (IOException e) {
-			classLogger.info(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write the temporary project smss file for project {}", projectId, e);
 			throw new IOException("Could not generate project smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 
 		return projectTempSmss;
@@ -632,7 +581,7 @@ public class SmssUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryAssetAndWorkspaceSmss(String projectId, String projectName, boolean isAsset,
+	public static File createTemporaryAssetSmss(String projectId, String projectName, boolean isAsset,
 			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String baseFolder = Utility.getBaseFolder();
 		if (!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
@@ -654,12 +603,8 @@ public class SmssUtilities {
 		final String tab = "\t";
 
 		// also write the base properties
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-		try {
-			File newFile = new File(projectTempSmssLoc);
-			writer = new FileWriter(newFile);
-			bufferedWriter = new BufferedWriter(writer);
+		File newFile = new File(projectTempSmssLoc);
+		try (FileWriter writer = new FileWriter(newFile); BufferedWriter bufferedWriter = new BufferedWriter(writer);) {
 			bufferedWriter.write("#Base Properties" + newLine);
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
@@ -699,19 +644,8 @@ public class SmssUtilities {
 			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 		} catch (IOException e) {
-			classLogger.info(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write the temporary asset smss file for project {}", projectId, e);
 			throw new IOException("Could not generate project smss file");
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
 		}
 
 		return projectTempSmss;
@@ -730,21 +664,6 @@ public class SmssUtilities {
 	public static File validateProject(User user, String projectName, String projectId) throws IOException {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
-		}
-
-		// if admin only set public is true, the project name just needs to be user
-		// unique vs globally unique
-		if (AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
-			if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
-				throw new IOException(
-						"You already have at least one project with this name. Please choose a unique project name.");
-			}
-		} else {
-			// need to make sure the app is unique
-			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-			if (containsProject) {
-				throw new IOException("Project name already exists. Please provide a unique project name");
-			}
 		}
 
 		// need to make sure app folder doesn't already exist
@@ -840,7 +759,7 @@ public class SmssUtilities {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the QUESTION_ID or INSIGHTMETA table in the insights database", e);
 		}
 
 		/*
@@ -873,7 +792,7 @@ public class SmssUtilities {
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the legacy PARAMETER_ID table in the insights database", e);
 			}
 
 			try {
@@ -884,7 +803,7 @@ public class SmssUtilities {
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the legacy UI table in the insights database", e);
 			}
 		}
 
@@ -986,7 +905,8 @@ public class SmssUtilities {
 						if (allUpperCurrentSmss.get(key) != null) {
 							value = allUpperCurrentSmss.get(key);
 						}
-						constructedSmssContent.append(key).append("\t").append(value);
+						constructedSmssContent.append(key).append("\t")
+								.append(StringEscapeUtils.escapeJava(value.toString()));
 					} else {
 						// the value has been changed
 						constructedSmssContent.append(curLine);

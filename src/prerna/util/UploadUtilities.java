@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +57,6 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -275,11 +273,6 @@ public final class UploadUtilities {
 		if (engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
-		// need to make sure the database is unique
-		boolean containsDatabase = AbstractSecurityUtils.containsEngineName(engineName);
-		if (containsDatabase) {
-			throw new IOException("Engine name already exists.  Please provide a unique engine name");
-		}
 
 		// need to make sure engine folder doesn't already exist
 		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
@@ -388,8 +381,8 @@ public final class UploadUtilities {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 
-		Hashtable<String, String> conceptHash = owlEngine.getConceptHash();
-		Hashtable<String, String> propHash = owlEngine.getPropHash();
+		Map<String, String> conceptHash = owlEngine.getConceptHash();
+		Map<String, String> propHash = owlEngine.getPropHash();
 		// take the node props
 		// so we know what is a concept
 		// and what is a property
@@ -448,7 +441,7 @@ public final class UploadUtilities {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 
-		Hashtable<String, String> propHash = owlEngine.getPropHash();
+		Map<String, String> propHash = owlEngine.getPropHash();
 
 		// we have already loaded everything into a single table
 		// so we will grab all the properties for that table
@@ -1386,7 +1379,7 @@ public final class UploadUtilities {
 	 */
 	public static File createTemporaryGuardrailSmss(String engineId, String engineName, String className,
 			Map<String, Object> properties) throws IOException {
-		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.STORAGE, engineId, engineName, className, properties);
+		return createTemporaryEngineSmss(IEngine.CATALOG_TYPE.GUARDRAIL, engineId, engineName, className, properties);
 	}
 
 	/**
