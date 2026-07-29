@@ -1639,7 +1639,7 @@ public class Project implements IProject {
 			if (endpoint != null && !endpoint.isBlank()) {
 				this.projectMCP = new RemoteMCP(endpoint);
 			} else {
-				this.projectMCP = new InternalMCP(this);
+				this.projectMCP = InternalMCP.genFromEngine(this);
 			}
 		}
 		return this.projectMCP;
