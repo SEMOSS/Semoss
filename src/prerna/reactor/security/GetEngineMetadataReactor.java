@@ -31,8 +31,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
@@ -42,6 +46,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetEngineMetadataReactor extends AbstractReactor {
+	private static final Logger classLogger = LogManager.getLogger(GetEngineMetadataReactor.class);
 
 	public GetEngineMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey() };
@@ -83,6 +88,17 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 			metaKeys = null;
 		}
 		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, metaKeys, false));
+		if ("MODEL".equals(String.valueOf(databaseInfo.get("engine_type")))) {
+			try {
+				Map<String, Object> modelMetadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
+				if (modelMetadata != null) {
+					Map<String, Object> capabilities = SecurityModelMetadataUtils.toCapabilities(modelMetadata);
+					databaseInfo.put("capabilities", capabilities);
+				}
+			} catch (Exception e) {
+				classLogger.error("Error retrieving model metadata in GetEngineMetadataReactor", e);
+			}
+		}
 		// append last engine update
 		{
 			Date eDate = MasterDatabaseUtility.getEngineDate(engineId);
@@ -106,6 +122,7 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 
 				Inputs: engine, metaKeys.
 				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
+				Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available.
 				Any response key prefixed with app_* or database_* is legacy and should not be used.
 				""";
 	}

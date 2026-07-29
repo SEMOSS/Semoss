@@ -30,7 +30,6 @@ package prerna.reactor.security;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,10 +152,8 @@ public class MyEnginesReactor extends AbstractReactor {
 							continue;
 						}
 						Map<String, Object> engine = engineInfo.get(engineIndex);
-						Map<String, Object> capabilities = new LinkedHashMap<>(entry.getValue());
-						capabilities.remove("engineId");
-						capabilities.remove("modelProvider");
-						capabilities.remove("servingProvider");
+						Map<String, Object> capabilities = SecurityModelMetadataUtils
+								.toCapabilities(entry.getValue());
 						engine.put("capabilities", capabilities);
 					}
 				} catch (Exception e) {

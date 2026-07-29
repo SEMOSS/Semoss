@@ -286,6 +286,28 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return metadataByEngine;
 	}
 
+	/**
+	 * Return the public capabilities response shape for model catalog endpoints.
+	 * Null map values are omitted by the Pixel JSON serializer, so optional scalar
+	 * values use an empty string and optional collections use an empty list when
+	 * they have not been populated.
+	 */
+	public static Map<String, Object> toCapabilities(Map<String, Object> modelMetadata) {
+		if (modelMetadata == null) {
+			return null;
+		}
+
+		Map<String, Object> capabilities = new LinkedHashMap<>();
+		capabilities.put("modelId", emptyStringIfNull(modelMetadata.get("modelId")));
+		capabilities.put("capability", emptyStringIfNull(modelMetadata.get("capability")));
+		capabilities.put("inputModalities", emptyListIfNull(modelMetadata.get("inputModalities")));
+		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
+		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
+		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
+		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
+		return capabilities;
+	}
+
 	public static void deleteModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
@@ -486,6 +508,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 		String stringValue = value.toString().trim();
 		return stringValue.isEmpty() ? null : stringValue;
+	}
+
+	private static Object emptyStringIfNull(Object value) {
+		return value == null ? "" : value;
+	}
+
+	private static Object emptyListIfNull(Object value) {
+		return value == null ? List.of() : value;
 	}
 
 	private static boolean modelMetadataExists(IRDBMSEngine securityDb, String engineId) {
