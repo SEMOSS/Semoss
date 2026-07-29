@@ -67,7 +67,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityModelMetadataUtils.class);
 	private static final Gson GSON = new Gson();
 
-	private static final Set<String> CAPABILITIES = Set.of("GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
+	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
 	private static final Set<String> MODALITIES = Set.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
@@ -355,7 +355,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 		capability = capability.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
 		capability = switch (capability) {
-		case "CHAT", "LLM", "TEXT_GENERATION" -> "GENERATION";
+		case "CHAT", "LLM" -> "TEXT_GENERATION";
 		case "EMBEDDINGS" -> "EMBEDDING";
 		case "TTS", "TEXT_TO_SPEECH" -> "SPEECH_SYNTHESIS";
 		case "STT", "SPEECH_TO_TEXT" -> "TRANSCRIPTION";
