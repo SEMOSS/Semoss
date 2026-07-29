@@ -41,8 +41,8 @@ class GeneratePlaywrightRecordingMetadataReactorTest {
 
 	@Test
 	void actionTraceNeverContainsTypedValuesSelectorsOrUrlParameters() {
-		PlaywrightStep typed = step(2, PlaywrightStepType.TYPE, 200L, null, "Email address",
-				"private.user@example.com", new Selector("css", "#private-user-example-com", null));
+		PlaywrightStep typed = step(2, PlaywrightStepType.TYPE, 200L, null, "Email address", "private.user@example.com",
+				new Selector("css", "#private-user-example-com", null));
 		PlaywrightStep navigated = step(1, PlaywrightStepType.NAVIGATE, 100L,
 				"https://example.com/login?email=private.user@example.com&token=secret#account", null, null, null);
 		PlaywrightStep clicked = step(3, PlaywrightStepType.CLICK, 300L, null, "Sign in", null, null);
@@ -83,8 +83,8 @@ class GeneratePlaywrightRecordingMetadataReactorTest {
 
 	@Test
 	void resolvesPlaygroundModelFromLegacyRoomOptions() {
-		String modelId = GeneratePlaywrightRecordingMetadataReactor.modelIdFromOptions(
-				Map.of("modelId", "7f471d92-dee2-4880-9322-a8b9a395b2b5"));
+		String modelId = GeneratePlaywrightRecordingMetadataReactor
+				.modelIdFromOptions(Map.of("modelId", "7f471d92-dee2-4880-9322-a8b9a395b2b5"));
 
 		assertEquals("7f471d92-dee2-4880-9322-a8b9a395b2b5", modelId);
 	}
@@ -100,6 +100,7 @@ class GeneratePlaywrightRecordingMetadataReactorTest {
 	private static PlaywrightStep step(int id, PlaywrightStepType type, Long timestamp, String url, String label,
 			String text, Selector selector) {
 		return new PlaywrightStep(id, type, url, null, null, null, text, null, null, null, null, null, timestamp, label,
-				null, false, false, selector, null, true, false, null, type == PlaywrightStepType.TYPE ? "input" : "button");
+				null, false, false, selector, null, true, false, null,
+				type == PlaywrightStepType.TYPE ? "input" : "button");
 	}
 }

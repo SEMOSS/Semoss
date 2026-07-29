@@ -198,7 +198,7 @@ public class Room implements Serializable {
 		this.modelId = modelId;
 		this.parentRoomId = parentRoomId;
 		this.messagesJson = messagesJson;
-		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
+		this.roomFolderPath = roomFolderPath(this.room_id);
 
 		parseMessages();
 
@@ -900,6 +900,17 @@ public class Room implements Serializable {
 		// make sure the same toolbox is not accidentally added more than once
 		Set<String> ensureUnique = new HashSet<>();
 
+		// The room's own toolbox comes from disk, with no options.mcp entry needed.
+		// Done first so ensureUnique skips a room whose options also list the room id.
+		if (InternalMCP.hasDefinitions(getRoomFolderPath())) {
+			ensureUnique.add(MCPUtility.ROOM_MCP_ID);
+			try {
+				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength));
+			} catch (Exception e) {
+				classLogger.error("Unable to add the room's own MCP tools", e);
+			}
+		}
+
 		if (o.containsKey("mcp")) {
 			try {
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
@@ -912,7 +923,8 @@ public class Room implements Serializable {
 								ensureUnique.add(id);
 							}
 						} else {
-							throw new IllegalArgumentException("Tool map must contain both type and id");
+							// id is the only field that is read; type and name are display only
+							throw new IllegalArgumentException("Tool map must contain an id");
 						}
 					} catch (Exception e) {
 						classLogger.error("Unable to add tool map from room mcp", e);
@@ -987,10 +999,10 @@ public class Room implements Serializable {
 	 */
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
-		// insight level MCPs
-		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
-			InternalMCP insightMcp = InternalMCP.genFromInsightFolder(this.getRoomFolderPath());
-			JSONObject toolMap = insightMcp.getMCPTools();
+		// room level MCPs
+		if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
+			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(this.getRoomFolderPath());
+			JSONObject toolMap = roomMcp.getMCPTools();
 			if (toolMap == null) {
 				return new ArrayList<>();
 			}
@@ -1006,7 +1018,7 @@ public class Room implements Serializable {
 					}
 				}
 			}
-			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.INSIGHT_MCP_ID, toolMap,
+			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.ROOM_MCP_ID, toolMap,
 					maxLength);
 			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
 				return new ArrayList<>();
@@ -1029,7 +1041,7 @@ public class Room implements Serializable {
 					if (rawMeta instanceof Map) {
 						lookupMeta.putAll((Map<String, Object>) rawMeta);
 					}
-					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.INSIGHT_MCP_ID);
+					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.ROOM_MCP_ID);
 					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
 
 					Map<String, Object> lookupEntry = new HashMap<>();
@@ -1151,6 +1163,45 @@ public class Room implements Serializable {
 	 */
 	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
 		return Collections.unmodifiableMap(toolLookupByLLMName);
+	}
+
+	/**
+	 * Undoes the name aliasing applied when the tools were shown to the model.
+	 *
+	 * <p>
+	 * {@link MCPUtility#appendEngineIdToToolsMethodName(String, JSONObject, int)}
+	 * both prefixes a tool name with its engine id and, for providers that cap tool
+	 * name length, truncates it. Stripping the prefix reverses only the first half;
+	 * the truncation is lossy. This resolves the real name from the same map that
+	 * recorded it, so callers get an exact name back instead of pattern matching a
+	 * shortened one.
+	 *
+	 * <p>
+	 * The map is populated by {@link #getAllToolsJsonForRoom(int)} and lives on the
+	 * cached Room, which outlives the HTTP insight that built it, so it is normally
+	 * still warm on the follow-up request that executes the tool. When it is not,
+	 * the name is returned unchanged and the caller falls back to matching.
+	 *
+	 * @param llmFacingName the name as the model called it
+	 * @return the original tool name, or the input unchanged when unknown
+	 */
+	@SuppressWarnings("unchecked")
+	public String resolveOriginalToolName(String llmFacingName) {
+		if (llmFacingName == null || llmFacingName.isBlank()) {
+			return llmFacingName;
+		}
+		Map<String, Object> entry = toolLookupByLLMName.get(llmFacingName);
+		if (entry == null) {
+			return llmFacingName;
+		}
+		Object rawMeta = entry.get("_meta");
+		if (rawMeta instanceof Map) {
+			Object original = ((Map<String, Object>) rawMeta).get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+			if (original instanceof String && !((String) original).isBlank()) {
+				return (String) original;
+			}
+		}
+		return llmFacingName;
 	}
 
 	/**
@@ -1839,6 +1890,17 @@ public class Room implements Serializable {
 	 */
 	public String getRoomFolderPath() {
 		return roomFolderPath;
+	}
+
+	/**
+	 * Resolves a room's folder from its id, for callers that need the path without
+	 * loading the room.
+	 *
+	 * @param roomId the room id
+	 * @return the room folder path
+	 */
+	public static String roomFolderPath(String roomId) {
+		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 	}
 
 	// Core message accessors

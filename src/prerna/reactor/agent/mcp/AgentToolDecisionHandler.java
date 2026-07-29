@@ -119,7 +119,8 @@ public final class AgentToolDecisionHandler {
 
 		// approve/edit must execute the real tool
 		if (passthroughResult != null && !passthroughResult.trim().isEmpty()) {
-			throw new IllegalArgumentException("mcpToolResult is only valid for HITL decision=reject or decision=respond");
+			throw new IllegalArgumentException(
+					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
 		String engineId = engineIdFromPendingAction(pendingAction);
@@ -134,9 +135,14 @@ public final class AgentToolDecisionHandler {
 		}
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
-		if (MCPUtility.INSIGHT_MCP_ID.equals(engineId)) {
+		if (roomId != null && !roomId.isBlank()) {
 			Room executionRoom = RoomUtils.getOrLoadRoom(roomId, this.insight);
-			this.insight.setRoomForInsight(executionRoom);
+			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
+				this.insight.setRoomForInsight(executionRoom);
+			}
+			// The stored action holds the aliased name the model produced; undo it
+			// from the room's own map. See Room#resolveOriginalToolName.
+			toolName = executionRoom.resolveOriginalToolName(toolName);
 		}
 
 		AgentRunActionStore actionStore = new AgentRunActionStore();
@@ -172,12 +178,15 @@ public final class AgentToolDecisionHandler {
 		return resultStr;
 	}
 
-	/** Replays the stored result of an already-decided action without re-executing. */
+	/**
+	 * Replays the stored result of an already-decided action without re-executing.
+	 */
 	private String replayDecidedAction(Map<String, Object> action, String runId, String roomId, String toolCallId,
 			String parentMessageId, String toolStatus, String actionId, String normalizedDecision, String userId) {
 		String storedResult = stringValue(action.get("result"));
 		if (storedResult == null) {
-			throw new IllegalStateException("Agent HITL action is decided but has no stored result actionId=" + actionId);
+			throw new IllegalStateException(
+					"Agent HITL action is decided but has no stored result actionId=" + actionId);
 		}
 		Map<String, Object> retryParams = resolveRetryToolParams(action);
 		writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, storedResult,
@@ -236,9 +245,9 @@ public final class AgentToolDecisionHandler {
 		Map<String, Object> paramMapForRoom = new HashMap<>();
 		String roomToolName = stringValue(pendingAction.get("toolName"));
 		if (!toolResultAlreadyInRoom(room, parentMessageId, toolCallId)) {
-			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName,
-					toolResult, toolParams != null ? toolParams : paramMapForRoom,
-					parentMessageId, modelEngine, this.insight, toolStatus);
+			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName, toolResult,
+					toolParams != null ? toolParams : paramMapForRoom, parentMessageId, modelEngine, this.insight,
+					toolStatus);
 		}
 
 		// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
@@ -252,17 +261,18 @@ public final class AgentToolDecisionHandler {
 				AgentRunRecord record = runStore.getRun(runId, this.insight);
 				AgentRunStatus status = record != null ? record.getStatus() : null;
 				if (status == AgentRunStatus.INPUT_REQUIRED) {
-					throw new IllegalStateException("Agent run was not resumed because it is still INPUT_REQUIRED: "
-							+ runId);
+					throw new IllegalStateException(
+							"Agent run was not resumed because it is still INPUT_REQUIRED: " + runId);
 				}
 				logger.info("AgentToolDecisionHandler: runId={} already resumed or terminal status={}", runId, status);
 				return;
 			}
 			AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
-			logger.info("AgentToolDecisionHandler: resumed agent runId={} roomId={} toolCallId={}",
-					runId, roomId, toolCallId);
+			logger.info("AgentToolDecisionHandler: resumed agent runId={} roomId={} toolCallId={}", runId, roomId,
+					toolCallId);
 		} else {
-			logger.info("AgentToolDecisionHandler: recorded decision for toolCallId={} but waiting for remaining actions runId={}",
+			logger.info(
+					"AgentToolDecisionHandler: recorded decision for toolCallId={} but waiting for remaining actions runId={}",
 					toolCallId, runId);
 		}
 
