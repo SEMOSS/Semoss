@@ -60,7 +60,7 @@ public class PlaywrightUtility {
 	 * The name of the folder where Playwright recordings are stored within a
 	 * project's assets.
 	 */
-	public static final String RECORDINGS_FOLDER_NAME = "playwright/recordings";
+	public static final String RECORDINGS_FOLDER_NAME = "recordings";
 
 	/**
 	 * Initialize and get the recordings directory

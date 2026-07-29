@@ -30,6 +30,7 @@ package prerna.engine.impl;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -73,10 +74,11 @@ public class InternalMCP implements IMCP {
 
 	/**
 	 * Key used to namespace python module state in the shared insight globals. This
-	 * is deliberately NOT {@link #engineId}: folder-backed MCPs are isolated by
-	 * their authenticated asset folders, preventing concurrent scopes from
-	 * clobbering each other's loaded driver. Engines keep their id so existing
-	 * aliases are unchanged.
+	 * is deliberately NOT {@link #engineId}: folder-backed MCPs may share a
+	 * published id (every room publishes {@code __room__}) while pointing at
+	 * different folders, and a shared key would make concurrent rooms clobber each
+	 * other's loaded driver. Engines keep their id so existing aliases are
+	 * unchanged.
 	 */
 	private final String scopeId;
 
@@ -144,8 +146,9 @@ public class InternalMCP implements IMCP {
 	 * against {@code <assetsFolder>/py} using the insight's python translator.
 	 *
 	 * <p>
-	 * Python module state is namespaced off the folder instead of the published
-	 * engine ID. See {@link #scopeId}.
+	 * {@code id} does not need to be unique. Several scopes may legitimately
+	 * publish the same id (every room publishes {@code __room__}); python module
+	 * state is namespaced off the folder instead. See {@link #scopeId}.
 	 *
 	 * @param assetsFolder absolute path to the folder containing {@code mcp/}
 	 * @param id           id published as SMSS_ENGINE_ID / SMSS_PROJECT_ID
@@ -157,12 +160,65 @@ public class InternalMCP implements IMCP {
 		return new InternalMCP(null, assetsFolder, id, name, type);
 	}
 
+	/**
+	 * Builds the virtual MCP backed by a room's asset folder, published under
+	 * {@link MCPUtility#ROOM_MCP_ID}.
+	 *
+	 * <p>
+	 * This is a general purpose per-room toolbox. It serves whatever is in the
+	 * folder's {@code mcp/pixel_mcp.json} and {@code mcp/py_mcp.json}, so any
+	 * generator can contribute room scoped tools and each tool picks its own
+	 * {@code SMSS_MCP_UI}, execution mode, and {@code SMSS_FUNCTION_NAME}.
+	 * Playwright playback uses this and tools happen to point their UI at a
+	 * {@code system://} app; nothing here requires that, and a tool may omit the UI
+	 * block entirely.
+	 *
+	 * <p>
+	 * Where {@code SMSS_ENGINE_ID} normally holds a real engine or project UUID,
+	 * {@link MCPUtility#ROOM_MCP_ID} tells the resolver to read the room folder
+	 * rather than look the id up in the catalog.
+	 *
+	 * <p>
+	 * Every room publishes that same reserved id, which is fine: python module
+	 * state is namespaced off the folder, not the id. See {@link #scopeId}.
+	 *
+	 * @param roomFolder the room folder containing {@code mcp/}
+	 * @return an MCP backed by that folder
+	 */
+	public static InternalMCP genFromRoomFolder(String roomFolder) {
+		if (roomFolder == null || roomFolder.isBlank()) {
+			throw new IllegalArgumentException("Room folder must not be blank for a room MCP");
+		}
+		String normalized = Paths.get(roomFolder).toAbsolutePath().normalize().toString();
+		return genFromFolder(normalized, MCPUtility.ROOM_MCP_ID, MCPUtility.ROOM_MCP_NAME, MCPUtility.ROOM_MCP_TYPE);
+	}
+
+	/** Python tool definitions, relative to an assets folder. */
+	private static final String PY_MCP_REL = "/mcp/py_mcp.json";
+
+	/** Pixel tool definitions, relative to an assets folder. */
+	private static final String PIXEL_MCP_REL = "/mcp/pixel_mcp.json";
+
 	private String pyMcpPath() {
-		return this.assetsFolder + "/mcp/py_mcp.json";
+		return this.assetsFolder + PY_MCP_REL;
 	}
 
 	private String pixelMcpPath() {
-		return this.assetsFolder + "/mcp/pixel_mcp.json";
+		return this.assetsFolder + PIXEL_MCP_REL;
+	}
+
+	/**
+	 * True when a folder holds MCP tool definitions, without building an MCP for
+	 * it.
+	 *
+	 * @param assetsFolder folder that may contain an {@code mcp/} directory
+	 * @return true when a pixel or python definition file is present
+	 */
+	public static boolean hasDefinitions(String assetsFolder) {
+		if (assetsFolder == null || assetsFolder.isBlank()) {
+			return false;
+		}
+		return new File(assetsFolder + PIXEL_MCP_REL).isFile() || new File(assetsFolder + PY_MCP_REL).isFile();
 	}
 
 	/**
@@ -281,8 +337,44 @@ public class InternalMCP implements IMCP {
 			return output;
 		}
 
-		throw new SemossMCPException("Unknown tool '" + toolName + "' in mcp definitions under " + this.assetsFolder,
-				MCPErrorCode.INVALID_PARAMS);
+		throw new SemossMCPException("Unknown tool '" + toolName + "' in mcp definitions under " + this.assetsFolder
+				+ describeNearMiss(toolName), MCPErrorCode.INVALID_PARAMS);
+	}
+
+	/**
+	 * Builds a diagnostic suffix for the unknown-tool error when the requested name
+	 * looks like a defined name that was cut short.
+	 *
+	 * <p>
+	 * Deliberately reports rather than repairs. A name that is a strict prefix of a
+	 * defined tool almost always means the provider truncated it to fit a tool name
+	 * limit and the reversal in {@code Room#resolveOriginalToolName} did not run -
+	 * usually because that room's lookup map was cold. Naming the candidate makes
+	 * that diagnosable without silently running a tool the caller did not ask for.
+	 *
+	 * <p>
+	 * Only walked on the failure path, so it costs nothing in normal operation.
+	 *
+	 * @param toolName the name that failed to resolve
+	 * @return a message suffix, empty when no candidate looks related
+	 */
+	private String describeNearMiss(String toolName) {
+		if (toolName == null || toolName.isBlank()) {
+			return "";
+		}
+		for (String file : new String[] { pyMcpPath(), pixelMcpPath() }) {
+			JSONArray tools = MCPUtility.getNode(file, "tools");
+			for (int i = 0; i < tools.length(); i++) {
+				JSONObject tool = tools.optJSONObject(i);
+				String defined = tool == null ? null : tool.optString("name", null);
+				if (defined != null && defined.length() > toolName.length() && defined.startsWith(toolName)) {
+					return ". '" + defined + "' starts with the requested name, so this looks like a tool name"
+							+ " truncated to a provider limit that was not resolved back to its original"
+							+ " (see Room#resolveOriginalToolName)";
+				}
+			}
+		}
+		return "";
 	}
 
 	/**
@@ -314,14 +406,29 @@ public class InternalMCP implements IMCP {
 	}
 
 	/**
-	 * Finds a tool definition by name. An exact name match always wins; the
-	 * substring fallback only applies when nothing matched exactly, so a request
-	 * for "play" can no longer shadow a tool literally named "play" just because
-	 * "play_checkout" happens to be listed first.
+	 * Finds a tool definition by exact name.
 	 *
-	 * @param inputName   the requested tool name
+	 * <p>
+	 * Matching is deliberately exact. Name aliasing is reversed upstream by
+	 * {@code Room#resolveOriginalToolName}, so callers arriving through
+	 * {@code RunMCPToolReactor} or {@code AgentToolDecisionHandler} already hold
+	 * the real name. If a name reaches here that matches nothing, something
+	 * upstream is wrong and this reports it rather than picking the closest
+	 * candidate: an approximate match would run a different recording than the user
+	 * approved, which is worse than failing.
+	 *
+	 * <p>
+	 * The failure worth recognizing is a truncated name. For providers that cap
+	 * tool name length (OpenAI and Azure at 64 chars),
+	 * {@code MCPUtility.appendEngineIdToToolsMethodName} shortens names with
+	 * {@code currentName.substring(0, availableChars)}, and stripping the engine id
+	 * prefix does not put those characters back. {@link #describeNearMiss(String)}
+	 * detects that shape and names it in the error so the cause is obvious.
+	 *
+	 * @param inputName   the requested tool name, already stripped of its engine id
+	 *                    prefix
 	 * @param jsonFileLoc the mcp definition file to search
-	 * @return the matching tool definition, or null
+	 * @return the matching tool definition, or null when no name matches exactly
 	 */
 	private JSONObject getFunction(String inputName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
@@ -333,7 +440,6 @@ public class InternalMCP implements IMCP {
 				JSONArray toolObj = null;
 				if (json.has("tools")) {
 					toolObj = json.getJSONArray("tools");
-					JSONObject partialMatch = null;
 					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
@@ -341,12 +447,6 @@ public class InternalMCP implements IMCP {
 							// return the full tool
 							return thisTool;
 						}
-						if (partialMatch == null && toolName.contains(inputName)) {
-							partialMatch = thisTool;
-						}
-					}
-					if (partialMatch != null) {
-						return partialMatch;
 					}
 				}
 			} catch (JSONException e) {

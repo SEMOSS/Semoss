@@ -1022,6 +1022,9 @@ def generate_mcp(
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
                     "SMSS_FUNCTION_NAME": this_function,
+                    # gen_mcp and add_function_to_mcp both rebuild from this driver file,
+                    # so they share one generator id.
+                    "SMSS_MCP_GENERATOR": "MakePythonMCP",
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1074,6 +1077,70 @@ def mcp_metadata(_mcp_metadata: dict):
     return _decorator
 
 
+def _read_mcp_json(dest_file: str) -> dict:
+    """
+    Read an existing MCP JSON file. A missing or malformed file returns an empty dict.
+
+    Args:
+        dest_file (str): Path to the MCP JSON file
+
+    Returns:
+        dict: The parsed file, or an empty dict
+    """
+    if not dest_file or not os.path.isfile(dest_file):
+        return {}
+    try:
+        with open(dest_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(
+            f"Existing {dest_file} could not be parsed and will be replaced: {e}"
+        )
+        return {}
+
+
+def _merge_generated_tools(
+    existing_mcp_json: dict,
+    generated: list,
+    generator_id: str,
+    complete_regeneration: bool = True,
+) -> list:
+    """
+    Merge generated tools into the tools already in an MCP JSON file. Mirrors
+    MCPUtility.mergeGeneratedTools on the Java side; keep the two in step.
+
+    A generated tool replaces any existing tool of the same name. A tool stamped with
+    generator_id that was not regenerated is dropped when complete_regeneration is set.
+    Everything else is kept.
+
+    Args:
+        existing_mcp_json (dict): The parsed existing file, or an empty dict
+        generated (list): The generated tools, in their given order
+        generator_id (str): The generator whose own output may be replaced
+        complete_regeneration (bool): True when generated is this generator's entire
+            output. Pass False for a run scoped to a subset.
+
+    Returns:
+        list: Generated tools followed by the surviving existing tools
+    """
+    merged = list(generated)
+    generated_names = {
+        tool.get("name") for tool in generated if tool.get("name") is not None
+    }
+    for tool in (existing_mcp_json or {}).get("tools") or []:
+        if not isinstance(tool, dict):
+            continue
+        if tool.get("name") in generated_names:
+            continue
+        if (
+            complete_regeneration
+            and (tool.get("_meta") or {}).get("SMSS_MCP_GENERATOR") == generator_id
+        ):
+            continue
+        merged.append(tool)
+    return merged
+
+
 def gen_mcp(
     src_file: str = None,
     dest_file: str = None,
@@ -1088,6 +1155,14 @@ def gen_mcp(
         function_name_to_cell (Optional[dict]): Optional dict for the notebook cell id to be used as _meta for the function (only applicable for no-code apps)
     """
     mcp_json = generate_mcp(src_file, "*", function_name_to_cell)
+    # gen_mcp rebuilds every function in src_file, so a stamped tool that is absent
+    # had its function deleted.
+    mcp_json["tools"] = _merge_generated_tools(
+        _read_mcp_json(dest_file),
+        mcp_json.get("tools", []),
+        "MakePythonMCP",
+        complete_regeneration=True,
+    )
     # Write to file
     with open(dest_file, "w", encoding="utf-8") as f:
         json.dump(mcp_json, f, indent=4, ensure_ascii=False)

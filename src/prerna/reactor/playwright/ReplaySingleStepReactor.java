@@ -242,7 +242,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			return inputs.get(step.label());
 		}
 		if (step.label() != null) {
-			String sanitizedLabel = MakePlaywrightRecordingsMCPReactor.sanitize(step.label());
+			String sanitizedLabel = PlaywrightMCPToolBuilder.sanitizeToolName(step.label(), "field_");
 			if (inputs.containsKey(sanitizedLabel)) {
 				return inputs.get(sanitizedLabel);
 			}

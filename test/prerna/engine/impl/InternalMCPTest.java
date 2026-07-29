@@ -32,16 +32,22 @@
 package prerna.engine.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.sablecc2.om.execptions.SemossMCPException;
 
 class InternalMCPTest {
 
@@ -62,12 +68,10 @@ class InternalMCPTest {
 				}
 				""");
 
-		JSONObject result = InternalMCP.genFromFolder(tempDir.toString(), "room-123", "Room Recordings",
-				MCPUtility.INTERNAL_MCP_TYPE).getMCPTools();
+		JSONObject result = InternalMCP.genFromRoomFolder(tempDir.toString()).getMCPTools();
 
 		assertEquals("play_checkout", result.getJSONArray("tools").getJSONObject(0).getString("name"));
-		assertEquals("room-123",
-				result.getJSONObject("_meta").getString(MCPUtility.SMSS_ENGINE_ID));
+		assertEquals(MCPUtility.ROOM_MCP_ID, result.getJSONObject("_meta").getString(MCPUtility.SMSS_ENGINE_ID));
 	}
 
 	@Test
@@ -91,15 +95,102 @@ class InternalMCPTest {
 				}
 				""");
 
-		JSONObject result = InternalMCP.genFromFolder(tempDir.toString(), "room-123", "Room Recordings",
-				MCPUtility.INTERNAL_MCP_TYPE).getMCPTools();
+		JSONObject result = InternalMCP.genFromRoomFolder(tempDir.toString()).getMCPTools();
 
 		assertEquals(2, result.getJSONArray("tools").length());
 	}
 
 	@Test
 	void rejectsABlankFolder() {
-		assertThrows(IllegalArgumentException.class,
-				() -> InternalMCP.genFromFolder("  ", "room-123", "Room Recordings", MCPUtility.INTERNAL_MCP_TYPE));
+		assertThrows(IllegalArgumentException.class, () -> InternalMCP.genFromRoomFolder("  "));
+	}
+
+	/**
+	 * Writes a room folder holding two tools whose names share a leading slice, so
+	 * exact / truncated / shadowing lookups can all be exercised.
+	 */
+	private InternalMCP twoToolFolder() throws Exception {
+		Path mcpDir = tempDir.resolve("mcp");
+		Files.createDirectories(mcpDir);
+		Files.writeString(mcpDir.resolve("pixel_mcp.json"), """
+				{
+				  "tools": [
+				    { "name": "play_checkout_flow_with_a_very_long_generated_name",
+				      "inputSchema": {"type": "object", "properties": {}},
+				      "_meta": {"SMSS_FUNCTION_NAME": "LongOne"} },
+				    { "name": "play_checkout",
+				      "inputSchema": {"type": "object", "properties": {}},
+				      "_meta": {"SMSS_FUNCTION_NAME": "ShortOne"} }
+				  ]
+				}
+				""");
+		return InternalMCP.genFromRoomFolder(tempDir.toString());
+	}
+
+	private static String resolvedFunction(InternalMCP mcp, String requested) throws Exception {
+		java.lang.reflect.Method m = InternalMCP.class.getDeclaredMethod("getFunction", String.class, String.class);
+		m.setAccessible(true);
+		java.lang.reflect.Method pixelPath = InternalMCP.class.getDeclaredMethod("pixelMcpPath");
+		pixelPath.setAccessible(true);
+		JSONObject tool = (JSONObject) m.invoke(mcp, requested, pixelPath.invoke(mcp));
+		return tool == null ? null : tool.getJSONObject("_meta").getString("SMSS_FUNCTION_NAME");
+	}
+
+	@Test
+	void exactNameWinsOverALongerToolListedFirst() throws Exception {
+		// "play_checkout" is a prefix of the first tool, but an exact match exists
+		assertEquals("ShortOne", resolvedFunction(twoToolFolder(), "play_checkout"));
+	}
+
+	@Test
+	void aTruncatedNameIsNotGuessedAt() throws Exception {
+		// what a 64-char-limited provider would send back if the alias were never
+		// reversed. Matching is exact, so this fails rather than quietly running the
+		// tool it happens to be a prefix of
+		assertNull(resolvedFunction(twoToolFolder(), "play_checkout_flow_with_a_very"));
+	}
+
+	@Test
+	void aNameThatOnlyAppearsMidStringDoesNotMatch() throws Exception {
+		assertNull(resolvedFunction(twoToolFolder(), "checkout_flow"));
+	}
+
+	@Test
+	void unknownToolErrorNamesTheLikelyTruncationVictim() throws Exception {
+		Path mcpDir = tempDir.resolve("mcp");
+		Files.createDirectories(mcpDir);
+		Files.writeString(mcpDir.resolve("pixel_mcp.json"), """
+				{
+				  "tools": [{
+				    "name": "play_checkout_flow_with_a_very_long_generated_name",
+				    "inputSchema": {"type": "object", "properties": {}},
+				    "_meta": {"SMSS_FUNCTION_NAME": "LongOne"}
+				  }]
+				}
+				""");
+		InternalMCP mcp = InternalMCP.genFromRoomFolder(tempDir.toString());
+
+		// a prefix of a real tool: the error should point at the cause
+		SemossMCPException truncated = assertThrows(SemossMCPException.class,
+				() -> mcp.callTool("play_checkout_flow_with_a_very", Map.of(), null));
+		assertTrue(truncated.getMessage().contains("play_checkout_flow_with_a_very_long_generated_name"),
+				truncated.getMessage());
+		assertTrue(truncated.getMessage().contains("truncated"), truncated.getMessage());
+
+		// an unrelated name gets the plain message, with no misleading hint
+		SemossMCPException unrelated = assertThrows(SemossMCPException.class,
+				() -> mcp.callTool("something_else_entirely", Map.of(), null));
+		assertTrue(unrelated.getMessage().contains("Unknown tool"), unrelated.getMessage());
+		assertFalse(unrelated.getMessage().contains("truncated"), unrelated.getMessage());
+	}
+
+	@Test
+	void unknownNameResolvesToNothing() throws Exception {
+		assertNull(resolvedFunction(twoToolFolder(), "not_a_tool"));
+	}
+
+	@Test
+	void genFromRoomFolderProducesAUsableMcp() throws Exception {
+		assertNotNull(twoToolFolder().getMCPTools().getJSONArray("tools"));
 	}
 }

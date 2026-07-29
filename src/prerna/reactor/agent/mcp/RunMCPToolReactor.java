@@ -43,7 +43,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RunMCPToolReactor extends AbstractReactor {
 
 	// Agent HITL keys (optional). When actionId is present, this call is a
-	// decision on a paused agent tool call and is delegated to AgentToolDecisionHandler.
+	// decision on a paused agent tool call and is delegated to
+	// AgentToolDecisionHandler.
 	private static final String RUN_ID_KEY = "runId";
 	private static final String ROOM_ID_KEY = ReactorKeysEnum.ROOM_ID.getKey();
 	private static final String TOOL_CALL_ID_KEY = "toolCallId";
@@ -106,11 +107,15 @@ public class RunMCPToolReactor extends AbstractReactor {
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
 		String roomId = this.keyValue.get(ROOM_ID_KEY);
-		if (roomId != null && roomId.equals(engineId)) {
-			if (!roomId.isBlank()) {
-				Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		if (roomId != null && !roomId.isBlank()) {
+			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(room);
 			}
+			// The caller sends back the aliased name the model was given. The room
+			// still holds the map that produced that alias, so undo it here rather
+			// than leaving the resolver to match a possibly truncated name.
+			toolName = room.resolveOriginalToolName(toolName);
 		}
 
 		// these are the params

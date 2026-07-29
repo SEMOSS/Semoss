@@ -78,8 +78,8 @@ public class ResolvePlaywrightRoomRecordingReactor extends AbstractReactor {
 			if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 			}
-			projectRecordingsFolder = Path.of(AssetUtility.getProjectAssetsFolder(projectId))
-					.resolve(PlaywrightUtility.RECORDINGS_FOLDER_NAME).toAbsolutePath().normalize();
+			projectRecordingsFolder = Path.of(AssetUtility.getProjectAssetsFolder(projectId),
+					PlaywrightUtility.RECORDINGS_FOLDER_NAME).toAbsolutePath().normalize();
 		}
 
 		Map<String, Object> result = new PlaywrightRecordingCatalogService().resolve(roomFolder,

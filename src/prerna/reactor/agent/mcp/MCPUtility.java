@@ -36,9 +36,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -98,6 +100,13 @@ public final class MCPUtility {
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+
+	/**
+	 * Records which generator produced a tool. A generator replaces tools carrying
+	 * its own id; a tool without this key is owned by nobody and always survives.
+	 */
+	public static final String SMSS_MCP_GENERATOR = "SMSS_MCP_GENERATOR";
+
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
@@ -108,8 +117,31 @@ public final class MCPUtility {
 	@Deprecated
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
 
-	/** MCP type for tools backed by an authenticated internal asset folder. */
-	public static final String INTERNAL_MCP_TYPE = "INTERNAL";
+	/**
+	 * Reserved id standing in where an engine or project UUID would normally go. An
+	 * MCP id is otherwise always a real catalog entry; this fixed, deliberately
+	 * unmistakable value instead means "there is no engine - read the tools from
+	 * the room's own asset folder". Used both in {@code room.options.mcp} and as
+	 * the {@link #SMSS_ENGINE_ID} on the tools themselves.
+	 *
+	 * <p>
+	 * Persisted in room OPTIONS and in the LLM-facing tool name prefix.
+	 */
+	public static final String ROOM_MCP_ID = "__room__";
+
+	/** Display name shown in the room's MCP list. */
+	public static final String ROOM_MCP_NAME = "Room Tools";
+
+	/**
+	 * Type reported for the room's own toolbox, published as
+	 * {@link #SMSS_ENGINE_TYPE} on its tools. Not an {@code IEngine.CATALOG_TYPE}
+	 * value: a room has no engine or project behind it, only its folder.
+	 *
+	 * <p>
+	 * Safe to change, unlike {@link #ROOM_MCP_ID}. Nothing dispatches on it: the
+	 * room options form tests for "VECTOR", the tool sidebar tests for "PROJECT".
+	 */
+	public static final String ROOM_MCP_TYPE = "ROOM";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
@@ -714,14 +746,9 @@ public final class MCPUtility {
 				if (origFunctionName == null) {
 					origFunctionName = llmFacingName;
 				}
-				String originalToolName = (String) enrichedMeta.get(SMSS_ORIGINAL_TOOL_NAME);
-				if (originalToolName == null || originalToolName.isBlank()) {
-					originalToolName = origFunctionName;
-				}
 
 				responseToolMap.put("_tool_found", true);
-				responseToolMap.put("original_name", originalToolName);
-				applyTopLevelSchemaDefaults(responseToolMap, toolEntry);
+				responseToolMap.put("original_name", origFunctionName);
 
 				if (toolEntry.containsKey("title")) {
 					responseToolMap.put("title", toolEntry.get("title"));
@@ -806,44 +833,6 @@ public final class MCPUtility {
 				}
 			} else {
 				responseToolMap.put("_tool_found", false);
-			}
-		}
-	}
-
-	/**
-	 * Materializes fixed/defaulted top-level tool arguments when a model omits
-	 * them. Explicit model/user arguments always win.
-	 */
-	@SuppressWarnings("unchecked")
-	private static void applyTopLevelSchemaDefaults(Map<String, Object> responseToolMap,
-			Map<String, Object> toolEntry) {
-		Object rawSchema = toolEntry.get("inputSchema");
-		if (!(rawSchema instanceof Map)) {
-			return;
-		}
-		Object rawProperties = ((Map<String, Object>) rawSchema).get("properties");
-		if (!(rawProperties instanceof Map)) {
-			return;
-		}
-
-		Map<String, Object> arguments;
-		Object rawArguments = responseToolMap.get("arguments");
-		if (rawArguments instanceof Map) {
-			arguments = (Map<String, Object>) rawArguments;
-		} else {
-			arguments = new HashMap<>();
-			responseToolMap.put("arguments", arguments);
-		}
-
-		for (Map.Entry<String, Object> property : ((Map<String, Object>) rawProperties).entrySet()) {
-			if (arguments.containsKey(property.getKey()) || !(property.getValue() instanceof Map)) {
-				continue;
-			}
-			Map<String, Object> propertySchema = (Map<String, Object>) property.getValue();
-			if (propertySchema.containsKey("const")) {
-				arguments.put(property.getKey(), propertySchema.get("const"));
-			} else if (propertySchema.containsKey("default")) {
-				arguments.put(property.getKey(), propertySchema.get("default"));
 			}
 		}
 	}
@@ -1254,8 +1243,108 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Stamps {@link #SMSS_MCP_GENERATOR} onto every tool in the array. Call it on
+	 * the finished array so a generator with more than one build path marks all of
+	 * them.
+	 *
+	 * @param tools       the generated tools, modified in place
+	 * @param generatorId the generator, conventionally the reactor name without the
+	 *                    "Reactor" suffix
+	 */
+	public static void stampGenerator(JSONArray tools, String generatorId) {
+		if (tools == null) {
+			return;
+		}
+		for (int i = 0; i < tools.length(); i++) {
+			JSONObject tool = tools.optJSONObject(i);
+			if (tool == null) {
+				continue;
+			}
+			JSONObject meta = tool.optJSONObject("_meta");
+			if (meta == null) {
+				meta = new JSONObject();
+				tool.put("_meta", meta);
+			}
+			meta.put(SMSS_MCP_GENERATOR, generatorId);
+		}
+	}
+
+	/**
+	 * Reads an existing {@code *_mcp.json}. A malformed file is logged and treated
+	 * as absent, since nothing can load it in that state.
+	 *
+	 * @param filePath full path to the definition file
+	 * @return the parsed file, or null when it is missing or unusable
+	 */
+	public static JSONObject readMcpJson(String filePath) {
+		File existing = new File(filePath);
+		if (!existing.isFile()) {
+			return null;
+		}
+		try {
+			return new JSONObject(FileUtils.readFileToString(existing, StandardCharsets.UTF_8));
+		} catch (Exception e) {
+			classLogger.warn("Existing {} could not be parsed and will be replaced: {}", filePath, e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Merges generated tools into the tools already in a definition file.
+	 *
+	 * <p>
+	 * A generated tool replaces any existing tool of the same name. A tool stamped
+	 * with {@code generatorId} that was not regenerated is dropped when
+	 * {@code completeRegeneration} is set. Everything else is kept.
+	 *
+	 * @param existingMcpJson      the parsed existing file, or null when there is
+	 *                             none
+	 * @param generated            the generated tools, already stamped by
+	 *                             {@link #stampGenerator}, in their given order
+	 * @param generatorId          the generator whose own output may be replaced
+	 * @param completeRegeneration true when {@code generated} is this generator's
+	 *                             entire output. Pass false for a run scoped to a
+	 *                             subset, which would otherwise prune the
+	 *                             generator's other tools.
+	 * @return generated tools followed by the surviving existing tools
+	 */
+	public static JSONArray mergeGeneratedTools(JSONObject existingMcpJson, JSONArray generated, String generatorId,
+			boolean completeRegeneration) {
+		JSONArray merged = new JSONArray();
+		Set<String> generatedNames = new HashSet<>();
+		for (int i = 0; i < generated.length(); i++) {
+			JSONObject tool = generated.getJSONObject(i);
+			merged.put(tool);
+			String name = tool.optString("name", null);
+			if (name != null) {
+				generatedNames.add(name);
+			}
+		}
+
+		JSONArray existing = existingMcpJson != null ? existingMcpJson.optJSONArray("tools") : null;
+		if (existing == null) {
+			return merged;
+		}
+		for (int i = 0; i < existing.length(); i++) {
+			JSONObject tool = existing.optJSONObject(i);
+			if (tool == null) {
+				continue;
+			}
+			if (generatedNames.contains(tool.optString("name", null))) {
+				continue;
+			}
+			JSONObject meta = tool.optJSONObject("_meta");
+			if (completeRegeneration && meta != null && generatorId.equals(meta.optString(SMSS_MCP_GENERATOR, null))) {
+				continue;
+			}
+			merged.put(tool);
+		}
+		return merged;
+	}
+
+	/**
 	 * Add the MCP tag to an existing engine (engine and project)
-	 * 
+	 *
 	 * @param engine
 	 */
 	public static void addMCPTag(IEngine engine) {
@@ -1296,13 +1385,15 @@ public final class MCPUtility {
 	 * AgentToolDecisionHandler (HITL approve/edit).
 	 */
 	public static Object executeTool(String engineId, String toolName, Map<String, Object> paramMap, Insight insight) {
-		// A room-owned internal MCP publishes the room ID as its engine ID. The
-		// caller must already be authenticated and bound to that same room.
-		if (engineId != null && insight != null && engineId.equals(insight.getRoomId())) {
-			InternalMCP internalMcp = InternalMCP.genFromFolder(insight.getInsightFolder(), engineId,
-					"Room Recordings", INTERNAL_MCP_TYPE);
+		// A room's toolbox is backed by its own asset folder, so there is no engine or
+		// project to resolve.
+		if (ROOM_MCP_ID.equals(engineId)) {
+			if (insight == null) {
+				throw new IllegalArgumentException("Caller insight is required to execute a room MCP tool");
+			}
+			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(insight.getInsightFolder());
 			String cleaned = removeEngineIdFromToolsMethodName(engineId, toolName);
-			return internalMcp.callTool(cleaned, paramMap, insight);
+			return roomMcp.callTool(cleaned, paramMap, insight);
 		}
 
 		IEngine engine = null;
