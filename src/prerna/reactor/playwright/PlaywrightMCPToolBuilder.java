@@ -207,7 +207,10 @@ public final class PlaywrightMCPToolBuilder {
 			fieldProp.put("type", "string");
 			fieldProp.put("title", fieldName);
 			fieldProp.put("description", step.label());
-			if (step.text() != null && !step.text().isBlank()) {
+			// Password values must never be exposed to the model through an MCP
+			// schema default. The field remains required and password-formatted so
+			// the user can supply it at execution time.
+			if (!step.isPassword() && step.text() != null && !step.text().isBlank()) {
 				fieldProp.put("default", step.text());
 			}
 			if (step.isPassword()) {

@@ -121,7 +121,7 @@ class PlaywrightMCPToolBuilderTest {
 	@Test
 	void buildParamValuesSchemaDescribesEachInputField() {
 		List<PlaywrightStep> inputs = List.of(typeStep("User Name", "bob", true, false),
-				typeStep("Password", null, true, true));
+				typeStep("Password", "must-not-leak", true, true));
 
 		JSONObject schema = PlaywrightMCPToolBuilder.buildParamValuesSchema(inputs, "empty", "filled");
 
@@ -135,7 +135,8 @@ class PlaywrightMCPToolBuilderTest {
 
 		JSONObject password = props.getJSONObject("password");
 		assertEquals("password", password.getString("format"));
-		// no text recorded, so no default is emitted
+		// Even if an older recording contains password text, it must not be exposed
+		// to an LLM as a schema default.
 		assertFalse(password.has("default"));
 
 		assertEquals(2, schema.getJSONArray("required").length());
