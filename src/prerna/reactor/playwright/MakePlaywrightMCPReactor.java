@@ -31,9 +31,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,9 +58,12 @@ import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 /**
- * Reactor that generates an MCP tools JSON file from Playwright recording
- * files. Each recording file becomes a separate tool entry with inputs
- * extracted from TYPE steps.
+ * Generates project scoped Playwright replay tools.
+ *
+ * <p>
+ * Each recording under the project's Playwright folder becomes one tool in the
+ * project's {@code mcp/pixel_mcp.json}, with inputs taken from its TYPE steps.
+ * {@link MakeRoomPlaywrightMCPReactor} does the same for a room folder.
  */
 public class MakePlaywrightMCPReactor extends AbstractReactor {
 
@@ -119,14 +119,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		toolsArray.put(createAddVisionContextTool());
 
 		// Create the MCP JSON structure
-		JSONObject mcpJson = new JSONObject();
-		mcpJson.put("tools", toolsArray);
-
-		JSONObject _meta = new JSONObject();
-		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-		_meta.put("last_modified_date", todayUTC.format(formatter));
-		mcpJson.put("_meta", _meta);
+		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(toolsArray);
 
 		// Write the output file
 		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
@@ -175,59 +168,87 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Creates an MCP tool definition from a Playwright recording file
+	 * Creates an MCP tool definition from a Playwright recording file.
+	 *
+	 * <p>
+	 * One entry of the {@code tools} array, assembled by the sections below:
+	 *
+	 * <pre>
+	 * {
+	 *   "name": "checkout_flow",
+	 *   "title": "Checkout Flow",
+	 *   "description": "Replay Playwright recording: Checkout Flow",
+	 *   "inputSchema": {
+	 *     "type": "object",
+	 *     "title": "checkout_flow_Arguments",
+	 *     "properties": { "recordedFile": {...}, "intent": {...},
+	 *                     "projectID": {...}, "paramValues": {...} },
+	 *     "required": ["recordedFile", "intent", "projectID", "paramValues"]
+	 *   }
+	 * }
+	 * </pre>
+	 *
+	 * <p>
+	 * These tools are run by the Chrome extension rather than by a pixel. With no
+	 * {@code SMSS_MCP_UI} to iframe, the Playground renders the tool with
+	 * {@code ToolsDefaultView}, its generic parameter form. That form branches on
+	 * the {@code recordedFile} argument the model sent: instead of calling
+	 * {@code RunMCPTool} it runs {@code Session()}, then
+	 * {@code GetAllSteps(project, sessionId, fileName)}, and posts the steps to the
+	 * extension as {@code SMSS_EXEC_PLAYWRIGHT_SCRIPT} over
+	 * {@code window.postMessage}.
+	 *
+	 * <p>
+	 * {@code recordedFile} and {@code projectID} are pinned to single values
+	 * because the browser fetches the steps by project id and file name, so the
+	 * recording never leaves the server as a file.
+	 *
+	 * <p>
+	 * This path depends on the project having no published portal. When one is
+	 * published the Playground iframes {@code public_home/{projectId}/portals/}
+	 * instead.
+	 *
+	 * @param file the recording to describe
+	 * @return the tool definition
+	 * @throws IOException if the recording cannot be read
 	 */
 	private JSONObject createToolFromRecording(File file) throws IOException {
 		// Parse the recording file
 		StepsEnvelope envelope = json.readValue(file, StepsEnvelope.class);
 
 		String fileName = file.getName();
-		String fileNameWithoutExt = fileName.replace(".json", "");
-		String title = envelope.meta() != null && envelope.meta().title() != null ? envelope.meta().title()
-				: fileNameWithoutExt;
-
-		// Get base description, use fallback if empty or null
-		String baseDescription = null;
-		if (envelope.meta() != null && envelope.meta().description() != null
-				&& !envelope.meta().description().trim().isEmpty()) {
-			baseDescription = envelope.meta().description();
-		} else {
-			baseDescription = "Replay Playwright recording: " + title;
-		}
+		String title = PlaywrightMCPToolBuilder.resolveRecordingTitle(envelope, fileName);
+		String baseDescription = PlaywrightMCPToolBuilder.resolveRecordingDescription(envelope, title,
+				"Replay Playwright recording: ");
 
 		// Extract input fields from steps where type == TYPE and storeValue == true
-		List<PlaywrightStep> inputSteps = new ArrayList<>();
-		for (List<List<PlaywrightStep>> stepGroups : envelope.steps().values()) {
-			for (List<PlaywrightStep> stepGroup : stepGroups) {
-				for (PlaywrightStep step : stepGroup) {
-					if (step.type() == PlaywrightStepType.TYPE && step.storeValue()) {
-						String label = step.label();
-						if (label != null && !label.isEmpty()) {
-							inputSteps.add(step);
-						}
-					}
-				}
-			}
-		}
+		List<PlaywrightStep> inputSteps = PlaywrightMCPToolBuilder.collectStoreValueInputs(envelope);
 
-		// Build the input schema
+		// "inputSchema": { "type": "object", "title": "checkout_flow_Arguments",
+		// "properties": {...}, "required": [...] }
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("type", "object");
-		inputSchema.put("title", sanitizePropertyName(title) + "_Arguments");
+		inputSchema.put("title", PlaywrightMCPToolBuilder.sanitizeToolName(title, "field_") + "_Arguments");
 
 		JSONObject properties = new JSONObject();
 		JSONArray required = new JSONArray();
 
-		// Add recordedFile parameter with filename as the DEFAULT VALUE
-		JSONObject recordedFileProp = new JSONObject();
-		recordedFileProp.put("description", "Name of the Playwright recording file to replay");
-		recordedFileProp.put("title", "recordedFile");
-		recordedFileProp.put("type", "string");
-		recordedFileProp.put("default", fileName); // The filename is the default value
-		properties.put("recordedFile", recordedFileProp);
+		// "recordedFile": {
+		// "type": "string", "title": "recordedFile",
+		// "description": "Name of the Playwright recording file to replay",
+		// "enum": ["checkout-flow.json"], "default": "checkout-flow.json"
+		// }
+		// One tool per recording, so the file name is pinned to a single value.
+		properties.put("recordedFile", PlaywrightMCPToolBuilder.pinnedStringProperty("recordedFile",
+				"Name of the Playwright recording file to replay", fileName));
 		required.put("recordedFile");
 
-		// Add intent parameter if present in metadata
+		// "intent": {
+		// "type": "string", "title": "intent",
+		// "description": "The intent or purpose of this recording",
+		// "default": "Buy a product end to end"
+		// }
+		// Not pinned: a model may reword it.
 		if (envelope.meta() != null && envelope.meta().intent() != null && !envelope.meta().intent().trim().isEmpty()) {
 			JSONObject intentProp = new JSONObject();
 			intentProp.put("description", "The intent or purpose of this recording");
@@ -237,92 +258,55 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 			properties.put("intent", intentProp);
 			required.put("intent");
 		}
-		// Add projectID parameter with project id as the DEFAULT VALUE
-		JSONObject ProjectProp = new JSONObject();
-		ProjectProp.put("description", "The project id that contains the recorded file");
-		ProjectProp.put("title", "projectID");
-		ProjectProp.put("type", "string");
-		ProjectProp.put("default", this.keyValue.get(this.keysToGet[0])); // The project id is the default value
-		properties.put("projectID", ProjectProp);
+		// "projectID": {
+		// "type": "string", "title": "projectID",
+		// "description": "The project id that contains the recorded file",
+		// "enum": ["e5f1..."], "default": "e5f1..."
+		// }
+		// Pinned too: the recording exists only in this project.
+		properties.put("projectID", PlaywrightMCPToolBuilder.pinnedStringProperty("projectID",
+				"The project id that contains the recorded file", this.keyValue.get(this.keysToGet[0])));
 		required.put("projectID");
 
-		// Add paramValues as a flexible object type with nested properties
-		JSONObject paramValuesProp = new JSONObject();
-		paramValuesProp.put("type", "object");
-		paramValuesProp.put("title", "paramValues");
-
-		// Build properties for each input field
-		if (!inputSteps.isEmpty()) {
-			JSONObject paramProperties = new JSONObject();
-			JSONArray paramRequired = new JSONArray();
-
-			for (PlaywrightStep step : inputSteps) {
-				String fieldName = sanitizePropertyName(step.label());
-				JSONObject fieldProp = new JSONObject();
-				fieldProp.put("type", "string");
-				fieldProp.put("title", fieldName);
-				fieldProp.put("description", step.label());
-
-				// Add default value if present
-				if (step.text() != null && !step.text().isEmpty()) {
-					fieldProp.put("default", step.text());
-				}
-
-				// Add format for password fields
-				if (step.isPassword()) {
-					fieldProp.put("format", "password");
-				}
-
-				paramProperties.put(fieldName, fieldProp);
-				paramRequired.put(fieldName);
-			}
-
-			paramValuesProp.put("properties", paramProperties);
-			paramValuesProp.put("required", paramRequired);
-			paramValuesProp.put("description",
-					"Input values for the Playwright script fields (" + inputSteps.size() + " fields)");
-		} else {
-			// No input fields, just allow any object
-			paramValuesProp.put("description", "Additional parameters (none required for this recording)");
-			JSONObject additionalProps = new JSONObject();
-			additionalProps.put("type", "string");
-			paramValuesProp.put("additionalProperties", additionalProps);
-		}
-
-		properties.put("paramValues", paramValuesProp);
+		// "paramValues": {
+		// "type": "object", "title": "paramValues",
+		// "properties": { "username": { "type": "string", "default": "bob" } },
+		// "required": ["username"]
+		// }
+		// One field per TYPE step flagged storeValue; free-form string map when none.
+		properties.put("paramValues",
+				PlaywrightMCPToolBuilder.buildParamValuesSchema(inputSteps,
+						"Additional parameters (none required for this recording)",
+						"Input values for the Playwright script fields"));
 		required.put("paramValues");
 
 		inputSchema.put("properties", properties);
 		inputSchema.put("required", required);
 
-		// Build the tool object with unique name and title based on recording
+		// Wrap it all up as one entry of the "tools" array.
 		JSONObject tool = new JSONObject();
-		tool.put("name", sanitizePropertyName(title)); // Unique name based on recording title
-		tool.put("title", title); // Human-readable title from metadata
-		tool.put("description", baseDescription); // Keep description clean and concise
+		tool.put("name", sanitizePropertyName(title));
+		tool.put("title", title);
+		tool.put("description", baseDescription);
 		tool.put("inputSchema", inputSchema);
 
 		return tool;
 	}
 
 	/**
-	 * Sanitizes a label to create a valid property name
+	 * Sanitizes a label into a valid property name, prefixing {@code field_} when
+	 * the label does not start with a letter.
 	 */
 	private String sanitizePropertyName(String label) {
-		// Remove special characters and convert to camelCase
-		String sanitized = label.replaceAll("[^a-zA-Z0-9\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase();
-
-		// Ensure it starts with a letter
-		if (sanitized.isEmpty() || !Character.isLetter(sanitized.charAt(0))) {
-			sanitized = "field_" + sanitized;
-		}
-
-		return sanitized;
+		return PlaywrightMCPToolBuilder.sanitizeToolName(label, "field_");
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Builds the {@code AddVisionContext} tool, which takes a single
+	 * {@code visionContext} string. Its description is a placeholder that will not
+	 * match a user request, so the model does not select it from the tool list.
+	 *
+	 * @return the tool definition
 	 */
 	private static JSONObject createAddVisionContextTool() {
 		JSONObject tool = new JSONObject();
@@ -355,7 +339,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Generates a mcp/playwright_mcp.json file from Playwright recording scripts";
+		return "Generates a mcp/pixel_mcp.json file from Playwright recording scripts";
 	}
 
 	@Override

@@ -36,5 +36,5 @@ package prerna.reactor.playwright;
  * @param tabId  The ID of the newly opened tab, if {@code isTrue} is
  *               {@code true}.
  */
-record TriggerNewTab(boolean isTrue, String tabId) {
+public record TriggerNewTab(boolean isTrue, String tabId) {
 }
