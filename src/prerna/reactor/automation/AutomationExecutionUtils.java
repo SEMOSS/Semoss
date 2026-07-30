@@ -315,6 +315,34 @@ public final class AutomationExecutionUtils {
 		return scope;
 	}
 
+	/**
+	 * Builds the human-readable, per-workflow summary surfaced to MCP/agent consumers as the
+	 * primary tool result (instead of a raw run-detail JSON blob).
+	 *
+	 * <p>Resolves {@code automation.json}'s optional {@link AutomationConstants#DOC_RESULT_MESSAGE_TEMPLATE}
+	 * (e.g. {@code "Indexed ${file_count} files"}) against the final run scope + config using the
+	 * same {@code ${var}}/{@code ${config.KEY}} substitution as node templates. Falls back to a
+	 * generic completed-nodes message when the template is absent, blank, or resolves to blank.
+	 *
+	 * @param doc            the parsed {@code automation.json} document
+	 * @param finalScope     the run's scope after all nodes completed (output vars included)
+	 * @param configMap      project automation config key-value pairs
+	 * @param completedCount number of nodes that completed successfully
+	 * @param totalCount     total number of nodes in the run
+	 */
+	public static String buildSummaryMessage(Map<String, Object> doc, Map<String, String> finalScope,
+			Map<String, String> configMap, int completedCount, int totalCount) {
+		Object rawTemplate = doc != null ? doc.get(AutomationConstants.DOC_RESULT_MESSAGE_TEMPLATE) : null;
+		String template = strCfg(rawTemplate);
+		if (template != null) {
+			String resolved = resolve(template, finalScope, configMap);
+			if (resolved != null && !resolved.isBlank()) {
+				return resolved;
+			}
+		}
+		return "Automation completed successfully (" + completedCount + "/" + totalCount + " nodes).";
+	}
+
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
 	public static String generatePreview(String s) {
 		if (s == null) return null;
@@ -371,3 +399,4 @@ public final class AutomationExecutionUtils {
 	}
 
 }
+

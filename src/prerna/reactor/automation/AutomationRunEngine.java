@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,9 +45,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
 import prerna.reactor.automation.nodes.AutomationNodeExecutors;
 import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Utility;
 
 /**
@@ -86,13 +89,23 @@ public final class AutomationRunEngine {
 	 * @param ordered   nodes in execution order
 	 * @param configMap project automation config key-value pairs
 	 * @param insight   the caller's insight context (propagated to each node executor)
+	 * @return the run's final variable scope (trigger vars + every node's {@code outputVar}
+	 *         that completed successfully) - used by the caller to resolve a per-workflow
+	 *         summary message once the run finishes
 	 */
-	public static void run(String runId, String projectId,
+	public static Map<String, String> run(String runId, String projectId,
 			List<Map<String, Object>> ordered, Map<String, String> configMap, Insight insight) {
 
 		AtomicBoolean cancelled = new AtomicBoolean(false);
 		CANCELLATION_FLAGS.put(runId, cancelled);
 		ScheduledExecutorService heartbeat = startHeartbeat(runId);
+
+		// Captured once here - TriggerAutomationReactor runs on the virtual thread the platform's
+		// runPixelAsync endpoint spawns, so ThreadStore carries that job's id for the whole call.
+		// Used to stream per-node progress the same way HarnessToolExecutor streams tool-call
+		// progress during an agent turn (see PixelJobManager#addStreamOut), so the FE can poll
+		// getPixelJobStreaming(jobId) for live node status instead of inferring it from DB polls.
+		String jobId = ThreadStore.getJobId();
 
 		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(runId, insight.getUser());
 		int completedCount = 0;
@@ -108,8 +121,10 @@ public final class AutomationRunEngine {
 					classLogger.info("Automation run {} cancelled before node {} ({})", runId, nodeId, nodeLabel);
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_CANCELLED, nodeId, "Run cancelled by user");
-					return;
+					return scope;
 				}
+
+				publishNodeEvent(jobId, nodeId, nodeLabel, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 
 				Map<String, Object> nodeResult;
 				try {
@@ -118,10 +133,16 @@ public final class AutomationRunEngine {
 					classLogger.info("Automation run {} cancelled during node {} ({})", runId, nodeId, nodeLabel);
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_CANCELLED, nodeId, ace.getMessage());
-					return;
+					publishNodeEvent(jobId, nodeId, nodeLabel, AutomationConstants.STATUS_CANCELLED, null, null,
+							ace.getMessage());
+					return scope;
 				}
 
 				String status = (String) nodeResult.get(AutomationConstants.STATUS);
+				Object durationMs = nodeResult.get(AutomationConstants.DURATION_MS);
+				String preview = (String) nodeResult.get(AutomationConstants.OUTPUT_PREVIEW);
+				String errorMsg = (String) nodeResult.get(AutomationConstants.ERROR_MESSAGE);
+				publishNodeEvent(jobId, nodeId, nodeLabel, status, durationMs, preview, errorMsg);
 
 				if (AutomationConstants.NODE_STATUS_SUCCESS.equals(status)) {
 					if (outputVar != null && !outputVar.isEmpty()
@@ -132,22 +153,58 @@ public final class AutomationRunEngine {
 					completedCount++;
 					AutomationDatabaseUtility.updateHeartbeat(runId, completedCount);
 				} else {
-					String errorMsg = (String) nodeResult.get(AutomationConstants.ERROR_MESSAGE);
 					classLogger.warn("Automation run {} failed at node {} ({}): {}", runId, nodeId, nodeLabel, errorMsg);
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_FAILED, nodeId, errorMsg);
-					return;
+					return scope;
 				}
 			}
 
 			classLogger.info("Automation run {} completed successfully ({}/{} nodes)", runId, completedCount, ordered.size());
 			AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_SUCCESS, null, null);
+			return scope;
 
 		} finally {
 			heartbeat.shutdownNow();
 			CANCELLATION_FLAGS.remove(runId);
 			AutomationDatabaseUtility.releaseActiveRun(projectId, runId);
 		}
+	}
+
+	// -- Streaming -------------------------------------------------------------------
+
+	/**
+	 * Publishes a per-node progress event onto the pixel job's stream, mirroring
+	 * {@code HarnessToolExecutor.publishToolResult} - the FE polls {@code getPixelJobStreaming(jobId)}
+	 * (the same mechanism playground uses for live tool-call progress) to render each node's
+	 * running/success/failed transition as it happens, instead of inferring progress from DB polls.
+	 * A no-op when {@code jobId} is blank (e.g. called outside a {@code runPixelAsync} job).
+	 */
+	private static void publishNodeEvent(String jobId, String nodeId, String nodeLabel, String status,
+			Object durationMs, String preview, String errorMessage) {
+		if (jobId == null || jobId.isBlank()) {
+			return;
+		}
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("kind", "node-status");
+		data.put(AutomationConstants.NODE_ID, nodeId);
+		data.put(AutomationConstants.NODE_LABEL, nodeLabel);
+		data.put(AutomationConstants.STATUS, status);
+		if (durationMs != null) {
+			data.put(AutomationConstants.DURATION_MS, durationMs);
+		}
+		if (preview != null) {
+			data.put(AutomationConstants.OUTPUT_PREVIEW, preview);
+		}
+		if (errorMessage != null) {
+			data.put(AutomationConstants.ERROR_MESSAGE, errorMessage);
+		}
+		data.put("timestamp", Instant.now().toString());
+
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", "automation");
+		envelope.put("data", data);
+		PixelJobManager.getManager().addStreamOut(jobId, envelope);
 	}
 
 	// -- Node execution ------------------------------------------------------------

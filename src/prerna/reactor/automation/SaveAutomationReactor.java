@@ -117,6 +117,11 @@ public class SaveAutomationReactor extends AbstractReactor {
         }
 
         SecurityProjectUtils.updateProjectLastEditedDate(projectId);
+
+        // Keep this project's own MCP tool catalog in sync with every save, so the automation is
+        // always discoverable as a "TriggerAutomation" tool without a separate manual step.
+        AutomationMcpSync.syncTriggerAutomationTool(project, projectId, this.insight.getUser());
+
         return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
     }
 

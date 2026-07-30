@@ -96,12 +96,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 			classLogger.info("Automation run {} starting for project {}", runId, projectId);
 			runStarted = true;
-			AutomationRunEngine.run(runId, projectId, ordered, configMap, this.insight);
+			Map<String, String> finalScope = AutomationRunEngine.run(runId, projectId, ordered, configMap, this.insight);
 
 			// Build final result in the same shape as GetAutomationRunReactor
 			Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
 			List<Map<String, Object>> nodeResults = new ArrayList<>();
+			int completedCount = 0;
 			if (nodeOutputs != null) {
 				for (Map<String, Object> output : nodeOutputs) {
 					Map<String, Object> nodeResult = new HashMap<>();
@@ -112,6 +113,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, output.get(AutomationConstants.OUTPUT_PREVIEW));
 					nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 					nodeResults.add(nodeResult);
+					if (AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS))) {
+						completedCount++;
+					}
 				}
 			}
 			if (runDetail == null) {
@@ -120,6 +124,15 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				runDetail.put(AutomationConstants.PROJECT_ID, projectId);
 			}
 			runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
+
+			// Per-workflow human-readable summary (e.g. "Indexed 20 files") instead of raw JSON,
+			// surfaced as the primary MCP/agent-visible result.
+			boolean runSucceeded = AutomationConstants.STATUS_SUCCESS.equals(runDetail.get(AutomationConstants.STATUS));
+			String summary = runSucceeded
+					? AutomationExecutionUtils.buildSummaryMessage(doc, finalScope, configMap, completedCount, ordered.size())
+					: buildFailureSummary(runDetail);
+			runDetail.put(AutomationConstants.RESULT_SUMMARY, summary);
+
 			return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
@@ -135,6 +148,14 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	// -- Helpers -------------------------------------------------------------------
+
+	/** Null-safe failure summary - {@code FAILED_NODE_ID}/{@code ERROR_MESSAGE} may be absent. */
+	private static String buildFailureSummary(Map<String, Object> runDetail) {
+		Object failedNodeId = runDetail.get(AutomationConstants.FAILED_NODE_ID);
+		Object errorMessage = runDetail.get(AutomationConstants.ERROR_MESSAGE);
+		return "Automation failed at node " + (failedNodeId != null ? failedNodeId : "unknown")
+				+ ": " + (errorMessage != null ? errorMessage : "no error details available");
+	}
 
 	private String getProjectId() {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
@@ -160,6 +181,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Map<String, String> meta = new HashMap<>();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
+		// Same "system app" resourceURI scheme used by the Playwright browser-sockets tool
+		// (see PlaywrightMCPToolBuilder) - resolved client-side to the automation workspace's
+		// own build output (../../automation-workspace/dist/) so the exact same UI renders
+		// whether embedded directly in the client app or iframed as an MCP sidebar tool.
+		meta.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/");
 		return meta;
 	}
 

@@ -162,6 +162,12 @@ public final class AutomationConstants {
 	public static final String DOC_NODES = "nodes";
 	public static final String DOC_EDGES = "edges";
 	public static final int DOC_CURRENT_VERSION = 1;
+	/**
+	 * Optional {@code ${var}}/{@code ${config.KEY}} template resolved against the final run
+	 * scope once all nodes complete, producing a workflow-specific human-readable summary
+	 * (e.g. "Indexed 20 files") instead of a raw JSON blob for MCP/agent consumers.
+	 */
+	public static final String DOC_RESULT_MESSAGE_TEMPLATE = "resultMessageTemplate";
 
 	// -- Node/edge field names --------------------------------------------------------
 
@@ -209,6 +215,8 @@ public final class AutomationConstants {
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+	/** Human-readable, per-workflow summary surfaced to MCP/agent consumers (see {@link #DOC_RESULT_MESSAGE_TEMPLATE}). */
+	public static final String RESULT_SUMMARY = "summary";
 
 	// -- Pixel execution defaults ----------------------------------------------------
 
