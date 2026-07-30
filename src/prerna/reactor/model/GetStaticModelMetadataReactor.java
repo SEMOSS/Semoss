@@ -163,6 +163,12 @@ public class GetStaticModelMetadataReactor extends AbstractReactor {
 		}
 
 		copyJsonProperty(metadata, "knowledge", flattened, "knowledge_cutoff");
+		JsonElement openRouter = metadata.get("openrouter");
+		if (openRouter != null && openRouter.isJsonObject()) {
+			JsonObject openRouterValues = openRouter.getAsJsonObject();
+			copyJsonProperty(openRouterValues, "supported_parameters", flattened, "supported_parameters");
+			copyJsonProperty(openRouterValues, "reasoning", flattened, "reasoning_config");
+		}
 		return GSON.fromJson(flattened, MODEL_METADATA_TYPE);
 	}
 

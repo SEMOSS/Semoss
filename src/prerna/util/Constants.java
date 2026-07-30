@@ -497,6 +497,8 @@ public class Constants {
 	public static final String TEMPERATURE = "TEMPERATURE";
 	public static final String KNOWLEDGE_CUTOFF = "KNOWLEDGE_CUTOFF";
 	public static final String RELEASE_DATE = "RELEASE_DATE";
+	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
+	public static final String REASONING_CONFIG = "REASONING_CONFIG";
 	public static final String BENCHMARKS = "BENCHMARKS";
 
 	// Compare Databases

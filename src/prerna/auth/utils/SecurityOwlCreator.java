@@ -106,6 +106,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("TEMPERATURE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("KNOWLEDGECUTOFF", VARCHAR_255),
 				Pair.with("RELEASEDATE", VARCHAR_255),
+				Pair.with("SUPPORTEDPARAMETERS", CLOB_DATATYPE_NAME),
+				Pair.with("REASONINGCONFIG", CLOB_DATATYPE_NAME),
 				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME)));
 
 		addTable("ENGINEPERMISSION", Arrays.asList(
