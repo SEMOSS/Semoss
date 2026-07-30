@@ -756,6 +756,7 @@ public final class MCPUtility {
 				if (toolEntry.containsKey("description")) {
 					responseToolMap.put("description", toolEntry.get("description"));
 				}
+				applyMissingArgumentDefaults(responseToolMap, toolEntry);
 
 				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
 				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(enrichedMeta));
@@ -835,6 +836,42 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", false);
 			}
 		}
+	}
+
+	/**
+	 * Materializes schema defaults that a model omitted from a tool call. JSON
+	 * Schema's {@code default} is only an annotation, so not every provider echoes
+	 * pinned routing inputs such as recording_file and project_id. Applying only
+	 * missing top-level values preserves every value the model/user supplied.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void applyMissingArgumentDefaults(Map<String, Object> responseToolMap,
+			Map<String, Object> toolEntry) {
+		Object rawSchema = toolEntry.get("inputSchema");
+		if (!(rawSchema instanceof Map)) {
+			return;
+		}
+		Object rawProperties = ((Map<String, Object>) rawSchema).get("properties");
+		if (!(rawProperties instanceof Map)) {
+			return;
+		}
+
+		Object rawArguments = responseToolMap.get("arguments");
+		Map<String, Object> arguments = rawArguments instanceof Map
+				? (Map<String, Object>) rawArguments
+				: new HashMap<>();
+		for (Map.Entry<String, Object> propertyEntry : ((Map<String, Object>) rawProperties).entrySet()) {
+			if (arguments.containsKey(propertyEntry.getKey()) || !(propertyEntry.getValue() instanceof Map)) {
+				continue;
+			}
+			Map<String, Object> property = (Map<String, Object>) propertyEntry.getValue();
+			if (property.containsKey("default")) {
+				arguments.put(propertyEntry.getKey(), property.get("default"));
+			} else if (property.containsKey("const")) {
+				arguments.put(propertyEntry.getKey(), property.get("const"));
+			}
+		}
+		responseToolMap.put("arguments", arguments);
 	}
 
 	/**
