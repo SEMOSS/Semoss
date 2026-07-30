@@ -97,6 +97,7 @@ public class RemoteBrowserRecordingService {
 			recordClick(session, event);
 			break;
 		case "type-text":
+		case "fill-element":
 			recordType(session, event);
 			break;
 		case "key":

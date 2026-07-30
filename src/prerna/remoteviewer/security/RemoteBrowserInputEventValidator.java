@@ -49,7 +49,7 @@ public class RemoteBrowserInputEventValidator {
 			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
 					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
 					"recording-control", "selected-text-context", "switch-tab", "switch-replay-tab",
-					"prepare-replay", "close-tab"));
+				"prepare-replay", "close-tab", "fill-element"));
 	private static final int MAX_WAIT_AFTER_MS = 60_000;
 
 
@@ -115,6 +115,18 @@ public class RemoteBrowserInputEventValidator {
 			}
 			if (event.getText().length() > MAX_TYPE_TEXT_LENGTH) {
 				throw new IllegalArgumentException("type-text exceeds max length " + MAX_TYPE_TEXT_LENGTH);
+			}
+			break;
+
+		case "fill-element":
+			if (event.getText() == null || event.getText().isEmpty()) {
+				throw new IllegalArgumentException("fill-element event requires non-empty 'text'");
+			}
+			if (event.getText().length() > MAX_TYPE_TEXT_LENGTH) {
+				throw new IllegalArgumentException("fill-element exceeds max length " + MAX_TYPE_TEXT_LENGTH);
+			}
+			if (event.getSelector() == null || event.getSelector().value() == null || event.getSelector().value().isBlank()) {
+				throw new IllegalArgumentException("fill-element event requires a non-empty selector");
 			}
 			break;
 
