@@ -100,7 +100,7 @@ public final class AutomationMcpSync {
 		}
 
 		try {
-			JSONArray generated = new JSONArray().put(buildTriggerAutomationTool());
+			JSONArray generated = new JSONArray().put(buildTriggerAutomationTool(projectId));
 			MCPUtility.stampGenerator(generated, AUTOMATION_MCP_GENERATOR_ID);
 
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
@@ -119,7 +119,7 @@ public final class AutomationMcpSync {
 
 	// -- Private helpers -------------------------------------------------------------
 
-	private static JSONObject buildTriggerAutomationTool() {
+	private static JSONObject buildTriggerAutomationTool(String projectId) {
 		JSONObject tool = new JSONObject();
 		tool.put("name", "TriggerAutomation");
 		tool.put("title", "Trigger Automation");
@@ -130,7 +130,8 @@ public final class AutomationMcpSync {
 		JSONObject projectProp = new JSONObject();
 		projectProp.put("type", "string");
 		projectProp.put("title", "Project");
-		projectProp.put("description", "The project (app) ID or alias to run the automation for.");
+		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
+		projectProp.put("default", projectId);
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
 
@@ -143,7 +144,7 @@ public final class AutomationMcpSync {
 
 		JSONObject uiJson = new JSONObject();
 		uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
-		uiJson.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/");
+		uiJson.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1");
 
 		JSONObject meta = new JSONObject();
 		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "TriggerAutomation");

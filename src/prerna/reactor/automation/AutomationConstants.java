@@ -217,6 +217,8 @@ public final class AutomationConstants {
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	/** Human-readable, per-workflow summary surfaced to MCP/agent consumers (see {@link #DOC_RESULT_MESSAGE_TEMPLATE}). */
 	public static final String RESULT_SUMMARY = "summary";
+	/** Enriched summary including per-step output previews, sent as the MCP tool response so the LLM can describe what happened. */
+	public static final String RESULT_LLM_CONTEXT = "llmContext";
 
 	// -- Pixel execution defaults ----------------------------------------------------
 

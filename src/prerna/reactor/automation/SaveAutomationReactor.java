@@ -29,7 +29,7 @@ package prerna.reactor.automation;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URLDecoder;
+import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -81,7 +81,7 @@ public class SaveAutomationReactor extends AbstractReactor {
 
         String json;
         try {
-            json = URLDecoder.decode(jsonEncoded, StandardCharsets.UTF_8);
+            json = new String(Base64.getDecoder().decode(jsonEncoded), StandardCharsets.UTF_8);
         } catch (Exception e) {
             json = jsonEncoded;
         }

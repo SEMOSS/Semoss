@@ -111,6 +111,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
 					nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
 					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, output.get(AutomationConstants.OUTPUT_PREVIEW));
+					nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
 					nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 					nodeResults.add(nodeResult);
 					if (AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS))) {
@@ -118,6 +119,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					}
 				}
 			}
+			// Trigger nodes succeed immediately in the engine but never write a SUCCESS
+			// DB record, so add them back so the count reflects what the user sees.
+			int triggerCount = (int) ordered.stream()
+					.filter(n -> AutomationConstants.NODE_TRIGGER.equals(n.get(AutomationConstants.NODE_FIELD_TYPE)))
+					.count();
+			completedCount += triggerCount;
+
 			if (runDetail == null) {
 				runDetail = new HashMap<>();
 				runDetail.put(AutomationConstants.RUN_ID, runId);
@@ -125,13 +133,26 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			}
 			runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 
-			// Per-workflow human-readable summary (e.g. "Indexed 20 files") instead of raw JSON,
-			// surfaced as the primary MCP/agent-visible result.
 			boolean runSucceeded = AutomationConstants.STATUS_SUCCESS.equals(runDetail.get(AutomationConstants.STATUS));
+			// Short summary shown in the sidebar UI.
 			String summary = runSucceeded
 					? AutomationExecutionUtils.buildSummaryMessage(doc, finalScope, configMap, completedCount, ordered.size())
 					: buildFailureSummary(runDetail);
 			runDetail.put(AutomationConstants.RESULT_SUMMARY, summary);
+
+			// Enriched context sent to the LLM as the MCP tool response, so it can describe
+			// what each step actually did rather than just echoing the node count.
+			if (runSucceeded) {
+				StringBuilder llmContext = new StringBuilder(summary);
+				for (Map<String, Object> step : nodeResults) {
+					String label = (String) step.get(AutomationConstants.NODE_LABEL);
+					String preview = (String) step.get(AutomationConstants.OUTPUT_PREVIEW);
+					if (preview != null && !preview.isBlank()) {
+						llmContext.append("\n- ").append(label).append(": ").append(preview);
+					}
+				}
+				runDetail.put(AutomationConstants.RESULT_LLM_CONTEXT, llmContext.toString());
+			}
 
 			return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 
@@ -185,13 +206,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		// (see PlaywrightMCPToolBuilder) - resolved client-side to the automation workspace's
 		// own build output (../../automation-workspace/dist/) so the exact same UI renders
 		// whether embedded directly in the client app or iframed as an MCP sidebar tool.
-		meta.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/");
+		meta.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1");
 		return meta;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Manually triggers an automation run for the given project and returns a run ID for polling.";
+		return "Manually triggers an automation run for the given project and returns a per-step summary once complete.";
 	}
 
 	@Override

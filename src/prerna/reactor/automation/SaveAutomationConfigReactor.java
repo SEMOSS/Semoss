@@ -29,7 +29,7 @@ package prerna.reactor.automation;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URLDecoder;
+import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
@@ -75,7 +75,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
 
         String config;
         try {
-            config = URLDecoder.decode(configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY, StandardCharsets.UTF_8);
+            config = new String(Base64.getDecoder().decode(configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY), StandardCharsets.UTF_8);
         } catch (Exception e) {
             config = configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY;
         }
