@@ -497,11 +497,11 @@ public class SemossAgentHarness implements IAgentHarness {
 	 */
 	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta,
 			Map<String, Object> action) {
-		String engineId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
-		if (engineId == null) {
-			engineId = toolMeta != null ? stringValue(toolMeta.get("SMSS_PROJECT_ID")) : null;
+		String projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
+		if (projectId == null) {
+			projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
 		}
-		if (engineId == null) {
+		if (projectId == null) {
 			// Cannot resolve the app context; GetAgentRun.pendingActions still
 			// exposes the action id and tool metadata for UI-driven execution.
 			return null;
@@ -510,7 +510,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
 		// The URL only carries the actionId. The portal calls GetAgentRunAction on
 		// load to fetch the run context and prefill args from the persisted row.
-		return "/Monolith/public_home/" + engineId + "/portals/" + normalizedURI
+		return "/Monolith/public_home/" + projectId + "/portals/" + normalizedURI
 				+ "?actionId=" + action.get("actionId");
 	}
 

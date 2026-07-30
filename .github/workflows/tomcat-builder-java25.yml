@@ -6,7 +6,7 @@ on:
       version:
         description: 'Tomcat Version to deploy'
         required: true
-        default: '9.0.119'
+        default: '9.0.120'
   push:
     branches: [ "dev", "main" ]
     paths:
@@ -33,7 +33,7 @@ jobs:
             uname_arch: aarch64
     runs-on: ${{ matrix.runner }}
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.120' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,7 +99,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.120' }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4

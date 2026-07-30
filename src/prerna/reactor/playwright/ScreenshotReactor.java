@@ -98,14 +98,14 @@ public class ScreenshotReactor extends AbstractReactor {
 	 *         viewport dimensions, and device pixel ratio.
 	 */
 	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
-		playwrightSession.getOperationLock().lock();
+        playwrightSession.getOperationLock().lock();
+
 		try {
-			Page page = playwrightSession.tabPages.get(tabId);
+			Page page = requireOpenPage(playwrightSession, tabId);
 			waitForStablePage(page);
 			playwrightSession.refreshTrackedUrl(tabId);
 			byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false));
 			String b64 = java.util.Base64.getEncoder().encodeToString(buf);
-
 			int vpW = page.viewportSize().width;
 			int vpH = page.viewportSize().height;
 
@@ -133,12 +133,13 @@ public class ScreenshotReactor extends AbstractReactor {
 	 */
 	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
 			int startY, int endX, int endY) {
-		playwrightSession.getOperationLock().lock();
+        playwrightSession.getOperationLock().lock();
+
+
 		try {
-			Page page = playwrightSession.tabPages.get(tabId);
+			Page page = requireOpenPage(playwrightSession, tabId);
 			waitForStablePage(page);
 			playwrightSession.refreshTrackedUrl(tabId);
-
 			int x = Math.min(startX, endX);
 			int y = Math.min(startY, endY);
 			int width = Math.abs(endX - startX);
@@ -152,6 +153,15 @@ public class ScreenshotReactor extends AbstractReactor {
 		} finally {
 			playwrightSession.getOperationLock().unlock();
 		}
+	}
+
+	private static Page requireOpenPage(PlaywrightSession playwrightSession, String tabId) {
+		Page page = playwrightSession.getPage(tabId);
+		if (page == null || page.isClosed()) {
+			throw new IllegalStateException(
+					"Recorded tab " + tabId + " is not bound to an open browser page");
+		}
+		return page;
 	}
 
 	/**

@@ -174,27 +174,14 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 		Files.createDirectories(versionDir);
 
 		// Create a test recording file
-		String recordingJson = "{\n" +
-				"  \"meta\": {\n" +
-				"    \"title\": \"Test Recording\",\n" +
-				"    \"description\": \"Test description\",\n" +
-				"    \"intent\": \"Test intent\"\n" +
-				"  },\n" +
-				"  \"steps\": {\n" +
-				"    \"tab-1\": [\n" +
-				"      [\n" +
-				"        {\n" +
-				"          \"type\": \"TYPE\",\n" +
-				"          \"selector\": {\"strategy\": \"id\", \"value\": \"username\"},\n" +
-				"          \"text\": \"testuser\",\n" +
-				"          \"label\": \"Username\",\n" +
-				"          \"storeValue\": true,\n" +
-				"          \"isPassword\": false\n" +
-				"        }\n" +
-				"      ]\n" +
-				"    ]\n" +
-				"  }\n" +
-				"}";
+		String recordingJson = "{\n" + "  \"meta\": {\n" + "    \"title\": \"Test Recording\",\n"
+				+ "    \"description\": \"Test description\",\n" + "    \"intent\": \"Test intent\"\n" + "  },\n"
+				+ "  \"steps\": {\n" + "    \"tab-1\": [\n" + "      [\n" + "        {\n"
+				+ "          \"type\": \"TYPE\",\n"
+				+ "          \"selector\": {\"strategy\": \"id\", \"value\": \"username\"},\n"
+				+ "          \"text\": \"testuser\",\n" + "          \"label\": \"Username\",\n"
+				+ "          \"storeValue\": true,\n" + "          \"isPassword\": false\n" + "        }\n"
+				+ "      ]\n" + "    ]\n" + "  }\n" + "}";
 		Files.writeString(recordingsDir.resolve("test-recording.json"), recordingJson);
 
 		IProject project = mock(IProject.class);
@@ -218,8 +205,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 			securityUtils.when(() -> SecurityProjectUtils.userCanEditProject(user, projectId)).thenReturn(true);
 			utilityMock.when(() -> Utility.getProject(projectId)).thenReturn(project);
 			playwrightUtility.when(() -> PlaywrightUtility.initRecordingsDir(projectId)).thenReturn(recordingsDir);
-			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectId))
-					.thenReturn(assetsDir.toString());
+			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectId)).thenReturn(assetsDir.toString());
 			assetUtility.when(() -> AssetUtility.getProjectVersionFolder(projectName, projectId))
 					.thenReturn(versionDir.toString());
 			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectName, projectId))
@@ -238,6 +224,21 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 			assertTrue(mcpJson.has("tools"));
 			assertTrue(mcpJson.has("_meta"));
 
+			// The recording and its owning project are pinned to a single allowed
+			// value so a model cannot replay a different file or reach another project
+			JSONObject recordingTool = mcpJson.getJSONArray("tools").getJSONObject(0);
+			JSONObject toolProperties = recordingTool.getJSONObject("inputSchema").getJSONObject("properties");
+
+			JSONObject recordedFile = toolProperties.getJSONObject("recordedFile");
+			assertEquals(1, recordedFile.getJSONArray("enum").length());
+			assertEquals("test-recording.json", recordedFile.getJSONArray("enum").getString(0));
+			assertEquals("test-recording.json", recordedFile.getString("default"));
+
+			JSONObject projectIdProp = toolProperties.getJSONObject("projectID");
+			assertEquals(1, projectIdProp.getJSONArray("enum").length());
+			assertEquals(projectId, projectIdProp.getJSONArray("enum").getString(0));
+			assertEquals(projectId, projectIdProp.getString("default"));
+
 			// Verify output file was created
 			File outputFile = new File(assetsDir.toString() + "/mcp/pixel_mcp.json");
 			assertTrue(outputFile.exists());
@@ -247,8 +248,8 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 	@Test
 	void sanitizePropertyNameHandlesSpecialCharacters() throws Exception {
 		// Use reflection to access private method
-		java.lang.reflect.Method method = MakePlaywrightMCPReactor.class
-				.getDeclaredMethod("sanitizePropertyName", String.class);
+		java.lang.reflect.Method method = MakePlaywrightMCPReactor.class.getDeclaredMethod("sanitizePropertyName",
+				String.class);
 		method.setAccessible(true);
 
 		String result = (String) method.invoke(reactor, "Test Label!");
@@ -264,9 +265,12 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 		assertEquals("validname", result);
 	}
 
+	/**
+	 * The description names the file the reactor writes, which is pixel_mcp.json.
+	 */
 	@Test
 	void getReactorDescriptionReturnsCorrectValue() {
 		String description = reactor.getReactorDescription();
-		assertTrue(description.contains("mcp/playwright_mcp.json"));
+		assertTrue(description.contains("mcp/pixel_mcp.json"), description);
 	}
 }
