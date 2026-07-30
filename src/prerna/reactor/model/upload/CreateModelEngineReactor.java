@@ -108,6 +108,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 		// String modelName = getModelName();
 		Map<String, Object> modelMetadata = SecurityModelMetadataUtils.normalizeModelDetails(getModelDetails());
+		String modelDescription = (String) modelMetadata.remove(Constants.DESCR);
 		Map<String, Object> modelDetails = SecurityModelMetadataUtils.getModelEngineProperties(modelMetadata);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
@@ -169,6 +170,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
 			SecurityModelMetadataUtils.upsertModelMetadata(modelId, modelMetadata);
+			if (modelDescription != null) {
+				SecurityEngineUtils.updateEngineMetadata(modelId, Map.of(Constants.DESCRIPTION, modelDescription));
+			}
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

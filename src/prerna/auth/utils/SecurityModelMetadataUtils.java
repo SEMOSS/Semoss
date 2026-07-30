@@ -83,7 +83,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.BUILTIN_TOOLS, Constants.MAX_INPUT_TOKENS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
 			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
-			Constants.REASONING_CONFIG, Constants.BENCHMARKS);
+			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.DESCR);
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED");
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
@@ -104,6 +104,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 		Map<String, Object> normalized = new LinkedHashMap<>(modelDetails);
 		normalized.keySet().removeAll(REMOVED_METADATA_KEYS);
+		normalizeStringProperty(normalized, Constants.DESCR, false);
 		normalizeStringProperty(normalized, Constants.MODEL_PROVIDER, true);
 		normalizeStringProperty(normalized, Constants.SERVING_PROVIDER, true);
 		normalizeStringProperty(normalized, Constants.MODEL_FAMILY, false);
