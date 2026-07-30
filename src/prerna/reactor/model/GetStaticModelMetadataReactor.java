@@ -37,7 +37,9 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,7 +52,6 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -68,8 +69,8 @@ public class GetStaticModelMetadataReactor extends AbstractReactor {
 	private static volatile MetadataCache metadataCache;
 
 	public GetStaticModelMetadataReactor() {
-		this.keysToGet = new String[] { MODEL_ID_KEY, ReactorKeysEnum.PROVIDER.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { MODEL_ID_KEY };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -77,23 +78,99 @@ public class GetStaticModelMetadataReactor extends AbstractReactor {
 		organizeKeys();
 
 		String modelId = requireValue(this.keyValue.get(MODEL_ID_KEY), MODEL_ID_KEY);
-		String provider = requireValue(this.keyValue.get(ReactorKeysEnum.PROVIDER.getKey()),
-				ReactorKeysEnum.PROVIDER.getKey());
 
-		Map<String, Object> metadata = getModelMetadata(getMetadataFile(), provider, modelId);
+		Map<String, Object> metadata = getModelMetadata(getMetadataFile(), modelId);
 		return new NounMetadata(metadata, PixelDataType.MAP);
 	}
 
-	static Map<String, Object> getModelMetadata(Path metadataFile, String provider, String modelId) {
-		String metadataKey = provider + "/" + modelId;
-		JsonElement metadata = loadMetadata(metadataFile).get(metadataKey);
+	static Map<String, Object> getModelMetadata(Path metadataFile, String modelId) {
+		JsonObject allMetadata = loadMetadata(metadataFile);
+		JsonElement metadata = findMetadata(allMetadata, modelId);
 		if (metadata == null || metadata.isJsonNull()) {
 			return new LinkedHashMap<>();
 		}
 		if (!metadata.isJsonObject()) {
-			throw new IllegalStateException("Static model metadata entry '" + metadataKey + "' must be a JSON object");
+			throw new IllegalStateException("Static model metadata entry '" + modelId + "' must be a JSON object");
 		}
-		return GSON.fromJson(metadata, MODEL_METADATA_TYPE);
+		return flattenMetadata(metadata.getAsJsonObject());
+	}
+
+	private static JsonElement findMetadata(JsonObject allMetadata, String modelId) {
+		Set<String> lookupIds = getLookupIds(modelId);
+		for (String lookupId : lookupIds) {
+			JsonElement metadata = allMetadata.get(lookupId);
+			if (metadata != null) {
+				return metadata;
+			}
+		}
+
+		for (Map.Entry<String, JsonElement> entry : allMetadata.entrySet()) {
+			JsonElement candidate = entry.getValue();
+			if (!candidate.isJsonObject()) {
+				continue;
+			}
+			JsonElement candidateId = candidate.getAsJsonObject().get("id");
+			if (candidateId != null && candidateId.isJsonPrimitive()
+					&& lookupIds.contains(candidateId.getAsString())) {
+				return candidate;
+			}
+		}
+		return null;
+	}
+
+	private static Set<String> getLookupIds(String modelId) {
+		LinkedHashSet<String> lookupIds = new LinkedHashSet<>();
+		lookupIds.add(modelId);
+
+		int providerSeparator = modelId.indexOf('/');
+		if (providerSeparator >= 0 && providerSeparator < modelId.length() - 1) {
+			lookupIds.add(modelId.substring(providerSeparator + 1));
+		}
+
+		// Bedrock Anthropic IDs use a dot prefix and optional deployment version,
+		// while the catalog file is keyed by Anthropic's model ID.
+		if (modelId.startsWith("anthropic.") && modelId.length() > "anthropic.".length()) {
+			lookupIds.add(modelId.substring("anthropic.".length()));
+		}
+
+		for (String lookupId : new LinkedHashSet<>(lookupIds)) {
+			lookupIds.add(lookupId.replace('@', '-'));
+			lookupIds.add(lookupId.replaceFirst("-v\\d+(?::\\d+)?$", ""));
+		}
+
+		for (String lookupId : new LinkedHashSet<>(lookupIds)) {
+			lookupIds.add(lookupId.replaceFirst("-v\\d+(?::\\d+)?$", ""));
+		}
+		return lookupIds;
+	}
+
+	private static Map<String, Object> flattenMetadata(JsonObject metadata) {
+		JsonObject flattened = metadata.deepCopy();
+
+		JsonElement modalities = metadata.get("modalities");
+		if (modalities != null && modalities.isJsonObject()) {
+			JsonObject modalityValues = modalities.getAsJsonObject();
+			copyJsonProperty(modalityValues, "input", flattened, "input_modalities");
+			copyJsonProperty(modalityValues, "output", flattened, "output_modalities");
+		}
+
+		JsonElement limit = metadata.get("limit");
+		if (limit != null && limit.isJsonObject()) {
+			JsonObject limitValues = limit.getAsJsonObject();
+			copyJsonProperty(limitValues, "context", flattened, "context_length");
+			copyJsonProperty(limitValues, "input", flattened, "max_input_tokens");
+			copyJsonProperty(limitValues, "output", flattened, "max_output_tokens");
+		}
+
+		copyJsonProperty(metadata, "knowledge", flattened, "knowledge_cutoff");
+		return GSON.fromJson(flattened, MODEL_METADATA_TYPE);
+	}
+
+	private static void copyJsonProperty(JsonObject source, String sourceKey, JsonObject target, String targetKey) {
+		JsonElement value = source.get(sourceKey);
+		if (value != null && !value.isJsonNull()) {
+			target.add(targetKey, value.deepCopy());
+		}
 	}
 
 	Path getMetadataFile() {
@@ -153,16 +230,13 @@ public class GetStaticModelMetadataReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns static metadata for a provider model from meta/model.json";
+		return "Returns static metadata for a model from meta/model.json";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(MODEL_ID_KEY)) {
-			return "The provider-specific model ID";
-		}
-		if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
-			return "The model provider used to build the provider/modelId lookup key";
+			return "The catalog model key or fully qualified provider model ID in meta/model.json";
 		}
 		return super.getDescriptionForKey(key);
 	}

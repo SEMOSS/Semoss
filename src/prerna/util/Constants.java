@@ -489,6 +489,15 @@ public class Constants {
 	public static final String INPUT_MODALITIES = "INPUT_MODALITIES";
 	public static final String OUTPUT_MODALITIES = "OUTPUT_MODALITIES";
 	public static final String BUILTIN_TOOLS = "BUILTIN_TOOLS";
+	public static final String MODEL_FAMILY = "FAMILY";
+	public static final String ATTACHMENT = "ATTACHMENT";
+	public static final String REASONING = "REASONING";
+	public static final String TOOL_CALL = "TOOL_CALL";
+	public static final String STRUCTURED_OUTPUT = "STRUCTURED_OUTPUT";
+	public static final String TEMPERATURE = "TEMPERATURE";
+	public static final String KNOWLEDGE_CUTOFF = "KNOWLEDGE_CUTOFF";
+	public static final String RELEASE_DATE = "RELEASE_DATE";
+	public static final String BENCHMARKS = "BENCHMARKS";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";

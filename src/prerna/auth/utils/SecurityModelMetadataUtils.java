@@ -32,6 +32,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,8 +62,9 @@ import prerna.util.SystemEngineRegistry;
 
 /**
  * Persistence and validation for the one-row-per-engine MODELMETADATA table.
- * Multi-valued fields are stored as JSON arrays in CLOB columns so the security
- * database schema remains portable across supported relational databases.
+ * Multi-valued and structured fields are stored as JSON in CLOB columns so the
+ * security database schema remains portable across supported relational
+ * databases.
  */
 public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
@@ -69,23 +73,28 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
-	private static final Set<String> MODALITIES = Set.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR");
+	private static final Set<String> MODALITIES = Set.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR", "FILE",
+			"PDF");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
-			Constants.BUILTIN_TOOLS);
+			Constants.BUILTIN_TOOLS, Constants.MAX_INPUT_TOKENS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
+			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
+			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.BENCHMARKS);
+	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
+			"LAST_UPDATED");
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
-	private static final Pattern TOOL_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
+	private static final Pattern LOWER_SNAKE_CASE_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 	private static final int MODEL_METADATA_QUERY_BATCH_SIZE = 500;
 
 	private SecurityModelMetadataUtils() {
 	}
 
 	/**
-	 * Validate metadata values and return a normalized copy. Collection values are
-	 * serialized as JSON arrays.
+	 * Validate metadata values and return a normalized copy. Collections and
+	 * structured objects are serialized as JSON.
 	 */
 	public static Map<String, Object> normalizeModelDetails(Map<String, Object> modelDetails) {
 		if (modelDetails == null) {
@@ -93,13 +102,24 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 
 		Map<String, Object> normalized = new LinkedHashMap<>(modelDetails);
+		normalized.keySet().removeAll(REMOVED_METADATA_KEYS);
 		normalizeStringProperty(normalized, Constants.MODEL_PROVIDER, true);
 		normalizeStringProperty(normalized, Constants.SERVING_PROVIDER, true);
+		normalizeStringProperty(normalized, Constants.MODEL_FAMILY, false);
 		normalizeCapabilityProperty(normalized);
 		normalizeListProperty(normalized, Constants.INPUT_MODALITIES, true);
 		normalizeListProperty(normalized, Constants.OUTPUT_MODALITIES, true);
 		normalizeListProperty(normalized, Constants.BUILTIN_TOOLS, false);
+		normalizeBooleanProperty(normalized, Constants.ATTACHMENT);
+		normalizeBooleanProperty(normalized, Constants.REASONING);
+		normalizeBooleanProperty(normalized, Constants.TOOL_CALL);
+		normalizeBooleanProperty(normalized, Constants.STRUCTURED_OUTPUT);
+		normalizeBooleanProperty(normalized, Constants.TEMPERATURE);
+		normalizeDateOrMonthProperty(normalized, Constants.KNOWLEDGE_CUTOFF);
+		normalizeDateOrMonthProperty(normalized, Constants.RELEASE_DATE);
+		normalizeJsonArrayProperty(normalized, Constants.BENCHMARKS);
 		normalizePositiveLongProperty(normalized, Constants.CONTEXT_WINDOW);
+		normalizePositiveLongProperty(normalized, Constants.MAX_INPUT_TOKENS);
 		normalizePositiveLongProperty(normalized, Constants.MAX_TOKENS);
 		return normalized;
 	}
@@ -132,11 +152,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.MODEL_PROVIDER);
 		copyIfPresent(properties, details, Constants.SERVING_PROVIDER);
 		copyIfPresent(properties, details, Constants.MODEL_CAPABILITY);
+		copyIfPresent(properties, details, Constants.MODEL_FAMILY);
 		copyIfPresent(properties, details, Constants.INPUT_MODALITIES);
 		copyIfPresent(properties, details, Constants.OUTPUT_MODALITIES);
 		copyIfPresent(properties, details, Constants.CONTEXT_WINDOW);
+		copyIfPresent(properties, details, Constants.MAX_INPUT_TOKENS);
 		copyIfPresent(properties, details, Constants.MAX_TOKENS);
 		copyIfPresent(properties, details, Constants.BUILTIN_TOOLS);
+		copyIfPresent(properties, details, Constants.ATTACHMENT);
+		copyIfPresent(properties, details, Constants.REASONING);
+		copyIfPresent(properties, details, Constants.TOOL_CALL);
+		copyIfPresent(properties, details, Constants.STRUCTURED_OUTPUT);
+		copyIfPresent(properties, details, Constants.TEMPERATURE);
+		copyIfPresent(properties, details, Constants.KNOWLEDGE_CUTOFF);
+		copyIfPresent(properties, details, Constants.RELEASE_DATE);
+		copyIfPresent(properties, details, Constants.BENCHMARKS);
 		upsertModelMetadata(engineId, details);
 	}
 
@@ -156,8 +186,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = modelMetadataExists(securityDb, metadata.engineId());
 		String sql = exists
-				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=? WHERE ENGINEID=?"
-				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?)";
+				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXINPUTTOKENS=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, BENCHMARKS=? WHERE ENGINEID=?"
+				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -167,11 +197,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			setNullableString(ps, index++, metadata.modelProvider());
 			setNullableString(ps, index++, metadata.servingProvider());
 			setNullableString(ps, index++, metadata.capability());
+			setNullableString(ps, index++, metadata.family());
 			setNullableString(ps, index++, metadata.inputModalitiesJson());
 			setNullableString(ps, index++, metadata.outputModalitiesJson());
 			setNullableLong(ps, index++, metadata.contextWindow());
+			setNullableLong(ps, index++, metadata.maxInputTokens());
 			setNullableLong(ps, index++, metadata.maxOutputTokens());
 			setNullableString(ps, index++, metadata.builtinToolsJson());
+			setNullableBoolean(ps, index++, metadata.attachment());
+			setNullableBoolean(ps, index++, metadata.reasoning());
+			setNullableBoolean(ps, index++, metadata.toolCall());
+			setNullableBoolean(ps, index++, metadata.structuredOutput());
+			setNullableBoolean(ps, index++, metadata.temperature());
+			setNullableString(ps, index++, metadata.knowledgeCutoff());
+			setNullableString(ps, index++, metadata.releaseDate());
+			setNullableString(ps, index++, metadata.benchmarksJson());
 			ps.setString(index, metadata.engineId());
 			ps.executeUpdate();
 			ConnectionUtils.commitConnection(ps.getConnection());
@@ -204,11 +244,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			merged.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
 			merged.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
 			merged.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
+			merged.put(Constants.MODEL_FAMILY, existing.get("family"));
 			merged.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
 			merged.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
 			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+			merged.put(Constants.MAX_INPUT_TOKENS, existing.get("maxInputTokens"));
 			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
 			merged.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
+			merged.put(Constants.ATTACHMENT, existing.get("attachment"));
+			merged.put(Constants.REASONING, existing.get("reasoning"));
+			merged.put(Constants.TOOL_CALL, existing.get("toolCall"));
+			merged.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
+			merged.put(Constants.TEMPERATURE, existing.get("temperature"));
+			merged.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
+			merged.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
+			merged.put(Constants.BENCHMARKS, existing.get("benchmarks"));
 		}
 		merged.putAll(updates);
 		upsertModelMetadata(engineId, merged);
@@ -219,7 +269,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -261,7 +311,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -300,11 +350,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		Map<String, Object> capabilities = new LinkedHashMap<>();
 		capabilities.put("modelId", emptyStringIfNull(modelMetadata.get("modelId")));
 		capabilities.put("capability", emptyStringIfNull(modelMetadata.get("capability")));
+		capabilities.put("family", emptyStringIfNull(modelMetadata.get("family")));
 		capabilities.put("inputModalities", emptyListIfNull(modelMetadata.get("inputModalities")));
 		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
 		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
+		capabilities.put("maxInputTokens", emptyStringIfNull(modelMetadata.get("maxInputTokens")));
 		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
 		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
+		capabilities.put("attachment", modelMetadata.get("attachment"));
+		capabilities.put("reasoning", modelMetadata.get("reasoning"));
+		capabilities.put("toolCall", modelMetadata.get("toolCall"));
+		capabilities.put("structuredOutput", modelMetadata.get("structuredOutput"));
+		capabilities.put("temperature", modelMetadata.get("temperature"));
+		capabilities.put("knowledgeCutoff", emptyStringIfNull(modelMetadata.get("knowledgeCutoff")));
+		capabilities.put("releaseDate", emptyStringIfNull(modelMetadata.get("releaseDate")));
+		capabilities.put("benchmarks", emptyListIfNull(modelMetadata.get("benchmarks")));
 		return capabilities;
 	}
 
@@ -327,9 +387,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static boolean containsMetadata(Map<String, Object> details) {
 		return details.containsKey(Constants.MODEL) || details.containsKey(Constants.MODEL_PROVIDER)
 				|| details.containsKey(Constants.SERVING_PROVIDER) || details.containsKey(Constants.MODEL_CAPABILITY)
+				|| details.containsKey(Constants.MODEL_FAMILY)
 				|| details.containsKey(Constants.INPUT_MODALITIES) || details.containsKey(Constants.OUTPUT_MODALITIES)
-				|| details.containsKey(Constants.CONTEXT_WINDOW) || details.containsKey(Constants.MAX_TOKENS)
-				|| details.containsKey(Constants.BUILTIN_TOOLS);
+				|| details.containsKey(Constants.CONTEXT_WINDOW) || details.containsKey(Constants.MAX_INPUT_TOKENS)
+				|| details.containsKey(Constants.MAX_TOKENS) || details.containsKey(Constants.BUILTIN_TOOLS)
+				|| details.containsKey(Constants.ATTACHMENT) || details.containsKey(Constants.REASONING)
+				|| details.containsKey(Constants.TOOL_CALL) || details.containsKey(Constants.STRUCTURED_OUTPUT)
+				|| details.containsKey(Constants.TEMPERATURE) || details.containsKey(Constants.KNOWLEDGE_CUTOFF)
+				|| details.containsKey(Constants.RELEASE_DATE) || details.containsKey(Constants.BENCHMARKS);
 	}
 
 	private static void copyIfPresent(Properties properties, Map<String, Object> details, String key) {
@@ -342,10 +407,18 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return new ModelMetadata(engineId, nullableString(details.get(Constants.MODEL)),
 				nullableString(details.get(Constants.MODEL_PROVIDER)), nullableString(details.get(Constants.SERVING_PROVIDER)),
 				nullableString(details.get(Constants.MODEL_CAPABILITY)),
+				nullableString(details.get(Constants.MODEL_FAMILY)),
 				nullableString(details.get(Constants.INPUT_MODALITIES)),
 				nullableString(details.get(Constants.OUTPUT_MODALITIES)),
-				toNullableLong(details.get(Constants.CONTEXT_WINDOW)), toNullableLong(details.get(Constants.MAX_TOKENS)),
-				nullableString(details.get(Constants.BUILTIN_TOOLS)));
+				toNullableLong(details.get(Constants.CONTEXT_WINDOW)),
+				toNullableLong(details.get(Constants.MAX_INPUT_TOKENS)), toNullableLong(details.get(Constants.MAX_TOKENS)),
+				nullableString(details.get(Constants.BUILTIN_TOOLS)),
+				toNullableBoolean(details.get(Constants.ATTACHMENT)), toNullableBoolean(details.get(Constants.REASONING)),
+				toNullableBoolean(details.get(Constants.TOOL_CALL)),
+				toNullableBoolean(details.get(Constants.STRUCTURED_OUTPUT)),
+				toNullableBoolean(details.get(Constants.TEMPERATURE)),
+				nullableString(details.get(Constants.KNOWLEDGE_CUTOFF)),
+				nullableString(details.get(Constants.RELEASE_DATE)), nullableString(details.get(Constants.BENCHMARKS)));
 	}
 
 	private static void normalizeStringProperty(Map<String, Object> details, String key, boolean identifier) {
@@ -407,8 +480,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				}
 			} else {
 				value = value.toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
-				if (!TOOL_PATTERN.matcher(value).matches()) {
-					throw new IllegalArgumentException("Invalid built-in tool name " + value);
+				if (!LOWER_SNAKE_CASE_PATTERN.matcher(value).matches()) {
+					throw new IllegalArgumentException("Invalid " + key + " value " + value);
 				}
 			}
 			normalized.add(value);
@@ -456,6 +529,60 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return json == null ? null : parseList(json);
 	}
 
+	private static void normalizeBooleanProperty(Map<String, Object> details, String key) {
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		details.put(key, toNullableBoolean(value));
+	}
+
+	private static void normalizeDateOrMonthProperty(Map<String, Object> details, String key) {
+		if (!details.containsKey(key)) {
+			return;
+		}
+		String value = nullableString(details.get(key));
+		if (value == null) {
+			details.put(key, null);
+			return;
+		}
+		try {
+			details.put(key, LocalDate.parse(value).toString());
+		} catch (DateTimeParseException e) {
+			try {
+				details.put(key, YearMonth.parse(value).toString());
+			} catch (DateTimeParseException monthException) {
+				throw new IllegalArgumentException(key + " must use the ISO date format YYYY-MM or YYYY-MM-DD",
+						monthException);
+			}
+		}
+	}
+
+	private static void normalizeJsonArrayProperty(Map<String, Object> details, String key) {
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		if (value == null || value.toString().trim().isEmpty()) {
+			details.put(key, null);
+			return;
+		}
+		JsonElement json;
+		try {
+			json = value instanceof String ? JsonParser.parseString(value.toString()) : GSON.toJsonTree(value);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException(key + " must be a valid JSON array", e);
+		}
+		if (!json.isJsonArray()) {
+			throw new IllegalArgumentException(key + " must be a JSON array");
+		}
+		details.put(key, GSON.toJson(json));
+	}
+
+	private static List<?> parseStoredJsonArray(String json) {
+		return json == null ? null : GSON.fromJson(json, List.class);
+	}
+
 	private static Map<String, Object> readModelMetadata(ResultSet rs) throws SQLException {
 		Map<String, Object> metadata = new LinkedHashMap<>();
 		metadata.put("engineId", rs.getString("ENGINEID"));
@@ -463,11 +590,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("modelProvider", rs.getString("MODELPROVIDER"));
 		metadata.put("servingProvider", rs.getString("SERVINGPROVIDER"));
 		metadata.put("capability", rs.getString("CAPABILITY"));
+		metadata.put("family", rs.getString("FAMILY"));
 		metadata.put("inputModalities", parseStoredList(rs.getString("INPUTMODALITIES")));
 		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
 		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
+		metadata.put("maxInputTokens", getNullableLong(rs, "MAXINPUTTOKENS"));
 		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
 		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
+		metadata.put("attachment", getNullableBoolean(rs, "ATTACHMENT"));
+		metadata.put("reasoning", getNullableBoolean(rs, "REASONING"));
+		metadata.put("toolCall", getNullableBoolean(rs, "TOOLCALL"));
+		metadata.put("structuredOutput", getNullableBoolean(rs, "STRUCTUREDOUTPUT"));
+		metadata.put("temperature", getNullableBoolean(rs, "TEMPERATURE"));
+		metadata.put("knowledgeCutoff", rs.getString("KNOWLEDGECUTOFF"));
+		metadata.put("releaseDate", rs.getString("RELEASEDATE"));
+		metadata.put("benchmarks", parseStoredJsonArray(rs.getString("BENCHMARKS")));
 		return metadata;
 	}
 
@@ -500,6 +637,23 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Expected an integer but received " + value, e);
 		}
+	}
+
+	private static Boolean toNullableBoolean(Object value) {
+		if (value == null || value.toString().trim().isEmpty()) {
+			return null;
+		}
+		if (value instanceof Boolean booleanValue) {
+			return booleanValue;
+		}
+		String stringValue = value.toString().trim();
+		if ("true".equalsIgnoreCase(stringValue) || "1".equals(stringValue)) {
+			return Boolean.TRUE;
+		}
+		if ("false".equalsIgnoreCase(stringValue) || "0".equals(stringValue)) {
+			return Boolean.FALSE;
+		}
+		throw new IllegalArgumentException("Expected a boolean but received " + value);
 	}
 
 	private static String nullableString(Object value) {
@@ -549,13 +703,28 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	private static void setNullableBoolean(PreparedStatement ps, int index, Boolean value) throws SQLException {
+		if (value == null) {
+			ps.setNull(index, Types.BOOLEAN);
+		} else {
+			ps.setBoolean(index, value);
+		}
+	}
+
 	private static Long getNullableLong(ResultSet rs, String column) throws SQLException {
 		long value = rs.getLong(column);
 		return rs.wasNull() ? null : value;
 	}
 
+	private static Boolean getNullableBoolean(ResultSet rs, String column) throws SQLException {
+		boolean value = rs.getBoolean(column);
+		return rs.wasNull() ? null : value;
+	}
+
 	private record ModelMetadata(String engineId, String modelId, String modelProvider, String servingProvider,
-			String capability, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
-			Long maxOutputTokens, String builtinToolsJson) {
+			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
+			Long maxInputTokens, Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
+			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
+			String benchmarksJson) {
 	}
 }

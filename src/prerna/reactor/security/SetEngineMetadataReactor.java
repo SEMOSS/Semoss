@@ -82,7 +82,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(META)) {
-			return "Map containing engine metadata values. Model engines may also include a capabilities map with capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools.";
+			return "Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.";
 		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
 			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}

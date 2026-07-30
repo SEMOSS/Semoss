@@ -82,6 +82,6 @@ public class GetModelMetadataReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns provider, capability, modality, token, and built-in tool metadata for an accessible model engine";
+		return "Returns identity, family, modality, token, feature, knowledge, release, and benchmark metadata for an accessible model engine";
 	}
 }

@@ -122,7 +122,7 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 
 				Inputs: engine, metaKeys.
 				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
-				Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available.
+				Model engines also include a capabilities object containing model identity, family, modalities, token limits, feature flags, knowledge and release dates, and benchmarks when available.
 				Any response key prefixed with app_* or database_* is legacy and should not be used.
 				""";
 	}
