@@ -36,6 +36,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.microsoft.playwright.Page;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -45,6 +47,8 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.remoteviewer.service.RemoteBrowserSession;
+import prerna.remoteviewer.service.RemoteBrowserSessionManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,7 +62,10 @@ import prerna.util.Utility;
  * <pre>
  *   AutofillPlaywrightField(engine="&lt;modelId&gt;", roomId="&lt;roomId&gt;");
  *   AutofillPlaywrightField(engine="&lt;modelId&gt;", roomId="&lt;roomId&gt;", fieldHint="First name", limit=20);
+ *   AutofillPlaywrightField(engine="&lt;modelId&gt;", roomId="&lt;roomId&gt;", sessionId="&lt;sessionId&gt;", x=320, y=240);
  * </pre>
+ * When {@code sessionId} and coordinates are supplied the reactor evaluates the
+ * live Playwright page to resolve the element label/placeholder automatically.
  *
  * <p>Returns a MAP with:
  * <ul>
@@ -76,15 +83,22 @@ public class AutofillPlaywrightFieldReactor extends AbstractReactor {
 
 	/** Optional key describing the field being filled (e.g. "First name"). */
 	private static final String KEY_FIELD_HINT = "fieldHint";
+	/** Optional browser session id — when provided with x/y, the label is resolved from the live page. */
+	private static final String KEY_SESSION_ID = "sessionId";
+	private static final String KEY_X = "x";
+	private static final String KEY_Y = "y";
 
 	public AutofillPlaywrightFieldReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.ROOM_ID.getKey(),
 				KEY_FIELD_HINT,
-				ReactorKeysEnum.LIMIT.getKey()
+				ReactorKeysEnum.LIMIT.getKey(),
+				KEY_SESSION_ID,
+				KEY_X,
+				KEY_Y
 		};
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -96,6 +110,17 @@ public class AutofillPlaywrightFieldReactor extends AbstractReactor {
 			String roomId    = clean(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 			String fieldHint = clean(this.keyValue.get(KEY_FIELD_HINT));
 			int limit        = parseLimit(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()));
+			String sessionId = clean(this.keyValue.get(KEY_SESSION_ID));
+			Double x         = parseDouble(this.keyValue.get(KEY_X));
+			Double y         = parseDouble(this.keyValue.get(KEY_Y));
+
+			// Auto-resolve fieldHint from the live page when session + coords are available.
+			if (fieldHint.isEmpty() && !sessionId.isEmpty() && x != null && y != null) {
+				String resolved = resolveFieldLabelAtPoint(sessionId, x, y);
+				if (!resolved.isEmpty()) {
+					fieldHint = resolved;
+				}
+			}
 
 			if (engineId.isEmpty()) {
 				throw new IllegalArgumentException("A model engine id is required");
@@ -200,6 +225,63 @@ public class AutofillPlaywrightFieldReactor extends AbstractReactor {
 			return Math.min(Math.max(1, parsed), MAX_MESSAGE_LIMIT);
 		} catch (NumberFormatException e) {
 			return DEFAULT_MESSAGE_LIMIT;
+		}
+	}
+
+	private static Double parseDouble(Object value) {
+		if (value == null) return null;
+		try {
+			return Double.parseDouble(String.valueOf(value).trim());
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Uses a Playwright page evaluation to find the form element at (x, y) and
+	 * return its label text, aria-label, placeholder, or name — whichever is
+	 * most descriptive.
+	 */
+	private String resolveFieldLabelAtPoint(String sessionId, double x, double y) {
+		try {
+			RemoteBrowserSession session = RemoteBrowserSessionManager.getInstance().getSession(sessionId)
+					.orElse(null);
+			if (session == null) return "";
+			Page page = session.getActivePage();
+			if (page == null || page.isClosed()) return "";
+
+			String js = """
+					([px, py]) => {
+					    const el = document.elementFromPoint(px, py);
+					    if (!el) return "";
+					    const input = el.closest("input, textarea, select") || el.querySelector("input, textarea, select") || el;
+					    if (!input) return "";
+					    // 1) Explicit <label for="...">
+					    if (input.id) {
+					        const label = document.querySelector('label[for="' + CSS.escape(input.id) + '"]');
+					        if (label && label.textContent.trim()) return label.textContent.trim();
+					    }
+					    // 2) Wrapping <label>
+					    const wrap = input.closest("label");
+					    if (wrap && wrap.textContent.trim()) return wrap.textContent.trim();
+					    // 3) aria-label
+					    const aria = input.getAttribute("aria-label");
+					    if (aria && aria.trim()) return aria.trim();
+					    // 4) aria-labelledby
+					    const lblId = input.getAttribute("aria-labelledby");
+					    if (lblId) {
+					        const ref = document.getElementById(lblId);
+					        if (ref && ref.textContent.trim()) return ref.textContent.trim();
+					    }
+					    // 5) placeholder or name
+					    return input.placeholder || input.name || input.getAttribute("title") || "";
+					}
+					""";
+			Object result = page.evaluate(js, new double[]{x, y});
+			return result instanceof String s ? s.trim() : "";
+		} catch (Exception e) {
+			classLogger.debug("AutofillPlaywrightField: could not resolve field label at ({}, {}): {}", x, y, e.getMessage());
+			return "";
 		}
 	}
 

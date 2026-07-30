@@ -148,6 +148,9 @@ public class RemoteBrowserInputService {
 			case "type-text":
 				typeText(page, event);
 				break;
+			case "fill-element":
+				fillElement(page, event);
+				break;
 			case "key":
 				key(page, event);
 				break;
@@ -442,6 +445,30 @@ public class RemoteBrowserInputService {
 				event.getDeltaX(), event.getDeltaY());
 		page.mouse().wheel(event.getDeltaX() != null ? event.getDeltaX() : 0,
 				event.getDeltaY() != null ? event.getDeltaY() : 0);
+	}
+
+	/**
+	 * Clears a targeted form element and sets its value atomically using
+	 * {@link Locator#fill}. Unlike {@link #typeText}, this does not simulate
+	 * key-by-key input — it sets the value in one operation, which is more
+	 * reliable for batch form-fill automation.
+	 */
+	private static void fillElement(Page page, RemoteBrowserInputEvent event) {
+		Selector sel = event.getSelector();
+		if (sel == null || sel.value() == null || sel.value().isBlank()) {
+			classLogger.warn("Remote viewer fill-element missing selector");
+			page.keyboard().type(event.getText());
+			return;
+		}
+		Locator loc = resolveLocator(page, sel);
+		if (loc == null) {
+			classLogger.warn("Remote viewer fill-element selector not found: {}", describeSelector(sel));
+			throw new PlaywrightException("fill-element: selector not found — " + describeSelector(sel));
+		}
+		classLogger.info("Remote viewer fill-element selector={} textLength={}", describeSelector(sel),
+				event.getText() != null ? event.getText().length() : 0);
+		loc.fill(event.getText(), new Locator.FillOptions().setTimeout(3_000));
+		classLogger.info("Remote viewer fill-element success selector={}", describeSelector(sel));
 	}
 
 	private static void typeText(Page page, RemoteBrowserInputEvent event) {
