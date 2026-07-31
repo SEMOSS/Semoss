@@ -283,7 +283,8 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 		if (page == null || page.isClosed()) {
 			throw new IllegalArgumentException("No active browser page in session '" + sessionId + "'");
 		}
-		Object raw = page.evaluate(JS_FIND_FIELDS, new double[]{targetX, targetY});
+		// Playwright's evaluate() does not support primitive arrays (double[]) — use Object[].
+		Object raw = page.evaluate(JS_FIND_FIELDS, new Object[]{targetX, targetY});
 		if (!(raw instanceof List)) return List.of();
 		return (List<Map<String, Object>>) raw;
 	}
