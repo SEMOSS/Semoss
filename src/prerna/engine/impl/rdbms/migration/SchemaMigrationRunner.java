@@ -158,6 +158,7 @@ public final class SchemaMigrationRunner {
 			}
 
 			rejectIfOutOfOrder(migration, highestAppliedVersion);
+			rejectIfPreviouslyFailedUnchanged(migration, history);
 			runMigration(engine, migration);
 			ranAtLeastOne = true;
 			// sync once per file -- keeps OWL correct incrementally in case a later
@@ -201,6 +202,41 @@ public final class SchemaMigrationRunner {
 		}
 	}
 
+	/**
+	 * {@code SEMOSS_SCHEMA_HISTORY} is already the durable, per-engine record of
+	 * every attempt -- a failed run gets its own row rather than updating a
+	 * previous one (see {@link MigrationHistoryRecord}'s class Javadoc), so
+	 * there is no need for any additional in-memory/cluster-wide state here:
+	 * if the exact same file content already has a failed row for this
+	 * version, re-running it against the live database would just reproduce
+	 * the identical failure (this method runs while the schema lock is held,
+	 * so nothing else could have changed the target schema in between).
+	 * Short-circuits on that recorded outcome instead -- every unrelated
+	 * action on the engine (browsing assets, viewing the smss, etc.) all go
+	 * through {@code open()} -&gt; this method, and none of them should be
+	 * re-executing a DDL statement that is already known to fail every time.
+	 * <p>
+	 * Editing the file changes its checksum, which naturally exits this
+	 * short-circuit and treats it as a fresh attempt -- the same "fix the
+	 * content to retry" mechanism {@link #verifyChecksumUnchanged} already
+	 * relies on for the applied-version case, just applied to the failed
+	 * case instead.
+	 */
+	// package-private (not private) so it's directly unit-testable without a
+	// real database, same convention as SchemaMigrationLock.deriveLockKey
+	static void rejectIfPreviouslyFailedUnchanged(MigrationFile migration, List<MigrationHistoryRecord> history) {
+		String currentChecksum = MigrationFileUtils.computeChecksum(migration.getSqlContent());
+		for (MigrationHistoryRecord record : history) {
+			if (!record.isSuccess() && record.getVersion().equals(migration.getVersion())
+					&& record.getChecksum().equals(currentChecksum)) {
+				throw new SchemaMigrationException("Migration " + migration.getFileName()
+						+ " already failed with this exact content on " + record.getAppliedOn() + ": "
+						+ record.getDescription() + ". Fix the SQL -- which changes its checksum -- to retry, "
+						+ "or check SEMOSS_SCHEMA_HISTORY for full details.");
+			}
+		}
+	}
+
 	private static void rejectIfOutOfOrder(MigrationFile migration, String highestAppliedVersion) {
 		if (highestAppliedVersion != null
 				&& MigrationFileUtils.compareVersions(migration.getVersion(), highestAppliedVersion) < 0) {
@@ -217,8 +253,16 @@ public final class SchemaMigrationRunner {
 		String failureReason = null;
 		Connection conn = null;
 		try {
-			engine.setAutoCommit(false);
+			// Set/commit autocommit on the specific borrowed connection, never via
+			// engine.setAutoCommit()/engine.commit() -- those mutate persistent,
+			// engine-wide state (and engine.commit() is a documented no-op under
+			// connection pooling), which would either leak autocommit=false onto
+			// every future connection from this engine or silently never commit at
+			// all. HikariCP resets a leased connection's autoCommit/isolation back to
+			// the pool default when it's returned via ConnectionUtils, so scoping this
+			// to `conn` is also safe to leave uncleaned-up on close.
 			conn = engine.getConnection();
+			conn.setAutoCommit(false);
 			for (String statement : MigrationFileUtils.splitStatements(migration.getSqlContent())) {
 				try (PreparedStatement ps = conn.prepareStatement(statement)) {
 					ps.execute();
@@ -238,7 +282,7 @@ public final class SchemaMigrationRunner {
 			// permanently applied with no history row, causing it to look "pending" and
 			// be retried against non-idempotent DDL next time.
 			MigrationHistoryUtils.insertHistoryRow(conn, record);
-			engine.commit();
+			conn.commit();
 			success = true;
 		} catch (Exception e) {
 			classLogger.error("Migration '{}' failed against engine '{}'.", migration.getFileName(),

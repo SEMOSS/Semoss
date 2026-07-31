@@ -49,6 +49,7 @@ import prerna.engine.impl.rdbms.migration.MigrationFileUtils;
 import prerna.engine.impl.rdbms.migration.MigrationStatus;
 import prerna.engine.impl.rdbms.migration.MigrationStatusUtils;
 import prerna.engine.impl.rdbms.migration.SchemaMigrationException;
+import prerna.engine.impl.rdbms.migration.SchemaMigrationLock;
 import prerna.engine.impl.rdbms.migration.SchemaMigrationRunner;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -117,7 +118,19 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 		}
 
 		File migrationsFolder = MigrationFileUtils.getMigrationsFolder(rdbmsEngine);
-		String version = writeMigrationFile(migrationsFolder, sqlContent, description);
+		// Hold the same cross-node lock used by SchemaMigrationRunner while
+		// allocating the next version number and writing the file -- otherwise two
+		// concurrent saves can both scan the folder, compute the same "next
+		// version", and write two different files with a colliding version number
+		// (the second then fails at run time with a spurious checksum-mismatch
+		// error). Released before running the migration below so the runner's own
+		// lock acquisition isn't fighting a lock this same call already holds --
+		// the lock-table insert path isn't reentrant, so holding across both steps
+		// would just make the runner start it as a retryable timeout every time.
+		String version;
+		try (SchemaMigrationLock lock = SchemaMigrationLock.acquire(rdbmsEngine)) {
+			version = writeMigrationFile(migrationsFolder, sqlContent, description);
+		}
 
 		Map<String, Object> response = new HashMap<>();
 		response.put("version", version);
@@ -128,7 +141,7 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 		} catch (SchemaMigrationException e) {
 			classLogger.error("Saved migration version '{}' for engine '{}' failed to run.", version, engineId, e);
 			response.put("success", false);
-			response.put("errorMessage", latestErrorMessage(rdbmsEngine, migrationsFolder, version, e));
+			response.put("errorMessage", handleRunFailure(rdbmsEngine, migrationsFolder, version, e));
 		}
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
@@ -175,12 +188,55 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 	 * (e.g. an out-of-order/checksum rejection never even reaches SQL
 	 * execution, so it never gets a history row -- in that case fall back to
 	 * the exception's own message).
+	 * <p>
+	 * If OUR just-saved version is the one that actually failed, delete the
+	 * file we just wrote instead of leaving a permanently-broken version at
+	 * the head of the chain -- otherwise it (and the fail-closed design this
+	 * feature already documents) blocks every later migration, and the engine
+	 * itself, until someone finds and hand-edits that exact file. Nothing has
+	 * recorded it as successfully applied, so it's always safe to discard;
+	 * the attempt stays auditable regardless, since the runner's FAILED
+	 * history row is untouched and simply shows as a {@code MISSING} status
+	 * once its file is gone -- same "history row survives, file doesn't"
+	 * shape as an old export missing its migrations folder.
+	 * <p>
+	 * If a <em>different</em>, earlier pending version is what actually
+	 * failed -- this one was never even reached -- keep the file: it's a
+	 * legitimately valid, unattempted candidate, just queued behind a
+	 * problem this save didn't cause.
 	 */
-	private String latestErrorMessage(IRDBMSEngine engine, File migrationsFolder, String version,
+	// package-private (not private) so it's directly unit-testable without
+	// mocking the full execute() pipeline, same convention as
+	// SchemaMigrationLock.deriveLockKey / SchemaMigrationRunner.rejectIfPreviouslyFailedUnchanged
+	String handleRunFailure(IRDBMSEngine engine, File migrationsFolder, String version,
 			SchemaMigrationException fallback) {
 		List<MigrationStatus> statuses = MigrationStatusUtils.getStatus(engine, migrationsFolder);
-		return statuses.stream().filter(s -> s.getVersion().equals(version)).findFirst()
-				.map(MigrationStatus::getErrorMessage).orElseGet(() -> fallback.getMessage());
+		MigrationStatus ourStatus = statuses.stream().filter(s -> s.getVersion().equals(version)).findFirst()
+				.orElse(null);
+		if (ourStatus == null) {
+			return fallback.getMessage();
+		}
+		if (ourStatus.getState() == MigrationStatus.State.FAILED) {
+			deleteMigrationFile(migrationsFolder, ourStatus.getFileName(), version);
+			return ourStatus.getErrorMessage() != null ? ourStatus.getErrorMessage() : fallback.getMessage();
+		}
+		// still PENDING -- the loop never reached this version because an earlier,
+		// unrelated pending migration failed first; leave this file in place
+		return "This migration is valid but is queued behind an earlier pending migration that failed to "
+				+ "apply. Resolve that one first (see the Migrations tab), then this version will run "
+				+ "automatically on the next attempt: " + fallback.getMessage();
+	}
+
+	void deleteMigrationFile(File migrationsFolder, String fileName, String version) {
+		if (fileName == null) {
+			return;
+		}
+		try {
+			Files.deleteIfExists(migrationsFolder.toPath().resolve(fileName));
+		} catch (IOException e) {
+			classLogger.error("Failed to delete failed migration file '{}' (version '{}') under '{}'.", fileName,
+					version, migrationsFolder.getAbsolutePath(), e);
+		}
 	}
 
 	@Override

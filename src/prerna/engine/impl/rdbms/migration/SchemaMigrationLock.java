@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdbms.migration;
 
+import java.lang.management.ManagementFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -82,6 +83,11 @@ public final class SchemaMigrationLock implements AutoCloseable {
 	private static final long RETRY_SLEEP_MS = 200L;
 	/** A MySQL/H2 lock row older than this is assumed abandoned by a crashed node. */
 	private static final long STALE_LOCK_THRESHOLD_MS = 600_000L;
+	/**
+	 * Identifies which process/node holds a lock row, for stale-lock diagnosis --
+	 * {@code <pid>@<hostname>} via the JDK's own runtime bean, no new dependency.
+	 */
+	private static final String LOCK_OWNER_ID = ManagementFactory.getRuntimeMXBean().getName();
 
 	private final IRDBMSEngine engine;
 	private final RdbmsTypeEnum dbType;
@@ -208,7 +214,13 @@ public final class SchemaMigrationLock implements AutoCloseable {
 			if (!engine.getQueryUtil().tableExists(conn, LOCK_TABLE, engine.getDatabase(), engine.getSchema())) {
 				String[] colNames = { "ENGINEID", "LOCKEDBY", "LOCKEDON" };
 				String[] types = { "VARCHAR(255)", "VARCHAR(255)", engine.getQueryUtil().getDateWithTimeDataType() };
-				String createSql = engine.getQueryUtil().createTable(LOCK_TABLE, colNames, types);
+				// PRIMARY KEY on ENGINEID makes the insert-guarded-by-select in
+				// tryInsertLockRow() race-free: two nodes racing to insert the same
+				// ENGINEID can no longer both succeed -- the loser gets a constraint
+				// violation and reports "not acquired" instead of silently double-locking.
+				Object[] customConstraints = { "PRIMARY KEY", null, null };
+				String createSql = engine.getQueryUtil().createTableWithCustomConstraints(LOCK_TABLE, colNames, types,
+						customConstraints);
 				classLogger.info("Creating migration lock table for engine '{}' with sql {}", engine.getEngineId(),
 						createSql);
 				engine.insertData(createSql);
@@ -224,16 +236,13 @@ public final class SchemaMigrationLock implements AutoCloseable {
 	}
 
 	/**
-	 * Atomic guarded insert: only inserts a lock row for this engine if one
-	 * doesn't already exist. There is a narrow race window here since
-	 * {@code SEMOSS_SCHEMA_LOCK} has no unique constraint to fall back on (kept
-	 * consistent with how every other SEMOSS internal table in this feature is
-	 * created -- see the locking research doc's open questions for why a
-	 * unique-constraint retrofit was not chosen). Acceptable for this first
-	 * pass since Postgres (the dialect most likely to run as a real multi-node
-	 * shared external database) uses the race-free advisory lock path instead;
-	 * this fallback mainly protects MySQL, and H2 in practice is never shared
-	 * across nodes at all.
+	 * Guarded insert: the pre-check ({@code lockRowExists}) is only a fast-path
+	 * short-circuit to avoid a wasted round trip when contention is likely --
+	 * the actual race-freedom comes from the {@code PRIMARY KEY} on
+	 * {@code ENGINEID} (see {@code ensureLockTable}). If two nodes both pass the
+	 * pre-check at the same instant, only one {@code INSERT} can succeed; the
+	 * loser gets a primary-key-violation {@link SQLException} and correctly
+	 * reports "not acquired" via the existing catch block below.
 	 */
 	private static boolean tryInsertLockRow(IRDBMSEngine engine) {
 		Connection conn = null;
@@ -245,7 +254,7 @@ public final class SchemaMigrationLock implements AutoCloseable {
 			String insertSql = "INSERT INTO " + LOCK_TABLE + " (ENGINEID, LOCKEDBY, LOCKEDON) VALUES (?, ?, ?)";
 			try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
 				ps.setString(1, engine.getEngineId());
-				ps.setString(2, MigrationHistoryRecord.SYSTEM_APPLIED_BY);
+				ps.setString(2, LOCK_OWNER_ID);
 				ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
 				ps.execute();
 				if (!conn.getAutoCommit()) {
