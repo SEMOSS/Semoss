@@ -1082,7 +1082,7 @@ public class Constants {
 	public static final String MCP_NODE_BUILDER = "node-builder";
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
-	public static final String MCP_PLAYWRIGHT = "playwright";
+	public static final String MCP_BROWSER_AUTOMATION = "browser_automation";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

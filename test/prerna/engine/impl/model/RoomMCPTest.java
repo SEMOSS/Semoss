@@ -79,7 +79,7 @@ class RoomMCPTest {
 				      "SMSS_MCP_EXECUTION": "ask",
 				      "SMSS_MCP_UI": {
 				        "displayLocation": "sidebar",
-				        "resourceURI": "system://playwright-browser-sockets/"
+				        "resourceURI": "system://browser-automation/"
 				      }
 				    }
 				  }]
@@ -115,7 +115,7 @@ class RoomMCPTest {
 
 		// the system app URI survives the engine/tool meta merge intact
 		Map<String, Object> ui = (Map<String, Object>) meta.get(MCPUtility.SMSS_MCP_UI);
-		assertEquals("system://playwright-browser-sockets/", ui.get(MCPUtility.UI_RESOURCE_URI));
+		assertEquals("system://browser-automation/", ui.get(MCPUtility.UI_RESOURCE_URI));
 	}
 
 	/**

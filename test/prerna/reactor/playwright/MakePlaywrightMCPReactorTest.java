@@ -246,9 +246,9 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 			assertEquals(projectId, projectIdProp.getJSONArray("enum").getString(0));
 			assertEquals(projectId, projectIdProp.getString("default"));
 			assertEquals("play_test_recording", recordingTool.getString("name"));
-			assertEquals("PlaywrightSocketsRoomRecording",
+			assertEquals("PlayPlaywrightSocketsRoomRecording",
 					recordingTool.getJSONObject("_meta").getString("SMSS_FUNCTION_NAME"));
-			assertEquals("system://playwright-browser-sockets/",
+			assertEquals("system://browser-automation/",
 					recordingTool.getJSONObject("_meta").getJSONObject("SMSS_MCP_UI").getString("resourceURI"));
 
 			// Existing non-Playwright tools must not be replaced when recordings are
