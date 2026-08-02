@@ -79,7 +79,7 @@ class RoomMCPTest {
 				      "SMSS_MCP_EXECUTION": "ask",
 				      "SMSS_MCP_UI": {
 				        "displayLocation": "sidebar",
-				        "resourceURI": "system://playwright-browser-sockets/"
+				        "resourceURI": "system://browser-automation/"
 				      }
 				    }
 				  }]
@@ -107,6 +107,7 @@ class RoomMCPTest {
 		// so a generator never has to write it.
 		assertEquals(MCPUtility.ROOM_MCP_ID, meta.get(MCPUtility.SMSS_ENGINE_ID));
 		assertEquals("play_checkout", meta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME));
+		assertEquals("PlayPlaywrightSocketsRoomRecording", meta.get(MCPUtility.SMSS_FUNCTION_NAME));
 
 		// no project id is threaded through for the UI any more; the engine level
 		// value is all that remains
@@ -114,7 +115,7 @@ class RoomMCPTest {
 
 		// the system app URI survives the engine/tool meta merge intact
 		Map<String, Object> ui = (Map<String, Object>) meta.get(MCPUtility.SMSS_MCP_UI);
-		assertEquals("system://playwright-browser-sockets/", ui.get(MCPUtility.UI_RESOURCE_URI));
+		assertEquals("system://browser-automation/", ui.get(MCPUtility.UI_RESOURCE_URI));
 	}
 
 	/**
