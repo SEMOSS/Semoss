@@ -235,26 +235,25 @@ public final class PlaywrightMCPToolBuilder {
 	 * }
 	 * </pre>
 	 *
-	 * @param projectId stamped as {@code SMSS_PROJECT_ID} when non-null
+	 * @param projectId stamped as {@code SMSS_ENGINE_ID} and
+	 *                  {@code SMSS_PROJECT_ID} when non-null
 	 * @return the meta object
 	 */
-	@SuppressWarnings("deprecation")
 	private static JSONObject playbackToolMeta(String projectId) {
 		JSONObject mcpUi = new JSONObject();
 		mcpUi.put(MCPUtility.UI_DISPLAY_LOCATION, "sidebar");
 		mcpUi.put(MCPUtility.UI_RESOURCE_URI, BROWSER_AUTOMATION_APP_URI);
 
-		JSONObject meta = new JSONObject();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, "ask");
-		meta.put(MCPUtility.SMSS_MCP_UI, mcpUi);
-		meta.put(MCPUtility.SMSS_FUNCTION_NAME, PLAYBACK_FUNCTION);
+		JSONObject _meta = new JSONObject();
+		_meta.put(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+		_meta.put(MCPUtility.SMSS_MCP_UI, mcpUi);
+		_meta.put(MCPUtility.SMSS_FUNCTION_NAME, PLAYBACK_FUNCTION);
 		if (projectId != null) {
-			// Deprecated but still the key the harness reads to route a tool call
-			// back to its owning project.
-			meta.put(MCPUtility.SMSS_PROJECT_ID, projectId);
+			_meta.put(MCPUtility.SMSS_ENGINE_ID, projectId);
+			_meta.put(MCPUtility.SMSS_ENGINE_NAME, BROWSER_AUTOMATION_APP_URI);
 		}
-		meta.put("generated_on", todayUtcDate());
-		return meta;
+		_meta.put("generated_on", todayUtcDate());
+		return _meta;
 	}
 
 	/**

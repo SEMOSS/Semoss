@@ -112,8 +112,18 @@ public final class MCPUtility {
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
 
+	/**
+	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
+	 *             and is what the tool routing paths read first. Do not add new
+	 *             reads of this key.
+	 */
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
+
+	/**
+	 * @deprecated Use {@link #SMSS_ENGINE_NAME}. Same reasoning as
+	 *             {@link #SMSS_PROJECT_ID}.
+	 */
 	@Deprecated
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
 
