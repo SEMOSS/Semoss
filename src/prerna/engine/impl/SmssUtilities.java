@@ -71,7 +71,9 @@ public class SmssUtilities {
 			AbstractSqlQueryUtil.PASSWORD.toUpperCase(), 
 			AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 			Constants.API_KEY,
-
+			// project MCP
+			IProject.MCP_AUTH_TOKEN.toUpperCase(),
+			
 			// model
 			AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), 
 			AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
