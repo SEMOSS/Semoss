@@ -857,8 +857,7 @@ public final class MCPUtility {
 		}
 
 		Object rawArguments = responseToolMap.get("arguments");
-		Map<String, Object> arguments = rawArguments instanceof Map
-				? (Map<String, Object>) rawArguments
+		Map<String, Object> arguments = rawArguments instanceof Map ? (Map<String, Object>) rawArguments
 				: new HashMap<>();
 		for (Map.Entry<String, Object> propertyEntry : ((Map<String, Object>) rawProperties).entrySet()) {
 			if (arguments.containsKey(propertyEntry.getKey()) || !(propertyEntry.getValue() instanceof Map)) {
@@ -872,72 +871,6 @@ public final class MCPUtility {
 			}
 		}
 		responseToolMap.put("arguments", arguments);
-	}
-
-	/**
-	 * 
-	 * @param toolStep
-	 */
-	public static void updateCOTToolStepWithEngineMeta(Map<String, Object> toolStep) {
-		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-		Map<String, Object> toolDetails = (Map<String, Object>) toolStep.get("details");
-		if (toolDetails == null) {
-			return;
-		}
-		String responseProjectIdToolFunctionName = (String) toolDetails.get("tool_name");
-		String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(
-				responseProjectIdToolFunctionName);
-		if (responseProjectIdToolFunctionNameSplit == null) {
-			// if the tool function doesn't start with _projectid_
-			// then this response is already in proper format for the FE
-			return;
-		}
-		String engineId = responseProjectIdToolFunctionNameSplit[0];
-		String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
-
-		// now that we have the projectId
-		// lets append some of the mcp metadata back into the response
-
-		JSONObject mcpToolsJson = mcpToolsJsonCache.get(engineId);
-		if (mcpToolsJson == null) {
-			IEngine engine = null;
-			try {
-				engine = Utility.getEngine(engineId);
-			} catch (Exception ex) {
-				// ignore
-			}
-			if (engine == null) {
-				engine = Utility.getProject(engineId);
-			}
-			if (engine == null) {
-				// technically speaking you could have a function start with _
-				// but will assume this is in proper format
-				return;
-			}
-			mcpToolsJson = MCPUtility.getAggregatedTools(engine);
-			mcpToolsJsonCache.put(engineId, mcpToolsJson);
-		}
-
-		if (mcpToolsJson != null) {
-			JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
-			JSONObject mcpTool = null;
-			PROJECT_MCP_LOOP: for (int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
-				JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-				if (_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
-					mcpTool = _tool;
-					break PROJECT_MCP_LOOP;
-				}
-			}
-
-			// add back the title from mcp structure
-			if (mcpTool != null && mcpTool.has("title")) {
-				toolDetails.put("title", mcpTool.getString("title"));
-			}
-
-			if (mcpToolsJson.has("_meta")) {
-				toolDetails.put("_meta", mcpToolsJson.get("_meta"));
-			}
-		}
 	}
 
 	/**
@@ -997,27 +930,7 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static JSONObject getAggregatedTools(IEngine engine) {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-
-		JSONObject toolMap = new JSONObject();
-		JSONArray toolsArray = new JSONArray();
-		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
-		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
-		toolMap.put("tools", toolsArray);
-
-		// add in meta as well
-		JSONObject _meta = new JSONObject();
-		_meta.put(MCPUtility.SMSS_PROJECT_ID, engine.getEngineId());
-		_meta.put(MCPUtility.SMSS_PROJECT_NAME, engine.getEngineName());
-		_meta.put(MCPUtility.SMSS_ENGINE_ID, engine.getEngineId());
-		_meta.put(MCPUtility.SMSS_ENGINE_NAME, engine.getEngineName());
-		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, engine.getCatalogType().name());
-		toolMap.put("_meta", _meta);
-
-		return toolMap;
+		return MCPFactory.build(engine).getMCPTools();
 	}
 
 	/**
