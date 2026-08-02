@@ -1120,6 +1120,11 @@ public class Room implements Serializable {
 					if (rawToolMeta instanceof Map) {
 						lookupMeta.putAll((Map<String, Object>) rawToolMeta);
 					}
+					// the user might already have an indirection between the tool name and function
+					// name so if this key already exists keep using that
+					if (lookupMeta.containsKey(MCPUtility.SMSS_FUNCTION_NAME)) {
+						lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
+					}
 					// Preserve an explicit execution-function indirection. The public
 					// tool name is stored separately as SMSS_ORIGINAL_TOOL_NAME.
 					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
