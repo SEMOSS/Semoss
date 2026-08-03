@@ -261,6 +261,9 @@ public class Project implements IProject {
 			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
+
+		// clear MCP cache
+		resetMCP();
 	}
 
 	@Override
@@ -1633,11 +1636,36 @@ public class Project implements IProject {
 		return true;
 	}
 
+	@Override
+	public void resetMCP() {
+		this.projectMCP = null;
+	}
+
+	@Override
+	public String getRemoteMCPEndpoint() {
+		String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
+		if (endpoint == null || endpoint.isBlank()) {
+			return null;
+		}
+		return endpoint.trim();
+	}
+
+	@Override
+	public String getRemoteMCPAuthScheme() {
+		String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
+		if (authScheme == null || authScheme.isBlank()) {
+			return null;
+		}
+		return authScheme.trim();
+	}
+
 	private IMCP getProjectMCP() {
 		if (this.projectMCP == null) {
 			String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
 			if (endpoint != null && !endpoint.isBlank()) {
-				this.projectMCP = new RemoteMCP(endpoint);
+				String authToken = this.smssProp.getProperty(MCP_AUTH_TOKEN);
+				String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
+				this.projectMCP = new RemoteMCP(this, endpoint, authScheme, authToken);
 			} else {
 				this.projectMCP = InternalMCP.genFromEngine(this);
 			}

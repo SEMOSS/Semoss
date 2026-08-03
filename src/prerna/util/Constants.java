@@ -483,6 +483,23 @@ public class Constants {
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
+	public static final String MODEL_PROVIDER = "MODEL_PROVIDER";
+	public static final String SERVING_PROVIDER = "SERVING_PROVIDER";
+	public static final String MODEL_CAPABILITY = "CAPABILITY";
+	public static final String INPUT_MODALITIES = "INPUT_MODALITIES";
+	public static final String OUTPUT_MODALITIES = "OUTPUT_MODALITIES";
+	public static final String BUILTIN_TOOLS = "BUILTIN_TOOLS";
+	public static final String MODEL_FAMILY = "FAMILY";
+	public static final String ATTACHMENT = "ATTACHMENT";
+	public static final String REASONING = "REASONING";
+	public static final String TOOL_CALL = "TOOL_CALL";
+	public static final String STRUCTURED_OUTPUT = "STRUCTURED_OUTPUT";
+	public static final String TEMPERATURE = "TEMPERATURE";
+	public static final String KNOWLEDGE_CUTOFF = "KNOWLEDGE_CUTOFF";
+	public static final String RELEASE_DATE = "RELEASE_DATE";
+	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
+	public static final String REASONING_CONFIG = "REASONING_CONFIG";
+	public static final String BENCHMARKS = "BENCHMARKS";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -1065,7 +1082,7 @@ public class Constants {
 	public static final String MCP_NODE_BUILDER = "node-builder";
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
-	public static final String MCP_PLAYWRIGHT = "playwright";
+	public static final String MCP_BROWSER_AUTOMATION = "browser_automation";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
