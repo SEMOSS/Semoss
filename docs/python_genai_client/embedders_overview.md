@@ -15,10 +15,9 @@ This file defines the `AbstractEmbedder` class, an abstract base class (ABC) tha
 *   **Abstract Methods (to be implemented by subclasses)**:
     *   `_get_tokenizer(self, init_args: Dict) -> AbstractTokenizer`: Must be implemented to return an instance of `AbstractTokenizer` suitable for the specific embedding model.
     *   `embeddings_call(self, strings_to_embed: List[str], **kwargs: Any) -> EmbeddingsModelEngineResponse`: The core method that takes a list of strings and returns an `EmbeddingsModelEngineResponse` containing the list of numerical embeddings and token counts.
-    *   `image_embeddings_call(self, images_to_embed: List[str], **kwargs: Any) -> EmbeddingsModelEngineResponse`: Similar to `embeddings_call`, but for generating embeddings from a list of images (e.g., image file paths or base64 encoded strings).
 *   **Public Methods**:
     *   `embeddings(self, strings_to_embed: List[str], **kwargs: Any) -> Dict`: A public wrapper around `embeddings_call` that returns the response as a dictionary.
-    *   `image_embeddings(self, images_to_embed: List[str], **kwargs: Any) -> Dict`: A public wrapper around `image_embeddings_call`.
+    *   `multi_modal_embeddings(self, text: List[str] = None, image: List[str] = None, video: List[str] = None, **kwargs: Any) -> Dict`: Optional capability for embedding text/image/video together, broken out by modality. Embedders that don't override it report "not implemented".
     *   `ask(...)`: By default, raises a "model does not support text generation" message, as embedders are specialized for embedding generation, not chat/text generation.
 *   **KeyBERT Integration**:
     *   `to_keybert_embedder(self) -> keybert.backend.BaseEmbedder`: A utility method that wraps the `AbstractEmbedder` instance into a format compatible with the [KeyBERT](https://github.com/MaartenGr/KeyBERT) library for keyword extraction. This allows SEMOSS embedders to be seamlessly used as the embedding backend for KeyBERT.
@@ -30,7 +29,7 @@ Each concrete embedder class in this package implements the `AbstractEmbedder` a
 Common responsibilities include:
 *   Initializing the client for the target service (e.g., OpenAI API client, AWS Bedrock client).
 *   Implementing `_get_tokenizer()` to provide the correct tokenizer for the model.
-*   Implementing `embeddings_call()` (and `image_embeddings_call()` if applicable) by:
+*   Implementing `embeddings_call()` by:
     *   Formatting the input strings/images according to the service's API requirements.
     *   Making the API call to the embedding service.
     *   Parsing the response to extract the numerical embeddings and token information.
@@ -48,7 +47,6 @@ Common responsibilities include:
     *   Uses `OpenAiTokenizer`.
     *   Implements `embeddings_call` by calling the `client.embeddings.create()` method of the OpenAI Python SDK.
     *   Supports batching of input texts if the total token count exceeds the model's limit, splitting the input into multiple API calls.
-    *   Also implements `image_embeddings_call`, using the same `client.embeddings.create()` method, for compatible OpenAI multi-modal embedding models.
 
 ### `bedrock_embedder.py` - `BedrockEmbedder`
 *   **Purpose**: Generates embeddings using models hosted on AWS Bedrock (e.g., Amazon Titan embedding models, Cohere embedding models via Bedrock).
@@ -57,7 +55,6 @@ Common responsibilities include:
     *   Uses the `boto3` AWS SDK to interact with the "bedrock-runtime" service.
     *   `embeddings_call` iterates through input texts one by one, constructs a model-specific JSON request body (different for Titan vs. Cohere via `createJsonObjForModel`), and calls `client.invoke_model()`.
     *   `_get_tokenizer()` returns `None`; token counting often relies on information from the Bedrock API response itself or is managed differently.
-    *   `image_embeddings_call` is not implemented.
 
 ### `azure_openai_embedder.py` - `AzureOpenAiEmbedder`
 *   **Purpose**: Generates embeddings using OpenAI models deployed via the Azure OpenAI service.
@@ -77,7 +74,6 @@ Common responsibilities include:
     *   `_get_tokenizer()`: Returns a `HuggingfaceTokenizer` initialized with `model_name`.
     *   `get_embedder()`: Loads the model using `sentence_transformers.SentenceTransformer(self.model_folder, device=self.device)`. Falls back to `transformers.AutoModel.from_pretrained(...)` if the first attempt fails.
     *   `embeddings_call()`: Uses the loaded model's `encode()` method (standard for sentence-transformers) to generate embeddings.
-    *   `image_embeddings_call()`: Not implemented.
     *   **Keyword Extraction**: Includes methods (`keyword_extraction`, `get_key_bert_model`, `get_text_keywords`) to integrate with the KeyBERT library, using the loaded local embedding model as the backend for KeyBERT to extract keywords from text.
 
 ### `textgen_embedder.py` - `TextEmbeddingsInference`
@@ -94,7 +90,6 @@ Common responsibilities include:
         *   Makes POST requests to the TGI `endpoint` with a JSON payload like `{"inputs": sentences_batch, "truncate": True}`.
         *   Collects and returns the embeddings from the TGI server responses.
     *   `embeddings_call()`: Uses the `TextGenEmbedder.encode()` method.
-    *   `image_embeddings_call()`: Not implemented by `LocalEmbedder` from which it inherits this.
 
 ### `vertex_embedder.py` - `VertexAiEmbedder`
 *   **Purpose**: Generates embeddings using models available on Google Cloud Vertex AI (e.g., "textembedding-gecko").
@@ -110,7 +105,6 @@ Common responsibilities include:
         *   Uses a helper method `_encode_text_to_embedding_batched` to handle batching and API calls.
         *   This helper uses `self.client.get_embeddings(sentences)` from the `vertexai.preview.language_models.TextEmbeddingModel` SDK.
         *   Implements batching (default batch size 5) and rate limiting (default 10 API calls per second using `ThreadPoolExecutor` and `time.sleep`) when calling the Vertex AI API.
-    *   `image_embeddings_call()`: Not implemented.
 
 ---
 
