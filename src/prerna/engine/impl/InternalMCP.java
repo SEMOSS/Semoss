@@ -302,8 +302,6 @@ public class InternalMCP implements IMCP {
 
 		// add in meta as well
 		JSONObject _meta = new JSONObject();
-		_meta.put(MCPUtility.SMSS_PROJECT_ID, this.engineId);
-		_meta.put(MCPUtility.SMSS_PROJECT_NAME, this.engineName);
 		_meta.put(MCPUtility.SMSS_ENGINE_ID, this.engineId);
 		_meta.put(MCPUtility.SMSS_ENGINE_NAME, this.engineName);
 		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, this.engineType);
