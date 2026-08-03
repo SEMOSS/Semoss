@@ -1,16 +1,14 @@
 #Base Properties
-PROJECT	playwright
+PROJECT	browser-automation
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	playwright
+PROJECT_DISPLAY_NAME	browser-automation
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	CODE
-PUBLIC_HOME_ENABLE	false
-PORTAL_NAME
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database
 RDBMS_INSIGHTS_TYPE	H2_DB
 DRIVER	org.h2.Driver
 RDBMS_TYPE	H2_DB
 USERNAME	sa
 PASSWORD
-CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__playwright/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__browser-automation/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
 PIPELINE	pipeline.json
