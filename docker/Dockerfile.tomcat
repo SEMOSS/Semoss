@@ -16,7 +16,7 @@ ARG JDK_VERSION=21.0.7
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 # Tomcat default version
-#ARG TOMCAT_VERSION=9.0.102
+ARG TOMCAT_VERSION=11.0.24
 #ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
@@ -25,7 +25,7 @@ ARG TOMCAT_VERSION
 ENV TOMCAT_VERSION=${TOMCAT_VERSION}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
-# Tomcat and Maven 
+# Tomcat and Maven
 ARG TOMCAT_HOME
 ARG TOMCAT_VERSION
 ARG MAVEN_HOME
@@ -68,13 +68,13 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x install_java.sh \
 	&& /bin/bash install_java.sh \
 	&& java -version \
-	&& wget https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
-	&& tar -zxvf apache-tomcat-9.0.*.tar.gz \
+	&& wget https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+	&& tar -zxvf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& mkdir $TOMCAT_HOME \
-	&& mv apache-tomcat-9.0.*/* $TOMCAT_HOME/ \
-	&& rm -r apache-tomcat-9.0.*/ \
-  	%% rm -rf $TOMCAT_HOME/webapps/* \
-	&& rm apache-tomcat-9.0.*.tar.gz \
+	&& mv apache-tomcat-${TOMCAT_VERSION}/* $TOMCAT_HOME/ \
+	&& rm -r apache-tomcat-${TOMCAT_VERSION}/ \
+	&& rm -rf $TOMCAT_HOME/webapps/* \
+	&& rm apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& rm $TOMCAT_HOME/conf/server.xml \
 	&& rm $TOMCAT_HOME/conf/web.xml \
 	&& cp web.xml $TOMCAT_HOME/conf/web.xml \
