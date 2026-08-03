@@ -121,7 +121,7 @@ public class PlaywrightRecordingCatalogService {
 		result.put("recordingCount", catalog.roomCount);
 		result.put("recordings", recordings);
 		result.put("selectionGuidance",
-				"Compare filenames, metadata, URLs, hosts, and stepPreview. If the user did not provide an exact filename, identify the closest candidate and ask for confirmation before calling PlayPlaywrightSocketsRoomRecording with recording_file.");
+				"Compare filenames, metadata, URLs, hosts, and stepPreview. If the user did not provide an exact filename, identify the closest candidate and ask for confirmation before calling replay_browser_recording with recording_file.");
 		return result;
 	}
 

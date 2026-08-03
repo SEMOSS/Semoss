@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -70,7 +71,9 @@ public class SmssUtilities {
 			AbstractSqlQueryUtil.PASSWORD.toUpperCase(), 
 			AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 			Constants.API_KEY,
-
+			// project MCP
+			IProject.MCP_AUTH_TOKEN.toUpperCase(),
+			
 			// model
 			AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), 
 			AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
@@ -904,7 +907,8 @@ public class SmssUtilities {
 						if (allUpperCurrentSmss.get(key) != null) {
 							value = allUpperCurrentSmss.get(key);
 						}
-						constructedSmssContent.append(key).append("\t").append(value);
+						constructedSmssContent.append(key).append("\t")
+								.append(StringEscapeUtils.escapeJava(value.toString()));
 					} else {
 						// the value has been changed
 						constructedSmssContent.append(curLine);
