@@ -58,6 +58,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -169,6 +170,10 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 
 		Path assetsDir = tempDir.resolve("assets");
 		Files.createDirectories(assetsDir);
+		Path mcpDir = assetsDir.resolve("mcp");
+		Files.createDirectories(mcpDir);
+		Files.writeString(mcpDir.resolve("pixel_mcp.json"),
+				"{\"tools\":[{\"name\":\"unrelated_tool\",\"description\":\"keep me\"}]}");
 
 		Path versionDir = tempDir.resolve("version");
 		Files.createDirectories(versionDir);
@@ -199,6 +204,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 				MockedStatic<Utility> utilityMock = Mockito.mockStatic(Utility.class);
 				MockedStatic<PlaywrightUtility> playwrightUtility = Mockito.mockStatic(PlaywrightUtility.class);
 				MockedStatic<AssetUtility> assetUtility = Mockito.mockStatic(AssetUtility.class);
+				MockedStatic<MCPUtility> mcpUtility = Mockito.mockStatic(MCPUtility.class, Mockito.CALLS_REAL_METHODS);
 				MockedStatic<GitRepoUtils> gitRepoUtils = Mockito.mockStatic(GitRepoUtils.class);
 				MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class)) {
 
@@ -210,6 +216,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 					.thenReturn(versionDir.toString());
 			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectName, projectId))
 					.thenReturn(assetsDir.toString());
+			mcpUtility.when(() -> MCPUtility.addMCPTag(project)).then(invocation -> null);
 
 			gitRepoUtils.when(() -> GitRepoUtils.addSpecificFiles(anyString(), anyList())).then(invocation -> null);
 			gitRepoUtils.when(() -> GitRepoUtils.commitAddedFiles(anyString(), anyString(), anyString(), anyString()))
@@ -229,40 +236,30 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 			JSONObject recordingTool = mcpJson.getJSONArray("tools").getJSONObject(0);
 			JSONObject toolProperties = recordingTool.getJSONObject("inputSchema").getJSONObject("properties");
 
-			JSONObject recordedFile = toolProperties.getJSONObject("recordedFile");
+			JSONObject recordedFile = toolProperties.getJSONObject("recording_file");
 			assertEquals(1, recordedFile.getJSONArray("enum").length());
 			assertEquals("test-recording.json", recordedFile.getJSONArray("enum").getString(0));
 			assertEquals("test-recording.json", recordedFile.getString("default"));
 
-			JSONObject projectIdProp = toolProperties.getJSONObject("projectID");
+			JSONObject projectIdProp = toolProperties.getJSONObject("project_id");
 			assertEquals(1, projectIdProp.getJSONArray("enum").length());
 			assertEquals(projectId, projectIdProp.getJSONArray("enum").getString(0));
 			assertEquals(projectId, projectIdProp.getString("default"));
+			assertEquals("play_test_recording", recordingTool.getString("name"));
+			assertEquals("PlayPlaywrightSocketsRoomRecording",
+					recordingTool.getJSONObject("_meta").getString("SMSS_FUNCTION_NAME"));
+			assertEquals("system://browser-automation/",
+					recordingTool.getJSONObject("_meta").getJSONObject("SMSS_MCP_UI").getString("resourceURI"));
+
+			// Existing non-Playwright tools must not be replaced when recordings are
+			// regenerated.
+			assertEquals(2, mcpJson.getJSONArray("tools").length());
+			assertEquals("unrelated_tool", mcpJson.getJSONArray("tools").getJSONObject(1).getString("name"));
 
 			// Verify output file was created
 			File outputFile = new File(assetsDir.toString() + "/mcp/pixel_mcp.json");
 			assertTrue(outputFile.exists());
 		}
-	}
-
-	@Test
-	void sanitizePropertyNameHandlesSpecialCharacters() throws Exception {
-		// Use reflection to access private method
-		java.lang.reflect.Method method = MakePlaywrightMCPReactor.class.getDeclaredMethod("sanitizePropertyName",
-				String.class);
-		method.setAccessible(true);
-
-		String result = (String) method.invoke(reactor, "Test Label!");
-		assertEquals("test_label", result);
-
-		result = (String) method.invoke(reactor, "User Name");
-		assertEquals("user_name", result);
-
-		result = (String) method.invoke(reactor, "123invalid");
-		assertEquals("field_123invalid", result);
-
-		result = (String) method.invoke(reactor, "validname");
-		assertEquals("validname", result);
 	}
 
 	/**
