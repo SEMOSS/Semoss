@@ -70,7 +70,6 @@ import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.redis.RedisConnectionConfig;
-import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -607,7 +606,6 @@ public final class RoomUtils {
 		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
 
 		Map<String, JSONObject> toolCache = new HashMap<>();
-		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
 		for (AbstractMessage message : messages) {
 			if (message.hasParts() && message.hasToolCallPart()) {
 				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
@@ -618,9 +616,6 @@ public final class RoomUtils {
 			}
 			Map<String, Object> messageMap = MessageUtils
 					.jsonToMapForPixelReturn(MessageUtils.toJsonWithImage(message));
-			if (hideSystemMessages) {
-				MessageUtils.removeSystemPromptFromMessageMap(messageMap);
-			}
 			output.add(messageMap);
 		}
 		return output;

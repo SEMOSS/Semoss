@@ -36,10 +36,12 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.theme.PlaygroundThemeUtils;
 
 public class GetPlaygroundMessagesReactor extends AbstractReactor {
 
@@ -112,6 +114,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		List<AbstractMessage> page = RoomUtils.getPagedMessages(room.getMessages(), dateSort, offset, limit);
 
 		outputMap.addAll(RoomUtils.getMessagesForClient(room, page));
+		if (PlaygroundThemeUtils.hidePlaygroundSystemMessages()) {
+			outputMap.forEach(MessageUtils::removeSystemPromptFromMessageMap);
+		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);
 	}
