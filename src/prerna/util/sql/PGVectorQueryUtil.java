@@ -41,8 +41,14 @@ import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(PGVectorQueryUtil.class);
+
+	/** Name of the generated column used for PostgreSQL full-text search. */
+	public static final String CONTENT_TSV_COLUMN = "content_tsv";
+
+	private static final String HNSW_INDEX_SUFFIX = "_hnsw_idx";
+	private static final String GIN_INDEX_SUFFIX = "_fts_idx";
 
 	public PGVectorQueryUtil() {
 		super();
@@ -61,10 +67,24 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 		}
 	}
 
+	/**
+	 * Returns SQL that enables the pgvector extension in the current database if it
+	 * does not already exist.
+	 *
+	 * @return CREATE EXTENSION SQL string
+	 */
 	public String addVectorExtension() {
 		return "CREATE EXTENSION IF NOT EXISTS vector;";
 	}
-	
+
+	/**
+	 * Returns SQL that creates the embeddings table if it does not already exist.
+	 * The table stores the embedding vector alongside source metadata and the raw
+	 * text content used to produce it.
+	 *
+	 * @param table embeddings table name
+	 * @return CREATE TABLE SQL string
+	 */
 	public String createEmbeddingsTable(String table) {
 		return "CREATE TABLE IF NOT EXISTS "+table+"("
 				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
@@ -78,6 +98,14 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 				+ ");";
 	}
 	
+	/**
+	 * Returns SQL that creates the embeddings metadata table if it does not already
+	 * exist. Each row stores one key-value attribute for a source document, typed
+	 * across string, integer, numeric, boolean, date, and timestamp columns.
+	 *
+	 * @param table metadata table name
+	 * @return CREATE TABLE SQL string
+	 */
 	public String createEmbeddingsMetadataTable(String table) {
 		return "CREATE TABLE IF NOT EXISTS "+table+"("
 				+ "ID INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "
@@ -90,6 +118,63 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 				+ "DATE_VAL DATE, "
 				+ "TIMESTAMP_VAL TIMESTAMP "
 				+ ");";
+	}
+
+	/**
+	 * Returns SQL that adds a plain {@code tsvector} column for full-text search if
+	 * it does not already exist. Rows already in the table will have a {@code NULL}
+	 * value until {@link #backfillFtsColumn} is called. The column is language-neutral;
+	 * the text search configuration is applied at insert time and at query time.
+	 *
+	 * @param table embeddings table name
+	 * @return ALTER TABLE SQL string
+	 */
+	public String addFtsColumn(String table) {
+		return "ALTER TABLE " + table + " ADD COLUMN IF NOT EXISTS " + CONTENT_TSV_COLUMN + " tsvector;";
+	}
+
+	/**
+	 * Returns SQL that populates the full-text search column for all rows where it
+	 * is currently {@code NULL}. Safe to run repeatedly; already-populated rows are
+	 * not touched.
+	 *
+	 * @param table    embeddings table name
+	 * @param language PostgreSQL text search configuration (e.g. {@code "english"},
+	 *                 {@code "simple"})
+	 * @return UPDATE SQL string
+	 */
+	public String backfillFtsColumn(String table, String language) {
+		return "UPDATE " + table + " SET " + CONTENT_TSV_COLUMN
+				+ " = to_tsvector('" + language + "', COALESCE(CONTENT, ''))"
+				+ " WHERE " + CONTENT_TSV_COLUMN + " IS NULL;";
+	}
+
+	/**
+	 * Returns SQL that creates a GIN index on the full-text search column if it
+	 * does not already exist.
+	 *
+	 * @param table embeddings table name
+	 * @return CREATE INDEX SQL string
+	 */
+	public String createFtsIndex(String table) {
+		return "CREATE INDEX IF NOT EXISTS " + table + GIN_INDEX_SUFFIX
+				+ " ON " + table + " USING GIN(" + CONTENT_TSV_COLUMN + ");";
+	}
+
+	/**
+	 * Returns SQL that creates an HNSW approximate-nearest-neighbour index on the
+	 * embedding column if it does not already exist. Building the index is
+	 * synchronous; on large tables the first startup after deploying this change
+	 * will block briefly.
+	 *
+	 * @param table     embeddings table name
+	 * @param indexOps  pgvector operator class — {@code "vector_cosine_ops"} for
+	 *                  cosine similarity or {@code "vector_l2_ops"} for Euclidean
+	 * @return CREATE INDEX SQL string
+	 */
+	public String createEmbeddingHnswIndex(String table, String indexOps) {
+		return "CREATE INDEX IF NOT EXISTS " + table + HNSW_INDEX_SUFFIX
+				+ " ON " + table + " USING hnsw (EMBEDDING " + indexOps + ");";
 	}
 
 	public void createOWL(PGVectorDatabaseEngine engine, String embeddingsTable, String metadataTable) {
