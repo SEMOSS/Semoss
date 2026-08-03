@@ -79,6 +79,12 @@ public class RemoteBrowserInputEventValidator {
 		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
 			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
 		}
+		if (event.getExpectedUrl() != null && event.getExpectedUrl().length() > MAX_URL_LENGTH) {
+			throw new IllegalArgumentException("expectedUrl exceeds max length " + MAX_URL_LENGTH);
+		}
+		if (event.getExpectedTabId() != null && event.getExpectedTabId().length() > MAX_REQUEST_ID_LENGTH) {
+			throw new IllegalArgumentException("expectedTabId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
 		if (event.getWaitAfterMs() != null
 				&& (event.getWaitAfterMs() < 0 || event.getWaitAfterMs() > MAX_WAIT_AFTER_MS)) {
 			throw new IllegalArgumentException("waitAfterMs must be between 0 and " + MAX_WAIT_AFTER_MS);

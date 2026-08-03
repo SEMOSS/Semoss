@@ -45,6 +45,10 @@ public class RemoteBrowserInputEvent {
 	/** Correlates non-input requests with their WebSocket response. */
 
 	private String requestId;
+	/** Page URL captured when an automated action was generated. */
+	private String expectedUrl;
+	/** Live tab id captured when an automated action was generated. */
+	private String expectedTabId;
 
 	// ---- mouse / wheel ----
 	private Double x;
@@ -125,6 +129,22 @@ public class RemoteBrowserInputEvent {
 
 	public void setRequestId(String requestId) {
 		this.requestId = requestId;
+	}
+
+	public String getExpectedUrl() {
+		return expectedUrl;
+	}
+
+	public void setExpectedUrl(String expectedUrl) {
+		this.expectedUrl = expectedUrl;
+	}
+
+	public String getExpectedTabId() {
+		return expectedTabId;
+	}
+
+	public void setExpectedTabId(String expectedTabId) {
+		this.expectedTabId = expectedTabId;
 	}
 
 	public Double getX() {

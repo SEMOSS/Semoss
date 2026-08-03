@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Mouse;
 import com.microsoft.playwright.Page;
@@ -120,6 +121,18 @@ public class RemoteBrowserInputService {
 		if (page == null || page.isClosed()) {
 			result.put("success", false);
 			result.put("error", "Remote browser page is unavailable");
+			return result;
+		}
+		if (event.getExpectedTabId() != null && !event.getExpectedTabId().isBlank()
+				&& !event.getExpectedTabId().equals(session.getActiveTabId())) {
+			result.put("success", false);
+			result.put("error", "Browser tab changed after the automated action was generated");
+			return result;
+		}
+		if (event.getExpectedUrl() != null && !event.getExpectedUrl().isBlank()
+				&& !event.getExpectedUrl().equals(safeUrl(page))) {
+			result.put("success", false);
+			result.put("error", "Browser page changed after the automated action was generated");
 			return result;
 		}
 
@@ -352,6 +365,15 @@ public class RemoteBrowserInputService {
 		String strat = sel.strategy();
 		String val = sel.value();
 		try {
+			if (sel.frameSelector() != null && !sel.frameSelector().isBlank()) {
+				FrameLocator frame = page.frameLocator(sel.frameSelector());
+				if ("id".equals(strat)) return frame.locator("#" + val);
+				if ("css".equals(strat)) return frame.locator(val);
+				if ("xpath".equals(strat)) return frame.locator("xpath=" + val);
+				if ("role".equals(strat)) return frame.locator("[role=\"" + val + "\"]");
+				if ("text".equals(strat)) return frame.getByText(val);
+				return frame.locator(val);
+			}
 			if ("id".equals(strat)) {
 				return page.locator("#" + val);
 			}
@@ -467,7 +489,16 @@ public class RemoteBrowserInputService {
 		}
 		classLogger.info("Remote viewer fill-element selector={} textLength={}", describeSelector(sel),
 				event.getText() != null ? event.getText().length() : 0);
-		loc.fill(event.getText(), new Locator.FillOptions().setTimeout(3_000));
+		if ("select".equalsIgnoreCase(event.getTag())) {
+			try {
+				loc.selectOption(event.getText(), new Locator.SelectOptionOptions().setTimeout(3_000));
+			} catch (PlaywrightException valueFailure) {
+				loc.selectOption(new com.microsoft.playwright.options.SelectOption().setLabel(event.getText()),
+						new Locator.SelectOptionOptions().setTimeout(3_000));
+			}
+		} else {
+			loc.fill(event.getText(), new Locator.FillOptions().setTimeout(3_000));
+		}
 		classLogger.info("Remote viewer fill-element success selector={}", describeSelector(sel));
 	}
 
