@@ -173,14 +173,14 @@ public class RemoteBrowserRecordingService {
 		String signature = selectorSignature(event);
 		String text = Boolean.TRUE.equals(event.getIsPassword()) ? "" : nullToEmpty(event.getText());
 		PlaywrightStep previous = session.getPendingTypeStep(signature);
-		if (previous == null) {
-			previous = session.getPendingTypeStep();
-		}
 
 		if (previous != null) {
+			String nextText = "fill-element".equals(event.getType())
+					? text
+					: nullToEmpty(previous.text()) + text;
 			PlaywrightStep updated = new PlaywrightStep(previous.id(), previous.type(), previous.url(),
 					coordsOrPrevious(event, previous), previous.multiCoords(), previous.prompt(),
-					nullToEmpty(previous.text()) + text, previous.pressEnter(), previous.deltaY(),
+					nextText, previous.pressEnter(), previous.deltaY(),
 					previous.waitUntil(), previous.waitAfterMs(), viewport(session, event), previous.timestamp(),
 					label(event, previous), description(event, previous), previous.isPassword(),
 					storeValue(event, previous), selectorOrPrevious(event, previous), previous.isTriggerNewTab(),
@@ -190,6 +190,7 @@ public class RemoteBrowserRecordingService {
 			session.setPendingTypeStep(signature, updated);
 			return;
 		}
+		session.clearPendingTypeStep();
 
 		PlaywrightStep step = buildStep(session, event, PlaywrightStepType.TYPE, null, coords(event), text, null, null);
 		PlaywrightStep appended = appendStep(session, event, step, false);
@@ -203,9 +204,6 @@ public class RemoteBrowserRecordingService {
 		}
 		String signature = selectorSignature(event);
 		PlaywrightStep previous = session.getPendingTypeStep(signature);
-		if (previous == null) {
-			previous = session.getPendingTypeStep();
-		}
 		if (previous != null && isTextDeletingKey(event.getKey())) {
 			String currentValue = RemoteBrowserSelectorService.focusedValueIfMatches(session.getActivePage(),
 					selectorOrPrevious(event, previous));

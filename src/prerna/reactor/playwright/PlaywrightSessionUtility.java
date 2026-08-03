@@ -282,6 +282,9 @@ public class PlaywrightSessionUtility {
 	private static boolean typeWithFallback(Page page, PlaywrightStep step) {
 		// Try selector
 		Locator loc = resolveLocator(page, step.selector());
+		if ("select".equalsIgnoreCase(step.tag()) && selectWithFallback(loc, step.text())) {
+			return true;
+		}
 		boolean typed = focusAndType(loc, step.text());
 
 		// Try healed selector / coordinates when the recorded selector is stale.
@@ -315,6 +318,23 @@ public class PlaywrightSessionUtility {
 			}
 		}
 		return typed;
+	}
+
+	private static boolean selectWithFallback(Locator locator, String value) {
+		if (!isActionable(locator)) {
+			return false;
+		}
+		try {
+			locator.selectOption(value);
+			return true;
+		} catch (Exception valueFailure) {
+			try {
+				locator.selectOption(new com.microsoft.playwright.options.SelectOption().setLabel(value));
+				return true;
+			} catch (Exception labelFailure) {
+				return false;
+			}
+		}
 	}
 
 	private static boolean typeFocusedTextControl(Page page, String text) {
