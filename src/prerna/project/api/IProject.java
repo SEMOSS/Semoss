@@ -52,6 +52,8 @@ import prerna.tcp.client.SocketClient;
 public interface IProject extends IEngine, IMCP {
 
 	String MCP_ENDPOINT = "MCP_ENDPOINT";
+	String MCP_AUTH_SCHEME = "MCP_AUTH_SCHEME";
+	String MCP_AUTH_TOKEN = "MCP_AUTH_TOKEN";
 
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
@@ -339,5 +341,37 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	String getCompileOutput();
+
+	/**
+	 * Drops any cached MCP handler so the next MCP call is rebuilt from the current
+	 * smss properties. Call this after changing {@link #MCP_ENDPOINT} or its auth
+	 * properties. No-op for implementations that do not cache a handler.
+	 */
+	@IgnoreEngineLogging
+	default void resetMCP() {
+		// no-op
+	}
+
+	/**
+	 * @return the url of the external MCP server this project delegates to, or null
+	 *         when the project serves its own generated tools
+	 */
+	@IgnoreEngineLogging
+	default String getRemoteMCPEndpoint() {
+		return null;
+	}
+
+	/**
+	 * There is deliberately no getter for the matching auth token. The credential
+	 * stays on the server, and callers that need to show it report
+	 * {@link prerna.util.Constants#SENSITIVE_INFO_MASK} instead.
+	 *
+	 * @return the authentication scheme sent to the external MCP server, such as
+	 *         Bearer or Basic, or null when none is configured
+	 */
+	@IgnoreEngineLogging
+	default String getRemoteMCPAuthScheme() {
+		return null;
+	}
 
 }
