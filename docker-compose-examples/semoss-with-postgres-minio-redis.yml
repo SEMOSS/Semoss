@@ -112,7 +112,7 @@ x-semoss-env: &semoss-env
 
 # shared service definition for every semoss node in the cluster
 x-semoss-service: &semoss-service
-  image: quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest
+  image: quay.io/semoss/semoss-dev:6.0.0-SNAPSHOT-ubuntu22-latest
   pull_policy: always
   user: "1001:1001"
   command: /bin/bash -c "runCS.sh"

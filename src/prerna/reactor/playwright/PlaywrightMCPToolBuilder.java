@@ -36,19 +36,224 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.reactor.agent.mcp.MCPUtility;
+
 /**
- * Pure helpers for turning Playwright recordings into MCP tool definitions.
+ * Builds MCP tool definitions from Playwright recordings.
  *
  * <p>
  * Shared by {@link MakePlaywrightMCPReactor} (project scoped) and
- * {@link MakeRoomPlaywrightMCPReactor} (room scoped). Those two reactors expose
- * deliberately different tool contracts - different parameter names, required
- * sets, and {@code _meta} - so only the mechanics live here.
+ * {@link MakeRoomPlaywrightMCPReactor} (room scoped). The two playback tool
+ * contracts differ only in scope wording and in the project id that project
+ * recordings pin, so the whole tool is assembled here and each reactor keeps
+ * only its own discovery, merge, and persistence work.
  */
 public final class PlaywrightMCPToolBuilder {
 
+	/** Generated MCP definition path, relative to the owning asset folder. */
+	public static final String MCP_OUTPUT_REL = "/mcp/pixel_mcp.json";
+
+	/**
+	 * Sidebar UI for a playback tool. The {@code system://} scheme tells the
+	 * frontend to load the app from the deployed web app rather than from a
+	 * published project portal, so the URL needs no project id.
+	 */
+	public static final String BROWSER_AUTOMATION_APP_URI = "system://browser-automation/";
+
+	/** Pixel every generated playback tool invokes. */
+	public static final String PLAYBACK_FUNCTION = "PlayPlaywrightSocketsRoomRecording";
+
+	/**
+	 * Prefix on every generated playback tool name, so the LLM can tell playback
+	 * tools apart from the recording tools exposed by the platform project.
+	 */
+	public static final String PLAYBACK_TOOL_PREFIX = "play_";
+
+	/** Fallback prefix for names sanitized from a recording title. */
+	public static final String TOOL_NAME_PREFIX = "tool_";
+
+	/** Input schema property holding the pinned recording file name. */
+	public static final String RECORDING_FILE = "recording_file";
+
+	/** Input schema property holding the pinned owning project id. */
+	public static final String PROJECT_ID = "project_id";
+
+	/** Input schema property holding the optional pre-replay URL override. */
+	public static final String START_URL = "start_url";
+
+	/** Input schema property holding the recording's purpose. */
+	public static final String INTENT = "intent";
+
+	/** Input schema property holding the recording's form field values. */
+	public static final String PARAM_VALUES = "paramValues";
+
 	private PlaywrightMCPToolBuilder() {
 
+	}
+
+	/**
+	 * Builds the playback tool for one room recording.
+	 *
+	 * <p>
+	 * One entry of the {@code tools} array:
+	 *
+	 * <pre>
+	 * {
+	 *   "name": "play_bing_web_search_query",
+	 *   "title": "Play: Bing Web Search Query",
+	 *   "description": "Replay: Search for kimi news - Navigates to Bing and searches.",
+	 *   "inputSchema": {
+	 *     "type": "object",
+	 *     "title": "bing_web_search_query_Arguments",
+	 *     "properties": { "recording_file": {...}, "intent": {...},
+	 *                     "start_url": {...}, "paramValues": {...} },
+	 *     "required": ["recording_file"]
+	 *   },
+	 *   "_meta": { "SMSS_MCP_EXECUTION": "ask", "SMSS_MCP_UI": {...}, ... }
+	 * }
+	 * </pre>
+	 *
+	 * @param envelope the parsed recording
+	 * @param fileName the recording file name, pinned into the schema
+	 * @return the tool definition
+	 */
+	public static JSONObject buildRoomPlaybackTool(StepsEnvelope envelope, String fileName) {
+		return buildPlaybackTool(envelope, fileName, "Room", null);
+	}
+
+	/**
+	 * Builds the playback tool for one project recording. Same contract as
+	 * {@link #buildRoomPlaybackTool}, plus a pinned project id so the system app
+	 * loads the recording from the owning app.
+	 *
+	 * @param envelope  the parsed recording
+	 * @param fileName  the recording file name, pinned into the schema
+	 * @param projectId the owning project, pinned into the schema and stamped into
+	 *                  {@code _meta}
+	 * @return the tool definition
+	 */
+	public static JSONObject buildProjectPlaybackTool(StepsEnvelope envelope, String fileName, String projectId) {
+		return buildPlaybackTool(envelope, fileName, "Project", projectId);
+	}
+
+	/**
+	 * Assembles a playback tool. A non-null {@code projectId} is the only
+	 * difference between the project and room contracts.
+	 *
+	 * @param envelope   the parsed recording
+	 * @param fileName   the recording file name, pinned into the schema
+	 * @param scopeLabel "Room" or "Project", used in the generated descriptions
+	 * @param projectId  the owning project for project recordings, null for room
+	 *                   recordings
+	 * @return the tool definition
+	 */
+	private static JSONObject buildPlaybackTool(StepsEnvelope envelope, String fileName, String scopeLabel,
+			String projectId) {
+		String title = resolveRecordingTitle(envelope, fileName);
+		String baseDescription = resolveRecordingDescription(envelope, title,
+				"Replay " + scopeLabel.toLowerCase() + " Playwright recording: ");
+
+		// Build a richer description using intent so the LLM can match by purpose,
+		// not just title. Example: "Replay: Football highlights - opens YouTube
+		// and navigates to football highlight videos."
+		String richDescription = "Replay: " + resolveRecordingIntent(envelope, title) + " - " + baseDescription;
+
+		JSONObject properties = new JSONObject();
+		JSONArray required = new JSONArray();
+
+		// One tool per recording, so the file name is pinned to a single value.
+		properties.put(RECORDING_FILE,
+				pinnedStringProperty(RECORDING_FILE, scopeLabel + " recording file to replay.", fileName));
+		required.put(RECORDING_FILE);
+
+		// Pinned too: a project recording exists only in its own project.
+		if (projectId != null) {
+			properties.put(PROJECT_ID,
+					pinnedStringProperty(PROJECT_ID, "App project containing the recording.", projectId));
+			required.put(PROJECT_ID);
+		}
+
+		// "intent": { "type": "string", "title": "intent",
+		// "description": "The intent or purpose of this recording.",
+		// "default": "Search for information using Bing" }
+		// Not pinned: a model may reword it.
+		String intent = envelope.meta() == null ? null : envelope.meta().intent();
+		if (intent != null && !intent.isBlank()) {
+			JSONObject intentProp = new JSONObject();
+			intentProp.put("type", "string");
+			intentProp.put("title", INTENT);
+			intentProp.put("description", "The intent or purpose of this recording.");
+			intentProp.put("default", intent);
+			properties.put(INTENT, intentProp);
+		}
+
+		// No default: absent means replay whatever the recording navigated to.
+		JSONObject startUrlProp = new JSONObject();
+		startUrlProp.put("type", "string");
+		startUrlProp.put("title", START_URL);
+		startUrlProp.put("description", "Optional URL override before replay.");
+		properties.put(START_URL, startUrlProp);
+
+		// One field per TYPE step flagged storeValue; free-form string map when none.
+		properties.put(PARAM_VALUES,
+				buildParamValuesSchema(collectStoreValueInputs(envelope),
+						"Additional parameters (none required for this recording).",
+						"Input values for the recording's form fields"));
+
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("type", "object");
+		inputSchema.put("title", sanitizeToolName(title, TOOL_NAME_PREFIX) + "_Arguments");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", required);
+
+		JSONObject tool = new JSONObject();
+		tool.put("name", PLAYBACK_TOOL_PREFIX + sanitizeToolName(title, TOOL_NAME_PREFIX));
+		tool.put("title", "Play: " + title);
+		tool.put("description", richDescription);
+		tool.put("inputSchema", inputSchema);
+		tool.put("_meta", playbackToolMeta(projectId));
+		return tool;
+	}
+
+	/**
+	 * Builds the {@code _meta} block of a playback tool.
+	 *
+	 * <p>
+	 * {@code SMSS_MCP_UI} opens the remote browser app in the Playground sidebar
+	 * and that app performs the replay. {@code SMSS_FUNCTION_NAME} is the pixel
+	 * that runs when the tool executes. Both are per-tool choices, so another
+	 * generator writing into the same file can omit the UI block and render inline
+	 * instead.
+	 *
+	 * <pre>
+	 * {
+	 *   "SMSS_MCP_EXECUTION": "ask",
+	 *   "SMSS_MCP_UI": { "displayLocation": "sidebar",
+	 *                    "resourceURI": "system://browser-automation/" },
+	 *   "SMSS_FUNCTION_NAME": "PlayPlaywrightSocketsRoomRecording",
+	 *   "generated_on": "2026-07-28"
+	 * }
+	 * </pre>
+	 *
+	 * @param projectId stamped as {@code SMSS_ENGINE_ID} and
+	 *                  {@code SMSS_PROJECT_ID} when non-null
+	 * @return the meta object
+	 */
+	private static JSONObject playbackToolMeta(String projectId) {
+		JSONObject mcpUi = new JSONObject();
+		mcpUi.put(MCPUtility.UI_DISPLAY_LOCATION, "sidebar");
+		mcpUi.put(MCPUtility.UI_RESOURCE_URI, BROWSER_AUTOMATION_APP_URI);
+
+		JSONObject _meta = new JSONObject();
+		_meta.put(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+		_meta.put(MCPUtility.SMSS_MCP_UI, mcpUi);
+		_meta.put(MCPUtility.SMSS_FUNCTION_NAME, PLAYBACK_FUNCTION);
+		if (projectId != null) {
+			_meta.put(MCPUtility.SMSS_ENGINE_ID, projectId);
+			_meta.put(MCPUtility.SMSS_ENGINE_NAME, BROWSER_AUTOMATION_APP_URI);
+		}
+		_meta.put("generated_on", todayUtcDate());
+		return _meta;
 	}
 
 	/**
@@ -207,7 +412,10 @@ public final class PlaywrightMCPToolBuilder {
 			fieldProp.put("type", "string");
 			fieldProp.put("title", fieldName);
 			fieldProp.put("description", step.label());
-			if (step.text() != null && !step.text().isBlank()) {
+			// Password values must never be exposed to the model through an MCP
+			// schema default. The field remains required and password-formatted so
+			// the user can supply it at execution time.
+			if (!step.isPassword() && step.text() != null && !step.text().isBlank()) {
 				fieldProp.put("default", step.text());
 			}
 			if (step.isPassword()) {
