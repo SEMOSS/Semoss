@@ -11,6 +11,7 @@ import json
 from openai import OpenAI, AzureOpenAI, omit
 from openai.types import Batch, BatchRequestCounts
 from openai.types.completion_usage import CompletionUsage
+from openai.types.responses.response_usage import ResponseUsage
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
@@ -735,9 +736,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
                 cache_read_tokens = self._extract_cached_tokens(response.usage)
-                cache_creation_tokens = self._extract_cache_write_tokens(
-                    response.usage
-                )
+                cache_creation_tokens = self._extract_cache_write_tokens(response.usage)
                 thinking_tokens = self._extract_thinking_tokens(response.usage)
             else:
                 response_tokens = 0
