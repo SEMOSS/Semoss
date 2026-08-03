@@ -45,6 +45,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -62,12 +63,14 @@ import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.redis.RedisConnectionConfig;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -580,6 +583,47 @@ public final class RoomUtils {
 		// Return the requested sublist
 		// new ArrayList to ensure it's not a view of the original list
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
+	}
+
+	/**
+	 * Converts room messages to the client-facing Playground contract, enriching
+	 * tool calls with their project metadata before serialization.
+	 */
+	public static List<Map<String, Object>> getMessagesForClient(Room room, List<AbstractMessage> messages) {
+		List<Map<String, Object>> output = new ArrayList<>();
+		if (room == null || messages == null || messages.isEmpty()) {
+			return output;
+		}
+
+		IModelEngine roomModelEngine = null;
+		String modelId = room.getModelId();
+		if (modelId != null) {
+			try {
+				roomModelEngine = (IModelEngine) Utility.getEngine(modelId);
+			} catch (Exception ignore) {
+				// Tool metadata enrichment still supports legacy UUID-prefixed names.
+			}
+		}
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
+
+		Map<String, JSONObject> toolCache = new HashMap<>();
+		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
+		for (AbstractMessage message : messages) {
+			if (message.hasParts() && message.hasToolCallPart()) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			} else if (message.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			}
+			Map<String, Object> messageMap = MessageUtils
+					.jsonToMapForPixelReturn(MessageUtils.toJsonWithImage(message));
+			if (hideSystemMessages) {
+				MessageUtils.removeSystemPromptFromMessageMap(messageMap);
+			}
+			output.add(messageMap);
+		}
+		return output;
 	}
 
 	/**
