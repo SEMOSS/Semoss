@@ -973,13 +973,7 @@
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.18.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
+			<version>1.19.0</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-configuration</groupId>
@@ -2219,9 +2213,39 @@
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
 		<dependency>
-			<groupId>com.clickhouse</groupId>
-			<artifactId>clickhouse-jdbc</artifactId>
-			<version>0.6.3</version>
+		    <groupId>com.clickhouse</groupId>
+		    <artifactId>clickhouse-jdbc</artifactId>
+		    <version>0.9.8</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>org.ow2.asm</groupId>
+		    		<artifactId>asm</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.roaringbitmap</groupId>
+		    		<artifactId>RoaringBitmap</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.roaringbitmap</groupId>
+		    		<artifactId>RoaringBitmap</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>commons-io</groupId>
+		    		<artifactId>commons-io</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.apache.httpcomponents.client5</groupId>
+		    		<artifactId>httpclient5</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>com.google.errorprone</groupId>
+		    		<artifactId>error_prone_annotations</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.slf4j</groupId>
+		    		<artifactId>*</artifactId>
+		    	</exclusion>
+		    </exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
 		<dependency>
