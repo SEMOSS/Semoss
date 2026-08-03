@@ -1,7 +1,7 @@
 name: Semoss Ubuntu 24 Java 25 Builder
 
 # The Java 25 Tomcat builder must be published before this workflow runs:
-# quay.io/semoss/tomcat-builder:9.0.120-java25
+# quay.io/semoss/tomcat-builder:11.0.24-java25
 
 on:
   push:
@@ -88,7 +88,7 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ needs.prepare.outputs.semoss_version }}
             BASE_REGISTRY=public.ecr.aws/docker/library
-            TOMCAT_BUILDER_TAG=9.0.120-java25
+            TOMCAT_BUILDER_TAG=11.0.24-java25
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Verify Ubuntu 24 and Java 25
