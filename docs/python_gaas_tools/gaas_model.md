@@ -34,8 +34,6 @@ The `py/gaas_gpt_model.py` module provides classes for interacting with various 
     *   `embeddings(strings_to_embed: List[str], param_dict: Optional[Dict] = None, insight_id: Optional[str] = None) -> List[Dict]`:
         *   Constructs an `Embeddings(engine="<engine_id>", values=<strings_to_embed>, paramValues=[<param_dict>]);` Pixel script.
         *   Executes it via `super().callReactor()`.
-    *   `image_embeddings(images_to_embed: List[str], param_dict: Optional[Dict] = None, insight_id: Optional[str] = None) -> List[Dict]`:
-        *   Constructs an `ImageEmbeddings(engine="<engine_id>", values=<images_to_embed>, ...);` Pixel script.
     *   `keyword_extraction(input: List[str], param_dict: Optional[Dict] = None, insight_id: Optional[str] = None)`:
         *   Executes an `EmbedderKeywordExtraction(...)` Pixel command.
     *   `get_model_engine_id() -> str`: Returns the `self.engine_id`.
@@ -76,7 +74,7 @@ The `py/gaas_gpt_model.py` module provides classes for interacting with various 
 *   **Initialization `__init__(self, model_engine_class: Optional[str] = "TOMCAT", **kwargs)`**:
     *   `model_engine_class` (str, default: "TOMCAT"): Determines the type of engine to create. Can be "TOMCAT" or "LOCAL". "HF_PIPELINE" is mentioned but not fully implemented in the constructor logic shown.
     *   `**kwargs`: Passed to the constructor of the chosen model engine class (e.g., `engine_id` for `TomcatModelEngine`).
-*   **Key Methods**: All methods (`get_model_type`, `ask`, `instruct`, `embeddings`, `image_embeddings`, `keyword_extraction`, `ner`, `do_call`, `get_model_engine_id`, `get_conversation_history`) are wrappers that delegate the call to the underlying `self.model_engine` instance.
+*   **Key Methods**: All methods (`get_model_type`, `ask`, `instruct`, `embeddings`, `keyword_extraction`, `ner`, `do_call`, `get_model_engine_id`, `get_conversation_history`) are wrappers that delegate the call to the underlying `self.model_engine` instance.
 *   **Langchain Integration**:
     *   `to_langchain_embedder()`: Wraps the `ModelEngine` to make its `embeddings` method compatible with Langchain's `Embeddings` interface.
     *   `to_langchain_chat_model()`: Wraps the `ModelEngine` to make its `ask` and `get_conversation_history` methods compatible with Langchain's `BaseChatModel` interface. This includes converting message formats.

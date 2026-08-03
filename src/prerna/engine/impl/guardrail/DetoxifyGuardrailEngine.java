@@ -109,8 +109,6 @@ public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunct
 		Map<String, Object> retValue = new HashMap<>();
 		retValue.put("threshold", threshold);
 		retValue.put("return", value);
-		// we do not manipulate the prompt
-		// so return as is
 		return new GuardrailNounMetadata(pass, prompt, retValue);
 	}
 

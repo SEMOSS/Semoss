@@ -28,8 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,7 +76,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			}
 		}
 
-		// loading platform mcps (headless system apps, no UI)
+		// loading platform mcps (system apps - most are headless, some expose a UI
+		// served from the web app rather than from a published portal)
 		List<String> defaultMCPs = SystemDefaultEngines.getSystemMCPs();
 		for (String engineId : defaultMCPs) {
 			String fileName = engineId + this.extension;
@@ -92,6 +91,10 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
 				}
+			} else {
+				// surface a bad deploy at boot instead of at the first tool call
+				classLogger.warn("Platform MCP '{}' is registered but {}/platform__{} is missing; its tools will "
+						+ "not be available", engineId, folderToWatch, fileName);
 			}
 		}
 
@@ -149,8 +152,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	/**
 	 * Ensures a platform project carries each of the given PROJECTMETA tags (e.g.
 	 * "MCP", "SYSTEM"). Mirrors {@link #ensureSkillTag(String)}: addProject
-	 * early-returns when the project already exists in the security db, so this runs
-	 * on every boot; it is idempotent (only writes when a tag is missing) and
+	 * early-returns when the project already exists in the security db, so this
+	 * runs on every boot; it is idempotent (only writes when a tag is missing) and
 	 * preserves any other tag values already on the project. Never blocks project
 	 * load. The literal "MCP" tag matches MCPUtility.addMCPTag.
 	 */
@@ -245,12 +248,10 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	 */
 	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
 		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
-		FileInputStream fileIn = null;
 		String projectId = null;
 		try {
-			Properties prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
-			prop.load(fileIn);
+			String smssFile = Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile);
+			Properties prop = Utility.loadProperties(smssFile);
 
 			projectId = prop.getProperty(Constants.PROJECT);
 
@@ -272,14 +273,6 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
-		} finally {
-			try {
-				if (fileIn != null) {
-					fileIn.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close input stream for smss file {}/{}", folderToWatch, newFile, e);
-			}
 		}
 
 		return projectId;
