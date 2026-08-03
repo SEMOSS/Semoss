@@ -81,6 +81,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
+	/**
+	 * Stamped into every generated tool as {@link MCPUtility#SMSS_MCP_GENERATOR}.
+	 */
+	private static final String GENERATOR_ID = "MakeEngineMCP";
+
 	// @formatter:off
 	private static final Map<IEngine.CATALOG_TYPE, List<Class<? extends IReactor>>> STANDARD_ENGINE_TOOLS = new HashMap<>() {
 		{
@@ -110,7 +115,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             )));
 		}
 	};
-    // @formatter:on 
+    // @formatter:on
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
@@ -259,6 +264,15 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			throw new IllegalArgumentException("No tools were added to engine " + engine);
 		}
 
+		// Both the default set and the explicit-reactor path feed this array.
+		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
+
+		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
+
+		// The default tool set is a full rebuild; an explicit reactor list is a subset.
+		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
+				useDefaultReactors);
+
 		JSONObject _meta = new JSONObject();
 		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -266,7 +280,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		mcpJson.put("_meta", _meta);
 		mcpJson.put("tools", toolsArray);
 
-		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();

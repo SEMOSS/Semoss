@@ -32,6 +32,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -56,10 +57,12 @@ public class ProjectInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 
+		boolean hasAccess = false;
 		List<Map<String, Object>> baseInfo = null;
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			hasAccess = true;
 			// user has access!
 			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		} else if (SecurityProjectUtils.projectIsDiscoverable(projectId)) {
@@ -91,7 +94,31 @@ public class ProjectInfoReactor extends AbstractReactor {
 			});
 		}
 
+		if (hasAccess) {
+			addRemoteMCPInfo(projectInfo, projectId);
+		}
+
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
+	}
+
+	private void addRemoteMCPInfo(Map<String, Object> projectInfo, String projectId) {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			return;
+		}
+
+		String endpoint = project.getRemoteMCPEndpoint();
+		if (endpoint == null) {
+			projectInfo.put("project_remote_mcp", false);
+			return;
+		}
+
+		String authScheme = project.getRemoteMCPAuthScheme();
+
+		projectInfo.put("project_remote_mcp", true);
+		projectInfo.put("project_remote_mcp_endpoint", endpoint);
+		projectInfo.put("project_remote_mcp_auth_scheme", authScheme == null ? "" : authScheme);
+		projectInfo.put("project_remote_mcp_auth_token", Constants.SENSITIVE_INFO_MASK);
 	}
 
 	private List<String> getMetaKeys() {
@@ -126,6 +153,10 @@ public class ProjectInfoReactor extends AbstractReactor {
 				  Permission fields (relative to the calling user): user_permission, group_permission, permission, project_favorite.
 				  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
 				  GitHub: if the project is linked to a GitHub repo, the link fields are returned prefixed with gh_ (e.g. gh_repo).
+				  Remote MCP (editors only): project_remote_mcp is true when the project points at an external MCP server, in \
+				    which case project_remote_mcp_endpoint and project_remote_mcp_auth_scheme are also returned. \
+				    project_remote_mcp_auth_token is a fixed mask when a credential is stored and empty when it is not - the \
+				    stored credential is never returned. Use SetRemoteMCP to change these.
 				""";
 	}
 

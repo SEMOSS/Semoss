@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -88,6 +89,8 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 			});
 		}
 
+		addRemoteMCPInfo(projectInfo, projectId);
+
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
 
@@ -98,6 +101,26 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 		}
 
 		return null;
+	}
+
+	private void addRemoteMCPInfo(Map<String, Object> projectInfo, String projectId) {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			return;
+		}
+
+		String endpoint = project.getRemoteMCPEndpoint();
+		if (endpoint == null) {
+			projectInfo.put("project_remote_mcp", false);
+			return;
+		}
+
+		String authScheme = project.getRemoteMCPAuthScheme();
+
+		projectInfo.put("project_remote_mcp", true);
+		projectInfo.put("project_remote_mcp_endpoint", endpoint);
+		projectInfo.put("project_remote_mcp_auth_scheme", authScheme == null ? "" : authScheme);
+		projectInfo.put("project_remote_mcp_auth_token", Constants.SENSITIVE_INFO_MASK);
 	}
 
 	@Override
