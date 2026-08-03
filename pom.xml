@@ -2,7 +2,7 @@
 <project
 	xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.semoss</groupId>
 	<artifactId>semoss</artifactId>
@@ -251,6 +251,7 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.14.0</version>
 				<configuration>
@@ -673,11 +674,12 @@
 			<artifactId>semoss-jdbc</artifactId>
 			<version>0.0.1</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version>
-			<scope>provided</scope>
+		    <groupId>jakarta.servlet</groupId>
+		    <artifactId>jakarta.servlet-api</artifactId>
+		    <version>6.1.0</version>
+		    <scope>provided</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
 		<dependency>
@@ -1020,12 +1022,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-fileupload2-jakarta-servlet6 -->
 		<dependency>
-			<groupId>commons-fileupload</groupId>
-			<artifactId>commons-fileupload</artifactId>
-			<version>1.6.0</version>
-			<exclusions>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-fileupload2-jakarta-servlet6</artifactId>
+		    <version>2.0.0-M5</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>
 					<artifactId>commons-io</artifactId>
@@ -1373,10 +1375,10 @@
 			<artifactId>disruptor</artifactId>
 			<version>3.4.4</version>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-web -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-jakarta-web -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-web</artifactId>
+			<artifactId>log4j-jakarta-web</artifactId>
 			<version>2.25.4</version>
 			<exclusions>
 				<exclusion>
@@ -1510,12 +1512,12 @@
 			<artifactId>univocity-parsers</artifactId>
 			<version>2.9.1</version>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/com.github.waffle/waffle-jna -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.waffle/waffle-jna-jakarta -->
 		<dependency>
-			<groupId>com.github.waffle</groupId>
-			<artifactId>waffle-jna</artifactId>
-			<version>3.5.1</version>
-			<exclusions>
+		    <groupId>com.github.waffle</groupId>
+		    <artifactId>waffle-jna-jakarta</artifactId>
+		    <version>3.6.0</version>
+		    <exclusions>
 				<exclusion>
 					<groupId>com.google.errorprone</groupId>
 					<artifactId>error_prone_annotations</artifactId>
@@ -1542,7 +1544,7 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
-			<version>3.1.8</version>
+			<version>3.2.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.errorprone</groupId>
@@ -1558,22 +1560,23 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>5.17.0</version>
+			<version>5.18.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
-			<version>5.17.0</version>
+			<version>5.18.1</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.xmlbeans/xmlbeans -->
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
 			<version>5.3.0</version>
 			<exclusions>
 				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2025,11 +2028,11 @@
 			<artifactId>opentelemetry-sdk</artifactId>
 			<version>1.53.0</version>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
+		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
 		<dependency>
-			<groupId>javax.ws.rs</groupId>
-			<artifactId>javax.ws.rs-api</artifactId>
-			<version>2.1.1</version>
+		    <groupId>jakarta.ws.rs</groupId>
+		    <artifactId>jakarta.ws.rs-api</artifactId>
+		    <version>4.0.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.freemarker/freemarker -->
 		<dependency>
