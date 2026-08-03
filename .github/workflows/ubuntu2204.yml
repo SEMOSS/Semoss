@@ -1,18 +1,11 @@
 name: Semoss Ubuntu Builder
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
   workflow_dispatch:
   schedule:
     - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
