@@ -862,7 +862,7 @@ def generate_mcp(
         function = {}
         input_schema = {}
 
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
             function_return_type = "string"
             if node.returns is not None:
                 function_return_type = parse_type_annotation(node.returns)

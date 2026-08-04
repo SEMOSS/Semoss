@@ -7,12 +7,11 @@ ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
 ARG TOMCAT_VERSION=11.0.24
-ARG TOMCAT_BUILDER_TAG=11.0.24-java25
 ARG JAVA_HOME=/usr/lib/jvm/zulu25
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
-FROM quay.io/semoss/tomcat-builder:${TOMCAT_BUILDER_TAG} AS tomcat_builder
+FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
 ARG COPILOT_VERSION
 # Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
 # without buildx (TARGETARCH unset). copilot uses x64/arm64.

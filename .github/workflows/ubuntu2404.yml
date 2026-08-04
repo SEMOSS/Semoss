@@ -1,7 +1,4 @@
-name: Semoss Ubuntu 24 Java 25 Builder
-
-# The Java 25 Tomcat builder must be published before this workflow runs:
-# quay.io/semoss/tomcat-builder:11.0.24-java25
+name: Semoss Ubuntu 24.04 Builder
 
 on:
   push:
@@ -11,9 +8,13 @@ on:
       - '.github/workflows/ubuntu2404.yml'
   workflow_dispatch:
   schedule:
-    - cron: '0 9 * * *'
+    - cron: '0 9 * * *'  # Runs every day at 9:00 AM UTC, which is 4:00 AM EST
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Resolve the release/non-release naming ONCE so the build legs and the merge
+  # all agree on the repo, the SEMOSS_VERSION build-arg, and the final tag(s).
+  # ---------------------------------------------------------------------------
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -43,6 +44,11 @@ jobs:
           echo "tag_args=${TAGS}" >> "$GITHUB_OUTPUT"
           echo "primary_tag=${PRIMARY}" >> "$GITHUB_OUTPUT"
 
+  # ---------------------------------------------------------------------------
+  # Build each arch natively (amd64 + arm64 CodeBuild fleets) and push BY DIGEST.
+  # no-cache + pull are preserved so each run re-clones semoss-artifacts and
+  # rebuilds the chroot template fresh.
+  # ---------------------------------------------------------------------------
   build:
     needs: prepare
     strategy:
@@ -88,10 +94,11 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ needs.prepare.outputs.semoss_version }}
             BASE_REGISTRY=public.ecr.aws/docker/library
-            TOMCAT_BUILDER_TAG=11.0.24-java25
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
 
-      - name: Verify Ubuntu 24 and Java 25
+      # Java comes from the ARG defaults in Dockerfile.tomcat, so match on the
+      # major version only - a patch bump should not require editing this file.
+      - name: Verify Ubuntu 24 and Java
         shell: bash
         run: |
           set -euo pipefail
@@ -103,8 +110,8 @@ jobs:
             test "$VERSION_ID" = "24.04"
             test "$JAVA_HOME" = "/usr/lib/jvm/zulu25"
             test "$(uname -m)" = "${{ matrix.uname_arch }}"
-            java -version 2>&1 | grep -q "25.0.3"
-            mvn -version | grep -q "Java version: 25.0.3"
+            java -version 2>&1 | grep -q "25\."
+            mvn -version | grep -q "Java version: 25\."
           '
 
       - name: Verify Tomcat startup
@@ -148,6 +155,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # ---------------------------------------------------------------------------
+  # Stitch the per-arch digests into one multi-arch tag (no rebuild).
+  # ---------------------------------------------------------------------------
   merge:
     needs: [ prepare, build ]
     runs-on: ubuntu-latest
