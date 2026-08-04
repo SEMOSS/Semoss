@@ -29,8 +29,10 @@ package prerna.reactor.agent.run;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -132,31 +134,64 @@ public final class AgentRunStore {
 			if (!rs.next()) {
 				return null;
 			}
-			Map<String, Object> map = new java.util.HashMap<>();
-			map.put("runId", rs.getString("RUN_ID"));
-			map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
-			map.put("roomId", rs.getString("ROOM_ID"));
-			map.put("workspaceId", rs.getString("WORKSPACE_ID"));
-			map.put("modelId", rs.getString("MODEL_ID"));
-			map.put("harnessType", rs.getString("HARNESS_TYPE"));
-			map.put("jobId", rs.getString("JOB_ID"));
-			map.put("status", rs.getString("STATUS"));
-			map.put("input", rs.getString("INPUT"));
-			map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
-			map.put("finalText", rs.getString("FINAL_OUTPUT"));
-			map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
-			map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
-			map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
-			map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
-			map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
-			map.put("userId", rs.getString("USER_ID"));
-			map.put("artifacts", new ArrayList<>());
-			return map;
+			return runMapFromRow(rs);
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return one page of runs for an agent owned by the current user, newest first.
+	 *
+	 * @param insight current request insight, used to scope the query to its user
+	 * @param agentId agent workspace identifier used to scope the runs
+	 * @param limit   maximum number of runs to return
+	 * @param offset  number of matching runs to skip
+	 * @return the requested page of agent runs
+	 */
+	public List<Map<String, Object>> getActivityLog(Insight insight, String agentId, long limit, long offset) {
+		if (agentId == null || agentId.trim().isEmpty()) {
+			throw new IllegalArgumentException("agentId is required");
+		}
+		if (limit <= 0) {
+			throw new IllegalArgumentException("limit must be greater than 0");
+		}
+		if (offset < 0) {
+			throw new IllegalArgumentException("offset must be greater than or equal to 0");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder(
+					"SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
+							+ "INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
+							+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN "
+							+ "WHERE USER_ID = ? AND WORKSPACE_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC");
+			db.getQueryUtil().addLimitOffsetToQuery(query, limit, offset);
+
+			ps = db.getPreparedStatement(query.toString());
+			ps.setString(1, userId);
+			ps.setString(2, agentId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
+			throw new IllegalStateException("Failed to load AGENT_RUN activity log", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
@@ -482,5 +517,28 @@ public final class AgentRunStore {
 
 	private static String stringValue(Object value) {
 		return value == null ? null : String.valueOf(value);
+	}
+
+	private static Map<String, Object> runMapFromRow(ResultSet rs) throws SQLException {
+		Map<String, Object> map = new HashMap<>();
+		map.put("runId", rs.getString("RUN_ID"));
+		map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
+		map.put("roomId", rs.getString("ROOM_ID"));
+		map.put("workspaceId", rs.getString("WORKSPACE_ID"));
+		map.put("modelId", rs.getString("MODEL_ID"));
+		map.put("harnessType", rs.getString("HARNESS_TYPE"));
+		map.put("jobId", rs.getString("JOB_ID"));
+		map.put("status", rs.getString("STATUS"));
+		map.put("input", rs.getString("INPUT"));
+		map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
+		map.put("finalText", rs.getString("FINAL_OUTPUT"));
+		map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
+		map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
+		map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
+		map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
+		map.put("userId", rs.getString("USER_ID"));
+		map.put("artifacts", new ArrayList<>());
+		return map;
 	}
 }
