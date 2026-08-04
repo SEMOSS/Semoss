@@ -112,45 +112,45 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 						.replace("<functionName>", functionName);
 
 				Savepoint sp = null;
-					try (Statement stmt = con.createStatement()) {
-						if (!con.getAutoCommit()) {
-							sp = con.setSavepoint();
+				try (Statement stmt = con.createStatement()) {
+					if (!con.getAutoCommit()) {
+						sp = con.setSavepoint();
+					}
+					stmt.execute(datediffSql);
+					if (!con.getAutoCommit()) {
+						con.commit();
+					}
+					functionCreated = true;
+				} catch (Exception e) {
+					classLogger.error("Failed to create SMSS_DATEDIFF function in schema '{}'", schema, e);
+					if (sp != null) {
+						try {
+							con.rollback(sp);
+							classLogger.info(
+									"Rolled back to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
+									schema);
+						} catch (Exception e1) {
+							classLogger.error(
+									"Failed to rollback to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
+									schema, e1);
 						}
-						stmt.execute(datediffSql);
-						if (!con.getAutoCommit()) {
-							con.commit();
-						}
-						functionCreated = true;
-					} catch (Exception e) {
-						classLogger.error("Failed to create SMSS_DATEDIFF function in schema '{}'", schema, e);
-						if (sp != null) {
-							try {
-								con.rollback(sp);
+					} else {
+						try {
+							if (!con.getAutoCommit()) {
+								con.rollback();
 								classLogger.info(
-										"Rolled back to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
+										"Rolled back transaction after SMSS_DATEDIFF creation failure in schema '{}'",
 										schema);
-							} catch (Exception e1) {
-								classLogger.error(
-										"Failed to rollback to savepoint after SMSS_DATEDIFF creation failure in schema '{}'",
-										schema, e1);
 							}
-						} else {
-							try {
-								if (!con.getAutoCommit()) {
-									con.rollback();
-									classLogger.info(
-											"Rolled back transaction after SMSS_DATEDIFF creation failure in schema '{}'",
-											schema);
-								}
-							} catch (SQLException e1) {
-								classLogger.error(
-										"Failed to rollback transaction after SMSS_DATEDIFF creation failure in schema '{}'",
-										schema, e1);
-							}
+						} catch (SQLException e1) {
+							classLogger.error(
+									"Failed to rollback transaction after SMSS_DATEDIFF creation failure in schema '{}'",
+									schema, e1);
 						}
 					}
 				}
 			}
+		}
 	}
 
 	/**
@@ -280,13 +280,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/" + this.database
 				+ "?currentSchema=" + this.schema;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}
@@ -325,7 +319,8 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			// blob data type name is BYTEA. so, need Types.BINARY here instead of Types.BLOB
+			// blob data type name is BYTEA. so, need Types.BINARY here instead of
+			// Types.BLOB
 			statement.setNull(index, java.sql.Types.BINARY);
 		} else {
 			statement.setBytes(index, object.getBytes("UTF-8"));
@@ -503,6 +498,15 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		}
 		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName
 				+ " SET NOT NULL";
+	}
+
+	@Override
+	/**
+	 * Postgres takes ?key=value&key2=value2 - the generated url already has
+	 * ?currentSchema=
+	 */
+	protected String getAdditionalPropsSeparator() {
+		return "?";
 	}
 
 }

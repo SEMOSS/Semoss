@@ -5,7 +5,7 @@ on:
       version:
         description: 'Tomcat Version to deploy'
         required: true
-        default: '9.0.119'
+        default: '11.0.24'
   push:
     branches: [ "dev", "main" ]
     paths:
@@ -35,12 +35,14 @@ jobs:
           - platform: linux/amd64
             arch: amd64
             runner: ubuntu-latest
+            uname_arch: x86_64
           - platform: linux/arm64
             arch: arm64
             runner: ubuntu-24.04-arm
+            uname_arch: aarch64
     runs-on: ${{ matrix.runner }}
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '11.0.24' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,6 +71,22 @@ jobs:
           # The merge job stitches the digests into a single tagged manifest list.
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
+      # The Java version comes from the ARG defaults in Dockerfile.tomcat, not from
+      # this workflow, so assert what actually landed in the image.
+      - name: Verify builder image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_ref="${IMAGE}@${{ steps.build.outputs.digest }}"
+          docker pull "$image_ref"
+          docker run --rm --entrypoint bash "$image_ref" -c '
+            set -euo pipefail
+            test "$JAVA_HOME" = "/usr/lib/jvm/zulu25"
+            test "$(uname -m)" = "${{ matrix.uname_arch }}"
+            java -version 2>&1 | grep -q "openjdk version \"25\."
+            mvn -version | grep -q "Java version: 25\."
+          '
+
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
@@ -92,7 +110,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '11.0.24' }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4

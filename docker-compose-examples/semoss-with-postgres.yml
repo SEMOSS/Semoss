@@ -2,7 +2,7 @@ name: semoss-with-postgres
 
 services:
   semoss:
-    image: quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest
+    image: quay.io/semoss/semoss-dev:6.0.0-SNAPSHOT-ubuntu22-latest
     container_name: semoss
     pull_policy: always
     user: "1001:1001"

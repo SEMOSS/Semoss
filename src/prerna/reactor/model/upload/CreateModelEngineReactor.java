@@ -41,6 +41,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -106,7 +107,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		}
 
 		// String modelName = getModelName();
-		Map<String, Object> modelDetails = getModelDetails();
+		Map<String, Object> modelMetadata = SecurityModelMetadataUtils.normalizeModelDetails(getModelDetails());
+		String modelDescription = (String) modelMetadata.remove(Constants.DESCR);
+		Map<String, Object> modelDetails = SecurityModelMetadataUtils.getModelEngineProperties(modelMetadata);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
 		NounMetadata warning = null;
@@ -166,6 +169,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
+			SecurityModelMetadataUtils.upsertModelMetadata(modelId, modelMetadata);
+			if (modelDescription != null) {
+				SecurityEngineUtils.updateEngineMetadata(modelId, Map.of(Constants.DESCRIPTION, modelDescription));
+			}
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

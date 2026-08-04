@@ -6,8 +6,8 @@ ARG BASE_TAG=2023
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.119
-ARG JAVA_HOME=/usr/lib/jvm/zulu21
+ARG TOMCAT_VERSION=11.0.24
+ARG JAVA_HOME=/usr/lib/jvm/zulu25
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
@@ -21,6 +21,10 @@ ARG TARGETARCH
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
 	&& rm -rf /var/lib/apt/lists/* \
+	&& case "${TARGETARCH:-amd64}" in \
+		arm64) copilot_arch="arm64" ;; \
+		*)     copilot_arch="x64" ;; \
+	   esac \
 	&& tmp="$(mktemp -d)" \
 	&& case "${COPILOT_VERSION}" in \
 		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${copilot_arch}.tar.gz" ;; \
@@ -50,7 +54,7 @@ ENV MAVEN_ARGS="-B -ntp"
 
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=tomcat_builder /opt /opt
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 
 #AL2023 does not need to install curl
 RUN dnf update -y \
@@ -113,7 +117,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 COPY --from=fakechroot_builder /usr/local/bin/fakechroot /usr/local/bin/fakechroot
 COPY --from=fakechroot_builder /usr/local/lib/fakechroot /usr/local/lib/fakechroot
