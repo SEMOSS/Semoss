@@ -1,4 +1,4 @@
-name: Semoss Ubuntu Builder
+name: Semoss Ubuntu 22 Builder
 
 on:
   push:
