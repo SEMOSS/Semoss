@@ -53,8 +53,39 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
+				MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	}
+
+	/**
+	 * Presence-detects {@code reactorKey} (via {@link #getGenRowStruct(String)}); if present,
+	 * stages it into {@code updates} under {@code jsonKey}. A present-but-blank value stages a
+	 * {@code null}, which {@link AbstractWorkspaceReactor#mirrorCoreFieldsIntoConfigJson} reads
+	 * as "clear this field" (falls back to the run-time default/cap) rather than a validation
+	 * failure - mirrors the blank-clears-{@code modelId} convention above.
+	 *
+	 * @throws IllegalArgumentException if a non-blank value isn't a parseable integer &gt;= minValue
+	 */
+	private void stageIntUpdate(Map<String, Integer> updates, String reactorKey, String jsonKey, int minValue) {
+		if (getGenRowStruct(reactorKey) == null) {
+			return;
+		}
+		String raw = this.keyValue.get(reactorKey);
+		if (raw == null || raw.trim().isEmpty()) {
+			updates.put(jsonKey, null);
+			return;
+		}
+		int parsed;
+		try {
+			parsed = Integer.parseInt(raw.trim());
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(reactorKey + " must be an integer");
+		}
+		if (parsed < minValue) {
+			throw new IllegalArgumentException(reactorKey + " must be >= " + minValue);
+		}
+		updates.put(jsonKey, parsed);
 	}
 
 	@Override
@@ -113,9 +144,26 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
+		Map<String, Integer> budgetUpdates = new HashMap<>();
+		Map<String, Integer> spawnPolicyUpdates = new HashMap<>();
+		boolean subagentsProvided = getGenRowStruct(SUBAGENTS) != null;
+		List<Map<String, Object>> subagentUpdates = null;
+		boolean hooksProvided = getGenRowStruct(HOOKS) != null;
+		List<Map<String, Object>> hookUpdates = null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
 					dependencyList, workspaceResources, skillIds);
+			stageIntUpdate(budgetUpdates, MAX_TURNS, "max_turns", 1);
+			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENT_DEPTH, "max_subagent_depth", 0);
+			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENTS_PER_RUN, "max_subagents_per_run", 0);
+			stageIntUpdate(spawnPolicyUpdates, MAX_SPAWNS_PER_TURN, "max_spawns_per_turn", 0);
+			if (subagentsProvided) {
+				subagentUpdates = validateAndNormalizeSubagents(user, workspaceId, getSubagentMapList());
+			}
+			if (hooksProvided) {
+				hookUpdates = getHookMapList();
+				validateHooks(hookUpdates);
+			}
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}
@@ -144,7 +192,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// correctly from those.
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
-					modelIdProvided, workspaceModelId);
+					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
+					subagentUpdates, hooksProvided, hookUpdates);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",

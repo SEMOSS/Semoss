@@ -41,5 +41,6 @@ package prerna.reactor.playwright;
  *                    last updated.
  * @param intent      An optional string describing the intent or purpose of the recording.
  */
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public record RecordingMeta(String id, String title, String description, Long createdAt, Long updatedAt, String intent) {
 }

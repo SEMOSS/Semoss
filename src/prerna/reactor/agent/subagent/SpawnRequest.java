@@ -47,7 +47,7 @@ public final class SpawnRequest {
     /** Room id of the caller; sets {@code PARENT_ROOM_ID} on the freshly created child room. */
     public String parentRoomId;
 
-    /** Configured alias from {@code CONFIG_JSON.subagents[]}; {@code null} for anonymous spawns. */
+    /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
     public String alias;
 
     /** Target child workspace id; {@code null} for anonymous (parent-clone) spawns. */
