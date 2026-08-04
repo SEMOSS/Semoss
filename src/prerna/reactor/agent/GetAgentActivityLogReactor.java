@@ -72,19 +72,26 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 			throw new IllegalArgumentException("offset must be greater than or equal to 0");
 		}
 
-		List<Map<String, Object>> runs = new AgentRunStore().getActivityLog(this.insight, agentId, limit, offset);
+		AgentRunStore runStore = new AgentRunStore();
+		List<Map<String, Object>> runs = runStore.getActivityLog(this.insight, agentId, limit, offset);
 		if (Boolean.parseBoolean(this.keyValue.get(SORT_BY_ROOM_KEY))) {
-			return new NounMetadata(groupByRoom(runs), PixelDataType.MAP, PixelOperationType.OPERATION);
+			return new NounMetadata(loadAndGroupRunsByRoom(runStore, runs), PixelDataType.MAP,
+					PixelOperationType.OPERATION);
 		}
 		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
-	private Map<String, List<Map<String, Object>>> groupByRoom(List<Map<String, Object>> runs) {
+	private Map<String, List<Map<String, Object>>> loadAndGroupRunsByRoom(AgentRunStore runStore,
+			List<Map<String, Object>> seedRuns) {
 		Map<String, List<Map<String, Object>>> runsByRoom = new LinkedHashMap<>();
-		for (Map<String, Object> run : runs) {
+		for (Map<String, Object> run : seedRuns) {
 			Object roomIdValue = run.get("roomId");
 			String roomId = roomIdValue == null ? null : String.valueOf(roomIdValue);
-			runsByRoom.computeIfAbsent(roomId, key -> new ArrayList<>()).add(run);
+			if (roomId == null) {
+				runsByRoom.computeIfAbsent(null, key -> new ArrayList<>()).add(run);
+			} else if (!runsByRoom.containsKey(roomId)) {
+				runsByRoom.put(roomId, runStore.getRunsForRoom(this.insight, roomId));
+			}
 		}
 		return runsByRoom;
 	}
@@ -96,7 +103,7 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieves a page of runs for the specified agent and current user, ordered newest first. Results can optionally be grouped by room.";
+		return "Retrieves a page of runs for the specified agent and current user, ordered newest first. When grouped by room, the page identifies rooms and all runs for each identified room are returned.";
 	}
 
 	@Override
@@ -116,7 +123,7 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
 			return "Number of agent runs to skip. Defaults to 0 and must not be negative.";
 		} else if (SORT_BY_ROOM_KEY.equals(key)) {
-			return "When true, returns a map keyed by room ID whose values are the runs for that room.";
+			return "When true, uses the paginated results to identify rooms, then returns a map keyed by room ID containing all current-user runs for each room.";
 		}
 		return super.getDescriptionForKey(key);
 	}

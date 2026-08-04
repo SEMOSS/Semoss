@@ -249,6 +249,10 @@ public class ModelInferenceLogsUtils {
 					Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
 			executeSql(conn, sql);
 
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
+					Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
+			executeSql(conn, sql);
+
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
 			executeSql(conn, sql);
 			} else {
@@ -315,6 +319,12 @@ public class ModelInferenceLogsUtils {
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
 						Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
+						Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
 				executeSql(conn, sql);
 			}
 

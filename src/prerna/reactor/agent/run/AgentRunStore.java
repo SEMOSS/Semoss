@@ -48,6 +48,9 @@ import prerna.util.Utility;
 public final class AgentRunStore {
 
 	private static final Gson GSON = new Gson();
+	private static final String ACTIVITY_LOG_COLUMNS = "RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, "
+			+ "HARNESS_TYPE, JOB_ID, STATUS, INPUT, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, "
+			+ "ERROR_MESSAGE, DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID";
 
 	public void insertSubmitted(String runId, RunAgentRequest request, String userId) {
 		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
@@ -170,11 +173,8 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			StringBuilder query = new StringBuilder(
-					"SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
-							+ "INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
-							+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN "
-							+ "WHERE USER_ID = ? AND WORKSPACE_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC");
+			StringBuilder query = new StringBuilder("SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
+					+ "WHERE USER_ID = ? AND WORKSPACE_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC");
 			db.getQueryUtil().addLimitOffsetToQuery(query, limit, offset);
 
 			ps = db.getPreparedStatement(query.toString());
@@ -192,6 +192,83 @@ public final class AgentRunStore {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load AGENT_RUN activity log", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return every run in a room owned by the current user, newest first.
+	 *
+	 * @param insight current request insight, used to scope the query to its user
+	 * @param roomId  room whose complete run history should be returned
+	 * @return all current-user runs for the room
+	 */
+	public List<Map<String, Object>> getRunsForRoom(Insight insight, String roomId) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			throw new IllegalArgumentException("roomId is required");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
+					+ "WHERE USER_ID = ? AND ROOM_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, roomId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load AGENT_RUN rows for roomId=" + roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return every direct subagent run for a parent run owned by the current user,
+	 * newest first.
+	 *
+	 * @param insight     current request insight, used to scope the query to its user
+	 * @param parentRunId parent run whose direct subagent runs should be returned
+	 * @return all current-user runs with the supplied parent run ID
+	 */
+	public List<Map<String, Object>> getSubagentRuns(Insight insight, String parentRunId) {
+		if (parentRunId == null || parentRunId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
+					+ "WHERE USER_ID = ? AND PARENT_RUN_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, parentRunId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
+			throw new IllegalStateException("Failed to load subagent AGENT_RUN rows for parentRunId=" + parentRunId,
+					e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
