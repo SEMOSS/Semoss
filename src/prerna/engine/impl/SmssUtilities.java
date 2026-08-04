@@ -576,14 +576,15 @@ public class SmssUtilities {
 	}
 
 	/**
-	 * Generate the SMSS for the project
-	 * 
-	 * @param appId
-	 * @param appName
+	 * Generate the SMSS for the user asset project
+	 *
+	 * @param projectId
+	 * @param projectName
+	 * @param forceInsightDatabaseType
 	 * @return
 	 * @throws IOException
 	 */
-	public static File createTemporaryAssetSmss(String projectId, String projectName, boolean isAsset,
+	public static File createTemporaryAssetSmss(String projectId, String projectName,
 			RdbmsTypeEnum forceInsightDatabaseType) throws IOException {
 		String baseFolder = Utility.getBaseFolder();
 		if (!baseFolder.endsWith("\\") && !baseFolder.endsWith("/")) {
@@ -627,8 +628,8 @@ public class SmssUtilities {
 				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 			}
 
-			// include if an asset or something else
-			bufferedWriter.write(Constants.IS_ASSET_APP + tab + isAsset + newLine);
+			// this smss is only ever generated for a user asset project
+			bufferedWriter.write(Constants.IS_ASSET_APP + tab + "true" + newLine);
 			// normal output
 			bufferedWriter.write(
 					Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
