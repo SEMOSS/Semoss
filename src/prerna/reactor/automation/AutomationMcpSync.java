@@ -92,7 +92,7 @@ public final class AutomationMcpSync {
 	 * @param projectId the project id (used even when {@code project} is present, for clarity)
 	 * @param user      the user performing the save, used as the git commit author
 	 */
-	public static void syncTriggerAutomationTool(IProject project, String projectId, User user) {
+	public static void syncTriggerAutomationTool(IProject project, String projectId, User user, String automationJson) {
 		if (project == null) {
 			classLogger.warn("Skipping automation MCP tool sync for project {}: project could not be loaded.",
 					projectId);
@@ -100,7 +100,11 @@ public final class AutomationMcpSync {
 		}
 
 		try {
-			JSONArray generated = new JSONArray().put(buildTriggerAutomationTool(projectId));
+			boolean hasDbNodes = hasPlaygroundDbNodes(automationJson);
+			JSONArray generated = new JSONArray().put(buildTriggerAutomationTool(projectId, automationJson, hasDbNodes));
+			if (hasDbNodes) {
+				generated.put(buildGetAutomationSchemaTool(projectId));
+			}
 			MCPUtility.stampGenerator(generated, AUTOMATION_MCP_GENERATOR_ID);
 
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
@@ -113,19 +117,23 @@ public final class AutomationMcpSync {
 			MCPUtility.addMCPTag(project);
 			commitAndPush(project, projectId, assetsFolder, user);
 		} catch (Exception e) {
-			classLogger.warn("Failed to sync TriggerAutomation MCP tool for project {}: {}", projectId, e.getMessage(), e);
+			classLogger.warn("Failed to sync TriggerAutomation MCP tool for project {}", projectId, e);
 		}
 	}
 
 	// -- Private helpers -------------------------------------------------------------
 
-	private static JSONObject buildTriggerAutomationTool(String projectId) {
+	private static JSONObject buildTriggerAutomationTool(String projectId, String automationJson, boolean hasDbNodes) {
 		JSONObject tool = new JSONObject();
 		tool.put("name", "TriggerAutomation");
 		tool.put("title", "Trigger Automation");
-		tool.put("description",
-				"Manually triggers the automation configured for this project/app and returns a "
-						+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").");
+		String description = "Manually triggers the automation configured for this project/app and returns a "
+				+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
+		if (hasDbNodes) {
+			description += " This automation has database nodes that accept SQL queries — call GetAutomationSchema first"
+					+ " to discover the exact table and column names before writing SQL.";
+		}
+		tool.put("description", description);
 
 		JSONObject projectProp = new JSONObject();
 		projectProp.put("type", "string");
@@ -134,6 +142,45 @@ public final class AutomationMcpSync {
 		projectProp.put("default", projectId);
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
+
+		JSONObject inputsProperties = new JSONObject();
+		try {
+			if (automationJson != null && !automationJson.isBlank()) {
+				JSONObject doc = new JSONObject(automationJson);
+				JSONObject graph = doc.optJSONObject("graph");
+				JSONArray nodes = graph != null ? graph.optJSONArray("nodes") : null;
+				if (nodes != null) {
+					for (int i = 0; i < nodes.length(); i++) {
+						JSONObject node = nodes.optJSONObject(i);
+						if (node == null) continue;
+						String nodeLabel = node.optString("label", "");
+						JSONArray fillable = node.optJSONArray("playgroundFillable");
+						if (fillable == null || fillable.length() == 0) continue;
+						String nodeType = node.optString("type", "");
+						for (int j = 0; j < fillable.length(); j++) {
+							String fieldName = fillable.optString(j);
+							if (fieldName == null || fieldName.isBlank()) continue;
+							String paramName = AutomationExecutionUtils.buildPlaygroundParamName(nodeLabel, fieldName);
+							String paramDescription = buildPlaygroundParamDescription(nodeType, fieldName);
+							JSONObject paramProp = new JSONObject();
+							paramProp.put("type", "string");
+							paramProp.put("description", paramDescription);
+							inputsProperties.put(paramName, paramProp);
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to scan automation nodes for playground inputs for project {}", projectId, e);
+		}
+
+		if (!inputsProperties.isEmpty()) {
+			JSONObject inputsProp = new JSONObject();
+			inputsProp.put("type", "object");
+			inputsProp.put("description", "Optional inputs to inject into automation nodes before running. Populate fields with values relevant to the user's request.");
+			inputsProp.put("properties", inputsProperties);
+			properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, inputsProp);
+		}
 
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("type", "object");
@@ -155,6 +202,62 @@ public final class AutomationMcpSync {
 		return tool;
 	}
 
+	/** Returns true if any database-engine node has {@code expression} in its {@code playgroundFillable} list. */
+	private static boolean hasPlaygroundDbNodes(String automationJson) {
+		if (automationJson == null || automationJson.isBlank()) return false;
+		try {
+			JSONObject doc = new JSONObject(automationJson);
+			JSONObject graph = doc.optJSONObject("graph");
+			JSONArray nodes = graph != null ? graph.optJSONArray("nodes") : null;
+			if (nodes == null) return false;
+			for (int i = 0; i < nodes.length(); i++) {
+				JSONObject node = nodes.optJSONObject(i);
+				if (node == null) continue;
+				if (!AutomationConstants.NODE_DATABASE_ENGINE.equals(node.optString("type"))) continue;
+				JSONArray fillable = node.optJSONArray("playgroundFillable");
+				if (fillable == null) continue;
+				for (int j = 0; j < fillable.length(); j++) {
+					if (AutomationConstants.CONFIG_EXPRESSION.equals(fillable.optString(j))) return true;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to parse automation JSON while checking for DB nodes", e);
+		}
+		return false;
+	}
+
+	/** Builds the auto-executable {@code GetAutomationSchema} companion tool. */
+	private static JSONObject buildGetAutomationSchemaTool(String projectId) {
+		JSONObject tool = new JSONObject();
+		tool.put("name", "GetAutomationSchema");
+		tool.put("title", "Get Automation Database Schema");
+		tool.put("description",
+				"Returns the physical table and column names for database nodes in this automation that accept SQL input. "
+						+ "Call this before TriggerAutomation when you need to write a SQL query — it gives you the exact "
+						+ "table and column names available in the database.");
+
+		JSONObject projectProp = new JSONObject();
+		projectProp.put("type", "string");
+		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
+		projectProp.put("default", projectId);
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
+
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("type", "object");
+		inputSchema.put("title", "GetAutomationSchema_Arguments");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
+		tool.put("inputSchema", inputSchema);
+
+		JSONObject meta = new JSONObject();
+		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "GetAutomationSchema");
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		tool.put("_meta", meta);
+
+		return tool;
+	}
+
 	private static void writeMcpJson(String outputFileLoc, JSONArray tools) throws IOException {
 		JSONObject mcpJson = new JSONObject();
 		mcpJson.put("tools", tools);
@@ -165,6 +268,25 @@ public final class AutomationMcpSync {
 		File outputFile = new File(outputFileLoc);
 		outputFile.getParentFile().mkdirs();
 		Files.writeString(outputFile.toPath(), mcpJson.toString(4), StandardCharsets.UTF_8);
+	}
+
+	private static String buildPlaygroundParamDescription(String nodeType, String fieldName) {
+		if ("database-engine".equals(nodeType) && "expression".equals(fieldName)) {
+			return "SQL query to execute against the connected database";
+		}
+		if ("model-engine".equals(nodeType) && "command".equals(fieldName)) {
+			return "Natural language prompt to send to the language model";
+		}
+		if ("model-engine".equals(nodeType) && "context".equals(fieldName)) {
+			return "System instructions for the language model's behavior";
+		}
+		if ("vector-engine".equals(nodeType) && "command".equals(fieldName)) {
+			return "Search query to run against the vector database";
+		}
+		if ("function-engine".equals(nodeType) && "params".equals(fieldName)) {
+			return "JSON parameters to pass to the function";
+		}
+		return "Input for the " + fieldName + " field";
 	}
 
 	private static void commitAndPush(IProject project, String projectId, String assetsFolder, User user) {

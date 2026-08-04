@@ -120,7 +120,7 @@ public class SaveAutomationReactor extends AbstractReactor {
 
         // Keep this project's own MCP tool catalog in sync with every save, so the automation is
         // always discoverable as a "TriggerAutomation" tool without a separate manual step.
-        AutomationMcpSync.syncTriggerAutomationTool(project, projectId, this.insight.getUser());
+        AutomationMcpSync.syncTriggerAutomationTool(project, projectId, this.insight.getUser(), json);
 
         return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
     }

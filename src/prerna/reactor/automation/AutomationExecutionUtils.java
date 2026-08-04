@@ -31,6 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,6 +49,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
@@ -68,7 +74,23 @@ public final class AutomationExecutionUtils {
 	 * {@code nodes} sub-package has one shared instance to reuse instead of each
 	 * file declaring its own.
 	 */
-	public static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+	public static final Gson GSON = new GsonBuilder()
+			.disableHtmlEscaping()
+			.registerTypeHierarchyAdapter(ZoneId.class,
+					(JsonSerializer<ZoneId>) (src, t, ctx) -> new JsonPrimitive(src.getId()))
+			.registerTypeAdapter(ZonedDateTime.class,
+					(JsonSerializer<ZonedDateTime>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.registerTypeAdapter(OffsetDateTime.class,
+					(JsonSerializer<OffsetDateTime>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.registerTypeAdapter(LocalDateTime.class,
+					(JsonSerializer<LocalDateTime>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.registerTypeAdapter(LocalDate.class,
+					(JsonSerializer<LocalDate>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.registerTypeAdapter(Instant.class,
+					(JsonSerializer<Instant>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.registerTypeHierarchyAdapter(Throwable.class,
+					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.create();
 
 	private AutomationExecutionUtils() {}
 
@@ -348,6 +370,73 @@ public final class AutomationExecutionUtils {
 		if (s == null) return null;
 		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH
 				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
+	}
+
+	// -- Playground input helpers --------------------------------------------------
+
+	/**
+	 * Extracts playground input values from the Pixel MAP noun and overwrites the matching
+	 * config field on each node before execution. Nodes without a {@code playgroundFillable}
+	 * list or whose listed fields are absent from the node config are skipped with a warning.
+	 *
+	 * @param nodes     ordered node list from the automation document (mutated in place)
+	 * @param inputsMap raw MAP noun value from the {@code inputs} Pixel parameter, or {@code null}
+	 * @return the flattened {@code String → String} inputs map (empty when no inputs were passed)
+	 */
+	@SuppressWarnings("unchecked")
+	public static Map<String, String> applyPlaygroundInputs(List<Map<String, Object>> nodes, Map<String, Object> inputsMap) {
+		Map<String, String> playgroundInputs = new HashMap<>();
+		if (inputsMap != null) {
+			for (Map.Entry<String, Object> entry : inputsMap.entrySet()) {
+				if (entry.getValue() != null) {
+					playgroundInputs.put(entry.getKey(), entry.getValue().toString());
+				}
+			}
+		}
+		if (!playgroundInputs.isEmpty()) {
+			for (Map<String, Object> node : nodes) {
+				List<String> fillable = (List<String>) node.get("playgroundFillable");
+				if (fillable == null || fillable.isEmpty()) continue;
+				String nodeLabel = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
+				Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+				if (config == null) continue;
+				for (String fieldName : fillable) {
+					String paramName = buildPlaygroundParamName(nodeLabel, fieldName);
+					String value = playgroundInputs.get(paramName);
+					if (value != null) {
+						if (config.containsKey(fieldName)) {
+							config.put(fieldName, value);
+						} else {
+							classLogger.warn("Playground input '{}' targets field '{}' which does not exist in node '{}' config - skipping",
+									paramName, fieldName, nodeLabel);
+						}
+					}
+				}
+			}
+		}
+		return playgroundInputs;
+	}
+
+	/**
+	 * Builds a stable MCP parameter name for a playground-fillable node field.
+	 * Slugifies the node label (lowercase, non-alphanumeric chars → underscore, collapsed)
+	 * and appends the field name. Falls back to {@code "input_" + fieldName} if label is blank.
+	 *
+	 * @param nodeLabel the node's display label (may be null or empty)
+	 * @param fieldName the config field name (e.g. "expression", "command")
+	 * @return a deterministic, URL-safe parameter name
+	 */
+	public static String buildPlaygroundParamName(String nodeLabel, String fieldName) {
+		if (nodeLabel != null && !nodeLabel.trim().isEmpty()) {
+			String slug = nodeLabel.trim()
+					.toLowerCase()
+					.replaceAll("[^a-z0-9]+", "_")
+					.replaceAll("^_+|_+$", "");
+			if (!slug.isEmpty()) {
+				return slug + "_" + fieldName;
+			}
+		}
+		return "input_" + fieldName;
 	}
 
 	// -- Config value coercion -----------------------------------------------------

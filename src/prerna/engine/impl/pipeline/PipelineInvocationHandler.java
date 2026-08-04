@@ -61,6 +61,8 @@ import org.json.JSONObject;
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
@@ -114,7 +116,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
 			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
 			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
+			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+			.registerTypeHierarchyAdapter(Throwable.class,
+					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
+			.create();
 
 	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
 	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";

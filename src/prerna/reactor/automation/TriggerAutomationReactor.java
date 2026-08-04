@@ -58,8 +58,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
 
 	public TriggerAutomationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AutomationConstants.AUTOMATION_INPUTS_KEY };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -89,6 +89,10 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			if (ordered.isEmpty()) {
 				throw new IllegalArgumentException("Automation has no nodes to execute");
 			}
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> inputsMap = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
+			AutomationExecutionUtils.applyPlaygroundInputs(ordered, inputsMap);
 
 			AutomationDatabaseUtility.insertRun(runId, projectId, AutomationConstants.DEFAULT_AUTOMATION_ID,
 					AutomationConstants.TRIGGER_MANUAL, ordered.size(), userId);
@@ -218,6 +222,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) return "The project (app) ID or alias to run the automation for.";
+		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) return "Optional map of playground-supplied values to inject into automation node fields before running. Keys are parameter names from the automation's MCP tool schema.";
 		return super.getDescriptionForKey(key);
 	}
 }
