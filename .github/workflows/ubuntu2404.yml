@@ -1,4 +1,4 @@
-name: Semoss Ubuntu 24 Builder
+name: Semoss Ubuntu 24.04 Builder
 
 on:
   push:
