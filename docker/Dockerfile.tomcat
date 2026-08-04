@@ -8,9 +8,9 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 # JAVA and JDK default version
-ARG AZUL_ZULU_VERSION=21.42.19
-ARG JAVA_HOME=/usr/lib/jvm/zulu21
-ARG JDK_VERSION=21.0.7
+ARG AZUL_ZULU_VERSION=25.34.17
+ARG JAVA_HOME=/usr/lib/jvm/zulu25
+ARG JDK_VERSION=25.0.3
 
 # Maven default version
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14

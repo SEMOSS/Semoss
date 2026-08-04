@@ -1,24 +1,12 @@
-name: Semoss al2023 Builder
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Semoss Amazon Linux 2023 Builder
 
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.al2023'
       - '.github/workflows/al2023.yml'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
   workflow_dispatch:
-    inputs:
-      tomcat_version:
-        description: 'Tomcat-builder version to use'
-        required: true
-        default: '11.0.24'
   schedule:
     - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
 
@@ -63,8 +51,6 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     needs: prepare
-    env:
-      TOMCAT_VERSION: ${{ github.event.inputs.tomcat_version || '11.0.24' }}
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +92,6 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ needs.prepare.outputs.semoss_version }}
             BASE_REGISTRY=public.ecr.aws/amazonlinux
-            TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest

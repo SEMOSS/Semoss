@@ -7,7 +7,7 @@ ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
 ARG TOMCAT_VERSION=11.0.24
-ARG JAVA_HOME=/usr/lib/jvm/zulu21
+ARG JAVA_HOME=/usr/lib/jvm/zulu25
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
@@ -52,7 +52,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=tomcat_builder /opt /opt
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 
 RUN apt-get update -qq \
 	&& apt-get install -y -qq git curl unzip lsof \
@@ -90,7 +90,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 ENV DEBIAN_FRONTEND=noninteractive
