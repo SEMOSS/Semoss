@@ -66,16 +66,10 @@ import prerna.reactor.algorithms.CreateNLPVizReactor;
 import prerna.reactor.algorithms.NLPInstanceCacheReactor;
 import prerna.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.reactor.algorithms.NaturalLanguageSearchReactor;
-import prerna.reactor.algorithms.RAlgReactor;
 import prerna.reactor.algorithms.RatioReactor;
 import prerna.reactor.algorithms.RunAnomalyReactor;
-import prerna.reactor.algorithms.RunClusteringReactor;
-import prerna.reactor.algorithms.RunLOFReactor;
 import prerna.reactor.algorithms.RunMatrixRegressionReactor;
-import prerna.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.reactor.algorithms.RunNumericalCorrelationReactor;
-import prerna.reactor.algorithms.RunOutlierReactor;
-import prerna.reactor.algorithms.RunSimilarityReactor;
 import prerna.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -567,7 +561,42 @@ public class ReactorFactory {
 		}
 	}
 
-	// populates the frame agnostic reactors used by pixel
+	/**
+	 * Registers the frame agnostic reactors used by pixel.
+	 *
+	 * <p>
+	 * <b>DO NOT ADD NEW REACTORS HERE.</b> Reactors are discovered at runtime. The
+	 * static initializer calls this method first and then calls
+	 * {@link #loadFromCP(String...)}, which scans the classpath for every
+	 * {@link IReactor} implementation under "prerna" (plus anything listed in
+	 * ADDITIONAL_REACTOR_PACKAGES) and registers each one under its simple class
+	 * name with a trailing "Reactor" stripped. That scan runs last, so it
+	 * overwrites whatever this method put in the map.
+	 *
+	 * <p>
+	 * An entry added here therefore does nothing: the scan writes the identical
+	 * mapping a moment later. That is already true of 299 of the 316 active entries
+	 * below, which are pure duplicates kept only for historical reasons.
+	 *
+	 * <p>
+	 * To add a reactor, only write the class. Name it {@code <PixelName>Reactor},
+	 * put it in a package under "prerna", and {@code PixelName()} is callable on
+	 * the next startup with no change to this file. Renaming the class likewise
+	 * renames the pixel automatically.
+	 *
+	 * <p>
+	 * The 17 entries that do have an effect are aliases whose key cannot be derived
+	 * from any class name, such as "Mean" for AverageReactor or "GroupBy" for
+	 * GroupReactor. They exist to keep an already released pixel name working after
+	 * its class was renamed. Do not add more as a matter of style: name the class
+	 * after the pixel instead. An alias is only warranted when a pixel name that
+	 * already shipped has to keep resolving.
+	 *
+	 * <p>
+	 * Reactors in a {@code *.frame.*} package are routed by that same scan to the
+	 * frame specific maps (h2FrameHash, rFrameHash, pandasFrameHash,
+	 * tinkerFrameHash) rather than to this one.
+	 */
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
@@ -927,12 +956,6 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
-		reactorHash.put("rAlg", RAlgReactor.class);
-		reactorHash.put("RunClustering", RunClusteringReactor.class);
-		reactorHash.put("RunMultiClustering", RunMultiClusteringReactor.class);
-		reactorHash.put("RunLOF", RunLOFReactor.class);
-		reactorHash.put("RunSimilarity", RunSimilarityReactor.class);
-		reactorHash.put("RunOutlier", RunOutlierReactor.class);
 		reactorHash.put("Ratio", RatioReactor.class);
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 
@@ -1042,6 +1065,10 @@ public class ReactorFactory {
 		reactorHash.put("WEEK", WeekReactor.class);
 		reactorHash.put("MONTH", MonthReactor.class);
 		reactorHash.put("YEAR", YearReactor.class);
+
+		// Do not append new reactors below. See the javadoc on this method: the
+		// classpath scan in loadFromCP runs after this method and registers every
+		// reactor automatically, overwriting anything added here.
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {

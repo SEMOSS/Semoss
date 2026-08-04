@@ -49,7 +49,7 @@ public class MCPFactory {
 					MCPErrorCode.RESOURCE_NOT_FOUND);
 		}
 
-		InternalMCP mcp = new InternalMCP(engine);
+		InternalMCP mcp = InternalMCP.genFromEngine(engine);
 		return mcp;
 	}
 
