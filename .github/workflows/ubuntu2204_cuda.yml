@@ -1,18 +1,11 @@
 name: Semoss Ubuntu-CUDA Builder
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04'
       - '.github/workflows/ubuntu2204_cuda.yml'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
   workflow_dispatch:

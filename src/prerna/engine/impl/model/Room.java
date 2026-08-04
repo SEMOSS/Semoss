@@ -736,8 +736,8 @@ public class Room implements Serializable {
 	 * message.
 	 *
 	 * @param inputMessage input message that triggered the model call
-	 * @param llmResponse  model response containing prompt token count and message
-	 *                     id
+	 * @param llmResponse  model response containing prompt token count, cache read
+	 *                     token count, and message id
 	 */
 	private void applyInputUsageFromModelResponse(InputMessage inputMessage, AskModelEngineResponse llmResponse) {
 		if (inputMessage == null || llmResponse == null) {
@@ -745,6 +745,7 @@ public class Room implements Serializable {
 		}
 		inputMessage.setTransactionId(llmResponse.getMessageId());
 		inputMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+		inputMessage.setCacheReadTokens(llmResponse.getNumberOfCacheReadTokens());
 	}
 
 	/**
@@ -1051,6 +1052,9 @@ public class Room implements Serializable {
 					if (entry.containsKey("description")) {
 						lookupEntry.put("description", entry.get("description"));
 					}
+					if (entry.containsKey("inputSchema")) {
+						lookupEntry.put("inputSchema", entry.get("inputSchema"));
+					}
 					lookupEntry.put("_meta", lookupMeta);
 					toolLookupByLLMName.put(llmName, lookupEntry);
 				}
@@ -1122,6 +1126,8 @@ public class Room implements Serializable {
 					if (lookupMeta.containsKey(MCPUtility.SMSS_FUNCTION_NAME)) {
 						lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
 					}
+					// Preserve an explicit execution-function indirection. The public
+					// tool name is stored separately as SMSS_ORIGINAL_TOOL_NAME.
 					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
 
 					Map<String, Object> lookupEntry = new HashMap<>();
@@ -1130,6 +1136,9 @@ public class Room implements Serializable {
 					}
 					if (toolMapEntry.containsKey("description")) {
 						lookupEntry.put("description", toolMapEntry.get("description"));
+					}
+					if (toolMapEntry.containsKey("inputSchema")) {
+						lookupEntry.put("inputSchema", toolMapEntry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
 					toolLookupByLLMName.put(llmFacingName, lookupEntry);

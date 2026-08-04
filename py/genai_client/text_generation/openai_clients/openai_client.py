@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 import json
 from openai import OpenAI, AzureOpenAI, omit
 from openai.types import Batch, BatchRequestCounts
+from openai.types.completion_usage import CompletionUsage
+from openai.types.responses.response_usage import ResponseUsage
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
@@ -228,6 +230,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = 0
             input_tokens = 0
             cache_read_tokens = None
+            cache_creation_tokens = None
             thinking_tokens = None
 
             streamed_tools = {}
@@ -246,6 +249,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                     cache_read_tokens = self._extract_cached_tokens(
                         chunk.response.usage, details_attr="input_tokens_details"
                     )
+                    cache_creation_tokens = self._extract_cache_write_tokens(
+                        chunk.response.usage, details_attr="input_tokens_details"
+                    )
                     thinking_tokens = self._extract_thinking_tokens(
                         chunk.response.usage, details_attr="output_tokens_details"
                     )
@@ -256,6 +262,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             input_tokens=input_tokens,
                             output_tokens=response_tokens,
                             cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
                             reasoning_tokens=thinking_tokens,
                         ),
                         stream_type="usage",
@@ -411,6 +418,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     messageType="TOOL",
                     schemaVersion=2,
@@ -451,6 +459,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -472,6 +481,9 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
             cache_read_tokens = self._extract_cached_tokens(
+                response.usage, details_attr="input_tokens_details"
+            )
+            cache_creation_tokens = self._extract_cache_write_tokens(
                 response.usage, details_attr="input_tokens_details"
             )
             thinking_tokens = self._extract_thinking_tokens(
@@ -497,6 +509,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     messageType="TOOL",
                     schemaVersion=2,
@@ -516,6 +529,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 response_tokens=response_tokens,
                 prompt_tokens=input_tokens,
                 cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
                 thinking_tokens=thinking_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
@@ -540,6 +554,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = 0
             prompt_tokens = 0
             cache_read_tokens = None
+            cache_creation_tokens = None
             thinking_tokens = None
 
             streamed_tools = {}
@@ -551,6 +566,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
                     cache_read_tokens = self._extract_cached_tokens(chunk.usage)
+                    cache_creation_tokens = self._extract_cache_write_tokens(
+                        chunk.usage
+                    )
                     thinking_tokens = self._extract_thinking_tokens(chunk.usage)
 
                     smss_stream(
@@ -558,6 +576,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             input_tokens=prompt_tokens,
                             output_tokens=response_tokens,
                             cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
                             reasoning_tokens=thinking_tokens,
                         ),
                         stream_type="usage",
@@ -678,6 +697,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     messageType="TOOL",
                     schemaVersion=2,
@@ -694,6 +714,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -715,11 +736,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
                 cache_read_tokens = self._extract_cached_tokens(response.usage)
+                cache_creation_tokens = self._extract_cache_write_tokens(response.usage)
                 thinking_tokens = self._extract_thinking_tokens(response.usage)
             else:
                 response_tokens = 0
                 prompt_tokens = 0
                 cache_read_tokens = None
+                cache_creation_tokens = None
                 thinking_tokens = None
 
             final_content = response.choices[0].message.content
@@ -730,6 +753,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                 )
             else:
@@ -739,6 +763,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -762,6 +787,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         response_tokens: int,
         prompt_tokens: int,
         cache_read_tokens: "int | None" = None,
+        cache_creation_tokens: "int | None" = None,
         thinking_tokens: "int | None" = None,
         server_tool_parts: "list[dict[str, Any]] | None" = None,
     ) -> AskModelEngineResponse2:
@@ -820,6 +846,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             thinking_tokens=thinking_tokens,
             messageType="TOOL",
             schemaVersion=2,
@@ -1236,29 +1263,39 @@ class OpenAiClient(AbstractTextGenerationClient):
 
     @staticmethod
     def _extract_cached_tokens(
-        usage, details_attr: str = "prompt_tokens_details"
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "prompt_tokens_details",
     ) -> "int | None":
-        # usage.prompt_tokens_details.cached_tokens (Chat) / input_tokens_details (Responses); None if caching off
         if usage is None:
             return None
         details = getattr(usage, details_attr, None)
         if details is None:
             return None
-        cached = getattr(details, "cached_tokens", None)
-        return cached or None
+        return getattr(details, "cached_tokens", None)
+
+    @staticmethod
+    def _extract_cache_write_tokens(
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "prompt_tokens_details",
+    ) -> "int | None":
+        if usage is None:
+            return None
+        details = getattr(usage, details_attr, None)
+        if details is None:
+            return None
+        return getattr(details, "cache_write_tokens", None)
 
     @staticmethod
     def _extract_thinking_tokens(
-        usage, details_attr: str = "completion_tokens_details"
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "completion_tokens_details",
     ) -> "int | None":
-        # usage.completion_tokens_details.reasoning_tokens (Chat) / output_tokens_details (Responses); None for non-reasoning models
         if usage is None:
             return None
         details = getattr(usage, details_attr, None)
         if details is None:
             return None
-        reasoning = getattr(details, "reasoning_tokens", None)
-        return reasoning or None
+        return getattr(details, "reasoning_tokens", None)
 
     def _extract_reasoning_summary(self, response) -> str:
         """Extract reasoning summary from Responses API response."""

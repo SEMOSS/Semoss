@@ -60,7 +60,7 @@ public class SystemDefaultEngines {
 	 * must have a matching {@code project/platform__<id>} folder.
 	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER, Constants.MCP_DATABASE_MAKER,
-			Constants.MCP_REACTOR_HELP, Constants.MCP_PLAYWRIGHT);
+			Constants.MCP_REACTOR_HELP, Constants.MCP_BROWSER_AUTOMATION);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
