@@ -30,9 +30,9 @@ credentials `myuser` / `mypassword` (local-dev defaults).
 ## Supporting engines
 
 The [engines/](engines/) folder has optional standalone services (Weaviate,
-Chroma, OpenSearch, pgvector vector DBs) you can run alongside SEMOSS, plus notes
-on how to make the SEMOSS container connect to them. See
-[engines/README.md](engines/README.md).
+Chroma, OpenSearch, pgvector vector DBs, and a ClickHouse database) you can run
+alongside SEMOSS, plus notes on how to make the SEMOSS container connect to them.
+See [engines/README.md](engines/README.md).
 
 ## Usage
 

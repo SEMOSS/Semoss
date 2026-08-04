@@ -1888,9 +1888,8 @@ public final class Utility {
 			if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 				project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
+				// Acquire the lock on the project, don't want several calls to try and load the
+				// engine at the same time
 				classLogger.info("Applying lock for project {}", Utility.cleanLogString(projectId));
 				ReentrantLock lock = null;
 				try {
@@ -1899,24 +1898,22 @@ public final class Utility {
 					classLogger.info("Project {} is locked", Utility.cleanLogString(projectId));
 
 					// Need to do a double check here,
-					// so if a different thread was waiting for the engine to load,
+					// so if a different thread was waiting for the project to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 					}
 
-					// If in a clustered environment, then pull the app first
-					// TODO >>>timb: need to pull sec and lmd each time. They also need
-					// correct jdbcs...
+					// If in a clustered environment, then pull the project first
 					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 						ClusterUtil.pullProject(projectId);
 					}
 
-					// Now that the app has been pulled, grab the smss file
+					// Now that the project has been pulled, grab the smss file
 					String smssFile = (String) DIHelper.getInstance()
 							.getProjectProperty(projectId + "_" + Constants.STORE);
 
-					// Start up the engine using the details in the smss
+					// Start up the project using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
 						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
@@ -1925,7 +1922,6 @@ public final class Utility {
 					}
 				} finally {
 					if (lock != null) {
-						// Make sure to unlock now
 						lock.unlock();
 						classLogger.info("Project {} is unlocked", Utility.cleanLogString(projectId));
 					}
@@ -1954,42 +1950,35 @@ public final class Utility {
 		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 		} else {
-			// Acquire the lock on the engine,
-			// don't want several calls to try and load the engine at the same
-			// time
+			// Acquire the lock on the project, don't want several calls to try and load the
+			// engine at the same time
 			classLogger.info("Applying lock for user asset project {}", projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
 			classLogger.info("User asset project {} is locked", projectId);
-
 			try {
-				// Need to do a double check here,
-				// so if a different thread was waiting for the engine to load,
-				// it doesn't go through this process again
+				// Need to do a double check here, so if a different thread was waiting for the
+				// project to load, it doesn't go through this process again
 				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
 					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 				}
 
-				// If in a clustered environment, then pull the project first
-				// TODO >>>timb: need to pull sec and lmd each time. They also need
-				// correct jdbcs...
 				if (ClusterUtil.IS_CLUSTER) {
 					ClusterUtil.pullUserAsset(projectId, false);
 				}
 
-				// Now that the app has been pulled, grab the smss file
+				// Now that the project has been pulled, grab the smss file
 				String folderName = UserAssetUtils.ASSET_APP_NAME;
 				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
 						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
-				// Start up the engine using the details in the smss
+				// Start up the project using the details in the smss
 				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
-					// actual load engine process
+					// actual load project process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
 					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
 				}
 			} finally {
-				// Make sure to unlock now
 				lock.unlock();
 				classLogger.info("User asset project {} is unlocked", projectId);
 			}
@@ -2054,7 +2043,6 @@ public final class Utility {
 	private static IEngine baseGetEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 
-		// Now that the database has been pulled, grab the smss file
 		String smssFile = null;
 		boolean reloadDB = false;
 		Properties prop = null;
@@ -2065,8 +2053,7 @@ public final class Utility {
 		if (runningInCore) {
 			// not sure why we need this after the first time but hey
 			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		} else // this is happening on the socket side
-		{
+		} else {
 			// on the socket side
 			// it will pull the smss
 			// and reload the engine
@@ -2086,17 +2073,14 @@ public final class Utility {
 			}
 		}
 
-		// logger.info("Reload DB is set to " + reloadDB);
-
 		if (runningInCore || reloadDB) {
 			// If the engine has already been loaded, then return it
 			// Don't acquire the lock here, because that would slow things down
 			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
 				engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 			} else {
-				// Acquire the lock on the engine,
-				// don't want several calls to try and load the engine at the same
-				// time
+				// Acquire the lock on the engine, don't want several calls to try and load the
+				// engine at the same time
 				classLogger.info("Applying lock for engine {} to pull", Utility.cleanLogString(engineId));
 				ReentrantLock lock = null;
 				try {
@@ -2115,7 +2099,7 @@ public final class Utility {
 						ClusterUtil.pullEngine(engineId);
 					}
 
-					// Now that the database has been pulled, grab the smss file
+					// Now that the engine has been pulled, grab the smss file
 					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
 
 					// Start up the engine using the details in the smss
@@ -2129,14 +2113,14 @@ public final class Utility {
 								Utility.cleanLogString(engineId));
 					}
 
-					// Start with because the insights RDBMS has the id security_InsightsRDBMS
+					// add start with check because the insights RDBMS has the id
+					// security_InsightsRDBMS
 					if (!SystemDefaultEngines.valueStartsWith(engineId,
 							SystemDefaultEngines.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
 							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
-
 								// Only publish if actually loading on this box
 								// TODO >>>timb: this logic only works insofar as we are assuming a user-based
 								// docker layer in addition to the app containers
@@ -2157,16 +2141,15 @@ public final class Utility {
 						}
 					}
 				} finally {
-					// Make sure to unlock now
 					if (lock != null) {
 						lock.unlock();
 						classLogger.info("Engine {} is unlocked", Utility.cleanLogString(engineId));
 					}
 				}
 			}
+		} else {
 			// send the information of engine to the smssfile to the socket
-		} else // this is happening on the socket side
-		{
+			// this is happening on the socket side
 			engine = new EngineSocketWrapper(engineId,
 					(SocketServerHandler) DIHelper.getInstance().getLocalProp("SSH"));
 		}

@@ -86,6 +86,9 @@ public abstract class AbstractMessage {
 	@SerializedName("cacheCreationTokens")
 	protected Integer cacheCreationTokens;
 
+	@SerializedName("thinkingTokens")
+	protected Integer thinkingTokens;
+
 	protected boolean visible = true;
 	protected boolean pruneToolsAbove = false;
 
@@ -332,6 +335,14 @@ public abstract class AbstractMessage {
 
 	public void setCacheCreationTokens(Integer cacheCreationTokens) {
 		this.cacheCreationTokens = cacheCreationTokens;
+	}
+
+	public Integer getThinkingTokens() {
+		return thinkingTokens;
+	}
+
+	public void setThinkingTokens(Integer thinkingTokens) {
+		this.thinkingTokens = thinkingTokens;
 	}
 
 	// ----------- Ornaments -----------
