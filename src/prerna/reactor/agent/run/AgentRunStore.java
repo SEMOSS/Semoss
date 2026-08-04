@@ -55,13 +55,14 @@ public final class AgentRunStore {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
-			String query = "INSERT INTO AGENT_RUN (RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, "
+			String query = "INSERT INTO AGENT_RUN (RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, "
 					+ "STATUS, INPUT, REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
 					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = db.getPreparedStatement(query);
 			int idx = 1;
 			ps.setString(idx++, runId);
+			setNullableString(ps, idx++, request.getParentRunId());
 			setNullableString(ps, idx++, request.getRoomId());
 			setNullableString(ps, idx++, request.getWorkspaceId());
 			setNullableString(ps, idx++, request.getEngineIdFallback());
@@ -93,7 +94,7 @@ public final class AgentRunStore {
 		ResultSet rs = null;
 		try {
 			String userId = resolveInsightUserId(insight);
-			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
+			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
 					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
@@ -121,7 +122,7 @@ public final class AgentRunStore {
 		ResultSet rs = null;
 		try {
 			String userId = resolveInsightUserId(insight);
-			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
+			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
 					+ "REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
 					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
@@ -133,6 +134,7 @@ public final class AgentRunStore {
 			}
 			Map<String, Object> map = new java.util.HashMap<>();
 			map.put("runId", rs.getString("RUN_ID"));
+			map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
 			map.put("roomId", rs.getString("ROOM_ID"));
 			map.put("workspaceId", rs.getString("WORKSPACE_ID"));
 			map.put("modelId", rs.getString("MODEL_ID"));
@@ -182,7 +184,7 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
+			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
 					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE STATUS = ? ORDER BY DATE_CREATED ASC, RUN_ID ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, AgentRunStatus.SUBMITTED.name());
@@ -426,12 +428,16 @@ public final class AgentRunStore {
 			Map<String, Object> persisted = GSON.fromJson(requestJson, Map.class);
 			RunAgentRequest request = RunAgentRequest.fromPersistedMap(persisted, insight);
 			if (request != null) {
-				return request;
+				String parentRunId = rs.getString("PARENT_RUN_ID");
+				return request.getParentRunId() == null && parentRunId != null
+						? request.withParentRunId(parentRunId)
+						: request;
 			}
 		}
 		return new RunAgentRequest(rs.getString("ROOM_ID"), rs.getString("INPUT"), rs.getString("MODEL_ID"),
 				rs.getString("HARNESS_TYPE"), rs.getString("WORKSPACE_ID"), AgentRunContext.DEFAULT_MAX_TURNS,
-				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight);
+				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight)
+				.withParentRunId(rs.getString("PARENT_RUN_ID"));
 	}
 
 	private static AgentRunStatus parseRunStatus(String value) {
