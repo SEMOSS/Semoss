@@ -43,8 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -52,6 +50,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
