@@ -36,7 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,14 +47,13 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 
 public class FileAnalyzer {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(FileAnalyzer.class);
 
-	private static final List<Charset> COMMON_ENCODINGS = Arrays.asList(
-			StandardCharsets.UTF_8,
+	private static final List<Charset> COMMON_ENCODINGS = Arrays.asList(StandardCharsets.UTF_8,
 			StandardCharsets.ISO_8859_1, // same as latin1
 			Charset.forName("Windows-1252") // same as cp1252
-			);
+	);
 
 	private FileItem item;
 	private Charset charset = null;
@@ -71,26 +70,27 @@ public class FileAnalyzer {
 	public boolean isTextContent() throws IOException {
 		String filetype = FilenameUtils.getExtension(item.getName());
 		String mimeType = null;
-		
+
 		TikaConfig config = TikaConfig.getDefaultConfig();
 		Detector detector = config.getDetector();
 		Metadata metadata = new Metadata();
 		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, item.getName());
-		
+
 		try (TikaInputStream stream = TikaInputStream.get(this.item.getInputStream())) {
 			mimeType = detector.detect(stream, metadata).toString();
 		} catch (IOException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
-        }
-		
-		if(mimeType != null) {
-			if(mimeType.equals("application/zip")) {
+		}
+
+		if (mimeType != null) {
+			if (mimeType.equals("application/zip")) {
 				// zip
 				return false;
-			} else if(mimeType.startsWith("image/")) {
+			} else if (mimeType.startsWith("image/")) {
 				// image
 				return false;
-			} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+			} else if (mimeType
+					.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 							|| mimeType.equalsIgnoreCase("application/msword")
 							|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
@@ -104,26 +104,22 @@ public class FileAnalyzer {
 							&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 				// powerpoint
 				return false;
-			} else if(mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.macroenabled.12")
+			} else if (mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.macroenabled.12")
 					|| mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.binary.macroenabled.12")
 					|| mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 					|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
-					|| ( mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-							&& 
-							(filetype.equals("xls") || filetype.equals("xlsx") || filetype.equals("xlsm"))
-						)
-					) {
+					|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+							&& (filetype.equals("xls") || filetype.equals("xlsx") || filetype.equals("xlsm")))) {
 				// excel
 				return false;
-			}
-			else if (mimeType.equalsIgnoreCase("application/pdf")) {
+			} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 				// pdf
 				return false;
 			}
 		}
-		
+
 		for (Charset charset : COMMON_ENCODINGS) {
-			try (InputStream is = item.getInputStream(); 
+			try (InputStream is = item.getInputStream();
 					InputStreamReader isr = new InputStreamReader(is, charset);
 					BufferedReader reader = new BufferedReader(isr)) {
 				char[] buffer = new char[4096];
@@ -150,14 +146,13 @@ public class FileAnalyzer {
 	 */
 	private boolean isLikelyText(String contentSnippet) {
 		// Check for non-text characters and common text patterns
-		boolean hasNonTextCharacters = contentSnippet.chars().anyMatch(c ->
-		!(Character.isWhitespace(c) || Character.isISOControl(c) || (c >= 32 && c <= 126) || (c >= 128 && c <= 255))
-				);
+		boolean hasNonTextCharacters = contentSnippet.chars().anyMatch(c -> !(Character.isWhitespace(c)
+				|| Character.isISOControl(c) || (c >= 32 && c <= 126) || (c >= 128 && c <= 255)));
 		if (hasNonTextCharacters) {
 			return false;
 		}
-		return contentSnippet.contains("\n") || contentSnippet.contains("\r") ||
-				contentSnippet.contains(",") || contentSnippet.contains("\t");
+		return contentSnippet.contains("\n") || contentSnippet.contains("\r") || contentSnippet.contains(",")
+				|| contentSnippet.contains("\t");
 	}
 
 	/**
