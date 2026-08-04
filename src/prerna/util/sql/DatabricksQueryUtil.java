@@ -144,13 +144,7 @@ public class DatabricksQueryUtil extends AnsiSqlQueryUtil {
 		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + ";httpPath=" + this.httpPath
 				+ ";UID=" + this.uid + ";PWD=" + this.pwd;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}

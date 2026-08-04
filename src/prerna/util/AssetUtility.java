@@ -57,7 +57,7 @@ public class AssetUtility {
 	public static String INSIGHT_SPACE_KEY = "INSIGHT";
 
 	/**
-	 * Grab the workspace to work with asset files
+	 * Grab the root folder to work with asset files
 	 * 
 	 * PROJECT-ID: project/project_folder/app_root USER: user/user_folder/app_root
 	 * INSIGHT: project/project_folder/app_root/version/insightID if saved, else its
@@ -312,12 +312,14 @@ public class AssetUtility {
 
 		if (oldBaseAppFolderFile.exists()) {
 			try {
-				classLogger.info("Rehoming Project Catalog : " + projectName);
+				classLogger.info("Rehoming project catalog {} - moving {} under {}",
+						SmssUtilities.getUniqueName(projectName, projectId), oldBaseAppFolder, newRoot);
 				Files.move(oldBaseAppFolderFile.toPath(),
 						new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
 						StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to rehome the project version folder {} under {}", oldBaseAppFolder, newRoot,
+						e);
 			}
 		}
 	}
@@ -338,8 +340,8 @@ public class AssetUtility {
 		String gitFolder = baseFodler + "/version";
 
 		File file = new File(Utility.normalizePath(gitFolder));
-		if (!file.exists()) {
-			file.mkdir();
+		if (!file.exists() && !file.mkdirs()) {
+			classLogger.warn("Unable to create the user asset version folder {}", gitFolder);
 		}
 
 		if (!isGit(gitFolder)) {
@@ -360,8 +362,8 @@ public class AssetUtility {
 
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(projectFolder));
-		if (!file.exists()) {
-			file.mkdir();
+		if (!file.exists() && !file.mkdirs()) {
+			classLogger.warn("Unable to create the user asset folder {}", projectFolder);
 		}
 		return projectFolder.replace("\\", "/");
 	}
@@ -383,7 +385,12 @@ public class AssetUtility {
 
 		File baseAppFolderFile = new File(baseProjectFolder);
 		if (!baseAppFolderFile.exists()) {
-			baseAppFolderFile.mkdir();
+			// mkdirs and not mkdir - the user/<asset project> parent will not exist when
+			// the asset project is registered in the security db but its folder is not on
+			// this instance (fresh volume, restored db, cleared user folder)
+			if (!baseAppFolderFile.mkdirs()) {
+				classLogger.warn("Unable to create the user asset app root folder {}", baseProjectFolder);
+			}
 			// if you are creating this.. there is a possibility we need to fix this engine
 			rehomeUserForAppRoot(projectName, projectId, baseProjectFolder);
 		}
@@ -410,12 +417,14 @@ public class AssetUtility {
 
 		if (oldBaseAppFolderFile.exists()) {
 			try {
-				classLogger.info("Rehoming User Catalog : " + projectName);
+				classLogger.info("Rehoming user asset catalog {} - moving {} under {}",
+						SmssUtilities.getUniqueName(projectName, projectId), oldBaseAppFolder, newRoot);
 				Files.move(oldBaseAppFolderFile.toPath(),
 						new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
 						StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to rehome the user asset version folder {} under {}", oldBaseAppFolder,
+						newRoot, e);
 			}
 		}
 	}
