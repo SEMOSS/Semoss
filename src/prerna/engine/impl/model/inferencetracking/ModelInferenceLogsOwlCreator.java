@@ -140,6 +140,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 
 		addTable("AGENT_RUN", Arrays.asList(
 				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("PARENT_RUN_ID", VARCHAR_50),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("WORKSPACE_ID", VARCHAR_255),
 				Pair.with("MODEL_ID", VARCHAR_255),
