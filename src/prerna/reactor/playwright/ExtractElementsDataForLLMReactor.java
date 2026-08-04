@@ -56,7 +56,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 
 			        let p = el.parentElement;
 
-			        // Cross shadow DOM boundary: parentElement is null for direct children of a shadow root
+			        // C	ross shadow DOM boundary: parentElement is null for direct children of a shadow root
 			        if (!p) {
 			            const root = el.getRootNode();
 			            if (root && root.host) {

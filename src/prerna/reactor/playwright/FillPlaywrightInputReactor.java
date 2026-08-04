@@ -413,7 +413,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 		return fields;
 	}
 
-	private static String uniqueElementSelector(ElementHandle element) {
+	static String uniqueElementSelector(ElementHandle element) {
 		Object value = element.evaluate("""
 				(el) => {
 				  if (el.id && document.querySelectorAll('#' + CSS.escape(el.id)).length === 1) {
@@ -439,7 +439,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 		return stringValue(value);
 	}
 
-	private static boolean hasUniqueSelector(Page page, Object selectorObject) {
+	static boolean hasUniqueSelector(Page page, Object selectorObject) {
 		if (!(selectorObject instanceof Map<?, ?> selector)) return false;
 		String strategy = stringValue(selector.get("strategy"));
 		String value = stringValue(selector.get("value"));

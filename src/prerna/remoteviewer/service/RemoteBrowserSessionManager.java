@@ -49,6 +49,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.ScreenshotType;
+import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
@@ -216,7 +217,11 @@ public class RemoteBrowserSessionManager {
 		if (hasRequestedUrl) {
 			playwrightSession.getOperationLock().lock();
 			try {
-				page.navigate(requestedUrl);
+				// A remote viewer must become available as soon as the redirect chain has
+				// committed. Waiting for LOAD can hold the operation lock for the full
+				// navigation timeout on SSO/client-redirect pages, preventing the frame
+				// sender from showing the intermediate and eventual destination pages.
+				page.navigate(requestedUrl, new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
 			} catch (Exception e) {
 				// Navigation failure is non-fatal - the client will see an error frame
 				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
