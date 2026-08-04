@@ -838,8 +838,8 @@ public class Room implements Serializable {
 	 * message.
 	 *
 	 * @param inputMessage input message that triggered the model call
-	 * @param llmResponse  model response containing prompt token count and message
-	 *                     id
+	 * @param llmResponse  model response containing prompt token count, cache read
+	 *                     token count, and message id
 	 */
 	private void applyInputUsageFromModelResponse(InputMessage inputMessage, AskModelEngineResponse llmResponse) {
 		if (inputMessage == null || llmResponse == null) {
@@ -847,6 +847,7 @@ public class Room implements Serializable {
 		}
 		inputMessage.setTransactionId(llmResponse.getMessageId());
 		inputMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+		inputMessage.setCacheReadTokens(llmResponse.getNumberOfCacheReadTokens());
 	}
 
 	/**

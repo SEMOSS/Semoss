@@ -39,11 +39,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -72,6 +69,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
