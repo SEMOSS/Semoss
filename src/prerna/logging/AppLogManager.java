@@ -75,8 +75,15 @@ public final class AppLogManager {
 	private static final String LOG_PATTERN =
 			"[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %maskMsg%n";
 
-	/** Loggers that should write to per-project files (mirrors log4j2.xml AsyncLoggers). */
-	private static final String[] TARGET_LOGGERS = { "prerna", "EngineLogger" };
+	/**
+	 * Loggers that should write to per-project files (mirrors log4j2.xml
+	 * AsyncLoggers), plus the root logger — custom app reactors commonly live
+	 * in packages outside "prerna" (e.g. a VA/CFG app's own "reactors.*"
+	 * namespace) and fall through to root rather than inheriting from
+	 * "prerna" or "EngineLogger", which are separate top-level namespaces,
+	 * not ancestors of an arbitrary custom package.
+	 */
+	private static final String[] TARGET_LOGGERS = { "prerna", "EngineLogger", LogManager.ROOT_LOGGER_NAME };
 
 	private AppLogManager() {
 		// utility class — no instances

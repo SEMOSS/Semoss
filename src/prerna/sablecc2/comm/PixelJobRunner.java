@@ -81,10 +81,14 @@ public class PixelJobRunner implements Runnable {
 	@Override
 	public void run() {
 		this.executingThread = Thread.currentThread();
-		// Enrich the captured MDC context with this insight's projectId so every log
-		// line written during pixel execution carries [project=<id>] for log streaming.
+		// Enrich the captured MDC context with this insight's *context* projectId so
+		// every log line written during pixel execution carries [project=<id>] for
+		// log streaming. getProjectId() means something else entirely — "the project
+		// this insight is saved in" — and stays null for a transient REPL insight
+		// (Terminal, Console) that was only ever scoped via SetContext(...), which
+		// sets contextProjectId, not projectId.
 		Map<String, String> enrichedContextMap = new HashMap<>(this.log4jContextMap);
-		String projectId = insight.getProjectId();
+		String projectId = insight.getContextProjectId();
 		if (projectId != null && !projectId.isBlank()) {
 			enrichedContextMap.put("projectId", projectId);
 		}
