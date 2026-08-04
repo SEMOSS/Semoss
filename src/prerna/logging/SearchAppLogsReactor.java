@@ -54,7 +54,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Searches a project's app log file (and its rotated siblings) on disk for
- * lines matching a text query and/or level filter. No database involved —
+ * lines matching a text query and/or level filter. No database involved -
  * {@code app.log}'s own rotation (50MB x 10 files, see {@link AppLogManager})
  * already bounds how much there is to search.
  * <p>
@@ -68,11 +68,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *   "limit": "50"
  * }]);
  * </pre>
- * Returns {@code {"lines": [...], "totalMatches": N, "hasMore": bool}} — lines
+ * Returns {@code {"lines": [...], "totalMatches": N, "hasMore": bool}} - lines
  * are newest-first.
  * <p>
  * Security: owner-only, same rule {@code InsightWebsocket}'s app_logs watch
- * gate uses — logs can expose request/response payloads and other users'
+ * gate uses - logs can expose request/response payloads and other users'
  * activity.
  */
 public class SearchAppLogsReactor extends AbstractReactor {
@@ -81,7 +81,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 
 	private static final int DEFAULT_LIMIT = 50;
 	private static final int MAX_LIMIT = 500;
-	/** Rotated file suffixes to search, newest-rotated first — mirrors AppLogManager's DefaultRolloverStrategy numbering. */
+	/** Rotated file suffixes to search, newest-rotated first - mirrors AppLogManager's DefaultRolloverStrategy numbering. */
 	private static final int MAX_ROTATED_FILES = 10;
 
 	public SearchAppLogsReactor() {
@@ -94,6 +94,9 @@ public class SearchAppLogsReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
+		if (user == null || user.getPrimaryLoginToken() == null) {
+			throwAnonymousUserError();
+		}
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
@@ -120,7 +123,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 
 		List<String> matches = new ArrayList<>();
 		int totalMatches = 0;
-		// Newest file first, and within each file, newest line first — scan
+		// Newest file first, and within each file, newest line first - scan
 		// everything to get an accurate total, but stop building `matches` once
 		// we've collected enough for this page (offset + limit).
 		for (File file : files) {
@@ -139,11 +142,11 @@ public class SearchAppLogsReactor extends AbstractReactor {
 		return buildResult(matches, totalMatches, offset + matches.size() < totalMatches);
 	}
 
-	// ── private helpers ──────────────────────────────────────────────────────
+	// -- private helpers --------------------------------------------------------
 
 	/**
 	 * {@code app.log} plus any existing rotated siblings ({@code app.log.1} ...
-	 * {@code app.log.10}), newest-first — {@code app.log.1} is the most
+	 * {@code app.log.10}), newest-first - {@code app.log.1} is the most
 	 * recently rotated file under Log4j2's default (ascending) fileIndex
 	 * strategy, {@code .10} the oldest still retained.
 	 */

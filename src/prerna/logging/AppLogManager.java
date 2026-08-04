@@ -55,7 +55,7 @@ import prerna.util.AssetUtility;
  * registers a {@link RollingFileAppender} for the project that is filtered by
  * the {@code projectId} MDC key set in {@link prerna.sablecc2.comm.PixelJobRunner}.
  * Only log events whose MDC {@code projectId} matches the project are written
- * to that project's log file — all other events are silently dropped by the
+ * to that project's log file - all other events are silently dropped by the
  * {@link ThreadContextMapFilter}.
  * <p>
  * Log4j2's own {@link Configuration} is the single source of truth for whether
@@ -71,13 +71,13 @@ public final class AppLogManager {
 
 	private static final Logger classLogger = LogManager.getLogger(AppLogManager.class);
 
-	/** Log pattern used for per-project appenders — mirrors the global file appender. */
+	/** Log pattern used for per-project appenders - mirrors the global file appender. */
 	private static final String LOG_PATTERN =
 			"[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %maskMsg%n";
 
 	/**
 	 * Loggers that should write to per-project files (mirrors log4j2.xml
-	 * AsyncLoggers), plus the root logger — custom app reactors commonly live
+	 * AsyncLoggers), plus the root logger - custom app reactors commonly live
 	 * in packages outside "prerna" (e.g. a VA/CFG app's own "reactors.*"
 	 * namespace) and fall through to root rather than inheriting from
 	 * "prerna" or "EngineLogger", which are separate top-level namespaces,
@@ -86,18 +86,18 @@ public final class AppLogManager {
 	private static final String[] TARGET_LOGGERS = { "prerna", "EngineLogger", LogManager.ROOT_LOGGER_NAME };
 
 	private AppLogManager() {
-		// utility class — no instances
+		// utility class - no instances
 	}
 
 	/**
 	 * Ensures a per-project log appender is registered for the given project.
 	 * <p>
-	 * Uses the Log4j2 {@link Configuration} as the single source of truth —
+	 * Uses the Log4j2 {@link Configuration} as the single source of truth -
 	 * no separate tracking set. Handles Log4j2 config reloads automatically:
 	 * if the config is refreshed and the appender is lost, the next
 	 * {@code setContext()} call will re-register it.
 	 * <p>
-	 * Idempotent — safe to call on every {@code setContext()} invocation.
+	 * Idempotent - safe to call on every {@code setContext()} invocation.
 	 *
 	 * @param projectId   the project whose logs should be captured
 	 * @param projectName the project display name used to resolve the version folder path
@@ -109,12 +109,12 @@ public final class AppLogManager {
 		String appenderName = "AppFile-" + projectId;
 		LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
 
-		// Fast path — appender already registered in the current config
+		// Fast path - appender already registered in the current config
 		if (ctx.getConfiguration().getAppender(appenderName) != null) {
 			return;
 		}
 
-		// Slow path — register under a class-level lock to prevent concurrent
+		// Slow path - register under a class-level lock to prevent concurrent
 		// double-registration when multiple threads load the same app simultaneously
 		synchronized (AppLogManager.class) {
 			if (ctx.getConfiguration().getAppender(appenderName) != null) {
@@ -141,11 +141,11 @@ public final class AppLogManager {
 		return AssetUtility.getProjectVersionFolder(projectName, projectId) + "/logs/app.log";
 	}
 
-	// ── private ────────────────────────────────────────────────────────────
+	// -- private --------------------------------------------------------------
 
 	private static void registerAppender(String projectId, String projectName,
 			String appenderName, LoggerContext ctx) throws IOException {
-		// Write to version/logs/ — sits alongside assets/ so editors browsing the
+		// Write to version/logs/ - sits alongside assets/ so editors browsing the
 		// assets folder never see log files, but it's still within the project tree.
 		String versionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
 		String logDir = versionFolder + "/logs";
@@ -157,7 +157,7 @@ public final class AppLogManager {
 			classLogger.warn("Could not create log directory '{}' for project '{}'", logDir, projectId);
 		}
 
-		// Ensure logs/ is gitignored — .gitignore is at the version folder root
+		// Ensure logs/ is gitignored - .gitignore is at the version folder root
 		ensureLogsGitIgnored(versionFolder);
 
 		Configuration config = ctx.getConfiguration();
@@ -201,7 +201,7 @@ public final class AppLogManager {
 		}
 		ctx.updateLoggers();
 
-		classLogger.info("Registered per-project log appender for '{}' → {}", projectId, logFile);
+		classLogger.info("Registered per-project log appender for '{}' -> {}", projectId, logFile);
 	}
 
 	/**
