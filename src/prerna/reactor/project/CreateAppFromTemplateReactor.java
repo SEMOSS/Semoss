@@ -33,13 +33,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
@@ -140,6 +147,65 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 			throw new IllegalArgumentException(
 					"New project was created but could not transfer over the assets from the template. Errror = "
 							+ e.getMessage());
+		}
+
+		// If the template is a WORKSPACE (agent), clone the inference-log workspace
+		// entry and CONFIG_JSON so the new agent inherits all configuration:
+		// system prompt, model selection, MCPs, skills, budgets, hooks, subagents.
+		if (IProject.PROJECT_TYPE.WORKSPACE == projectEnumType) {
+			try {
+				User user = this.insight.getUser();
+				String newProjectId = newProject.getProjectId();
+
+				Map<String, Object> sourceEntry = ModelInferenceLogsUtils.getWorkspaceEntry(projectTemplateId);
+				String sourceDescription = sourceEntry != null ? (String) sourceEntry.get("description") : null;
+				String sourceSystemPrompt = sourceEntry != null ? (String) sourceEntry.get("system_prompt") : null;
+				JSONObject sourceConfigJson = ModelInferenceLogsUtils.getWorkspaceConfigJson(projectTemplateId);
+				List<Map<String, Object>> sourceResources = ModelInferenceLogsUtils
+						.getWorkspaceResourcesByType(projectTemplateId, null);
+
+				List<Map<String, String>> clonedResources = new ArrayList<>();
+				List<Map<String, Object>> dependencyList = new ArrayList<>();
+				if (sourceResources != null) {
+					for (Map<String, Object> r : sourceResources) {
+						String resourceId = (String) r.get("resource_id");
+						String resourceType = (String) r.get("resource_type");
+						String resourceSubtype = (String) r.get("resource_subtype");
+						Map<String, String> entry = new HashMap<>();
+						entry.put("workspace_resource_id", UUID.randomUUID().toString());
+						entry.put("workspace_id", newProjectId);
+						entry.put("resource_id", resourceId);
+						entry.put("resource_type", resourceType);
+						entry.put("resource_subtype", resourceSubtype);
+						clonedResources.add(entry);
+						Map<String, Object> dep = new HashMap<>();
+						dep.put("ENGINEID", resourceId);
+						dep.put("ENGINETYPE", resourceType);
+						dependencyList.add(dep);
+					}
+				}
+
+				SecurityProjectUtils.updateProjectDependencies(user, newProjectId, dependencyList);
+				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId,
+						user.getPrimaryLoginToken().getId(),
+						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
+				if (sourceConfigJson != null) {
+					ModelInferenceLogsUtils.updateWorkspaceConfigJson(newProjectId, sourceConfigJson);
+				}
+			} catch (Exception e) {
+				classLogger.error("Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
+						projectTemplateId, newProject.getProjectId(), e);
+				// Roll back the project so the user doesn't end up with a broken agent
+				// that exists in the list but throws "Workspace not found" when opened.
+				try {
+					newProject.delete();
+				} catch (Exception rollbackEx) {
+					classLogger.error("Failed to roll back project '{}' after workspace entry clone failure.",
+							newProject.getProjectId(), rollbackEx);
+				}
+				throw new IllegalArgumentException(
+						"Failed to create workspace configuration for cloned agent: " + e.getMessage(), e);
+			}
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
