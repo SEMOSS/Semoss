@@ -465,6 +465,9 @@ public class RemoteBrowserInputService {
 	private static void wheel(Page page, RemoteBrowserInputEvent event) {
 		classLogger.info("Remote viewer wheel x={} y={} deltaX={} deltaY={}", round(event.getX()), round(event.getY()),
 				event.getDeltaX(), event.getDeltaY());
+		if (event.getX() != null && event.getY() != null) {
+			page.mouse().move(event.getX(), event.getY());
+		}
 		page.mouse().wheel(event.getDeltaX() != null ? event.getDeltaX() : 0,
 				event.getDeltaY() != null ? event.getDeltaY() : 0);
 	}

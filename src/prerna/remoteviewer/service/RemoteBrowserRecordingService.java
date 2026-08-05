@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.remoteviewer.service;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.microsoft.playwright.Page;
@@ -117,6 +118,11 @@ public class RemoteBrowserRecordingService {
 					toInteger(event.getDeltaY())), false);
 			addLegacyStep(session, event);
 			break;
+		case "selected-text-context":
+			session.clearPendingTypeStep();
+			recordContext(session, event);
+			addLegacyStep(session, event);
+			break;
 		default:
 			session.clearPendingTypeStep();
 			break;
@@ -167,6 +173,20 @@ public class RemoteBrowserRecordingService {
 				waitAfter(event), null);
 		appendStep(session, event, step, false);
 		addLegacyStep(session, event);
+	}
+
+	private static void recordContext(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		Coords start = coords(event);
+		if (start == null || event.getEndX() == null || event.getEndY() == null) {
+			throw new IllegalArgumentException("Context recording requires selection bounds");
+		}
+		Coords end = new Coords((int) Math.round(event.getEndX()), (int) Math.round(event.getEndY()));
+		PlaywrightStep step = new PlaywrightStep(0, PlaywrightStepType.CONTEXT, null, start,
+				List.of(start, end), "Extract selected website text", null, null, null, null, null,
+				viewport(session, event), System.currentTimeMillis(),
+				event.getLabel() == null || event.getLabel().isBlank() ? "Selected website text" : event.getLabel(),
+				event.getDescription(), false, false, null, null, Boolean.TRUE, Boolean.FALSE, Boolean.TRUE, null);
+		appendStep(session, event, step, false);
 	}
 
 	private static void recordType(RemoteBrowserSession session, RemoteBrowserInputEvent event) {

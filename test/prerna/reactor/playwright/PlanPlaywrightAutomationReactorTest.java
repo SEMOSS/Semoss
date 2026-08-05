@@ -53,7 +53,26 @@ class PlanPlaywrightAutomationReactorTest {
 		assertTrue(prompt.contains("PREVIOUS AUTOMATED ACTIONS"));
 		assertTrue(prompt.contains("ITERATION: 2 of 10"));
 		assertTrue(prompt.contains("AVAILABLE ACTIONS"));
+		assertTrue(prompt.contains("\"type\":\"scroll\""));
 		assertFalse(prompt.contains("button.search"));
+	}
+
+	@Test
+	void parserMapsScrollIndexToServerControlledDelta() throws Exception {
+		Map<String, Object> scroll = new LinkedHashMap<>();
+		scroll.put("index", 0);
+		scroll.put("kind", "scroll");
+		scroll.put("label", "Scroll down");
+		scroll.put("direction", "down");
+		scroll.put("deltaY", 560);
+		scroll.put("screenPercent", 70);
+
+		Map<String, Object> decision = PlanPlaywrightAutomationReactor.parseDecision(
+				"{\"type\":\"scroll\",\"index\":0,\"reason\":\"reveal more results\"}", List.of(scroll));
+		Map<?, ?> action = (Map<?, ?>) decision.get("action");
+		assertEquals("scroll", action.get("type"));
+		assertEquals(560, action.get("deltaY"));
+		assertEquals("down", action.get("direction"));
 	}
 
 	@Test

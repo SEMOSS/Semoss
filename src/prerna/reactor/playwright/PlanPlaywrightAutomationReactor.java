@@ -321,6 +321,21 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			  }
 			  return {
 			    visibleText: visibleText.join(' ').slice(0, 4000),
+			    scroll: (() => {
+			      const root = document.scrollingElement || document.documentElement || document.body;
+			      const viewportHeight = Math.max(1, window.innerHeight || root?.clientHeight || 1);
+			      const documentHeight = Math.max(viewportHeight, root?.scrollHeight || viewportHeight);
+			      const top = Math.max(0, window.scrollY || root?.scrollTop || 0);
+			      const max = Math.max(0, documentHeight - viewportHeight);
+			      return {
+			        top,
+			        max,
+			        viewportHeight,
+			        documentHeight,
+			        canScrollUp: top > 1,
+			        canScrollDown: top < max - 1
+			      };
+			    })(),
 			    focused: (() => {
 			    const el = document.activeElement;
 			    if (!el || el === document.body) return '';
@@ -370,7 +385,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			String pageUrl = page.url();
 			String pageTitle = page.title();
 			Map<String, Object> pageState = pageState(page);
-			List<Map<String, Object>> availableActions = availableActions(page);
+			List<Map<String, Object>> availableActions = availableActions(page, pageState);
 			String roomContext = FillPlaywrightInputReactor.buildRoomContext(room, messageLimit);
 			String prompt = buildPrompt(goal, roomContext, pageUrl, pageTitle, pageState,
 					availableActions, history, iteration, maxIterations);
@@ -413,7 +428,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 	}
 
 	@SuppressWarnings("unchecked")
-	static List<Map<String, Object>> availableActions(Page page) {
+	static List<Map<String, Object>> availableActions(Page page, Map<String, Object> pageState) {
 		List<Map<String, Object>> fields = new ArrayList<>();
 		for (Map<String, Object> field : FillPlaywrightInputReactor.extractPageFields(page, -1.0, -1.0)) {
 			Map<String, Object> action = new LinkedHashMap<>(field);
@@ -440,7 +455,32 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		List<Map<String, Object>> indexed = new ArrayList<>();
 		appendValidatedActions(page, indexed, fields, MAX_FIELDS);
 		appendValidatedActions(page, indexed, clickables, MAX_CLICKABLES);
+		appendScrollActions(indexed, pageState);
 		return indexed;
+	}
+
+	private static void appendScrollActions(List<Map<String, Object>> target, Map<String, Object> pageState) {
+		Object rawScroll = pageState.get("scroll");
+		if (!(rawScroll instanceof Map<?, ?> scroll)) return;
+		int viewportHeight = Math.max(1, number(scroll.get("viewportHeight")));
+		int delta = Math.max(1, (int) Math.round(viewportHeight * 0.7));
+		if (Boolean.TRUE.equals(scroll.get("canScrollUp"))) {
+			target.add(scrollAction(target.size(), "up", -delta));
+		}
+		if (Boolean.TRUE.equals(scroll.get("canScrollDown"))) {
+			target.add(scrollAction(target.size(), "down", delta));
+		}
+	}
+
+	private static Map<String, Object> scrollAction(int index, String direction, int deltaY) {
+		Map<String, Object> action = new LinkedHashMap<>();
+		action.put("index", index);
+		action.put("kind", "scroll");
+		action.put("label", "Scroll " + direction);
+		action.put("direction", direction);
+		action.put("deltaY", deltaY);
+		action.put("screenPercent", 70);
+		return action;
 	}
 
 	private static void appendValidatedActions(Page page, List<Map<String, Object>> target,
@@ -496,7 +536,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		for (Map<String, Object> available : availableActions) {
 			Map<String, Object> promptAction = new LinkedHashMap<>();
 			for (String key : List.of("index", "kind", "label", "context", "tag", "role", "type", "href",
-					"state", "currentValue", "options")) {
+					"state", "currentValue", "options", "direction", "screenPercent")) {
 				if (available.containsKey(key)) promptAction.put(key, available.get(key));
 			}
 			promptActions.add(promptAction);
@@ -510,6 +550,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 				+ "- {\"type\":\"click\",\"index\":N,\"reason\":\"...\"} for kind=click\n"
 				+ "- {\"type\":\"fill\",\"index\":N,\"value\":\"...\",\"reason\":\"...\"} for a non-select kind=field\n"
 				+ "- {\"type\":\"select\",\"index\":N,\"value\":\"exact option value\",\"reason\":\"...\"} for a select field\n"
+				+ "- {\"type\":\"scroll\",\"index\":N,\"reason\":\"what content must be revealed\"} for kind=scroll\n"
 				+ "- {\"type\":\"done\",\"goalReached\":true,\"reason\":\"evidence from current state\"} when complete\n"
 				+ "- {\"type\":\"done\",\"goalReached\":false,\"reason\":\"why no safe useful action is available\"} when blocked\n"
 				+ "Return exactly one JSON object and use only an index from AVAILABLE ACTIONS. If no safe useful action exists, "
@@ -544,7 +585,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			decision.put("action", null);
 			return decision;
 		}
-		if (!List.of("click", "fill", "select").contains(type)) {
+		if (!List.of("click", "fill", "select", "scroll").contains(type)) {
 			throw new IllegalArgumentException("Model returned unsupported browser action '" + type + "'");
 		}
 
@@ -561,12 +602,15 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		if (("fill".equals(type) || "select".equals(type)) && !"field".equals(kind)) {
 			throw new IllegalArgumentException("Model tried to write to a non-editable action");
 		}
+		if ("scroll".equals(type) && !"scroll".equals(kind)) {
+			throw new IllegalArgumentException("Model tried to scroll using a non-scroll action");
+		}
 		if ("select".equals(type) != "select".equals(tag)) {
 			throw new IllegalArgumentException("Model used the wrong action type for the selected field");
 		}
 
 		String value = clean(parsed.get("value"));
-		if (!"click".equals(type)) {
+		if ("fill".equals(type) || "select".equals(type)) {
 			if (value.isBlank()) throw new IllegalArgumentException("Model returned an empty field value");
 			if (value.length() > MAX_VALUE_LENGTH) throw new IllegalArgumentException("Generated field value is too long");
 			if ("select".equals(type) && !hasOptionValue(available.get("options"), value)) {
@@ -578,10 +622,16 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		action.put("type", type);
 		action.put("index", index);
 		action.put("label", available.getOrDefault("label", ""));
-		action.put("tag", available.getOrDefault("tag", ""));
-		action.put("selector", available.get("selector"));
-		action.put("coords", available.get("coords"));
-		if (!"click".equals(type)) action.put("value", value);
+		if ("scroll".equals(type)) {
+			action.put("direction", available.get("direction"));
+			action.put("deltaY", available.get("deltaY"));
+			action.put("screenPercent", available.get("screenPercent"));
+		} else {
+			action.put("tag", available.getOrDefault("tag", ""));
+			action.put("selector", available.get("selector"));
+			action.put("coords", available.get("coords"));
+			if (!"click".equals(type)) action.put("value", value);
+		}
 		decision.put("goalReached", false);
 		decision.put("reason", reason);
 		decision.put("action", action);

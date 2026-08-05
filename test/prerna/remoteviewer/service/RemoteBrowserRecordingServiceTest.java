@@ -28,6 +28,8 @@
 package prerna.remoteviewer.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -39,6 +41,7 @@ import com.microsoft.playwright.Page;
 
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.reactor.playwright.PlaywrightStep;
+import prerna.reactor.playwright.PlaywrightStepType;
 import prerna.reactor.playwright.Selector;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 
@@ -69,6 +72,30 @@ class RemoteBrowserRecordingServiceTest {
 		List<PlaywrightStep> steps = session.getRecordingHistory().steps().get("tab-1").get(0);
 		assertEquals(1, steps.size());
 		assertEquals("playwright", steps.get(0).text());
+	}
+
+	@Test
+	void selectedTextContextIsRecordedAsOptionalReplayStepWithoutCapturedText() {
+		RemoteBrowserSession session = session();
+		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
+		event.setType("selected-text-context");
+		event.setX(100d);
+		event.setY(120d);
+		event.setEndX(420d);
+		event.setEndY(260d);
+		event.setLabel("Article summary");
+
+		RemoteBrowserRecordingService.record(session, event);
+
+		PlaywrightStep step = session.getRecordingHistory().steps().get("tab-1").get(0).get(0);
+		assertEquals(PlaywrightStepType.CONTEXT, step.type());
+		assertEquals(2, step.multiCoords().size());
+		assertEquals("Extract selected website text", step.prompt());
+		assertEquals("Article summary", step.label());
+		assertTrue(step.shouldRun());
+		assertFalse(step.required());
+		assertTrue(step.sendToPlayground());
+		assertEquals(null, step.text());
 	}
 
 	private static RemoteBrowserSession session() {

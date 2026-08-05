@@ -92,6 +92,15 @@ public class RemoteBrowserSessionManager {
 	private final int defaultViewportHeight;
 	private final int maxSessionsPerUser;
 	private static final String DEFAULT_START_URL = "https://example.com";
+	private static final String JS_PAGE_SCROLL_METRICS = """
+			() => {
+			  const root = document.scrollingElement || document.documentElement || document.body;
+			  const viewportHeight = Math.max(1, window.innerHeight || root?.clientHeight || 1);
+			  const scrollHeight = Math.max(viewportHeight, root?.scrollHeight || viewportHeight);
+			  const scrollTop = Math.max(0, window.scrollY || root?.scrollTop || 0);
+			  return { scrollTop, scrollHeight, viewportHeight };
+			}
+			""";
 
 	private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "RemoteBrowserSessionReaper");
@@ -461,9 +470,18 @@ public class RemoteBrowserSessionManager {
 							byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
 									.setType(ScreenshotType.JPEG).setQuality(75));
 							String b64 = Base64.getEncoder().encodeToString(buf);
-							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
-									Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
-											"pageScaleFactor", 1))));
+							Map<String, Object> metadata = new LinkedHashMap<>();
+							metadata.put("width", session.getViewportWidth());
+							metadata.put("height", session.getViewportHeight());
+							metadata.put("pageScaleFactor", 1);
+							Object rawScrollMetrics = page.evaluate(JS_PAGE_SCROLL_METRICS);
+							if (rawScrollMetrics instanceof Map<?, ?> scrollMetrics) {
+								metadata.put("scrollTop", scrollMetrics.get("scrollTop"));
+								metadata.put("scrollHeight", scrollMetrics.get("scrollHeight"));
+								metadata.put("viewportHeight", scrollMetrics.get("viewportHeight"));
+							}
+							sender.send(LOOP_GSON.toJson(
+									Map.of("type", "frame", "data", b64, "metadata", metadata)));
 						} catch (Exception ignored) {
 						}
 					} finally {
@@ -678,6 +696,10 @@ public class RemoteBrowserSessionManager {
 		response.put("requestId", event.getRequestId());
 		try {
 			response.put("context", RemoteBrowserSelectedTextService.capture(session, event));
+			if (Boolean.TRUE.equals(event.getRecord())) {
+				event.setTabId(session.getActiveTabId());
+				RemoteBrowserRecordingService.record(session, event);
+			}
 			response.put("success", true);
 		} catch (Exception e) {
 			classLogger.warn("Selected-text context capture failed for session {}: {}", session.getSessionId(),
