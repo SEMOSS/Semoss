@@ -29,8 +29,10 @@ package prerna.reactor.agent.run;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +48,12 @@ import prerna.util.Utility;
 public final class AgentRunStore {
 
 	private static final Gson GSON = new Gson();
+	private static final String ACTIVITY_LOG_COLUMNS = "ar.RUN_ID, ar.PARENT_RUN_ID, ar.ROOM_ID, ar.WORKSPACE_ID, ar.MODEL_ID, "
+			+ "ar.HARNESS_TYPE, ar.JOB_ID, ar.STATUS, ar.INPUT, ar.INPUT_MESSAGE_ID, ar.FINAL_OUTPUT, ar.FINAL_OUTPUT_MESSAGE_ID, "
+			+ "ar.ERROR_MESSAGE, ar.DATE_CREATED, ar.STARTED_AT, ar.COMPLETED_AT, ar.USER_ID, r.ROOM_NAME";
+	// Rooms are keyed per user, so the name join must match on both columns.
+	private static final String ACTIVITY_LOG_FROM = "FROM AGENT_RUN ar "
+			+ "LEFT JOIN ROOM r ON ar.ROOM_ID = r.ROOM_ID AND ar.USER_ID = r.USER_ID";
 
 	public void insertSubmitted(String runId, RunAgentRequest request, String userId) {
 		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
@@ -122,9 +130,8 @@ public final class AgentRunStore {
 		ResultSet rs = null;
 		try {
 			String userId = resolveInsightUserId(insight);
-			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
-					+ "REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
-					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.RUN_ID = ? AND ar.USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
 			ps.setString(2, userId);
@@ -132,31 +139,138 @@ public final class AgentRunStore {
 			if (!rs.next()) {
 				return null;
 			}
-			Map<String, Object> map = new java.util.HashMap<>();
-			map.put("runId", rs.getString("RUN_ID"));
-			map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
-			map.put("roomId", rs.getString("ROOM_ID"));
-			map.put("workspaceId", rs.getString("WORKSPACE_ID"));
-			map.put("modelId", rs.getString("MODEL_ID"));
-			map.put("harnessType", rs.getString("HARNESS_TYPE"));
-			map.put("jobId", rs.getString("JOB_ID"));
-			map.put("status", rs.getString("STATUS"));
-			map.put("input", rs.getString("INPUT"));
-			map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
-			map.put("finalText", rs.getString("FINAL_OUTPUT"));
-			map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
-			map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
-			map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
-			map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
-			map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
-			map.put("userId", rs.getString("USER_ID"));
-			map.put("artifacts", new ArrayList<>());
-			return map;
+			return runMapFromRow(rs);
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return one page of runs for an agent owned by the current user, newest first.
+	 *
+	 * @param insight current request insight, used to scope the query to its user
+	 * @param agentId agent workspace identifier used to scope the runs
+	 * @param limit   maximum number of runs to return
+	 * @param offset  number of matching runs to skip
+	 * @return the requested page of agent runs
+	 */
+	public List<Map<String, Object>> getActivityLog(Insight insight, String agentId, long limit, long offset) {
+		if (agentId == null || agentId.trim().isEmpty()) {
+			throw new IllegalArgumentException("agentId is required");
+		}
+		if (limit <= 0) {
+			throw new IllegalArgumentException("limit must be greater than 0");
+		}
+		if (offset < 0) {
+			throw new IllegalArgumentException("offset must be greater than or equal to 0");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder("SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.WORKSPACE_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC");
+			db.getQueryUtil().addLimitOffsetToQuery(query, limit, offset);
+
+			ps = db.getPreparedStatement(query.toString());
+			ps.setString(1, userId);
+			ps.setString(2, agentId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
+			throw new IllegalStateException("Failed to load AGENT_RUN activity log", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return every run in a room owned by the current user, newest first.
+	 *
+	 * @param insight current request insight, used to scope the query to its user
+	 * @param roomId  room whose complete run history should be returned
+	 * @return all current-user runs for the room
+	 */
+	public List<Map<String, Object>> getRunsForRoom(Insight insight, String roomId) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			throw new IllegalArgumentException("roomId is required");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.ROOM_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, roomId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load AGENT_RUN rows for roomId=" + roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Return every direct subagent run for a parent run owned by the current user,
+	 * newest first.
+	 *
+	 * @param insight     current request insight, used to scope the query to its user
+	 * @param parentRunId parent run whose direct subagent runs should be returned
+	 * @return all current-user runs with the supplied parent run ID
+	 */
+	public List<Map<String, Object>> getSubagentRuns(Insight insight, String parentRunId) {
+		if (parentRunId == null || parentRunId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+
+		String userId = resolveInsightUserId(insight);
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.PARENT_RUN_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, userId);
+			ps.setString(2, parentRunId.trim());
+			rs = ps.executeQuery();
+
+			List<Map<String, Object>> runs = new ArrayList<>();
+			while (rs.next()) {
+				runs.add(runMapFromRow(rs));
+			}
+			return runs;
+		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
+			throw new IllegalStateException("Failed to load subagent AGENT_RUN rows for parentRunId=" + parentRunId,
+					e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
@@ -482,5 +596,29 @@ public final class AgentRunStore {
 
 	private static String stringValue(Object value) {
 		return value == null ? null : String.valueOf(value);
+	}
+
+	private static Map<String, Object> runMapFromRow(ResultSet rs) throws SQLException {
+		Map<String, Object> map = new HashMap<>();
+		map.put("runId", rs.getString("RUN_ID"));
+		map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
+		map.put("roomId", rs.getString("ROOM_ID"));
+		map.put("roomName", rs.getString("ROOM_NAME"));
+		map.put("workspaceId", rs.getString("WORKSPACE_ID"));
+		map.put("modelId", rs.getString("MODEL_ID"));
+		map.put("harnessType", rs.getString("HARNESS_TYPE"));
+		map.put("jobId", rs.getString("JOB_ID"));
+		map.put("status", rs.getString("STATUS"));
+		map.put("input", rs.getString("INPUT"));
+		map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
+		map.put("finalText", rs.getString("FINAL_OUTPUT"));
+		map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
+		map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
+		map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
+		map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
+		map.put("userId", rs.getString("USER_ID"));
+		map.put("artifacts", new ArrayList<>());
+		return map;
 	}
 }
