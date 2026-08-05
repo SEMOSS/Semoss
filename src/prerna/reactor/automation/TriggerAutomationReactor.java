@@ -58,8 +58,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
 
 	public TriggerAutomationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AutomationConstants.AUTOMATION_INPUTS_KEY };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), AutomationConstants.AUTOMATION_INPUTS_KEY, AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -94,8 +94,16 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			Map<String, Object> inputsMap = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 			AutomationExecutionUtils.applyPlaygroundInputs(ordered, inputsMap);
 
+			String triggerType = this.keyValue.get(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY);
+			if (triggerType == null || triggerType.isBlank()) {
+				triggerType = AutomationConstants.TRIGGER_MANUAL;
+			} else if (!AutomationConstants.TRIGGER_MANUAL.equals(triggerType)
+					&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)) {
+				classLogger.warn("Unknown triggerType '{}' for run {}, defaulting to MANUAL", triggerType, runId);
+				triggerType = AutomationConstants.TRIGGER_MANUAL;
+			}
 			AutomationDatabaseUtility.insertRun(runId, projectId, AutomationConstants.DEFAULT_AUTOMATION_ID,
-					AutomationConstants.TRIGGER_MANUAL, ordered.size(), userId);
+					triggerType, ordered.size(), userId);
 			AutomationDatabaseUtility.insertAllNodeOutputs(runId, ordered);
 
 			classLogger.info("Automation run {} starting for project {}", runId, projectId);
@@ -223,6 +231,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) return "The project (app) ID or alias to run the automation for.";
 		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) return "Optional map of playground-supplied values to inject into automation node fields before running. Keys are parameter names from the automation's MCP tool schema.";
+		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) return "Caller-supplied trigger source. Defaults to MANUAL when omitted; MCP/playground callers pass PLAYGROUND.";
 		return super.getDescriptionForKey(key);
 	}
 }

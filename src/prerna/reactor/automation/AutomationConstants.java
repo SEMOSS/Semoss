@@ -94,6 +94,7 @@ public final class AutomationConstants {
 	// -- Trigger types -------------------------------------------------------------
 
 	public static final String TRIGGER_MANUAL = "MANUAL";
+	public static final String TRIGGER_PLAYGROUND = "PLAYGROUND";
 
 	// -- Node types (Phase 1) ------------------------------------------------------
 
@@ -223,6 +224,7 @@ public final class AutomationConstants {
 	// -- Pixel execution defaults ----------------------------------------------------
 
 	public static final String AUTOMATION_INPUTS_KEY = "inputs";
+	public static final String AUTOMATION_TRIGGER_TYPE_KEY = "triggerType";
 	public static final int DEFAULT_TIMEOUT_SECONDS = 300;
 
 	// -- Data type constants (for table creation) ----------------------------------

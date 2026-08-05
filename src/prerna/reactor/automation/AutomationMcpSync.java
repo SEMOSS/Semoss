@@ -182,6 +182,13 @@ public final class AutomationMcpSync {
 			properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, inputsProp);
 		}
 
+		JSONObject triggerTypeProp = new JSONObject();
+		triggerTypeProp.put("type", "string");
+		triggerTypeProp.put("title", "Trigger Type");
+		triggerTypeProp.put("description", "How this automation was triggered. Always use: " + AutomationConstants.TRIGGER_PLAYGROUND);
+		triggerTypeProp.put("default", AutomationConstants.TRIGGER_PLAYGROUND);
+		properties.put(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY, triggerTypeProp);
+
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("type", "object");
 		inputSchema.put("title", "TriggerAutomation_Arguments");
