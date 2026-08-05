@@ -138,18 +138,19 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// AbstractMessages
 		// then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
+		Object appendFullPromptValue = parameters.remove(APPEND_FULL_PROMPT);
+		boolean appendFullPrompt = fullPrompt != null
+				&& Boolean.parseBoolean(String.valueOf(appendFullPromptValue));
+		List<AbstractMessage> messageList = null;
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore
-				.acquireMutationLock(fullPrompt != null ? room : null)) {
+				.acquireMutationLock(appendFullPrompt ? room : null)) {
 			if (fullPrompt != null) {
-				List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-				Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
-				if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
+				messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
+				if (appendFullPrompt) {
 					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
 					RoomMessageStore.refreshFromLatestProjection(room, userId);
 					room.getMessages().addAll(messageList);
 					messageList = room.getMessages();
-				} else {
-					room.setMessages(messageList);
 				}
 				String messageJson = RoomMessageStore.providerMessageHistory(room, messageList);
 				question = messageJson;
@@ -186,10 +187,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				// when we convert from fullPrompt to semoss message structure
 				// inputMessage in the method is not the same as the message array of the room
 				// so update to the last message of the array
-				inputMessage = room.getMessages().getLast();
+				inputMessage = messageList.getLast();
 
-				fullPrompt = MessageUtils.toJsonArray(room.getMessages());
-				question = MessageUtils.toJsonArray(room.getMessages());
+				fullPrompt = MessageUtils.toJsonArray(messageList);
+				question = MessageUtils.toJsonArray(messageList);
 			}
 
 			ZonedDateTime inputTime = ZonedDateTime.now();
@@ -258,11 +259,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String currentRoomName = room.getRoomName();
 
 			if (fullPrompt != null) {
+				List<AbstractMessage> persistedMessages = appendFullPrompt ? room.getMessages() : messageList;
 				// Grabbing room name from first input message if room name is empty
 				if (currentRoomName == null || currentRoomName.isEmpty()) {
 					String roomName = null;
-					if (!room.getMessages().isEmpty()) {
-						AbstractMessage first = room.getMessages().get(0);
+					if (!persistedMessages.isEmpty()) {
+						AbstractMessage first = persistedMessages.get(0);
 						if (first instanceof InputMessage) {
 							String uiPrompt = ((InputMessage) first).getInputUIPrompt();
 							if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
@@ -278,7 +280,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				}
 
 				ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
-				room.getMessages().add(response);
+				persistedMessages.add(response);
 
 				// set transaction id for both pieces
 				inputMessage.setTransactionId(response.getMessageId());
@@ -291,7 +293,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				response.setParentMessageId(inputMessage.getMessageId());
 				response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
 
-				RoomMessageStore.persist(room, room.getInsight().getUser().getPrimaryLoginToken().getId());
+				String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
+				if (appendFullPrompt) {
+					RoomMessageStore.persist(room, userId);
+				} else {
+					RoomMessageStore.persistLastWriteWins(room, userId, persistedMessages);
+				}
 			}
 
 			return askModelResponse;
