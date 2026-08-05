@@ -48,9 +48,12 @@ import prerna.util.Utility;
 public final class AgentRunStore {
 
 	private static final Gson GSON = new Gson();
-	private static final String ACTIVITY_LOG_COLUMNS = "RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, "
-			+ "HARNESS_TYPE, JOB_ID, STATUS, INPUT, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, "
-			+ "ERROR_MESSAGE, DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID";
+	private static final String ACTIVITY_LOG_COLUMNS = "ar.RUN_ID, ar.PARENT_RUN_ID, ar.ROOM_ID, ar.WORKSPACE_ID, ar.MODEL_ID, "
+			+ "ar.HARNESS_TYPE, ar.JOB_ID, ar.STATUS, ar.INPUT, ar.INPUT_MESSAGE_ID, ar.FINAL_OUTPUT, ar.FINAL_OUTPUT_MESSAGE_ID, "
+			+ "ar.ERROR_MESSAGE, ar.DATE_CREATED, ar.STARTED_AT, ar.COMPLETED_AT, ar.USER_ID, r.ROOM_NAME";
+	// Rooms are keyed per user, so the name join must match on both columns.
+	private static final String ACTIVITY_LOG_FROM = "FROM AGENT_RUN ar "
+			+ "LEFT JOIN ROOM r ON ar.ROOM_ID = r.ROOM_ID AND ar.USER_ID = r.USER_ID";
 
 	public void insertSubmitted(String runId, RunAgentRequest request, String userId) {
 		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
@@ -127,9 +130,8 @@ public final class AgentRunStore {
 		ResultSet rs = null;
 		try {
 			String userId = resolveInsightUserId(insight);
-			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
-					+ "REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
-					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.RUN_ID = ? AND ar.USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
 			ps.setString(2, userId);
@@ -173,8 +175,8 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			StringBuilder query = new StringBuilder("SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
-					+ "WHERE USER_ID = ? AND WORKSPACE_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC");
+			StringBuilder query = new StringBuilder("SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.WORKSPACE_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC");
 			db.getQueryUtil().addLimitOffsetToQuery(query, limit, offset);
 
 			ps = db.getPreparedStatement(query.toString());
@@ -214,8 +216,8 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
-					+ "WHERE USER_ID = ? AND ROOM_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC";
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.ROOM_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, userId);
 			ps.setString(2, roomId.trim());
@@ -251,8 +253,8 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " FROM AGENT_RUN "
-					+ "WHERE USER_ID = ? AND PARENT_RUN_ID = ? ORDER BY DATE_CREATED DESC, RUN_ID DESC";
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.USER_ID = ? AND ar.PARENT_RUN_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, userId);
 			ps.setString(2, parentRunId.trim());
@@ -601,6 +603,7 @@ public final class AgentRunStore {
 		map.put("runId", rs.getString("RUN_ID"));
 		map.put("parentRunId", rs.getString("PARENT_RUN_ID"));
 		map.put("roomId", rs.getString("ROOM_ID"));
+		map.put("roomName", rs.getString("ROOM_NAME"));
 		map.put("workspaceId", rs.getString("WORKSPACE_ID"));
 		map.put("modelId", rs.getString("MODEL_ID"));
 		map.put("harnessType", rs.getString("HARNESS_TYPE"));
