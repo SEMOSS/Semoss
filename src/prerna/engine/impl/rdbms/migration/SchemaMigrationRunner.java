@@ -86,8 +86,19 @@ public final class SchemaMigrationRunner {
 	 * @param migrationsFolder the engine's {@code assets/.migrations} folder
 	 */
 	public static void runPendingMigrations(IRDBMSEngine engine, File migrationsFolder) {
+		runPendingMigrations(engine, migrationsFolder, MigrationHistoryRecord.SYSTEM_APPLIED_BY);
+	}
+
+	/**
+	 * @param engine           the engine to run pending migrations against
+	 * @param migrationsFolder the engine's {@code assets/.migrations} folder
+	 * @param appliedBy        the user id to record in {@code SEMOSS_SCHEMA_HISTORY};
+	 *                         pass {@link MigrationHistoryRecord#SYSTEM_APPLIED_BY} for
+	 *                         server-initiated runs (e.g. engine open)
+	 */
+	public static void runPendingMigrations(IRDBMSEngine engine, File migrationsFolder, String appliedBy) {
 		try (SchemaMigrationLock lock = SchemaMigrationLock.acquire(engine)) {
-			runPendingMigrationsLocked(engine, migrationsFolder);
+			runPendingMigrationsLocked(engine, migrationsFolder, appliedBy);
 		} catch (SchemaMigrationLockTimeoutException timeout) {
 			handleLockTimeout(engine, migrationsFolder, timeout);
 		}
@@ -128,7 +139,7 @@ public final class SchemaMigrationRunner {
 				timeout);
 	}
 
-	private static void runPendingMigrationsLocked(IRDBMSEngine engine, File migrationsFolder) {
+	private static void runPendingMigrationsLocked(IRDBMSEngine engine, File migrationsFolder, String appliedBy) {
 		ensureMigrationsFolder(migrationsFolder, engine.getEngineId());
 		MigrationHistoryUtils.ensureHistoryTable(engine);
 
@@ -158,8 +169,7 @@ public final class SchemaMigrationRunner {
 			}
 
 			rejectIfOutOfOrder(migration, highestAppliedVersion);
-			rejectIfPreviouslyFailedUnchanged(migration, history);
-			runMigration(engine, migration);
+			runMigration(engine, migration, appliedBy);
 			ranAtLeastOne = true;
 			// sync once per file -- keeps OWL correct incrementally in case a later
 			// file in this same batch fails
@@ -197,42 +207,8 @@ public final class SchemaMigrationRunner {
 					&& !record.getChecksum().equals(currentChecksum)) {
 				throw new SchemaMigrationException("Migration " + migration.getFileName()
 						+ " has already been applied but its content has changed since then (checksum mismatch). "
-						+ "Restore the original file content or create a new version instead of editing it.");
-			}
-		}
-	}
-
-	/**
-	 * {@code SEMOSS_SCHEMA_HISTORY} is already the durable, per-engine record of
-	 * every attempt -- a failed run gets its own row rather than updating a
-	 * previous one (see {@link MigrationHistoryRecord}'s class Javadoc), so
-	 * there is no need for any additional in-memory/cluster-wide state here:
-	 * if the exact same file content already has a failed row for this
-	 * version, re-running it against the live database would just reproduce
-	 * the identical failure (this method runs while the schema lock is held,
-	 * so nothing else could have changed the target schema in between).
-	 * Short-circuits on that recorded outcome instead -- every unrelated
-	 * action on the engine (browsing assets, viewing the smss, etc.) all go
-	 * through {@code open()} -&gt; this method, and none of them should be
-	 * re-executing a DDL statement that is already known to fail every time.
-	 * <p>
-	 * Editing the file changes its checksum, which naturally exits this
-	 * short-circuit and treats it as a fresh attempt -- the same "fix the
-	 * content to retry" mechanism {@link #verifyChecksumUnchanged} already
-	 * relies on for the applied-version case, just applied to the failed
-	 * case instead.
-	 */
-	// package-private (not private) so it's directly unit-testable without a
-	// real database, same convention as SchemaMigrationLock.deriveLockKey
-	static void rejectIfPreviouslyFailedUnchanged(MigrationFile migration, List<MigrationHistoryRecord> history) {
-		String currentChecksum = MigrationFileUtils.computeChecksum(migration.getSqlContent());
-		for (MigrationHistoryRecord record : history) {
-			if (!record.isSuccess() && record.getVersion().equals(migration.getVersion())
-					&& record.getChecksum().equals(currentChecksum)) {
-				throw new SchemaMigrationException("Migration " + migration.getFileName()
-						+ " already failed with this exact content on " + record.getAppliedOn() + ": "
-						+ record.getDescription() + ". Fix the SQL -- which changes its checksum -- to retry, "
-						+ "or check SEMOSS_SCHEMA_HISTORY for full details.");
+						+ "Restore the original file content or create a new version instead of editing it.",
+						migration.getVersion());
 			}
 		}
 	}
@@ -242,15 +218,14 @@ public final class SchemaMigrationRunner {
 				&& MigrationFileUtils.compareVersions(migration.getVersion(), highestAppliedVersion) < 0) {
 			throw new SchemaMigrationException("Migration " + migration.getFileName() + " has version "
 					+ migration.getVersion() + ", which is lower than the highest already-applied version "
-					+ highestAppliedVersion + ". Out-of-order migrations are not supported.");
+					+ highestAppliedVersion + ". Out-of-order migrations are not supported.",
+					migration.getVersion());
 		}
 	}
 
-	private static void runMigration(IRDBMSEngine engine, MigrationFile migration) {
+	private static void runMigration(IRDBMSEngine engine, MigrationFile migration, String appliedBy) {
 		long start = System.currentTimeMillis();
 		String checksum = MigrationFileUtils.computeChecksum(migration.getSqlContent());
-		boolean success = false;
-		String failureReason = null;
 		Connection conn = null;
 		try {
 			// Set/commit autocommit on the specific borrowed connection, never via
@@ -270,40 +245,28 @@ public final class SchemaMigrationRunner {
 			}
 			long executionTimeMs = System.currentTimeMillis() - start;
 			MigrationHistoryRecord record = new MigrationHistoryRecord(migration.getVersion(), migration.getFileName(),
-					checksum, MigrationHistoryRecord.SYSTEM_APPLIED_BY, new Timestamp(System.currentTimeMillis()),
+					checksum, appliedBy, new Timestamp(System.currentTimeMillis()),
 					executionTimeMs, true, null);
 			// Insert on the SAME connection/transaction as the migration's own SQL so
 			// both commit -- or both roll back -- together. Confirmed from Flyway's own
 			// source (SchemaHistory.java: "a migration failure automatically triggers a
 			// rollback of all changes, including the ones in the schema history table")
 			// that this pairing is the real, correct behavior -- recording success on a
-			// separate connection/transaction (the earlier version of this method) left a
-			// durability gap: a crash between the two commits would leave the migration
-			// permanently applied with no history row, causing it to look "pending" and
-			// be retried against non-idempotent DDL next time.
+			// separate connection/transaction left a durability gap: a crash between the
+			// two commits would leave the migration permanently applied with no history
+			// row, causing it to look "pending" and be retried against non-idempotent DDL.
 			MigrationHistoryUtils.insertHistoryRow(conn, record);
 			conn.commit();
-			success = true;
 		} catch (Exception e) {
 			classLogger.error("Migration '{}' failed against engine '{}'.", migration.getFileName(),
 					engine.getEngineId(), e);
-			failureReason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			rollbackQuietly(conn, migration);
+			String failureReason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			throw new SchemaMigrationException(
+					"Migration " + migration.getFileName() + " failed: " + failureReason,
+					migration.getVersion());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
-		}
-
-		if (!success) {
-			// the migration's own transaction (and any history row attempted inside it)
-			// was just rolled back -- record the failure on its own fresh connection so
-			// it's actually durable and visible in the Migrations tab
-			long executionTimeMs = System.currentTimeMillis() - start;
-			MigrationHistoryRecord failureRecord = new MigrationHistoryRecord(migration.getVersion(),
-					migration.getFileName(), checksum, MigrationHistoryRecord.SYSTEM_APPLIED_BY,
-					new Timestamp(System.currentTimeMillis()), executionTimeMs, false, failureReason);
-			MigrationHistoryUtils.recordMigration(engine, failureRecord);
-			throw new SchemaMigrationException(
-					"Migration " + migration.getFileName() + " failed: " + failureReason);
 		}
 	}
 

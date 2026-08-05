@@ -98,27 +98,42 @@ public final class MigrationStatusUtils {
 
 	private static MigrationStatus buildStatusForFile(MigrationFile file, MigrationHistoryRecord record) {
 		if (record == null) {
-			return new MigrationStatus(file.getVersion(), file.getDescription(), file.getFileName(),
+			// PENDING -- no history row yet, no user notes to show
+			return new MigrationStatus(file.getVersion(), null, file.getFileName(),
 					MigrationStatus.State.PENDING, null, null, 0L, null);
 		}
 		if (!record.isSuccess()) {
-			return new MigrationStatus(file.getVersion(), file.getDescription(), file.getFileName(),
+			// FAILED -- record.getDescription() holds the error message (errorMessage slot),
+			// description slot is null (no user notes on a failed attempt)
+			return new MigrationStatus(file.getVersion(), null, file.getFileName(),
 					MigrationStatus.State.FAILED, record.getAppliedBy(), record.getAppliedOn(),
 					record.getExecutionTimeMs(), record.getDescription());
 		}
 
+		// SUCCESS or OUTDATED -- record.getDescription() holds user-provided notes (null
+		// if none were given when the migration was saved)
 		String currentChecksum = MigrationFileUtils.computeChecksum(file.getSqlContent());
 		boolean outdated = !currentChecksum.equals(record.getChecksum());
 		MigrationStatus.State state = outdated ? MigrationStatus.State.OUTDATED : MigrationStatus.State.SUCCESS;
 		String note = outdated
 				? "File content has changed since this version was applied -- checksum no longer matches"
 				: null;
-		return new MigrationStatus(file.getVersion(), file.getDescription(), file.getFileName(), state,
+		return new MigrationStatus(file.getVersion(), record.getDescription(), file.getFileName(), state,
 				record.getAppliedBy(), record.getAppliedOn(), record.getExecutionTimeMs(), note);
 	}
 
 	private static MigrationStatus buildStatusForMissingFile(MigrationHistoryRecord record) {
-		return new MigrationStatus(record.getVersion(), record.getScriptName(), null, MigrationStatus.State.MISSING,
+		if (!record.isSuccess()) {
+			// File was removed after a failed save (SaveEngineMigrationReactor deletes it
+			// so a broken version doesn't permanently block retries). MISSING is reserved
+			// for previously-successful versions whose files have since disappeared.
+			return new MigrationStatus(record.getVersion(), null, null,
+					MigrationStatus.State.FAILED, record.getAppliedBy(), record.getAppliedOn(),
+					record.getExecutionTimeMs(), record.getDescription());
+		}
+		// MISSING -- user notes preserved from the original success record (description slot),
+		// errorMessage explains that the file is gone
+		return new MigrationStatus(record.getVersion(), record.getDescription(), null, MigrationStatus.State.MISSING,
 				record.getAppliedBy(), record.getAppliedOn(), record.getExecutionTimeMs(),
 				"File no longer exists in the migrations folder");
 	}

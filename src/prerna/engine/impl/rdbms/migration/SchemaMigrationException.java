@@ -41,12 +41,26 @@ public class SchemaMigrationException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
+	/** The version string of the migration that directly caused this failure, or {@code null} for infrastructure failures (folder creation, lock timeout, etc.). */
+	private final String failedVersion;
+
 	public SchemaMigrationException(String message) {
 		super(message);
+		this.failedVersion = null;
+	}
+
+	public SchemaMigrationException(String message, String failedVersion) {
+		super(message);
+		this.failedVersion = failedVersion;
 	}
 
 	public SchemaMigrationException(String message, Throwable cause) {
 		super(message, cause);
+		this.failedVersion = null;
+	}
+
+	public String getFailedVersion() {
+		return failedVersion;
 	}
 
 }

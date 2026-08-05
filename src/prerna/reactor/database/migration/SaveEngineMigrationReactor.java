@@ -46,6 +46,8 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.migration.MigrationFile;
 import prerna.engine.impl.rdbms.migration.MigrationFileUtils;
+import prerna.engine.impl.rdbms.migration.MigrationHistoryRecord;
+import prerna.engine.impl.rdbms.migration.MigrationHistoryUtils;
 import prerna.engine.impl.rdbms.migration.MigrationStatus;
 import prerna.engine.impl.rdbms.migration.MigrationStatusUtils;
 import prerna.engine.impl.rdbms.migration.SchemaMigrationException;
@@ -80,10 +82,12 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SaveEngineMigrationReactor.class);
 
+	private static final String NOTES_KEY = "notes";
+
 	public SaveEngineMigrationReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.SQL.getKey(),
-				ReactorKeysEnum.DESCRIPTION.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1 };
+				ReactorKeysEnum.DESCRIPTION.getKey(), NOTES_KEY };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -92,6 +96,7 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 		String rawEngineId = this.keyValue.get(this.keysToGet[0]);
 		String sqlContent = this.keyValue.get(this.keysToGet[1]);
 		String description = this.keyValue.get(this.keysToGet[2]);
+		String notes = this.keyValue.get(NOTES_KEY);
 		if (rawEngineId == null || rawEngineId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must provide an engine id to save a migration against");
 		}
@@ -113,6 +118,9 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 		}
 
 		IDatabaseEngine database = Utility.getDatabase(engineId);
+		if (database == null) {
+			throw new IllegalArgumentException("Engine " + engineId + " could not be loaded");
+		}
 		if (!(database instanceof IRDBMSEngine rdbmsEngine)) {
 			throw new IllegalArgumentException("Engine " + engineId + " is not a JDBC database engine");
 		}
@@ -132,10 +140,15 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 			version = writeMigrationFile(migrationsFolder, sqlContent, description);
 		}
 
+		String appliedBy = (user.getPrimaryLoginToken() != null)
+				? user.getPrimaryLoginToken().getId()
+				: MigrationHistoryRecord.SYSTEM_APPLIED_BY;
+
 		Map<String, Object> response = new HashMap<>();
 		response.put("version", version);
 		try {
-			SchemaMigrationRunner.runPendingMigrations(rdbmsEngine, migrationsFolder);
+			SchemaMigrationRunner.runPendingMigrations(rdbmsEngine, migrationsFolder, appliedBy);
+			MigrationHistoryUtils.updateNotesForVersion(rdbmsEngine, version, notes);
 			response.put("success", true);
 			response.put("errorMessage", null);
 		} catch (SchemaMigrationException e) {
@@ -207,21 +220,24 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 	 */
 	// package-private (not private) so it's directly unit-testable without
 	// mocking the full execute() pipeline, same convention as
-	// SchemaMigrationLock.deriveLockKey / SchemaMigrationRunner.rejectIfPreviouslyFailedUnchanged
+	// SchemaMigrationLock.deriveLockKey
 	String handleRunFailure(IRDBMSEngine engine, File migrationsFolder, String version,
 			SchemaMigrationException fallback) {
-		List<MigrationStatus> statuses = MigrationStatusUtils.getStatus(engine, migrationsFolder);
-		MigrationStatus ourStatus = statuses.stream().filter(s -> s.getVersion().equals(version)).findFirst()
-				.orElse(null);
-		if (ourStatus == null) {
+		String failedVersion = fallback.getFailedVersion();
+		if (failedVersion == null || version.equals(failedVersion)) {
+			// our version was the direct failure (or infrastructure failed before any
+			// version check) -- delete the file so this version does not re-appear as
+			// PENDING on the next engine open
+			List<MigrationStatus> statuses = MigrationStatusUtils.getStatus(engine, migrationsFolder);
+			MigrationStatus ourStatus = statuses.stream().filter(s -> s.getVersion().equals(version)).findFirst()
+					.orElse(null);
+			if (ourStatus != null) {
+				deleteMigrationFile(migrationsFolder, ourStatus.getFileName(), version);
+			}
 			return fallback.getMessage();
 		}
-		if (ourStatus.getState() == MigrationStatus.State.FAILED) {
-			deleteMigrationFile(migrationsFolder, ourStatus.getFileName(), version);
-			return ourStatus.getErrorMessage() != null ? ourStatus.getErrorMessage() : fallback.getMessage();
-		}
-		// still PENDING -- the loop never reached this version because an earlier,
-		// unrelated pending migration failed first; leave this file in place
+		// an earlier pending migration failed before ours was reached -- keep our file
+		// since it has not been attempted and will run once the blocker is resolved
 		return "This migration is valid but is queued behind an earlier pending migration that failed to "
 				+ "apply. Resolve that one first (see the Migrations tab), then this version will run "
 				+ "automatically on the next attempt: " + fallback.getMessage();
@@ -245,6 +261,7 @@ public class SaveEngineMigrationReactor extends AbstractReactor {
 		// this creates AND immediately runs arbitrary DDL/DML -- must never be
 		// agent-auto-triggerable
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
 		return meta;
 	}
 

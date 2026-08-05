@@ -79,7 +79,7 @@ public final class MigrationHistoryUtils {
 			conn = engine.getConnection();
 			if (!queryUtil.tableExists(conn, HISTORY_TABLE, engine.getDatabase(), engine.getSchema())) {
 				String createSql = queryUtil.createTable(HISTORY_TABLE, COL_NAMES, types);
-				classLogger.info("Creating migration history table for engine '{}' with sql {}", engine.getEngineId(),
+				classLogger.debug("Creating migration history table for engine '{}' with sql {}", engine.getEngineId(),
 						createSql);
 				engine.insertData(createSql);
 			}
@@ -161,8 +161,79 @@ public final class MigrationHistoryUtils {
 			ps.setTimestamp(index++, record.getAppliedOn());
 			ps.setLong(index++, record.getExecutionTimeMs());
 			ps.setBoolean(index++, record.isSuccess());
-			ps.setString(index++, record.getDescription());
+			if (record.getDescription() != null) {
+				ps.setString(index++, record.getDescription());
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
 			ps.execute();
+		}
+	}
+
+	/**
+	 * Stores user-provided notes against the most recent successful history row for
+	 * a given version. Called by {@code SaveEngineMigrationReactor} after a
+	 * successful run, using the {@code notes} parameter the user supplied in the
+	 * dialog. No-op if {@code notes} is null or blank.
+	 *
+	 * @param engine  the engine whose history table should be updated
+	 * @param version the version string to attach notes to (e.g. {@code "1"})
+	 * @param notes   the user-provided description; skipped if null/blank
+	 */
+	public static void updateNotesForVersion(IRDBMSEngine engine, String version, String notes) {
+		if (notes == null || notes.isBlank()) {
+			return;
+		}
+		String updateSql = "UPDATE " + HISTORY_TABLE + " SET DESCRIPTION = ? WHERE VERSION = ? AND SUCCESS = ?";
+		Connection conn = null;
+		try {
+			conn = engine.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+				ps.setString(1, notes.trim());
+				ps.setString(2, version);
+				ps.setBoolean(3, true);
+				ps.execute();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to update notes for engine '{}', version '{}'.",
+					engine.getEngineId(), version, e);
+			throw new SchemaMigrationException("Unable to update notes for version " + version, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
+		}
+	}
+
+	/**
+	 * Removes all {@code SEMOSS_SCHEMA_HISTORY} rows for a given version. Only
+	 * safe to call for versions that are in a {@code MISSING} or
+	 * {@code FAILED}-without-file state (the caller is responsible for verifying
+	 * this before invoking). Deletes all rows for the version -- including older
+	 * retry attempts -- so the version disappears entirely from the audit log.
+	 *
+	 * @param engine  the engine whose history table should be modified
+	 * @param version the version string to remove (e.g. {@code "1"})
+	 */
+	public static void deleteHistoryForVersion(IRDBMSEngine engine, String version) {
+		String deleteSql = "DELETE FROM " + HISTORY_TABLE + " WHERE VERSION = ?";
+		Connection conn = null;
+		try {
+			conn = engine.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+				ps.setString(1, version);
+				ps.execute();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to delete migration history for engine '{}', version '{}'.",
+					engine.getEngineId(), version, e);
+			throw new SchemaMigrationException("Unable to delete migration history for version " + version, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
 		}
 	}
 
