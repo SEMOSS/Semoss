@@ -48,6 +48,7 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
+import prerna.reactor.agent.run.AgentRoomNamer;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
@@ -240,10 +241,6 @@ public final class AgentRunner {
 			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
 					.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
 					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls)
-					// Root runs are not registered as subagents and resolve to depth 0.
-					// Child runs are recorded by AgentSubAgentRegistry before their
-					// virtual thread starts, so this lookup can classify the run without
-					// storing transient spawn state on the durable room options.
 					.spawnDepth(resolveSpawnDepth())
 					.resumeMode(resumeMode)
 					.agentConfig(agentConfig).build();
@@ -253,6 +250,9 @@ public final class AgentRunner {
 			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
 				throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
 						+ harness.getName() + "'");
+			}
+			if (!resumeMode && ctx.getSpawnDepth() == 0) {
+				AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
 			}
 
 			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
