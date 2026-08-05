@@ -121,6 +121,10 @@
 			<directory>emailTemplates</directory>
 			<outputDirectory>emailTemplates</outputDirectory>
 		</fileSet>
+		<fileSet>
+			<directory>meta</directory>
+			<outputDirectory>meta</outputDirectory>
+		</fileSet>
 	</fileSets>
 	<files>
 		<file>
