@@ -27,20 +27,31 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-/**
- * Backwards-compatible Pixel alias for {@link FillPlaywrightInputReactor}.
- *
- * <p>The original reactor was limited to traditional form controls and
- * duplicated extraction, room-context, prompt, and parsing logic. Keeping this
- * class as a thin alias preserves existing {@code FillPlaywrightForm(...)}
- * calls while ensuring both Pixel names use the same generic implementation.</p>
- */
-@Deprecated
-public class FillPlaywrightFormReactor extends FillPlaywrightInputReactor {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-	@Override
-	public String getReactorDescription() {
-		return "Backwards-compatible alias for FillPlaywrightInput. Generates context-aware actions for visible "
-				+ "editable fields anywhere on the current page.";
+import org.junit.jupiter.api.Test;
+
+class GeneratePlaywrightAutomationGoalReactorTest {
+
+	@Test
+	void promptPrioritizesLatestIntentAndExcludesCredentials() {
+		String prompt = GeneratePlaywrightAutomationGoalReactor.buildPrompt(
+				"User: Open the portal\nAssistant: Which week?\nUser: Fill next week with seven hours per day");
+
+		assertTrue(prompt.contains("latest user request"));
+		assertTrue(prompt.contains("superseded"));
+		assertTrue(prompt.contains("passwords"));
+		assertTrue(prompt.contains("seven hours per day"));
+	}
+
+	@Test
+	void parserAcceptsJsonWrappedInMarkdownAndRejectsEmptyGoal() throws Exception {
+		assertEquals("Fill next week's attendance with seven hours per day",
+				GeneratePlaywrightAutomationGoalReactor.parseGoal(
+						"```json\n{\"goal\":\"Fill next week's attendance with seven hours per day\"}\n```"));
+		assertThrows(IllegalArgumentException.class,
+				() -> GeneratePlaywrightAutomationGoalReactor.parseGoal("{\"goal\":\"\"}"));
 	}
 }

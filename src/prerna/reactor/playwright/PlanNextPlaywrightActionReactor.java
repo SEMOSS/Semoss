@@ -47,7 +47,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
@@ -64,9 +63,9 @@ import prerna.util.Utility;
  * automation run. The frontend executes the returned action through the normal
  * remote-browser WebSocket and calls this reactor again after the page settles.
  */
-public class PlanPlaywrightAutomationReactor extends AbstractReactor {
+public class PlanNextPlaywrightActionReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(PlanPlaywrightAutomationReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PlanNextPlaywrightActionReactor.class);
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final String KEY_SESSION_ID = "sessionId";
 	private static final String KEY_GOAL = "goal";
@@ -346,7 +345,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			}
 			""";
 
-	public PlanPlaywrightAutomationReactor() {
+	public PlanNextPlaywrightActionReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				KEY_SESSION_ID, KEY_GOAL, KEY_HISTORY, KEY_ITERATION, KEY_MAX_ITERATIONS,
 				ReactorKeysEnum.LIMIT.getKey() };
@@ -375,8 +374,9 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			}
 
 			String goal = clean(this.keyValue.get(KEY_GOAL));
-			if (goal.isBlank()) goal = latestUserGoal(room, messageLimit);
-			if (goal.isBlank()) throw new IllegalArgumentException("No automation goal was provided or found in the room");
+			if (goal.isBlank()) {
+				throw new IllegalArgumentException("A reviewed automation goal is required before planning actions");
+			}
 			if (goal.length() > MAX_GOAL_LENGTH) goal = goal.substring(0, MAX_GOAL_LENGTH);
 
 			List<Map<String, Object>> history = parseHistory(this.keyValue.get(KEY_HISTORY));
@@ -386,7 +386,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			String pageTitle = page.title();
 			Map<String, Object> pageState = pageState(page);
 			List<Map<String, Object>> availableActions = availableActions(page, pageState);
-			String roomContext = FillPlaywrightInputReactor.buildRoomContext(room, messageLimit);
+			String roomContext = GeneratePlaywrightFieldActionsReactor.buildRoomContext(room, messageLimit);
 			String prompt = buildPrompt(goal, roomContext, pageUrl, pageTitle, pageState,
 					availableActions, history, iteration, maxIterations);
 
@@ -408,7 +408,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			result.put("availableActionCount", availableActions.size());
 			return new NounMetadata(result, PixelDataType.MAP);
 		} catch (Exception e) {
-			classLogger.warn("PlanPlaywrightAutomation failed: {}", e.getMessage());
+			classLogger.warn("PlanNextPlaywrightAction failed: {}", e.getMessage());
 			result.put("success", false);
 			result.put("error", e.getMessage() == null ? "Browser automation planning failed" : e.getMessage());
 			return new NounMetadata(result, PixelDataType.MAP);
@@ -430,7 +430,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 	@SuppressWarnings("unchecked")
 	static List<Map<String, Object>> availableActions(Page page, Map<String, Object> pageState) {
 		List<Map<String, Object>> fields = new ArrayList<>();
-		for (Map<String, Object> field : FillPlaywrightInputReactor.extractPageFields(page, -1.0, -1.0)) {
+		for (Map<String, Object> field : GeneratePlaywrightFieldActionsReactor.extractPageFields(page, -1.0, -1.0)) {
 			Map<String, Object> action = new LinkedHashMap<>(field);
 			action.put("kind", "field");
 			fields.add(action);
@@ -441,14 +441,14 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		for (Frame frame : page.mainFrame().childFrames()) {
 			try {
 				ElementHandle frameElement = frame.frameElement();
-				String frameSelector = FillPlaywrightInputReactor.uniqueElementSelector(frameElement);
+				String frameSelector = GeneratePlaywrightFieldActionsReactor.uniqueElementSelector(frameElement);
 				if (frameSelector.isBlank() || page.locator(frameSelector).count() != 1) continue;
 				BoundingBox box = frameElement.boundingBox();
 				if (box == null) continue;
 				clickables.addAll(clickablesFromRaw(page, frame.evaluate(JS_FIND_CLICKABLES), frameSelector,
 						(int) Math.round(box.x), (int) Math.round(box.y)));
 			} catch (Exception e) {
-				classLogger.debug("PlanPlaywrightAutomation: skipped inaccessible frame: {}", e.getMessage());
+				classLogger.debug("PlanNextPlaywrightAction: skipped inaccessible frame: {}", e.getMessage());
 			}
 		}
 
@@ -487,7 +487,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			List<Map<String, Object>> candidates, int limit) {
 		int added = 0;
 		for (Map<String, Object> action : candidates) {
-			if (!FillPlaywrightInputReactor.hasUniqueSelector(page, action.get("selector"))) continue;
+			if (!GeneratePlaywrightFieldActionsReactor.hasUniqueSelector(page, action.get("selector"))) continue;
 			Map<String, Object> copy = new LinkedHashMap<>(action);
 			copy.put("index", target.size());
 			copy.remove("score");
@@ -537,7 +537,10 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			Map<String, Object> promptAction = new LinkedHashMap<>();
 			for (String key : List.of("index", "kind", "label", "context", "tag", "role", "type", "href",
 					"state", "currentValue", "options", "direction", "screenPercent")) {
-				if (available.containsKey(key)) promptAction.put(key, available.get(key));
+				if (available.containsKey(key)) {
+					promptAction.put(key, "currentValue".equals(key) && Boolean.TRUE.equals(available.get("isPassword"))
+							? "" : available.get(key));
+				}
 			}
 			promptActions.add(promptAction);
 		}
@@ -630,7 +633,12 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 			action.put("tag", available.getOrDefault("tag", ""));
 			action.put("selector", available.get("selector"));
 			action.put("coords", available.get("coords"));
-			if (!"click".equals(type)) action.put("value", value);
+			if (!"click".equals(type)) {
+				boolean isPassword = Boolean.TRUE.equals(available.get("isPassword"));
+				action.put("value", value);
+				action.put("isPassword", isPassword);
+				action.put("storeValue", !isPassword);
+			}
 		}
 		decision.put("goalReached", false);
 		decision.put("reason", reason);
@@ -652,17 +660,6 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 		List<Map<String, Object>> history = JSON.readValue(historyJson, new TypeReference<>() { });
 		if (history.size() <= MAX_HISTORY_ENTRIES) return history;
 		return new ArrayList<>(history.subList(history.size() - MAX_HISTORY_ENTRIES, history.size()));
-	}
-
-	private static String latestUserGoal(Room room, int limit) {
-		List<AbstractMessage> messages = RoomUtils.getPagedMessages(room.getMessages(), "DESC", 0, limit);
-		for (AbstractMessage message : messages) {
-			if (message instanceof InputMessage input && message.isVisible()) {
-				String text = firstNonBlank(input.getInputUIPrompt(), input.getInputPrompt());
-				if (!text.isBlank()) return text;
-			}
-		}
-		return "";
 	}
 
 	private static String responseText(ResponseMessage response) {
@@ -708,7 +705,7 @@ public class PlanPlaywrightAutomationReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Plans one validated click, fill, or select action toward a browser automation goal using the live page, "
+		return "Plans one validated click, fill, select, or scroll action toward a browser automation goal using the live page, "
 				+ "recent Playground context, and previously executed automation actions.";
 	}
 }

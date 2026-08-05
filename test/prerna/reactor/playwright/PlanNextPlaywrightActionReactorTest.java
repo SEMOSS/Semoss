@@ -39,11 +39,11 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-class PlanPlaywrightAutomationReactorTest {
+class PlanNextPlaywrightActionReactorTest {
 
 	@Test
 	void promptIncludesGoalCurrentStateHistoryAndOnlyActionIndexes() throws Exception {
-		String prompt = PlanPlaywrightAutomationReactor.buildPrompt("Search for Java", "User: use W3Schools",
+		String prompt = PlanNextPlaywrightActionReactor.buildPrompt("Search for Java", "User: use W3Schools",
 				"https://example.com", "Example", Map.of("visibleText", "Search"),
 				List.of(clickAction(), fieldAction("input", List.of())),
 				List.of(Map.of("type", "click", "label", "Search")), 2, 10);
@@ -67,7 +67,7 @@ class PlanPlaywrightAutomationReactorTest {
 		scroll.put("deltaY", 560);
 		scroll.put("screenPercent", 70);
 
-		Map<String, Object> decision = PlanPlaywrightAutomationReactor.parseDecision(
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
 				"{\"type\":\"scroll\",\"index\":0,\"reason\":\"reveal more results\"}", List.of(scroll));
 		Map<?, ?> action = (Map<?, ?>) decision.get("action");
 		assertEquals("scroll", action.get("type"));
@@ -77,7 +77,7 @@ class PlanPlaywrightAutomationReactorTest {
 
 	@Test
 	void parserMapsClickIndexToServerValidatedSelector() throws Exception {
-		Map<String, Object> decision = PlanPlaywrightAutomationReactor.parseDecision(
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
 				"```json\n{\"type\":\"click\",\"index\":0,\"reason\":\"open results\"}\n```",
 				List.of(clickAction()));
 
@@ -91,26 +91,38 @@ class PlanPlaywrightAutomationReactorTest {
 	void parserValidatesFieldActionAndSelectOption() throws Exception {
 		Map<String, Object> select = fieldAction("select",
 				List.of(Map.of("label", "Java", "value", "java")));
-		Map<String, Object> decision = PlanPlaywrightAutomationReactor.parseDecision(
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
 				"{\"type\":\"select\",\"index\":0,\"value\":\"java\"}", List.of(select));
 		assertEquals("java", ((Map<?, ?>) decision.get("action")).get("value"));
 
 		assertThrows(IllegalArgumentException.class,
-				() -> PlanPlaywrightAutomationReactor.parseDecision(
+				() -> PlanNextPlaywrightActionReactor.parseDecision(
 						"{\"type\":\"select\",\"index\":0,\"value\":\"python\"}", List.of(select)));
 		assertThrows(IllegalArgumentException.class,
-				() -> PlanPlaywrightAutomationReactor.parseDecision(
+				() -> PlanNextPlaywrightActionReactor.parseDecision(
 						"{\"type\":\"click\",\"index\":0}", List.of(select)));
 	}
 
 	@Test
+	void parserPreservesGeneratedFieldRecordingMetadata() throws Exception {
+		Map<String, Object> password = fieldAction("input", List.of());
+		password.put("isPassword", true);
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
+				"{\"type\":\"fill\",\"index\":0,\"value\":\"secret\"}", List.of(password));
+		Map<?, ?> action = (Map<?, ?>) decision.get("action");
+
+		assertEquals(true, action.get("isPassword"));
+		assertEquals(false, action.get("storeValue"));
+	}
+
+	@Test
 	void doneRequiresExplicitGoalReachedFlag() throws Exception {
-		Map<String, Object> complete = PlanPlaywrightAutomationReactor.parseDecision(
+		Map<String, Object> complete = PlanNextPlaywrightActionReactor.parseDecision(
 				"{\"type\":\"done\",\"goalReached\":true,\"reason\":\"results are visible\"}", List.of());
 		assertTrue((Boolean) complete.get("goalReached"));
 		assertNull(complete.get("action"));
 
-		Map<String, Object> blocked = PlanPlaywrightAutomationReactor.parseDecision(
+		Map<String, Object> blocked = PlanNextPlaywrightActionReactor.parseDecision(
 				"{\"type\":\"done\",\"reason\":\"No useful action\"}", List.of());
 		assertFalse((Boolean) blocked.get("goalReached"));
 	}

@@ -69,13 +69,11 @@ import prerna.util.Utility;
  * generated interactions continue to use the existing recording pipeline.
  *
  * <p>With x/y, only the editable element at that point is returned. Without
- * x/y, all supported visible editable elements are considered. The historical
- * Pixel name and response fields remain compatible with the previous form-fill
- * implementation.</p>
+ * x/y, all supported visible editable elements are considered.</p>
  */
-public class FillPlaywrightInputReactor extends AbstractReactor {
+public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(FillPlaywrightInputReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightFieldActionsReactor.class);
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final int DEFAULT_MESSAGE_LIMIT = 20;
 	private static final int MAX_MESSAGE_LIMIT = 50;
@@ -85,9 +83,8 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 	private static final String KEY_Y = "y";
 
 	/**
-	 * Returns a serializable page snapshot. Password fields intentionally remain
-	 * included for compatibility with the current behavior; privacy handling will
-	 * be addressed separately.
+	 * Returns a serializable page snapshot. Password elements remain available as
+	 * targets, while their current values are excluded from the model snapshot.
 	 */
 	static final String JS_FIND_FIELDS = """
 			([targetX, targetY]) => {
@@ -259,8 +256,10 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			      if (!selector) continue;
 			      const tag = el.tagName.toLowerCase();
 			      const label = getLabel(el);
-			      const currentValue = tag === 'input' || tag === 'textarea' || tag === 'select'
-			        ? (el.value || '') : (el.innerText || el.textContent || '');
+			      const isPassword = tag === 'input' && (el.type || '').toLowerCase() === 'password';
+			      const currentValue = isPassword ? ''
+			        : tag === 'input' || tag === 'textarea' || tag === 'select'
+			          ? (el.value || '') : (el.innerText || el.textContent || '');
 			      const options = tag === 'select'
 			        ? Array.from(el.options).map(option => ({ value: option.value, label: option.textContent.trim() }))
 			        : [];
@@ -273,7 +272,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			        action: tag === 'select' ? 'select' : 'fill',
 			        currentValue,
 			        options,
-			        isPassword: tag === 'input' && (el.type || '').toLowerCase() === 'password',
+			        isPassword,
 			        isTarget: targetEl !== null && el === targetEl
 			      });
 			    }
@@ -282,7 +281,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			}
 			""";
 
-	public FillPlaywrightInputReactor() {
+	public GeneratePlaywrightFieldActionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				KEY_SESSION_ID, ReactorKeysEnum.LIMIT.getKey(), KEY_X, KEY_Y };
 		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0 };
@@ -339,7 +338,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			String message = fills.isEmpty() ? "The model did not find a value supported by the room context" : null;
 			return success(result, fills, message, session, page, engineId);
 		} catch (Exception e) {
-			classLogger.warn("FillPlaywrightInput: generation failed: {}", e.getMessage());
+			classLogger.warn("GeneratePlaywrightFieldActions: generation failed: {}", e.getMessage());
 			result.put("success", false);
 			result.put("error", e.getMessage() != null ? e.getMessage() : "Generation failed");
 			return new NounMetadata(result, PixelDataType.MAP);
@@ -391,7 +390,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 				fields.addAll(extractFrameFields(page,
 						frame.evaluate(JS_FIND_FIELDS, new Object[] { frameX, frameY }), frameSelector));
 			} catch (Exception e) {
-				classLogger.debug("FillPlaywrightInput: skipped inaccessible frame: {}", e.getMessage());
+				classLogger.debug("GeneratePlaywrightFieldActions: skipped inaccessible frame: {}", e.getMessage());
 			}
 		}
 		return fields;
@@ -516,7 +515,8 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			promptField.put("label", field.getOrDefault("label", ""));
 			promptField.put("nearbyContext", field.getOrDefault("context", ""));
 			promptField.put("type", field.getOrDefault("type", "text"));
-			promptField.put("currentValue", field.getOrDefault("currentValue", ""));
+			promptField.put("currentValue", Boolean.TRUE.equals(field.get("isPassword"))
+					? "" : field.getOrDefault("currentValue", ""));
 			if ("select".equals(field.get("action"))) promptField.put("options", field.getOrDefault("options", List.of()));
 			if (i == targetIndex) promptField.put("target", true);
 			promptFields.add(promptField);
@@ -563,6 +563,9 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 			fill.put("value", value);
 			fill.put("action", original.getOrDefault("action", "fill"));
 			fill.put("tag", original.getOrDefault("tag", "input"));
+			boolean isPassword = Boolean.TRUE.equals(original.get("isPassword"));
+			fill.put("isPassword", isPassword);
+			fill.put("storeValue", !isPassword);
 			Object selectorObject = original.get("selector");
 			if (selectorObject instanceof Map<?, ?> selector) {
 				fill.put("selectorStrategy", selector.containsKey("strategy") ? selector.get("strategy") : "css");
@@ -626,7 +629,7 @@ public class FillPlaywrightInputReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Generates typed fill/select actions for one or all visible editable fields using recent Playground "
+		return "Generates validated fill/select actions for one or all visible editable fields using recent Playground "
 				+ "room context. With x/y it returns only the selected editable field; without coordinates it returns "
 				+ "all context-supported fields. Actions are executed and recorded through the remote-browser WebSocket.";
 	}

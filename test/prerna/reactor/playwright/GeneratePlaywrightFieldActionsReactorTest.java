@@ -37,11 +37,11 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-class FillPlaywrightInputReactorTest {
+class GeneratePlaywrightFieldActionsReactorTest {
 
 	@Test
 	void targetPromptRequestsOnlyClickedFieldAndIncludesCrossFieldContext() throws Exception {
-		String prompt = FillPlaywrightInputReactor.buildPrompt("User: search for java", "https://example.com",
+		String prompt = GeneratePlaywrightFieldActionsReactor.buildPrompt("User: search for java", "https://example.com",
 				"Example", List.of(field("Search", "fill", "input"), selectField()), 0);
 
 		assertTrue(prompt.contains("Return exactly one entry for index 0"));
@@ -57,7 +57,7 @@ class FillPlaywrightInputReactorTest {
 		String response = "```json\n[{\"index\":0,\"value\":\"ignored\"},"
 				+ "{\"index\":1,\"value\":\"java\"},{\"index\":1,\"value\":\"duplicate\"}]\n```";
 
-		List<Map<String, Object>> parsed = FillPlaywrightInputReactor.parseFilledFields(response, fields, 1);
+		List<Map<String, Object>> parsed = GeneratePlaywrightFieldActionsReactor.parseFilledFields(response, fields, 1);
 
 		assertEquals(1, parsed.size());
 		assertEquals("java", parsed.get(0).get("value"));
@@ -65,16 +65,42 @@ class FillPlaywrightInputReactorTest {
 		assertEquals("select", parsed.get(0).get("tag"));
 		assertEquals("css", parsed.get(0).get("selectorStrategy"));
 		assertEquals("select[name=topic]", parsed.get(0).get("selectorValue"));
+		assertEquals(false, parsed.get(0).get("isPassword"));
+		assertEquals(true, parsed.get(0).get("storeValue"));
+	}
+
+	@Test
+	void parserPreservesPasswordSensitivityAndDisablesValueStorage() throws Exception {
+		Map<String, Object> password = field("Password", "fill", "input");
+		password.put("isPassword", true);
+
+		List<Map<String, Object>> parsed = GeneratePlaywrightFieldActionsReactor.parseFilledFields(
+				"[{\"index\":0,\"value\":\"secret\"}]", List.of(password), -1);
+
+		assertEquals(true, parsed.get(0).get("isPassword"));
+		assertEquals(false, parsed.get(0).get("storeValue"));
 	}
 
 	@Test
 	void parserRejectsNonJsonAndOversizedValues() {
 		List<Map<String, Object>> fields = List.of(field("Search", "fill", "input"));
 		assertThrows(IllegalArgumentException.class,
-				() -> FillPlaywrightInputReactor.parseFilledFields("not json", fields, -1));
+				() -> GeneratePlaywrightFieldActionsReactor.parseFilledFields("not json", fields, -1));
 		assertThrows(IllegalArgumentException.class,
-				() -> FillPlaywrightInputReactor.parseFilledFields(
+				() -> GeneratePlaywrightFieldActionsReactor.parseFilledFields(
 						"[{\"index\":0,\"value\":\"" + "a".repeat(2_001) + "\"}]", fields, -1));
+	}
+
+	@Test
+	void promptDoesNotExposeCurrentPasswordValue() throws Exception {
+		Map<String, Object> password = field("Password", "fill", "input");
+		password.put("isPassword", true);
+		password.put("currentValue", "never-send-this");
+
+		String prompt = GeneratePlaywrightFieldActionsReactor.buildPrompt("User: sign in", "https://example.com",
+				"Example", List.of(password), 0);
+
+		assertTrue(!prompt.contains("never-send-this"));
 	}
 
 	private static Map<String, Object> field(String label, String action, String tag) {
