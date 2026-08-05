@@ -303,7 +303,7 @@ public final class AgentSubAgentRegistry {
             }
             RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
                     req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
-                    null, null, null, null, childInsight);
+                    null, null, null, null, childInsight).withParentRunId(req.parentJobId);
             RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
             childStarted = true;
 
