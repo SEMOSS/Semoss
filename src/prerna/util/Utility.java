@@ -3142,37 +3142,6 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine which project types are exempt from
-	 * {@link Constants#ADMIN_ONLY_PROJECT_ADD}, i.e. non-admins may still create
-	 * these project types even when project creation is otherwise
-	 * admin-restricted.
-	 *
-	 * @return set of exempt {@link IProject.PROJECT_TYPE} values; empty if none
-	 *         are configured (no exemptions)
-	 */
-	public static Set<IProject.PROJECT_TYPE> getApplicationAdminOnlyProjectAddExemptTypes() {
-		String csv = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_PROJECT_ADD_EXEMPT_TYPES);
-		if (csv == null || (csv = csv.trim()).isEmpty()) {
-			return new HashSet<>();
-		}
-
-		Set<IProject.PROJECT_TYPE> exemptTypes = new HashSet<>();
-		for (String rawType : csv.split(",")) {
-			String typeName = rawType.trim();
-			if (typeName.isEmpty()) {
-				continue;
-			}
-			try {
-				exemptTypes.add(IProject.PROJECT_TYPE.valueOf(typeName));
-			} catch (IllegalArgumentException e) {
-				classLogger.warn("Ignoring unrecognized PROJECT_TYPE '{}' in {}", typeName,
-						Constants.ADMIN_ONLY_PROJECT_ADD_EXEMPT_TYPES);
-			}
-		}
-		return exemptTypes;
-	}
-
-	/**
 	 * Determine if for this instance only the admin can delete a project
 	 * 
 	 * @return
@@ -3246,6 +3215,46 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(boolString);
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceAdd() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_ADD));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceDelete() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_DELETE));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceAddAccess() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_ADD_ACCESS));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceSetPublic() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_SET_PUBLIC));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceSetDiscoverable() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE));
+	}
+
+	public static boolean getApplicationAdminOnlySkillAdd() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_ADD));
+	}
+
+	public static boolean getApplicationAdminOnlySkillDelete() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_DELETE));
+	}
+
+	public static boolean getApplicationAdminOnlySkillAddAccess() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_ADD_ACCESS));
+	}
+
+	public static boolean getApplicationAdminOnlySkillSetPublic() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_SET_PUBLIC));
+	}
+
+	public static boolean getApplicationAdminOnlySkillSetDiscoverable() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_SET_DISCOVERABLE));
 	}
 
 	/**

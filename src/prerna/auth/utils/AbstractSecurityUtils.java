@@ -40,12 +40,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -88,11 +86,20 @@ public abstract class AbstractSecurityUtils {
 	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
-	static Set<IProject.PROJECT_TYPE> adminOnlyProjectAddExemptTypes = new HashSet<>();
 	static boolean adminOnlyProjectDelete = false;
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
 	static boolean adminOnlyProjectSetDiscoverable = false;
+	static boolean adminOnlyWorkspaceAdd = false;
+	static boolean adminOnlyWorkspaceDelete = false;
+	static boolean adminOnlyWorkspaceAddAccess = false;
+	static boolean adminOnlyWorkspaceSetPublic = false;
+	static boolean adminOnlyWorkspaceSetDiscoverable = false;
+	static boolean adminOnlySkillAdd = false;
+	static boolean adminOnlySkillDelete = false;
+	static boolean adminOnlySkillAddAccess = false;
+	static boolean adminOnlySkillSetPublic = false;
+	static boolean adminOnlySkillSetDiscoverable = false;
 
 	static boolean adminOnlyDatabaseAdd = false;
 	static boolean adminOnlyDatabaseDelete = false;
@@ -187,11 +194,20 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		adminOnlyProjectAdd = Utility.getApplicationAdminOnlyProjectAdd();
-		adminOnlyProjectAddExemptTypes = Utility.getApplicationAdminOnlyProjectAddExemptTypes();
 		adminOnlyProjectDelete = Utility.getApplicationAdminOnlyProjectDelete();
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
 		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
+		adminOnlyWorkspaceAdd = Utility.getApplicationAdminOnlyWorkspaceAdd();
+		adminOnlyWorkspaceDelete = Utility.getApplicationAdminOnlyWorkspaceDelete();
+		adminOnlyWorkspaceAddAccess = Utility.getApplicationAdminOnlyWorkspaceAddAccess();
+		adminOnlyWorkspaceSetPublic = Utility.getApplicationAdminOnlyWorkspaceSetPublic();
+		adminOnlyWorkspaceSetDiscoverable = Utility.getApplicationAdminOnlyWorkspaceSetDiscoverable();
+		adminOnlySkillAdd = Utility.getApplicationAdminOnlySkillAdd();
+		adminOnlySkillDelete = Utility.getApplicationAdminOnlySkillDelete();
+		adminOnlySkillAddAccess = Utility.getApplicationAdminOnlySkillAddAccess();
+		adminOnlySkillSetPublic = Utility.getApplicationAdminOnlySkillSetPublic();
+		adminOnlySkillSetDiscoverable = Utility.getApplicationAdminOnlySkillSetDiscoverable();
 
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
@@ -256,19 +272,29 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAdd;
 	}
 
-	/**
-	 * Determine if the given project type is exempt from
-	 * {@link #adminOnlyProjectAdd()}, i.e. non-admins may still create projects
-	 * of this type even when project creation is otherwise admin-restricted.
-	 *
-	 * @param type the project type being created
-	 * @return true if this type is exempt from the admin-only restriction
-	 */
-	public static boolean isProjectAddExemptFromAdminOnly(IProject.PROJECT_TYPE type) {
-		return adminOnlyProjectAddExemptTypes.contains(type);
+	public static boolean adminOnlyProjectAdd(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAdd;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAdd;
+		}
+		return adminOnlyProjectAdd;
 	}
 
 	public static boolean adminOnlyProjectDelete() {
+		return adminOnlyProjectDelete;
+	}
+
+	public static boolean adminOnlyProjectDelete(String projectId) {
+		return adminOnlyProjectDelete(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectDelete(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceDelete;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillDelete;
+		}
 		return adminOnlyProjectDelete;
 	}
 
@@ -276,12 +302,105 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAddAccess;
 	}
 
+	public static boolean adminOnlyProjectAddAccess(String projectId) {
+		return adminOnlyProjectAddAccess(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectAddAccess(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAddAccess;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAddAccess;
+		}
+		return adminOnlyProjectAddAccess;
+	}
+
 	public static boolean adminOnlyProjectSetPublic() {
+		return adminOnlyProjectSetPublic;
+	}
+
+	public static boolean adminOnlyProjectSetPublic(String projectId) {
+		return adminOnlyProjectSetPublic(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetPublic(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetPublic;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetPublic;
+		}
 		return adminOnlyProjectSetPublic;
 	}
 
 	public static boolean adminOnlyProjectSetDiscoverable() {
 		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(String projectId) {
+		return adminOnlyProjectSetDiscoverable(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetDiscoverable;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetDiscoverable;
+		}
+		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyWorkspaceAdd() {
+		return adminOnlyWorkspaceAdd;
+	}
+
+	public static boolean adminOnlyWorkspaceDelete() {
+		return adminOnlyWorkspaceDelete;
+	}
+
+	public static boolean adminOnlyWorkspaceAddAccess() {
+		return adminOnlyWorkspaceAddAccess;
+	}
+
+	public static boolean adminOnlyWorkspaceSetPublic() {
+		return adminOnlyWorkspaceSetPublic;
+	}
+
+	public static boolean adminOnlyWorkspaceSetDiscoverable() {
+		return adminOnlyWorkspaceSetDiscoverable;
+	}
+
+	public static boolean adminOnlySkillAdd() {
+		return adminOnlySkillAdd;
+	}
+
+	public static boolean adminOnlySkillDelete() {
+		return adminOnlySkillDelete;
+	}
+
+	public static boolean adminOnlySkillAddAccess() {
+		return adminOnlySkillAddAccess;
+	}
+
+	public static boolean adminOnlySkillSetPublic() {
+		return adminOnlySkillSetPublic;
+	}
+
+	public static boolean adminOnlySkillSetDiscoverable() {
+		return adminOnlySkillSetDiscoverable;
+	}
+
+	private static IProject.PROJECT_TYPE getProjectTypeForAdminOnly(String projectId) {
+		String projectType = SecurityProjectUtils.getProjectTypeForId(projectId);
+		if (projectType == null || projectType.trim().isEmpty()) {
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
+		try {
+			return IProject.PROJECT_TYPE.valueOf(projectType.trim());
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Unknown project type '{}' for project {}; applying project admin limits", projectType,
+					projectId);
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
 	}
 
 	public static boolean adminOnlyDatabaseAdd() {

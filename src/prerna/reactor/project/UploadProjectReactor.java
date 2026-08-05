@@ -29,16 +29,12 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -112,21 +108,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		// peek the project type directly out of the zip's smss entry (no disk
-		// writes) so admin-only enforcement can happen before any temp files are
-		// created - a rejected upload should never need cleanup
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)
-				&& !AbstractSecurityUtils.isProjectAddExemptFromAdminOnly(peekProjectTypeFromZip(zipFilePath))) {
-			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-		}
-
-		if (global && (AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
-			SemossPixelException exception = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("User can upload a project but cannot make the project public"));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
@@ -139,6 +120,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		List<String> fileList = new ArrayList<>();
 		String smssFileLoc = null;
 		File smssFile = null;
+		Properties projectProperties = null;
 		// unzip files to temp project folder
 		boolean error = false;
 		try {
@@ -169,6 +151,21 @@ public class UploadProjectReactor extends AbstractReactor {
 			if (smssFileLoc == null) {
 				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
 			}
+
+			projectProperties = Utility.loadProperties(smssFileLoc);
+			String projectTypeString = projectProperties.getProperty(Constants.PROJECT_ENUM_TYPE);
+			IProject.PROJECT_TYPE projectType = projectTypeString == null ? IProject.PROJECT_TYPE.INSIGHTS
+					: IProject.PROJECT_TYPE.valueOf(projectTypeString.trim());
+			if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
+			}
+			if (global && AbstractSecurityUtils.adminOnlyProjectSetPublic(projectType)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				SemossPixelException exception = new SemossPixelException(NounMetadata
+						.getErrorNounMessage("User can upload a project but cannot make the project public"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		} catch (SemossPixelException e) {
 			error = true;
 			throw e;
@@ -191,7 +188,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		boolean projectAddedToDIHelper = false;
 		try {
 			logger.info("{}) Reading smss", step);
-			Properties prop = Utility.loadProperties(smssFileLoc);
+			Properties prop = projectProperties;
 			projectId = prop.getProperty(Constants.PROJECT);
 			projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 
@@ -348,48 +345,7 @@ public class UploadProjectReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Read the PROJECT_ENUM_TYPE out of the zip's smss entry without extracting
-	 * anything to disk, so callers can enforce type-aware permissions before any
-	 * temp files exist. Defaults to INSIGHTS if the entry is missing, unreadable,
-	 * or has no/unrecognized type - the same default the rest of this reactor
-	 * uses, and the subsequent unzip step will surface a clearer error if the
-	 * zip itself is invalid.
-	 *
-	 * @param zipFilePath
-	 * @return
-	 */
-	private IProject.PROJECT_TYPE peekProjectTypeFromZip(String zipFilePath) {
-		try (ZipFile zipFile = new ZipFile(zipFilePath)) {
-			Enumeration<? extends ZipEntry> entries = zipFile.entries();
-			while (entries.hasMoreElements()) {
-				ZipEntry entry = entries.nextElement();
-				String name = entry.getName();
-				if (name.startsWith("__MACOSX/") || !name.endsWith(Constants.SEMOSS_EXTENSION)) {
-					continue;
-				}
-				Properties prop = new Properties();
-				try (InputStream is = zipFile.getInputStream(entry)) {
-					prop.load(is);
-				}
-				String projectEnumTypeStr = prop.getProperty(Constants.PROJECT_ENUM_TYPE);
-				if (projectEnumTypeStr == null || (projectEnumTypeStr = projectEnumTypeStr.trim()).isEmpty()) {
-					return IProject.PROJECT_TYPE.INSIGHTS;
-				}
-				try {
-					return IProject.PROJECT_TYPE.valueOf(projectEnumTypeStr);
-				} catch (IllegalArgumentException e) {
-					return IProject.PROJECT_TYPE.INSIGHTS;
-				}
-			}
-		} catch (IOException e) {
-			classLogger.warn("Unable to peek project type from uploaded zip; deferring to standard unzip validation",
-					e);
-		}
-		return IProject.PROJECT_TYPE.INSIGHTS;
-	}
-
-	/**
-	 *
+	 * 
 	 * @param fileToDelete
 	 */
 	private void cleanUpFolders(File... fileToDelete) {
