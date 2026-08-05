@@ -111,25 +111,6 @@ services:
     networks:
       - mynetwork
 
-  pgvector:
-    image: pgvector/pgvector:pg18
-    container_name: semoss-pgvector
-    environment:
-      POSTGRES_USER: pgvector
-      POSTGRES_PASSWORD: pgvector
-      POSTGRES_DB: vectordb
-    ports:
-      - "5433:5432"
-    volumes:
-      - pgvector-data:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pgvector -d vectordb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - mynetwork
-
   db:
     image: postgres:18
     container_name: postgres
@@ -160,7 +141,6 @@ volumes:
   semoss_function:
   semoss_guardrail:
   pgdata:
-  pgvector-data:
 
 networks:
   # shared with the engines/ services so they can reach these containers by name
