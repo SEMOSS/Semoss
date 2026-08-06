@@ -80,6 +80,15 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
+	/**
+	 * Agents and skills are intentionally cloneable with view permission. A
+	 * regular project is a deep copy of the source project and therefore requires
+	 * editor or owner permission.
+	 */
+	static boolean canCloneProject(IProject.PROJECT_TYPE projectType, boolean canEdit) {
+		return projectType == IProject.PROJECT_TYPE.WORKSPACE || projectType == IProject.PROJECT_TYPE.SKILL || canEdit;
+	}
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
@@ -103,6 +112,11 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 		// Use the template to populate the parameters needed to create the new project
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
+		boolean canEdit = SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectTemplateId);
+		if (!canCloneProject(projectEnumType, canEdit)) {
+			throw new IllegalArgumentException(
+					"Only owners and editors can clone regular projects. Agents and skills can be cloned with read-only access.");
+		}
 
 		// Create new project
 		IProject newProject = ProjectHelper.generateNewProject(newProjectName, projectEnumType, global, gitProvider,
