@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,9 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateAppFromTemplateReactor.class);
 
 	private static final String CLASS_NAME = CreateAppFromTemplateReactor.class.getName();
+
+	// PROJECTMETA tag marking a project as platform-managed; never copied onto a clone
+	private static final String SYSTEM_TAG = "SYSTEM";
 
 	/*
 	 * This class is used to construct a new project using an existing project as a
@@ -149,9 +153,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 							+ e.getMessage());
 		}
 
-		// If the template is a WORKSPACE (agent), clone the inference-log workspace
-		// entry and CONFIG_JSON so the new agent inherits all configuration:
-		// system prompt, model selection, MCPs, skills, budgets, hooks, subagents.
+
 		if (IProject.PROJECT_TYPE.WORKSPACE == projectEnumType) {
 			try {
 				User user = this.insight.getUser();
@@ -192,11 +194,30 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				if (sourceConfigJson != null) {
 					ModelInferenceLogsUtils.updateWorkspaceConfigJson(newProjectId, sourceConfigJson);
 				}
+
+				Map<String, Object> sourceTagMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectTemplateId,
+						Arrays.asList("tag"), false);
+				Object sourceTagValue = sourceTagMeta.get("tag");
+				List<Object> sourceTags = new ArrayList<>();
+				if (sourceTagValue instanceof List) {
+					sourceTags.addAll((List<?>) sourceTagValue);
+				} else if (sourceTagValue != null) {
+					sourceTags.add(sourceTagValue);
+				}
+				List<Object> clonedTags = new ArrayList<>();
+				for (Object tag : sourceTags) {
+					if (tag != null && !SYSTEM_TAG.equalsIgnoreCase(tag.toString())) {
+						clonedTags.add(tag);
+					}
+				}
+				if (!clonedTags.isEmpty()) {
+					Map<String, Object> tagUpdate = new HashMap<>();
+					tagUpdate.put("tag", clonedTags);
+					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
+				}
 			} catch (Exception e) {
 				classLogger.error("Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
 						projectTemplateId, newProject.getProjectId(), e);
-				// Roll back the project so the user doesn't end up with a broken agent
-				// that exists in the list but throws "Workspace not found" when opened.
 				try {
 					newProject.delete();
 				} catch (Exception rollbackEx) {
