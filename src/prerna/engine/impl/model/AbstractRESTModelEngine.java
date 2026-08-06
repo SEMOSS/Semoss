@@ -53,7 +53,9 @@ import com.google.gson.Gson;
 
 import prerna.engine.impl.model.responses.IModelEngineResponseHandler;
 import prerna.engine.impl.model.responses.IModelEngineResponseStreamHandler;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 
@@ -143,6 +145,30 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 				} else {
 					// Handle streaming response
 					if (entity != null) {
+						// Closing the response on cancel unblocks reader.readLine() with an IOException below.
+						final CloseableHttpResponse responseRef = response;
+						String threadJobId = ThreadStore.getJobId();
+						PixelJobRunner jobRunner = threadJobId != null
+								? PixelJobManager.getManager().getJob(threadJobId)
+								: null;
+						if (jobRunner != null) {
+							jobRunner.setCancelHook(() -> {
+								try {
+									responseRef.close();
+								} catch (Exception ignored) {
+									// ignore - we're cancelling anyway
+								}
+							});
+							// Cancel may have fired before the hook was registered; honor it now so the
+							// pending readLine() unblocks instead of waiting for the first streamed line.
+							if (jobRunner.isCancelRequested()) {
+								try {
+									responseRef.close();
+								} catch (Exception ignored) {
+									// ignore - we're cancelling anyway
+								}
+							}
+						}
 						try (BufferedReader reader = new BufferedReader(
 								new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
 							String line;
@@ -151,6 +177,10 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 
 							while ((line = reader.readLine()) != null) {
 //	                        	System.out.println(line);
+								// fast-exit if cancellation was requested between lines
+								if (Thread.currentThread().isInterrupted()) {
+									break;
+								}
 								if (line.contains("data: [DONE]") || line.contains("data:[DONE]")) {
 									break;
 								}
@@ -174,9 +204,19 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 							responseObject.setResponse(responseAssimilator.toString());
 							return responseObject;
 						} catch (Exception e) {
+							// Cancel-triggered close surfaces as IOException here; convert to a clean cancellation.
+							if (Thread.currentThread().isInterrupted()
+									|| (jobRunner != null && jobRunner.isCancelRequested())) {
+								throw new IllegalStateException("LLM stream cancelled by user");
+							}
 							classLogger.error(Constants.STACKTRACE, e);
 							throw new IllegalArgumentException(
 									"There was an error processing the response from " + url);
+						} finally {
+							// always clear the hook so it can't be fired after the call ends
+							if (jobRunner != null) {
+								jobRunner.setCancelHook(null);
+							}
 						}
 					}
 				}
