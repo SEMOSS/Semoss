@@ -823,6 +823,34 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     return module
 
 
+def _asset_relative_source(src_file: str) -> str:
+    """
+    Reduce a driver path to the portion starting at the engine's assets folder.
+
+    The path handed in is absolute and therefore machine specific: it embeds the
+    deployment root and the OS user, so writing it into py_mcp.json makes the
+    committed file differ for every developer and leaks local directory layout.
+    Only the part at and below `assets` means anything to a reader.
+
+    Scans from the right so a deployment root that itself contains an `assets`
+    segment does not win over the engine's own. Matches whole segments, so a
+    project named e.g. "My assets" is not mistaken for the folder.
+
+    Args:
+        src_file (str): Path to the python driver file
+
+    Returns:
+        str: e.g. "assets/py/mcp_driver.py", or the bare file name if no assets
+             folder appears in the path
+    """
+    normalized = str(src_file).replace("\\", "/")
+    parts = normalized.split("/")
+    for i in range(len(parts) - 1, -1, -1):
+        if parts[i] == "assets":
+            return "/".join(parts[i:])
+    return os.path.basename(normalized)
+
+
 def generate_mcp(
     src_file: str = None,
     function_name: Optional[str] = None,
@@ -850,7 +878,7 @@ def generate_mcp(
     _meta.update(
         {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
     )
-    _meta.update({"source_file": src_file})
+    _meta.update({"source_file": _asset_relative_source(src_file)})
     mcp_json.update({"_meta": _meta})
 
     tools = []
