@@ -94,7 +94,11 @@ public class GetAutomationRunReactor extends AbstractReactor {
 			nodeResult.put(AutomationConstants.NODE_LABEL, nodeOutput.get(AutomationConstants.NODE_LABEL));
 			nodeResult.put(AutomationConstants.STATUS, nodeOutput.get(AutomationConstants.STATUS));
 			nodeResult.put(AutomationConstants.DURATION_MS, nodeOutput.get(AutomationConstants.DURATION_MS));
-			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, nodeOutput.get(AutomationConstants.OUTPUT_PREVIEW));
+			String outputForDisplay = (String) nodeOutput.get(AutomationConstants.OUTPUT_VALUE);
+			if (outputForDisplay == null || outputForDisplay.isBlank()) {
+				outputForDisplay = (String) nodeOutput.get(AutomationConstants.OUTPUT_PREVIEW);
+			}
+			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, nodeOutput.get(AutomationConstants.ERROR_MESSAGE));
 			nodeResults.add(nodeResult);
 		}

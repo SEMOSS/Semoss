@@ -98,7 +98,9 @@ Node types and their config shapes:
 - wait: config={"seconds":"5"} — pause between steps, outputVar="wait_out"
 
 ## Variable substitution
-Reference upstream node outputs in config fields using ${outputVar}.
+Reference upstream node outputs in config fields using ${outputVar} (e.g. ${db_out}, ${model_out}).
+NEVER use SQL parameterized syntax ($1, $2, ?, :param) — those are not supported and will cause runtime errors.
+In SQL expressions, always wrap ${outputVar} in single quotes for string/UUID values: WHERE col = '${varName}'. NEVER use double quotes — PostgreSQL treats double-quoted values as column names.
 
 ## Rules
 1. Always start with a trigger node (id="trigger-1").
@@ -137,7 +139,9 @@ Node types and their config shapes:
 - wait: config={"seconds":"5"} — pause between steps, outputVar="wait_out"
 
 ## Variable substitution
-Reference upstream node outputs in config fields using ${outputVar}.
+Reference upstream node outputs in config fields using ${outputVar} (e.g. ${db_out}, ${model_out}).
+NEVER use SQL parameterized syntax ($1, $2, ?, :param) — those are not supported and will cause runtime errors.
+In SQL expressions, always wrap ${outputVar} in single quotes for string/UUID values: WHERE col = '${varName}'. NEVER use double quotes — PostgreSQL treats double-quoted values as column names.
 
 ## Rules
 1. Always start with a trigger node (id="trigger-1").
@@ -168,6 +172,7 @@ Your task: return a corrected copy of the document with these updates:
    - Do not add conditions or filters that aren't implied by the user's request
    - Use column types to write type-safe SQL — don't compare VARCHAR columns to integers or assume a column's semantics from its name alone
    - Use a reasonable LIMIT to avoid returning unbounded result sets
+   - NEVER use SQL parameterized placeholders ($1, $2, ?, :param) — the execution engine does not support bound parameters. For runtime values from upstream nodes, use ${outputVar} inline in the SQL string wrapped in single quotes (e.g. WHERE id = '${db_out}'). NEVER wrap ${outputVar} in double quotes — double quotes are SQL identifier delimiters and will cause a "column does not exist" error. For literal filters, hardcode the value directly.
    - If no relevant table exists in the schema, set expression to "-- [replace with your SQL query]" and update the label to "Review: update this query"
 2. model-engine nodes: if the "command" references an upstream database node's output, update it to mention the specific column names the SQL query will actually return.
 3. app nodes: replace the "pixel" value "PENDING_PIXEL_EXPRESSION" with a call to the most appropriate reactor from the available reactors list.

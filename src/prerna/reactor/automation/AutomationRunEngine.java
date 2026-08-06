@@ -248,7 +248,7 @@ public final class AutomationRunEngine {
 
 			classLogger.debug("Node {} ({}) succeeded in {}ms in run {}", nodeId, nodeLabel, durationMs, runId);
 			Map<String, Object> result = buildNodeResult(nodeId, nodeLabel,
-					AutomationConstants.NODE_STATUS_SUCCESS, durationMs, preview, null);
+					AutomationConstants.NODE_STATUS_SUCCESS, durationMs, transformed, null);
 			result.put(AutomationConstants.RESULT_OUTPUT_VALUE, transformed);
 			return result;
 

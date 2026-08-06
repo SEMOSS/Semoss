@@ -115,13 +115,11 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_OUTPUT_TRANSFORM);
 			String transformed = AutomationExecutionUtils.applyOutputTransform(rawOutput, transformConfig);
 			long durationMs = System.currentTimeMillis() - startMs;
-			String preview = AutomationExecutionUtils.generatePreview(transformed);
-
 			Map<String, Object> result = new HashMap<>();
 			result.put(AutomationConstants.NODE_ID, nodeId);
 			result.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
 			result.put(AutomationConstants.DURATION_MS, durationMs);
-			result.put(AutomationConstants.OUTPUT_PREVIEW, preview);
+			result.put(AutomationConstants.OUTPUT_PREVIEW, transformed);
 			result.put(AutomationConstants.OUTPUT_VALUE, transformed);
 			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 
