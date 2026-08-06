@@ -60,6 +60,7 @@ public final class AutomationConstants {
 	public static final String COMPLETED_NODES = "COMPLETED_NODES";
 	public static final String CREATED_BY = "CREATED_BY";
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
+	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
 
 	// -- AUTOMATION_ACTIVE_RUN columns ---------------------------------------------
 
@@ -163,12 +164,8 @@ public final class AutomationConstants {
 	public static final String DOC_NODES = "nodes";
 	public static final String DOC_EDGES = "edges";
 	public static final int DOC_CURRENT_VERSION = 1;
-	/**
-	 * Optional {@code ${var}}/{@code ${config.KEY}} template resolved against the final run
-	 * scope once all nodes complete, producing a workflow-specific human-readable summary
-	 * (e.g. "Indexed 20 files") instead of a raw JSON blob for MCP/agent consumers.
-	 */
 	public static final String DOC_RESULT_MESSAGE_TEMPLATE = "resultMessageTemplate";
+	public static final String DOC_DESCRIPTION = "description";
 
 	// -- Node/edge field names --------------------------------------------------------
 

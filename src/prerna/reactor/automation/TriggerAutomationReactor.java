@@ -69,6 +69,24 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		String userId = getUserId();
 		String runId = UUID.randomUUID().toString();
 
+		// Validate the automation has runnable steps BEFORE claiming the run slot,
+		// so a bad automation never leaves a stale active-run record.
+		Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
+		@SuppressWarnings("unchecked")
+		Map<String, Object> graph = (Map<String, Object>) doc.get(AutomationConstants.DOC_GRAPH);
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
+		List<Map<String, Object>> ordered = nodes != null ? nodes : new ArrayList<>();
+		if (ordered.isEmpty()) {
+			throw new IllegalArgumentException("Automation has no nodes to execute");
+		}
+		long nonTriggerCount = ordered.stream()
+				.filter(n -> !AutomationConstants.NODE_TRIGGER.equals(n.get(AutomationConstants.NODE_FIELD_TYPE)))
+				.count();
+		if (nonTriggerCount == 0) {
+			throw new IllegalArgumentException("Automation has no steps to run. Add at least one step before running.");
+		}
+
 		if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
 			String activeRun = AutomationDatabaseUtility.getActiveRun(projectId);
 			throw new IllegalArgumentException(
@@ -78,17 +96,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 		boolean runStarted = false;
 		try {
-			Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
-			@SuppressWarnings("unchecked")
-			Map<String, Object> graph = (Map<String, Object>) doc.get(AutomationConstants.DOC_GRAPH);
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
 			Map<String, String> configMap = AutomationExecutionUtils.loadConfig(projectId);
-
-			List<Map<String, Object>> ordered = nodes != null ? nodes : new ArrayList<>();
-			if (ordered.isEmpty()) {
-				throw new IllegalArgumentException("Automation has no nodes to execute");
-			}
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> inputsMap = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
@@ -151,6 +159,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					? AutomationExecutionUtils.buildSummaryMessage(doc, finalScope, configMap, completedCount, ordered.size())
 					: buildFailureSummary(runDetail);
 			runDetail.put(AutomationConstants.RESULT_SUMMARY, summary);
+			AutomationDatabaseUtility.updateRunSummary(runId, summary);
 
 			// Enriched context sent to the LLM as the MCP tool response, so it can describe
 			// what each step actually did rather than just echoing the node count.

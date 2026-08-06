@@ -127,8 +127,27 @@ public final class AutomationMcpSync {
 		JSONObject tool = new JSONObject();
 		tool.put("name", "TriggerAutomation");
 		tool.put("title", "Trigger Automation");
-		String description = "Manually triggers the automation configured for this project/app and returns a "
-				+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
+
+		String docDescription = null;
+		try {
+			if (automationJson != null && !automationJson.isBlank()) {
+				JSONObject doc = new JSONObject(automationJson);
+				String raw = doc.optString(AutomationConstants.DOC_DESCRIPTION, "").trim();
+				if (!raw.isEmpty()) {
+					docDescription = raw;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to read description from automation JSON for project {}", projectId, e);
+		}
+
+		String description;
+		if (docDescription != null) {
+			description = docDescription + " Triggers the automation and returns a per-workflow summary once complete.";
+		} else {
+			description = "Manually triggers the automation configured for this project/app and returns a "
+					+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
+		}
 		if (hasDbNodes) {
 			description += " This automation has database nodes that accept SQL queries — call GetAutomationSchema first"
 					+ " to discover the exact table and column names before writing SQL.";

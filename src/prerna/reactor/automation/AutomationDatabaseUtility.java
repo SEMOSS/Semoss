@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
 import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
+import static prerna.reactor.automation.AutomationConstants.RESULT_SUMMARY_COL;
 import static prerna.reactor.automation.AutomationConstants.CLAIMED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
@@ -138,6 +139,9 @@ public final class AutomationDatabaseUtility {
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
 			FAILED_NODE_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ?""";
+
+	private static final String UPDATE_RUN_SUMMARY =
+			"UPDATE AUTOMATION_RUNS SET RESULT_SUMMARY = ? WHERE RUN_ID = ?";
 
 	private static final String UPDATE_HEARTBEAT =
 			"UPDATE AUTOMATION_RUNS SET LAST_HEARTBEAT = ?, COMPLETED_NODES = ? WHERE RUN_ID = ?";
@@ -547,6 +551,35 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
+	 * Persists the human-readable outcome summary for a completed run.
+	 * Called after the run finishes, separately from {@link #updateRunStatus} because the
+	 * summary is built by the caller ({@code TriggerAutomationReactor}) after the engine returns.
+	 */
+	public static boolean updateRunSummary(String runId, String resultSummary) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_SUMMARY)) {
+				setNullableString(ps, 1, resultSummary);
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to update run summary for '{}': {}", runId, e.getMessage(), e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
 	 * Updates the heartbeat timestamp and completed node count for a running automation.
 	 */
 	public static boolean updateHeartbeat(String runId, int completedNodes) {
@@ -626,6 +659,7 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
@@ -657,6 +691,7 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
@@ -854,13 +889,13 @@ public final class AutomationDatabaseUtility {
 
 		String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE,
 				STARTED_AT, COMPLETED_AT, FAILED_NODE_ID, ERROR_MESSAGE, LAST_HEARTBEAT,
-				TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED };
+				TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED, RESULT_SUMMARY_COL };
 		String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_50, VARCHAR_50,
 				dateTimeType, dateTimeType, VARCHAR_255, clobType, dateTimeType,
-				INTEGER, INTEGER, VARCHAR_255, queryUtil.getBooleanDataTypeName() };
+				INTEGER, INTEGER, VARCHAR_255, queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
 		String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
 				NOT_NULL, null, null, null, null,
-				null, null, null, null };
+				null, null, null, null, null };
 
 		String sql;
 		if (allowIfExists) {
@@ -875,6 +910,8 @@ public final class AutomationDatabaseUtility {
 
 		// Migrate installs that predate cluster-safe cancel
 		addColumnIfNotExists(conn, queryUtil, tableName, CANCEL_REQUESTED, queryUtil.getBooleanDataTypeName());
+		// Migrate installs that predate result summary
+		addColumnIfNotExists(conn, queryUtil, tableName, RESULT_SUMMARY_COL, VARCHAR_2000);
 
 		// Primary key
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,

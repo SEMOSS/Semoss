@@ -292,7 +292,8 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.TOTAL_NODES, INTEGER),
 				Pair.with(AutomationConstants.COMPLETED_NODES, INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, VARCHAR_255),
-				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN)));
+				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN),
+				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, VARCHAR_2000)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, VARCHAR_255),
