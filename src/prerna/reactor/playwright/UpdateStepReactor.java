@@ -32,8 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -78,9 +77,8 @@ public class UpdateStepReactor extends AbstractReactor {
 
 		GenRowStruct inputs = this.store.getGenRowStruct("inputs");
 		List<Object> steps = inputs.getAllValues();
-		ObjectMapper mapper = new ObjectMapper();
-		List<PlaywrightStep> stepList = mapper.convertValue(steps, new TypeReference<List<PlaywrightStep>>() {
-		});
+		List<PlaywrightStep> stepList = GSON.fromJson(GSON.toJson(steps), new TypeToken<List<PlaywrightStep>>() {
+		}.getType());
 
 		UpdateResult result = updateStep(sessionId, tabId, stepList);
 
