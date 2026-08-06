@@ -80,11 +80,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
-	/**
-	 * Agents and skills are intentionally cloneable with view permission. A
-	 * regular project is a deep copy of the source project and therefore requires
-	 * editor or owner permission.
-	 */
+	// Allow viewer cloning for agents and skills but not apps
 	static boolean canCloneProject(IProject.PROJECT_TYPE projectType, boolean canEdit) {
 		return projectType == IProject.PROJECT_TYPE.WORKSPACE || projectType == IProject.PROJECT_TYPE.SKILL || canEdit;
 	}
