@@ -891,6 +891,8 @@ class OpenAIMessageBuilder:
             param_map.pop("max_tokens", None)
             or param_map.pop("max_new_tokens", None)
             or param_map.pop("max_completion_tokens", None)
+            or param_map.pop("max_output_tokens", None)
+            or self.model_settings.max_tokens
         )
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
@@ -950,6 +952,8 @@ class OpenAIMessageBuilder:
             param_map.pop("max_tokens", None)
             or param_map.pop("max_new_tokens", None)
             or param_map.pop("max_output_tokens", None)
+            or param_map.pop("max_completion_tokens", None)
+            or self.model_settings.max_tokens
         )
         if max_tokens:
             param_map["max_completion_tokens"] = max_tokens
