@@ -480,8 +480,7 @@ public class RemoteBrowserSessionManager {
 								metadata.put("scrollHeight", scrollMetrics.get("scrollHeight"));
 								metadata.put("viewportHeight", scrollMetrics.get("viewportHeight"));
 							}
-							sender.send(LOOP_GSON.toJson(
-									Map.of("type", "frame", "data", b64, "metadata", metadata)));
+							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata", metadata)));
 						} catch (Exception ignored) {
 						}
 					} finally {

@@ -50,20 +50,19 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
 /**
  * Maps validated frontend input events onto Playwright browser actions. For
- * CLICK events, uses a 3-tier fallback: selector -> coords -> skip. After
- * each action, respects waitAfterMs and waits for page to settle.
+ * CLICK events, uses a 3-tier fallback: selector -> coords -> skip. After each
+ * action, respects waitAfterMs and waits for page to settle.
  *
  * All calls must be made from the session's dedicated Playwright thread.
  */
 public class RemoteBrowserInputService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
-	private static final Set<String> SAFE_CURSOR_VALUES = Set.of("auto", "default", "none", "context-menu",
-			"help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias",
-			"copy", "move", "no-drop", "not-allowed", "grab", "grabbing", "e-resize", "n-resize",
-			"ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize",
-			"ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in",
-			"zoom-out");
+	private static final Set<String> SAFE_CURSOR_VALUES = Set.of("auto", "default", "none", "context-menu", "help",
+			"pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move",
+			"no-drop", "not-allowed", "grab", "grabbing", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize",
+			"se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize",
+			"row-resize", "all-scroll", "zoom-in", "zoom-out");
 
 	private RemoteBrowserInputService() {
 	}
@@ -80,8 +79,7 @@ public class RemoteBrowserInputService {
 				return result;
 			}
 			if ("prepare-replay".equals(event.getType())) {
-				Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab())
-						? session.getActivePage()
+				Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab()) ? session.getActivePage()
 						: session.getContext().newPage();
 				String liveTabId = session.getPlaywrightSession().findTabId(replayRoot);
 				if (liveTabId == null) {
@@ -217,10 +215,8 @@ public class RemoteBrowserInputService {
 		}
 		try {
 			Map<String, Double> point = Map.of("x", event.getX(), "y", event.getY());
-			Object result = page.evaluate("point => {"
-					+ "const element = document.elementFromPoint(point.x, point.y);"
-					+ "return element ? getComputedStyle(element).cursor : 'default';"
-					+ "}", point);
+			Object result = page.evaluate("point => {" + "const element = document.elementFromPoint(point.x, point.y);"
+					+ "return element ? getComputedStyle(element).cursor : 'default';" + "}", point);
 			String cursor = result == null ? "default" : result.toString().trim().toLowerCase();
 			return SAFE_CURSOR_VALUES.contains(cursor) ? cursor : "default";
 		} catch (Exception ignored) {
@@ -289,21 +285,30 @@ public class RemoteBrowserInputService {
 			payload.put("x", event.getX());
 			payload.put("y", event.getY());
 			payload.put("selector", selectorPayload(event.getSelector()));
-			Object result = page.evaluate("(event) => {" + "let el = null;" + "const sel = event.selector;"
-					+ "if (sel && sel.value) {" + "  try {"
-					+ "    if (sel.strategy === 'id') el = document.getElementById(sel.value);"
-					+ "    else if (sel.strategy === 'css') el = document.querySelector(sel.value);"
-					+ "    else if (sel.strategy === 'role') el = document.querySelector('[role=\"' + CSS.escape(sel.value) + '\"]');"
-					+ "    else if (sel.strategy === 'xpath') el = document.evaluate(sel.value, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;"
-					+ "  } catch (e) {}" + "}"
-					+ "if (!el && event.x != null && event.y != null) el = document.elementFromPoint(event.x, event.y);"
-					+ "if (!el) return false;"
-					+ "const target = el.closest('a[href], button, input, [role=\"link\"], [role=\"button\"]');"
-					+ "if (!target) return false;" + "if (target.matches('a[href], [role=\"link\"]')) return true;"
-					+ "if (target.matches('button[type=\"submit\"], input[type=\"submit\"]')) return true;"
-					+ "const form = target.closest('form');"
-					+ "return !!form && target.matches('button:not([type]), button[type=\"submit\"], input[type=\"submit\"]');"
-					+ "}", payload);
+			Object result = page.evaluate(
+					"""
+							(event) => {
+							  let el = null;
+							  const sel = event.selector;
+							  if (sel && sel.value) {
+							    try {
+							      if (sel.strategy === 'id') el = document.getElementById(sel.value);
+							      else if (sel.strategy === 'css') el = document.querySelector(sel.value);
+							      else if (sel.strategy === 'role') el = document.querySelector('[role="' + CSS.escape(sel.value) + '"]');
+							      else if (sel.strategy === 'xpath') el = document.evaluate(sel.value, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+							    } catch (e) {}
+							  }
+							  if (!el && event.x != null && event.y != null) el = document.elementFromPoint(event.x, event.y);
+							  if (!el) return false;
+							  const target = el.closest('a[href], button, input, [role="link"], [role="button"]');
+							  if (!target) return false;
+							  if (target.matches('a[href], [role="link"]')) return true;
+							  if (target.matches('button[type="submit"], input[type="submit"]')) return true;
+							  const form = target.closest('form');
+							  return !!form && target.matches('button:not([type]), button[type="submit"], input[type="submit"]');
+							}
+							""",
+					payload);
 			return Boolean.TRUE.equals(result);
 		} catch (Exception e) {
 			return false;
@@ -367,11 +372,21 @@ public class RemoteBrowserInputService {
 		try {
 			if (sel.frameSelector() != null && !sel.frameSelector().isBlank()) {
 				FrameLocator frame = page.frameLocator(sel.frameSelector());
-				if ("id".equals(strat)) return frame.locator("#" + val);
-				if ("css".equals(strat)) return frame.locator(val);
-				if ("xpath".equals(strat)) return frame.locator("xpath=" + val);
-				if ("role".equals(strat)) return frame.locator("[role=\"" + val + "\"]");
-				if ("text".equals(strat)) return frame.getByText(val);
+				if ("id".equals(strat)) {
+					return frame.locator("#" + val);
+				}
+				if ("css".equals(strat)) {
+					return frame.locator(val);
+				}
+				if ("xpath".equals(strat)) {
+					return frame.locator("xpath=" + val);
+				}
+				if ("role".equals(strat)) {
+					return frame.locator("[role=\"" + val + "\"]");
+				}
+				if ("text".equals(strat)) {
+					return frame.getByText(val);
+				}
 				return frame.locator(val);
 			}
 			if ("id".equals(strat)) {

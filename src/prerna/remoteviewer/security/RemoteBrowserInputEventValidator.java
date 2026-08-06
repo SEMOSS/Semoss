@@ -45,13 +45,11 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_REQUEST_ID_LENGTH = 128;
 	private static final double MIN_SELECTION_SIZE = 2;
 
-	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
-			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
-					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
-					"recording-control", "selected-text-context", "switch-tab", "switch-replay-tab",
-				"prepare-replay", "close-tab", "fill-element"));
+	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList("mouse-click", "mouse-move",
+			"mouse-down", "mouse-up", "wheel", "type-text", "key", "navigate", "close-session", "navigate-back",
+			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context", "switch-tab",
+			"switch-replay-tab", "prepare-replay", "close-tab", "fill-element"));
 	private static final int MAX_WAIT_AFTER_MS = 60_000;
-
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -131,7 +129,8 @@ public class RemoteBrowserInputEventValidator {
 			if (event.getText().length() > MAX_TYPE_TEXT_LENGTH) {
 				throw new IllegalArgumentException("fill-element exceeds max length " + MAX_TYPE_TEXT_LENGTH);
 			}
-			if (event.getSelector() == null || event.getSelector().value() == null || event.getSelector().value().isBlank()) {
+			if (event.getSelector() == null || event.getSelector().value() == null
+					|| event.getSelector().value().isBlank()) {
 				throw new IllegalArgumentException("fill-element event requires a non-empty selector");
 			}
 			break;

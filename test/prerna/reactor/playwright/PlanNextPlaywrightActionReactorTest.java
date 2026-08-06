@@ -67,8 +67,8 @@ class PlanNextPlaywrightActionReactorTest {
 		scroll.put("deltaY", 560);
 		scroll.put("screenPercent", 70);
 
-		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
-				"{\"type\":\"scroll\",\"index\":0,\"reason\":\"reveal more results\"}", List.of(scroll));
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"scroll\",\"index\":0,\"reason\":\"reveal more results\"}", List.of(scroll));
 		Map<?, ?> action = (Map<?, ?>) decision.get("action");
 		assertEquals("scroll", action.get("type"));
 		assertEquals(560, action.get("deltaY"));
@@ -78,8 +78,7 @@ class PlanNextPlaywrightActionReactorTest {
 	@Test
 	void parserMapsClickIndexToServerValidatedSelector() throws Exception {
 		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
-				"```json\n{\"type\":\"click\",\"index\":0,\"reason\":\"open results\"}\n```",
-				List.of(clickAction()));
+				"```json\n{\"type\":\"click\",\"index\":0,\"reason\":\"open results\"}\n```", List.of(clickAction()));
 
 		assertFalse((Boolean) decision.get("goalReached"));
 		Map<?, ?> action = (Map<?, ?>) decision.get("action");
@@ -89,26 +88,23 @@ class PlanNextPlaywrightActionReactorTest {
 
 	@Test
 	void parserValidatesFieldActionAndSelectOption() throws Exception {
-		Map<String, Object> select = fieldAction("select",
-				List.of(Map.of("label", "Java", "value", "java")));
-		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
-				"{\"type\":\"select\",\"index\":0,\"value\":\"java\"}", List.of(select));
+		Map<String, Object> select = fieldAction("select", List.of(Map.of("label", "Java", "value", "java")));
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"select\",\"index\":0,\"value\":\"java\"}", List.of(select));
 		assertEquals("java", ((Map<?, ?>) decision.get("action")).get("value"));
 
-		assertThrows(IllegalArgumentException.class,
-				() -> PlanNextPlaywrightActionReactor.parseDecision(
-						"{\"type\":\"select\",\"index\":0,\"value\":\"python\"}", List.of(select)));
-		assertThrows(IllegalArgumentException.class,
-				() -> PlanNextPlaywrightActionReactor.parseDecision(
-						"{\"type\":\"click\",\"index\":0}", List.of(select)));
+		assertThrows(IllegalArgumentException.class, () -> PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"select\",\"index\":0,\"value\":\"python\"}", List.of(select)));
+		assertThrows(IllegalArgumentException.class, () -> PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"click\",\"index\":0}", List.of(select)));
 	}
 
 	@Test
 	void parserPreservesGeneratedFieldRecordingMetadata() throws Exception {
 		Map<String, Object> password = fieldAction("input", List.of());
 		password.put("isPassword", true);
-		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
-				"{\"type\":\"fill\",\"index\":0,\"value\":\"secret\"}", List.of(password));
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"fill\",\"index\":0,\"value\":\"secret\"}", List.of(password));
 		Map<?, ?> action = (Map<?, ?>) decision.get("action");
 
 		assertEquals(true, action.get("isPassword"));
@@ -122,8 +118,8 @@ class PlanNextPlaywrightActionReactorTest {
 		assertTrue((Boolean) complete.get("goalReached"));
 		assertNull(complete.get("action"));
 
-		Map<String, Object> blocked = PlanNextPlaywrightActionReactor.parseDecision(
-				"{\"type\":\"done\",\"reason\":\"No useful action\"}", List.of());
+		Map<String, Object> blocked = PlanNextPlaywrightActionReactor
+				.parseDecision("{\"type\":\"done\",\"reason\":\"No useful action\"}", List.of());
 		assertFalse((Boolean) blocked.get("goalReached"));
 	}
 

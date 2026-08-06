@@ -76,8 +76,7 @@ class RemoteBrowserInputEventValidatorTest {
 		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
 
 		event.setExpectedTabId("x".repeat(129));
-		assertThrows(IllegalArgumentException.class,
-				() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
 	}
 
 	private static RemoteBrowserInputEvent selection(double startX, double startY, double endX, double endY) {

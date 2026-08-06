@@ -48,9 +48,8 @@ class GeneratePlaywrightAutomationGoalReactorTest {
 
 	@Test
 	void parserAcceptsJsonWrappedInMarkdownAndRejectsEmptyGoal() throws Exception {
-		assertEquals("Fill next week's attendance with seven hours per day",
-				GeneratePlaywrightAutomationGoalReactor.parseGoal(
-						"```json\n{\"goal\":\"Fill next week's attendance with seven hours per day\"}\n```"));
+		assertEquals("Fill next week's attendance with seven hours per day", GeneratePlaywrightAutomationGoalReactor
+				.parseGoal("```json\n{\"goal\":\"Fill next week's attendance with seven hours per day\"}\n```"));
 		assertThrows(IllegalArgumentException.class,
 				() -> GeneratePlaywrightAutomationGoalReactor.parseGoal("{\"goal\":\"\"}"));
 	}

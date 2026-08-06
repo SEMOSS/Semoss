@@ -41,12 +41,13 @@ class GeneratePlaywrightFieldActionsReactorTest {
 
 	@Test
 	void targetPromptRequestsOnlyClickedFieldAndIncludesCrossFieldContext() throws Exception {
-		String prompt = GeneratePlaywrightFieldActionsReactor.buildPrompt("User: search for java", "https://example.com",
-				"Example", List.of(field("Search", "fill", "input"), selectField()), 0);
+		String prompt = GeneratePlaywrightFieldActionsReactor.buildPrompt("User: search for java",
+				"https://example.com", "Example", List.of(field("Search", "fill", "input"), selectField()), 0);
 
 		assertTrue(prompt.contains("Return exactly one entry for index 0"));
 		assertTrue(prompt.contains("search for java"));
-		assertTrue(prompt.contains("Other fields are context only") || prompt.contains("other fields are context only"));
+		assertTrue(
+				prompt.contains("Other fields are context only") || prompt.contains("other fields are context only"));
 		assertTrue(prompt.contains("Java"));
 		assertTrue(prompt.contains("java"));
 	}
@@ -74,8 +75,8 @@ class GeneratePlaywrightFieldActionsReactorTest {
 		Map<String, Object> password = field("Password", "fill", "input");
 		password.put("isPassword", true);
 
-		List<Map<String, Object>> parsed = GeneratePlaywrightFieldActionsReactor.parseFilledFields(
-				"[{\"index\":0,\"value\":\"secret\"}]", List.of(password), -1);
+		List<Map<String, Object>> parsed = GeneratePlaywrightFieldActionsReactor
+				.parseFilledFields("[{\"index\":0,\"value\":\"secret\"}]", List.of(password), -1);
 
 		assertEquals(true, parsed.get(0).get("isPassword"));
 		assertEquals(false, parsed.get(0).get("storeValue"));
@@ -86,9 +87,8 @@ class GeneratePlaywrightFieldActionsReactorTest {
 		List<Map<String, Object>> fields = List.of(field("Search", "fill", "input"));
 		assertThrows(IllegalArgumentException.class,
 				() -> GeneratePlaywrightFieldActionsReactor.parseFilledFields("not json", fields, -1));
-		assertThrows(IllegalArgumentException.class,
-				() -> GeneratePlaywrightFieldActionsReactor.parseFilledFields(
-						"[{\"index\":0,\"value\":\"" + "a".repeat(2_001) + "\"}]", fields, -1));
+		assertThrows(IllegalArgumentException.class, () -> GeneratePlaywrightFieldActionsReactor
+				.parseFilledFields("[{\"index\":0,\"value\":\"" + "a".repeat(2_001) + "\"}]", fields, -1));
 	}
 
 	@Test

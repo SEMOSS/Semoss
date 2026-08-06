@@ -56,7 +56,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 
 			        let p = el.parentElement;
 
-			        // C	ross shadow DOM boundary: parentElement is null for direct children of a shadow root
+			        // Cross shadow DOM boundary: parentElement is null for direct children of a shadow root
 			        if (!p) {
 			            const root = el.getRootNode();
 			            if (root && root.host) {
@@ -68,7 +68,7 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 			        }
 
 			        const sib = Array.from(p.children).filter(c => c.tagName === e.tagName);
-                    const idx = sib.indexOf(e) + 1;
+			                 const idx = sib.indexOf(e) + 1;
 			        return getCssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			    }
 

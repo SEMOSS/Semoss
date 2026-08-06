@@ -76,7 +76,6 @@ import java.util.List;
  * @param tag              An optional tag associated with the step, the element
  *                         tag from ProbeElement response.
  */
-@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords coords, List<Coords> multiCoords,
 		String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
 		Viewport viewport, Long timestamp, String label, String description, boolean isPassword, boolean storeValue,

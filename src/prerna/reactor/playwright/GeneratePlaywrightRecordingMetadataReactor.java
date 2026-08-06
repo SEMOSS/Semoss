@@ -37,8 +37,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.reflect.TypeToken;
 import com.microsoft.playwright.Page;
 
 import prerna.engine.api.IModelEngine;
@@ -59,20 +58,18 @@ import prerna.util.Utility;
 /**
  * Generates business metadata from actions that were actually recorded by the
  * remote browser. The replay envelope is read-only. Typed values, selectors,
- * coordinates, URL queries and URL fragments are deliberately excluded from
- * the model prompt.
+ * coordinates, URL queries and URL fragments are deliberately excluded from the
+ * model prompt.
  */
 public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager
-			.getLogger(GeneratePlaywrightRecordingMetadataReactor.class);
-	private static final ObjectMapper JSON = new ObjectMapper();
+	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightRecordingMetadataReactor.class);
 	private static final int DEFAULT_HISTORY_LIMIT = 8;
 	private static final int MAX_HISTORY_LIMIT = 20;
 
 	public GeneratePlaywrightRecordingMetadataReactor() {
-		this.keysToGet = new String[] { "sessionId", ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.ENGINE.getKey(), "recording_name_hint", ReactorKeysEnum.LIMIT.getKey() };
+		this.keysToGet = new String[] { "sessionId", ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.ENGINE.getKey(),
+				"recording_name_hint", ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
@@ -84,15 +81,15 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 			String sessionId = clean(this.keyValue.get("sessionId"));
 			String roomId = clean(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 			String requestedEngineId = clean(this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
-			String hint = RecordingMetadataPrivacy
-					.sanitizeText(this.keyValue.get("recording_name_hint"), 300);
+			String hint = RecordingMetadataPrivacy.sanitizeText(this.keyValue.get("recording_name_hint"), 300);
 			int historyLimit = parseLimit(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()));
 
 			RemoteBrowserSession session = resolveOwnedSession(sessionId);
 			StepsEnvelope envelope = session.getRecordingHistory();
 			String actionTrace = buildActionTrace(envelope);
 			if (actionTrace.isBlank()) {
-				throw new IllegalArgumentException("No meaningful recorded actions are available for metadata generation");
+				throw new IllegalArgumentException(
+						"No meaningful recorded actions are available for metadata generation");
 			}
 
 			Room sourceRoom = null;
@@ -112,8 +109,8 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 			String finalState = buildFinalState(session);
 			String prompt = buildPrompt(actionTrace, finalState, hint, roomContext);
 			IModelEngine modelEngine = Utility.getModel(engineId);
-			Room inferenceRoom = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), this.insight, modelEngine,
-					null);
+			Room inferenceRoom = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), this.insight,
+					modelEngine, null);
 			InputMessage input = InputMessage.builder(inferenceRoom).withText(prompt).build();
 			ResponseMessage response = inferenceRoom.ask(input, modelEngine);
 			Map<String, Object> metadata = parseMetadata(response.getContent());
@@ -252,8 +249,8 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 
 	private static String renderAction(RecordedAction action) {
 		PlaywrightStep step = action.step();
-		String label = RecordingMetadataPrivacy.sanitizeText(firstNonBlank(step.label(), step.description(), step.tag()),
-				180);
+		String label = RecordingMetadataPrivacy
+				.sanitizeText(firstNonBlank(step.label(), step.description(), step.tag()), 180);
 		switch (step.type()) {
 		case NAVIGATE:
 			return "Navigated to " + RecordingMetadataPrivacy.sanitizeUrl(step.url());
@@ -332,7 +329,8 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 				{"title":"3-8 word title","intent":"concise business purpose","description":"one sentence describing the workflow","fileName":"lowercase-kebab-case","confidence":0.0}
 
 				ORIGINAL HINT (secondary):
-				""" + (hint.isBlank() ? "[none]" : hint) + "\n\nROOM CONTEXT (secondary, sanitized):\n"
+				"""
+				+ (hint.isBlank() ? "[none]" : hint) + "\n\nROOM CONTEXT (secondary, sanitized):\n"
 				+ (roomContext.isBlank() ? "[none]" : roomContext) + "\n\nRECORDED ACTIONS (primary):\n" + actionTrace
 				+ "\n\nFINAL BROWSER STATE:\n" + (finalState.isBlank() ? "[unavailable]" : finalState);
 	}
@@ -346,9 +344,12 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 		if (start < 0 || end <= start) {
 			throw new IllegalArgumentException("The model did not return a JSON metadata object");
 		}
-		Map<String, Object> parsed = JSON.readValue(modelOutput.substring(start, end + 1),
-				new TypeReference<Map<String, Object>>() {
-				});
+		Map<String, Object> parsed = GSON.fromJson(modelOutput.substring(start, end + 1),
+				new TypeToken<Map<String, Object>>() {
+				}.getType());
+		if (parsed == null) {
+			throw new IllegalArgumentException("The model did not return a JSON metadata object");
+		}
 		String title = requiredSanitized(parsed.get("title"), "title", 120);
 		String intent = requiredSanitized(parsed.get("intent"), "intent", 300);
 		String description = requiredSanitized(parsed.get("description"), "description", 500);

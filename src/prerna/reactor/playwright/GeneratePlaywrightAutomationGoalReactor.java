@@ -25,15 +25,6 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *******************************************************************************/
 package prerna.reactor.playwright;
 
 import java.util.LinkedHashMap;
@@ -43,8 +34,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -60,13 +50,13 @@ import prerna.util.Utility;
 
 /**
  * Produces one editable browser-automation goal from recent Playground room
- * conversation. This is intentionally separate from action planning so the
- * user can review and change the goal before any browser interaction runs.
+ * conversation. This is intentionally separate from action planning so the user
+ * can review and change the goal before any browser interaction runs.
  */
 public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightAutomationGoalReactor.class);
-	private static final ObjectMapper JSON = new ObjectMapper();
+
 	private static final int DEFAULT_MESSAGE_LIMIT = 20;
 	private static final int MAX_MESSAGE_LIMIT = 20;
 	private static final int MAX_GOAL_LENGTH = 4_000;
@@ -92,7 +82,8 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 				throw new IllegalArgumentException("No model is available to generate the browser automation goal");
 			}
 			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access");
+				throw new IllegalArgumentException(
+						"Model " + engineId + " does not exist or user does not have access");
 			}
 
 			String conversation = RecordingMetadataPrivacy.sanitizeText(
@@ -102,10 +93,10 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 			}
 
 			IModelEngine model = Utility.getModel(engineId);
-			Room inferenceRoom = RoomUtils.createRoomForStatelessAsk(
-					UUID.randomUUID().toString(), this.insight, model, null);
-			ResponseMessage response = inferenceRoom.ask(
-					InputMessage.builder(inferenceRoom).withText(buildPrompt(conversation)).build(), model);
+			Room inferenceRoom = RoomUtils.createRoomForStatelessAsk(UUID.randomUUID().toString(), this.insight, model,
+					null);
+			ResponseMessage response = inferenceRoom
+					.ask(InputMessage.builder(inferenceRoom).withText(buildPrompt(conversation)).build(), model);
 			String goal = parseGoal(responseText(response));
 
 			result.put("success", true);
@@ -122,29 +113,44 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 	}
 
 	static String buildPrompt(String conversation) {
-		return "Summarize the user's current browser-automation goal from the recent Playground conversation below.\n"
-				+ "Use the latest user request as the primary objective and retain relevant constraints, values, and expected outcome "
-				+ "from earlier messages. Ignore completed or superseded requests. Do not invent steps and do not include passwords, "
-				+ "authentication secrets, tokens, or other credentials. Write one concise, actionable goal that can be reviewed and "
-				+ "edited before automation starts.\n"
-				+ "Return ONLY JSON in this form: {\"goal\":\"...\"}.\n\n"
-				+ "RECENT CONVERSATION (oldest to newest):\n" + conversation + "\n\nJSON:";
+		return """
+				Summarize the user's current browser-automation goal from the recent Playground conversation below.
+				Use the latest user request as the primary objective and retain relevant constraints, values, and expected outcome \
+				from earlier messages. Ignore completed or superseded requests. Do not invent steps and do not include passwords, \
+				authentication secrets, tokens, or other credentials. Write one concise, actionable goal that can be reviewed and \
+				edited before automation starts.
+				Return ONLY JSON in this form: {"goal":"..."}.
+
+				RECENT CONVERSATION (oldest to newest):
+				"""
+				+ conversation + "\n\nJSON:";
 	}
 
 	static String parseGoal(String modelOutput) throws Exception {
 		String output = modelOutput == null ? "" : modelOutput.trim();
 		int start = output.indexOf('{');
 		int end = output.lastIndexOf('}');
-		if (start < 0 || end <= start) throw new IllegalArgumentException("Model did not return a JSON goal object");
-		Map<String, Object> parsed = JSON.readValue(output.substring(start, end + 1), new TypeReference<>() { });
+		if (start < 0 || end <= start) {
+			throw new IllegalArgumentException("Model did not return a JSON goal object");
+		}
+		Map<String, Object> parsed = GSON.fromJson(output.substring(start, end + 1),
+				new TypeToken<Map<String, Object>>() {
+				}.getType());
+		if (parsed == null) {
+			throw new IllegalArgumentException("Model did not return a JSON goal object");
+		}
 		String goal = clean(parsed.get("goal"));
-		if (goal.isBlank()) throw new IllegalArgumentException("Model returned an empty automation goal");
+		if (goal.isBlank()) {
+			throw new IllegalArgumentException("Model returned an empty automation goal");
+		}
 		return goal.length() > MAX_GOAL_LENGTH ? goal.substring(0, MAX_GOAL_LENGTH) : goal;
 	}
 
 	private static String responseText(ResponseMessage response) {
 		String text = firstNonBlank(response.getContent(), response.getThinking());
-		if (text.isBlank() && response.hasToolResponses()) return response.getToolResponses().toString();
+		if (text.isBlank() && response.hasToolResponses()) {
+			return response.getToolResponses().toString();
+		}
 		return text;
 	}
 
@@ -162,10 +168,12 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 	}
 
 	private static String clean(Object value) {
-		if (value == null) return "";
+		if (value == null) {
+			return "";
+		}
 		String text = String.valueOf(value).trim();
-		if (text.length() >= 2 && ((text.startsWith("\"") && text.endsWith("\""))
-				|| (text.startsWith("'") && text.endsWith("'")))) {
+		if (text.length() >= 2
+				&& ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'")))) {
 			return text.substring(1, text.length() - 1).trim();
 		}
 		return text;
@@ -173,7 +181,9 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 
 	private static String firstNonBlank(String... values) {
 		for (String value : values) {
-			if (value != null && !value.isBlank()) return value.trim();
+			if (value != null && !value.isBlank()) {
+				return value.trim();
+			}
 		}
 		return "";
 	}
