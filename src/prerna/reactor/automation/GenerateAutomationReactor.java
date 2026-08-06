@@ -111,7 +111,7 @@ In SQL expressions, always wrap ${outputVar} in single quotes for string/UUID va
 6. Build a realistic, useful graph — don't add unnecessary nodes.
 7. For database-engine nodes: set expression to exactly "PENDING_SQL_GENERATION" — a second pass will fill in real SQL using the actual schema.
 8. For app nodes: set pixel to exactly "PENDING_PIXEL_EXPRESSION" — a second pass will fill in the reactor call using the project's available reactors.
-9. For model-engine nodes: write a concrete instruction in "command" appropriate to the user's request, referencing upstream outputVars where relevant. Exact column names are not yet known; describe the intent clearly.
+9. For model-engine nodes: "command" is the plain instruction to the LLM (e.g. "Summarize these cases and highlight urgent items"). Put the actual data by setting "context" to the upstream outputVar (e.g. "context":"${db_out}"). NEVER describe the data structure in prose inside "command" — the LLM will receive the real data at runtime via ${outputVar} substitution, not a description of it.
 10. Respond with ONLY valid JSON. No markdown, no code fences, no explanation.
 
 ## Response format
@@ -152,7 +152,7 @@ In SQL expressions, always wrap ${outputVar} in single quotes for string/UUID va
 6. Build a realistic, useful graph — don't add unnecessary nodes.
 7. For database-engine nodes: set expression to exactly "PENDING_SQL_GENERATION" — a second pass will fill in real SQL using the actual schema.
 8. For app nodes: set pixel to exactly "PENDING_PIXEL_EXPRESSION" — a second pass will fill in the reactor call using the project's available reactors.
-9. For model-engine nodes: write a concrete instruction in "command" appropriate to the user's request, referencing upstream outputVars where relevant. Exact column names are not yet known; describe the intent clearly.
+9. For model-engine nodes: "command" is the plain instruction to the LLM (e.g. "Summarize these cases and highlight urgent items"). Put the actual data by setting "context" to the upstream outputVar (e.g. "context":"${db_out}"). NEVER describe the data structure in prose inside "command" — the LLM will receive the real data at runtime via ${outputVar} substitution, not a description of it.
 10. Respond with ONLY valid JSON. No markdown, no code fences, no explanation.
 
 ## Response format
@@ -174,7 +174,7 @@ Your task: return a corrected copy of the document with these updates:
    - Use a reasonable LIMIT to avoid returning unbounded result sets
    - NEVER use SQL parameterized placeholders ($1, $2, ?, :param) — the execution engine does not support bound parameters. For runtime values from upstream nodes, use ${outputVar} inline in the SQL string wrapped in single quotes (e.g. WHERE id = '${db_out}'). NEVER wrap ${outputVar} in double quotes — double quotes are SQL identifier delimiters and will cause a "column does not exist" error. For literal filters, hardcode the value directly.
    - If no relevant table exists in the schema, set expression to "-- [replace with your SQL query]" and update the label to "Review: update this query"
-2. model-engine nodes: if the "command" references an upstream database node's output, update it to mention the specific column names the SQL query will actually return.
+2. model-engine nodes: ensure the "context" field contains the upstream outputVar reference (e.g. "${db_out}") so the actual data is passed to the LLM at runtime. The "command" must be a plain instruction only — NEVER describe the data structure or column names in prose inside "command". The LLM will see the real data via the context field; it does not need to be told what columns exist.
 3. app nodes: replace the "pixel" value "PENDING_PIXEL_EXPRESSION" with a call to the most appropriate reactor from the available reactors list.
    - Use the format: ReactorName(param="${varName}") referencing upstream outputVars where relevant
    - If no reactor in the list clearly matches the intent, set pixel to "-- [describe the Pixel expression to write here]"

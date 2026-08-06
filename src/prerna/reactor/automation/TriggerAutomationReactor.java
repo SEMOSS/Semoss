@@ -130,7 +130,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
 					nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
 					nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
-					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, output.get(AutomationConstants.OUTPUT_PREVIEW));
+					String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_VALUE);
+					if (outputForDisplay == null || outputForDisplay.isBlank()) {
+						outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
+					}
+					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
 					nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
 					nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 					nodeResults.add(nodeResult);
