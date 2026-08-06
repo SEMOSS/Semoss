@@ -31,15 +31,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
-
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.runtime.SemossAgentHarness;
@@ -161,13 +159,15 @@ public final class AgentRuntimeManager {
 			// isTerminalStatus also returns true for INPUT_REQUIRED, the synchronous
 			// wait boundary: the run pauses for user input but is not itself terminal.
 			if (isTerminalStatus(String.valueOf(run.get("status")))) {
-				run.put("waitTimedOut", false);
-				return run;
+				Map<String, Object> result = getRun(runId, insight, true);
+				result.put("waitTimedOut", false);
+				return result;
 			}
 			long remaining = deadline - System.currentTimeMillis();
 			if (remaining <= 0) {
-				run.put("waitTimedOut", true);
-				return run;
+				Map<String, Object> result = getRun(runId, insight, true);
+				result.put("waitTimedOut", true);
+				return result;
 			}
 			Thread.sleep(Math.min(1000L, remaining));
 		}
@@ -242,7 +242,7 @@ public final class AgentRuntimeManager {
 		return user.getPrimaryLoginToken().getId();
 	}
 
-	private static List<Object> collectRunMessages(Room room, String runId) {
+	private static List<Map<String, Object>> collectRunMessages(Room room, String runId) {
 		List<AbstractMessage> runMessages = new ArrayList<>();
 		for (AbstractMessage message : room.getMessages()) {
 			if (message == null) {
@@ -253,7 +253,7 @@ public final class AgentRuntimeManager {
 				runMessages.add(message);
 			}
 		}
-		return new JSONArray(MessageUtils.toJsonArray(runMessages)).toList();
+		return RoomUtils.getMessagesForClient(room, runMessages);
 	}
 
 	private static String trimToNull(Object value) {

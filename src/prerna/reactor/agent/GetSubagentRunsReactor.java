@@ -25,60 +25,53 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.playwright;
+package prerna.reactor.agent;
 
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class PatchSessionMetaReactor extends AbstractReactor {
+/**
+ * Returns the direct subagent runs for a parent run owned by the current user.
+ */
+public class GetSubagentRunsReactor extends AbstractReactor {
 
-	public PatchSessionMetaReactor() {
-		this.keysToGet = new String[] { "sessionId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+	private static final String RUN_ID_KEY = "runId";
+
+	public GetSubagentRunsReactor() {
+		this.keysToGet = new String[] { RUN_ID_KEY };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String sessionId = this.keyValue.get(this.keysToGet[0]);
-		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
+		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
+		if (runId == null) {
+			throw new IllegalArgumentException("runId is required");
+		}
 
-		MetaPatch patch = MetaPatch.fromMap(paramValues);
-
-		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
-		RecordingMeta old = playwrightSession.history.meta();
-		long now = System.currentTimeMillis();
-
-		String id = old != null && old.id() != null ? old.id() : java.util.UUID.randomUUID().toString();
-		String title = patch.title() != null ? patch.title() : (old != null ? old.title() : null);
-		String desc = patch.description() != null ? patch.description() : (old != null ? old.description() : null);
-		String intent = patch.intent() != null ? patch.intent() : (old != null ? old.intent() : null);
-		Long created = old != null ? old.createdAt() : null; // keep null during recording
-		Long updated = now; // bump updatedAt on edit
-
-		RecordingMeta meta = new RecordingMeta(id, title, desc, created, updated, intent);
-		playwrightSession.history = new StepsEnvelope(playwrightSession.history.version(), meta,
-				playwrightSession.history.steps());
-
-		return new NounMetadata(meta, PixelDataType.MAP);
+		List<Map<String, Object>> runs = new AgentRunStore().getSubagentRuns(this.insight, runId);
+		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Reactor that allow the Recorder app to update the title and the description for a recorded file";
+		return "Returns all direct subagent runs owned by the current user whose parent run ID matches runId, ordered newest first.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
+		if (RUN_ID_KEY.equals(key)) {
+			return "The parent run ID whose direct subagent runs should be returned.";
 		}
-
 		return super.getDescriptionForKey(key);
 	}
-
 }
