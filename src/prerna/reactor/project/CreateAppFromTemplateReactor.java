@@ -33,13 +33,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
@@ -57,6 +65,9 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateAppFromTemplateReactor.class);
 
 	private static final String CLASS_NAME = CreateAppFromTemplateReactor.class.getName();
+
+	// PROJECTMETA tag marking a project as platform-managed; never copied onto a clone
+	private static final String SYSTEM_TAG = "SYSTEM";
 
 	/*
 	 * This class is used to construct a new project using an existing project as a
@@ -140,6 +151,82 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 			throw new IllegalArgumentException(
 					"New project was created but could not transfer over the assets from the template. Errror = "
 							+ e.getMessage());
+		}
+
+
+		if (IProject.PROJECT_TYPE.WORKSPACE == projectEnumType) {
+			try {
+				User user = this.insight.getUser();
+				String newProjectId = newProject.getProjectId();
+
+				Map<String, Object> sourceEntry = ModelInferenceLogsUtils.getWorkspaceEntry(projectTemplateId);
+				String sourceDescription = sourceEntry != null ? (String) sourceEntry.get("description") : null;
+				String sourceSystemPrompt = sourceEntry != null ? (String) sourceEntry.get("system_prompt") : null;
+				JSONObject sourceConfigJson = ModelInferenceLogsUtils.getWorkspaceConfigJson(projectTemplateId);
+				List<Map<String, Object>> sourceResources = ModelInferenceLogsUtils
+						.getWorkspaceResourcesByType(projectTemplateId, null);
+
+				List<Map<String, String>> clonedResources = new ArrayList<>();
+				List<Map<String, Object>> dependencyList = new ArrayList<>();
+				if (sourceResources != null) {
+					for (Map<String, Object> r : sourceResources) {
+						String resourceId = (String) r.get("resource_id");
+						String resourceType = (String) r.get("resource_type");
+						String resourceSubtype = (String) r.get("resource_subtype");
+						Map<String, String> entry = new HashMap<>();
+						entry.put("workspace_resource_id", UUID.randomUUID().toString());
+						entry.put("workspace_id", newProjectId);
+						entry.put("resource_id", resourceId);
+						entry.put("resource_type", resourceType);
+						entry.put("resource_subtype", resourceSubtype);
+						clonedResources.add(entry);
+						Map<String, Object> dep = new HashMap<>();
+						dep.put("ENGINEID", resourceId);
+						dep.put("ENGINETYPE", resourceType);
+						dependencyList.add(dep);
+					}
+				}
+
+				SecurityProjectUtils.updateProjectDependencies(user, newProjectId, dependencyList);
+				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId,
+						user.getPrimaryLoginToken().getId(),
+						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
+				if (sourceConfigJson != null) {
+					ModelInferenceLogsUtils.updateWorkspaceConfigJson(newProjectId, sourceConfigJson);
+				}
+
+				Map<String, Object> sourceTagMeta = SecurityProjectUtils.getAggregateProjectMetadata(projectTemplateId,
+						Arrays.asList("tag"), false);
+				Object sourceTagValue = sourceTagMeta.get("tag");
+				List<Object> sourceTags = new ArrayList<>();
+				if (sourceTagValue instanceof List) {
+					sourceTags.addAll((List<?>) sourceTagValue);
+				} else if (sourceTagValue != null) {
+					sourceTags.add(sourceTagValue);
+				}
+				List<Object> clonedTags = new ArrayList<>();
+				for (Object tag : sourceTags) {
+					if (tag != null && !SYSTEM_TAG.equalsIgnoreCase(tag.toString())) {
+						clonedTags.add(tag);
+					}
+				}
+				if (!clonedTags.isEmpty()) {
+					Map<String, Object> tagUpdate = new HashMap<>();
+					tagUpdate.put("tag", clonedTags);
+					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
+				}
+			} catch (Exception e) {
+				classLogger.error("Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
+						projectTemplateId, newProject.getProjectId(), e);
+				try {
+					newProject.delete();
+				} catch (Exception rollbackEx) {
+					classLogger.error("Failed to roll back project '{}' after workspace entry clone failure.",
+							newProject.getProjectId(), rollbackEx);
+				}
+				throw new IllegalArgumentException(
+						"Failed to create workspace configuration for cloned agent: " + e.getMessage(), e);
+			}
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),

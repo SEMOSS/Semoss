@@ -51,8 +51,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * {@code WORKSPACE} that is catalogued global with no owner (see
  * {@link ProjectWatcher#init()}) - exactly like the platform skills and system
  * MCPs. Unlike those, an agent also needs a {@code WORKSPACE} row plus
- * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live in
- * a database rather than on disk. This class provisions those rows.
+ * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live
+ * in a database rather than on disk. This class provisions those rows.
  *
  * <p>
  * {@link #seed(String)} is idempotent and self-healing: it is safe to run on
@@ -99,7 +99,8 @@ public class SystemAgentSeeder {
 	 * Idempotently seed the WORKSPACE row + resource rows + CONFIG_JSON for a
 	 * system agent. Never throws; failures are logged so they do not block boot.
 	 *
-	 * @param agentId the platform agent id (e.g. {@link Constants#AGENT_APP_BUILDER})
+	 * @param agentId the platform agent id (e.g.
+	 *                {@link Constants#AGENT_APP_BUILDER})
 	 */
 	public static void seed(String agentId) {
 		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
@@ -148,9 +149,13 @@ public class SystemAgentSeeder {
 		}
 	}
 
-	/** Tools = the 3 system MCP apps. */
+	/**
+	 * Tools = the headless system MCP apps. Deliberately the agent subset rather
+	 * than every cataloged platform MCP, so adding a UI-driven MCP to the catalog
+	 * does not silently change this agent's toolset.
+	 */
 	private static List<String> toolIds(String agentId) {
-		return new ArrayList<>(SystemDefaultEngines.getSystemMCPs());
+		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
 	}
 
 	/** Skills = the platform skills, minus python. */
@@ -243,24 +248,29 @@ public class SystemAgentSeeder {
 		return config;
 	}
 
-	private static final String APP_BUILDER_SYSTEM_PROMPT = String.join("\n",
-			"You are a SEMOSS App Building agent.",
-			"",
-			"Start every task with this call",
-			"",
-			"List skills call ListSkill to see what skill packages are available. Load the relevant one with LoadSkill before doing the work. Skills hold the canonical patterns for engines (model, database, vector), build/publish, and other recurring tasks. Do not guess parameters or output schemas load the skill.",
-			"",
-			"The CLAUDE.md and AGENTS.md in your working dir load automatically into your context. Treat them as authoritative for SDK usage and project conventions.",
-			"How to work",
-			"",
-			"Plan with TodoWrite for anything that spans more than two tool calls. Mark items in_progress as you start, completed as you finish.",
-			"Read before you edit. EditFile requires a unique-match old_string read surrounding context first.",
-			"Prefer EditFile over WriteFile for in-place changes. Reserve WriteFile for new files or full rewrites.",
-			"Parallelize independent tool calls multiple reads, greps, etc., in one batch. Serial chains waste latency.",
-			"Builds go through BuildAndPublishApp. Direct node / npm / pnpm via Bash are sandboxed and will fail.",
-			"",
-			"Engines",
-			"Before introducing any new MODEL / DATABASE / VECTOR call, load the selected-engines skill. Never hardcode or guess engine IDs.",
-			"Output",
-			"Finish with a one- to two-line summary of what changed and stop. Skip the recap.");
+	/**
+	 * System prompt for the App Building agent. Kept as a text block so it reads as
+	 * the prompt the model actually receives. The closing delimiter sits on the
+	 * last content line so no trailing newline is appended.
+	 */
+	private static final String APP_BUILDER_SYSTEM_PROMPT = """
+			You are a SEMOSS App Building agent.
+
+			Start every task with this call
+
+			List skills call ListSkill to see what skill packages are available. Load the relevant one with LoadSkill before doing the work. Skills hold the canonical patterns for engines (model, database, vector), build/publish, and other recurring tasks. Do not guess parameters or output schemas load the skill.
+
+			The CLAUDE.md and AGENTS.md in your working dir load automatically into your context. Treat them as authoritative for SDK usage and project conventions.
+			How to work
+
+			Plan with TodoWrite for anything that spans more than two tool calls. Mark items in_progress as you start, completed as you finish.
+			Read before you edit. EditFile requires a unique-match old_string read surrounding context first.
+			Prefer EditFile over WriteFile for in-place changes. Reserve WriteFile for new files or full rewrites.
+			Parallelize independent tool calls multiple reads, greps, etc., in one batch. Serial chains waste latency.
+			Builds go through BuildAndPublishApp. Direct node / npm / pnpm via Bash are sandboxed and will fail.
+
+			Engines
+			Before introducing any new MODEL / DATABASE / VECTOR call, load the selected-engines skill. Never hardcode or guess engine IDs.
+			Output
+			Finish with a one- to two-line summary of what changed and stop. Skip the recap.""";
 }

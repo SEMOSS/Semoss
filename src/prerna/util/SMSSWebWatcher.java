@@ -41,7 +41,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
@@ -259,14 +258,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					classLogger.error("Failed to load and initialize the notification database", e);
 				}
 			}
-		}
-
-		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
-		// USING THE DB AND PROJECT SPLIT OF AN APP
-		// TODO: need to update this for the cloud
-		if (!ClusterUtil.IS_CLUSTER) {
-			LegacyToProjectRestructurerHelper updater = new LegacyToProjectRestructurerHelper();
-			updater.executeRestructure();
 		}
 	}
 

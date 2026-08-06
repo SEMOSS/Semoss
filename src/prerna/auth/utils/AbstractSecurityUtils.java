@@ -745,6 +745,58 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// MODELMETADATA
+			colNames = new String[] { "ENGINEID", "MODELID", "MODELPROVIDER", "SERVINGPROVIDER", "CAPABILITY",
+					"FAMILY", "INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXINPUTTOKENS",
+					"MAXOUTPUTTOKENS", "BUILTINTOOLS", "ATTACHMENT", "REASONING", "TOOLCALL", "STRUCTUREDOUTPUT",
+					"TEMPERATURE", "KNOWLEDGECUTOFF", "RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG",
+					"BENCHMARKS" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+					CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", "BIGINT", CLOB_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					CLOB_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "MODELMETADATA", database, schema)) {
+				String sql = queryUtil.createTable("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELMETADATA", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELMETADATA", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+				for (String obsoleteColumn : new String[] { "LICENSE", "LINKS", "WEIGHTS", "OPENWEIGHTS",
+						"LASTUPDATED" }) {
+					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
+						String dropColumnSql = queryUtil.alterTableDropColumn("MODELMETADATA", obsoleteColumn);
+						classLogger.info("Running sql {}", dropColumnSql);
+						securityDb.insertData(dropColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.indexExists(securityDb, "MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", "ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",

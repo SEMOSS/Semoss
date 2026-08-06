@@ -45,6 +45,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -53,6 +54,7 @@ import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -61,10 +63,12 @@ import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -246,6 +250,9 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = insight.getUser().getRoomHash().get(roomId);
+				// A user's room cache outlives individual HTTP Insight instances. Always
+				// attach the current caller before any room operation uses transient context.
+				room.setInsight(insight);
 				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
 				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);
@@ -441,10 +448,60 @@ public final class RoomUtils {
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 		List<Map<String, Object>> roomOptions = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
-		if (roomOptions == null || roomOptions.isEmpty()) {
-			return new HashMap<String, Object>();
+		Map<String, Object> row = (roomOptions == null || roomOptions.isEmpty()) ? new HashMap<String, Object>()
+				: new HashMap<String, Object>(roomOptions.get(0));
+		reportRoomToolbox(roomId, row);
+		return row;
+	}
+
+	/**
+	 * Reports the room's own toolbox alongside the configured ones when the room
+	 * folder holds tool definitions.
+	 *
+	 * <p>
+	 * Derived from disk rather than stored in OPTIONS, so it is flagged
+	 * {@code fromRoom} for the caller to strip before writing options back. Without
+	 * this the toolbox is live but invisible: its tools reach the model while the
+	 * UI, which counts {@code options.mcp}, shows none.
+	 *
+	 * @param roomId the room being read
+	 * @param row    the options row, updated in place
+	 */
+	@SuppressWarnings("unchecked")
+	private static void reportRoomToolbox(String roomId, Map<String, Object> row) {
+		if (!InternalMCP.hasDefinitions(Room.roomFolderPath(roomId))) {
+			return;
 		}
-		return roomOptions.get(0);
+
+		Object existingOptions = row.get("OPTIONS");
+		Map<String, Object> options = (existingOptions instanceof Map)
+				? new HashMap<String, Object>((Map<String, Object>) existingOptions)
+				: new HashMap<String, Object>();
+
+		List<Map<String, Object>> mcpList = new ArrayList<>();
+		Object existingMcp = options.get("mcp");
+		if (existingMcp instanceof List) {
+			for (Object item : (List<?>) existingMcp) {
+				if (item instanceof Map) {
+					Map<String, Object> entry = (Map<String, Object>) item;
+					// an older room may still list it explicitly
+					if (MCPUtility.ROOM_MCP_ID.equals(entry.get("id"))) {
+						return;
+					}
+					mcpList.add(entry);
+				}
+			}
+		}
+
+		Map<String, Object> roomEntry = new HashMap<>();
+		roomEntry.put("type", MCPUtility.ROOM_MCP_TYPE);
+		roomEntry.put("id", MCPUtility.ROOM_MCP_ID);
+		roomEntry.put("name", MCPUtility.ROOM_MCP_NAME);
+		roomEntry.put("fromRoom", true);
+		mcpList.add(roomEntry);
+
+		options.put("mcp", mcpList);
+		row.put("OPTIONS", options);
 	}
 
 	/**
@@ -525,6 +582,43 @@ public final class RoomUtils {
 		// Return the requested sublist
 		// new ArrayList to ensure it's not a view of the original list
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
+	}
+
+	/**
+	 * Converts room messages to the client-facing Playground contract, enriching
+	 * tool calls with their project metadata before serialization.
+	 */
+	public static List<Map<String, Object>> getMessagesForClient(Room room, List<AbstractMessage> messages) {
+		List<Map<String, Object>> output = new ArrayList<>();
+		if (room == null || messages == null || messages.isEmpty()) {
+			return output;
+		}
+
+		IModelEngine roomModelEngine = null;
+		String modelId = room.getModelId();
+		if (modelId != null) {
+			try {
+				roomModelEngine = (IModelEngine) Utility.getEngine(modelId);
+			} catch (Exception ignore) {
+				// Tool metadata enrichment still supports legacy UUID-prefixed names.
+			}
+		}
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
+
+		Map<String, JSONObject> toolCache = new HashMap<>();
+		for (AbstractMessage message : messages) {
+			if (message.hasParts() && message.hasToolCallPart()) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			} else if (message.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			}
+			Map<String, Object> messageMap = MessageUtils
+					.jsonToMapForPixelReturn(MessageUtils.toJsonWithImage(message));
+			output.add(messageMap);
+		}
+		return output;
 	}
 
 	/**

@@ -242,6 +242,17 @@ public class ModelInferenceLogsUtils {
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
 			executeSql(conn, sql);
 
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
+					Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
+					Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
+			executeSql(conn, sql);
+
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
 			executeSql(conn, sql);
 			} else {
@@ -297,6 +308,23 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
+						Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", database, schema)) {
+				String sql = queryUtil.createIndex("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
+						Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
 				executeSql(conn, sql);
 			}
 
@@ -1502,6 +1530,75 @@ public class ModelInferenceLogsUtils {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Returns the current display name for a user's room.
+	 *
+	 * @param userId user identifier
+	 * @param roomId room identifier
+	 * @return current room name, or {@code null} when the room does not exist or
+	 *         has no name set
+	 */
+	public static String doGetRoomName(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT ROOM_NAME FROM ROOM WHERE USER_ID = ? AND ROOM_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				if (rs.next()) {
+					return rs.getString(1);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to get room name for roomId '{}' and userId '{}'.", roomId, userId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return null;
+	}
+
+	/**
+	 * Updates a room's display name only when the current name is still unset or
+	 * still equal to the auto-derived default (the truncated initial request set
+	 * at room creation). A custom name set by the user is never overwritten.
+	 *
+	 * @param userId      user identifier
+	 * @param roomId      room identifier
+	 * @param roomName    new room name
+	 * @param defaultName auto-derived name that is allowed to be replaced
+	 * @return {@code true} when a row was updated
+	 */
+	public static boolean doSetNameForRoomIfDefault(String userId, String roomId, String roomName,
+			String defaultName) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=? "
+				+ "AND (ROOM_NAME IS NULL OR ROOM_NAME='' OR ROOM_NAME=?)";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, roomName);
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+			ps.setString(index++, defaultName);
+			int rows = ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return rows > 0;
+		} catch (Exception e) {
+			classLogger.error("Failed to conditionally update room name for roomId '{}' and userId '{}'.", roomId,
+					userId, e);
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
 	}
 
 	/**

@@ -1,23 +1,16 @@
 name: Semoss Ubuntu-CUDA Builder
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.nvidia.cuda.12.5.1.ubuntu22.04'
       - '.github/workflows/ubuntu2204_cuda.yml'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
   # pull_request:
   #   branches: [ "docker-build-workflows" ]
   workflow_dispatch:
   schedule:
-    - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
+    - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 3:30 AM EDT (2:30 AM EST)
 
 jobs:
   build:

@@ -52,11 +52,25 @@ public class SystemDefaultEngines {
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
 	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_BUILD_AND_PUBLISH,
-			Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_MODEL,
-			Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
+			Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_MODEL, Constants.SKILL_PYTHON,
+			Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
 
+	/**
+	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
+	 * must have a matching {@code project/platform__<id>} folder.
+	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER, Constants.MCP_DATABASE_MAKER,
-			Constants.MCP_REACTOR_HELP);
+			Constants.MCP_REACTOR_HELP, Constants.MCP_BROWSER_AUTOMATION);
+
+	/**
+	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
+	 * deliberately narrower than the cataloged list: UI-driven MCPs (whose tools
+	 * open a sidebar app and wait on a user) are not useful to a headless agent, so
+	 * they are cataloged and invokable without being attached to every system
+	 * agent.
+	 */
+	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
+			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
 
@@ -82,6 +96,10 @@ public class SystemDefaultEngines {
 
 	public static List<String> getSystemMCPs() {
 		return SYSTEM_MCPS;
+	}
+
+	public static List<String> getSystemAgentMCPs() {
+		return SYSTEM_AGENT_MCPS;
 	}
 
 	public static List<String> getSystemAgents() {
