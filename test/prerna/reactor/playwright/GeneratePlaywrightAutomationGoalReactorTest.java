@@ -27,23 +27,30 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-import java.util.List;
-import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Acts as a container for a complete Playwright recording, encapsulating all
- * necessary information about a recorded sequence of actions. This record is an
- * immutable data carrier.
- *
- * @param version A string indicating the version of the recording format.
- * @param meta    A {@link RecordingMeta} object containing metadata about the
- *                recording (e.g., ID, title, description, timestamps).
- * @param steps   A nested map representing the actual recorded steps. The outer
- *                map's keys are {@code tabId}s, and its values are
- *                {@code List<List<PlaywrightStep>>}. This structure allows for
- *                organizing steps by tab and then by "page" (where a new inner
- *                list might represent steps on a new page load or significant
- *                page change).
- */
-public record StepsEnvelope(String version, RecordingMeta meta, Map<String, List<List<PlaywrightStep>>> steps) {
+import org.junit.jupiter.api.Test;
+
+class GeneratePlaywrightAutomationGoalReactorTest {
+
+	@Test
+	void promptPrioritizesLatestIntentAndExcludesCredentials() {
+		String prompt = GeneratePlaywrightAutomationGoalReactor.buildPrompt(
+				"User: Open the portal\nAssistant: Which week?\nUser: Fill next week with seven hours per day");
+
+		assertTrue(prompt.contains("latest user request"));
+		assertTrue(prompt.contains("superseded"));
+		assertTrue(prompt.contains("passwords"));
+		assertTrue(prompt.contains("seven hours per day"));
+	}
+
+	@Test
+	void parserAcceptsJsonWrappedInMarkdownAndRejectsEmptyGoal() throws Exception {
+		assertEquals("Fill next week's attendance with seven hours per day", GeneratePlaywrightAutomationGoalReactor
+				.parseGoal("```json\n{\"goal\":\"Fill next week's attendance with seven hours per day\"}\n```"));
+		assertThrows(IllegalArgumentException.class,
+				() -> GeneratePlaywrightAutomationGoalReactor.parseGoal("{\"goal\":\"\"}"));
+	}
 }

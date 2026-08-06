@@ -10,7 +10,7 @@ on:
   #   branches: [ "docker-build-workflows" ]
   workflow_dispatch:
   schedule:
-    - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
+    - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 3:30 AM EDT (2:30 AM EST)
 
 jobs:
   build:
