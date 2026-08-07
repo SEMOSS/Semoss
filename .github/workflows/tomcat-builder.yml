@@ -91,6 +91,13 @@ jobs:
             test "$(uname -m)" = "${{ matrix.uname_arch }}"
             java -version 2>&1 | grep -q "openjdk version \"25\."
             mvn -version | grep -q "Java version: 25\."
+            # TOMCAT_HOME must survive into the final stage. If it is empty then
+            # $TOMCAT_HOME/bin drops out of PATH, catalina.sh and start.sh become
+            # unreachable, and WORKDIR points at /webapps.
+            test -n "$TOMCAT_HOME"
+            test -d "$TOMCAT_HOME/bin"
+            test -x "$TOMCAT_HOME/bin/catalina.sh"
+            command -v start.sh >/dev/null
             if [ "${{ matrix.fips }}" = "true" ]; then
               test -d "$JAVA_HOME/lib/fips"
               test -f "$JAVA_HOME/lib/security/cacerts.bcfks"
