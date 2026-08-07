@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,6 +107,11 @@ public class ModelInferenceLogsUtils {
 	private static final String ROOM_TABLE_NAME = "ROOM__";
 	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
 	static boolean initialized = false;
+
+	// Safety cap on raw MESSAGE rows fetched for a single searchMessages() call,
+	// before dedup-to-room and limit/offset are applied. Well above any realistic
+	// per-search match count, just to bound worst-case memory/query cost.
+	private static final long MAX_SEARCH_MESSAGE_ROWS = 5000;
 
 	/**
 	 * Initializes and migrates the model-inference logging database schema.
@@ -1427,12 +1433,15 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible.
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row
+	 * per room (that room's most recent match) before limit/offset are applied,
+	 * so pagination is over matching rooms rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
 	 * @param projectId the project to search within
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching messages (room_id, message_id, room_name, date_created from MESSAGE)
+	 * @return a list of matching rooms, one row per room (room_id, message_id,
+	 *         room_name, date_created from that room's most recent matching message)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, -1, true);
@@ -1470,14 +1479,33 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
 		qs.addOrderBy("MESSAGE__MESSAGE_ID", "DESC");
 
-		if (limit > 0) {
-			qs.setLimit(limit);
-			if (offset > 0) {
-				qs.setOffSet(offset);
+		// Fetch at message grain (a room can have many matches) capped at a safety
+		// ceiling, then reduce to one row per room below, BEFORE limit/offset are
+		// applied. Applying limit/offset directly to this query would paginate raw
+		// message rows, so a single chatty room could fill an entire page and hide
+		// every other matching room.
+		qs.setLimit(MAX_SEARCH_MESSAGE_ROWS);
+
+		List<Map<String, Object>> rawRows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+
+		// Reduce to one row per room. Rows are already ordered by
+		// MESSAGE__DATE_CREATED DESC, MESSAGE__MESSAGE_ID DESC, so the first row
+		// seen for a room is that room's most recent match.
+		Map<String, Map<String, Object>> dedupedByRoom = new LinkedHashMap<>();
+		for (Map<String, Object> row : rawRows) {
+			Object roomId = row.get("room_id");
+			if (roomId != null) {
+				dedupedByRoom.putIfAbsent(roomId.toString(), row);
 			}
 		}
+		List<Map<String, Object>> dedupedRows = new ArrayList<>(dedupedByRoom.values());
 
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		if (limit > 0) {
+			int start = offset > 0 ? (int) Math.min(offset, dedupedRows.size()) : 0;
+			int end = (int) Math.min((long) start + limit, dedupedRows.size());
+			return dedupedRows.subList(start, end);
+		}
+		return dedupedRows;
 	}
 
 	/**

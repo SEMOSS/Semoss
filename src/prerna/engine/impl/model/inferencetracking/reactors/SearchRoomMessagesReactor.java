@@ -94,10 +94,12 @@ public class SearchRoomMessagesReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Searches through the messages in the user's conversation rooms for a given keyword. "
-				+ "Returns room_id, message_id, room_name, and date_created (message timestamp) for each match. "
+				+ "Returns one row per matching room (its most recent matching message): room_id, message_id, "
+				+ "room_name, and date_created. "
 				+ "Case-insensitive matching is handled by the query framework's ?like comparator. "
 				+ "Optionally returns message_text when includeMessageText=true (default). "
-				+ "Falls back to the current insight's project when projectId is omitted. Supports limit and offset for pagination.";
+				+ "Falls back to the current insight's project when projectId is omitted. "
+				+ "Supports limit and offset for pagination over matching rooms.";
 	}
 
 	@Override
