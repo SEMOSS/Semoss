@@ -58,6 +58,7 @@ import com.google.gson.JsonParser;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
 
 /**
@@ -144,6 +145,12 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Insert or replace the metadata associated with a model engine. If none of the
 	 * metadata-related properties are present, no row is created.
+	 * <p>
+	 * The SMSS only carries the handful of properties the model engine needs at
+	 * runtime, so this runs as a merge: whatever the SMSS defines wins, anything
+	 * already saved for the engine is preserved, and the remaining gaps are filled
+	 * from the static catalog. Replacing the row outright would blank the catalog
+	 * columns every time the engine is loaded.
 	 */
 	public static void upsertModelMetadata(String engineId, Properties properties) {
 		if (properties == null) {
@@ -171,7 +178,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.SUPPORTED_PARAMETERS);
 		copyIfPresent(properties, details, Constants.REASONING_CONFIG);
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
-		upsertModelMetadata(engineId, details);
+
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		merged.putAll(details);
+		StaticModelMetadataCatalog.applyStaticDefaults(merged);
+		upsertModelMetadata(engineId, merged);
 	}
 
 	/**
@@ -242,32 +253,41 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		Map<String, Object> merged = new LinkedHashMap<>();
-		Map<String, Object> existing = getModelMetadata(engineId);
-		if (existing != null) {
-			merged.put(Constants.MODEL, existing.get("modelId"));
-			merged.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
-			merged.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
-			merged.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
-			merged.put(Constants.MODEL_FAMILY, existing.get("family"));
-			merged.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
-			merged.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
-			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
-			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
-			merged.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
-			merged.put(Constants.ATTACHMENT, existing.get("attachment"));
-			merged.put(Constants.REASONING, existing.get("reasoning"));
-			merged.put(Constants.TOOL_CALL, existing.get("toolCall"));
-			merged.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
-			merged.put(Constants.TEMPERATURE, existing.get("temperature"));
-			merged.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
-			merged.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
-			merged.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
-			merged.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
-			merged.put(Constants.BENCHMARKS, existing.get("benchmarks"));
-		}
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
 		merged.putAll(updates);
 		upsertModelMetadata(engineId, merged);
+	}
+
+	/**
+	 * Convert a stored metadata row back into the {@link Constants} keyed shape the
+	 * upsert accepts. Returns an empty map when the engine has no row yet.
+	 */
+	private static Map<String, Object> toDetails(Map<String, Object> existing) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		if (existing == null) {
+			return details;
+		}
+		details.put(Constants.MODEL, existing.get("modelId"));
+		details.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
+		details.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
+		details.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
+		details.put(Constants.MODEL_FAMILY, existing.get("family"));
+		details.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
+		details.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
+		details.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+		details.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		details.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
+		details.put(Constants.ATTACHMENT, existing.get("attachment"));
+		details.put(Constants.REASONING, existing.get("reasoning"));
+		details.put(Constants.TOOL_CALL, existing.get("toolCall"));
+		details.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
+		details.put(Constants.TEMPERATURE, existing.get("temperature"));
+		details.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
+		details.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
+		details.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
+		details.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
+		details.put(Constants.BENCHMARKS, existing.get("benchmarks"));
+		return details;
 	}
 
 	/**
@@ -405,9 +425,17 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS);
 	}
 
+	/**
+	 * Blank SMSS values are treated as "not specified" so an optional property left
+	 * empty in the SMSS does not clear a value that is already saved.
+	 */
 	private static void copyIfPresent(Properties properties, Map<String, Object> details, String key) {
-		if (properties.containsKey(key)) {
-			details.put(key, properties.getProperty(key));
+		if (!properties.containsKey(key)) {
+			return;
+		}
+		String value = nullableString(properties.getProperty(key));
+		if (value != null) {
+			details.put(key, value);
 		}
 	}
 
@@ -496,7 +524,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 			normalized.add(value);
 		}
-		details.put(key, GSON.toJson(normalized));
+		// store an unset list as SQL NULL rather than an empty JSON array
+		details.put(key, normalized.isEmpty() ? null : GSON.toJson(normalized));
 	}
 
 	private static List<String> parseList(Object value) {
