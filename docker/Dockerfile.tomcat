@@ -173,19 +173,29 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 		-providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider \
 		-providerpath ${JAVA_HOME}/lib/fips/bc-fips-${BC_FIPS_VERSION}.jar; \
 	\
-	# 3. Register BCFIPS/BCJSSE and drop the rest. SUN must stay: BCFIPS seeds its
-	#    DRBG from a core SecureRandom, and without SUN that lookup recurses back
-	#    into BCFIPS and dies with StackOverflowError. BCFIPS supplies X.509
-	#    CertificateFactory and PKIX CertPathValidator itself, so SUN is only an
-	#    entropy seed source - fine for compliance, the approved DRBG is still
-	#    BCFIPS's. Consequence: SUN also serves MD5, so approved-only mode cannot
-	#    block MD5 for application code. That has to be caught by code review.
-	sed -i -E '/^security\.provider\.[0-9]+=/d' ${JAVA_HOME}/conf/security/java.security; \
+	# 3. Write a SEPARATE provider list at java.security.fips and leave the JDK
+	#    default untouched. setenv.sh selects it with
+	#    -Djava.security.properties==<file>, so it applies to the Tomcat JVM only.
+	#
+	#    Editing java.security in place breaks every other JVM in the image: the
+	#    provider jars are on CLASSPATH via setenv.sh, which only catalina.sh
+	#    sources, so Maven (own -classpath), keytool and the Playwright installer
+	#    would load SUN alone and die with "Default SSLContext not available".
+	#
+	#    SUN must stay in the list: BCFIPS seeds its DRBG from a core SecureRandom,
+	#    and without SUN that lookup recurses back into BCFIPS and dies with
+	#    StackOverflowError. BCFIPS supplies X.509 CertificateFactory and PKIX
+	#    CertPathValidator itself, so SUN is only an entropy seed source, which is
+	#    fine for compliance - the approved DRBG is still BCFIPS's. Consequence:
+	#    SUN also serves MD5, so approved-only mode cannot block MD5 for
+	#    application code. That has to be caught by code review.
+	sed -E '/^security\.provider\.[0-9]+=/d' ${JAVA_HOME}/conf/security/java.security \
+		> ${JAVA_HOME}/conf/security/java.security.fips; \
 	printf '%s\n' \
 		'security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider' \
 		'security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS' \
 		'security.provider.3=SUN' \
-		>> ${JAVA_HOME}/conf/security/java.security; \
+		>> ${JAVA_HOME}/conf/security/java.security.fips; \
 	\
 	# 4. Providers named in java.security load from the SYSTEM classloader, so the
 	#    jars go on CLASSPATH. $TOMCAT_HOME/lib would not work - that is Tomcat's
@@ -202,6 +212,7 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	  echo '# provider jars must come first regardless.'; \
 	  echo "CLASSPATH=\"\$FIPS_LIB/bc-fips-${BC_FIPS_VERSION}.jar:\$FIPS_LIB/bctls-fips-${BCTLS_FIPS_VERSION}.jar:\$FIPS_LIB/bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar:\$FIPS_LIB/bcutil-fips-${BCUTIL_FIPS_VERSION}.jar\${CLASSPATH:+:\$CLASSPATH}\""; \
 	  echo 'export CLASSPATH'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djava.security.properties==$JAVA_HOME/conf/security/java.security.fips"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.bouncycastle.fips.approved_only=true"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStore=$JAVA_HOME/lib/security/cacerts.bcfks"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStoreType=BCFKS"'; \
