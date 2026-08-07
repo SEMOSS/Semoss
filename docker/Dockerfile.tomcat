@@ -47,7 +47,7 @@ ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 # Tomcat default version
 ARG TOMCAT_VERSION=11.0.24
-#ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
 
@@ -190,6 +190,11 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	# 4. Providers named in java.security load from the SYSTEM classloader, so the
 	#    jars go on CLASSPATH. $TOMCAT_HOME/lib would not work - that is Tomcat's
 	#    common classloader, which is not consulted for provider loading.
+	#    Fail early if TOMCAT_HOME is unset rather than appending to /bin/setenv.sh,
+	#    and create the file if an earlier step has not already.
+	test -n "$TOMCAT_HOME" || { echo "TOMCAT_HOME is not set"; exit 1; }; \
+	mkdir -p "$TOMCAT_HOME/bin"; \
+	touch "$TOMCAT_HOME/bin/setenv.sh"; \
 	{ echo ''; \
 	  echo '# --- FIPS 140-3 ---'; \
 	  echo 'FIPS_LIB="$JAVA_HOME/lib/fips"'; \
@@ -207,7 +212,7 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	  echo ': "${SESSION_SECURE_RANDOM_PROVIDER:=BCFIPS}"'; \
 	  echo ': "${SESSION_SECURE_RANDOM_ALGORITHM:=DEFAULT}"'; \
 	  echo 'export SESSION_SECURE_RANDOM_PROVIDER SESSION_SECURE_RANDOM_ALGORITHM'; } \
-	  >> $TOMCAT_HOME/bin/setenv.sh
+	  >> "$TOMCAT_HOME/bin/setenv.sh"
 
 FROM scratch AS final
 ARG JAVA_HOME
