@@ -140,7 +140,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
-			SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
+			// metadata is validated against a fixed set of capabilities and modalities, so
+			// a hand-edited or outdated smss value can fail it. That must cost the engine
+			// its metadata row and nothing more - letting it escape here aborts the rest
+			// of addEngine and, through Utility.loadEngine, stops the engine loading at
+			// all
+			try {
+				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
+			} catch (Exception e) {
+				classLogger.error("Failed to save model metadata for engine {}. The engine is catalogued without it",
+						Utility.cleanLogString(engineId), e);
+			}
 		}
 
 		// TODO: need to see when we should be updating the database metadata
