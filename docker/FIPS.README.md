@@ -86,7 +86,10 @@ With `FIPS_ENABLED=true` it, in this order:
 1. Downloads the four BouncyCastle jars into `$JAVA_HOME/lib/fips`, verified
    against SHA-256 hashes pinned in the Dockerfile
 2. Converts `cacerts` to BCFKS
-3. Rewrites `java.security` to BCFIPS / BCJSSE / SUN
+3. Writes a BCFIPS / BCJSSE / SUN provider list to `java.security.fips`, leaving
+   the JDK default `java.security` untouched. `setenv.sh` selects it with
+   `-Djava.security.properties==`, so it applies to the Tomcat JVM only and
+   Maven, keytool and the Playwright installer keep working TLS
 4. Appends the FIPS block to `setenv.sh`
 
 **Step 2 must precede step 3.** JKS integrity checking is SHA-1 based, so once
