@@ -252,7 +252,8 @@ public final class RemoteBrowserSelectedTextService {
 	/** Capture selected text from the active page and all intersecting frames. */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> capture(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
-		if (session == null || session.getPage() == null || session.getPage().isClosed()) {
+		Page page = session == null ? null : session.getActivePage();
+		if (page == null || page.isClosed()) {
 			throw new IllegalArgumentException("An active browser page is required to capture selected text");
 		}
 		if (event == null || event.getX() == null || event.getY() == null || event.getEndX() == null
@@ -260,7 +261,6 @@ public final class RemoteBrowserSelectedTextService {
 			throw new IllegalArgumentException("A complete selection rectangle is required");
 		}
 
-		Page page = session.getPage();
 		double startX = event.getX();
 		double startY = event.getY();
 		double endX = event.getEndX();

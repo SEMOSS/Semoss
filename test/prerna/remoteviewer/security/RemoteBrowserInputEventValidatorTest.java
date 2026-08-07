@@ -66,7 +66,7 @@ class RemoteBrowserInputEventValidatorTest {
 	}
 
 	@Test
-	void automationStateMetadataIsLengthBounded() {
+	void automationStateMetadataRequiresAValidLiveTabId() {
 		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
 		event.setType("fill-element");
 		event.setText("value");
@@ -75,7 +75,20 @@ class RemoteBrowserInputEventValidatorTest {
 		event.setExpectedTabId("tab-1");
 		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
 
-		event.setExpectedTabId("x".repeat(129));
+		event.setExpectedTabId("first-tab");
+		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+	}
+
+	@Test
+	void newTabAllowsAnOptionalRecordedTabBinding() {
+		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
+		event.setType("new-tab");
+		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+
+		event.setTargetTabId("tab-2");
+		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+
+		event.setTargetTabId("invalid");
 		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
 	}
 
