@@ -145,7 +145,8 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 				} else {
 					// Handle streaming response
 					if (entity != null) {
-						// Closing the response on cancel unblocks reader.readLine() with an IOException below.
+						// Closing the response on cancel unblocks reader.readLine() with an IOException
+						// below.
 						final CloseableHttpResponse responseRef = response;
 						String threadJobId = ThreadStore.getJobId();
 						PixelJobRunner jobRunner = threadJobId != null
@@ -176,10 +177,10 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 							IModelEngineResponseHandler responseObject = responseType.newInstance();
 
 							while ((line = reader.readLine()) != null) {
-//	                        	System.out.println(line);
+								// System.out.println(line);
 								// fast-exit if cancellation was requested between lines
 								if (Thread.currentThread().isInterrupted()) {
-									break;
+									throw new IllegalStateException("LLM stream cancelled by user");
 								}
 								if (line.contains("data: [DONE]") || line.contains("data:[DONE]")) {
 									break;
@@ -204,7 +205,8 @@ public abstract class AbstractRESTModelEngine extends AbstractModelEngine {
 							responseObject.setResponse(responseAssimilator.toString());
 							return responseObject;
 						} catch (Exception e) {
-							// Cancel-triggered close surfaces as IOException here; convert to a clean cancellation.
+							// Cancel-triggered close surfaces as IOException here; convert to a clean
+							// cancellation.
 							if (Thread.currentThread().isInterrupted()
 									|| (jobRunner != null && jobRunner.isCancelRequested())) {
 								throw new IllegalStateException("LLM stream cancelled by user");
