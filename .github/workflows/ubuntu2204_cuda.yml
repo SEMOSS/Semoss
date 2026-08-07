@@ -12,8 +12,13 @@ on:
   schedule:
     - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 3:30 AM EDT (2:30 AM EST)
 
+
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        fips: [false, true]
 
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container:
@@ -44,14 +49,17 @@ jobs:
       - name: Determine Image Tag and Repository
         id: vars
         run: |
+          # -fips goes on the flavour segment so "latest" stays the trailing word
+          SUFFIX=""
+          if [ "${{ matrix.fips }}" = "true" ]; then SUFFIX="-fips"; fi
           if [ "${{ vars.RELEASE }}" = "TRUE" ]; then
             echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22-cuda" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-ubuntu22-cuda${SUFFIX}" >> $GITHUB_ENV
           else
             DATE=$(date +'%Y-%m-%d')
             echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda-$DATE" >> $GITHUB_ENV
-            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda-latest" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda${SUFFIX}-$DATE" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT--ubuntu22-cuda${SUFFIX}-latest" >> $GITHUB_ENV
           fi
           
       - name: Build and push Ubuntu Docker image - Release Build
@@ -67,6 +75,8 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}
             BASE_REGISTRY=public.ecr.aws
+            TOMCAT_TAG_SUFFIX=${{ matrix.fips && '-fips' || '' }}
+            SEMOSS_FIPS=${{ matrix.fips }}
 
       - name: Build and push Ubuntu Docker image - Non-Release Build
         if: ${{ vars.RELEASE == 'FALSE' }}
@@ -83,3 +93,5 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
             BASE_REGISTRY=public.ecr.aws
+            TOMCAT_TAG_SUFFIX=${{ matrix.fips && '-fips' || '' }}
+            SEMOSS_FIPS=${{ matrix.fips }}
