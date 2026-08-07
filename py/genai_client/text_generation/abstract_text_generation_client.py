@@ -3,7 +3,6 @@ import json
 import os
 from string import Template
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
 from ..constants import (
     AskModelEngineResponse,
     AskModelEngineResponse2,
@@ -18,15 +17,7 @@ from ..utils import string_to_bool
 from .model_engine_exception import ErrorDetails
 
 
-class ModelLimits(BaseModel):
-    context_window: Optional[int] = None
-    max_input_tokens: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
-
-
 class AbstractTextGenerationClient(ABC):
-    # loads all the templates
-    # fills the templates and gives information back
     def __init__(
         self,
         template: Optional[Union[Dict, str]] = None,
@@ -37,26 +28,9 @@ class AbstractTextGenerationClient(ABC):
         if self.model_name is None:
             raise ValueError("model_name must be provided.")
 
-        self.model_limits = self._get_model_limits(kwargs)
-
         self.template_name = template_name
         self.templates = {}
         self._handle_template_args(template)
-
-        tokens_param_name = kwargs.pop("tokens_param_name", None)
-        if not tokens_param_name:
-            tokens_param_name = next(
-                (
-                    param
-                    for param in [
-                        "max_completion_tokens",
-                        "max_tokens",
-                        "max_new_tokens",
-                    ]
-                    if param in kwargs
-                ),
-                "max_completion_tokens",
-            )
 
         thinking = kwargs.pop("thinking", False)
         if thinking is not None and thinking is not isinstance(thinking, bool):
@@ -66,17 +40,28 @@ class AbstractTextGenerationClient(ABC):
                 thinking = False
         thinking_budget = kwargs.pop("thinking_budget", None)
 
+        tokens_param_name = next(
+            (
+                param
+                for param in [
+                    "max_completion_tokens",
+                    "max_tokens",
+                    "max_new_tokens",
+                ]
+                if param in kwargs
+            ),
+            "max_tokens",
+        )
+
         self.model_settings = ModelSettings(
             model_name=self.model_name,
             context_window=kwargs.get("context_window", None),
-            max_completion_tokens=kwargs.get("max_completion_tokens", None),
-            max_input_tokens=kwargs.get("max_input_tokens", None),
+            max_tokens=kwargs.get(tokens_param_name, None),
             ai_role=kwargs.pop("ai_role", None),
             user_role=kwargs.pop("user_role", None),
             system_role=kwargs.pop("system_role", None),
             chat_type=kwargs.pop("chat_type", None),
             model_type=kwargs.pop("model_type", None),
-            tokens_param_name=tokens_param_name,
             thinking=thinking,
             thinking_budget=thinking_budget,
             global_param_override=kwargs.pop("global_param_override", None),
@@ -85,15 +70,12 @@ class AbstractTextGenerationClient(ABC):
 
     def _handle_template_args(self, template):
         """This may not be used anymore.."""
-        # if the user does not provide a template, we default to chat_templates.json
         if template == None:
             script_directory = os.path.dirname(os.path.abspath(__file__))
             chat_templates = os.path.join(script_directory, "chat_templates.json")
             template = chat_templates
 
-        # the user should be able to pass, their own file (json) or dictionary
         if isinstance(template, str):
-            # since its a string, we assume its path and need to validate that its valid
             if os.path.exists(template) == False:
                 raise FileNotFoundError(f"The file '{template}' does not exist.")
 
@@ -104,25 +86,6 @@ class AbstractTextGenerationClient(ABC):
         elif isinstance(template, dict):
             self.template_file = None
             self.templates = template
-
-    def _get_model_limits(self, smss_args) -> ModelLimits:
-        """
-        Returns the model limits for the given  model.
-        These only set limits that are preset in the SMSS file.
-        If a model does not have these limits set, they should be resolved in the given client class.
-        Only piloting this for google genai for now..
-        """
-        context_window = smss_args.get("context_window", None)
-        max_input_tokens = smss_args.get("max_input_tokens", None)
-        max_completion_tokens = smss_args.get("max_completion_tokens", None)
-        if max_completion_tokens is None:
-            max_completion_tokens = smss_args.get("max_tokens", None)
-
-        return ModelLimits(
-            context_window=context_window,
-            max_input_tokens=max_input_tokens,
-            max_completion_tokens=max_completion_tokens,
-        )
 
     def build_semoss_messages(
         self,

@@ -434,8 +434,7 @@ class ModelSettings(BaseModel):
 
     model_name: str
     context_window: Optional[int] = None
-    max_completion_tokens: Optional[int] = None
-    max_input_tokens: Optional[int] = None
+    max_tokens: Optional[int] = None
     ai_role: Optional[str] = None
     user_role: Optional[str] = None
     system_role: Optional[str] = None
