@@ -76,6 +76,7 @@ public class RemoteBrowserSession {
 	private volatile Instant lastActivityAt;
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
+	private final AtomicBoolean navigationLoading = new AtomicBoolean(false);
 
 	/** Queue of input events waiting to be processed by the session thread. */
 	public final BlockingQueue<RemoteBrowserInputEvent> eventQueue = new LinkedBlockingQueue<>(256);
@@ -199,6 +200,15 @@ public class RemoteBrowserSession {
 
 	public void setWsConnected(boolean connected) {
 		this.wsConnected = connected;
+	}
+
+	/**
+	 * Updates the active-page navigation state.
+	 *
+	 * @return {@code true} only when the state changed
+	 */
+	public boolean updateNavigationLoading(boolean loading) {
+		return navigationLoading.getAndSet(loading) != loading;
 	}
 
 	public List<RemoteBrowserRecordedStep> getRemoteBrowserRecordedSteps() {
