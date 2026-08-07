@@ -334,9 +334,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			result.put("status", "ERROR");
 			return result;
 		}
-		// the catalog description is not a MODELMETADATA column - it is saved as engine
-		// metadata at create time - so ignore it here rather than report a change that
-		// the upsert would silently drop on every run
 		defaults.remove(Constants.DESCR);
 		if (defaults.isEmpty()) {
 			result.put("status", "NO_CATALOG_ENTRY");

@@ -140,11 +140,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
-			// metadata is validated against a fixed set of capabilities and modalities, so
-			// a hand-edited or outdated smss value can fail it. That must cost the engine
-			// its metadata row and nothing more - letting it escape here aborts the rest
-			// of addEngine and, through Utility.loadEngine, stops the engine loading at
-			// all
 			try {
 				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
 			} catch (Exception e) {
