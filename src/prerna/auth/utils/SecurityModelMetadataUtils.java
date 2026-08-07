@@ -80,12 +80,12 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
-			Constants.BUILTIN_TOOLS, Constants.MAX_INPUT_TOKENS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
+			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
 			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
 			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.DESCR);
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
-			"LAST_UPDATED");
+			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
 	private static final Pattern LOWER_SNAKE_CASE_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 	private static final int MODEL_METADATA_QUERY_BATCH_SIZE = 500;
@@ -123,7 +123,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		normalizeJsonObjectProperty(normalized, Constants.REASONING_CONFIG);
 		normalizeJsonArrayProperty(normalized, Constants.BENCHMARKS);
 		normalizePositiveLongProperty(normalized, Constants.CONTEXT_WINDOW);
-		normalizePositiveLongProperty(normalized, Constants.MAX_INPUT_TOKENS);
 		normalizePositiveLongProperty(normalized, Constants.MAX_TOKENS);
 		return normalized;
 	}
@@ -160,7 +159,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.INPUT_MODALITIES);
 		copyIfPresent(properties, details, Constants.OUTPUT_MODALITIES);
 		copyIfPresent(properties, details, Constants.CONTEXT_WINDOW);
-		copyIfPresent(properties, details, Constants.MAX_INPUT_TOKENS);
 		copyIfPresent(properties, details, Constants.MAX_TOKENS);
 		copyIfPresent(properties, details, Constants.BUILTIN_TOOLS);
 		copyIfPresent(properties, details, Constants.ATTACHMENT);
@@ -192,8 +190,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = modelMetadataExists(securityDb, metadata.engineId());
 		String sql = exists
-				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXINPUTTOKENS=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
-				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
+				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -207,7 +205,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			setNullableString(ps, index++, metadata.inputModalitiesJson());
 			setNullableString(ps, index++, metadata.outputModalitiesJson());
 			setNullableLong(ps, index++, metadata.contextWindow());
-			setNullableLong(ps, index++, metadata.maxInputTokens());
 			setNullableLong(ps, index++, metadata.maxOutputTokens());
 			setNullableString(ps, index++, metadata.builtinToolsJson());
 			setNullableBoolean(ps, index++, metadata.attachment());
@@ -256,7 +253,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			merged.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
 			merged.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
 			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
-			merged.put(Constants.MAX_INPUT_TOKENS, existing.get("maxInputTokens"));
 			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
 			merged.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
 			merged.put(Constants.ATTACHMENT, existing.get("attachment"));
@@ -279,7 +275,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -321,7 +317,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXINPUTTOKENS, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -364,7 +360,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("inputModalities", emptyListIfNull(modelMetadata.get("inputModalities")));
 		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
 		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
-		capabilities.put("maxInputTokens", emptyStringIfNull(modelMetadata.get("maxInputTokens")));
 		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
 		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
 		capabilities.put("attachment", modelMetadata.get("attachment"));
@@ -401,7 +396,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				|| details.containsKey(Constants.SERVING_PROVIDER) || details.containsKey(Constants.MODEL_CAPABILITY)
 				|| details.containsKey(Constants.MODEL_FAMILY)
 				|| details.containsKey(Constants.INPUT_MODALITIES) || details.containsKey(Constants.OUTPUT_MODALITIES)
-				|| details.containsKey(Constants.CONTEXT_WINDOW) || details.containsKey(Constants.MAX_INPUT_TOKENS)
+				|| details.containsKey(Constants.CONTEXT_WINDOW)
 				|| details.containsKey(Constants.MAX_TOKENS) || details.containsKey(Constants.BUILTIN_TOOLS)
 				|| details.containsKey(Constants.ATTACHMENT) || details.containsKey(Constants.REASONING)
 				|| details.containsKey(Constants.TOOL_CALL) || details.containsKey(Constants.STRUCTURED_OUTPUT)
@@ -424,7 +419,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				nullableString(details.get(Constants.INPUT_MODALITIES)),
 				nullableString(details.get(Constants.OUTPUT_MODALITIES)),
 				toNullableLong(details.get(Constants.CONTEXT_WINDOW)),
-				toNullableLong(details.get(Constants.MAX_INPUT_TOKENS)), toNullableLong(details.get(Constants.MAX_TOKENS)),
+				toNullableLong(details.get(Constants.MAX_TOKENS)),
 				nullableString(details.get(Constants.BUILTIN_TOOLS)),
 				toNullableBoolean(details.get(Constants.ATTACHMENT)), toNullableBoolean(details.get(Constants.REASONING)),
 				toNullableBoolean(details.get(Constants.TOOL_CALL)),
@@ -634,7 +629,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("inputModalities", parseStoredList(rs.getString("INPUTMODALITIES")));
 		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
 		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
-		metadata.put("maxInputTokens", getNullableLong(rs, "MAXINPUTTOKENS"));
 		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
 		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
 		metadata.put("attachment", getNullableBoolean(rs, "ATTACHMENT"));
@@ -769,7 +763,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private record ModelMetadata(String engineId, String modelId, String modelProvider, String servingProvider,
 			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
-			Long maxInputTokens, Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
+			Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
 			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
 			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson) {
 	}

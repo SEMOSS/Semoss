@@ -96,7 +96,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("INPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("OUTPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("CONTEXTWINDOW", "BIGINT"),
-				Pair.with("MAXINPUTTOKENS", "BIGINT"),
 				Pair.with("MAXOUTPUTTOKENS", "BIGINT"),
 				Pair.with("BUILTINTOOLS", CLOB_DATATYPE_NAME),
 				Pair.with("ATTACHMENT", BOOLEAN_DATATYPE_NAME),
