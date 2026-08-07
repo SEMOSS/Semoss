@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.RoomMessageRedisClient;
 import prerna.engine.impl.model.RoomMessageStore;
+import prerna.redis.RedisConnectionConfig;
 import prerna.util.Utility;
 
 final class AgentRunQueueCoordinator {
@@ -53,9 +54,10 @@ final class AgentRunQueueCoordinator {
 	static boolean isQueueEnabled() {
 		String configured = Utility.getDIHelperProperty(QUEUE_ENABLED);
 		if (configured == null || configured.trim().isEmpty()) {
-			return RoomMessageStore.isRedisEnabled();
+			return RedisConnectionConfig.isRedisEnabled();
 		}
-		return Boolean.parseBoolean(configured.trim());
+		// the queue is Redis-backed, so an explicit opt-in still needs Redis enabled
+		return Boolean.parseBoolean(configured.trim()) && RedisConnectionConfig.isRedisEnabled();
 	}
 
 	ActiveRunLease tryClaimTurn(String runId, String roomId) {

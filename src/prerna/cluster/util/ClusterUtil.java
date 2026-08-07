@@ -1106,7 +1106,7 @@ public class ClusterUtil {
 			} catch (Exception e) {
 				classLogger.error("Failed to publish user asset project '{}' change to ZK cluster", projectId, e);
 				SemossPixelException err = new SemossPixelException(
-						"Failed to publish user workspace '" + projectId + "' to sync with ZK cluster");
+						"Failed to publish user asset project '" + projectId + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
 				throw err;
 			}

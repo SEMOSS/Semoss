@@ -191,9 +191,9 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 			for (String newColName : updatedDtColumns) {
 				meta.addProperty(dtName, dtName + "__" + newColName);
 				meta.setAliasToProperty(dtName + "__" + newColName, newColName);
-				meta.setDataTypeToProperty(dtName + "__" + newColName, "FACTOR");
-				// R's DiscretizeReactor calls getOrderedLevelsFromRFactorCol(), not bothering
-				// with that here
+				// python/pandas has no FACTOR type, so treat the discretized column as a
+				// string; otherwise downstream filtering emits invalid pandas syntax
+				meta.setDataTypeToProperty(dtName + "__" + newColName, "STRING");
 			}
 		} else {
 			// no results

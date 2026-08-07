@@ -327,7 +327,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 msg_builder_response = AnthropicMessageBuilder().build_messages(
                     semoss_messages,
                     self.model_settings,
-                    self.model_limits,
                     self.model_name,
                     self.use_beta_header,
                     self.beta_feature_name,
@@ -1114,7 +1113,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         msg_builder_response = AnthropicMessageBuilder().build_messages(
             semoss_messages,
             self.model_settings,
-            self.model_limits,
             self.model_name,
             self.use_beta_header if self.use_beta_header else False,
             self.beta_feature_name,

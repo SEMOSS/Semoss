@@ -435,6 +435,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		PreparedStatement ps = null;
 		try {
 			conn = this.getConnection();
+			PGvector.addVectorType(conn);
 			ps = conn.prepareStatement(psString);
 
 //			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {

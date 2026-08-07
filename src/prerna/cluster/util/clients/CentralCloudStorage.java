@@ -1828,8 +1828,7 @@ public final class CentralCloudStorage implements ICloudClient {
 				// Re-open the project
 				Utility.getUserAssetProject(projectId);
 			} catch (Exception e) {
-				classLogger.error("Failed to reopen user asset project {} after pushUserAssetOrWorkspace.", projectId,
-						e);
+				classLogger.error("Failed to reopen user asset project {} after pushUserAsset.", projectId, e);
 			}
 			if (sharedRCloneConfig != null) {
 				try {

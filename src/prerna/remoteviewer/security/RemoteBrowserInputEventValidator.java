@@ -43,11 +43,13 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_KEY_LENGTH = 64;
 	private static final int MAX_URL_LENGTH = 2048;
 	private static final int MAX_REQUEST_ID_LENGTH = 128;
-	private static final int MAX_WAIT_AFTER_MS = 60_000;
+	private static final double MIN_SELECTION_SIZE = 2;
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList("mouse-click", "mouse-move",
 			"mouse-down", "mouse-up", "wheel", "type-text", "key", "navigate", "close-session", "navigate-back",
-			"navigate-forward", "reload", "recording", "recording-control"));
+			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context", "switch-tab",
+			"switch-replay-tab", "prepare-replay", "close-tab", "fill-element"));
+	private static final int MAX_WAIT_AFTER_MS = 60_000;
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -74,6 +76,12 @@ public class RemoteBrowserInputEventValidator {
 		}
 		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
 			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
+		if (event.getExpectedUrl() != null && event.getExpectedUrl().length() > MAX_URL_LENGTH) {
+			throw new IllegalArgumentException("expectedUrl exceeds max length " + MAX_URL_LENGTH);
+		}
+		if (event.getExpectedTabId() != null && event.getExpectedTabId().length() > MAX_REQUEST_ID_LENGTH) {
+			throw new IllegalArgumentException("expectedTabId exceeds max length " + MAX_REQUEST_ID_LENGTH);
 		}
 		if (event.getWaitAfterMs() != null
 				&& (event.getWaitAfterMs() < 0 || event.getWaitAfterMs() > MAX_WAIT_AFTER_MS)) {
@@ -114,6 +122,19 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
+		case "fill-element":
+			if (event.getText() == null || event.getText().isEmpty()) {
+				throw new IllegalArgumentException("fill-element event requires non-empty 'text'");
+			}
+			if (event.getText().length() > MAX_TYPE_TEXT_LENGTH) {
+				throw new IllegalArgumentException("fill-element exceeds max length " + MAX_TYPE_TEXT_LENGTH);
+			}
+			if (event.getSelector() == null || event.getSelector().value() == null
+					|| event.getSelector().value().isBlank()) {
+				throw new IllegalArgumentException("fill-element event requires a non-empty selector");
+			}
+			break;
+
 		case "key":
 			if (event.getKey() == null || event.getKey().isEmpty()) {
 				throw new IllegalArgumentException("key event requires non-empty 'key'");
@@ -140,10 +161,41 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
-		// close-session, navigate-back, navigate-forward, reload — no payload to
+		case "switch-tab":
+		case "switch-replay-tab":
+		case "close-tab":
+			if (event.getTargetTabId() == null || !event.getTargetTabId().matches("tab-[1-9][0-9]*")) {
+				throw new IllegalArgumentException(type + " event requires a valid 'targetTabId'");
+			}
+			break;
+
+		case "selected-text-context":
+			validateRequestId(event);
+			requireCoordinates(event, vpWidth, vpHeight);
+			if (event.getEndX() == null || event.getEndY() == null) {
+				throw new IllegalArgumentException("selected-text-context requires endX and endY");
+			}
+			event.setEndX(Math.max(0, Math.min(event.getEndX(), vpWidth)));
+			event.setEndY(Math.max(0, Math.min(event.getEndY(), vpHeight)));
+			if (Math.abs(event.getEndX() - event.getX()) < MIN_SELECTION_SIZE
+					&& Math.abs(event.getEndY() - event.getY()) < MIN_SELECTION_SIZE) {
+				throw new IllegalArgumentException("selected-text-context selection is too small");
+			}
+			break;
+
+		// close-session, navigate-back, navigate-forward, reload - no payload to
 		// validate
 		default:
 			break;
+		}
+	}
+
+	private static void validateRequestId(RemoteBrowserInputEvent event) {
+		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
+			throw new IllegalArgumentException("selected-text-context requires requestId");
+		}
+		if (event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
+			throw new IllegalArgumentException("selected-text-context requestId exceeds max length");
 		}
 	}
 
@@ -151,7 +203,7 @@ public class RemoteBrowserInputEventValidator {
 		if (event.getX() == null || event.getY() == null) {
 			throw new IllegalArgumentException("Event type '" + event.getType() + "' requires x and y");
 		}
-		// Clamp coordinates to viewport (mutate in place — safe because we own this
+		// Clamp coordinates to viewport (mutate in place - safe because we own this
 		// object)
 		event.setX(Math.max(0, Math.min(event.getX(), vpWidth)));
 		event.setY(Math.max(0, Math.min(event.getY(), vpHeight)));

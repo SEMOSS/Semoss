@@ -87,6 +87,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 
 	public static final String LATEST_VECTOR_SEARCH_STATEMENT = "LATEST_VECTOR_SEARCH_STATEMENT";
 
+	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
+
 	public static final String INDEX_CLASS = "indexClass";
 
 	public static final String DOCUMENTS_FOLDER_NAME = "documents";
@@ -118,7 +120,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	protected String customDocumentProcessorFunctionID = null;
 	protected boolean customDocumentProcessorNeedStorage = false;
 
-	protected String imageEngineId;
+	protected boolean useHybridSearch = false;
 
 	// our paradigm for how we store files
 	protected String defaultIndexClass;
@@ -181,6 +183,9 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			this.customDocumentProcessorNeedStorage = Boolean
 					.parseBoolean(this.smssProp.getProperty(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE));
 		}
+
+		// default is hybrid search
+		this.useHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 
 		// highest directory (first layer inside vector db base folder)
 		String engineDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, this.engineId,

@@ -29,17 +29,12 @@ package prerna.reactor.playwright;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PatchSessionMetaReactor extends AbstractReactor {
-
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public PatchSessionMetaReactor() {
 		this.keysToGet = new String[] { "sessionId", ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
@@ -52,7 +47,7 @@ public class PatchSessionMetaReactor extends AbstractReactor {
 		String sessionId = this.keyValue.get(this.keysToGet[0]);
 		Map<String, Object> paramValues = getMap(this.keysToGet[1]);
 
-		MetaPatch patch = json.convertValue(paramValues, MetaPatch.class);
+		MetaPatch patch = MetaPatch.fromMap(paramValues);
 
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 		RecordingMeta old = playwrightSession.history.meta();

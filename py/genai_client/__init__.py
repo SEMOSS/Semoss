@@ -70,6 +70,10 @@ def __getattr__(name: str) -> Any:
         from .embedders.vertex_embedder import VertexAiEmbedder
 
         return VertexAiEmbedder
+    elif name == "GoogleGenAiEmbedder":
+        from .embedders.google_genai_embedder import GoogleGenAiEmbedder
+
+        return GoogleGenAiEmbedder
     elif name == "OpenAiTokenizer":
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
@@ -193,6 +197,7 @@ __all__ = [
     "AzureOpenAiEmbedder",
     "TextEmbeddingsInference",
     "VertexAiEmbedder",
+    "GoogleGenAiEmbedder",
     "OpenAiTokenizer",
     "HuggingfaceTokenizer",
     "LocalWordCountTokenizer",
