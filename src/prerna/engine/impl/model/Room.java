@@ -411,6 +411,75 @@ public class Room implements Serializable {
 		return useHistoryObj == null || !"false".equalsIgnoreCase(useHistoryObj.toString());
 	}
 
+	public ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			List<Map<String, Object>> responseParts, String hiddenMessage, List<AbstractMessage> extrasOut) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
+			response.setModel(modelEngine);
+			response.setRoom(this);
+			response.setParentMessageId(msg.getMessageId());
+
+			if (!shouldPersistTurn(msg, modelEngine)) {
+				return response;
+			}
+
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				if (!modelEngine.keepsConversationHistory()) {
+					messages.clear();
+				}
+				RoomMessageStore.normalizeForProviderPayload(this);
+
+				msg.setModel(modelEngine);
+				if (!messages.isEmpty()) {
+					if (parentMessageId != null && !parentMessageId.isEmpty()) {
+						msg.setParentMessageId(parentMessageId);
+					} else {
+						AbstractMessage lastMsg = messages.get(messages.size() - 1);
+						msg.setParentMessageId(lastMsg.getMessageId());
+					}
+				} else {
+					msg.setParentMessageId(null);
+				}
+				response.setParentMessageId(msg.getMessageId());
+
+				messages.add(msg);
+				messages.add(response);
+
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
+					PlaygroundUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(),
+							extrasOut);
+				}
+
+				String prevRoomName = roomName;
+				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+					for (AbstractMessage m : messages) {
+						if (m instanceof InputMessage) {
+							String prompt = ((InputMessage) m).getInputUIPrompt();
+							if (prompt != null && !prompt.trim().isEmpty()) {
+								roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+								break;
+							}
+						}
+					}
+				}
+				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && roomName != null
+						&& !roomName.trim().isEmpty()) {
+					RoomMessageStore.persist(this, userId, roomName, modelEngine.getEngineId());
+				} else {
+					RoomMessageStore.persist(this, userId);
+				}
+			}
+			return response;
+		} finally {
+			lock.unlock();
+		}
+	}
+
 	/**
 	 * Adds a tool execution result to the active tool-call context and, when all
 	 * pending tool calls are satisfied, invokes the model for the follow-up

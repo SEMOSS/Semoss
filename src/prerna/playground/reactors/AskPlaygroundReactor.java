@@ -128,7 +128,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		ResponseMessage response;
 		if (responseParts != null) {
 			// Cancel flow: skip the LLM call, persist a turn built from the caller-supplied parts.
-			response = commitPrebuiltTurn(room, modelEngine, msg, parentMessageId, responseParts, hiddenMessage,
+			response = room.commitPrebuiltTurn(msg, modelEngine, parentMessageId, responseParts, hiddenMessage,
 					extraMessages);
 		} else {
 			response = room.ask(msg, modelEngine, parentMessageId);
@@ -167,77 +167,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		pixelReturn.put("extraMessages", extraMessagesList);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
-	}
-
-	// Persists a caller-provided input + response as a completed turn, mirroring {@link Room#ask}'s scaffold minus the LLM call.
-	private ResponseMessage commitPrebuiltTurn(Room room, IModelEngine modelEngine, InputMessage msg,
-			String parentMessageId, List<Map<String, Object>> responseParts, String hiddenMessage,
-			List<AbstractMessage> extrasOut) {
-		ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
-		response.setModel(modelEngine);
-		response.setRoom(room);
-		response.setParentMessageId(msg.getMessageId());
-
-		if (!Room.shouldPersistTurn(msg, modelEngine)) {
-			return response;
-		}
-
-		String userId = insight.getUser().getPrimaryLoginToken().getId();
-		synchronized (room) {
-			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
-				RoomMessageStore.refreshFromLatestProjection(room, userId);
-				if (!modelEngine.keepsConversationHistory()) {
-					room.getMessages().clear();
-				}
-				RoomMessageStore.normalizeForProviderPayload(room);
-
-				msg.setModel(modelEngine);
-
-				// Parent-id resolution mirrors Room.ask: explicit param, else latest message, else null.
-				if (!room.getMessages().isEmpty()) {
-					if (parentMessageId != null && !parentMessageId.isEmpty()) {
-						msg.setParentMessageId(parentMessageId);
-					} else {
-						AbstractMessage lastMsg = room.getMessages().get(room.getMessages().size() - 1);
-						msg.setParentMessageId(lastMsg.getMessageId());
-					}
-				} else {
-					msg.setParentMessageId(null);
-				}
-				response.setParentMessageId(msg.getMessageId());
-
-				room.getMessages().add(msg);
-				room.getMessages().add(response);
-
-				// Append the hidden pair only after a concluding text response, never between tool calls.
-				if (hiddenMessage != null && !hiddenMessage.isEmpty()
-						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
-					PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, response.getMessageId(),
-							extrasOut);
-				}
-
-				// Room-name inference + 4-arg/2-arg persist switch (from Room.ask's tail).
-				String prevRoomName = room.getRoomName();
-				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-					for (AbstractMessage m : room.getMessages()) {
-						if (m instanceof InputMessage) {
-							String prompt = ((InputMessage) m).getInputUIPrompt();
-							if (prompt != null && !prompt.trim().isEmpty()) {
-								room.setRoomName(prompt.substring(0, Math.min(prompt.length(), 100)));
-								break;
-							}
-						}
-					}
-				}
-				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && room.getRoomName() != null
-						&& !room.getRoomName().trim().isEmpty()) {
-					RoomMessageStore.persist(room, userId, room.getRoomName(), modelEngine.getEngineId());
-				} else {
-					RoomMessageStore.persist(room, userId);
-				}
-			}
-		}
-		return response;
 	}
 
 	@Override
