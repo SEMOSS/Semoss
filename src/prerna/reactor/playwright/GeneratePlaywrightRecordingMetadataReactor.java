@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -59,9 +58,10 @@ import prerna.util.Utility;
 /**
  * Generates business metadata from actions that were actually recorded by the
  * remote browser. The replay envelope is read-only. Non-sensitive typed values
- * are included so metadata describes the performed workflow, while passwords,
- * email values, selectors, coordinates, URL queries and URL fragments are
- * excluded from the model prompt.
+ * are included so metadata describes the performed workflow, while values typed
+ * into fields named by the sensitive-term vocabulary in
+ * {@link RecordingMetadataPrivacy}, along with selectors, coordinates, URL
+ * queries and URL fragments, are excluded from the model prompt.
  */
 public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor {
 
@@ -285,9 +285,7 @@ public class GeneratePlaywrightRecordingMetadataReactor extends AbstractReactor 
 		if (step.isPassword()) {
 			return true;
 		}
-		String field = firstNonBlank(label, step.description()).toLowerCase(Locale.ROOT);
-		return field.contains("password") || field.contains("passcode") || field.contains("e-mail")
-				|| field.contains("email");
+		return RecordingMetadataPrivacy.isSensitiveFieldName(firstNonBlank(label, step.description(), step.tag()));
 	}
 
 	private static String buildFinalState(RemoteBrowserSession session) {
