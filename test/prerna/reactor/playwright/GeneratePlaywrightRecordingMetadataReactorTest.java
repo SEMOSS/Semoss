@@ -40,17 +40,19 @@ import org.junit.jupiter.api.Test;
 class GeneratePlaywrightRecordingMetadataReactorTest {
 
 	@Test
-	void actionTraceNeverContainsTypedValuesSelectorsOrUrlParameters() {
+	void actionTraceIncludesNormalTypedValuesButRedactsEmailAndPassword() {
 		PlaywrightStep typed = step(2, PlaywrightStepType.TYPE, 200L, null, "Email address", "private.user@example.com",
 				new Selector("css", "#private-user-example-com", null));
+		PlaywrightStep search = step(3, PlaywrightStepType.TYPE, 250L, null, "Search", "world cup highlights", null);
+		PlaywrightStep password = passwordStep(4, 275L, "Password", "hunter2");
 		PlaywrightStep navigated = step(1, PlaywrightStepType.NAVIGATE, 100L,
 				"https://example.com/login?email=private.user@example.com&token=secret#account", null, null, null);
-		PlaywrightStep clicked = step(3, PlaywrightStepType.CLICK, 300L, null, "Sign in", null, null);
+		PlaywrightStep clicked = step(5, PlaywrightStepType.CLICK, 300L, null, "Sign in", null, null);
 
 		Map<String, List<List<PlaywrightStep>>> tabs = new LinkedHashMap<>();
 		// Insert tab-2 first to prove chronology is based on timestamps, not map order.
 		tabs.put("tab-2", List.of(List.of(clicked)));
-		tabs.put("tab-1", List.of(List.of(typed, navigated)));
+		tabs.put("tab-1", List.of(List.of(typed, search, password, navigated)));
 
 		String trace = GeneratePlaywrightRecordingMetadataReactor
 				.buildActionTrace(new StepsEnvelope("1.0", null, tabs));
@@ -58,13 +60,48 @@ class GeneratePlaywrightRecordingMetadataReactorTest {
 		assertTrue(trace.indexOf("Navigated") < trace.indexOf("Entered"));
 		assertTrue(trace.indexOf("Entered") < trace.indexOf("Clicked"));
 		assertTrue(trace.contains("Entered a redacted value into \"Email address\""));
+		assertTrue(trace.contains("Entered \"world cup highlights\" into \"Search\""));
+		assertTrue(trace.contains("Entered a redacted value into \"Password\""));
 		assertTrue(trace.contains("https://example.com/login"));
 		assertFalse(trace.contains("private.user@example.com"));
 		assertFalse(trace.contains("token="));
 		assertFalse(trace.contains("#account"));
 		assertFalse(trace.contains("#private-user-example-com"));
+		assertFalse(trace.contains("hunter2"));
 		assertEquals("private.user@example.com", typed.text(),
 				"Metadata generation must not mutate the replayable recording");
+	}
+
+	@Test
+	void actionTraceRedactsEverySensitiveFieldNameNotJustPasswordAndEmail() {
+		// Short values such as a one-time code survive sanitizeText because nothing
+		// about their shape looks sensitive. Only the field name can catch them.
+		PlaywrightStep otp = step(1, PlaywrightStepType.TYPE, 100L, null, "One-time passcode", "482913", null);
+		PlaywrightStep apiKey = step(2, PlaywrightStepType.TYPE, 200L, null, "API key", "abc123", null);
+		PlaywrightStep ssn = step(3, PlaywrightStepType.TYPE, 300L, null, "Social Security Number", "111-22-3333",
+				null);
+		PlaywrightStep confirm = step(4, PlaywrightStepType.TYPE, 400L, null, "confirmPassword", "hunter2", null);
+		PlaywrightStep verification = step(5, PlaywrightStepType.TYPE, 500L, null, "Verification code", "9021", null);
+		PlaywrightStep search = step(6, PlaywrightStepType.TYPE, 600L, null, "Search", "world cup highlights", null);
+
+		Map<String, List<List<PlaywrightStep>>> tabs = new LinkedHashMap<>();
+		tabs.put("tab-1", List.of(List.of(otp, apiKey, ssn, confirm, verification, search)));
+
+		String trace = GeneratePlaywrightRecordingMetadataReactor
+				.buildActionTrace(new StepsEnvelope("1.0", null, tabs));
+
+		assertFalse(trace.contains("482913"));
+		assertFalse(trace.contains("abc123"));
+		assertFalse(trace.contains("111-22-3333"));
+		assertFalse(trace.contains("hunter2"));
+		assertFalse(trace.contains("9021"));
+		assertTrue(trace.contains("Entered \"world cup highlights\" into \"Search\""),
+				"Non-sensitive values must still describe the workflow");
+	}
+
+	private static PlaywrightStep passwordStep(int id, Long timestamp, String label, String text) {
+		return new PlaywrightStep(id, PlaywrightStepType.TYPE, null, null, null, null, text, null, null, null, null,
+				null, timestamp, label, null, true, false, null, null, true, false, null, "input");
 	}
 
 	@Test
