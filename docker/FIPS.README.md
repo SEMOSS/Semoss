@@ -191,11 +191,11 @@ Things that DO fail loudly:
 
 - Passwords under 112 bits through PBKDF2 (see section 10)
 - Any BCFIPS-mediated non-approved operation
-
+ 
 Things that fail silently:
 
 - MD5 and other SUN-provided algorithms
-- Pure-Java crypto that never touches JCA, such as bcrypt
+- Pure-Java crypto that never touches JCA
 
 
 ## 9. Verification
