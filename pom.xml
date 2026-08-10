@@ -1257,6 +1257,10 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
+		<!-- TODO: remove once no BCrypt hashes remain. Kept only to verify pre-FIPS
+			credentials; prerna.auth.utils.AbstractSecurityUtils now hashes with
+			PBKDF2-HMAC-SHA256. Legacy hashes are rehashed on next successful use in
+			SecurityNativeUserUtils, SecurityUserAccessKeyUtils, SecurityAPIUserUtils -->
 		<dependency>
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>

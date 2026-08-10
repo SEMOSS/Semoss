@@ -480,7 +480,7 @@ public class PlanNextPlaywrightActionReactor extends AbstractReactor {
 			return;
 		}
 		int viewportHeight = Math.max(1, number(scroll.get("viewportHeight")));
-		int delta = Math.max(1, (int) Math.round(viewportHeight * 0.7));
+		int delta = Math.max(1, (int) Math.round(viewportHeight * 0.3));
 		if (Boolean.TRUE.equals(scroll.get("canScrollUp"))) {
 			target.add(scrollAction(target.size(), "up", -delta));
 		}
@@ -496,7 +496,7 @@ public class PlanNextPlaywrightActionReactor extends AbstractReactor {
 		action.put("label", "Scroll " + direction);
 		action.put("direction", direction);
 		action.put("deltaY", deltaY);
-		action.put("screenPercent", 70);
+		action.put("screenPercent", 30);
 		return action;
 	}
 
