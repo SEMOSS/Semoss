@@ -57,6 +57,8 @@ import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.skill.SkillScanner;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
@@ -224,6 +226,7 @@ public class SemossAgentHarness implements IAgentHarness {
 							room.getId(), last.getMessageId());
 					Map<String, Object> resumeParams = new HashMap<>(paramMap);
 					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
+					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 					Object resumeModelResponse = room.continueAfterToolExecutionResults(resumeParams,
 							last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight());
 					if (resumeModelResponse == null) {
@@ -244,6 +247,7 @@ public class SemossAgentHarness implements IAgentHarness {
 							"Cannot resume agent run because no assistant response was produced");
 				}
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				completeActiveItems(ctx.getRunId(), response);
 			} else {
 				// --- Normal mode: initial ask ---
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
@@ -256,9 +260,11 @@ public class SemossAgentHarness implements IAgentHarness {
 				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
 						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
+				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 				response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
 						"during initial model call");
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				completeActiveItems(ctx.getRunId(), response);
 			}
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
@@ -287,9 +293,11 @@ public class SemossAgentHarness implements IAgentHarness {
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
+					publishToolItemsQueued(ctx, response, subAgentSpecs);
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
+					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 					ResponseMessage next;
 					try {
 						next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
@@ -300,11 +308,13 @@ public class SemossAgentHarness implements IAgentHarness {
 						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 						persistAgentRunTags(room, ctx);
 						persistPendingActions(ctx, room, pauseEx);
+						publishAskToolsInputRequired(ctx.getRunId(), pauseEx);
 						throw pauseEx;
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 					response = requireModelResponse(next, "after tool batch at iteration " + state.getIterations());
+					completeActiveItems(ctx.getRunId(), response);
 
 				} else {
 					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
@@ -319,9 +329,11 @@ public class SemossAgentHarness implements IAgentHarness {
 								.withModelType(ctx.getModelEngine().getModelType()).withParamMap(reflectionParams)
 								.build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
+						AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 						response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
 								"during reflection " + state.getReflectionsUsed());
 						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+						completeActiveItems(ctx.getRunId(), response);
 
 					} else {
 						state.setFinalText(response.getContent());
@@ -353,6 +365,50 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (rootJobIdRegistered != null) {
 				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
 			}
+		}
+	}
+
+	private static void completeActiveItems(String runId, ResponseMessage response) {
+		if (runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		AgentRunStreamService streams = AgentRunStreamService.get();
+		streams.completeActiveReasoning(runId);
+		streams.completeActiveMessage(runId, response != null ? response.getMessageId() : null,
+				response != null ? response.getContent() : null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response,
+			List<SubAgentSpec> specs) {
+		String runId = ctx.getRunId();
+		if (runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		List<Map<String, Object>> toolCalls = response.getToolResponses();
+		if (toolCalls == null || toolCalls.isEmpty()) {
+			return;
+		}
+		for (Map<String, Object> toolCall : toolCalls) {
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
+			if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
+				continue;
+			}
+			Object metaObj = toolCall.get("_meta");
+			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
+			AgentRunStreamService.get().publishToolStarted(runId, AgentStreamItems.toolItem(tc.toolCallId,
+					tc.rawToolName, tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+		}
+	}
+
+	private static void publishAskToolsInputRequired(String runId, AgentInputRequiredException pauseEx) {
+		if (runId == null || runId.trim().isEmpty() || pauseEx.getPendingToolCalls() == null) {
+			return;
+		}
+		for (Map<String, Object> askCall : pauseEx.getPendingToolCalls()) {
+			Map<String, Object> patch = new HashMap<>();
+			patch.put("status", AgentStreamItems.TOOL_INPUT_REQUIRED);
+			AgentRunStreamService.get().publishToolUpdated(runId, String.valueOf(askCall.get("id")), patch);
 		}
 	}
 

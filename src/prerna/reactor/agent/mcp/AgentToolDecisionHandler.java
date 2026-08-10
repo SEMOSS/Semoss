@@ -51,6 +51,8 @@ import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
 
 /**
@@ -114,6 +116,11 @@ public final class AgentToolDecisionHandler {
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
 					userId, true);
+			publishDecisionToolItem(runId, toolCallId, stringValue(pendingAction.get("toolName")),
+					resolveToolParamsForDecision(pendingAction, callerParams),
+					DECISION_REJECT.equals(normalizedDecision) ? AgentStreamItems.TOOL_REJECTED
+							: AgentStreamItems.TOOL_COMPLETED,
+					manualResult, null);
 			return manualResult;
 		}
 
@@ -161,6 +168,8 @@ public final class AgentToolDecisionHandler {
 			toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
 		} catch (RuntimeException e) {
 			actionStore.releaseExecutionClaim(actionId, runId, userId);
+			publishDecisionToolItem(runId, toolCallId, toolName, paramMap, AgentStreamItems.TOOL_FAILED, null,
+					e.getMessage());
 			throw e;
 		}
 
@@ -175,7 +184,26 @@ public final class AgentToolDecisionHandler {
 			actionStore.releaseExecutionClaim(actionId, runId, userId);
 			throw e;
 		}
+		publishDecisionToolItem(runId, toolCallId, toolName, paramMap, AgentStreamItems.TOOL_COMPLETED, resultStr,
+				null);
 		return resultStr;
+	}
+
+	private static void publishDecisionToolItem(String runId, String toolCallId, String toolName,
+			Map<String, Object> args, String status, String output, String error) {
+		if (runId == null || runId.isBlank() || toolCallId == null || toolCallId.isBlank()) {
+			return;
+		}
+		Map<String, Object> item = AgentStreamItems.toolItem(toolCallId, toolName, args, null, status);
+		String boundedOutput = AgentStreamItems.truncate(output, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
+		if (boundedOutput != null && !boundedOutput.isBlank()) {
+			item.put("output", boundedOutput);
+		}
+		String boundedError = AgentStreamItems.truncate(error, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
+		if (boundedError != null && !boundedError.isBlank()) {
+			item.put("error", boundedError);
+		}
+		AgentRunStreamService.get().publishToolCompleted(runId, item);
 	}
 
 	/**
