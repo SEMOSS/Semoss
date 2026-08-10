@@ -153,10 +153,12 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("Invalid access key");
 		}
 
-		String typedHash = hash(secretKey, salt);
-		boolean validCredentials = saltedSecretKey.equals(typedHash);
-		if (!validCredentials) {
+		if (!credentialMatches(secretKey, saltedSecretKey, salt)) {
 			throw new IllegalAccessException("Invalid credentials");
+		}
+
+		if (isLegacySalt(salt)) {
+			migrateSecretKeyToApprovedHash(accessKey, secretKey);
 		}
 
 		AccessToken token = new AccessToken();
@@ -174,9 +176,47 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		try {
 			SecurityUpdateUtils.validateUserLogin(token);
 		} catch (Exception e) {
-			classLogger.error(e);
+			classLogger.error("Unable to validate the user login for access key {}.", accessKey, e);
 		}
 		return token;
+	}
+
+	/**
+	 * Rehash the secret key with PBKDF2 if the stored salt is still legacy. Called
+	 * after the secret key is verified, since that is when the plaintext is
+	 * available. The secret key itself does not change, so nothing has to be
+	 * reissued. Failures are logged so a valid token is not rejected.
+	 *
+	 * @param accessKey
+	 * @param secretKey
+	 */
+	private static void migrateSecretKeyToApprovedHash(String accessKey, String secretKey) {
+		runCredentialMigration(accessKey, () -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String salt = AbstractSecurityUtils.generateSalt();
+			String saltedSecretKey = AbstractSecurityUtils.hash(secretKey, salt);
+
+			String updateQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME
+					+ " SET SECRETKEY=?, SECRETSALT=? WHERE ACCESSKEY=?";
+
+			PreparedStatement ps = null;
+			try {
+				int parameterIndex = 1;
+				ps = securityDb.getPreparedStatement(updateQuery);
+				ps.setString(parameterIndex++, saltedSecretKey);
+				ps.setString(parameterIndex++, salt);
+				ps.setString(parameterIndex++, accessKey);
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+				classLogger.info("Migrated a stored access token secret key hash to the approved scheme");
+			} catch (SQLException e) {
+				classLogger.error("Unable to migrate the stored secret key hash to the approved scheme.", e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		});
 	}
 
 	/**

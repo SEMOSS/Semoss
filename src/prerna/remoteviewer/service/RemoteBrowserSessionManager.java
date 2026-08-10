@@ -49,6 +49,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.ScreenshotType;
+import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
@@ -91,6 +92,16 @@ public class RemoteBrowserSessionManager {
 	private final int defaultViewportHeight;
 	private final int maxSessionsPerUser;
 	private static final String DEFAULT_START_URL = "https://example.com";
+	private static final double FRAME_CAPTURE_TIMEOUT_MS = 2_000;
+	private static final String JS_PAGE_SCROLL_METRICS = """
+			() => {
+			  const root = document.scrollingElement || document.documentElement || document.body;
+			  const viewportHeight = Math.max(1, window.innerHeight || root?.clientHeight || 1);
+			  const scrollHeight = Math.max(viewportHeight, root?.scrollHeight || viewportHeight);
+			  const scrollTop = Math.max(0, window.scrollY || root?.scrollTop || 0);
+			  return { scrollTop, scrollHeight, viewportHeight };
+			}
+			""";
 
 	private final ScheduledExecutorService reaper = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "RemoteBrowserSessionReaper");
@@ -212,11 +223,18 @@ public class RemoteBrowserSessionManager {
 
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);
+		for (Page tabPage : playwrightSession.getTabPages().values()) {
+			registerNavigationListener(session, tabPage);
+		}
 
 		if (hasRequestedUrl) {
 			playwrightSession.getOperationLock().lock();
 			try {
-				page.navigate(requestedUrl);
+				// A remote viewer must become available as soon as the redirect chain has
+				// committed. Waiting for LOAD can hold the operation lock for the full
+				// navigation timeout on SSO/client-redirect pages, preventing the frame
+				// sender from showing the intermediate and eventual destination pages.
+				page.navigate(requestedUrl, new Page.NavigateOptions().setWaitUntil(WaitUntilState.COMMIT));
 			} catch (Exception e) {
 				// Navigation failure is non-fatal - the client will see an error frame
 				classLogger.warn("Initial navigation to '{}' failed for session {}: {}", requestedUrl, sessionId,
@@ -269,6 +287,7 @@ public class RemoteBrowserSessionManager {
 				return;
 			}
 			try {
+				registerNavigationListener(session, newPage);
 				try {
 					newPage.waitForLoadState(com.microsoft.playwright.options.LoadState.LOAD,
 							new Page.WaitForLoadStateOptions().setTimeout(2_000));
@@ -312,6 +331,59 @@ public class RemoteBrowserSessionManager {
 				classLogger.warn("Error handling new tab for session {}: {}", session.getSessionId(), e.getMessage());
 			}
 		});
+	}
+
+	/**
+	 * Reports main-frame navigation independently from input acknowledgement. This
+	 * keeps ordinary clicks fast while giving the viewer immediate feedback when a
+	 * click starts an SSO or client-side redirect chain.
+	 */
+	private void registerNavigationListener(RemoteBrowserSession session, Page page) {
+		if (page == null || page.isClosed()) {
+			return;
+		}
+		page.onRequest(request -> {
+			try {
+				if (!session.isClosed() && request.isNavigationRequest() && request.frame() == page.mainFrame()
+						&& page == session.getActivePage()) {
+					sendNavigationLoading(session, true);
+				}
+			} catch (Exception e) {
+				classLogger.debug("Could not detect navigation start for session {}: {}", session.getSessionId(),
+						e.getMessage());
+			}
+		});
+		page.onDOMContentLoaded(loadedPage -> {
+			if (!session.isClosed() && loadedPage == session.getActivePage()) {
+				sendNavigationLoading(session, false);
+			}
+		});
+		page.onRequestFailed(request -> {
+			try {
+				if (!session.isClosed() && request.isNavigationRequest() && request.frame() == page.mainFrame()
+						&& page == session.getActivePage()) {
+					sendNavigationLoading(session, false);
+				}
+			} catch (Exception e) {
+				classLogger.debug("Could not detect navigation failure for session {}: {}", session.getSessionId(),
+						e.getMessage());
+			}
+		});
+		page.onLoad(loadedPage -> {
+			if (!session.isClosed() && loadedPage == session.getActivePage()) {
+				sendNavigationLoading(session, false);
+			}
+		});
+	}
+
+	private void sendNavigationLoading(RemoteBrowserSession session, boolean loading) {
+		if (!session.updateNavigationLoading(loading)) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender != null && session.isWsConnected()) {
+			sender.send(LOOP_GSON.toJson(Map.of("type", "loading", "isLoading", loading)));
+		}
 	}
 
 	/** Sends the complete live-tab state to a newly connected or updated viewer. */
@@ -454,11 +526,19 @@ public class RemoteBrowserSessionManager {
 						// Send screenshot frame
 						try {
 							byte[] buf = page.screenshot(new Page.ScreenshotOptions().setFullPage(false)
-									.setType(ScreenshotType.JPEG).setQuality(75));
+									.setType(ScreenshotType.JPEG).setQuality(75).setTimeout(FRAME_CAPTURE_TIMEOUT_MS));
 							String b64 = Base64.getEncoder().encodeToString(buf);
-							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata",
-									Map.of("width", session.getViewportWidth(), "height", session.getViewportHeight(),
-											"pageScaleFactor", 1))));
+							Map<String, Object> metadata = new LinkedHashMap<>();
+							metadata.put("width", session.getViewportWidth());
+							metadata.put("height", session.getViewportHeight());
+							metadata.put("pageScaleFactor", 1);
+							Object rawScrollMetrics = page.evaluate(JS_PAGE_SCROLL_METRICS);
+							if (rawScrollMetrics instanceof Map<?, ?> scrollMetrics) {
+								metadata.put("scrollTop", scrollMetrics.get("scrollTop"));
+								metadata.put("scrollHeight", scrollMetrics.get("scrollHeight"));
+								metadata.put("viewportHeight", scrollMetrics.get("viewportHeight"));
+							}
+							sender.send(LOOP_GSON.toJson(Map.of("type", "frame", "data", b64, "metadata", metadata)));
 						} catch (Exception ignored) {
 						}
 					} finally {
@@ -604,8 +684,8 @@ public class RemoteBrowserSessionManager {
 
 	private static boolean isTabControl(RemoteBrowserInputEvent event) {
 		String type = event == null ? null : event.getType();
-		return "switch-tab".equals(type) || "switch-replay-tab".equals(type) || "prepare-replay".equals(type)
-				|| "close-tab".equals(type);
+		return "new-tab".equals(type) || "switch-tab".equals(type) || "switch-replay-tab".equals(type)
+				|| "prepare-replay".equals(type) || "close-tab".equals(type);
 	}
 
 	private static String stringValue(Object value) {
@@ -671,8 +751,18 @@ public class RemoteBrowserSessionManager {
 		Map<String, Object> response = new java.util.LinkedHashMap<>();
 		response.put("type", "selected-text-context-result");
 		response.put("requestId", event.getRequestId());
+		session.getPlaywrightSession().getOperationLock().lock();
 		try {
+			if (event.getExpectedTabId() != null && !event.getExpectedTabId().isBlank()
+					&& !event.getExpectedTabId().equals(session.getActiveTabId())) {
+				throw new IllegalStateException("Selected text belongs to " + event.getExpectedTabId()
+						+ ", but the active browser tab is " + session.getActiveTabId());
+			}
 			response.put("context", RemoteBrowserSelectedTextService.capture(session, event));
+			if (Boolean.TRUE.equals(event.getRecord())) {
+				event.setTabId(session.getActiveTabId());
+				RemoteBrowserRecordingService.record(session, event);
+			}
 			response.put("success", true);
 		} catch (Exception e) {
 			classLogger.warn("Selected-text context capture failed for session {}: {}", session.getSessionId(),
@@ -681,6 +771,8 @@ public class RemoteBrowserSessionManager {
 			response.put("error",
 					e.getMessage() == null || e.getMessage().isBlank() ? "Could not capture selected website text"
 							: e.getMessage());
+		} finally {
+			session.getPlaywrightSession().getOperationLock().unlock();
 		}
 		sender.send(LOOP_GSON.toJson(response));
 	}
