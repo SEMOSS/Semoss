@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Mouse;
 import com.microsoft.playwright.Page;
@@ -49,20 +50,19 @@ import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
 /**
  * Maps validated frontend input events onto Playwright browser actions. For
- * CLICK events, uses a 3-tier fallback: selector -> coords -> skip. After
- * each action, respects waitAfterMs and waits for page to settle.
+ * CLICK events, uses a 3-tier fallback: selector -> coords -> skip. After each
+ * action, respects waitAfterMs and waits for page to settle.
  *
  * All calls must be made from the session's dedicated Playwright thread.
  */
 public class RemoteBrowserInputService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserInputService.class);
-	private static final Set<String> SAFE_CURSOR_VALUES = Set.of("auto", "default", "none", "context-menu",
-			"help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias",
-			"copy", "move", "no-drop", "not-allowed", "grab", "grabbing", "e-resize", "n-resize",
-			"ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize",
-			"ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in",
-			"zoom-out");
+	private static final Set<String> SAFE_CURSOR_VALUES = Set.of("auto", "default", "none", "context-menu", "help",
+			"pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move",
+			"no-drop", "not-allowed", "grab", "grabbing", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize",
+			"se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize",
+			"row-resize", "all-scroll", "zoom-in", "zoom-out");
 
 	private RemoteBrowserInputService() {
 	}
@@ -70,6 +70,20 @@ public class RemoteBrowserInputService {
 	public static Map<String, Object> dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		Map<String, Object> result = new HashMap<>();
 		try {
+			if ("new-tab".equals(event.getType())) {
+				Page newTab = session.getContext().newPage();
+				String liveTabId = session.getPlaywrightSession().findTabId(newTab);
+				if (liveTabId == null) {
+					liveTabId = session.getPlaywrightSession().registerPage(newTab, null);
+				}
+				if (event.getTargetTabId() != null && !event.getTargetTabId().isBlank()) {
+					session.getPlaywrightSession().bindReplayPage(event.getTargetTabId(), newTab);
+				}
+				session.setActiveTabId(liveTabId);
+				result.put("success", true);
+				result.put("url", safeUrl(newTab));
+				return result;
+			}
 			if ("switch-tab".equals(event.getType())) {
 				if (!session.setActiveTabId(event.getTargetTabId())) {
 					throw new IllegalStateException("Browser tab " + event.getTargetTabId() + " is missing or closed");
@@ -79,8 +93,7 @@ public class RemoteBrowserInputService {
 				return result;
 			}
 			if ("prepare-replay".equals(event.getType())) {
-				Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab())
-						? session.getActivePage()
+				Page replayRoot = Boolean.TRUE.equals(event.getReuseActiveTab()) ? session.getActivePage()
 						: session.getContext().newPage();
 				String liveTabId = session.getPlaywrightSession().findTabId(replayRoot);
 				if (liveTabId == null) {
@@ -122,6 +135,18 @@ public class RemoteBrowserInputService {
 			result.put("error", "Remote browser page is unavailable");
 			return result;
 		}
+		if (event.getExpectedTabId() != null && !event.getExpectedTabId().isBlank()
+				&& !event.getExpectedTabId().equals(session.getActiveTabId())) {
+			result.put("success", false);
+			result.put("error", "Browser tab changed after the automated action was generated");
+			return result;
+		}
+		if (event.getExpectedUrl() != null && !event.getExpectedUrl().isBlank()
+				&& !event.getExpectedUrl().equals(safeUrl(page))) {
+			result.put("success", false);
+			result.put("error", "Browser page changed after the automated action was generated");
+			return result;
+		}
 
 		String urlBefore = safeUrl(page);
 		String type = event.getType();
@@ -147,6 +172,9 @@ public class RemoteBrowserInputService {
 				break;
 			case "type-text":
 				typeText(page, event);
+				break;
+			case "fill-element":
+				fillElement(page, event);
 				break;
 			case "key":
 				key(page, event);
@@ -201,10 +229,8 @@ public class RemoteBrowserInputService {
 		}
 		try {
 			Map<String, Double> point = Map.of("x", event.getX(), "y", event.getY());
-			Object result = page.evaluate("point => {"
-					+ "const element = document.elementFromPoint(point.x, point.y);"
-					+ "return element ? getComputedStyle(element).cursor : 'default';"
-					+ "}", point);
+			Object result = page.evaluate("point => {" + "const element = document.elementFromPoint(point.x, point.y);"
+					+ "return element ? getComputedStyle(element).cursor : 'default';" + "}", point);
 			String cursor = result == null ? "default" : result.toString().trim().toLowerCase();
 			return SAFE_CURSOR_VALUES.contains(cursor) ? cursor : "default";
 		} catch (Exception ignored) {
@@ -273,21 +299,30 @@ public class RemoteBrowserInputService {
 			payload.put("x", event.getX());
 			payload.put("y", event.getY());
 			payload.put("selector", selectorPayload(event.getSelector()));
-			Object result = page.evaluate("(event) => {" + "let el = null;" + "const sel = event.selector;"
-					+ "if (sel && sel.value) {" + "  try {"
-					+ "    if (sel.strategy === 'id') el = document.getElementById(sel.value);"
-					+ "    else if (sel.strategy === 'css') el = document.querySelector(sel.value);"
-					+ "    else if (sel.strategy === 'role') el = document.querySelector('[role=\"' + CSS.escape(sel.value) + '\"]');"
-					+ "    else if (sel.strategy === 'xpath') el = document.evaluate(sel.value, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;"
-					+ "  } catch (e) {}" + "}"
-					+ "if (!el && event.x != null && event.y != null) el = document.elementFromPoint(event.x, event.y);"
-					+ "if (!el) return false;"
-					+ "const target = el.closest('a[href], button, input, [role=\"link\"], [role=\"button\"]');"
-					+ "if (!target) return false;" + "if (target.matches('a[href], [role=\"link\"]')) return true;"
-					+ "if (target.matches('button[type=\"submit\"], input[type=\"submit\"]')) return true;"
-					+ "const form = target.closest('form');"
-					+ "return !!form && target.matches('button:not([type]), button[type=\"submit\"], input[type=\"submit\"]');"
-					+ "}", payload);
+			Object result = page.evaluate(
+					"""
+							(event) => {
+							  let el = null;
+							  const sel = event.selector;
+							  if (sel && sel.value) {
+							    try {
+							      if (sel.strategy === 'id') el = document.getElementById(sel.value);
+							      else if (sel.strategy === 'css') el = document.querySelector(sel.value);
+							      else if (sel.strategy === 'role') el = document.querySelector('[role="' + CSS.escape(sel.value) + '"]');
+							      else if (sel.strategy === 'xpath') el = document.evaluate(sel.value, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+							    } catch (e) {}
+							  }
+							  if (!el && event.x != null && event.y != null) el = document.elementFromPoint(event.x, event.y);
+							  if (!el) return false;
+							  const target = el.closest('a[href], button, input, [role="link"], [role="button"]');
+							  if (!target) return false;
+							  if (target.matches('a[href], [role="link"]')) return true;
+							  if (target.matches('button[type="submit"], input[type="submit"]')) return true;
+							  const form = target.closest('form');
+							  return !!form && target.matches('button:not([type]), button[type="submit"], input[type="submit"]');
+							}
+							""",
+					payload);
 			return Boolean.TRUE.equals(result);
 		} catch (Exception e) {
 			return false;
@@ -349,6 +384,25 @@ public class RemoteBrowserInputService {
 		String strat = sel.strategy();
 		String val = sel.value();
 		try {
+			if (sel.frameSelector() != null && !sel.frameSelector().isBlank()) {
+				FrameLocator frame = page.frameLocator(sel.frameSelector());
+				if ("id".equals(strat)) {
+					return frame.locator("#" + val);
+				}
+				if ("css".equals(strat)) {
+					return frame.locator(val);
+				}
+				if ("xpath".equals(strat)) {
+					return frame.locator("xpath=" + val);
+				}
+				if ("role".equals(strat)) {
+					return frame.locator("[role=\"" + val + "\"]");
+				}
+				if ("text".equals(strat)) {
+					return frame.getByText(val);
+				}
+				return frame.locator(val);
+			}
 			if ("id".equals(strat)) {
 				return page.locator("#" + val);
 			}
@@ -440,8 +494,44 @@ public class RemoteBrowserInputService {
 	private static void wheel(Page page, RemoteBrowserInputEvent event) {
 		classLogger.info("Remote viewer wheel x={} y={} deltaX={} deltaY={}", round(event.getX()), round(event.getY()),
 				event.getDeltaX(), event.getDeltaY());
+		if (event.getX() != null && event.getY() != null) {
+			page.mouse().move(event.getX(), event.getY());
+		}
 		page.mouse().wheel(event.getDeltaX() != null ? event.getDeltaX() : 0,
 				event.getDeltaY() != null ? event.getDeltaY() : 0);
+	}
+
+	/**
+	 * Clears a targeted form element and sets its value atomically using
+	 * {@link Locator#fill}. Unlike {@link #typeText}, this does not simulate
+	 * key-by-key input — it sets the value in one operation, which is more
+	 * reliable for batch form-fill automation.
+	 */
+	private static void fillElement(Page page, RemoteBrowserInputEvent event) {
+		Selector sel = event.getSelector();
+		if (sel == null || sel.value() == null || sel.value().isBlank()) {
+			classLogger.warn("Remote viewer fill-element missing selector");
+			page.keyboard().type(event.getText());
+			return;
+		}
+		Locator loc = resolveLocator(page, sel);
+		if (loc == null) {
+			classLogger.warn("Remote viewer fill-element selector not found: {}", describeSelector(sel));
+			throw new PlaywrightException("fill-element: selector not found — " + describeSelector(sel));
+		}
+		classLogger.info("Remote viewer fill-element selector={} textLength={}", describeSelector(sel),
+				event.getText() != null ? event.getText().length() : 0);
+		if ("select".equalsIgnoreCase(event.getTag())) {
+			try {
+				loc.selectOption(event.getText(), new Locator.SelectOptionOptions().setTimeout(3_000));
+			} catch (PlaywrightException valueFailure) {
+				loc.selectOption(new com.microsoft.playwright.options.SelectOption().setLabel(event.getText()),
+						new Locator.SelectOptionOptions().setTimeout(3_000));
+			}
+		} else {
+			loc.fill(event.getText(), new Locator.FillOptions().setTimeout(3_000));
+		}
+		classLogger.info("Remote viewer fill-element success selector={}", describeSelector(sel));
 	}
 
 	private static void typeText(Page page, RemoteBrowserInputEvent event) {

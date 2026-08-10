@@ -30,8 +30,6 @@ package prerna.reactor.playwright;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 /**
  * Acts as a container for a complete Playwright recording, encapsulating all
  * necessary information about a recorded sequence of actions. This record is an
@@ -47,6 +45,5 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  *                list might represent steps on a new page load or significant
  *                page change).
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record StepsEnvelope(String version, RecordingMeta meta, Map<String, List<List<PlaywrightStep>>> steps) {
 }
