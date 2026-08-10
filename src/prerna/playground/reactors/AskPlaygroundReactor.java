@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,6 +43,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -58,12 +60,18 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
+	// When present, skips the LLM call and persists a turn built from these parts (cancel flow).
+	private static final String RESPONSE_PARTS_KEY = "responseParts";
+
+	// Cancel-flow only: hidden user note appended after the visible turn, paired with {@link #RESPONSE_PARTS_KEY}.
+	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
+
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), RESPONSE_PARTS_KEY, HIDDEN_MESSAGE_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -93,6 +101,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
 		List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
 
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
+		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
+
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null,
@@ -110,14 +122,23 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				// .withTools(tools)
 				.build();
 
-		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
+		// Non-visible messages (e.g. cancel-flow hidden pair) surfaced back to the FE via `extraMessages`.
+		List<AbstractMessage> extraMessages = new ArrayList<>();
 
-		// parse the response for code blocks
-		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
-		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			room.updateToolResponseMeta(response);
+		ResponseMessage response;
+		if (responseParts != null) {
+			// Cancel flow: skip the LLM call, persist a turn built from the caller-supplied parts.
+			response = room.commitPrebuiltTurn(msg, modelEngine, parentMessageId, responseParts, hiddenMessage,
+					extraMessages);
+		} else {
+			response = room.ask(msg, modelEngine, parentMessageId);
+
+			// parse the response for code blocks
+			if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
+				RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
+			} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
+				room.updateToolResponseMeta(response);
+			}
 		}
 
 		// ---- Return both messages as a Map
@@ -135,12 +156,23 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
+		// Extra (non-visible) input/response pairs, same shape as inputMessage/responseMessage above.
+		List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+		for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+			Map<String, Object> pair = new LinkedHashMap<>();
+			pair.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i))));
+			pair.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(extraMessages.get(i + 1))));
+			extraMessagesList.add(pair);
+		}
+		pixelReturn.put("extraMessages", extraMessagesList);
+
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
+				|| RESPONSE_PARTS_KEY.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return MCP_KEY_TYPE.OBJECT;
@@ -171,6 +203,14 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					"""
 					.replace("<replacement>", Arrays.asList(ReactorKeysEnum.COMMAND.getKey(),
 							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
+		} else if (RESPONSE_PARTS_KEY.equals(key)) {
+			return "Optional. When provided, the LLM call is skipped and this array of response parts"
+					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+					+ " response. Used by the FE cancel flow to commit whatever streamed before the user hit stop.";
+		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
+			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
+					+ " appended after the visible turn, plus an auto-generated assistant ack, so the model sees on"
+					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
 		}
 		return super.getDescriptionForKey(key);
 	}
