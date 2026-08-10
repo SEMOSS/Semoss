@@ -416,7 +416,7 @@ public class Room implements Serializable {
 		ReentrantLock lock = getMessageLock();
 		lock.lock();
 		try {
-			ResponseMessage response = PlaygroundUtils.buildResponseMessageFromParts(responseParts);
+			ResponseMessage response = MessageUtils.buildResponseMessageFromParts(responseParts);
 			response.setModel(modelEngine);
 			response.setRoom(this);
 			response.setParentMessageId(msg.getMessageId());
@@ -451,7 +451,7 @@ public class Room implements Serializable {
 
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()
 						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
-					PlaygroundUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(),
+					MessageUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(),
 							extrasOut);
 				}
 
