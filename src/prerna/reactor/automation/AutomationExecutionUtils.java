@@ -29,6 +29,7 @@ package prerna.reactor.automation;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -68,6 +69,9 @@ public final class AutomationExecutionUtils {
 
 	/** Prefix for config-map lookups within a template, e.g. {@code ${config.API_KEY}}. */
 	private static final String CONFIG_VAR_PREFIX = "config.";
+
+	/** Reusable {@link TypeToken} type for {@code Map<String, Object>} deserialization. */
+	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
 
 	/**
 	 * Shared Gson instance for the whole automation engine — public so the
@@ -310,7 +314,7 @@ public final class AutomationExecutionUtils {
 	private static Map<String, Object> parseJson(String json) {
 		if (json == null || json.isBlank()) return null;
 		try {
-			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+			return GSON.fromJson(json, MAP_TYPE);
 		} catch (Exception e) {
 			return null;
 		}
@@ -481,7 +485,7 @@ public final class AutomationExecutionUtils {
 		}
 		try {
 			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			return GSON.fromJson(json, new TypeToken<Map<String, Object>>() {}.getType());
+			return GSON.fromJson(json, MAP_TYPE);
 		} catch (IOException e) {
 			throw new IllegalStateException("Failed to read automation.json: " + e.getMessage(), e);
 		}

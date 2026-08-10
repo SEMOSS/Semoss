@@ -1,0 +1,159 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.automation;
+
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+/**
+ * Creates a new automation project and returns its ID so the LLM can immediately chain to
+ * {@code EditAutomation} to interactively build it.
+ *
+ * <p>The project name must start with a letter and contain only letters, numbers, and spaces
+ * (enforced by {@code CreateProject}).
+ *
+ * <p>Typical LLM flow:
+ * <ol>
+ *   <li>LLM calls {@code CreateAutomation(projectName=["My Automation"])} — auto, no UI</li>
+ *   <li>LLM immediately chains {@code EditAutomation(project=["<returnedId>"], instruction=["..."])}</li>
+ *   <li>User sees the editor open with the AI-generated draft</li>
+ * </ol>
+ *
+ * <p>Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
+ */
+public class CreateAutomationReactor extends AbstractReactor {
+
+    private static final Logger classLogger = LogManager.getLogger(CreateAutomationReactor.class);
+
+    private static final String PROJECT_NAME_KEY = "projectName";
+
+    private static final String RESULT_SUCCESS = "success";
+    private static final String RESULT_PROJECT_ID = "projectId";
+    private static final String RESULT_PROJECT_NAME = "projectName";
+    private static final String RESULT_MESSAGE = "message";
+
+    public CreateAutomationReactor() {
+        this.keysToGet = new String[] { PROJECT_NAME_KEY };
+        this.keyRequired = new int[] { 1 };
+    }
+
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        String projectName = this.keyValue.get(PROJECT_NAME_KEY);
+
+        if (projectName == null || projectName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Must provide a projectName");
+        }
+        projectName = projectName.trim();
+
+        classLogger.info("CreateAutomationReactor: creating project '{}'", projectName);
+
+        // Validate before injecting into the pixel string — only letters, numbers, and spaces; must start
+        // with a letter. CreateProject enforces this too, but we reject here to prevent pixel injection.
+        if (!projectName.matches("^[a-zA-Z][a-zA-Z0-9 ]*$")) {
+            throw new IllegalArgumentException(
+                    "Project name must start with a letter and contain only letters, numbers, and spaces. Got: " + projectName);
+        }
+
+        // Delegate to CreateProject — it handles project scaffolding and security.
+        // CODE project type matches all existing automation projects.
+        String createPixel = String.format(
+                "CreateProject(project=[\"%s\"], projectType=[\"CODE\"], global=[false]);",
+                projectName);
+
+        Object raw;
+        try {
+            raw = PixelExecutionUtils.runAndCollect(this.insight, createPixel);
+        } catch (PixelExecutionUtils.AutomationPixelException e) {
+            classLogger.error("CreateProject pixel error for '{}'", projectName, e);
+            throw new IllegalArgumentException("Failed to create project '" + projectName + "': " + e.getMessage());
+        }
+
+        if (!(raw instanceof Map)) {
+            classLogger.error("CreateProject returned unexpected result type for '{}': {}",
+                    projectName, raw == null ? "null" : raw.getClass().getName());
+            throw new IllegalArgumentException("Unexpected response from CreateProject for: " + projectName);
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> projectData = (Map<String, Object>) raw;
+        String projectId = (String) projectData.get("project_id");
+
+        if (projectId == null || projectId.isBlank()) {
+            classLogger.error("CreateProject did not return a project_id for '{}'", projectName);
+            throw new IllegalArgumentException("Project was created but no project ID was returned for: " + projectName);
+        }
+
+        classLogger.info("CreateAutomationReactor: created project '{}' with id {}", projectName, projectId);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put(RESULT_SUCCESS, true);
+        result.put(RESULT_PROJECT_ID, projectId);
+        result.put(RESULT_PROJECT_NAME, projectName);
+        result.put(RESULT_MESSAGE,
+                "Created automation project \"" + projectName + "\" (id: " + projectId + "). "
+                + "Call EditAutomation(project=[\"" + projectId + "\"], instruction=[\"<what to build>\"]) "
+                + "to open the editor and build the automation.");
+
+        return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+    }
+
+    @Override
+    public Map<String, String> getMcpToolMetadata() {
+        Map<String, String> meta = new HashMap<>();
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        return meta;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Creates a new blank automation project and returns its ID. "
+                + "Immediately chain EditAutomation with the returned project ID to interactively build the automation. "
+                + "Project names must start with a letter and contain only letters, numbers, and spaces.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (PROJECT_NAME_KEY.equals(key)) {
+            return "Display name for the new automation project. "
+                    + "Must start with a letter and contain only letters, numbers, and spaces.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+}
