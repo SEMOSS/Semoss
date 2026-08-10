@@ -29,13 +29,13 @@ package prerna.reactor.security;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.PBEncryptionUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -56,9 +56,7 @@ public final class PBEDecryptReactor extends AbstractReactor {
 		byte[] encryptedQuery = getInput();
 
 		try {
-			StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
-			encryptor.setPassword(getPassword());
-			byte[] queryBytes = encryptor.decrypt(encryptedQuery);
+			byte[] queryBytes = PBEncryptionUtility.decrypt(encryptedQuery, getPassword());
 			String query = new String(queryBytes);
 
 			return new NounMetadata(query, PixelDataType.CONST_STRING);

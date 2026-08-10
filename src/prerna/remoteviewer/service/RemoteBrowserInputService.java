@@ -70,6 +70,20 @@ public class RemoteBrowserInputService {
 	public static Map<String, Object> dispatch(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		Map<String, Object> result = new HashMap<>();
 		try {
+			if ("new-tab".equals(event.getType())) {
+				Page newTab = session.getContext().newPage();
+				String liveTabId = session.getPlaywrightSession().findTabId(newTab);
+				if (liveTabId == null) {
+					liveTabId = session.getPlaywrightSession().registerPage(newTab, null);
+				}
+				if (event.getTargetTabId() != null && !event.getTargetTabId().isBlank()) {
+					session.getPlaywrightSession().bindReplayPage(event.getTargetTabId(), newTab);
+				}
+				session.setActiveTabId(liveTabId);
+				result.put("success", true);
+				result.put("url", safeUrl(newTab));
+				return result;
+			}
 			if ("switch-tab".equals(event.getType())) {
 				if (!session.setActiveTabId(event.getTargetTabId())) {
 					throw new IllegalStateException("Browser tab " + event.getTargetTabId() + " is missing or closed");

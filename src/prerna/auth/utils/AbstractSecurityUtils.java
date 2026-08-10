@@ -28,6 +28,11 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,12 +43,18 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -143,6 +154,19 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyInsightShare = false;
 
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
+
+	// passwords are hashed with PBKDF2, which is FIPS approved
+	private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+	private static final String PBKDF2_SALT_PREFIX = "pbkdf2-sha256$";
+	private static final int PBKDF2_SALT_BYTE_LENGTH = 16;
+	private static final int PBKDF2_DERIVED_KEY_LENGTH_BITS = 256;
+	private static final int PBKDF2_ITERATIONS = 210_000;
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	// credentials currently being rehashed, so concurrent requests for the same
+	// credential do not all run the migration
+	private static final Set<String> MIGRATIONS_IN_PROGRESS = ConcurrentHashMap.newKeySet();
 
 	/**
 	 * Only used for static references
@@ -882,13 +906,12 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// MODELMETADATA
-			colNames = new String[] { "ENGINEID", "MODELID", "MODELPROVIDER", "SERVINGPROVIDER", "CAPABILITY",
-					"FAMILY", "INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXINPUTTOKENS",
-					"MAXOUTPUTTOKENS", "BUILTINTOOLS", "ATTACHMENT", "REASONING", "TOOLCALL", "STRUCTUREDOUTPUT",
-					"TEMPERATURE", "KNOWLEDGECUTOFF", "RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG",
-					"BENCHMARKS" };
+			colNames = new String[] { "ENGINEID", "MODELID", "MODELPROVIDER", "SERVINGPROVIDER", "CAPABILITY", "FAMILY",
+					"INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXOUTPUTTOKENS", "BUILTINTOOLS",
+					"ATTACHMENT", "REASONING", "TOOLCALL", "STRUCTUREDOUTPUT", "TEMPERATURE", "KNOWLEDGECUTOFF",
+					"RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG", "BENCHMARKS" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", "BIGINT", CLOB_DATATYPE_NAME,
+					CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", CLOB_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
 					CLOB_DATATYPE_NAME };
@@ -912,8 +935,8 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
-				for (String obsoleteColumn : new String[] { "LICENSE", "LINKS", "WEIGHTS", "OPENWEIGHTS",
-						"LASTUPDATED" }) {
+				for (String obsoleteColumn : new String[] { "LICENSE", "LINKS", "WEIGHTS", "OPENWEIGHTS", "LASTUPDATED",
+						"MAXINPUTTOKENS" }) {
 					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
 						String dropColumnSql = queryUtil.alterTableDropColumn("MODELMETADATA", obsoleteColumn);
 						classLogger.info("Running sql {}", dropColumnSql);
@@ -3251,23 +3274,112 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Current salt generation by BCrypt
-	 * 
+	 * Generate a salt in the format
+	 * {@code pbkdf2-sha256$<iterations>$<base64 salt>}
+	 *
 	 * @return salt
 	 */
 	public static String generateSalt() {
-		return BCrypt.gensalt();
+		byte[] saltBytes = new byte[PBKDF2_SALT_BYTE_LENGTH];
+		RANDOM.nextBytes(saltBytes);
+		return PBKDF2_SALT_PREFIX + PBKDF2_ITERATIONS + "$" + Base64.getEncoder().encodeToString(saltBytes);
 	}
 
 	/**
 	 * Create the password hash based on the password and salt provided.
-	 * 
+	 *
 	 * @param password
 	 * @param salt
 	 * @return hash
 	 */
 	public static String hash(String password, String salt) {
-		return BCrypt.hashpw(password, salt);
+		if (isLegacySalt(salt)) {
+			return BCrypt.hashpw(password, salt);
+		}
+		return pbkdf2Hash(password, salt);
+	}
+
+	/**
+	 * Whether the salt is in the legacy BCrypt format instead of PBKDF2
+	 *
+	 * @param salt
+	 * @return true if legacy
+	 */
+	public static boolean isLegacySalt(String salt) {
+		return salt != null && !salt.startsWith(PBKDF2_SALT_PREFIX);
+	}
+
+	/**
+	 * Compare a password against a stored hash and salt in constant time
+	 *
+	 * @param password
+	 * @param storedHash
+	 * @param storedSalt
+	 * @return true if the password matches
+	 */
+	public static boolean credentialMatches(String password, String storedHash, String storedSalt) {
+		if (password == null || storedHash == null || storedSalt == null) {
+			return false;
+		}
+		byte[] computed;
+		try {
+			computed = hash(password, storedSalt).getBytes(StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			classLogger.error("Unable to hash the provided credential for comparison.", e);
+			return false;
+		}
+		return MessageDigest.isEqual(storedHash.getBytes(StandardCharsets.UTF_8), computed);
+	}
+
+	/**
+	 * Run a rehash of the stored credential, skipping it when another thread is
+	 * already migrating the same one. Only the migration is guarded, the verify
+	 * that precedes it is untouched. Skipping is safe since the credential has
+	 * already been verified and the next request retries the migration.
+	 *
+	 * @param credentialId identifies the credential being migrated
+	 * @param migration    the rehash and update to run
+	 */
+	protected static void runCredentialMigration(String credentialId, Runnable migration) {
+		if (!MIGRATIONS_IN_PROGRESS.add(credentialId)) {
+			return;
+		}
+		try {
+			migration.run();
+		} finally {
+			MIGRATIONS_IN_PROGRESS.remove(credentialId);
+		}
+	}
+
+	/**
+	 * Hash using the iterations and salt recorded in the salt spec
+	 *
+	 * @param password
+	 * @param saltSpec
+	 * @return hash
+	 */
+	private static String pbkdf2Hash(String password, String saltSpec) {
+		String[] parts = saltSpec.split("\\$");
+		if (parts.length != 3) {
+			throw new IllegalArgumentException("Stored credential salt is malformed");
+		}
+		int iterations;
+		try {
+			iterations = Integer.parseInt(parts[1]);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Stored credential salt has a malformed iteration count", e);
+		}
+		byte[] saltBytes = Base64.getDecoder().decode(parts[2]);
+
+		PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), saltBytes, iterations, PBKDF2_DERIVED_KEY_LENGTH_BITS);
+		try {
+			byte[] derived = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).getEncoded();
+			return Base64.getEncoder().encodeToString(derived);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			throw new IllegalStateException("Unable to hash the password with " + PBKDF2_ALGORITHM, e);
+		} finally {
+			spec.clearPassword();
+		}
 	}
 
 	/**

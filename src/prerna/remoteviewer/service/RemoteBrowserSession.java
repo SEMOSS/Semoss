@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 
-import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.PlaywrightSession;
+import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.StepsEnvelope;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
@@ -59,8 +59,8 @@ import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
  * <ul>
  * <li>A dedicated event-loop thread that processes input events and streams
  * frames</li>
- * <li>The {@link RemoteBrowserFrameSender} used to push frames to the React client, and the
- * {@code wsConnected} flag</li>
+ * <li>The {@link RemoteBrowserFrameSender} used to push frames to the React
+ * client, and the {@code wsConnected} flag</li>
  * <li>An input event queue and recorded interaction steps</li>
  * </ul>
  */
@@ -76,6 +76,7 @@ public class RemoteBrowserSession {
 	private volatile Instant lastActivityAt;
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
+	private final AtomicBoolean navigationLoading = new AtomicBoolean(false);
 
 	/** Queue of input events waiting to be processed by the session thread. */
 	public final BlockingQueue<RemoteBrowserInputEvent> eventQueue = new LinkedBlockingQueue<>(256);
@@ -91,7 +92,9 @@ public class RemoteBrowserSession {
 
 	/** Temporary, unsaved replay buffer for the current recording window. */
 	private StepsEnvelope recordingHistory = new StepsEnvelope("1.0", PlaywrightSession.newMeta(""), new HashMap<>());
-	/** Maps live session tab IDs to compact tab IDs inside the current recording. */
+	/**
+	 * Maps live session tab IDs to compact tab IDs inside the current recording.
+	 */
 	private final Map<String, String> recordingTabIds = new HashMap<>();
 
 	/** Session-scoped step id for the temporary recording buffer. */
@@ -100,7 +103,10 @@ public class RemoteBrowserSession {
 	/** Recorded interaction steps for this session. */
 	private final List<RemoteBrowserRecordedStep> recordedSteps = Collections.synchronizedList(new ArrayList<>());
 
-	/** Last TYPE step target signature used to aggregate character-by-character input. */
+	/**
+	 * Last TYPE step target signature used to aggregate character-by-character
+	 * input.
+	 */
 	private String pendingTypeSignature;
 
 	/** Last TYPE step currently being aggregated. */
@@ -201,6 +207,15 @@ public class RemoteBrowserSession {
 		this.wsConnected = connected;
 	}
 
+	/**
+	 * Updates the active-page navigation state.
+	 *
+	 * @return {@code true} only when the state changed
+	 */
+	public boolean updateNavigationLoading(boolean loading) {
+		return navigationLoading.getAndSet(loading) != loading;
+	}
+
 	public List<RemoteBrowserRecordedStep> getRemoteBrowserRecordedSteps() {
 		return recordedSteps;
 	}
@@ -232,7 +247,8 @@ public class RemoteBrowserSession {
 		ensureRecordingTab();
 	}
 
-	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step, boolean startNewPage) {
+	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step,
+			boolean startNewPage) {
 		String resolvedTabId = normalizeTabId(tabId);
 		ensureRecordingTab(resolvedTabId);
 
@@ -309,7 +325,10 @@ public class RemoteBrowserSession {
 		return activeTabId;
 	}
 
-	/** Updates the active tab. The next frame loop iteration will stream from this tab. */
+	/**
+	 * Updates the active tab. The next frame loop iteration will stream from this
+	 * tab.
+	 */
 	public synchronized boolean setActiveTabId(String tabId) {
 		Page page = tabId == null ? null : playwrightSession.getLivePage(tabId);
 		if (page == null || page.isClosed()) {
@@ -323,8 +342,8 @@ public class RemoteBrowserSession {
 	}
 
 	/**
-	 * Returns the Playwright {@link com.microsoft.playwright.Page} for the active tab,
-	 * falling back to tab-1 if the active tab's page is closed or missing.
+	 * Returns the Playwright {@link com.microsoft.playwright.Page} for the active
+	 * tab, falling back to tab-1 if the active tab's page is closed or missing.
 	 */
 	public Page getActivePage() {
 		PlaywrightSession ps = playwrightSession;
