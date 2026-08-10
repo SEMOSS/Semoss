@@ -153,7 +153,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		pixelReturn.put("inputMessage", inputMap);
 
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
-//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		// MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
 		// Extra (non-visible) input/response pairs, same shape as inputMessage/responseMessage above.
