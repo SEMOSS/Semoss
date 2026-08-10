@@ -65,6 +65,33 @@ class RemoteBrowserInputEventValidatorTest {
 		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(tiny, 100, 100));
 	}
 
+	@Test
+	void automationStateMetadataRequiresAValidLiveTabId() {
+		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
+		event.setType("fill-element");
+		event.setText("value");
+		event.setSelector(new prerna.reactor.playwright.Selector("css", "input", null));
+		event.setExpectedUrl("https://example.com");
+		event.setExpectedTabId("tab-1");
+		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+
+		event.setExpectedTabId("first-tab");
+		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+	}
+
+	@Test
+	void newTabAllowsAnOptionalRecordedTabBinding() {
+		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
+		event.setType("new-tab");
+		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+
+		event.setTargetTabId("tab-2");
+		assertDoesNotThrow(() -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+
+		event.setTargetTabId("invalid");
+		assertThrows(IllegalArgumentException.class, () -> RemoteBrowserInputEventValidator.validate(event, 100, 100));
+	}
+
 	private static RemoteBrowserInputEvent selection(double startX, double startY, double endX, double endY) {
 		RemoteBrowserInputEvent event = new RemoteBrowserInputEvent();
 		event.setType("selected-text-context");

@@ -25,7 +25,6 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaInputType,
     ModelSettings,
 )
-from ...text_generation.abstract_text_generation_client import ModelLimits
 from ...utils import string_to_bool
 from ..semoss_base.reasoning import normalize_reasoning
 
@@ -64,14 +63,12 @@ class AnthropicMessageBuilder:
         self,
         semoss_messages: List[SEMOSSMessage],
         model_settings: ModelSettings,
-        model_limits: ModelLimits,
         model_name: str,
         use_beta_header: Optional[bool] = False,
         beta_feature_name: Optional[str] = "extended_thinking",
         thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
-        self.model_limits = model_limits
         self.model_name = model_name
         self.model_settings = model_settings
         self.use_beta_header = use_beta_header
@@ -803,7 +800,7 @@ class AnthropicMessageBuilder:
         max_tokens = (
             kwargs.pop("max_tokens", None)
             or kwargs.pop("max_completion_tokens", None)
-            or self.model_limits.max_completion_tokens
+            or self.model_settings.max_tokens
         )
 
         # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET (legacy only)

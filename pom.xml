@@ -34,6 +34,11 @@
 		<project.build.sourceEncoding>cp1252</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>cp1252</project.reporting.outputEncoding>
 		<openhtml.version>1.0.1</openhtml.version>
+		<!-- Keep in sync with BCPKIX_FIPS_VERSION in docker/Dockerfile.tomcat.
+		     Scope stays compile here: whether BouncyCastle ends up in the deployed
+		     WEB-INF/lib is decided by Monolith's libraries-fips.xml assembly, not
+		     by this pom. -->
+		<bc.fips.version>2.1.12</bc.fips.version>
 	</properties>
 	<!-- removing distributionManagement as it is no longer required
 	<distributionManagement><snapshotRepository><id>ossrh</id><url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots</url></snapshotRepository><repository><id>ossrh</id><url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url></repository></distributionManagement>
@@ -625,6 +630,22 @@
 				<groupId>tools.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
 				<version>3.1.1</version>
+			</dependency>
+			<!-- sshj 0.40.0 is internally inconsistent about BouncyCastle versions -->
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-jdk18on</artifactId>
+				<version>1.80.2</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcpkix-jdk18on</artifactId>
+				<version>1.80.2</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcutil-jdk18on</artifactId>
+				<version>1.80.2</version>
 			</dependency>
 			<!-- GHSA-72hv-8253-57qq: force transitive jackson 2.15.x/2.17.x up to fixed version -->
 			<dependency>
@@ -1236,6 +1257,10 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
+		<!-- TODO: remove once no BCrypt hashes remain. Kept only to verify pre-FIPS
+			credentials; prerna.auth.utils.AbstractSecurityUtils now hashes with
+			PBKDF2-HMAC-SHA256. Legacy hashes are rehashed on next successful use in
+			SecurityNativeUserUtils, SecurityUserAccessKeyUtils, SecurityAPIUserUtils -->
 		<dependency>
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>
@@ -1821,11 +1846,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
+		<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-fips -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcpkix-jdk18on</artifactId>
-			<version>1.78.1</version>
+			<artifactId>bcpkix-fips</artifactId>
+			<version>${bc.fips.version}</version>
+			<scope>compile</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
@@ -2629,16 +2655,6 @@
 			<artifactId>re2j</artifactId>
 			<version>1.7</version>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-io -->
-		<!-- 
-		<dependency><groupId>org.eclipse.jetty</groupId><artifactId>jetty-io</artifactId><version>9.4.12.v20180830</version></dependency><dependency><groupId>com.github.ulisesbocchio</groupId><artifactId>jasypt-spring-boot-starter</artifactId><version>2.0.0</version></dependency>
-		-->
-		<!-- Source: https://mvnrepository.com/artifact/org.jasypt/jasypt -->
-		<dependency>
-			<groupId>org.jasypt</groupId>
-			<artifactId>jasypt</artifactId>
-			<version>1.9.3</version>
-		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -2817,10 +2833,12 @@
 			<version>2.7.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.hierynomus/sshj -->
+		<!-- This is synced with Monolith/pom.xml which removes non-FIPS 
+			 bcprov/bcpkix/bcutil-jdk18on at runtime in fips profile. -->
 		<dependency>
 			<groupId>com.hierynomus</groupId>
 			<artifactId>sshj</artifactId>
-			<version>0.39.0</version>
+			<version>0.40.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>

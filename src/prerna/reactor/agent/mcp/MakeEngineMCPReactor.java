@@ -50,6 +50,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -58,7 +60,8 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.reactor.model.LLMReactor;
-import prerna.reactor.qs.SqlQueryBase64Reactor;
+import prerna.reactor.qs.SparqlQueryReactor;
+import prerna.reactor.qs.SqlQueryReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
@@ -107,8 +110,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             	VectorFileDownloadReactor.class
             )));
         put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
-            	GetDatabaseTableStructureReactor.class,
-            	SqlQueryBase64Reactor.class
+            	GetDatabaseTableStructureReactor.class
             )));
         put(IEngine.CATALOG_TYPE.MODEL, new ArrayList<>(Arrays.asList(
             	LLMReactor.class
@@ -162,7 +164,16 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		boolean useDefaultReactors = (reactorNames == null || reactorNames.isEmpty());
 		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
-
+		if (eType == IEngine.CATALOG_TYPE.DATABASE) {
+			List<Class<? extends IReactor>> defaultDatabaseReactors = new ArrayList<>();
+			defaultDatabaseReactors.addAll(defaultReactors);
+			if (engine instanceof IRDBMSEngine) {
+				defaultDatabaseReactors.add(SqlQueryReactor.class);
+			} else if (engine instanceof IRDFDatabase) {
+				defaultDatabaseReactors.add(SparqlQueryReactor.class);
+			}
+			defaultReactors = defaultDatabaseReactors;
+		}
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;
 			JSONObject reactorTool = null;
