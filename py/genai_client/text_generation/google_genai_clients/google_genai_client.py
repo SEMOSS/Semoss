@@ -111,7 +111,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(
-                    semoss_messages, self.model_settings, self.model_limits
+                    semoss_messages, self.model_settings
                 )
                 google_messages = response["messages"]
                 provider_config = response["provider_config"]

@@ -25,61 +25,53 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.browser;
+package prerna.reactor.agent;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 
-import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.browser.PlaywrightBrowserUtil;
+import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetCurrentURLReactor extends AbstractReactor {
+/**
+ * Returns the direct subagent runs for a parent run owned by the current user.
+ */
+public class GetSubagentRunsReactor extends AbstractReactor {
 
-	private final static String REACTOR_DESCRIPTION = "Get the current URL of the Browser App rendered on the server.";
+	private static final String RUN_ID_KEY = "runId";
 
-	public GetCurrentURLReactor() {
-
+	public GetSubagentRunsReactor() {
+		this.keysToGet = new String[] { RUN_ID_KEY };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-
-		BrowserUtils.ensureUserLoggedIn(user);
-
-		if (BrowserUtils.anonymousEnabledAndUserAnonymous(user)) {
-			throwAnonymousUserError();
+		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
+		if (runId == null) {
+			throw new IllegalArgumentException("runId is required");
 		}
 
-		/**
-		 * Call the playwright browser and run url() method on browser then return that.
-		 */
-		Map<String, Object> actions = new HashMap<>();
-		
-		actions.put("actor", "system");
-		actions.put("action", "getUrl");
-		
-		String json = BrowserUtils.mapToJsonString(actions);
-		
-		JSONObject jo = new JSONObject(json);
-		PlaywrightBrowserUtil pbu = this.insight.getPlaywrightUtil();
-		if (pbu == null) {
-			throw new IllegalArgumentException("There is no Playwright Browser currently open for this insight.");
-		}
-		String url = pbu.getUrl();
-
-		return new NounMetadata(url, PixelDataType.CONST_STRING);
+		List<Map<String, Object>> runs = new AgentRunStore().getSubagentRuns(this.insight, runId);
+		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return REACTOR_DESCRIPTION;
+		return "Returns all direct subagent runs owned by the current user whose parent run ID matches runId, ordered newest first.";
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (RUN_ID_KEY.equals(key)) {
+			return "The parent run ID whose direct subagent runs should be returned.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
