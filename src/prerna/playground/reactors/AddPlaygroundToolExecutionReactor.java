@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +68,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
 
+	// When present, skips the LLM follow-up call and persists a response built from these parts (cancel flow).
+	private static final String RESPONSE_PARTS_KEY = "responseParts";
+
+	// Cancel-flow only: hidden user note appended after the tool follow-up, paired with {@link #RESPONSE_PARTS_KEY}.
+	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
+
 	public AddPlaygroundToolExecutionReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
 				"roomId", // 1
@@ -77,10 +85,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response, // 8
 				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), // 9
+				RESPONSE_PARTS_KEY, // 10
+				HIDDEN_MESSAGE_KEY, // 11
 		};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -104,6 +114,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		if (paramMap == null) {
 			paramMap = new HashMap<>();
 		}
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
+		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
 
 		User user = this.insight.getUser();
 		String userId = user.getPrimaryLoginToken().getId();
@@ -132,33 +146,82 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> pixelReturn = new HashMap<>();
+		// Non-visible messages (currently only the cancel-flow hidden pair) surfaced via `extraMessages`.
+		List<AbstractMessage> extraMessages = new ArrayList<>();
 		try {
+			ResponseMessage prebuiltResponse = responseParts != null
+					? PlaygroundUtils.buildResponseMessageFromParts(responseParts) : null;
+
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
-			if (response == null) {
+					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
+
+			// A follow-up assistant turn was appended only when the live LLM returned a response, or the
+			// prebuilt response was slotted in as the room tail (cancel path, all tools answered). Identity on
+			// prebuiltResponse can't be fooled by orphan-tool sanitization leaving a stale ResponseMessage tail.
+			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			boolean followUpAppended = prebuiltResponse != null ? tail == prebuiltResponse : response != null;
+			if (!followUpAppended) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
 				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
-			} else {
-				// parse the response for code blocks
-				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
-				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
-				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
-				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
-					room.updateToolResponseMeta(lastMessage);
-				}
-				Map<String, Object> inputMap = jsonToMap(MessageUtils.toJson(inputMessage));
-				Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
-				// MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
-				pixelReturn.put("inputMessage", inputMap);
-				pixelReturn.put("responseMessage", responseMap);
-				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
+
+			// parse the response for code blocks
+			AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
+			ResponseMessage lastMessage = (ResponseMessage) tail;
+
+			if (prebuiltResponse != null) {
+				// Cancel path: append the optional hidden user-note/assistant-ack pair only after a concluding
+				// text response, never between tool calls.
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, lastMessage.getMessageId(),
+							insight.getUser().getPrimaryLoginToken().getId(), extraMessages);
+				}
+			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+				RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
+			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
+				room.updateToolResponseMeta(lastMessage);
+			}
+
+			Map<String, Object> inputMap = jsonToMap(MessageUtils.toJson(inputMessage));
+			Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
+			pixelReturn.put("inputMessage", inputMap);
+			pixelReturn.put("responseMessage", responseMap);
+
+			// Extra (non-visible) input/response pairs, same shape as inputMessage/responseMessage above.
+			List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+			for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+				Map<String, Object> pair = new LinkedHashMap<>();
+				pair.put("inputMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i))));
+				pair.put("responseMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i + 1))));
+				extraMessagesList.add(pair);
+			}
+			pixelReturn.put("extraMessages", extraMessagesList);
+
+			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} finally {
 			// there might be times when this is unnecessary
 			// but we dont know if a tool output generated a file in the room
 			ClusterUtil.pushRoomAsync(room.getId());
+		}
+	}
+
+	// Wraps {@link PlaygroundUtils#appendHiddenPair} with its own mutation lock + persist.
+	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
+		synchronized (room) {
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+				RoomMessageStore.refreshFromLatestProjection(room, userId);
+				boolean parentExists = room.getMessages().stream()
+						.anyMatch(message -> hiddenParentId.equals(message.getMessageId()));
+				if (!parentExists) {
+					throw new IllegalStateException(
+							"Cannot append hidden cancellation messages because the parent response no longer exists");
+				}
+				PlaygroundUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
+				RoomMessageStore.persist(room, userId);
+			}
 		}
 	}
 
@@ -187,6 +250,15 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			return "Map object with the string parameterName to object value for the tool execution";
 		} else if (key.equals(tool_execution_response)) {
 			return "Deprecated parameter. Please switch to toolExecutionResponse";
+		} else if (RESPONSE_PARTS_KEY.equals(key)) {
+			return "Optional. When provided, the LLM follow-up call is skipped and this array of response parts"
+					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+					+ " follow-up. Used by the FE cancel flow when the user stopped a stream that fired after"
+					+ " tool execution.";
+		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
+			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
+					+ " appended after the tool follow-up, plus an auto-generated assistant ack, so the model sees on"
+					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
 		}
 		return super.getDescriptionForKey(key);
 	}
