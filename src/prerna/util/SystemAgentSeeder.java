@@ -67,8 +67,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * <ul>
  * <li>tools = {@link SystemDefaultEngines#getSystemMCPs()} (database-maker,
  * node-builder, reactor-help)</li>
- * <li>skills = {@link SystemDefaultEngines#getSystemSkills()} minus
- * {@link Constants#SKILL_PYTHON}</li>
+ * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
  */
 public class SystemAgentSeeder {
@@ -158,11 +157,9 @@ public class SystemAgentSeeder {
 		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
 	}
 
-	/** Skills = the platform skills, minus python. */
+	/** Skills = all platform skills. */
 	private static List<String> skillIds(String agentId) {
-		List<String> skills = new ArrayList<>(SystemDefaultEngines.getSystemSkills());
-		skills.remove(Constants.SKILL_PYTHON);
-		return skills;
+		return new ArrayList<>(SystemDefaultEngines.getSystemSkills());
 	}
 
 	private static String displayName(String agentId) {
