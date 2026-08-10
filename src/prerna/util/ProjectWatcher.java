@@ -69,6 +69,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					ensureSkillTag(engineId);
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
@@ -87,6 +89,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, "MCP", "SYSTEM");
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
@@ -109,6 +113,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
 					SystemAgentSeeder.seed(engineId);
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;

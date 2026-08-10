@@ -5,12 +5,20 @@ ARG BASE_TAG=12.5.1-runtime-ubuntu22.04
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.120
-ARG JAVA_HOME=/usr/lib/jvm/zulu21
+ARG TOMCAT_VERSION=11.0.24
+# Which tomcat-builder variant to base on. Empty = the standard image; pass
+#   --build-arg TOMCAT_TAG_SUFFIX=-fips
+# for the FIPS 140-3 variant. Only the SUFFIX crosses the workflow boundary, so
+# TOMCAT_VERSION above stays the single source of truth for the version.
+# A -fips base MUST be paired with SEMOSS_FIPS=true, or the war brings its own
+# BouncyCastle into WEB-INF/lib beside the validated bc-fips and the result
+# boots cleanly while being non-compliant.
+ARG TOMCAT_TAG_SUFFIX=
+ARG JAVA_HOME=/usr/lib/jvm/zulu25
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
-FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
+FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION}${TOMCAT_TAG_SUFFIX} AS tomcat_builder
 ARG COPILOT_VERSION
 
 RUN apt-get update -y \
@@ -35,16 +43,20 @@ ARG TOMCAT_VERSION
 ARG JAVA_HOME
 ARG MAVEN_HOME
 ARG SEMOSS_VERSION
+# Selects the fips / libraries-fips Maven classifiers in
+# update_latest_dev.sh. Must be true whenever TOMCAT_TAG is a -fips tag.
+ARG SEMOSS_FIPS=false
 ENV JAVA_HOME=${JAVA_HOME}
 ENV TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 ENV MAVEN_HOME=${MAVEN_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
 ENV SEMOSS_VERSION=${SEMOSS_VERSION}
+ENV SEMOSS_FIPS=${SEMOSS_FIPS}
 
 
 # Get tomcat, maven and java from another image called tomcat-builder
 COPY --from=tomcat_builder /opt /opt
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 
 RUN apt-get update -y \
 	&& apt-get install -y git curl unzip lsof \
@@ -81,7 +93,7 @@ ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
-COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
+COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 RUN	apt update -y \

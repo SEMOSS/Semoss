@@ -36,9 +36,6 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
@@ -78,8 +75,6 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 	 * that merely share the file.
 	 */
 	private static final String GENERATOR_ID = "MakeRoomPlaywrightMCP";
-
-	private final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public MakeRoomPlaywrightMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
@@ -126,7 +121,7 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 		JSONArray toolsArray = new JSONArray();
 		for (File file : files) {
 			try {
-				StepsEnvelope envelope = json.readValue(file, StepsEnvelope.class);
+				StepsEnvelope envelope = PlaywrightUtility.readStepsEnvelope(file);
 				toolsArray.put(PlaywrightMCPToolBuilder.buildRoomPlaybackTool(envelope, file.getName()));
 			} catch (Exception e) {
 				classLogger.warn("Skipping recording file {} - could not parse: {}", file.getName(), e.getMessage());

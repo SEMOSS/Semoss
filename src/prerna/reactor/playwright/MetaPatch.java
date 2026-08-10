@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
+import java.util.Map;
+import java.util.Objects;
+
 /**
  * Represents a patch for updating metadata, specifically the title,
- * description, and intent. This record is an immutable data carrier used for modifying the
- * metadata of a Playwright recording or session.
+ * description, and intent. This record is an immutable data carrier used for
+ * modifying the metadata of a Playwright recording or session.
  *
  * @param title       The new title for the metadata. If null, the existing
  *                    title will be preserved.
@@ -40,4 +43,24 @@ package prerna.reactor.playwright;
  *                    intent will be preserved.
  */
 public record MetaPatch(String title, String description, String intent) {
+
+	/**
+	 * Builds a patch from a map. Keys that are absent stay null so the caller keeps
+	 * the existing metadata value for that field.
+	 *
+	 * @param paramValues The paramValues map typically provided from the reactor
+	 *                    noun store. May be null, which yields an empty patch.
+	 * @return A {@link MetaPatch} holding only the supplied fields.
+	 */
+	public static MetaPatch fromMap(Map<String, ?> paramValues) {
+		if (paramValues == null) {
+			return new MetaPatch(null, null, null);
+		}
+		return new MetaPatch(stringValue(paramValues.get("title")), stringValue(paramValues.get("description")),
+				stringValue(paramValues.get("intent")));
+	}
+
+	private static String stringValue(Object value) {
+		return value == null ? null : Objects.toString(value);
+	}
 }

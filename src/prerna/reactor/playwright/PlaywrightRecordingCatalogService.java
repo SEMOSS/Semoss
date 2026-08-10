@@ -47,8 +47,10 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 /** Discovers, summarizes, and ranks Playwright recording JSON files. */
 public class PlaywrightRecordingCatalogService {
@@ -58,7 +60,6 @@ public class PlaywrightRecordingCatalogService {
 	static final int MAX_FILES_PER_SOURCE = 500;
 	static final long MAX_RECORDING_BYTES = 5L * 1024L * 1024L;
 
-	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final Pattern SEARCH_PREFIX = Pattern.compile("^(?:https?://)?(?:www\\.)?",
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern JSON_SUFFIX = Pattern.compile("\\.json$", Pattern.CASE_INSENSITIVE);
@@ -165,7 +166,7 @@ public class PlaywrightRecordingCatalogService {
 			if (!normalizedFile.startsWith(normalizedDirectory)) {
 				continue;
 			}
-			JsonNode recording = readRecording(normalizedFile);
+			JsonElement recording = readRecording(normalizedFile);
 			if (recording == null) {
 				continue;
 			}
@@ -176,24 +177,24 @@ public class PlaywrightRecordingCatalogService {
 		return parsedCount;
 	}
 
-	private JsonNode readRecording(Path file) {
+	private JsonElement readRecording(Path file) {
 		try {
 			long size = Files.size(file);
 			if (size <= 0 || size > MAX_RECORDING_BYTES) {
 				return null;
 			}
 			String json = Files.readString(file, StandardCharsets.UTF_8);
-			JsonNode recording = JSON_MAPPER.readTree(json);
-			return recording != null && recording.isObject() ? recording : null;
+			JsonElement recording = JsonParser.parseString(json);
+			return recording != null && recording.isJsonObject() ? recording : null;
 		} catch (IOException | RuntimeException e) {
 			classLogger.warn("Unable to read/parse recording file '{}'; skipping it", file, e);
 			return null;
 		}
 	}
 
-	private Candidate toCandidate(String source, String projectId, String fileName, JsonNode recording, String hint,
+	private Candidate toCandidate(String source, String projectId, String fileName, JsonElement recording, String hint,
 			String requestedFile) {
-		List<JsonNode> steps = flattenSteps(recording);
+		List<JsonElement> steps = flattenSteps(recording);
 		String searchText = buildSearchText(fileName, recording, steps);
 		String normalizedSearch = normalizeSearch(searchText);
 		String normalizedFile = normalizeSearch(requestedFile);
@@ -226,7 +227,7 @@ public class PlaywrightRecordingCatalogService {
 
 		String firstUrl = firstUrl(steps);
 		if (firstUrl.isEmpty()) {
-			firstUrl = text(recording.path("meta"), "requestedStartUrl");
+			firstUrl = text(path(recording, "meta"), "requestedStartUrl");
 		}
 		String host = host(firstUrl);
 		for (String token : hintTokens) {
@@ -247,59 +248,59 @@ public class PlaywrightRecordingCatalogService {
 				reason, firstUrl, summary);
 	}
 
-	private static List<JsonNode> flattenSteps(JsonNode recording) {
-		List<JsonNode> output = new ArrayList<>();
-		JsonNode steps = recording.path("steps");
-		if (steps.isObject()) {
-			steps.elements().forEachRemaining(node -> collectStepNodes(node, output));
+	private static List<JsonElement> flattenSteps(JsonElement recording) {
+		List<JsonElement> output = new ArrayList<>();
+		JsonElement steps = path(recording, "steps");
+		if (steps.isJsonObject()) {
+			steps.getAsJsonObject().entrySet().forEach(entry -> collectStepNodes(entry.getValue(), output));
 		}
 		return output;
 	}
 
-	private static void collectStepNodes(JsonNode node, List<JsonNode> output) {
-		if (node == null || node.isNull()) {
+	private static void collectStepNodes(JsonElement node, List<JsonElement> output) {
+		if (node == null || node.isJsonNull()) {
 			return;
 		}
-		if (node.isArray()) {
-			node.elements().forEachRemaining(child -> collectStepNodes(child, output));
-		} else if (node.isObject()) {
+		if (node.isJsonArray()) {
+			node.getAsJsonArray().forEach(child -> collectStepNodes(child, output));
+		} else if (node.isJsonObject()) {
 			output.add(node);
 		}
 	}
 
-	private static String buildSearchText(String fileName, JsonNode recording, List<JsonNode> steps) {
+	private static String buildSearchText(String fileName, JsonElement recording, List<JsonElement> steps) {
 		StringBuilder text = new StringBuilder(fileName);
-		JsonNode meta = recording.path("meta");
+		JsonElement meta = path(recording, "meta");
 		for (String field : META_SEARCH_FIELDS) {
-			appendText(text, meta.path(field));
+			appendText(text, path(meta, field));
 		}
-		JsonNode searchTerms = meta.path("searchTerms");
-		if (searchTerms.isArray()) {
-			searchTerms.elements().forEachRemaining(term -> appendText(text, term));
+		JsonElement searchTerms = path(meta, "searchTerms");
+		if (searchTerms.isJsonArray()) {
+			searchTerms.getAsJsonArray().forEach(term -> appendText(text, term));
 		}
-		for (JsonNode step : steps) {
+		for (JsonElement step : steps) {
 			for (String field : STEP_SEARCH_FIELDS) {
-				if ("text".equals(field) && step.path("isPassword").asBoolean(false)) {
+				if ("text".equals(field) && asBoolean(step, "isPassword")) {
 					continue;
 				}
-				appendText(text, step.path(field));
+				appendText(text, path(step, field));
 			}
 		}
 		return text.toString().toLowerCase(Locale.ROOT);
 	}
 
-	private static void appendText(StringBuilder output, JsonNode node) {
-		if (node != null && node.isTextual() && !node.textValue().isBlank()) {
-			output.append(' ').append(node.textValue());
+	private static void appendText(StringBuilder output, JsonElement node) {
+		if (isString(node) && !node.getAsString().isBlank()) {
+			output.append(' ').append(node.getAsString());
 		}
 	}
 
-	private static Map<String, Object> summarize(String fileName, JsonNode recording, List<JsonNode> steps) {
+	private static Map<String, Object> summarize(String fileName, JsonElement recording, List<JsonElement> steps) {
 		List<String> urls = new ArrayList<>();
 		List<String> typedValues = new ArrayList<>();
 		List<String> stepPreview = new ArrayList<>();
 		LinkedHashSet<String> hosts = new LinkedHashSet<>();
-		for (JsonNode step : steps) {
+		for (JsonElement step : steps) {
 			String url = text(step, "url");
 			if (!url.isEmpty()) {
 				urls.add(url);
@@ -308,7 +309,7 @@ public class PlaywrightRecordingCatalogService {
 					hosts.add(host);
 				}
 			}
-			if ("TYPE".equalsIgnoreCase(text(step, "type")) && !step.path("isPassword").asBoolean(false)) {
+			if ("TYPE".equalsIgnoreCase(text(step, "type")) && !asBoolean(step, "isPassword")) {
 				String typed = text(step, "text");
 				if (!typed.isEmpty()) {
 					typedValues.add(typed);
@@ -319,7 +320,7 @@ public class PlaywrightRecordingCatalogService {
 			}
 		}
 
-		JsonNode meta = recording.path("meta");
+		JsonElement meta = path(recording, "meta");
 		Map<String, Object> summary = new LinkedHashMap<>();
 		summary.put("fileName", fileName);
 		summary.put("stepCount", steps.size());
@@ -338,11 +339,11 @@ public class PlaywrightRecordingCatalogService {
 		return summary;
 	}
 
-	private static String summarizeStep(JsonNode step) {
+	private static String summarizeStep(JsonElement step) {
 		String type = text(step, "type");
 		String detail = firstNonBlank(text(step, "description"), text(step, "label"), text(step, "prompt"),
 				text(step, "url"));
-		if (detail.isEmpty() && !step.path("isPassword").asBoolean(false)) {
+		if (detail.isEmpty() && !asBoolean(step, "isPassword")) {
 			detail = text(step, "text");
 		}
 		String summary = type.isEmpty() ? "STEP" : type.toUpperCase(Locale.ROOT);
@@ -361,8 +362,8 @@ public class PlaywrightRecordingCatalogService {
 		return "";
 	}
 
-	private static String firstUrl(List<JsonNode> steps) {
-		for (JsonNode step : steps) {
+	private static String firstUrl(List<JsonElement> steps) {
+		for (JsonElement step : steps) {
 			String value = text(step, "url");
 			if (!value.isEmpty()) {
 				return value;
@@ -405,12 +406,37 @@ public class PlaywrightRecordingCatalogService {
 		return output;
 	}
 
-	private static String text(JsonNode parent, String field) {
-		if (parent == null) {
-			return "";
+	private static String text(JsonElement parent, String field) {
+		JsonElement value = path(parent, field);
+		return isString(value) ? value.getAsString().trim() : "";
+	}
+
+	private static JsonElement path(JsonElement parent, String field) {
+		if (parent == null || !parent.isJsonObject()) {
+			return JsonNull.INSTANCE;
 		}
-		JsonNode value = parent.path(field);
-		return value.isTextual() ? value.textValue().trim() : "";
+		JsonElement value = parent.getAsJsonObject().get(field);
+		return value == null ? JsonNull.INSTANCE : value;
+	}
+
+	private static boolean isString(JsonElement node) {
+		return node != null && node.isJsonPrimitive() && node.getAsJsonPrimitive().isString();
+	}
+
+	/**
+	 * Reads a boolean field, tolerating recordings that store the flag as the
+	 * strings "true"/"false". Anything else is treated as false.
+	 */
+	private static boolean asBoolean(JsonElement parent, String field) {
+		JsonElement value = path(parent, field);
+		if (!value.isJsonPrimitive()) {
+			return false;
+		}
+		JsonPrimitive primitive = value.getAsJsonPrimitive();
+		if (primitive.isBoolean()) {
+			return primitive.getAsBoolean();
+		}
+		return primitive.isString() && Boolean.parseBoolean(primitive.getAsString().trim());
 	}
 
 	private static String trim(String value) {

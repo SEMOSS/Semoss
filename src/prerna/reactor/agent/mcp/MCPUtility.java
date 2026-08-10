@@ -44,9 +44,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +53,8 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -746,6 +745,10 @@ public final class MCPUtility {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			String llmFacingName = (String) responseToolMap.get("name");
 
+			if (hasText(llmFacingName) && !hasText(responseToolMap.get("title"))) {
+				responseToolMap.put("title", llmFacingName);
+			}
+
 			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
 				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
 				Object rawMeta = toolEntry.get("_meta");
@@ -760,8 +763,14 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (toolEntry.containsKey("title")) {
-					responseToolMap.put("title", toolEntry.get("title"));
+				Object declaredTitle = toolEntry.get("title");
+				if (hasText(declaredTitle)) {
+					responseToolMap.put("title", declaredTitle);
+				} else {
+					// No declared title, so label the tool with the name it declared before
+					// the engine-id prefix was appended (and possibly truncated) for the LLM
+					Object originalToolName = enrichedMeta.get(SMSS_ORIGINAL_TOOL_NAME);
+					responseToolMap.put("title", hasText(originalToolName) ? originalToolName : origFunctionName);
 				}
 				if (toolEntry.containsKey("description")) {
 					responseToolMap.put("description", toolEntry.get("description"));
@@ -817,8 +826,11 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (mcpTool != null && mcpTool.has("title")) {
+				if (mcpTool != null && hasText(mcpTool.opt("title"))) {
 					responseToolMap.put("title", mcpTool.getString("title"));
+				} else {
+					// origFunctionName is already the name with the engine-id prefix removed
+					responseToolMap.put("title", origFunctionName);
 				}
 				if (mcpTool != null && mcpTool.has("description")) {
 					responseToolMap.put("description", mcpTool.getString("description"));
@@ -846,6 +858,14 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", false);
 			}
 		}
+	}
+
+	/**
+	 * Whether the value is a non-blank string. Tool metadata arrives from JSON, so
+	 * a key can be present while holding null, a blank string, or a non-string.
+	 */
+	private static boolean hasText(Object value) {
+		return value instanceof String && !((String) value).isBlank();
 	}
 
 	/**

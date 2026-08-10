@@ -140,7 +140,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
-			SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
+			try {
+				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
+			} catch (Exception e) {
+				classLogger.error("Failed to save model metadata for engine {}. The engine is catalogued without it",
+						Utility.cleanLogString(engineId), e);
+			}
 		}
 
 		// TODO: need to see when we should be updating the database metadata
