@@ -55,10 +55,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 
 /**
  * Persistence and validation for the one-row-per-engine MODELMETADATA table.
@@ -77,7 +81,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			"PDF");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
-			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS);
+			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
+			Constants.REASONING, Constants.REASONING_CONFIG);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
 			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
@@ -144,6 +149,12 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Insert or replace the metadata associated with a model engine. If none of the
 	 * metadata-related properties are present, no row is created.
+	 * <p>
+	 * The SMSS only carries the handful of properties the model engine needs at
+	 * runtime, so this runs as a merge: whatever the SMSS defines wins, anything
+	 * already saved for the engine is preserved, and the remaining gaps are filled
+	 * from the static catalog. Replacing the row outright would blank the catalog
+	 * columns every time the engine is loaded.
 	 */
 	public static void upsertModelMetadata(String engineId, Properties properties) {
 		if (properties == null) {
@@ -171,7 +182,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.SUPPORTED_PARAMETERS);
 		copyIfPresent(properties, details, Constants.REASONING_CONFIG);
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
-		upsertModelMetadata(engineId, details);
+
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		merged.putAll(details);
+		StaticModelMetadataCatalog.applyStaticDefaults(merged);
+		upsertModelMetadata(engineId, merged);
 	}
 
 	/**
@@ -242,32 +257,199 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		Map<String, Object> merged = new LinkedHashMap<>();
-		Map<String, Object> existing = getModelMetadata(engineId);
-		if (existing != null) {
-			merged.put(Constants.MODEL, existing.get("modelId"));
-			merged.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
-			merged.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
-			merged.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
-			merged.put(Constants.MODEL_FAMILY, existing.get("family"));
-			merged.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
-			merged.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
-			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
-			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
-			merged.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
-			merged.put(Constants.ATTACHMENT, existing.get("attachment"));
-			merged.put(Constants.REASONING, existing.get("reasoning"));
-			merged.put(Constants.TOOL_CALL, existing.get("toolCall"));
-			merged.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
-			merged.put(Constants.TEMPERATURE, existing.get("temperature"));
-			merged.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
-			merged.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
-			merged.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
-			merged.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
-			merged.put(Constants.BENCHMARKS, existing.get("benchmarks"));
-		}
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
 		merged.putAll(updates);
 		upsertModelMetadata(engineId, merged);
+	}
+
+	/**
+	 * Backfill MODELMETADATA from the static catalog for the requested model
+	 * engines, or for every model engine in the security database when no engine
+	 * ids are given. This is the bulk version of what
+	 * {@link #upsertModelMetadata(String, Properties)} already does for a single
+	 * engine as it is catalogued on startup - it exists so a catalog refresh can be
+	 * applied to models that were created before the catalog knew about them,
+	 * without bouncing the server.
+	 * <p>
+	 * The default is a gap fill: only columns that are currently empty are
+	 * written. Pass force to let the catalog win over values that are already
+	 * stored. Engines the catalog cannot speak to are reported rather than
+	 * touched, and an engine whose values would not change is never written, so
+	 * running this over the full catalog is cheap and repeatable.
+	 *
+	 * @param engineIds engines to sync, or null/empty for all model engines
+	 * @param force     overwrite stored values instead of only filling gaps
+	 * @param dryRun    report what would change without writing
+	 * @return one result map per engine holding engineId, modelId, status, and the
+	 *         list of fields that changed
+	 */
+	public static List<Map<String, Object>> syncModelMetadataFromCatalog(Collection<String> engineIds, boolean force,
+			boolean dryRun) {
+		List<String> targets = new ArrayList<>();
+		if (engineIds == null || engineIds.isEmpty()) {
+			targets.addAll(SecurityEngineUtils.getAllEngineIds(List.of(IEngine.CATALOG_TYPE.MODEL.toString())));
+		} else {
+			for (String engineId : new LinkedHashSet<>(engineIds)) {
+				if (engineId != null && !engineId.trim().isEmpty()) {
+					targets.add(engineId.trim());
+				}
+			}
+		}
+
+		Map<String, Map<String, Object>> existingByEngine = getModelMetadata(targets);
+		List<Map<String, Object>> results = new ArrayList<>();
+		for (String engineId : targets) {
+			results.add(syncModelMetadataFromCatalog(engineId, existingByEngine.get(engineId), force, dryRun));
+		}
+		return results;
+	}
+
+	private static Map<String, Object> syncModelMetadataFromCatalog(String engineId, Map<String, Object> existingRow,
+			boolean force, boolean dryRun) {
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("engineId", engineId);
+		result.put("changedFields", new ArrayList<String>());
+
+		Map<String, Object> merged = toDetails(existingRow);
+		// an engine with no row yet, or one saved before MODELID was populated, still
+		// has the provider model id in its smss file
+		String modelId = nullableString(merged.get(Constants.MODEL));
+		if (modelId == null) {
+			modelId = getModelIdFromSmss(engineId);
+			if (modelId != null) {
+				merged.put(Constants.MODEL, modelId);
+			}
+		}
+		result.put("modelId", modelId);
+		if (modelId == null) {
+			result.put("status", "NO_MODEL_ID");
+			return result;
+		}
+
+		Map<String, Object> defaults;
+		try {
+			defaults = StaticModelMetadataCatalog.getStaticDefaults(modelId);
+		} catch (RuntimeException e) {
+			classLogger.warn("Unable to read the static catalog for engine {} model {}", engineId, modelId, e);
+			result.put("status", "ERROR");
+			return result;
+		}
+		defaults.remove(Constants.DESCR);
+		if (defaults.isEmpty()) {
+			result.put("status", "NO_CATALOG_ENTRY");
+			return result;
+		}
+
+		List<String> changedFields = new ArrayList<>();
+		for (Map.Entry<String, Object> entry : defaults.entrySet()) {
+			String key = entry.getKey();
+			Object current = merged.get(key);
+			boolean changed = force ? !sameNormalizedValue(key, current, entry.getValue())
+					: nullableString(current) == null;
+			if (changed) {
+				merged.put(key, entry.getValue());
+				changedFields.add(key);
+			}
+		}
+
+		result.put("changedFields", changedFields);
+		if (changedFields.isEmpty()) {
+			result.put("status", "NO_CHANGE");
+			return result;
+		}
+		if (dryRun) {
+			result.put("status", "WOULD_UPDATE");
+			return result;
+		}
+
+		try {
+			upsertModelMetadata(engineId, merged);
+		} catch (RuntimeException e) {
+			classLogger.error("Failed to sync model metadata for engine {} from the static catalog", engineId, e);
+			result.put("status", "ERROR");
+			return result;
+		}
+		classLogger.info("Synced model metadata for engine {} model {} fields {}", engineId,
+				Utility.cleanLogString(modelId), changedFields);
+		result.put("status", "UPDATED");
+		return result;
+	}
+
+	/**
+	 * The provider model id as defined in the engine's smss file. Returns null when
+	 * the engine is not catalogued or its smss cannot be read - the sync reports
+	 * that rather than failing, since one unreadable smss should not stop the rest.
+	 */
+	private static String getModelIdFromSmss(String engineId) {
+		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		if (smssFile == null) {
+			return null;
+		}
+		try {
+			Properties smssProp = Utility.loadProperties(smssFile.toString());
+			if (smssProp == null) {
+				return null;
+			}
+			return nullableString(smssProp.getProperty(Constants.MODEL));
+		} catch (Exception e) {
+			classLogger.warn("Unable to read the smss file for engine {}", engineId, e);
+			return null;
+		}
+	}
+
+	/**
+	 * Compare a stored value against a catalog value. The stored side comes back
+	 * from the database as parsed lists and maps while the catalog side is already
+	 * normalized, so both are put through the normalizer one key at a time to get
+	 * comparable shapes.
+	 */
+	private static boolean sameNormalizedValue(String key, Object current, Object catalogValue) {
+		return String.valueOf(normalizeSingleValue(key, current))
+				.equals(String.valueOf(normalizeSingleValue(key, catalogValue)));
+	}
+
+	private static Object normalizeSingleValue(String key, Object value) {
+		Map<String, Object> single = new LinkedHashMap<>();
+		single.put(key, value);
+		try {
+			return normalizeModelDetails(single).get(key);
+		} catch (RuntimeException e) {
+			// a value already stored may not survive current validation - treat it as
+			// different so force mode replaces it
+			return value;
+		}
+	}
+
+	/**
+	 * Convert a stored metadata row back into the {@link Constants} keyed shape the
+	 * upsert accepts. Returns an empty map when the engine has no row yet.
+	 */
+	private static Map<String, Object> toDetails(Map<String, Object> existing) {
+		Map<String, Object> details = new LinkedHashMap<>();
+		if (existing == null) {
+			return details;
+		}
+		details.put(Constants.MODEL, existing.get("modelId"));
+		details.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
+		details.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
+		details.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
+		details.put(Constants.MODEL_FAMILY, existing.get("family"));
+		details.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
+		details.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
+		details.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+		details.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		details.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
+		details.put(Constants.ATTACHMENT, existing.get("attachment"));
+		details.put(Constants.REASONING, existing.get("reasoning"));
+		details.put(Constants.TOOL_CALL, existing.get("toolCall"));
+		details.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
+		details.put(Constants.TEMPERATURE, existing.get("temperature"));
+		details.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
+		details.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
+		details.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
+		details.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
+		details.put(Constants.BENCHMARKS, existing.get("benchmarks"));
+		return details;
 	}
 
 	/**
@@ -405,9 +587,17 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS);
 	}
 
+	/**
+	 * Blank SMSS values are treated as "not specified" so an optional property left
+	 * empty in the SMSS does not clear a value that is already saved.
+	 */
 	private static void copyIfPresent(Properties properties, Map<String, Object> details, String key) {
-		if (properties.containsKey(key)) {
-			details.put(key, properties.getProperty(key));
+		if (!properties.containsKey(key)) {
+			return;
+		}
+		String value = nullableString(properties.getProperty(key));
+		if (value != null) {
+			details.put(key, value);
 		}
 	}
 
@@ -496,7 +686,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 			normalized.add(value);
 		}
-		details.put(key, GSON.toJson(normalized));
+		// store an unset list as SQL NULL rather than an empty JSON array
+		details.put(key, normalized.isEmpty() ? null : GSON.toJson(normalized));
 	}
 
 	private static List<String> parseList(Object value) {

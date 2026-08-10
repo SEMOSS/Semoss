@@ -64,14 +64,14 @@ class PlanNextPlaywrightActionReactorTest {
 		scroll.put("kind", "scroll");
 		scroll.put("label", "Scroll down");
 		scroll.put("direction", "down");
-		scroll.put("deltaY", 560);
-		scroll.put("screenPercent", 70);
+		scroll.put("deltaY", 240);
+		scroll.put("screenPercent", 30);
 
 		Map<String, Object> decision = PlanNextPlaywrightActionReactor
 				.parseDecision("{\"type\":\"scroll\",\"index\":0,\"reason\":\"reveal more results\"}", List.of(scroll));
 		Map<?, ?> action = (Map<?, ?>) decision.get("action");
 		assertEquals("scroll", action.get("type"));
-		assertEquals(560, action.get("deltaY"));
+		assertEquals(240, action.get("deltaY"));
 		assertEquals("down", action.get("direction"));
 	}
 
