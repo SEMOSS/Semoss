@@ -38,6 +38,7 @@ import com.google.gson.Gson;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -163,20 +164,12 @@ public final class AgentToolDecisionHandler {
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
 
-		Object toolOutput;
-		try {
-			toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
-		} catch (RuntimeException e) {
-			actionStore.releaseExecutionClaim(actionId, runId, userId);
-			publishDecisionToolItem(runId, toolCallId, toolName, paramMap, AgentStreamItems.TOOL_FAILED, null,
-					e.getMessage());
-			throw e;
-		}
-
-		String resultStr = toolOutput != null ? toolOutput.toString() : "";
+		ToolExecutionResult toolResult = MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
+		String resultStr = toolResultContent(toolResult);
+		String executedToolStatus = toolResult.getStatusValue();
 		try {
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr,
-					toolStatus != null ? toolStatus : "success", actionId, normalizedDecision, paramMap, pendingAction,
+					executedToolStatus, actionId, normalizedDecision, paramMap, pendingAction,
 					userId, true);
 		} catch (RuntimeException e) {
 			// release the claim so a retry is not wedged on EXECUTING; the tool already
@@ -184,9 +177,17 @@ public final class AgentToolDecisionHandler {
 			actionStore.releaseExecutionClaim(actionId, runId, userId);
 			throw e;
 		}
-		publishDecisionToolItem(runId, toolCallId, toolName, paramMap, AgentStreamItems.TOOL_COMPLETED, resultStr,
-				null);
+		publishDecisionToolItem(runId, toolCallId, toolName, paramMap,
+				toolResult.isSuccess() ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+				toolResult.isSuccess() ? resultStr : null, toolResult.isSuccess() ? null : resultStr);
 		return resultStr;
+	}
+
+	private static String toolResultContent(ToolExecutionResult result) {
+		if (!result.isSuccess() && result.getError() != null && !result.getError().isBlank()) {
+			return result.getError();
+		}
+		return result.getOutput() != null ? result.getOutput().toString() : "";
 	}
 
 	private static void publishDecisionToolItem(String runId, String toolCallId, String toolName,
@@ -217,8 +218,11 @@ public final class AgentToolDecisionHandler {
 					"Agent HITL action is decided but has no stored result actionId=" + actionId);
 		}
 		Map<String, Object> retryParams = resolveRetryToolParams(action);
+		String storedToolStatus = stringValue(action.get("toolStatus"));
 		writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, storedResult,
-				toolStatus != null ? toolStatus : toolStatusForActionStatus(stringValue(action.get("status"))),
+				storedToolStatus != null ? storedToolStatus
+						: (toolStatus != null ? toolStatus
+								: toolStatusForActionStatus(stringValue(action.get("status")))),
 				actionId, normalizedDecision, retryParams, action, userId, false);
 		return storedResult;
 	}
@@ -264,7 +268,8 @@ public final class AgentToolDecisionHandler {
 		Object editedArgs = (DECISION_EDIT.equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
 		AgentRunActionStore actionStore = new AgentRunActionStore();
 		if (markActionDecided) {
-			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus);
+			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus,
+					toolStatus);
 			if (!marked) {
 				throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
 			}

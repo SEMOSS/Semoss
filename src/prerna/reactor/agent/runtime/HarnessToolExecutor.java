@@ -50,6 +50,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -430,9 +431,13 @@ final class HarnessToolExecutor {
 		// metadata, so resolve them by the default tool registry before the MCP path.
 		if (PlatformAgentTools.isDefaultTool(tc.rawToolName)) {
 			try {
-				String result = PlatformAgentTools.executeDefaultTool(tc.rawToolName, tc.toolParams, ctx);
-				boolean success = result == null || !result.startsWith("Tool execution error:");
-				return new ToolExecOutcome(result, success);
+				ToolExecutionResult result = PlatformAgentTools.executeDefaultToolResult(tc.rawToolName, tc.toolParams,
+						ctx);
+				String output = result.getOutput() != null ? result.getOutput().toString() : "";
+				if (!result.isSuccess() && result.getError() != null && !result.getError().isBlank()) {
+					output = result.getError();
+				}
+				return new ToolExecOutcome(output, result.isSuccess());
 			} catch (AgentCancelledException e) {
 				throw e;
 			} catch (Exception e) {
