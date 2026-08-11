@@ -267,6 +267,38 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Reapply the metadata carried inside an engine export onto the engine it was
+	 * uploaded as. The export writes whatever {@link #getModelMetadata(String)}
+	 * returned, so the values are mapped back to their {@link Constants} keys and
+	 * revalidated before being saved.
+	 * <p>
+	 * This runs as a merge on top of whatever cataloguing the upload already
+	 * saved from the smss file and the static catalog. Every value the export
+	 * carried wins, and a value the export did not carry is left alone rather than
+	 * blanked, so an export made before a column existed cannot erase what the
+	 * catalog just filled in.
+	 *
+	 * @param engineId         the engine as it now exists in this instance
+	 * @param exportedMetadata the parsed contents of the exported metadata file
+	 */
+	public static void restoreModelMetadata(String engineId, Map<String, Object> exportedMetadata) {
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("Engine id cannot be empty");
+		}
+		if (exportedMetadata == null || exportedMetadata.isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> exported = toDetails(exportedMetadata);
+		if (exported.isEmpty()) {
+			return;
+		}
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		merged.putAll(exported);
+		upsertModelMetadata(engineId.trim(), merged);
+	}
+
+	/**
 	 * Backfill MODELMETADATA from the static catalog for the requested model
 	 * engines, or for every model engine in the security database when no engine
 	 * ids are given. This is the bulk version of what
@@ -431,34 +463,45 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Convert a stored metadata row back into the {@link Constants} keyed shape the
 	 * upsert accepts. Returns an empty map when the engine has no row yet.
+	 * <p>
+	 * Values that are not set are left out rather than mapped to an explicit null.
+	 * The upsert reads the map by key and writes SQL NULL either way, so the two
+	 * are equivalent there, but it lets a caller merging two of these maps tell an
+	 * unset value apart from one that is genuinely empty.
 	 */
 	private static Map<String, Object> toDetails(Map<String, Object> existing) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		if (existing == null) {
 			return details;
 		}
-		details.put(Constants.MODEL, existing.get("modelId"));
-		details.put(Constants.CATALOG_MODEL_KEY, existing.get("catalogModelKey"));
-		details.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
-		details.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
-		details.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
-		details.put(Constants.MODEL_FAMILY, existing.get("family"));
-		details.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
-		details.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
-		details.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
-		details.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
-		details.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
-		details.put(Constants.ATTACHMENT, existing.get("attachment"));
-		details.put(Constants.REASONING, existing.get("reasoning"));
-		details.put(Constants.TOOL_CALL, existing.get("toolCall"));
-		details.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
-		details.put(Constants.TEMPERATURE, existing.get("temperature"));
-		details.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
-		details.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
-		details.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
-		details.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
-		details.put(Constants.BENCHMARKS, existing.get("benchmarks"));
+		putIfNotNull(details, Constants.MODEL, existing.get("modelId"));
+		putIfNotNull(details, Constants.CATALOG_MODEL_KEY, existing.get("catalogModelKey"));
+		putIfNotNull(details, Constants.MODEL_PROVIDER, existing.get("modelProvider"));
+		putIfNotNull(details, Constants.SERVING_PROVIDER, existing.get("servingProvider"));
+		putIfNotNull(details, Constants.MODEL_CAPABILITY, existing.get("capability"));
+		putIfNotNull(details, Constants.MODEL_FAMILY, existing.get("family"));
+		putIfNotNull(details, Constants.INPUT_MODALITIES, existing.get("inputModalities"));
+		putIfNotNull(details, Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
+		putIfNotNull(details, Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+		putIfNotNull(details, Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		putIfNotNull(details, Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
+		putIfNotNull(details, Constants.ATTACHMENT, existing.get("attachment"));
+		putIfNotNull(details, Constants.REASONING, existing.get("reasoning"));
+		putIfNotNull(details, Constants.TOOL_CALL, existing.get("toolCall"));
+		putIfNotNull(details, Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
+		putIfNotNull(details, Constants.TEMPERATURE, existing.get("temperature"));
+		putIfNotNull(details, Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
+		putIfNotNull(details, Constants.RELEASE_DATE, existing.get("releaseDate"));
+		putIfNotNull(details, Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
+		putIfNotNull(details, Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
+		putIfNotNull(details, Constants.BENCHMARKS, existing.get("benchmarks"));
 		return details;
+	}
+
+	private static void putIfNotNull(Map<String, Object> details, String key, Object value) {
+		if (value != null) {
+			details.put(key, value);
+		}
 	}
 
 	/**
