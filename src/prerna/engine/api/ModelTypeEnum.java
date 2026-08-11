@@ -35,6 +35,7 @@ import prerna.engine.impl.model.KServeImageEmbedEngine;
 import prerna.engine.impl.model.KServeImageEngine;
 import prerna.engine.impl.model.KServeTTSEngine;
 import prerna.engine.impl.model.KServeVisionEngine;
+import prerna.engine.impl.model.ModelRouterEngine;
 import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
@@ -63,6 +64,9 @@ public enum ModelTypeEnum {
 	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
+
+	// routing engine — dispatches to backing engines based on keyword or LLM classification
+	MODEL_ROUTER("MODEL_ROUTER", ModelRouterEngine.class.getName()),
 	;
 	// @formatter:on
 
