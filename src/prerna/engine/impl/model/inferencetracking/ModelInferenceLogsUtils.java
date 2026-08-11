@@ -40,7 +40,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,11 +106,6 @@ public class ModelInferenceLogsUtils {
 	private static final String ROOM_TABLE_NAME = "ROOM__";
 	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
 	static boolean initialized = false;
-
-	// Safety cap on raw MESSAGE rows fetched for a single searchMessages() call,
-	// before dedup-to-room and limit/offset are applied. Well above any realistic
-	// per-search match count, just to bound worst-case memory/query cost.
-	private static final long MAX_SEARCH_MESSAGE_ROWS = 5000;
 
 	/**
 	 * Initializes and migrates the model-inference logging database schema.
@@ -1461,79 +1455,68 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible. Results are deduplicated to one row
-	 * per room (that room's most recent match) before limit/offset are applied,
-	 * so pagination is over matching rooms rather than raw message rows.
+	 * DB so text search via LIKE is possible. Results are grouped to one row per
+	 * room in SQL before limit/offset are applied, so pagination operates on rooms
+	 * rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
-	 * @param projectId the project to search within
+	 * @param projectId the project to search within, or null/blank to search all
+	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching rooms, one row per room (room_id, message_id,
-	 *         room_name, date_created from that room's most recent matching message)
+	 * @return a list of matching rooms, one row per room (room_id, room_name, and
+	 *         date_created from that room's most recent matching message)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
-		return searchMessages(userId, projectId, keyword, -1, -1, true);
+		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
 	}
 
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
-			long limit, long offset, boolean includeMessageText) {
+			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Always select room_id, message_id, and room metadata needed by the frontend
+		// Return room-grain results. date_created is the room's latest matching
+		// message timestamp and drives stable room-level pagination.
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED", "date_created"));
+		QueryFunctionSelector latestMatchSelector = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+				"MESSAGE__DATE_CREATED", "date_created");
+		qs.addSelector(latestMatchSelector);
 
-		// Always build the BLOB selector — needed for the WHERE filter regardless
+		// Use the search-specific conversion so malformed searchable content cannot
+		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
 				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
-		if (includeMessageText) {
-			qs.addSelector(messageTextSelector);
-		}
 
-		// JOIN, filters, and ordering
-		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		// JOIN, filters, grouping, and ordering
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		if (projectId != null) {
+		if (projectId != null && !projectId.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		if (!includeUnnamedRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
+		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
 				"?like", keyword, PixelDataType.CONST_STRING));
 
-		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
-		qs.addOrderBy("MESSAGE__MESSAGE_ID", "DESC");
-
-		// Fetch at message grain (a room can have many matches) capped at a safety
-		// ceiling, then reduce to one row per room below, BEFORE limit/offset are
-		// applied. Applying limit/offset directly to this query would paginate raw
-		// message rows, so a single chatty room could fill an entire page and hide
-		// every other matching room.
-		qs.setLimit(MAX_SEARCH_MESSAGE_ROWS);
-
-		List<Map<String, Object>> rawRows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-
-		// Reduce to one row per room. Rows are already ordered by
-		// MESSAGE__DATE_CREATED DESC, MESSAGE__MESSAGE_ID DESC, so the first row
-		// seen for a room is that room's most recent match.
-		Map<String, Map<String, Object>> dedupedByRoom = new LinkedHashMap<>();
-		for (Map<String, Object> row : rawRows) {
-			Object roomId = row.get("room_id");
-			if (roomId != null) {
-				dedupedByRoom.putIfAbsent(roomId.toString(), row);
-			}
-		}
-		List<Map<String, Object>> dedupedRows = new ArrayList<>(dedupedByRoom.values());
-
+		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_ID"));
+		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
 		if (limit > 0) {
-			int start = offset > 0 ? (int) Math.min(offset, dedupedRows.size()) : 0;
-			int end = (int) Math.min((long) start + limit, dedupedRows.size());
-			return dedupedRows.subList(start, end);
+			qs.setLimit(limit);
 		}
-		return dedupedRows;
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1791,11 +1774,18 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null, false, false);
 	}
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch,
+				false, false);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1814,6 +1804,13 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		if (!includeUnnamedRooms) {
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 

@@ -38,12 +38,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUserConversationRoomsReactor extends AbstractReactor {
+	private static final String INCLUDE_UNNAMED_ROOMS = "includeUnnamedRooms";
+	private static final String INCLUDE_CHILD_ROOMS = "includeChildRooms";
 
 	public GetUserConversationRoomsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.SORT.getKey(),
-				ReactorKeysEnum.PINNED.getKey(), "roomOptionsSearch" };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.PINNED.getKey(), "roomOptionsSearch", INCLUDE_UNNAMED_ROOMS, INCLUDE_CHILD_ROOMS };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -57,6 +59,9 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		if (projectId == null) {
 			projectId = this.insight.getContextProjectId();
 		}
+		if (projectId == null) {
+			projectId = this.insight.getProjectId();
+		}
 
 		long limit = getLong(ReactorKeysEnum.LIMIT.getKey(), -1L);
 		long offset = getLong(ReactorKeysEnum.OFFSET.getKey(), -1L);
@@ -69,6 +74,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		}
 
 		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
+		if (search != null && !search.trim().isEmpty()
+				&& (projectId == null || projectId.trim().isEmpty())) {
+			throw new IllegalArgumentException("A project must be provided or available from the current insight");
+		}
 
 		// Optional pinned filter: true/false to filter, null/absent to ignore
 		Boolean pinned = null;
@@ -85,11 +94,13 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 				roomOptionsSearch = null;
 			}
 		}
+		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
+		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
 				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned,
-				roomOptionsSearch);
+				roomOptionsSearch, includeUnnamedRooms, includeChildRooms);
 
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
@@ -115,6 +126,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 			return "Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.";
 		} else if ("roomOptionsSearch".equals(key)) {
 			return "Optional free-text search term applied against the room's options JSON. Any room whose options contain this substring is included.";
+		} else if (INCLUDE_UNNAMED_ROOMS.equals(key)) {
+			return "Whether to include rooms with a null or empty name. Defaults to false.";
+		} else if (INCLUDE_CHILD_ROOMS.equals(key)) {
+			return "Whether to include rooms that have a parent room. Defaults to false.";
 		}
 		return super.getDescriptionForKey(key);
 	}
