@@ -292,6 +292,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				// execution signal, not the legacy response-type field.
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
+					restoreAskMetadataForParameterTools(response, defaultAndExplicitTools);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
 					publishToolItemsQueued(ctx, response, subAgentSpecs);
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
@@ -683,6 +684,37 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		if (!tools.isEmpty()) {
 			paramMap.put("tools", tools);
+		}
+	}
+
+	/**
+	 * The model returns only a tool name and arguments, not the definition's
+	 * metadata. Room metadata enrichment covers room/workspace MCP tools, while
+	 * harness-explicit tools arrive through {@code paramValues.tools}. Reattach
+	 * only explicit ask-mode definitions so they enter the durable input-required
+	 * path without granting caller-defined auto tools an execution identity.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools) {
+		if (response == null || tools == null || tools.isEmpty()) {
+			return;
+		}
+		Map<String, Map<String, Object>> askToolsByName = new HashMap<>();
+		for (Map<String, Object> tool : tools) {
+			if (tool == null || tool.get("name") == null) {
+				continue;
+			}
+			Object metaObj = tool.get("_meta");
+			if (!(metaObj instanceof Map)) {
+				continue;
+			}
+			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
+			if ("ask".equalsIgnoreCase(String.valueOf(execution))) {
+				askToolsByName.put(String.valueOf(tool.get("name")), tool);
+			}
+		}
+		if (!askToolsByName.isEmpty()) {
+			MCPUtility.updateToolResponseWithProjectMeta(response, null, askToolsByName);
 		}
 	}
 
