@@ -89,6 +89,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		addTable("MODELMETADATA", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("MODELID", VARCHAR_255),
+				Pair.with("CATALOGMODELKEY", VARCHAR_255),
 				Pair.with("MODELPROVIDER", VARCHAR_255),
 				Pair.with("SERVINGPROVIDER", VARCHAR_255),
 				Pair.with("CAPABILITY", VARCHAR_255),

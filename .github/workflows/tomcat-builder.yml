@@ -101,15 +101,21 @@ jobs:
             if [ "${{ matrix.fips }}" = "true" ]; then
               test -d "$JAVA_HOME/lib/fips"
               test -f "$JAVA_HOME/lib/security/cacerts.bcfks"
-              grep -q "^security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security"
-              grep -q "^security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider" "$JAVA_HOME/conf/security/java.security"
+              grep -q "^security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security.fips"
+              grep -q "^security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider" "$JAVA_HOME/conf/security/java.security.fips"
               grep -q "approved_only=true" "$TOMCAT_HOME/bin/setenv.sh"
+              grep -q "java.security.properties==" "$TOMCAT_HOME/bin/setenv.sh"
+              # the JDK default must stay usable or Maven, keytool and the
+              # Playwright installer lose TLS inside the image build
+              grep -q "^security.provider.1=SUN" "$JAVA_HOME/conf/security/java.security"
+              mvn -B -q -version >/dev/null
               echo "FIPS variant verified"
             else
               # The standard image must carry NO FIPS artifacts at all, otherwise
               # FIPS_ENABLED is leaking and the two tags are not really distinct.
               test ! -e "$JAVA_HOME/lib/fips"
               test ! -e "$JAVA_HOME/lib/security/cacerts.bcfks"
+              test ! -e "$JAVA_HOME/conf/security/java.security.fips"
               ! grep -q "BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security"
               ! grep -q "approved_only" "$TOMCAT_HOME/bin/setenv.sh"
               echo "standard variant verified clean"

@@ -85,6 +85,6 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates editable provider, capability, modality, token, and built-in tool metadata for a model engine";
+		return "Updates editable provider, capability, modality, token, reasoning, and built-in tool metadata for a model engine";
 	}
 }
