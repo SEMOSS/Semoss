@@ -37,10 +37,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.model.message.MessagePartType;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -181,17 +183,17 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			// method argument name (e.g. "arg0"); that argument is what we overwrite
 			Object mappedArg = inputMapping.get(maskTargetParam);
 			String maskedPrompt = output.getReturnPrompt();
-			if (mappedArg instanceof String && maskedPrompt != null) {
+			if (mappedArg instanceof String && maskedPrompt != null
+					&& patchMessageJsonCurrentTurn(processedArguments, maskedPrompt)) {
 				processedArguments.put((String) mappedArg, maskedPrompt);
-				patchMessageJsonCurrentTurn(processedArguments, maskedPrompt);
 				masked = true;
 			} else {
-				// cannot safely write the masked value back (e.g. a combined multi-arg
-				// mapping) - leave pass as-is so the request is blocked rather than
-				// leaking unmasked content downstream
+				// cannot safely rewrite the outbound payload (combined multi-arg mapping,
+				// or the current-turn text isn't in message_json yet, e.g. the full_prompt
+				// path) - block rather than leak unmasked content downstream
 				classLogger.warn(
-						"maskOnGuardrailFailure is enabled but mask target '{}' is not mapped to a single argument; "
-								+ "blocking instead of masking.",
+						"maskOnGuardrailFailure is enabled but the outbound payload could not be rewritten for "
+								+ "mask target '{}'; blocking instead of masking.",
 						maskTargetParam);
 			}
 		}
@@ -221,7 +223,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	private void patchMessageJsonCurrentTurn(Map<String, Object> processedArguments, String maskedPrompt) {
+	private boolean patchMessageJsonCurrentTurn(Map<String, Object> processedArguments, String maskedPrompt) {
+		boolean patched = false;
 		for (Object val : processedArguments.values()) {
 			if (!(val instanceof Map)) {
 				continue;
@@ -238,17 +241,28 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 				}
 				JsonObject lastMessage = messages.get(messages.size() - 1).getAsJsonObject();
 				JsonArray parts = lastMessage.getAsJsonArray("parts");
-				if (parts != null && !parts.isEmpty()) {
-					JsonObject firstPart = parts.get(0).getAsJsonObject();
-					firstPart.addProperty("text", maskedPrompt);
-					firstPart.addProperty("uiText", maskedPrompt);
+				if (parts == null) {
+					continue;
+				}
+				boolean patchedThis = false;
+				for (JsonElement partEle : parts) {
+					JsonObject part = partEle.getAsJsonObject();
+					JsonElement type = part.get("type");
+					if (type != null && MessagePartType.TEXT.name().equals(type.getAsString())) {
+						part.addProperty("text", maskedPrompt);
+						part.addProperty("uiText", maskedPrompt);
+						patchedThis = true;
+					}
+				}
+				if (patchedThis) {
 					asMap.put("message_json", messages.toString());
+					patched = true;
 				}
 			} catch (Exception e) {
-				classLogger.warn("Unable to patch message_json with masked prompt; current-turn text in history "
-						+ "may still be unmasked: {}", e.getMessage());
+				classLogger.warn("Unable to patch message_json with masked prompt: {}", e.getMessage());
 			}
 		}
+		return patched;
 	}
 
 	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
