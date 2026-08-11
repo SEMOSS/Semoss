@@ -45,9 +45,11 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.ClaudeCodeAgentHarness;
 import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
+import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
@@ -92,7 +94,7 @@ public final class AgentRuntimeManager {
 		}
 		String userId = resolveUserId(request.getInsight());
 		store.insertSubmitted(resolvedRunId, request, userId);
-		if (isSemossHarness(request.getHarnessType())) {
+		if (supportsCanonicalStreaming(request.getHarnessType())) {
 			AgentRunStreamService.get().register(resolvedRunId);
 		}
 		worker.rememberInsight(resolvedRunId, request.getInsight());
@@ -163,12 +165,11 @@ public final class AgentRuntimeManager {
 		String roomId = trimToNull(run.get("roomId"));
 		String userId = resolveUserId(insight);
 		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
-		if (room == null) {
-			run.put("messages", List.of());
-			return run;
+		List<Map<String, Object>> messages = room == null ? new ArrayList<>() : collectRunMessages(room, runId);
+		if (ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(run.get("harnessType")))) {
+			messages = ClaudeCodeRunActivityAdapter.projectMessages(run, messages);
 		}
-
-		run.put("messages", collectRunMessages(room, runId));
+		run.put("messages", messages);
 		return run;
 	}
 
@@ -260,6 +261,11 @@ public final class AgentRuntimeManager {
 	private static boolean isSemossHarness(String harnessType) {
 		return harnessType == null || harnessType.trim().isEmpty()
 				|| SemossAgentHarness.NAME.equalsIgnoreCase(harnessType.trim());
+	}
+
+	private static boolean supportsCanonicalStreaming(String harnessType) {
+		return isSemossHarness(harnessType)
+				|| ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
 	}
 
 	private static void notifyStreamCancelled(String runId, String message) {

@@ -19,7 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * In-memory item-event stream sessions for native-harness agent runs, keyed by
+ * In-memory item-event stream sessions for canonical agent runs, keyed by
  * runId. Sessions buffer canonical item.started / item.updated / item.completed
  * events until a single consumer drains them.
  */
@@ -117,6 +117,10 @@ public final class AgentRunStreamService {
 			return;
 		}
 		Map<String, Object> data = (Map<String, Object>) dataObj;
+		if (ClaudeCodeRunActivityAdapter.isProviderEnvelope(data)) {
+			ClaudeCodeRunActivityAdapter.publishLive(jobId, data, this);
+			return;
+		}
 		if (data.get("kind") != null) {
 			return;
 		}
@@ -183,6 +187,18 @@ public final class AgentRunStreamService {
 		} finally {
 			session.lock.unlock();
 		}
+	}
+
+	public void publishMessageCompleted(String runId, String itemId, String text, String messageId) {
+		Map<String, Object> item = AgentStreamItems.messageItem(itemId, text, messageId);
+		publishItemEvent(runId, TYPE_ITEM_STARTED, item);
+		publishItemEvent(runId, TYPE_ITEM_COMPLETED, item);
+	}
+
+	public void publishReasoningCompleted(String runId, String itemId, String summary) {
+		Map<String, Object> item = AgentStreamItems.reasoningItem(itemId, summary);
+		publishItemEvent(runId, TYPE_ITEM_STARTED, item);
+		publishItemEvent(runId, TYPE_ITEM_COMPLETED, item);
 	}
 
 	public void publishToolStarted(String runId, Map<String, Object> toolItem) {

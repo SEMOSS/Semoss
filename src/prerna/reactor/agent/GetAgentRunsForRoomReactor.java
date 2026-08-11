@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -47,10 +49,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetAgentRunsForRoomReactor extends AbstractReactor {
 
 	private static final String ROOM_ID_KEY = "roomId";
+	private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
 
 	public GetAgentRunsForRoomReactor() {
-		this.keysToGet = new String[] { ROOM_ID_KEY };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ROOM_ID_KEY, INCLUDE_MESSAGES_KEY };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -60,6 +63,7 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 		if (roomId == null) {
 			throw new IllegalArgumentException("roomId is required");
 		}
+		boolean includeMessages = Boolean.parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY));
 
 		List<Map<String, Object>> runs = new AgentRunStore().getRunsForRoom(this.insight, roomId);
 		// The store is newest-first for activity logs. Conversation playback is
@@ -67,6 +71,13 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 		// GetSubagentRuns using the durable parentRunId relationship.
 		runs.removeIf(run -> run.get("parentRunId") != null);
 		Collections.reverse(runs);
+		if (includeMessages) {
+			List<Map<String, Object>> enriched = new ArrayList<>(runs.size());
+			for (Map<String, Object> run : runs) {
+				enriched.add(AgentRuntimeManager.get().getRun(String.valueOf(run.get("runId")), this.insight, true));
+			}
+			runs = enriched;
+		}
 		// Ownership is enforced by the query. Do not echo the internal user key to
 		// the browser as part of the presentation contract.
 		runs.forEach(run -> run.remove("userId"));
@@ -83,6 +94,9 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (ROOM_ID_KEY.equals(key)) {
 			return "The room whose top-level agent runs should be returned.";
+		}
+		if (INCLUDE_MESSAGES_KEY.equals(key)) {
+			return "When true, includes the messages associated with each run.";
 		}
 		return super.getDescriptionForKey(key);
 	}
