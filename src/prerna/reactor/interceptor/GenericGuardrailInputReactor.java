@@ -36,6 +36,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -168,7 +172,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		// text - not the original - flows downstream to the model.
 		boolean masked = false;
 		Boolean maskOnGuardrailFailure = helper.getConfigParameter("maskOnGuardrailFailure", Boolean.class);
-		if (maskOnGuardrailFailure != null && maskOnGuardrailFailure && !output.isPass()) {
+		if (Boolean.TRUE.equals(maskOnGuardrailFailure) && !output.isPass()) {
 			String maskTargetParam = helper.getConfigParameter("maskTargetParam", String.class);
 			if (maskTargetParam == null || maskTargetParam.isEmpty()) {
 				maskTargetParam = DEFAULT_MASK_TARGET_PARAM;
@@ -179,6 +183,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			String maskedPrompt = output.getReturnPrompt();
 			if (mappedArg instanceof String && maskedPrompt != null) {
 				processedArguments.put((String) mappedArg, maskedPrompt);
+				patchMessageJsonCurrentTurn(processedArguments, maskedPrompt);
 				masked = true;
 			} else {
 				// cannot safely write the masked value back (e.g. a combined multi-arg
@@ -191,7 +196,17 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			}
 		}
 
-		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked);
+		// When configured to respond (rather than mask or block), hand the guardrail's
+		// message back as the model's answer. The real model call is skipped entirely,
+		// so no version of the prompt reaches the provider.
+		String cannedResponse = null;
+		Boolean respondWithGuardrailMessage = helper.getConfigParameter("respondWithGuardrailMessage", Boolean.class);
+		if (Boolean.TRUE.equals(respondWithGuardrailMessage) && !output.isPass()) {
+			cannedResponse = output.getReturnPrompt();
+		}
+
+		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked,
+				cannedResponse);
 
 		// Update the processedArguments with the interim result
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
@@ -205,14 +220,48 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @param interceptorName
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
+	private void patchMessageJsonCurrentTurn(Map<String, Object> processedArguments, String maskedPrompt) {
+		for (Object val : processedArguments.values()) {
+			if (!(val instanceof Map)) {
+				continue;
+			}
+			Map<String, Object> asMap = (Map<String, Object>) val;
+			Object mj = asMap.get("message_json");
+			if (!(mj instanceof String)) {
+				continue;
+			}
+			try {
+				JsonArray messages = JsonParser.parseString((String) mj).getAsJsonArray();
+				if (messages.isEmpty()) {
+					continue;
+				}
+				JsonObject lastMessage = messages.get(messages.size() - 1).getAsJsonObject();
+				JsonArray parts = lastMessage.getAsJsonArray("parts");
+				if (parts != null && !parts.isEmpty()) {
+					JsonObject firstPart = parts.get(0).getAsJsonObject();
+					firstPart.addProperty("text", maskedPrompt);
+					firstPart.addProperty("uiText", maskedPrompt);
+					asMap.put("message_json", messages.toString());
+				}
+			} catch (Exception e) {
+				classLogger.warn("Unable to patch message_json with masked prompt; current-turn text in history "
+						+ "may still be unmasked: {}", e.getMessage());
+			}
+		}
+	}
+
 	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
-			boolean masked) {
+			boolean masked, String cannedResponse) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		// when we masked the input we neutralized the failure, so let it pass downstream
 		resultMap.put(PipelineReactorUtils.PASS, masked || results.isPass());
 		resultMap.put(PipelineReactorUtils.PASS_DETAILS, results.getValue());
 		resultMap.put(PipelineReactorUtils.MASKED, masked);
+		if (cannedResponse != null) {
+			resultMap.put(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE, cannedResponse);
+		}
 
 		return resultMap;
 	}
