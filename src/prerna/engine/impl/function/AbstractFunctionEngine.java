@@ -36,6 +36,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.Strictness;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IEngine;
@@ -45,6 +47,8 @@ import prerna.engine.impl.AbstractEngine;
 public abstract class AbstractFunctionEngine extends AbstractEngine implements IFunctionEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFunctionEngine.class);
+
+	protected Gson gson = new GsonBuilder().setStrictness(Strictness.LENIENT).create();
 
 	protected String functionName;
 	protected String functionDescription;
@@ -66,15 +70,26 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);
 
 		if (smssProp.containsKey(IFunctionEngine.PARAMETER_KEY)) {
-			this.parameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY),
-					new TypeToken<List<FunctionParameter>>() {
-					}.getType());
+			try {
+				this.parameters = gson.fromJson(smssProp.getProperty(IFunctionEngine.PARAMETER_KEY),
+						new TypeToken<List<FunctionParameter>>() {
+						}.getType());
+			} catch (Exception e) {
+				classLogger.error("Invalid json format for {} key, value used {}", IFunctionEngine.PARAMETER_KEY,
+						smssProp.getProperty(IFunctionEngine.PARAMETER_KEY));
+			}
 		}
 
 		if (smssProp.containsKey(IFunctionEngine.REQUIRED_PARAMETER_KEY)) {
-			this.requiredParameters = new Gson().fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY),
-					new TypeToken<List<String>>() {
-					}.getType());
+			try {
+				this.requiredParameters = gson.fromJson(smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY),
+						new TypeToken<List<String>>() {
+						}.getType());
+			} catch (Exception e) {
+				classLogger.error("Invalid json format for {} key, value used {}",
+						IFunctionEngine.REQUIRED_PARAMETER_KEY,
+						smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY));
+			}
 		}
 	}
 
