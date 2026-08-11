@@ -40,6 +40,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -52,6 +53,7 @@ import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
@@ -277,10 +279,16 @@ public final class AgentToolDecisionHandler {
 
 		Map<String, Object> paramMapForRoom = new HashMap<>();
 		String roomToolName = stringValue(pendingAction.get("toolName"));
-		if (!toolResultAlreadyInRoom(room, parentMessageId, toolCallId)) {
+		if (findToolResultMessage(room, parentMessageId, toolCallId) == null) {
 			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName, toolResult,
 					toolParams != null ? toolParams : paramMapForRoom, parentMessageId, modelEngine, this.insight,
 					toolStatus);
+		}
+		InputMessage toolResultMessage = findToolResultMessage(room, parentMessageId, toolCallId);
+		if (toolResultMessage != null) {
+			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, runId);
+			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, "tool_result");
+			RoomMessageStore.persist(room, userId);
 		}
 
 		// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
@@ -390,13 +398,13 @@ public final class AgentToolDecisionHandler {
 		return resolveToolParamsForDecision(action, null);
 	}
 
-	private boolean toolResultAlreadyInRoom(Room room, String parentMessageId, String toolCallId) {
+	private InputMessage findToolResultMessage(Room room, String parentMessageId, String toolCallId) {
 		if (room == null || toolCallId == null || toolCallId.trim().isEmpty()) {
-			return false;
+			return null;
 		}
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages == null || messages.isEmpty()) {
-			return false;
+			return null;
 		}
 		for (int i = messages.size() - 1; i >= 0; --i) {
 			AbstractMessage message = messages.get(i);
@@ -409,7 +417,7 @@ public final class AgentToolDecisionHandler {
 					if (part instanceof ToolResultMessagePart) {
 						ToolResultPart result = ((ToolResultMessagePart) part).getToolResult();
 						if (result != null && toolCallId.equals(result.getToolCallId())) {
-							return true;
+							return (InputMessage) message;
 						}
 					}
 				}
@@ -418,7 +426,7 @@ public final class AgentToolDecisionHandler {
 				break;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")
