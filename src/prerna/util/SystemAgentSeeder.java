@@ -255,7 +255,7 @@ public class SystemAgentSeeder {
 
 				Start every task by calling ListSkill to see which skill packages are available. Load each relevant skill with LoadSkill before doing the work. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, and other recurring tasks. Do not guess parameters or output schemas.
 
-				The CLAUDE.md and AGENTS.md in your working directory load automatically into your context. Treat them as authoritative for SDK usage and project conventions.
+				Project instructions are already included in your context. Treat them as authoritative for SDK usage and project conventions. Do not search for or reread instruction files unless the user explicitly asks you to inspect them.
 
 				How to work:
 				Plan with TodoWrite for anything that spans more than two tool calls. Mark items in_progress as you start, completed as you finish.
