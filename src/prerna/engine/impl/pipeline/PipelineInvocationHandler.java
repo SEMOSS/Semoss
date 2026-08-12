@@ -77,6 +77,7 @@ import prerna.logging.LoggingSQLConnectionSerializer;
 import prerna.logging.LoggingSQLDataSourceSerializer;
 import prerna.logging.LoggingSQLResultSetSerializer;
 import prerna.logging.LoggingSQLStatementSerializer;
+import prerna.logging.LoggingThrowableSerializer;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -113,6 +114,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeHierarchyAdapter(DataSource.class, new LoggingSQLDataSourceSerializer())
 			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
 			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
+			.registerTypeHierarchyAdapter(Throwable.class, new LoggingThrowableSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
 			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
