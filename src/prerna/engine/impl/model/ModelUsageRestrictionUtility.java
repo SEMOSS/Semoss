@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.util.Constants;
@@ -56,8 +57,31 @@ public final class ModelUsageRestrictionUtility {
 	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
 	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
 
+	// Applied when a model has never had a cache weight configured, so counting
+	// cache tokens toward a "token" restriction starts out equivalent to counting
+	// them as regular tokens rather than silently ignoring them.
+	private static final double DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT = 100.0;
+
 	/**
-	 * 
+	 * Look up the admin-configured cache token weights for a model engine, in
+	 * [cacheReadWeightPercent, cacheWriteWeightPercent] order. Falls back to
+	 * {@link #DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT} for either value that has never
+	 * been set.
+	 *
+	 * @param engineId the model engine
+	 * @return the two weight percentages
+	 */
+	private static double[] resolveCacheTokenWeightPercents(String engineId) {
+		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
+		Object cacheReadWeight = metadata == null ? null : metadata.get("cacheReadWeight");
+		Object cacheWriteWeight = metadata == null ? null : metadata.get("cacheWriteWeight");
+		return new double[] {
+				cacheReadWeight instanceof Number number ? number.doubleValue() : DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT,
+				cacheWriteWeight instanceof Number number ? number.doubleValue() : DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT };
+	}
+
+	/**
+	 *
 	 * @param user
 	 * @param engineId
 	 * @return
@@ -102,7 +126,7 @@ public final class ModelUsageRestrictionUtility {
 				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
 					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
 							Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							engineLvlModelUsageFrequency);
+							engineLvlModelUsageFrequency, 0.0, 0.0);
 
 					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
 						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
@@ -116,11 +140,35 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxTokens.intValue());
 
+				} else if (Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE
+						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
+					double[] cacheWeights = resolveCacheTokenWeightPercents(engineId);
+					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+							Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE, user, engineId, currentDateTime,
+							engineLvlModelUsageFrequency, cacheWeights[0], cacheWeights[1]);
+
+					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
+						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
+					}
+
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							engineLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_READ_WEIGHT,
+							cacheWeights[0]);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_WRITE_WEIGHT,
+							cacheWeights[1]);
+
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
 					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
 							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							engineLvlModelUsageFrequency);
+							engineLvlModelUsageFrequency, DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT,
+							DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT);
 
 					if (currentUsage.doubleValue() > engineLvlModelUsageMaxResponseTime.doubleValue()) {
 						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
@@ -149,7 +197,7 @@ public final class ModelUsageRestrictionUtility {
 				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
 					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE,
-							user, engineId, currentDateTime, userLvlModelUsageFrequency);
+							user, engineId, currentDateTime, userLvlModelUsageFrequency, 0.0, 0.0);
 
 					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
 						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
@@ -162,12 +210,36 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxTokens.intValue());
 
+				} else if (Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE
+						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
+
+					double[] cacheWeights = resolveCacheTokenWeightPercents(engineId);
+					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
+							Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE, user, engineId, currentDateTime,
+							userLvlModelUsageFrequency, cacheWeights[0], cacheWeights[1]);
+
+					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
+						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
+					}
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
+							Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+							currentUsage.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
+							userLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_READ_WEIGHT,
+							cacheWeights[0]);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_WRITE_WEIGHT,
+							cacheWeights[1]);
+
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 
 					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
 							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							userLvlModelUsageFrequency);
+							userLvlModelUsageFrequency, DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT,
+							DEFAULT_CACHE_TOKEN_WEIGHT_PERCENT);
 
 					if (currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
 						throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
@@ -203,13 +275,30 @@ public final class ModelUsageRestrictionUtility {
 			String restrictionMode = (String) userRestrictionMap
 					.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE);
 
-			if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)) {
+			if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)
+					|| Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)) {
+				// plain "token" mode never stashes a weight, so 0 (i.e. cache tokens do not
+				// count) is the correct default there; "token_cache" mode always stashes the
+				// model's resolved weight (itself defaulting to 100 when unconfigured)
+				double cacheReadWeightPercent = ((Number) userRestrictionMap
+						.getOrDefault(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_READ_WEIGHT, 0.0))
+						.doubleValue();
+				double cacheWriteWeightPercent = ((Number) userRestrictionMap
+						.getOrDefault(AbstractModelEngineResponse.USAGE_RESTRICTION_CACHE_WRITE_WEIGHT, 0.0))
+						.doubleValue();
+				int cacheReadTokens = modelResponse.getNumberOfCacheReadTokens() == null ? 0
+						: modelResponse.getNumberOfCacheReadTokens();
+				int cacheCreationTokens = modelResponse.getNumberOfCacheCreationTokens() == null ? 0
+						: modelResponse.getNumberOfCacheCreationTokens();
+				double weightedCacheTokens = cacheReadTokens * (cacheReadWeightPercent / 100.0)
+						+ cacheCreationTokens * (cacheWriteWeightPercent / 100.0);
+
 				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
 						// put in the new value of the current usage we calculated + the number of
-						// tokens we just created
+						// tokens we just created, plus any cache tokens at their configured weight
 						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
 								.intValue() + modelResponse.getNumberOfTokensInPrompt()
-								+ modelResponse.getNumberOfTokensInResponse());
+								+ modelResponse.getNumberOfTokensInResponse() + (int) Math.round(weightedCacheTokens));
 
 			} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equals(restrictionMode)) {
 

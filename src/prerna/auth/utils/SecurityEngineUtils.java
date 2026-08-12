@@ -3537,8 +3537,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userDetails.getValue0()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		// relationship between SMSS_USER and ENGINEPERMISSION tables
-		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");
+		// relationship between SMSS_USER and ENGINEPERMISSION tables. Explicit
+		// join columns (rather than bare table names) since auto-resolution was
+		// silently returning zero rows for this left outer join.
+		qs.addRelation("SMSS_USER__ID", "ENGINEPERMISSION__USERID", "left.outer.join");
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}

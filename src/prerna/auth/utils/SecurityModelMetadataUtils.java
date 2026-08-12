@@ -82,13 +82,15 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
-			Constants.REASONING, Constants.REASONING_CONFIG);
+			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CACHE_READ_WEIGHT,
+			Constants.CACHE_WRITE_WEIGHT);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
 			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
 			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
-			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.DESCR);
+			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.DESCR, Constants.CACHE_READ_WEIGHT,
+			Constants.CACHE_WRITE_WEIGHT);
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
@@ -129,6 +131,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		normalizeJsonArrayProperty(normalized, Constants.BENCHMARKS);
 		normalizePositiveLongProperty(normalized, Constants.CONTEXT_WINDOW);
 		normalizePositiveLongProperty(normalized, Constants.MAX_TOKENS);
+		normalizeWeightPercentageProperty(normalized, Constants.CACHE_READ_WEIGHT);
+		normalizeWeightPercentageProperty(normalized, Constants.CACHE_WRITE_WEIGHT);
 		return normalized;
 	}
 
@@ -182,6 +186,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.SUPPORTED_PARAMETERS);
 		copyIfPresent(properties, details, Constants.REASONING_CONFIG);
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
+		copyIfPresent(properties, details, Constants.CACHE_READ_WEIGHT);
+		copyIfPresent(properties, details, Constants.CACHE_WRITE_WEIGHT);
 
 		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
 		merged.putAll(details);
@@ -205,8 +211,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = modelMetadataExists(securityDb, metadata.engineId());
 		String sql = exists
-				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
-				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=?, CACHEREADWEIGHT=?, CACHEWRITEWEIGHT=? WHERE ENGINEID=?"
+				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, CACHEREADWEIGHT, CACHEWRITEWEIGHT, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -232,6 +238,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			setNullableString(ps, index++, metadata.supportedParametersJson());
 			setNullableString(ps, index++, metadata.reasoningConfigJson());
 			setNullableString(ps, index++, metadata.benchmarksJson());
+			setNullableDouble(ps, index++, metadata.cacheReadWeight());
+			setNullableDouble(ps, index++, metadata.cacheWriteWeight());
 			ps.setString(index, metadata.engineId());
 			ps.executeUpdate();
 			ConnectionUtils.commitConnection(ps.getConnection());
@@ -449,6 +457,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		details.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
 		details.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
 		details.put(Constants.BENCHMARKS, existing.get("benchmarks"));
+		details.put(Constants.CACHE_READ_WEIGHT, existing.get("cacheReadWeight"));
+		details.put(Constants.CACHE_WRITE_WEIGHT, existing.get("cacheWriteWeight"));
 		return details;
 	}
 
@@ -457,7 +467,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, CACHEREADWEIGHT, CACHEWRITEWEIGHT FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -499,7 +509,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, CACHEREADWEIGHT, CACHEWRITEWEIGHT FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -554,6 +564,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("supportedParameters", emptyListIfNull(modelMetadata.get("supportedParameters")));
 		capabilities.put("reasoningConfig", emptyMapIfNull(modelMetadata.get("reasoningConfig")));
 		capabilities.put("benchmarks", emptyListIfNull(modelMetadata.get("benchmarks")));
+		capabilities.put("cacheReadWeight", emptyStringIfNull(modelMetadata.get("cacheReadWeight")));
+		capabilities.put("cacheWriteWeight", emptyStringIfNull(modelMetadata.get("cacheWriteWeight")));
 		return capabilities;
 	}
 
@@ -584,7 +596,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				|| details.containsKey(Constants.TOOL_CALL) || details.containsKey(Constants.STRUCTURED_OUTPUT)
 				|| details.containsKey(Constants.TEMPERATURE) || details.containsKey(Constants.KNOWLEDGE_CUTOFF)
 				|| details.containsKey(Constants.RELEASE_DATE) || details.containsKey(Constants.SUPPORTED_PARAMETERS)
-				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS);
+				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS)
+				|| details.containsKey(Constants.CACHE_READ_WEIGHT) || details.containsKey(Constants.CACHE_WRITE_WEIGHT);
 	}
 
 	/**
@@ -618,7 +631,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				nullableString(details.get(Constants.KNOWLEDGE_CUTOFF)),
 				nullableString(details.get(Constants.RELEASE_DATE)),
 				nullableString(details.get(Constants.SUPPORTED_PARAMETERS)),
-				nullableString(details.get(Constants.REASONING_CONFIG)), nullableString(details.get(Constants.BENCHMARKS)));
+				nullableString(details.get(Constants.REASONING_CONFIG)), nullableString(details.get(Constants.BENCHMARKS)),
+				toNullableDouble(details.get(Constants.CACHE_READ_WEIGHT)),
+				toNullableDouble(details.get(Constants.CACHE_WRITE_WEIGHT)));
 	}
 
 	private static void normalizeStringProperty(Map<String, Object> details, String key, boolean identifier) {
@@ -832,6 +847,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("supportedParameters", parseStoredList(rs.getString("SUPPORTEDPARAMETERS")));
 		metadata.put("reasoningConfig", parseStoredJsonObject(rs.getString("REASONINGCONFIG")));
 		metadata.put("benchmarks", parseStoredJsonArray(rs.getString("BENCHMARKS")));
+		metadata.put("cacheReadWeight", getNullableDouble(rs, "CACHEREADWEIGHT"));
+		metadata.put("cacheWriteWeight", getNullableDouble(rs, "CACHEWRITEWEIGHT"));
 		return metadata;
 	}
 
@@ -845,6 +862,24 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 		// Keep optional empty SMSS values empty rather than serializing the Java null
 		// literal, while still persisting them as SQL NULL.
+		details.put(key, value == null ? "" : value);
+	}
+
+	/**
+	 * Validate a cache token weight: a percentage of a normal token this cache
+	 * token counts as toward a member's "token" usage restriction. Zero is valid
+	 * (e.g. cache reads counting for nothing), unlike
+	 * {@link #normalizePositiveLongProperty}; the 1000% ceiling is generous
+	 * headroom against fat-fingered entry rather than a real provider limit.
+	 */
+	private static void normalizeWeightPercentageProperty(Map<String, Object> details, String key) {
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Double value = toNullableDouble(details.get(key));
+		if (value != null && (value < 0 || value > 1000)) {
+			throw new IllegalArgumentException(key + " must be between 0 and 1000");
+		}
 		details.put(key, value == null ? "" : value);
 	}
 
@@ -863,6 +898,20 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			return Long.valueOf(value.toString().trim());
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Expected an integer but received " + value, e);
+		}
+	}
+
+	private static Double toNullableDouble(Object value) {
+		if (value == null || value.toString().trim().isEmpty()) {
+			return null;
+		}
+		if (value instanceof Number number) {
+			return number.doubleValue();
+		}
+		try {
+			return Double.valueOf(value.toString().trim());
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Expected a number but received " + value, e);
 		}
 	}
 
@@ -942,8 +991,21 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	private static void setNullableDouble(PreparedStatement ps, int index, Double value) throws SQLException {
+		if (value == null) {
+			ps.setNull(index, Types.DOUBLE);
+		} else {
+			ps.setDouble(index, value);
+		}
+	}
+
 	private static Long getNullableLong(ResultSet rs, String column) throws SQLException {
 		long value = rs.getLong(column);
+		return rs.wasNull() ? null : value;
+	}
+
+	private static Double getNullableDouble(ResultSet rs, String column) throws SQLException {
+		double value = rs.getDouble(column);
 		return rs.wasNull() ? null : value;
 	}
 
@@ -956,6 +1018,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
 			Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
 			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
-			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson) {
+			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson, Double cacheReadWeight,
+			Double cacheWriteWeight) {
 	}
 }

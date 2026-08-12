@@ -500,6 +500,10 @@ public class Constants {
 	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
 	public static final String REASONING_CONFIG = "REASONING_CONFIG";
 	public static final String BENCHMARKS = "BENCHMARKS";
+	// Percentage (0-1000, default 100 when unset) applied to cache read/write
+	// tokens when they count toward a member's "token" usage restriction.
+	public static final String CACHE_READ_WEIGHT = "CACHE_READ_WEIGHT";
+	public static final String CACHE_WRITE_WEIGHT = "CACHE_WRITE_WEIGHT";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -1023,6 +1027,10 @@ public class Constants {
 	// model restriction types
 	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
 	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
+	// Same as MODEL_TOKEN_RESTRICTION_VALUE, but also counts cache read/write
+	// tokens toward the limit at the model's configured CACHE_READ_WEIGHT /
+	// CACHE_WRITE_WEIGHT (see SecurityModelMetadataUtils).
+	public static final String MODEL_TOKEN_CACHE_RESTRICTION_VALUE = "token_cache";
 
 	// External Permission Management
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";

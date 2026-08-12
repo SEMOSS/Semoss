@@ -2011,10 +2011,17 @@ public class ModelInferenceLogsUtils {
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
 	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
+	 * @param cacheReadWeightPercent  percentage of a normal token a cache read
+	 *                                token counts as (100 = same as a normal
+	 *                                token); ignored outside token mode
+	 * @param cacheWriteWeightPercent percentage of a normal token a cache
+	 *                                creation token counts as; ignored outside
+	 *                                token mode
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+			ZonedDateTime currentDateTime, String frequency, double cacheReadWeightPercent,
+			double cacheWriteWeightPercent) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
@@ -2029,16 +2036,20 @@ public class ModelInferenceLogsUtils {
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");
 
+		boolean isTokenMode = restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE);
 		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		if (isTokenMode) {
+			// cache tokens are summed separately so the caller can weight them; they are
+			// not already folded into MESSAGE_TOKENS
+			sumColumn = " SUM(MESSAGE_TOKENS), SUM(CACHE_READ_TOKENS), SUM(CACHE_CREATION_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
 
 		// SQL query to fetch the total tokens or response time
 		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
+				+ " FROM MESSAGE WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -2053,14 +2064,15 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection(), ps, query, false);
 
 			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
+				Object[] values = wrapper.next().getValues();
+				if (isTokenMode) {
+					return weightedTokenTotal(values, cacheReadWeightPercent, cacheWriteWeightPercent);
+				}
 				// if this is null
 				// that means there are no logs currently for this model
 				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
+				Number retNum = (Number) values[0];
+				return retNum == null ? 0 : retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error(
@@ -2070,6 +2082,30 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
 		return null;
+	}
+
+	/**
+	 * Combine the base token sum with weighted cache tokens. Cache reads and cache
+	 * writes are billed (and therefore should count toward a limit) differently
+	 * from a fresh token, so each gets its own admin-configured percentage rather
+	 * than counting 1:1 by default... a weight of 100 reproduces the un-weighted
+	 * total.
+	 *
+	 * @param values                  positional result row: [messageTokens,
+	 *                                cacheReadTokens, cacheCreationTokens]
+	 * @param cacheReadWeightPercent  percentage of a normal token a cache read
+	 *                                token counts as
+	 * @param cacheWriteWeightPercent percentage of a normal token a cache
+	 *                                creation token counts as
+	 * @return the weighted total, as a double
+	 */
+	private static Number weightedTokenTotal(Object[] values, double cacheReadWeightPercent,
+			double cacheWriteWeightPercent) {
+		double messageTokens = values[0] == null ? 0 : ((Number) values[0]).doubleValue();
+		double cacheReadTokens = values[1] == null ? 0 : ((Number) values[1]).doubleValue();
+		double cacheCreationTokens = values[2] == null ? 0 : ((Number) values[2]).doubleValue();
+		return messageTokens + cacheReadTokens * (cacheReadWeightPercent / 100.0)
+				+ cacheCreationTokens * (cacheWriteWeightPercent / 100.0);
 	}
 
 	/**
@@ -2083,10 +2119,17 @@ public class ModelInferenceLogsUtils {
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
 	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
+	 * @param cacheReadWeightPercent  percentage of a normal token a cache read
+	 *                                token counts as (100 = same as a normal
+	 *                                token); ignored outside token mode
+	 * @param cacheWriteWeightPercent percentage of a normal token a cache
+	 *                                creation token counts as; ignored outside
+	 *                                token mode
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
-			ZonedDateTime currentDateTime, String frequency) {
+			ZonedDateTime currentDateTime, String frequency, double cacheReadWeightPercent,
+			double cacheWriteWeightPercent) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
@@ -2118,17 +2161,20 @@ public class ModelInferenceLogsUtils {
 
 		// Step 3: Determine which column to sum (tokens or response time) based on
 		// restrictionMode
+		boolean isTokenMode = restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_CACHE_RESTRICTION_VALUE);
 		String sumColumn = null;
-		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		if (isTokenMode) {
+			// cache tokens are summed separately so the caller can weight them; they are
+			// not already folded into MESSAGE_TOKENS
+			sumColumn = " SUM(MESSAGE_TOKENS), SUM(CACHE_READ_TOKENS), SUM(CACHE_CREATION_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
 
 		// Step 4: Get total usage for the user excluding the engines in the
 		// engineIdList
-		String query = "SELECT " + sumColumn
-				+ " AS \"current_usage\" FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? "
+		String query = "SELECT " + sumColumn + " FROM MESSAGE WHERE USER_ID=? AND DATE_CREATED BETWEEN ? AND ? "
 				+ excludePSString;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -2149,14 +2195,15 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection(), ps, query, false);
 
 			if (wrapper.hasNext()) {
-				Number retNum = (Number) wrapper.next().getValues()[0];
+				Object[] values = wrapper.next().getValues();
+				if (isTokenMode) {
+					return weightedTokenTotal(values, cacheReadWeightPercent, cacheWriteWeightPercent);
+				}
 				// if this is null
 				// that means there are no logs currently for this model
 				// we will treat this as 0 usage
-				if (retNum == null) {
-					return 0;
-				}
-				return retNum;
+				Number retNum = (Number) values[0];
+				return retNum == null ? 0 : retNum;
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
