@@ -282,69 +282,125 @@
     }
   },
   "google": {
-    "web_search": {
-      "alias": "google_search",
-      "display_name": "Web Search",
-      "params": [
-        {
-          "alias": "google_search",
-          "display_name": "Google Search",
-          "type": "required",
-          "input": "map",
-          "options": [],
-          "default": {},
-          "show_in_ui": false
-        }
-      ],
-      "description": "This tool searches the web with Google Search to ground responses in current information and provide citations to verifiable sources."
+    "google": {
+      "web_search": {
+        "alias": "google_search",
+        "display_name": "Web Search",
+        "params": [
+          {
+            "alias": "google_search",
+            "display_name": "Google Search",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool searches the web with Google Search to ground responses in current information and provide citations to verifiable sources."
+      },
+      "google_maps": {
+        "alias": "google_maps",
+        "display_name": "Google Maps",
+        "params": [
+          {
+            "alias": "google_maps",
+            "display_name": "Google Maps",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool grounds location-aware responses in current Google Maps data and provides citations to Google Maps sources. Optional user coordinates must be supplied separately through toolConfig.retrievalConfig.latLng. The tool currently supports English-language prompts and responses."
+      },
+      "web_fetch": {
+        "alias": "url_context",
+        "display_name": "URL Context",
+        "params": [
+          {
+            "alias": "url_context",
+            "display_name": "URL Context",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool retrieves content from specific public URLs to provide additional context for a response. It supports up to 20 URLs per request and can process supported text, image, and PDF content."
+      },
+      "code_execution": {
+        "alias": "code_execution",
+        "display_name": "Code Execution",
+        "params": [
+          {
+            "alias": "code_execution",
+            "display_name": "Code Execution",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool lets the model write and run Python in a sandbox managed by Google, iterating on the code until it succeeds, and returns the generated code alongside its output."
+      }
     },
-    "google_maps": {
-      "alias": "google_maps",
-      "display_name": "Google Maps",
-      "params": [
-        {
-          "alias": "google_maps",
-          "display_name": "Google Maps",
-          "type": "required",
-          "input": "map",
-          "options": [],
-          "default": {},
-          "show_in_ui": false
-        }
-      ],
-      "description": "This tool grounds location-aware responses in current Google Maps data and provides citations to Google Maps sources. Optional user coordinates must be supplied separately through toolConfig.retrievalConfig.latLng. The tool currently supports English-language prompts and responses."
-    },
-    "web_fetch": {
-      "alias": "url_context",
-      "display_name": "URL Context",
-      "params": [
-        {
-          "alias": "url_context",
-          "display_name": "URL Context",
-          "type": "required",
-          "input": "map",
-          "options": [],
-          "default": {},
-          "show_in_ui": false
-        }
-      ],
-      "description": "This tool retrieves content from specific public URLs to provide additional context for a response. It supports up to 20 URLs per request and can process supported text, image, and PDF content."
-    },
-    "code_execution": {
-      "alias": "code_execution",
-      "display_name": "Code Execution",
-      "params": [
-        {
-          "alias": "code_execution",
-          "display_name": "Code Execution",
-          "type": "required",
-          "input": "map",
-          "options": [],
-          "default": {},
-          "show_in_ui": false
-        }
-      ],
-      "description": "This tool lets the model write and run Python in a sandbox managed by Google, iterating on the code until it succeeds, and returns the generated code alongside its output."
+    "anthropic": {
+      "web_search": {
+        "alias": "web_search_20250305",
+        "display_name": "Web Search",
+        "params": [
+          {
+            "alias": "name",
+            "display_name": "Name",
+            "type": "required",
+            "input": "string",
+            "options": ["web_search"],
+            "default": "web_search",
+            "show_in_ui": false
+          },
+          {
+            "alias": "type",
+            "display_name": "Type",
+            "type": "required",
+            "input": "string",
+            "options": ["web_search_20250305"],
+            "default": "web_search_20250305",
+            "show_in_ui": false
+          },
+          {
+            "alias": "max_uses",
+            "display_name": "Maximum Uses",
+            "type": "optional",
+            "input": "number",
+            "options": [],
+            "default": 5,
+            "show_in_ui": true
+          },
+          {
+            "alias": "allowed_domains",
+            "display_name": "Allowed Domains",
+            "type": "optional",
+            "input": "list",
+            "options": [],
+            "default": [],
+            "show_in_ui": true
+          },
+          {
+            "alias": "blocked_domains",
+            "display_name": "Blocked Domains",
+            "type": "optional",
+            "input": "list",
+            "options": [],
+            "default": [],
+            "show_in_ui": true
+          }
+        ],
+        "description": "This tool searches the web for relevant results to use in a response. Google Cloud serves only this basic tool version for Claude models - dynamic filtering, web fetch, and code execution are not available on Vertex AI. Never set both allowed domains and blocked domains; a request with both fails with a 400."
+      }
     }
   },
   "bedrock": {

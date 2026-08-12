@@ -26,6 +26,10 @@ from ..semoss_base.semoss_models import (
     ModelSettings,
 )
 from ...utils import string_to_bool
+from ..semoss_base.builtin_tools import (
+    built_in_tool_request_fields,
+    normalize_built_in_tools,
+)
 from ..semoss_base.reasoning import normalize_reasoning
 
 MODEL_MAX_OUTPUT_TOKENS = {
@@ -450,17 +454,13 @@ class AnthropicMessageBuilder:
             has_structured_input=has_schema,
         )
 
-    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+    def _build_built_in_tools(self, built_in_tools: Any) -> List[Dict[str, Any]]:
         anthropic_built_in_tools: List[Dict[str, Any]] = []
-        for tool in built_in_tools:
-            if tool.lower() == "web_search":
-                anthropic_built_in_tools.append(
-                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
-                )
-            elif tool.lower() == "code_execution":
-                anthropic_built_in_tools.append(
-                    {"type": "code_execution_20250825", "name": "code_execution"}
-                )
+        for selection in normalize_built_in_tools(built_in_tools):
+            spec = built_in_tool_request_fields(selection)
+            spec.setdefault("type", selection["alias"])
+            spec.setdefault("name", selection["name"])
+            anthropic_built_in_tools.append(spec)
         return anthropic_built_in_tools
 
     def _build_tool_choice(

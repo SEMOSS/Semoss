@@ -51,10 +51,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -75,6 +77,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityModelMetadataUtils.class);
 	private static final Gson GSON = new Gson();
+	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
@@ -596,7 +600,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
 		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
 		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
-		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
+		capabilities.put("builtinTools", emptyMapIfNull(modelMetadata.get("builtinTools")));
 		capabilities.put("attachment", modelMetadata.get("attachment"));
 		capabilities.put("reasoning", modelMetadata.get("reasoning"));
 		capabilities.put("toolCall", modelMetadata.get("toolCall"));
@@ -786,11 +790,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Built-in tools started as a flat list of canonical tool names and now
-	 * also accept a JSON object keyed by tool name that holds the selected
-	 * configuration for each tool. An object is stored as-is after its keys
-	 * are normalized; anything else falls back to the legacy list handling so
-	 * rows and SMSS values written before configurations existed stay valid.
+	 * Built-in tools are stored as a JSON object keyed by tool name holding
+	 * the selected catalog definition for each tool. An empty selection is
+	 * stored as SQL NULL; anything that is not a JSON object is rejected.
 	 */
 	private static void normalizeBuiltinToolsProperty(Map<String, Object> details) {
 		String key = Constants.BUILTIN_TOOLS;
@@ -803,15 +805,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			return;
 		}
 
-		JsonElement json = null;
+		JsonElement json;
 		try {
 			json = value instanceof String ? JsonParser.parseString(value.toString()) : GSON.toJsonTree(value);
 		} catch (RuntimeException e) {
-			// not JSON - the legacy comma-separated list of tool names
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name", e);
 		}
-		if (json == null || !json.isJsonObject()) {
-			normalizeListProperty(details, key, false);
-			return;
+		if (!json.isJsonObject()) {
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name");
 		}
 
 		JsonObject selection = json.getAsJsonObject();
@@ -828,17 +829,16 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Stored built-in tools are either the legacy JSON array of tool names or
-	 * a JSON object keyed by tool name. Return whichever shape was stored.
+	 * Stored built-in tools are a JSON object keyed by tool name; anything
+	 * else in the column reads as unset. Whole numbers parse as longs rather
+	 * than gson's default doubles, since the selection is forwarded to the
+	 * python clients where a max_uses of 5.0 is not the same request as 5.
 	 */
-	private static Object parseStoredBuiltinTools(String json) {
-		if (json == null) {
+	private static Map<?, ?> parseStoredBuiltinTools(String json) {
+		if (json == null || !json.trim().startsWith("{")) {
 			return null;
 		}
-		if (json.trim().startsWith("{")) {
-			return GSON.fromJson(json, Map.class);
-		}
-		return parseStoredList(json);
+		return LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
 	}
 
 	private static void normalizeBooleanProperty(Map<String, Object> details, String key) {

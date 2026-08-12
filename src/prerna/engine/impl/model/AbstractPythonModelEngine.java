@@ -277,6 +277,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		checkSocketStatus();
 
+		if (this.builtinTools != null) {
+			if (parameters == null) {
+				parameters = new HashMap<>();
+			}
+			if (!parameters.containsKey(BUILT_IN_TOOLS)) {
+				parameters.put(BUILT_IN_TOOLS, this.builtinTools);
+			}
+		}
+
 		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
 
