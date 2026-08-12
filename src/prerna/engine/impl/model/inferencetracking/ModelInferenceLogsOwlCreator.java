@@ -172,6 +172,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("UI_URL", CLOB_DATATYPE_NAME),
 				Pair.with("STATUS", VARCHAR_50),
 				Pair.with("RESULT", CLOB_DATATYPE_NAME),
+				Pair.with("TOOL_STATUS", VARCHAR_50),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));
