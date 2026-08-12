@@ -298,19 +298,17 @@ public class Room implements Serializable {
 
 			applyTextModelParams(kwArgMap);
 
-			boolean useHistory = true;
+			boolean persistTurn = shouldPersistTurn(msg, modelEngine);
 			Object useHistoryObj = kwArgMap.get("use_history");
 			if (useHistoryObj instanceof Boolean) {
-				useHistory = (Boolean) useHistoryObj;
 				kwArgMap.remove("use_history");
 			} else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
-				useHistory = false;
 				kwArgMap.remove("use_history");
 			}
 
 			// does the model have keep keep input output off or is use_history false? if so
 			// then just ask the model and send the response back.
-			if (!modelEngine.keepInputOutput() || !useHistory) {
+			if (!persistTurn) {
 				String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 				kwArgMap.put("message_json", singleMessageJson);
 
@@ -404,6 +402,96 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Returns whether a turn should be appended to room history. This is shared by
+	 * live asks and FE-driven cancel persistence so both paths honor the same
+	 * retention controls.
+	 */
+	public static boolean shouldPersistTurn(InputMessage msg, IModelEngine modelEngine) {
+		Map<String, Object> paramMap = msg.getParamMap();
+		if (paramMap != null && paramMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			return false;
+		}
+		if (!modelEngine.keepInputOutput()) {
+			return false;
+		}
+
+		Object useHistoryObj = paramMap == null ? null : paramMap.get("use_history");
+		if (useHistoryObj instanceof Boolean) {
+			return (Boolean) useHistoryObj;
+		}
+		return useHistoryObj == null || !"false".equalsIgnoreCase(useHistoryObj.toString());
+	}
+
+	public ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			List<Map<String, Object>> responseParts, String hiddenMessage, List<AbstractMessage> extrasOut) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			ResponseMessage response = MessageUtils.buildResponseMessageFromParts(responseParts);
+			response.setModel(modelEngine);
+			response.setRoom(this);
+			response.setParentMessageId(msg.getMessageId());
+
+			if (!shouldPersistTurn(msg, modelEngine)) {
+				return response;
+			}
+
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				if (!modelEngine.keepsConversationHistory()) {
+					messages.clear();
+				}
+				RoomMessageStore.normalizeForProviderPayload(this);
+
+				msg.setModel(modelEngine);
+				if (!messages.isEmpty()) {
+					if (parentMessageId != null && !parentMessageId.isEmpty()) {
+						msg.setParentMessageId(parentMessageId);
+					} else {
+						AbstractMessage lastMsg = messages.get(messages.size() - 1);
+						msg.setParentMessageId(lastMsg.getMessageId());
+					}
+				} else {
+					msg.setParentMessageId(null);
+				}
+				response.setParentMessageId(msg.getMessageId());
+
+				messages.add(msg);
+				messages.add(response);
+
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
+					MessageUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(),
+							extrasOut);
+				}
+
+				String prevRoomName = roomName;
+				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+					for (AbstractMessage m : messages) {
+						if (m instanceof InputMessage) {
+							String prompt = ((InputMessage) m).getInputUIPrompt();
+							if (prompt != null && !prompt.trim().isEmpty()) {
+								roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+								break;
+							}
+						}
+					}
+				}
+				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && roomName != null
+						&& !roomName.trim().isEmpty()) {
+					RoomMessageStore.persist(this, userId, roomName, modelEngine.getEngineId());
+				} else {
+					RoomMessageStore.persist(this, userId);
+				}
+			}
+			return response;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
 	 * Adds a tool execution result to the active tool-call context and, when all
 	 * pending tool calls are satisfied, invokes the model for the follow-up
 	 * assistant response.
@@ -432,7 +520,22 @@ public class Room implements Serializable {
 		lock.lock();
 		try {
 			return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
-					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true);
+					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, null);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	// Cancel-persistence overload: when all tools are answered, slots in prebuiltResponse instead of calling the LLM.
+	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
+			ResponseMessage prebuiltResponse) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
+					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, prebuiltResponse);
 		} finally {
 			lock.unlock();
 		}
@@ -450,7 +553,7 @@ public class Room implements Serializable {
 		lock.lock();
 		try {
 			addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues, null,
-					parentMessageId, modelEngine, insight, toolStatus, false);
+					parentMessageId, modelEngine, insight, toolStatus, false, null);
 		} finally {
 			lock.unlock();
 		}
@@ -493,7 +596,7 @@ public class Room implements Serializable {
 	private AskModelEngineResponse addToolExecutionResultInternal(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
-			boolean continueWhenReady) {
+			boolean continueWhenReady, ResponseMessage prebuiltResponse) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
@@ -515,7 +618,35 @@ public class Room implements Serializable {
 
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
-			if (toolResultsMessage == null) {
+			boolean appendedPartThisCall = false;
+
+			// Idempotency guard: reuse the existing carrier if toolCallId was already answered, to avoid duplicate tool_result blocks.
+			InputMessage existingCarrier = null;
+			for (int i = context.toolResponseIdx + 1; i < messages.size(); ++i) {
+				AbstractMessage m = messages.get(i);
+				if (m instanceof ResponseMessage) {
+					break;
+				}
+				if (m instanceof InputMessage && m.hasToolResultPart()) {
+					for (MessagePart p : m.getParts()) {
+						if (p instanceof ToolResultMessagePart) {
+							ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+							if (tr != null && toolCallId.equals(tr.getToolCallId())) {
+								existingCarrier = (InputMessage) m;
+								break;
+							}
+						}
+					}
+					if (existingCarrier != null) {
+						break;
+					}
+				}
+			}
+
+			if (existingCarrier != null) {
+				// Duplicate submission - reuse the existing message instead of appending a second part.
+				toolResultsMessage = existingCarrier;
+			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
 				toolResultsMessage = InputMessage
 						.builder(this).withSystemPrompt(this.getSystemPromptForModel()).withToolResult(toolCallId,
@@ -528,6 +659,7 @@ public class Room implements Serializable {
 				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
 						toolExecutionResponse, toolParameterValues, toolStatus, false)));
 				toolResultsMessage.normalizeForWrite();
+				appendedPartThisCall = true;
 			}
 
 			if (isToolResultsInputMessage) {
@@ -539,7 +671,8 @@ public class Room implements Serializable {
 				return null;
 			}
 			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-					modelEngine, userId, true);
+					modelEngine, userId, true, prebuiltResponse, toolCallId, isToolResultsInputMessage,
+					appendedPartThisCall);
 		}
 	}
 
@@ -675,6 +808,14 @@ public class Room implements Serializable {
 	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
 			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
 			boolean removeToolResultsOnFailure) {
+		return continueFromToolResultsMessage(toolResponseIdx, toolResultsMessage, paramValuesMap, modelEngine, userId,
+				removeToolResultsOnFailure, null, null, false, false);
+	}
+
+	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
+			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
+			boolean removeToolResultsOnFailure, ResponseMessage prebuiltResponse, String toolCallId,
+			boolean isToolResultsInputMessage, boolean appendedPartThisCall) {
 		String messageJsonString = RoomMessageStore.currentMessageHistory(this);
 		if (paramValuesMap == null) {
 			paramValuesMap = new HashMap<>();
@@ -697,18 +838,48 @@ public class Room implements Serializable {
 
 		AskModelEngineResponse llmResponse = null;
 		ResponseMessage nextAssistant = null;
-		try {
-			llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
-					paramValuesMap);
-			applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
-			nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
-		} catch (Exception e) {
-			if (removeToolResultsOnFailure && !messages.isEmpty()) {
-				messages.removeLast();
+		if (prebuiltResponse != null) {
+			// Cancel-persistence path: skip the LLM call, slot in the caller-supplied response.
+			nextAssistant = prebuiltResponse;
+			nextAssistant.setModel(modelEngine);
+			nextAssistant.setRoom(this);
+			nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
+		} else {
+			try {
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
+				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
+				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
+			} catch (Exception e) {
+				// Rollback: remove only what this call added, not the whole message.
+				if (removeToolResultsOnFailure && !messages.isEmpty()) {
+					if (isToolResultsInputMessage) {
+						messages.removeLast();
+					} else if (toolCallId != null) {
+						// Only strip the part when this call actually appended it; on the dedupe-reuse
+						// path the part pre-existed and must survive the failure.
+						if (appendedPartThisCall) {
+							// getParts() returns a defensive copy, so removeIf on it wouldn't touch the
+							// message; strip on the copy and set it back so the part is actually dropped.
+							List<MessagePart> remainingParts = toolResultsMessage.getParts();
+							remainingParts.removeIf(p -> {
+								if (p instanceof ToolResultMessagePart) {
+									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+									return tr != null && toolCallId.equals(tr.getToolCallId());
+								}
+								return false;
+							});
+							toolResultsMessage.setParts(remainingParts);
+							toolResultsMessage.normalizeForWrite();
+						}
+					} else {
+						messages.removeLast();
+					}
+				}
+				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						e.getMessage(), e);
+				throw e;
 			}
-			classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
-					e.getMessage(), e);
-			throw e;
 		}
 		messages.add(nextAssistant);
 

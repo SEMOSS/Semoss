@@ -45,13 +45,11 @@ public class RemoteBrowserInputEventValidator {
 	private static final int MAX_REQUEST_ID_LENGTH = 128;
 	private static final double MIN_SELECTION_SIZE = 2;
 
-	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(
-			Arrays.asList("mouse-click", "mouse-move", "mouse-down", "mouse-up", "wheel", "type-text", "key",
-					"navigate", "close-session", "navigate-back", "navigate-forward", "reload", "recording",
-					"recording-control", "selected-text-context", "switch-tab", "switch-replay-tab",
-					"prepare-replay", "close-tab"));
+	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList("mouse-click", "mouse-move",
+			"mouse-down", "mouse-up", "wheel", "type-text", "key", "navigate", "close-session", "navigate-back",
+			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context", "switch-tab",
+			"switch-replay-tab", "prepare-replay", "new-tab", "close-tab", "fill-element"));
 	private static final int MAX_WAIT_AFTER_MS = 60_000;
-
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
 
@@ -78,6 +76,13 @@ public class RemoteBrowserInputEventValidator {
 		}
 		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
 			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
+		if (event.getExpectedUrl() != null && event.getExpectedUrl().length() > MAX_URL_LENGTH) {
+			throw new IllegalArgumentException("expectedUrl exceeds max length " + MAX_URL_LENGTH);
+		}
+		if (event.getExpectedTabId() != null && !event.getExpectedTabId().isBlank()
+				&& !event.getExpectedTabId().matches("tab-[1-9][0-9]*")) {
+			throw new IllegalArgumentException("expectedTabId must be a valid tab ID");
 		}
 		if (event.getWaitAfterMs() != null
 				&& (event.getWaitAfterMs() < 0 || event.getWaitAfterMs() > MAX_WAIT_AFTER_MS)) {
@@ -118,6 +123,19 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
+		case "fill-element":
+			if (event.getText() == null || event.getText().isEmpty()) {
+				throw new IllegalArgumentException("fill-element event requires non-empty 'text'");
+			}
+			if (event.getText().length() > MAX_TYPE_TEXT_LENGTH) {
+				throw new IllegalArgumentException("fill-element exceeds max length " + MAX_TYPE_TEXT_LENGTH);
+			}
+			if (event.getSelector() == null || event.getSelector().value() == null
+					|| event.getSelector().value().isBlank()) {
+				throw new IllegalArgumentException("fill-element event requires a non-empty selector");
+			}
+			break;
+
 		case "key":
 			if (event.getKey() == null || event.getKey().isEmpty()) {
 				throw new IllegalArgumentException("key event requires non-empty 'key'");
@@ -149,6 +167,12 @@ public class RemoteBrowserInputEventValidator {
 		case "close-tab":
 			if (event.getTargetTabId() == null || !event.getTargetTabId().matches("tab-[1-9][0-9]*")) {
 				throw new IllegalArgumentException(type + " event requires a valid 'targetTabId'");
+			}
+			break;
+
+		case "new-tab":
+			if (event.getTargetTabId() != null && !event.getTargetTabId().matches("tab-[1-9][0-9]*")) {
+				throw new IllegalArgumentException("new-tab targetTabId must be a valid tab ID when provided");
 			}
 			break;
 

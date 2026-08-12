@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -90,10 +91,58 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
+		// backfill runtime settings from the MODELMETADATA table into the working
+		// smss properties - a value defined in the smss file always wins
+		fillModelSettingsFromMetadata();
+
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
 		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
-		this.contextWindow = contextWindowStr != null ? Integer.parseInt(contextWindowStr) : 0;
+		this.contextWindow = contextWindowStr != null && !contextWindowStr.trim().isEmpty()
+				? Integer.parseInt(contextWindowStr.trim())
+				: 0;
+	}
+
+	/**
+	 * Query the MODELMETADATA table once on engine open and fill in any model
+	 * settings that are not defined in the smss file. Downstream consumers (the
+	 * INIT_MODEL_ENGINE var substitution, getSmssProp callers, getContextWindow)
+	 * all read from the merged smssProp so they do not need to know about the
+	 * table. The original file contents remain untouched in origSmssProp.
+	 */
+	private void fillModelSettingsFromMetadata() {
+		if (this.engineId == null || this.engineId.trim().isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> metadata = null;
+		try {
+			metadata = SecurityModelMetadataUtils.getModelMetadata(this.engineId);
+		} catch (Exception e) {
+			classLogger.warn("Unable to load model metadata for engine {} - using smss values only", this.engineId, e);
+			return;
+		}
+		if (metadata == null) {
+			return;
+		}
+
+		fillIfMissing("context_window", metadata.get("contextWindow"));
+		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
+	}
+
+	/**
+	 * Set the smss property to the metadata value only when the smss file does not
+	 * already define a non-empty value for the key.
+	 */
+	private void fillIfMissing(String smssKey, Object metadataValue) {
+		if (metadataValue == null) {
+			return;
+		}
+		String current = this.smssProp.getProperty(smssKey);
+		if (current != null && !current.trim().isEmpty()) {
+			return;
+		}
+		this.smssProp.put(smssKey, String.valueOf(metadataValue));
 	}
 
 	/**

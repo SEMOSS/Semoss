@@ -89,6 +89,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		addTable("MODELMETADATA", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("MODELID", VARCHAR_255),
+				Pair.with("CATALOGMODELKEY", VARCHAR_255),
 				Pair.with("MODELPROVIDER", VARCHAR_255),
 				Pair.with("SERVINGPROVIDER", VARCHAR_255),
 				Pair.with("CAPABILITY", VARCHAR_255),
@@ -96,7 +97,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("INPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("OUTPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("CONTEXTWINDOW", "BIGINT"),
-				Pair.with("MAXINPUTTOKENS", "BIGINT"),
 				Pair.with("MAXOUTPUTTOKENS", "BIGINT"),
 				Pair.with("BUILTINTOOLS", CLOB_DATATYPE_NAME),
 				Pair.with("ATTACHMENT", BOOLEAN_DATATYPE_NAME),
