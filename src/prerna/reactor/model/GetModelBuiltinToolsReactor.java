@@ -76,39 +76,57 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	 */
 	private static final String SMSS_PROVIDER = "PROVIDER";
 
+	static final String SERVING_PROVIDER_KEY = "servingProvider";
+	static final String MODEL_PROVIDER_KEY = "modelProvider";
+	static final String MODEL_ID_KEY = "modelId";
+
 	public GetModelBuiltinToolsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), SERVING_PROVIDER_KEY, MODEL_PROVIDER_KEY,
+				MODEL_ID_KEY };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		if (engineId == null || engineId.trim().isEmpty()) {
-			throw new IllegalArgumentException("Must input a model engine id");
+		String engineId = trimToNull(this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
+		String servingProviderInput = trimToNull(this.keyValue.get(SERVING_PROVIDER_KEY));
+		String modelProviderInput = trimToNull(this.keyValue.get(MODEL_PROVIDER_KEY));
+		String modelIdInput = trimToNull(this.keyValue.get(MODEL_ID_KEY));
+
+		// an existing engine resolves everything itself; the explicit inputs
+		// serve the import flow, where the engine does not exist yet
+		Map<String, Object> metadata = null;
+		Properties smssProp = null;
+		if (engineId != null) {
+			User user = this.insight.getUser();
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Model engine does not exist or user does not have access to view it");
+			}
+			if (SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL) {
+				throw new IllegalArgumentException("Engine is not a model engine");
+			}
+			metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
+			smssProp = loadSmssProperties(engineId);
+		} else if (servingProviderInput == null && modelProviderInput == null && modelIdInput == null) {
+			throw new IllegalArgumentException(
+					"Must input a model engine id, or a serving provider, model provider, or model id");
 		}
 
-		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException("Model engine does not exist or user does not have access to view it");
-		}
-		if (SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL) {
-			throw new IllegalArgumentException("Engine is not a model engine");
-		}
-
-		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
-		Properties smssProp = loadSmssProperties(engineId);
-
-		String modelId = resolveModelId(metadata, smssProp);
-		String servingProvider = resolveServingProvider(metadata, smssProp);
-		String modelProvider = resolveModelProvider(metadata, modelId);
+		String modelId = modelIdInput != null ? modelIdInput : resolveModelId(metadata, smssProp);
+		String servingProvider = servingProviderInput != null
+				? StaticBuiltinToolsCatalog.normalizeProviderKey(servingProviderInput)
+				: resolveServingProvider(metadata, smssProp);
+		String modelProvider = modelProviderInput != null
+				? StaticBuiltinToolsCatalog.normalizeProviderKey(modelProviderInput)
+				: resolveModelProvider(metadata, modelId);
 
 		Map<String, Object> tools = getTools(servingProvider, modelProvider, modelId);
 
 		Map<String, Object> response = new LinkedHashMap<>();
-		response.put("engineId", engineId);
+		response.put("engineId", engineId == null ? "" : engineId);
 		response.put("modelId", modelId == null ? "" : modelId);
 		response.put("modelProvider", modelProvider == null ? "" : modelProvider);
 		response.put("servingProvider", servingProvider == null ? "" : servingProvider);
@@ -227,13 +245,22 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the provider-hosted built-in tools available to a model engine from meta/builtin-tools.json, resolved by its serving provider and model provider, alongside the engine's saved tool selection";
+		return "Returns the provider-hosted built-in tools available to a model from meta/builtin-tools.json, resolved by serving provider and model provider. Pass an existing engine to resolve both from it (alongside its saved tool selection), or pass the providers and model id directly when the engine does not exist yet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id or name of the model engine";
+			return "The id or name of an existing model engine; optional when the providers are passed directly";
+		}
+		if (key.equals(SERVING_PROVIDER_KEY)) {
+			return "Who hosts the model (openai, anthropic, google, bedrock, azure); the SMSS MODEL_TYPE values are also accepted";
+		}
+		if (key.equals(MODEL_PROVIDER_KEY)) {
+			return "Who made the model (openai, anthropic, google); inferred from the model id when omitted";
+		}
+		if (key.equals(MODEL_ID_KEY)) {
+			return "The provider model id, used to infer the model provider and evaluate per-tool model constraints";
 		}
 		return super.getDescriptionForKey(key);
 	}

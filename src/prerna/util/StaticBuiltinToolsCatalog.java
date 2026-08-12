@@ -176,6 +176,7 @@ public final class StaticBuiltinToolsCatalog {
 		case "open_ai", "openai" -> "openai";
 		case "azure_open_ai", "azure_openai" -> "azure";
 		case "vertex", "vertex_ai", "google_vertex" -> "google";
+		case "aws_bedrock", "amazon_bedrock" -> "bedrock";
 		default -> value;
 		};
 	}
