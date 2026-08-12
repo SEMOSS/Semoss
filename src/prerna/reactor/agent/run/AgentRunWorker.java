@@ -47,6 +47,10 @@ import prerna.logging.SemossLogUtils;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
+import prerna.reactor.agent.subagent.SubAgentMeta;
 
 final class AgentRunWorker {
 
@@ -171,8 +175,10 @@ final class AgentRunWorker {
 	private void execute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
 		String jobId = runId;
+		String parentRunId = record.getRequest() != null ? record.getRequest().getParentRunId() : null;
 		try {
 			seedThreadStore(runId, insightHandle);
+			publishSubagentPatch(parentRunId, runId, AgentRunStatus.RUNNING);
 			RunAgentRequest request = record.getRequest();
 			// Detect resume: the persisted request always has resumeMode=false on initial
 			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
@@ -194,24 +200,69 @@ final class AgentRunWorker {
 				throw new AgentCancelledException();
 			}
 			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			AgentRunStreamService.get().markTerminal(runId);
+			publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.COMPLETED,
+					result != null ? result.getFinalText() : null, null);
 		} catch (Exception e) {
 			jobId = runtime.firstNonBlank(ThreadStore.getJobId(), jobId);
 			if (runtime.isCancelled(e)) {
 				store.markCancelled(runId, jobId, runtime.boundedError(e));
+				AgentRunStreamService.get().markTerminal(runId);
+				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null,
+						runtime.boundedError(e));
 			} else if (e instanceof prerna.reactor.agent.exceptions.AgentInputRequiredException) {
 				// Harness paused on SMSS_MCP_EXECUTION=ask tools.
 				// The harness already persisted the AGENT_RUN_ACTION rows; only
 				// transition the durable run status here.
 				store.markInputRequired(runId, jobId);
+				publishSubagentPatch(parentRunId, runId, AgentRunStatus.INPUT_REQUIRED);
 				logger.info("AgentRunWorker: runId={} paused for user input", runId);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
+				AgentRunStreamService.get().markTerminal(runId);
+				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null,
+						runtime.boundedError(e));
 			}
 			logger.warn("AgentRunWorker: runId={} failed: {}", runId, e.getMessage(), e);
 		} finally {
 			ThreadStore.remove();
 			cleanupInsight(runId, insightHandle);
 		}
+	}
+
+	private static void publishSubagentPatch(String parentRunId, String childRunId, AgentRunStatus status) {
+		if (parentRunId == null || parentRunId.isBlank()) {
+			return;
+		}
+		Map<String, Object> patch = new HashMap<>();
+		patch.put("status", status.name());
+		AgentRunStreamService.get().publishSubagentUpdated(parentRunId, childRunId, patch);
+	}
+
+	private static void publishSubagentTerminal(String parentRunId, AgentRunRecord record, String runId,
+			AgentRunStatus status, String resultPreview, String error) {
+		if (parentRunId == null || parentRunId.isBlank()) {
+			return;
+		}
+		String alias = null;
+		String workspaceId = record.getRequest() != null ? record.getRequest().getWorkspaceId() : null;
+		SubAgentMeta meta = AgentSubAgentRegistry.getManager().lookup(runId);
+		if (meta != null) {
+			alias = meta.getAlias();
+			if (meta.getWorkspaceId() != null) {
+				workspaceId = meta.getWorkspaceId();
+			}
+		}
+		Map<String, Object> item = AgentStreamItems.subagentItem(runId, alias, record.getRoomId(), workspaceId,
+				status.name());
+		if (resultPreview != null && !resultPreview.isBlank()) {
+			item.put("resultPreview",
+					AgentStreamItems.truncate(resultPreview, AgentStreamItems.MAX_RESULT_PREVIEW_CHARS));
+		}
+		if (error != null && !error.isBlank()) {
+			item.put("error", AgentStreamItems.truncate(error, AgentStreamItems.MAX_RESULT_PREVIEW_CHARS));
+		}
+		AgentRunStreamService.get().publishSubagentCompleted(parentRunId, item);
 	}
 
 	private void waitForSignal() {
