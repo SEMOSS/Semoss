@@ -249,6 +249,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
+	 * Whether the caller already named an output token limit under any of the
+	 * aliases the python message builders accept.
+	 */
+	private static boolean hasMaxTokensParam(Map<String, Object> parameters) {
+		return parameters.containsKey(MAX_TOKENS) || parameters.containsKey("max_completion_tokens")
+				|| parameters.containsKey("max_output_tokens") || parameters.containsKey("max_new_tokens");
+	}
+
+	/**
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
 	protected void checkSocketStatus() {
@@ -277,12 +286,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		checkSocketStatus();
 
-		if (this.builtinTools != null) {
+		// ride the engine's saved built-in tool selection and max output
+		// tokens along on the request unless the caller supplied their own
+		if (this.builtinTools != null || this.maxTokens != null) {
 			if (parameters == null) {
 				parameters = new HashMap<>();
 			}
-			if (!parameters.containsKey(BUILT_IN_TOOLS)) {
+			if (this.builtinTools != null && !parameters.containsKey(BUILT_IN_TOOLS)) {
 				parameters.put(BUILT_IN_TOOLS, this.builtinTools);
+			}
+			if (this.maxTokens != null && !hasMaxTokensParam(parameters)) {
+				parameters.put(MAX_TOKENS, this.maxTokens);
 			}
 		}
 

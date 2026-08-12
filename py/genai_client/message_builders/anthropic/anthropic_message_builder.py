@@ -801,6 +801,7 @@ class AnthropicMessageBuilder:
             kwargs.pop("max_tokens", None)
             or kwargs.pop("max_completion_tokens", None)
             or self.model_settings.max_tokens
+            or self._get_model_max_output_tokens(self.model_name)
         )
 
         # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET (legacy only)

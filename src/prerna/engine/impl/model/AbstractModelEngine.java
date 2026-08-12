@@ -79,6 +79,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
 	public static final String BUILT_IN_TOOLS = "built_in_tools";
+	public static final String MAX_TOKENS = "max_tokens";
 
 	// the init script loading tells us the provider we are using
 	// but we also want to know what the model brand actually is
@@ -97,6 +98,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 */
 	protected Object builtinTools = null;
 
+	/**
+	 * The max output tokens to request when the caller does not name one -
+	 * the smss value when defined, otherwise the MODELMETADATA row's
+	 * maxOutputTokens. Null when neither names one, in which case the python
+	 * clients fall back to the model's own output cap.
+	 */
+	protected Long maxTokens = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -111,6 +120,29 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		this.contextWindow = contextWindowStr != null && !contextWindowStr.trim().isEmpty()
 				? Integer.parseInt(contextWindowStr.trim())
 				: 0;
+		this.maxTokens = resolveMaxTokens();
+	}
+
+	/**
+	 * The effective max output tokens after the metadata merge: the smss file
+	 * wins under either key casing, then the metadata backfill placed under
+	 * the lowercase param key. A value that does not parse reads as unset
+	 * rather than failing engine open.
+	 */
+	private Long resolveMaxTokens() {
+		String value = this.smssProp.getProperty(Constants.MAX_TOKENS);
+		if (value == null || value.trim().isEmpty()) {
+			value = this.smssProp.getProperty(MAX_TOKENS);
+		}
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return Long.parseLong(value.trim());
+		} catch (NumberFormatException e) {
+			classLogger.warn("Model {} has an invalid max tokens value '{}' - ignoring it", this.engineId, value);
+			return null;
+		}
 	}
 
 	/**
