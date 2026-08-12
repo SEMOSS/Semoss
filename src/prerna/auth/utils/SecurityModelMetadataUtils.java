@@ -53,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.engine.api.IEngine;
@@ -118,7 +119,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		normalizeCapabilityProperty(normalized);
 		normalizeListProperty(normalized, Constants.INPUT_MODALITIES, true);
 		normalizeListProperty(normalized, Constants.OUTPUT_MODALITIES, true);
-		normalizeListProperty(normalized, Constants.BUILTIN_TOOLS, false);
+		normalizeBuiltinToolsProperty(normalized);
 		normalizeBooleanProperty(normalized, Constants.ATTACHMENT);
 		normalizeBooleanProperty(normalized, Constants.REASONING);
 		normalizeBooleanProperty(normalized, Constants.TOOL_CALL);
@@ -784,6 +785,62 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return json == null ? null : parseList(json);
 	}
 
+	/**
+	 * Built-in tools started as a flat list of canonical tool names and now
+	 * also accept a JSON object keyed by tool name that holds the selected
+	 * configuration for each tool. An object is stored as-is after its keys
+	 * are normalized; anything else falls back to the legacy list handling so
+	 * rows and SMSS values written before configurations existed stay valid.
+	 */
+	private static void normalizeBuiltinToolsProperty(Map<String, Object> details) {
+		String key = Constants.BUILTIN_TOOLS;
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		if (value == null || value.toString().trim().isEmpty()) {
+			details.put(key, null);
+			return;
+		}
+
+		JsonElement json = null;
+		try {
+			json = value instanceof String ? JsonParser.parseString(value.toString()) : GSON.toJsonTree(value);
+		} catch (RuntimeException e) {
+			// not JSON - the legacy comma-separated list of tool names
+		}
+		if (json == null || !json.isJsonObject()) {
+			normalizeListProperty(details, key, false);
+			return;
+		}
+
+		JsonObject selection = json.getAsJsonObject();
+		JsonObject normalized = new JsonObject();
+		for (Map.Entry<String, JsonElement> entry : selection.entrySet()) {
+			String toolName = entry.getKey().trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+			if (!LOWER_SNAKE_CASE_PATTERN.matcher(toolName).matches()) {
+				throw new IllegalArgumentException("Invalid " + key + " tool name " + entry.getKey());
+			}
+			normalized.add(toolName, entry.getValue());
+		}
+		// store an unset selection as SQL NULL rather than an empty JSON object
+		details.put(key, normalized.size() == 0 ? null : GSON.toJson(normalized));
+	}
+
+	/**
+	 * Stored built-in tools are either the legacy JSON array of tool names or
+	 * a JSON object keyed by tool name. Return whichever shape was stored.
+	 */
+	private static Object parseStoredBuiltinTools(String json) {
+		if (json == null) {
+			return null;
+		}
+		if (json.trim().startsWith("{")) {
+			return GSON.fromJson(json, Map.class);
+		}
+		return parseStoredList(json);
+	}
+
 	private static void normalizeBooleanProperty(Map<String, Object> details, String key) {
 		if (!details.containsKey(key)) {
 			return;
@@ -876,7 +933,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
 		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
 		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
-		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
+		metadata.put("builtinTools", parseStoredBuiltinTools(rs.getString("BUILTINTOOLS")));
 		metadata.put("attachment", getNullableBoolean(rs, "ATTACHMENT"));
 		metadata.put("reasoning", getNullableBoolean(rs, "REASONING"));
 		metadata.put("toolCall", getNullableBoolean(rs, "TOOLCALL"));
