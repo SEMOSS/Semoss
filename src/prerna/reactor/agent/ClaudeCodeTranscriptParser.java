@@ -29,6 +29,7 @@ package prerna.reactor.agent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -115,18 +116,20 @@ public class ClaudeCodeTranscriptParser {
 		// Get tool_use_id and text content from message.content array if present
 		String toolUseId = null;
 		String contentText = null;
+		boolean blockError = false;
 		JSONObject message = raw.optJSONObject("message");
 		if (message != null) {
 			JSONArray content = message.optJSONArray("content");
 			if (content != null && content.length() > 0) {
 				JSONObject firstBlock = content.getJSONObject(0);
 				toolUseId = firstBlock.optString("tool_use_id", null);
+				blockError = firstBlock.optBoolean("is_error", false);
 				// Extract text from nested content blocks inside the tool_result
 				contentText = extractTextFromToolResultBlock(firstBlock);
 			}
 		}
 
-		String status = "completed";
+		String status = blockError ? "error" : "completed";
 		long durationMs = 0;
 		ToolStats stats = null;
 		String filePath = null;
@@ -199,7 +202,8 @@ public class ClaudeCodeTranscriptParser {
 			if ("tool_result".equals(block.optString("type"))) {
 				String contentText = extractTextFromToolResultBlock(block);
 
-				ToolResult result = new ToolResult(block.optString("tool_use_id", null), "completed", 0, null, null,
+				String status = block.optBoolean("is_error", false) ? "error" : "completed";
+				ToolResult result = new ToolResult(block.optString("tool_use_id", null), status, 0, null, null,
 						contentText, raw.optString("timestamp", ""));
 				return toEvent("tool_result", toolResultToJson(result), raw);
 			}
@@ -349,6 +353,7 @@ public class ClaudeCodeTranscriptParser {
 				JSONObject input = block.optJSONObject("input");
 				ToolInvocation ti = new ToolInvocation(block.optString("id", ""), block.optString("name", ""),
 						extractDescription(input), input != null ? input.optString("subagent_type", null) : null,
+						input != null ? input.toMap() : Map.of(),
 						timestamp);
 				toolInvocations.add(toolInvocationToJson(ti));
 			}
@@ -417,6 +422,7 @@ public class ClaudeCodeTranscriptParser {
 		j.put("toolName", ti.toolName());
 		j.put("description", ti.description());
 		j.put("subagentType", ti.subagentType() != null ? ti.subagentType() : JSONObject.NULL);
+		j.put("arguments", ti.arguments());
 		j.put("timestamp", ti.timestamp());
 		return j;
 	}

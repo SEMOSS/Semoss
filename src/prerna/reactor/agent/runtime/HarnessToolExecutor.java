@@ -50,6 +50,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -62,6 +63,8 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -232,16 +235,39 @@ final class HarnessToolExecutor {
 		List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
 		fireBeforeTool(toolHooks, ctx, tc, currentIter);
 
+		// Spawn/wait/check calls surface as subagent items, never tool items.
+		boolean subagentTool = SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName,
+				ctx.getAgentConfig().getSubagents());
+		if (!subagentTool) {
+			Map<String, Object> runningPatch = new LinkedHashMap<>();
+			runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
+			AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
+		}
+
 		long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
 		// forwarded so subagent dispatch can address the parent's stream queue even
 		// when this method runs on a worker thread from the parallel-tool pool.
-		ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+		ToolExecOutcome outcome;
+		try {
+			outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+		} catch (AgentCancelledException cancelEx) {
+			if (!subagentTool) {
+				publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
+						System.currentTimeMillis() - startMs);
+			}
+			throw cancelEx;
+		}
 		long durMs = System.currentTimeMillis() - startMs;
 
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 		publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
+		if (!subagentTool) {
+			publishToolItemTerminal(jobId, tc,
+					outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+					outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
+		}
 
 		logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}", tc.rawToolName, durMs,
 				outcome.success);
@@ -317,6 +343,28 @@ final class HarnessToolExecutor {
 		PixelJobManager.getManager().addStreamOut(jobId, envelope);
 	}
 
+	@SuppressWarnings("unchecked")
+	private static void publishToolItemTerminal(String runId, ParsedToolCall tc, String status, String output,
+			String error, long durationMs) {
+		if (runId == null || runId.isBlank() || tc.toolCallId == null || tc.toolCallId.isBlank()) {
+			return;
+		}
+		Object metaObj = tc.toolCall.get("_meta");
+		Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
+		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, tc.toolParams, meta,
+				status);
+		String boundedOutput = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
+		if (boundedOutput != null && !boundedOutput.isBlank()) {
+			item.put("output", boundedOutput);
+		}
+		String boundedError = truncate(error, MAX_LIVE_TOOL_RESULT_CHARS);
+		if (boundedError != null && !boundedError.isBlank()) {
+			item.put("error", boundedError);
+		}
+		item.put("durationMs", durationMs);
+		AgentRunStreamService.get().publishToolCompleted(runId, item);
+	}
+
 	private static String truncate(String value, int maxChars) {
 		if (value == null || value.length() <= maxChars) {
 			return value;
@@ -383,9 +431,13 @@ final class HarnessToolExecutor {
 		// metadata, so resolve them by the default tool registry before the MCP path.
 		if (PlatformAgentTools.isDefaultTool(tc.rawToolName)) {
 			try {
-				String result = PlatformAgentTools.executeDefaultTool(tc.rawToolName, tc.toolParams, ctx);
-				boolean success = result == null || !result.startsWith("Tool execution error:");
-				return new ToolExecOutcome(result, success);
+				ToolExecutionResult result = PlatformAgentTools.executeDefaultToolResult(tc.rawToolName, tc.toolParams,
+						ctx);
+				String output = result.getOutput() != null ? result.getOutput().toString() : "";
+				if (!result.isSuccess() && result.getError() != null && !result.getError().isBlank()) {
+					output = result.getError();
+				}
+				return new ToolExecOutcome(output, result.isSuccess());
 			} catch (AgentCancelledException e) {
 				throw e;
 			} catch (Exception e) {

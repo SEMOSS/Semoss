@@ -66,6 +66,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -1394,6 +1395,20 @@ public final class MCPUtility {
 
 		IMCP mcp = MCPFactory.build(engine);
 		return mcp.callTool(toolName, paramMap, insight);
+	}
+
+	/**
+	 * Typed adapter for agent callers. The established direct execution path and
+	 * its exception behavior remain unchanged.
+	 */
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName,
+			Map<String, Object> paramMap, Insight insight) {
+		try {
+			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
+		} catch (RuntimeException e) {
+			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			return ToolExecutionResult.error(message, message);
+		}
 	}
 
 	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
