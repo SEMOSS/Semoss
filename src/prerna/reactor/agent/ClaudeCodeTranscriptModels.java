@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.Map;
+
 public class ClaudeCodeTranscriptModels {
 
 	public record TranscriptMessage(String type, // "user", "assistant", "attachment", "queue-operation", "last-prompt"
@@ -45,6 +47,7 @@ public class ClaudeCodeTranscriptModels {
 			String toolName, // "Agent", "Read", "Edit"
 			String description, // extracted from input.description, input.prompt, or input.file_path
 			String subagentType, // nullable - only for Agent tool (e.g. "Explore")
+			Map<String, Object> arguments, // complete tool_use.input object
 			String timestamp) {
 	}
 

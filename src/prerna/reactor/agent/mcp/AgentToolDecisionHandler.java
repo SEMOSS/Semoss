@@ -38,7 +38,9 @@ import com.google.gson.Gson;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -51,6 +53,9 @@ import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
 
 /**
@@ -114,6 +119,11 @@ public final class AgentToolDecisionHandler {
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
 					userId, true);
+			publishDecisionToolItem(runId, toolCallId, stringValue(pendingAction.get("toolName")),
+					resolveToolParamsForDecision(pendingAction, callerParams),
+					DECISION_REJECT.equals(normalizedDecision) ? AgentStreamItems.TOOL_REJECTED
+							: AgentStreamItems.TOOL_COMPLETED,
+					manualResult, null);
 			return manualResult;
 		}
 
@@ -156,18 +166,12 @@ public final class AgentToolDecisionHandler {
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
 
-		Object toolOutput;
-		try {
-			toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
-		} catch (RuntimeException e) {
-			actionStore.releaseExecutionClaim(actionId, runId, userId);
-			throw e;
-		}
-
-		String resultStr = toolOutput != null ? toolOutput.toString() : "";
+		ToolExecutionResult toolResult = MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
+		String resultStr = toolResultContent(toolResult);
+		String executedToolStatus = toolResult.getStatusValue();
 		try {
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr,
-					toolStatus != null ? toolStatus : "success", actionId, normalizedDecision, paramMap, pendingAction,
+					executedToolStatus, actionId, normalizedDecision, paramMap, pendingAction,
 					userId, true);
 		} catch (RuntimeException e) {
 			// release the claim so a retry is not wedged on EXECUTING; the tool already
@@ -175,7 +179,34 @@ public final class AgentToolDecisionHandler {
 			actionStore.releaseExecutionClaim(actionId, runId, userId);
 			throw e;
 		}
+		publishDecisionToolItem(runId, toolCallId, toolName, paramMap,
+				toolResult.isSuccess() ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+				toolResult.isSuccess() ? resultStr : null, toolResult.isSuccess() ? null : resultStr);
 		return resultStr;
+	}
+
+	private static String toolResultContent(ToolExecutionResult result) {
+		if (!result.isSuccess() && result.getError() != null && !result.getError().isBlank()) {
+			return result.getError();
+		}
+		return result.getOutput() != null ? result.getOutput().toString() : "";
+	}
+
+	private static void publishDecisionToolItem(String runId, String toolCallId, String toolName,
+			Map<String, Object> args, String status, String output, String error) {
+		if (runId == null || runId.isBlank() || toolCallId == null || toolCallId.isBlank()) {
+			return;
+		}
+		Map<String, Object> item = AgentStreamItems.toolItem(toolCallId, toolName, args, null, status);
+		String boundedOutput = AgentStreamItems.truncate(output, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
+		if (boundedOutput != null && !boundedOutput.isBlank()) {
+			item.put("output", boundedOutput);
+		}
+		String boundedError = AgentStreamItems.truncate(error, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
+		if (boundedError != null && !boundedError.isBlank()) {
+			item.put("error", boundedError);
+		}
+		AgentRunStreamService.get().publishToolCompleted(runId, item);
 	}
 
 	/**
@@ -189,8 +220,11 @@ public final class AgentToolDecisionHandler {
 					"Agent HITL action is decided but has no stored result actionId=" + actionId);
 		}
 		Map<String, Object> retryParams = resolveRetryToolParams(action);
+		String storedToolStatus = stringValue(action.get("toolStatus"));
 		writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, storedResult,
-				toolStatus != null ? toolStatus : toolStatusForActionStatus(stringValue(action.get("status"))),
+				storedToolStatus != null ? storedToolStatus
+						: (toolStatus != null ? toolStatus
+								: toolStatusForActionStatus(stringValue(action.get("status")))),
 				actionId, normalizedDecision, retryParams, action, userId, false);
 		return storedResult;
 	}
@@ -236,7 +270,8 @@ public final class AgentToolDecisionHandler {
 		Object editedArgs = (DECISION_EDIT.equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
 		AgentRunActionStore actionStore = new AgentRunActionStore();
 		if (markActionDecided) {
-			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus);
+			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus,
+					toolStatus);
 			if (!marked) {
 				throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
 			}
@@ -244,10 +279,16 @@ public final class AgentToolDecisionHandler {
 
 		Map<String, Object> paramMapForRoom = new HashMap<>();
 		String roomToolName = stringValue(pendingAction.get("toolName"));
-		if (!toolResultAlreadyInRoom(room, parentMessageId, toolCallId)) {
+		if (findToolResultMessage(room, parentMessageId, toolCallId) == null) {
 			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName, toolResult,
 					toolParams != null ? toolParams : paramMapForRoom, parentMessageId, modelEngine, this.insight,
 					toolStatus);
+		}
+		InputMessage toolResultMessage = findToolResultMessage(room, parentMessageId, toolCallId);
+		if (toolResultMessage != null) {
+			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, runId);
+			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, "tool_result");
+			RoomMessageStore.persist(room, userId);
 		}
 
 		// Transition the run from INPUT_REQUIRED to SUBMITTED once ALL pending
@@ -357,13 +398,13 @@ public final class AgentToolDecisionHandler {
 		return resolveToolParamsForDecision(action, null);
 	}
 
-	private boolean toolResultAlreadyInRoom(Room room, String parentMessageId, String toolCallId) {
+	private InputMessage findToolResultMessage(Room room, String parentMessageId, String toolCallId) {
 		if (room == null || toolCallId == null || toolCallId.trim().isEmpty()) {
-			return false;
+			return null;
 		}
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages == null || messages.isEmpty()) {
-			return false;
+			return null;
 		}
 		for (int i = messages.size() - 1; i >= 0; --i) {
 			AbstractMessage message = messages.get(i);
@@ -376,7 +417,7 @@ public final class AgentToolDecisionHandler {
 					if (part instanceof ToolResultMessagePart) {
 						ToolResultPart result = ((ToolResultMessagePart) part).getToolResult();
 						if (result != null && toolCallId.equals(result.getToolCallId())) {
-							return true;
+							return (InputMessage) message;
 						}
 					}
 				}
@@ -385,7 +426,7 @@ public final class AgentToolDecisionHandler {
 				break;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")

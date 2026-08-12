@@ -113,6 +113,7 @@ def make_assistant_event(msg: AssistantMessage) -> Optional[dict]:
                     "toolName": block.name,
                     "description": _extract_description(tool_input),
                     "subagentType": tool_input.get("subagent_type"),
+                    "arguments": tool_input,
                     "timestamp": timestamp,
                 }
             )

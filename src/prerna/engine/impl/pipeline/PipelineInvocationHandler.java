@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import javax.sql.DataSource;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
@@ -72,8 +74,10 @@ import prerna.logging.LoggingIReactorSerializer;
 import prerna.logging.LoggingInsightAdapter;
 import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.LoggingSQLConnectionSerializer;
+import prerna.logging.LoggingSQLDataSourceSerializer;
 import prerna.logging.LoggingSQLResultSetSerializer;
 import prerna.logging.LoggingSQLStatementSerializer;
+import prerna.logging.LoggingThrowableSerializer;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -107,8 +111,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
 			.registerTypeHierarchyAdapter(IReactor.class, new LoggingIReactorSerializer())
 			.registerTypeHierarchyAdapter(Connection.class, new LoggingSQLConnectionSerializer())
+			.registerTypeHierarchyAdapter(DataSource.class, new LoggingSQLDataSourceSerializer())
 			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
 			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
+			.registerTypeHierarchyAdapter(Throwable.class, new LoggingThrowableSerializer())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
 			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())

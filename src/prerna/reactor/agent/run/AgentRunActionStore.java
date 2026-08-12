@@ -119,7 +119,7 @@ public final class AgentRunActionStore {
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
-					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
 					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ? ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
@@ -173,7 +173,7 @@ public final class AgentRunActionStore {
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
-					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
 					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, actionId);
@@ -216,9 +216,10 @@ public final class AgentRunActionStore {
 	 * @param result      the tool result (approve/edit), the user's response (respond),
 	 *                    or the rejection message (reject)
 	 * @param status      the decided status: APPROVED, EDITED, REJECTED, RESPONDED
+	 * @param toolStatus  execution status persisted for exact replay
 	 */
 	public boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
-			String status) {
+			String status, String toolStatus) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
@@ -228,6 +229,9 @@ public final class AgentRunActionStore {
 			}
 			if (result != null) {
 				query.append(", RESULT = ?");
+			}
+			if (toolStatus != null) {
+				query.append(", TOOL_STATUS = ?");
 			}
 			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS IN ('PENDING', 'EXECUTING')");
 
@@ -240,6 +244,9 @@ public final class AgentRunActionStore {
 			}
 			if (result != null) {
 				setClob(db, ps, idx++, result);
+			}
+			if (toolStatus != null) {
+				ps.setString(idx++, toolStatus);
 			}
 			ps.setString(idx++, actionId);
 			ps.setString(idx++, runId);
@@ -346,6 +353,7 @@ public final class AgentRunActionStore {
 		map.put("uiUrl", clobToString(rs, "UI_URL"));
 		map.put("status", rs.getString("STATUS"));
 		map.put("result", clobToString(rs, "RESULT"));
+		map.put("toolStatus", rs.getString("TOOL_STATUS"));
 		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
 		map.put("decidedAt", stringValue(rs.getTimestamp("DECIDED_AT")));
 		map.put("userId", rs.getString("USER_ID"));
