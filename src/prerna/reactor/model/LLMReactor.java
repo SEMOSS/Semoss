@@ -36,6 +36,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
@@ -87,7 +88,14 @@ public class LLMReactor extends AbstractReactor {
 
 		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
-		Room room = useHistoryParam
+		boolean usePersistedHistory = useHistoryParam;
+		// Full-prompt callers opt into shared history only through append_full_prompt.
+		if (paramMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			usePersistedHistory = Boolean.parseBoolean(
+					String.valueOf(paramMap.getOrDefault(AbstractModelEngine.APPEND_FULL_PROMPT, false)));
+		}
+
+		Room room = usePersistedHistory
 				? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null,
 						parentRoomId)
 				: RoomUtils.createRoomForStatelessAsk(roomId, insight, modelEngine, question, null, null, null, null,

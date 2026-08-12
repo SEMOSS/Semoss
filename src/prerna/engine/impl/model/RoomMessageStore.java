@@ -183,6 +183,21 @@ public final class RoomMessageStore {
 		}
 	}
 
+	/**
+	 * Persists authoritative request-local history without the room mutation lock.
+	 * Concurrent calls intentionally use last-write-wins semantics.
+	 */
+	public static boolean persistLastWriteWins(Room room, String userId, List<AbstractMessage> messages) {
+		String messageHistory = MessageUtils.toJsonArray(messages);
+		validateSerializedProjection(room, messageHistory);
+		boolean updated = ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), userId, messageHistory);
+		invalidateRedisProjectionAfterUnlockedWrite(room);
+		if (room.getInsight() != null && room.getInsight().getUser() != null) {
+			room.getInsight().getUser().getRoomHash().remove(room.getId(), room);
+		}
+		return updated;
+	}
+
 	public static RoomMutationLock acquireMutationLock(Room room) {
 		if (room == null) {
 			return RoomMutationLock.NO_OP;
@@ -365,6 +380,20 @@ public final class RoomMessageStore {
 			redisClient().deleteMessages(room.getId());
 		} catch (Exception e) {
 			classLogger.warn("Failed to invalidate Redis room-message projection for room={}", room.getId(), e);
+		}
+	}
+
+	private static void invalidateRedisProjectionAfterUnlockedWrite(Room room) {
+		if (room == null || room.getId() == null || !RedisConnectionConfig.isRedisEnabled()) {
+			return;
+		}
+		try {
+			RoomMessageRedisClient redis = redisClient();
+			redis.deleteMessages(room.getId());
+			redis.incrementVersion(room.getId());
+		} catch (Exception e) {
+			classLogger.warn("Failed to invalidate Redis room-message projection after unlocked write for room={}",
+					room.getId(), e);
 		}
 	}
 

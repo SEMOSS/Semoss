@@ -264,13 +264,24 @@ public class Room implements Serializable {
 	 */
 	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
 			Boolean appendToHistory) {
+		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
+		boolean fullPrompt = kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT);
+		boolean appendFullPrompt = Boolean
+				.parseBoolean(String.valueOf(kwArgMap.getOrDefault(AbstractModelEngine.APPEND_FULL_PROMPT, false)));
+
+		// A non-appending full prompt is authoritative for this request. It must not
+		// serialize unrelated provider-compatible requests on the shared Room object.
+		if (fullPrompt && !appendFullPrompt) {
+			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+			applyInputUsageFromModelResponse(msg, llmResponse);
+			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
+		}
+
 		ReentrantLock lock = getMessageLock();
 		lock.lock();
 		try {
-			Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
-
 			// if it is full prompt, process that first.
-			if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			if (fullPrompt) {
 				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
