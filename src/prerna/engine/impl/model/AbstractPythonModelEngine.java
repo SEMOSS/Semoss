@@ -300,9 +300,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 		}
 
-		// resolve thinking/effort against the model's reasoning metadata - the
-		// caller's values win when allowed, the metadata defaults ride along
-		// otherwise
 		parameters = applyReasoningParameters(parameters);
 
 		final String TRIPLE_QUOTE = "\"\"\"";
