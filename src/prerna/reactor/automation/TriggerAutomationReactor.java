@@ -74,7 +74,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		// so a bad automation never leaves a stale active-run record.
 		AutomationDefinitionValidator.ValidatedDefinition definition =
 				AutomationDefinitionValidator.validate(AutomationExecutionUtils.loadAutomationDoc(projectId));
-		List<Map<String, Object>> ordered = definition.getNodes();
+		List<Map<String, Object>> ordered = definition.getExecutionOrder();
 		long nonTriggerCount = ordered.stream()
 				.filter(n -> !AutomationConstants.NODE_TRIGGER.equals(n.get(AutomationConstants.NODE_FIELD_TYPE)))
 				.count();
@@ -97,7 +97,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			Map<String, Object> inputsMap = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 			AutomationExecutionUtils.applyPlaygroundInputs(ordered, inputsMap);
 			definition = AutomationDefinitionValidator.validate(definition.getDocument());
-			ordered = definition.getNodes();
+			ordered = definition.getExecutionOrder();
 
 			String triggerType = this.keyValue.get(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY);
 			if (triggerType == null || triggerType.isBlank()) {
@@ -126,13 +126,6 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					completedCount++;
 				}
 			}
-			// Trigger nodes succeed immediately in the engine but never write a SUCCESS
-			// DB record, so add them back so the count reflects what the user sees.
-			int triggerCount = (int) ordered.stream()
-					.filter(n -> AutomationConstants.NODE_TRIGGER.equals(n.get(AutomationConstants.NODE_FIELD_TYPE)))
-					.count();
-			completedCount += triggerCount;
-
 			if (runDetail == null) {
 				runDetail = new HashMap<>();
 				runDetail.put(AutomationConstants.RUN_ID, runId);

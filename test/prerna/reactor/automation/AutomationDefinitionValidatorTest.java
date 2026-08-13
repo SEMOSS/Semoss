@@ -28,6 +28,9 @@ package prerna.reactor.automation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 class AutomationDefinitionValidatorTest {
@@ -85,6 +88,22 @@ class AutomationDefinitionValidatorTest {
 				AutomationDefinitionValidator.parseAndValidate(document(
 						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"one\",\"type\":\"wait\"},{\"id\":\"two\",\"type\":\"wait\"}]",
 						"[{\"source\":\"trigger\",\"target\":\"one\"},{\"source\":\"one\",\"target\":\"two\"},{\"source\":\"two\",\"target\":\"one\"}]")));
+	}
+
+	@Test
+	void ordersNodesByDependenciesWhilePreservingReadyNodeDocumentOrder() {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate(document(
+						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"second\",\"type\":\"wait\"},"
+								+ "{\"id\":\"first\",\"type\":\"wait\"},{\"id\":\"join\",\"type\":\"wait\"}]",
+						"[{\"source\":\"trigger\",\"target\":\"first\"},{\"source\":\"trigger\",\"target\":\"second\"},"
+								+ "{\"source\":\"first\",\"target\":\"join\"},{\"source\":\"second\",\"target\":\"join\"}]"));
+
+		List<String> nodeIds = definition.getExecutionOrder().stream()
+				.map(node -> (String) node.get(AutomationConstants.NODE_FIELD_ID))
+				.toList();
+
+		assertEquals(List.of("trigger", "second", "first", "join"), nodeIds);
 	}
 
 	private static String document(String nodes, String edges) {

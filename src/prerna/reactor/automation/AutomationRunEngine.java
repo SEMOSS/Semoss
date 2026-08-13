@@ -56,7 +56,7 @@ import prerna.util.Utility;
 /**
  * Executes an automation run synchronously. Called by {@link TriggerAutomationReactor}
  * on the virtual thread provided by the platform's {@code runPixelAsync} endpoint.
- * Iterates nodes in order, dispatches each to its {@link IAutomationNodeExecutor},
+ * Iterates the dependency-ordered nodes supplied by the validated definition, dispatches each to its {@link IAutomationNodeExecutor},
  * and writes per-node status to the DB as it goes.
  */
 public final class AutomationRunEngine {
@@ -120,6 +120,7 @@ public final class AutomationRunEngine {
 
 				if (cancelled.get() || AutomationDatabaseUtility.isCancelRequested(runId)) {
 					classLogger.info("Automation run {} cancelled before node {} ({})", runId, nodeId, nodeLabel);
+					AutomationDatabaseUtility.skipPendingNodes(runId, "Run cancelled by user");
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_CANCELLED, nodeId, "Run cancelled by user");
 					return scope;
@@ -132,6 +133,7 @@ public final class AutomationRunEngine {
 					nodeResult = executeSingleNode(runId, projectId, node, scope, configMap, cancelled, insight);
 				} catch (PixelExecutionUtils.AutomationCancelledException ace) {
 					classLogger.info("Automation run {} cancelled during node {} ({})", runId, nodeId, nodeLabel);
+					AutomationDatabaseUtility.skipPendingNodes(runId, "Run cancelled by user");
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_CANCELLED, nodeId, ace.getMessage());
 					publishNodeEvent(jobId, nodeId, nodeLabel, AutomationConstants.STATUS_CANCELLED, null, null,
@@ -155,6 +157,7 @@ public final class AutomationRunEngine {
 					AutomationDatabaseUtility.updateHeartbeat(runId, completedCount);
 				} else {
 					classLogger.warn("Automation run {} failed at node {} ({}): {}", runId, nodeId, nodeLabel, errorMsg);
+					AutomationDatabaseUtility.skipPendingNodes(runId, "Skipped because an earlier node failed");
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_FAILED, nodeId, errorMsg);
 					return scope;
@@ -219,17 +222,21 @@ public final class AutomationRunEngine {
 		String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 
-		if (AutomationConstants.NODE_TRIGGER.equals(type)) {
-			return buildNodeResult(nodeId, nodeLabel, AutomationConstants.NODE_STATUS_SUCCESS, 0,
-					scope.get(AutomationConstants.SCOPE_TRIGGERED_AT), null);
-		}
-
 		classLogger.debug("Executing node {} ({}) type={} in run {}", nodeId, nodeLabel, type, runId);
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
 		Timestamp startedAt = Utility.getSqlTimestampUTC(java.time.LocalDateTime.ofInstant(Instant.now(), java.time.ZoneOffset.UTC));
 		long startMs = System.currentTimeMillis();
 
 		try {
+			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
+				String triggeredAt = scope.get(AutomationConstants.SCOPE_TRIGGERED_AT);
+				AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, startedAt, 0, outputVar, triggeredAt, triggeredAt);
+				Map<String, Object> result = buildNodeResult(nodeId, nodeLabel,
+						AutomationConstants.NODE_STATUS_SUCCESS, 0, triggeredAt, null);
+				result.put(AutomationConstants.RESULT_OUTPUT_VALUE, triggeredAt);
+				return result;
+			}
+
 			AutomationNodeContext ctx = new AutomationNodeContext(
 					runId, projectId, node, scope, configMap, insight, cancelFlag);
 

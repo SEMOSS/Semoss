@@ -57,6 +57,7 @@ import static prerna.reactor.automation.AutomationConstants.NODE_LABEL;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_FAILED;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_PENDING;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_RUNNING;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SKIPPED;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
 import static prerna.reactor.automation.AutomationConstants.NOT_NULL;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
@@ -187,6 +188,9 @@ public final class AutomationDatabaseUtility {
 
 	private static final String UPDATE_NODE_STATUS =
 			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ? WHERE RUN_ID = ? AND NODE_ID = ?";
+
+	private static final String SKIP_PENDING_NODE_OUTPUTS =
+			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ?";
 
 	// -- Initialization ------------------------------------------------------------
 
@@ -790,6 +794,7 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, nodeId);
 				ps.executeUpdate();
 			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -797,6 +802,35 @@ public final class AutomationDatabaseUtility {
 		} catch (SQLException e) {
 			classLogger.error("Failed to mark node running for run '{}', node '{}'",
 					runId, nodeId, e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Marks all nodes that did not start because the run reached a terminal state as skipped.
+	 */
+	public static boolean skipPendingNodes(String runId, String reason) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUTS)) {
+				ps.setString(1, NODE_STATUS_SKIPPED);
+				setNullableString(ps, 2, reason);
+				ps.setString(3, runId);
+				ps.setString(4, NODE_STATUS_PENDING);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to skip pending nodes for run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);

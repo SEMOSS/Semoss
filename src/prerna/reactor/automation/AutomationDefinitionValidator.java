@@ -32,8 +32,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -88,7 +90,7 @@ public final class AutomationDefinitionValidator {
 		validateEdgesAndDag(edges, nodeIds);
 
 		String snapshot = toCanonicalJson(document);
-		return new ValidatedDefinition(document, nodes, version, snapshot, sha256(snapshot));
+		return new ValidatedDefinition(document, nodes, edges, version, snapshot, sha256(snapshot));
 	}
 
 	private static int validateVersion(Object value) {
@@ -175,6 +177,50 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
+	private static List<Map<String, Object>> topologicallyOrderNodes(List<Map<String, Object>> nodes,
+			List<Map<String, Object>> edges) {
+		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
+		Map<String, List<String>> adjacency = new LinkedHashMap<>();
+		Map<String, Integer> indegrees = new LinkedHashMap<>();
+		Map<String, Integer> nodeIndexes = new HashMap<>();
+		for (int index = 0; index < nodes.size(); index++) {
+			Map<String, Object> node = nodes.get(index);
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			nodesById.put(nodeId, node);
+			adjacency.put(nodeId, new ArrayList<>());
+			indegrees.put(nodeId, 0);
+			nodeIndexes.put(nodeId, index);
+		}
+		for (Map<String, Object> edge : edges) {
+			String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
+			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
+			adjacency.get(source).add(target);
+			indegrees.put(target, indegrees.get(target) + 1);
+		}
+
+		PriorityQueue<String> ready = new PriorityQueue<>((left, right) ->
+				Integer.compare(nodeIndexes.get(left), nodeIndexes.get(right)));
+		for (String nodeId : nodesById.keySet()) {
+			if (indegrees.get(nodeId) == 0) {
+				ready.add(nodeId);
+			}
+		}
+
+		List<Map<String, Object>> ordered = new ArrayList<>();
+		while (!ready.isEmpty()) {
+			String nodeId = ready.remove();
+			ordered.add(nodesById.get(nodeId));
+			for (String target : adjacency.get(nodeId)) {
+				int remaining = indegrees.get(target) - 1;
+				indegrees.put(target, remaining);
+				if (remaining == 0) {
+					ready.add(target);
+				}
+			}
+		}
+		return ordered;
+	}
+
 	private static Map<String, Object> requireMap(Object value, String field) {
 		if (!(value instanceof Map<?, ?>)) {
 			throw new IllegalArgumentException("Automation definition field '" + field + "' must be an object.");
@@ -249,14 +295,17 @@ public final class AutomationDefinitionValidator {
 
 		private final Map<String, Object> document;
 		private final List<Map<String, Object>> nodes;
+		private final List<Map<String, Object>> edges;
 		private final int version;
 		private final String snapshot;
 		private final String hash;
 
 		private ValidatedDefinition(Map<String, Object> document, List<Map<String, Object>> nodes,
+				List<Map<String, Object>> edges,
 				int version, String snapshot, String hash) {
 			this.document = document;
 			this.nodes = nodes;
+			this.edges = edges;
 			this.version = version;
 			this.snapshot = snapshot;
 			this.hash = hash;
@@ -268,6 +317,14 @@ public final class AutomationDefinitionValidator {
 
 		public List<Map<String, Object>> getNodes() {
 			return nodes;
+		}
+
+		/**
+		 * Returns nodes in dependency order. Nodes that become ready together retain their
+		 * persisted document order, keeping shared-scope execution deterministic.
+		 */
+		public List<Map<String, Object>> getExecutionOrder() {
+			return topologicallyOrderNodes(nodes, edges);
 		}
 
 		public int getVersion() {
