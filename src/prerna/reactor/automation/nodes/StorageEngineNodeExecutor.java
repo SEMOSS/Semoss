@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +43,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 /**
@@ -52,12 +57,14 @@ import prerna.util.Utility;
  *   <li>{@code operation} (optional) — one of {@code list} (default), {@code download},
  *       {@code upload}, {@code delete}, {@code read-base64}</li>
  *   <li>{@code storagePath} (required for most operations) — path within the storage engine</li>
- *   <li>{@code filePath} (required for download/upload) — local file system path</li>
+ *   <li>{@code filePath} (required for download/upload) — relative path under the owning
+ *       project's automation runtime directory</li>
  * </ul>
  */
 public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(StorageEngineNodeExecutor.class);
+	private static final String AUTOMATION_RUNTIME_FILES_FOLDER = "automation-files";
 
 	@Override
 	public Object execute(AutomationNodeContext ctx) throws Exception {
@@ -92,7 +99,8 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 				String storagePath = NodeConfigHelper.required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
 				String filePath = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
-				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
+				String resolvedFile = resolveLocalPath(ctx.projectId(),
+						AutomationExecutionUtils.resolve(filePath, scope, configMap));
 				engine.copyToLocal(resolvedStorage, resolvedFile);
 				return "Downloaded: " + resolvedStorage;
 			}
@@ -100,9 +108,10 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 				String storagePath = NodeConfigHelper.required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
 				String filePath = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
-				String resolvedFile = AutomationExecutionUtils.resolve(filePath, scope, configMap);
+				String resolvedFile = resolveLocalPath(ctx.projectId(),
+						AutomationExecutionUtils.resolve(filePath, scope, configMap));
 				engine.copyToStorage(resolvedFile, resolvedStorage, null);
-				return "Uploaded: " + resolvedFile;
+				return "Uploaded: " + filePath;
 			}
 			case AutomationConstants.OP_DELETE: {
 				String storagePath = NodeConfigHelper.required(config, AutomationConstants.CONFIG_STORAGE_PATH, nodeLabel);
@@ -122,6 +131,60 @@ public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor 
 				String resolvedStorage = AutomationExecutionUtils.resolve(storagePath, scope, configMap);
 				List<String> files = engine.list(resolvedStorage);
 				return files;
+			}
+		}
+	}
+
+	/**
+	 * Resolves a configured local path inside a project-owned runtime directory.
+	 *
+	 * <p>Automation definitions must never grant arbitrary local server file-system access. Both
+	 * upload and download operations are therefore confined to
+	 * {@code <project-root>/automation-files}. Existing symbolic links are rejected so a path
+	 * within that directory cannot escape it.
+	 *
+	 * @param projectId owning automation project
+	 * @param configuredPath relative user-configured path
+	 * @return normalized absolute path inside the project runtime directory
+	 * @throws IOException if the runtime directory cannot be created
+	 */
+	private static String resolveLocalPath(String projectId, String configuredPath) throws IOException {
+		if (configuredPath == null || configuredPath.isBlank()) {
+			throw new IllegalArgumentException("Storage-engine node local path must not be empty");
+		}
+		if (configuredPath.matches("^[A-Za-z]:[\\\\/].*")) {
+			throw new IllegalArgumentException("Storage-engine node local path must be relative to the automation workspace");
+		}
+
+		Path configured = Paths.get(configuredPath);
+		if (configured.isAbsolute()) {
+			throw new IllegalArgumentException("Storage-engine node local path must be relative to the automation workspace");
+		}
+
+		Path workspace = Paths.get(AssetUtility.getProjectAppRootFolder(projectId),
+				AUTOMATION_RUNTIME_FILES_FOLDER).toAbsolutePath().normalize();
+		Files.createDirectories(workspace);
+
+		Path resolved = workspace.resolve(configured).normalize();
+		if (!resolved.startsWith(workspace)) {
+			throw new IllegalArgumentException("Storage-engine node local path cannot leave the automation workspace");
+		}
+		rejectSymbolicLinks(workspace, resolved);
+		return resolved.toString();
+	}
+
+	/**
+	 * Rejects existing symbolic links along a path before it is handed to a storage engine.
+	 *
+	 * @param workspace project-owned automation runtime directory
+	 * @param resolved normalized path inside the workspace
+	 */
+	private static void rejectSymbolicLinks(Path workspace, Path resolved) {
+		Path current = workspace;
+		for (Path segment : workspace.relativize(resolved)) {
+			current = current.resolve(segment);
+			if (Files.exists(current) && Files.isSymbolicLink(current)) {
+				throw new IllegalArgumentException("Storage-engine node local path cannot contain symbolic links");
 			}
 		}
 	}

@@ -96,6 +96,10 @@ public class GenerateRunSummaryReactor extends AbstractReactor {
         if (runDetail == null) {
             throw new IllegalArgumentException("Run not found: " + runId);
         }
+        Object runProjectId = runDetail.get(AutomationConstants.PROJECT_ID);
+        if (!projectId.equals(runProjectId)) {
+            throw new IllegalArgumentException("Run not found: " + runId);
+        }
 
         // Guard against summarizing an in-progress run - the result would be incomplete.
         Object runStatus = runDetail.get(AutomationConstants.STATUS);

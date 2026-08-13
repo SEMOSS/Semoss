@@ -31,18 +31,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
@@ -54,7 +58,8 @@ import prerna.reactor.automation.AutomationConstants;
  * <p>Handles the common pitfalls of raw {@code insight.runPixel()} calls:
  * <ul>
  *   <li>{@link ITask} materialization - query reactors return lazy cursors that must be collected</li>
- *   <li>Timeout enforcement - prevents hung queries from blocking pipelines indefinitely</li>
+ *   <li>Timeout enforcement - requests cancellation and prevents concurrent runs until the
+ *       timed-out work has stopped</li>
  *   <li>Error extraction - detects {@link prerna.sablecc2.om.PixelOperationType#ERROR} in results</li>
  *   <li>Null-safe return - always returns a usable value</li>
  * </ul>
@@ -106,7 +111,6 @@ public final class PixelExecutionUtils {
 	// -- Private implementation ----------------------------------------------------
 
 	private static NounMetadata executeWithTimeout(Insight insight, String pixel, int timeoutSeconds) {
-		// A new executor is created per timed call and shut down immediately after — no leak.
 		ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
 			Thread t = new Thread(r, "automation-pixel-exec");
 			t.setDaemon(true);
@@ -118,6 +122,9 @@ public final class PixelExecutionUtils {
 		Map<String, Object> callerContext = ThreadStore.getTheadMapObject();
 		final Map<String, Object> contextSnapshot =
 				callerContext != null ? new HashMap<>(callerContext) : null;
+		AtomicReference<PixelRunner> activeRunner = new AtomicReference<>();
+		AtomicBoolean timeoutRequested = new AtomicBoolean(false);
+		CountDownLatch executionTerminated = new CountDownLatch(1);
 
 		try {
 			Callable<NounMetadata> task = () -> {
@@ -130,9 +137,15 @@ public final class PixelExecutionUtils {
 					ThreadStore.setThreadMapObject(contextSnapshot);
 				}
 				try {
-					return executeDirectly(insight, pixel);
+					PixelRunner runner = insight.getPixelRunner();
+					activeRunner.set(runner);
+					if (timeoutRequested.get()) {
+						runner.cancelRequest();
+					}
+					return executeDirectly(insight, runner, pixel);
 				} finally {
 					ThreadStore.remove();
+					executionTerminated.countDown();
 				}
 			};
 
@@ -140,7 +153,18 @@ public final class PixelExecutionUtils {
 			try {
 				return future.get(timeoutSeconds, TimeUnit.SECONDS);
 			} catch (TimeoutException e) {
+				timeoutRequested.set(true);
+				PixelRunner runner = activeRunner.get();
+				if (runner != null) {
+					runner.cancelRequest();
+				}
 				future.cancel(true);
+
+				// Future.cancel(true) only interrupts the worker. Some engine calls do not honor
+				// interruption immediately, so returning here would let AutomationRunEngine release
+				// its project lease while side effects may still be in flight. Hold the caller until
+				// the worker has actually terminated, then report the timeout.
+				awaitTermination(executionTerminated);
 				throw new AutomationNodeTimeoutException(pixel, timeoutSeconds);
 			} catch (ExecutionException e) {
 				Throwable cause = e.getCause();
@@ -151,15 +175,34 @@ public final class PixelExecutionUtils {
 				throw new IllegalStateException("Pixel execution interrupted", e);
 			}
 		} finally {
-			executor.shutdownNow();
+			executor.shutdown();
 		}
 	}
 
 	private static NounMetadata executeDirectly(Insight insight, String pixel) {
-		List<NounMetadata> results = insight.runPixel(pixel).getResults();
+		return executeDirectly(insight, insight.getPixelRunner(), pixel);
+	}
+
+	private static NounMetadata executeDirectly(Insight insight, PixelRunner runner, String pixel) {
+		List<NounMetadata> results = insight.runPixel(runner, pixel).getResults();
 		if (results == null || results.isEmpty()) return null;
 		// For multi-statement pixels the meaningful result is the last one.
 		return results.get(results.size() - 1);
+	}
+
+	private static void awaitTermination(CountDownLatch executionTerminated) {
+		boolean interrupted = false;
+		while (true) {
+			try {
+				executionTerminated.await();
+				break;
+			} catch (InterruptedException e) {
+				interrupted = true;
+			}
+		}
+		if (interrupted) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	private static void checkForError(NounMetadata result, String pixel) {

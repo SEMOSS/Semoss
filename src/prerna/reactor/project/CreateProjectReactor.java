@@ -131,6 +131,11 @@ public class CreateProjectReactor extends AbstractReactor {
 						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
 						+ "file that CreateProject skips.");
 			}
+			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
+				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
+						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
+						+ "definition, configuration, and MCP tool metadata.");
+			}
 		}
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);

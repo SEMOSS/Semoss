@@ -29,6 +29,8 @@ package prerna.reactor.automation;
 
 import prerna.reactor.automation.utils.PixelExecutionUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,6 +38,9 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.project.api.IProject;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,7 +49,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Creates a new automation project and returns its ID so the LLM can immediately chain to
- * {@code EditAutomation} to interactively build it.
+ * {@code QuickEditAutomation} to interactively build it.
  *
  * <p>The project name must start with a letter and contain only letters, numbers, and spaces
  * (enforced by {@code CreateProject}).
@@ -52,7 +57,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Typical LLM flow:
  * <ol>
  *   <li>LLM calls {@code CreateAutomation(projectName=["My Automation"])} — auto, no UI</li>
- *   <li>LLM immediately chains {@code EditAutomation(project=["<returnedId>"], instruction=["..."])}</li>
+ *   <li>LLM immediately chains {@code QuickEditAutomation(project=["<returnedId>"], editDescription=["..."])}</li>
  *   <li>User sees the editor open with the AI-generated draft</li>
  * </ol>
  *
@@ -93,33 +98,28 @@ public class CreateAutomationReactor extends AbstractReactor {
                     "Project name must start with a letter and contain only letters, numbers, and spaces. Got: " + projectName);
         }
 
-        // Delegate to CreateProject — it handles project scaffolding and security.
-        // CODE project type matches all existing automation projects.
-        String createPixel = String.format(
-                "CreateProject(project=[\"%s\"], projectType=[\"CODE\"], global=[false]);",
-                projectName);
+        User user = this.insight.getUser();
+        if (user == null) {
+            throw new IllegalArgumentException("You must be signed in to create an automation.");
+        }
 
-        Object raw;
+        IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION,
+                false, null, null, user, classLogger);
+        String projectId = project.getProjectId();
+        String definition = buildStarterDefinition();
+        String encodedDefinition = Base64.getEncoder().encodeToString(definition.getBytes(StandardCharsets.UTF_8));
+        String encodedConfig = Base64.getEncoder().encodeToString(
+                AutomationConstants.EMPTY_JSON_ARRAY.getBytes(StandardCharsets.UTF_8));
+
         try {
-            raw = PixelExecutionUtils.runAndCollect(this.insight, createPixel);
+            PixelExecutionUtils.runAndCollect(this.insight, String.format(
+                    "SaveAutomation(project=[\"%s\"], json=[\"%s\"]);", projectId, encodedDefinition));
+            PixelExecutionUtils.runAndCollect(this.insight, String.format(
+                    "SaveAutomationConfig(project=[\"%s\"], config=[\"%s\"]);", projectId, encodedConfig));
         } catch (PixelExecutionUtils.AutomationPixelException e) {
-            classLogger.error("CreateProject pixel error for '{}'", projectName, e);
-            throw new IllegalArgumentException("Failed to create project '" + projectName + "': " + e.getMessage());
-        }
-
-        if (!(raw instanceof Map)) {
-            classLogger.error("CreateProject returned unexpected result type for '{}': {}",
-                    projectName, raw == null ? "null" : raw.getClass().getName());
-            throw new IllegalArgumentException("Unexpected response from CreateProject for: " + projectName);
-        }
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> projectData = (Map<String, Object>) raw;
-        String projectId = (String) projectData.get("project_id");
-
-        if (projectId == null || projectId.isBlank()) {
-            classLogger.error("CreateProject did not return a project_id for '{}'", projectName);
-            throw new IllegalArgumentException("Project was created but no project ID was returned for: " + projectName);
+            classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
+            throw new IllegalStateException(
+                    "Automation project was created but its starter assets could not be scaffolded: " + e.getMessage(), e);
         }
 
         classLogger.info("CreateAutomationReactor: created project '{}' with id {}", projectName, projectId);
@@ -127,13 +127,32 @@ public class CreateAutomationReactor extends AbstractReactor {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put(RESULT_SUCCESS, true);
         result.put(RESULT_PROJECT_ID, projectId);
+        result.put("project_id", projectId);
         result.put(RESULT_PROJECT_NAME, projectName);
         result.put(RESULT_MESSAGE,
                 "Created automation project \"" + projectName + "\" (id: " + projectId + "). "
-                + "Call EditAutomation(project=[\"" + projectId + "\"], instruction=[\"<what to build>\"]) "
-                + "to open the editor and build the automation.");
+                + "Call QuickEditAutomation(project=[\"" + projectId
+                + "\"], editDescription=[\"<what to build>\"]) to build the automation.");
 
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+    }
+
+    private static String buildStarterDefinition() {
+        Map<String, Object> trigger = new LinkedHashMap<>();
+        trigger.put(AutomationConstants.NODE_FIELD_ID, "trigger");
+        trigger.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_TRIGGER);
+        trigger.put(AutomationConstants.NODE_FIELD_LABEL, "Start");
+        trigger.put(AutomationConstants.NODE_FIELD_CONFIG, Map.of());
+
+        Map<String, Object> graph = new LinkedHashMap<>();
+        graph.put(AutomationConstants.DOC_NODES, java.util.List.of(trigger));
+        graph.put(AutomationConstants.DOC_EDGES, java.util.List.of());
+
+        Map<String, Object> definition = new LinkedHashMap<>();
+        definition.put(AutomationConstants.DOC_VERSION, AutomationConstants.DOC_CURRENT_VERSION);
+        definition.put(AutomationConstants.DOC_DESCRIPTION, "");
+        definition.put(AutomationConstants.DOC_GRAPH, graph);
+        return prerna.reactor.automation.utils.AutomationExecutionUtils.GSON.toJson(definition);
     }
 
     @Override
@@ -146,7 +165,7 @@ public class CreateAutomationReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Creates a new blank automation project and returns its ID. "
-                + "Immediately chain EditAutomation with the returned project ID to interactively build the automation. "
+                + "Immediately chain QuickEditAutomation with the returned project ID to build the automation. "
                 + "Project names must start with a letter and contain only letters, numbers, and spaces.";
     }
 

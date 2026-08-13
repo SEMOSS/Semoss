@@ -37,6 +37,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
@@ -66,12 +68,16 @@ public class GetAutomationSchemaReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in.");
+		}
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (projectId == null || projectId.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access");
 		}
 
@@ -101,6 +107,10 @@ public class GetAutomationSchemaReactor extends AbstractReactor {
 				if (engineIdObj == null || engineIdObj.toString().isBlank()) continue;
 
 				String engineId = engineIdObj.toString();
+				if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+					throw new IllegalArgumentException(
+							"Database engine configured for node '" + nodeLabel + "' is not accessible.");
+				}
 				Map<String, Object> nodeSchema = buildNodeSchema(nodeLabel, engineId);
 				if (nodeSchema != null) {
 					result.add(nodeSchema);
