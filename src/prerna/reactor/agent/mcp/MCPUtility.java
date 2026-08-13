@@ -645,15 +645,29 @@ public final class MCPUtility {
 	 * skip truncation.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, maxLength, false);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name, truncating to maxLength. When
+	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_]
+	 * (see {@link #requiresLLMNameSanitization}); other providers keep the raw
+	 * engine id so existing LLM-facing names are unchanged.
+	 */
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength,
+			boolean sanitizeForLLM) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
 
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		String idForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(engineId) : engineId;
+		String shortIdForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(computeShortEngineId(engineId))
+				: computeShortEngineId(engineId);
 
 		if (maxLength == Integer.MAX_VALUE) {
 			// No length limit: use the full UUID prefix (preserves existing behavior)
-			String fullPrefix = "a" + sanitizeEngineIdForLLMName(engineId) + "_";
+			String fullPrefix = "a" + idForPrefix + "_";
 			for (int i = 0; i < toolsArray.length(); i++) {
 				JSONObject toolMap = toolsArray.getJSONObject(i);
 				String currentName = toolMap.getString("name");
@@ -664,8 +678,8 @@ public final class MCPUtility {
 
 		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
 		// fall back to short 8-hex prefix and truncate if still needed.
-		String fullPrefix = "a" + sanitizeEngineIdForLLMName(engineId) + "_";
-		String shortPrefix = "a" + sanitizeEngineIdForLLMName(computeShortEngineId(engineId)) + "_";
+		String fullPrefix = "a" + idForPrefix + "_";
+		String shortPrefix = "a" + shortIdForPrefix + "_";
 
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
@@ -697,6 +711,16 @@ public final class MCPUtility {
 	 */
 	public static String sanitizeEngineIdForLLMName(String engineId) {
 		return engineId == null ? null : engineId.replaceAll("[^a-zA-Z0-9_]", "_");
+	}
+
+	/**
+	 * Whether LLM-facing tool names must be sanitized for the given model engine.
+	 * Only Bedrock engines opt in: Amazon Nova is the model family that rejects
+	 * hyphenated tool names, and scoping the rename here keeps every other
+	 * provider's tool names byte-identical to their historical form.
+	 */
+	public static boolean requiresLLMNameSanitization(IModelEngine modelEngine) {
+		return modelEngine != null && ModelTypeEnum.BEDROCK == modelEngine.getModelType();
 	}
 
 	/**

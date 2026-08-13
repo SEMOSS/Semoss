@@ -610,7 +610,8 @@ public final class RoomUtils {
 				// Tool metadata enrichment still supports legacy UUID-prefixed names.
 			}
 		}
-		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine),
+				MCPUtility.requiresLLMNameSanitization(roomModelEngine));
 
 		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage message : messages) {
