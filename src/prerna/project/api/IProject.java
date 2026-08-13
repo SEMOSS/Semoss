@@ -60,7 +60,7 @@ public interface IProject extends IEngine, IMCP {
 	String NOTEBOOK_FOLDER = ".notebooks";
 
 	enum PROJECT_TYPE {
-		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, AUTOMATION,
+		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, NOTEBOOK, AUTOMATION,
 	};
 
 	/**

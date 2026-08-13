@@ -94,16 +94,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
 		String roomId = this.keyValue.get(ROOM_ID_KEY);

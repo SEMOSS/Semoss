@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -78,13 +80,22 @@ public final class StaticModelMetadataCatalog {
 	}.getType();
 	private static final Object CACHE_LOCK = new Object();
 
-	// Bedrock/Vertex style ids prefix the catalog id with region and/or vendor
-	// segments, e.g. us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0. Only strip
-	// segments made of letters and hyphens so version fragments like the "gpt-5"
-	// in openai.gpt-5.4 are left alone.
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^[a-z][a-z-]*\\.(?=.)");
 	private static final Pattern VERSION_SUFFIX_PATTERN = Pattern.compile("-v\\d+(?::\\d+)?$");
 	private static final Pattern DATE_SUFFIX_PATTERN = Pattern.compile("-\\d{4}-?\\d{2}-?\\d{2}$");
+
+	static final String MATCH_KEY = "key";
+	static final String MATCH_SCORE = "score";
+
+	private static final double TOKEN_WEIGHT = 0.6;
+	private static final double PREFIX_SCORE_FLOOR = 0.75;
+	private static final double MAXIMUM_INEXACT_SCORE = 0.99;
+	private static final double MINIMUM_MATCH_SCORE = 0.3;
+
+	private static final LevenshteinDistance EDIT_DISTANCE = LevenshteinDistance.getDefaultInstance();
+	private static final Comparator<Map<String, Object>> MATCH_ORDER = Comparator
+			.comparingDouble((Map<String, Object> match) -> ((Number) match.get(MATCH_SCORE)).doubleValue()).reversed()
+			.thenComparing(match -> String.valueOf(match.get(MATCH_KEY)), String.CASE_INSENSITIVE_ORDER);
 
 	private static volatile MetadataCache metadataCache;
 
@@ -117,7 +128,8 @@ public final class StaticModelMetadataCatalog {
 
 	/**
 	 * Fill in any MODELMETADATA property the caller did not supply using the
-	 * catalog entry for the model id held in {@link Constants#MODEL}. Values the
+	 * catalog entry for {@link Constants#CATALOG_MODEL_KEY} when one was picked by
+	 * hand, falling back to the model id held in {@link Constants#MODEL}. Values the
 	 * caller did supply are never overwritten, and a catalog value that fails
 	 * validation is skipped rather than failing the whole call - the catalog is
 	 * hand-maintained data and must not be able to break model creation.
@@ -139,7 +151,9 @@ public final class StaticModelMetadataCatalog {
 		if (modelDetails == null) {
 			return;
 		}
-		String modelId = trimToNull(modelDetails.get(Constants.MODEL));
+
+		String catalogModelKey = trimToNull(modelDetails.get(Constants.CATALOG_MODEL_KEY));
+		String modelId = catalogModelKey != null ? catalogModelKey : trimToNull(modelDetails.get(Constants.MODEL));
 		if (modelId == null) {
 			return;
 		}
@@ -211,8 +225,6 @@ public final class StaticModelMetadataCatalog {
 
 		JsonObject limit = getObject(model, "limit");
 		putLong(defaults, Constants.CONTEXT_WINDOW, limit, "context", 1);
-		// the catalog uses an output limit of 0 or 1 to mean "not a text completion
-		// model"; persisting that would cap generation at a single token
 		putLong(defaults, Constants.MAX_TOKENS, limit, "output", 2);
 
 		String capability = inferCapability(inputModalities, outputModalities, hasPlaceholderOutputLimit(limit));
@@ -306,6 +318,21 @@ public final class StaticModelMetadataCatalog {
 	}
 
 	static JsonObject findModel(Path metadataFile, String modelId) {
+		String catalogKey = findModelKey(metadataFile, modelId);
+		if (catalogKey == null) {
+			return null;
+		}
+		// the parsed catalog is cached, so resolving the key and then reading it back
+		// costs one map lookup
+		return loadMetadata(metadataFile).getAsJsonObject(catalogKey);
+	}
+
+	/**
+	 * The catalog key a provider model id resolves to, or null when the catalog has
+	 * no entry for it. Callers that need to tell the user which entry was matched -
+	 * or that nothing was - want this rather than {@link #findModel}.
+	 */
+	public static String findModelKey(Path metadataFile, String modelId) {
 		if (modelId == null || modelId.trim().isEmpty()) {
 			return null;
 		}
@@ -315,7 +342,7 @@ public final class StaticModelMetadataCatalog {
 		for (String lookupId : lookupIds) {
 			JsonElement metadata = allMetadata.get(lookupId);
 			if (metadata != null && metadata.isJsonObject()) {
-				return metadata.getAsJsonObject();
+				return lookupId;
 			}
 			if (metadata != null && !metadata.isJsonNull()) {
 				throw new IllegalStateException("Static model metadata entry '" + lookupId + "' must be a JSON object");
@@ -329,10 +356,189 @@ public final class StaticModelMetadataCatalog {
 			}
 			JsonElement candidateId = candidate.getAsJsonObject().get("id");
 			if (candidateId != null && candidateId.isJsonPrimitive() && lookupIds.contains(candidateId.getAsString())) {
-				return candidate.getAsJsonObject();
+				return entry.getKey();
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Every model key in the catalog, sorted, so a caller that could not resolve an
+	 * id can offer the whole catalog to pick from. Returns an empty list when the
+	 * install has no catalog file.
+	 */
+	public static List<String> getCatalogKeys(Path metadataFile) {
+		if (!Files.isRegularFile(metadataFile)) {
+			return new ArrayList<>();
+		}
+		List<String> catalogKeys = new ArrayList<>(loadMetadata(metadataFile).keySet());
+		catalogKeys.sort(String.CASE_INSENSITIVE_ORDER);
+		return catalogKeys;
+	}
+
+	/**
+	 * The catalog entries that most resemble the given model id, best first, capped
+	 * at {@code limit}. Meant for the case where {@link #findModelKey} came up empty
+	 * and the user has to pick an entry themselves, so the returned maps carry
+	 * enough to render a suggestion - key, id, name, provider, family - alongside
+	 * the score they were ranked on.
+	 * <p>
+	 * Entries that look nothing like the id are left out entirely, so an id with no
+	 * plausible neighbour returns an empty list rather than the arbitrary head of
+	 * the catalog.
+	 */
+	public static List<Map<String, Object>> findClosestMatches(Path metadataFile, String modelId, int limit) {
+		if (limit < 1 || modelId == null || modelId.trim().isEmpty() || !Files.isRegularFile(metadataFile)) {
+			return new ArrayList<>();
+		}
+
+		List<String> normalizedIds = new ArrayList<>();
+		for (String lookupId : getLookupIds(modelId.trim())) {
+			String normalizedId = normalizeForComparison(lookupId);
+			if (!normalizedId.isEmpty() && !normalizedIds.contains(normalizedId)) {
+				normalizedIds.add(normalizedId);
+			}
+		}
+		if (normalizedIds.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		List<Map<String, Object>> matches = new ArrayList<>();
+		for (Map.Entry<String, JsonElement> entry : loadMetadata(metadataFile).entrySet()) {
+			JsonElement candidate = entry.getValue();
+			if (!candidate.isJsonObject()) {
+				continue;
+			}
+			JsonObject candidateMetadata = candidate.getAsJsonObject();
+			double score = scoreCandidate(normalizedIds, entry.getKey(), candidateMetadata);
+			if (score < MINIMUM_MATCH_SCORE) {
+				continue;
+			}
+
+			Map<String, Object> match = new LinkedHashMap<>();
+			match.put(MATCH_KEY, entry.getKey());
+			putString(match, "id", candidateMetadata, "id");
+			putString(match, "name", candidateMetadata, "name");
+			putString(match, "provider", candidateMetadata, "provider");
+			putString(match, "family", candidateMetadata, "family");
+			match.put(MATCH_SCORE, roundScore(score));
+			matches.add(match);
+		}
+
+		matches.sort(MATCH_ORDER);
+		return matches.size() <= limit ? matches : new ArrayList<>(matches.subList(0, limit));
+	}
+
+	/**
+	 * How closely a catalog entry resembles the id, taking the best of its key and
+	 * its provider id - the catalog is keyed on a bare model name while the id
+	 * carries a vendor prefix, and the user may have typed either.
+	 */
+	private static double scoreCandidate(List<String> normalizedIds, String catalogKey, JsonObject candidate) {
+		List<String> candidateValues = new ArrayList<>();
+		candidateValues.add(catalogKey);
+		JsonElement candidateId = candidate.get("id");
+		if (candidateId != null && candidateId.isJsonPrimitive()) {
+			candidateValues.add(candidateId.getAsString());
+		}
+
+		double best = 0;
+		for (String candidateValue : candidateValues) {
+			String normalizedCandidate = normalizeForComparison(candidateValue);
+			if (normalizedCandidate.isEmpty()) {
+				continue;
+			}
+			for (String normalizedId : normalizedIds) {
+				best = Math.max(best, similarity(normalizedId, normalizedCandidate));
+			}
+		}
+		return best;
+	}
+
+	/**
+	 * How alike two already normalized ids are, from 0 to 1. Segment overlap does
+	 * most of the work, edit distance separates candidates that share the same
+	 * segments, and a shared prefix outranks both.
+	 */
+	static double similarity(String left, String right) {
+		if (left.equals(right)) {
+			return 1;
+		}
+
+		List<String> leftTokens = tokenize(left);
+		List<String> unmatchedRightTokens = tokenize(right);
+		int rightTokenCount = unmatchedRightTokens.size();
+		int shared = 0;
+		for (String leftToken : leftTokens) {
+			if (unmatchedRightTokens.remove(leftToken)) {
+				shared++;
+			}
+		}
+		int union = leftTokens.size() + rightTokenCount - shared;
+		double tokenScore = union == 0 ? 0 : (double) shared / union;
+
+		int longest = Math.max(left.length(), right.length());
+		Integer distance = EDIT_DISTANCE.apply(left, right);
+		double characterScore = distance == null || longest == 0 ? 0
+				: Math.max(0, 1 - ((double) distance / longest));
+
+		double score = TOKEN_WEIGHT * tokenScore + (1 - TOKEN_WEIGHT) * characterScore;
+		if (left.startsWith(right) || right.startsWith(left)) {
+			int shortest = Math.min(left.length(), right.length());
+			score = Math.max(score, PREFIX_SCORE_FLOOR + (1 - PREFIX_SCORE_FLOOR) * ((double) shortest / longest));
+		}
+		return Math.min(score, MAXIMUM_INEXACT_SCORE);
+	}
+
+	/**
+	 * Reduce an id to lower case alphanumeric segments joined by single hyphens, so
+	 * that "openai/GPT-5.4" and "openai-gpt-5-4" compare as the same shape.
+	 * <p>
+	 * A letter to digit boundary starts a new segment as well, because whether the
+	 * separator gets typed at all is arbitrary - "gpt5" and "gpt-5" are the same
+	 * model to everyone but a string comparison.
+	 */
+	static String normalizeForComparison(String value) {
+		if (value == null) {
+			return "";
+		}
+		StringBuilder normalized = new StringBuilder(value.length());
+		boolean pendingSeparator = false;
+		char previousCharacter = 0;
+		for (char character : value.toLowerCase(Locale.ROOT).toCharArray()) {
+			if (!Character.isLetterOrDigit(character)) {
+				pendingSeparator = true;
+				continue;
+			}
+			if (previousCharacter != 0 && Character.isDigit(character) != Character.isDigit(previousCharacter)) {
+				pendingSeparator = true;
+			}
+			if (pendingSeparator && normalized.length() > 0) {
+				normalized.append('-');
+			}
+			pendingSeparator = false;
+			previousCharacter = character;
+			normalized.append(character);
+		}
+		return normalized.toString();
+	}
+
+	private static List<String> tokenize(String normalizedId) {
+		List<String> tokens = new ArrayList<>();
+		for (String token : normalizedId.split("-")) {
+			if (!token.isEmpty()) {
+				tokens.add(token);
+			}
+		}
+		return tokens;
+	}
+
+	/**
+	 * The score is a ranking aid, not a measurement - four decimals keeps it
+	 * readable in the response without changing any ordering.
+	 */
+	private static double roundScore(double score) {
+		return Math.round(score * 10000d) / 10000d;
 	}
 
 	/**

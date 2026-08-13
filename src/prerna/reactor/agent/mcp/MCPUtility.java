@@ -66,6 +66,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -577,10 +578,18 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 * Returns the first 8 hex characters of the engineId (using a UUID string -
+	 * dashes removed; unless platform project/engine which usually do not).
 	 */
 	public static String computeShortEngineId(String engineId) {
-		return engineId.replace("-", "").substring(0, 8);
+		String retId = engineId;
+		if (retId.contains("-")) {
+			retId = retId.replace("-", "");
+		}
+		if (retId.length() > 8) {
+			retId = retId.substring(0, 8);
+		}
+		return retId;
 	}
 
 	/**
@@ -1394,6 +1403,20 @@ public final class MCPUtility {
 
 		IMCP mcp = MCPFactory.build(engine);
 		return mcp.callTool(toolName, paramMap, insight);
+	}
+
+	/**
+	 * Typed adapter for agent callers. The established direct execution path and
+	 * its exception behavior remain unchanged.
+	 */
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName, Map<String, Object> paramMap,
+			Insight insight) {
+		try {
+			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
+		} catch (RuntimeException e) {
+			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			return ToolExecutionResult.error(message, message);
+		}
 	}
 
 	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
