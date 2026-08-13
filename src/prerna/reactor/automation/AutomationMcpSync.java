@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -61,6 +62,10 @@ import prerna.util.git.GitRepoUtils;
  *
  * <p>A single-purpose class (not folded into {@link AutomationExecutionUtils}, which is scoped to
  * run-execution concerns) so the MCP-catalog-sync responsibility stays isolated and easy to find.
+ *
+ * <p>Uses {@code org.json} (JSONObject/JSONArray) throughout because {@link MCPUtility} is built
+ * on org.json, and converting between org.json and Gson just to call those helpers would add
+ * unnecessary overhead and type-safety risk. Gson is used everywhere else in the automation package.
  */
 public final class AutomationMcpSync {
 
@@ -98,6 +103,10 @@ public final class AutomationMcpSync {
 					projectId);
 			return;
 		}
+		if (automationJson == null || automationJson.isBlank()) {
+			classLogger.warn("Skipping automation MCP tool sync for project {}: automation JSON is empty.", projectId);
+			return;
+		}
 
 		try {
 			boolean hasDbNodes = hasPlaygroundDbNodes(automationJson);
@@ -105,10 +114,11 @@ public final class AutomationMcpSync {
 			if (hasDbNodes) {
 				generated.put(buildGetAutomationSchemaTool(projectId));
 			}
+			generated.put(buildBuildAutomationTool(projectId));
 			MCPUtility.stampGenerator(generated, AUTOMATION_MCP_GENERATOR_ID);
 
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
-			String outputFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
+			String outputFileLoc = Paths.get(assetsFolder, "mcp", "pixel_mcp.json").toString();
 			JSONArray merged = MCPUtility.mergeGeneratedTools(
 					MCPUtility.readMcpJson(outputFileLoc), generated, AUTOMATION_MCP_GENERATOR_ID, true);
 
@@ -149,7 +159,7 @@ public final class AutomationMcpSync {
 					+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
 		}
 		if (hasDbNodes) {
-			description += " This automation has database nodes that accept SQL queries — call GetAutomationSchema first"
+			description += " This automation has database nodes that accept SQL queries  - call GetAutomationSchema first"
 					+ " to discover the exact table and column names before writing SQL.";
 		}
 		tool.put("description", description);
@@ -252,6 +262,54 @@ public final class AutomationMcpSync {
 		return false;
 	}
 
+	/**
+	 * Builds the {@code BuildAutomation} MCP tool  - lets an agent in Playground generate or edit
+	 * this project's automation from a plain-English description. Execution mode is ASK so the user
+	 * can review the generated document before it is saved.
+	 */
+	private static JSONObject buildBuildAutomationTool(String projectId) {
+		JSONObject tool = new JSONObject();
+		tool.put("name", "BuildAutomation");
+		tool.put("title", "Build / Edit Automation");
+		tool.put("description",
+				"Generates or edits this project's automation from a plain-English description. "
+				+ "The model iteratively gathers context (database schema, available reactors) before producing a complete automation document. "
+				+ "Does NOT save automatically  - call SaveAutomation with the returned JSON to persist. "
+				+ "Use currentDoc to pass the existing automation JSON (base64-encoded) for edit mode.");
+
+		JSONObject projectProp = new JSONObject();
+		projectProp.put("type", "string");
+		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
+		projectProp.put("default", projectId);
+
+		JSONObject descProp = new JSONObject();
+		descProp.put("type", "string");
+		descProp.put("description", "Plain-English description of what the automation should do, or how to modify the existing one. Will be base64-encoded automatically if needed.");
+
+		JSONObject currentDocProp = new JSONObject();
+		currentDocProp.put("type", "string");
+		currentDocProp.put("description", "Optional base64-encoded JSON of the current automation document. Include this to edit rather than generate from scratch.");
+
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
+		properties.put(AutomationConstants.DOC_DESCRIPTION, descProp);
+		properties.put("currentDoc", currentDocProp);
+
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("type", "object");
+		inputSchema.put("title", "BuildAutomation_Arguments");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put(AutomationConstants.DOC_DESCRIPTION));
+		tool.put("inputSchema", inputSchema);
+
+		JSONObject meta = new JSONObject();
+		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "BuildAutomation");
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		tool.put("_meta", meta);
+
+		return tool;
+	}
+
 	/** Builds the auto-executable {@code GetAutomationSchema} companion tool. */
 	private static JSONObject buildGetAutomationSchemaTool(String projectId) {
 		JSONObject tool = new JSONObject();
@@ -259,7 +317,7 @@ public final class AutomationMcpSync {
 		tool.put("title", "Get Automation Database Schema");
 		tool.put("description",
 				"Returns the physical table and column names for database nodes in this automation that accept SQL input. "
-						+ "Call this before TriggerAutomation when you need to write a SQL query — it gives you the exact "
+						+ "Call this before TriggerAutomation when you need to write a SQL query  - it gives you the exact "
 						+ "table and column names available in the database.");
 
 		JSONObject projectProp = new JSONObject();

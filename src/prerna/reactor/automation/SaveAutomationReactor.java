@@ -94,8 +94,15 @@ public class SaveAutomationReactor extends AbstractReactor {
             automationFile.getParentFile().mkdirs();
             Files.writeString(automationFile.toPath(), json, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            classLogger.error("Error saving automation JSON", e);
+            classLogger.error("Error saving automation JSON for project {}", projectId, e);
             throw new IllegalArgumentException("Unable to save automation: " + e.getMessage());
+        }
+
+        if (project == null) {
+            classLogger.warn("Project {} not found in registry  - skipping git commit and cluster push", projectId);
+            SecurityProjectUtils.updateProjectLastEditedDate(projectId);
+            AutomationMcpSync.syncTriggerAutomationTool(null, projectId, this.insight.getUser(), json);
+            return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
         }
 
         List<String> files = new ArrayList<>();
@@ -131,9 +138,19 @@ public class SaveAutomationReactor extends AbstractReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+            return "The project ID of the automation to save.";
+        } else if (ReactorKeysEnum.JSON.getKey().equals(key)) {
+            return "Base64-encoded JSON document representing the automation graph (nodes, edges, transforms).";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public Map<String, String> getMcpToolMetadata() {
         Map<String, String> meta = new HashMap<>();
-        // Overwrites the saved automation graph and commits it to source control —
+        // Overwrites the saved automation graph and commits it to source control  -
         // requires explicit human confirmation.
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
         return meta;

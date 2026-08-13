@@ -77,6 +77,8 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 		// for the full duration to complete.
 		int remaining = seconds;
 		while (remaining > 0) {
+			// isCancelRequested checks the DB; this is intentionally bounded by
+			// WAIT_CANCEL_CHECK_INTERVAL_SECONDS to avoid thrashing the JDBC pool.
 			if (ctx.cancelFlag().get() || AutomationDatabaseUtility.isCancelRequested(ctx.runId())) {
 				throw new AutomationCancelledException("Wait node \"" + nodeLabel + "\" cancelled");
 			}

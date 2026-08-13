@@ -52,8 +52,8 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
-		String params = optional(config, AutomationConstants.CONFIG_PARAMS, AutomationConstants.EMPTY_JSON_OBJECT);
+		String engineId = NodeConfigHelper.required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String params = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_PARAMS, AutomationConstants.EMPTY_JSON_OBJECT);
 
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 		String resolvedParams = AutomationExecutionUtils.resolve(params, scope, configMap);
@@ -86,16 +86,4 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 		}
 	}
 
-	private static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key, String def) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? def : v.toString();
-	}
 }

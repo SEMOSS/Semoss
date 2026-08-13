@@ -270,7 +270,7 @@ public final class AutomationRunEngine {
 
 	private static ScheduledExecutorService startHeartbeat(String runId) {
 		ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-			Thread t = new Thread(r, "automation-heartbeat-" + runId.substring(0, 8));
+			Thread t = new Thread(r, "automation-heartbeat-" + runId.substring(0, Math.min(8, runId.length())));
 			t.setDaemon(true);
 			return t;
 		});

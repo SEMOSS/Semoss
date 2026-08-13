@@ -60,10 +60,10 @@ public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
-		String sql = required(config, AutomationConstants.CONFIG_EXPRESSION, nodeLabel);
-		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_READ);
-		int limit = optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_DB_QUERY_LIMIT);
+		String engineId = NodeConfigHelper.required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String sql = NodeConfigHelper.required(config, AutomationConstants.CONFIG_EXPRESSION, nodeLabel);
+		String operation = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_READ);
+		int limit = NodeConfigHelper.optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_DB_QUERY_LIMIT);
 
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 		String resolvedSql = AutomationExecutionUtils.resolve(sql, scope, configMap);
@@ -81,23 +81,4 @@ public final class DatabaseEngineNodeExecutor implements IAutomationNodeExecutor
 		return PixelExecutionUtils.runAndCollect(ctx.insight(), pixel, timeout);
 	}
 
-	private static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException("Database-engine node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key, String def) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? def : v.toString();
-	}
-
-	private static int optionalInt(Map<String, Object> config, String key, int def) {
-		Object v = config.get(key);
-		if (v == null) return def;
-		try { return Integer.parseInt(v.toString().trim()); }
-		catch (NumberFormatException e) { return def; }
-	}
 }

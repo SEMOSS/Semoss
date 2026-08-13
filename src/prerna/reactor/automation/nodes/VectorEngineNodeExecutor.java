@@ -52,8 +52,8 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
-		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_SEARCH);
+		String engineId = NodeConfigHelper.required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String operation = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_SEARCH);
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 
 		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
@@ -77,7 +77,7 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 		switch (operation) {
 			case AutomationConstants.OP_ADD_FILE:
 			case AutomationConstants.OP_ADD_CSV: {
-				String filePaths = required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
+				String filePaths = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedPaths = AutomationExecutionUtils.resolve(filePaths, scope, configMap);
 				List<String> paths = Arrays.asList(resolvedPaths.split(","));
 				engine.addDocument(paths, null);
@@ -88,7 +88,7 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 				return docs;
 			}
 			case AutomationConstants.OP_DELETE: {
-				String fileNames = required(config, AutomationConstants.CONFIG_FILE_NAMES, nodeLabel);
+				String fileNames = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_NAMES, nodeLabel);
 				String resolvedNames = AutomationExecutionUtils.resolve(fileNames, scope, configMap);
 				List<String> names = Arrays.asList(resolvedNames.split(","));
 				engine.removeDocument(names, null);
@@ -96,32 +96,13 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 			}
 			default: {
 				// search
-				String command = required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
+				String command = NodeConfigHelper.required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
 				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
-				int limit = optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_VECTOR_SEARCH_LIMIT);
+				int limit = NodeConfigHelper.optionalInt(config, AutomationConstants.CONFIG_LIMIT, AutomationConstants.DEFAULT_VECTOR_SEARCH_LIMIT);
 				List<Map<String, Object>> results = engine.nearestNeighbor(ctx.insight(), resolvedCommand, limit, null);
 				return results;
 			}
 		}
 	}
 
-	private static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException("Vector-engine node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key, String def) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? def : v.toString();
-	}
-
-	private static int optionalInt(Map<String, Object> config, String key, int def) {
-		Object v = config.get(key);
-		if (v == null) return def;
-		try { return Integer.parseInt(v.toString().trim()); }
-		catch (NumberFormatException e) { return def; }
-	}
 }

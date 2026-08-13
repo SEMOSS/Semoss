@@ -250,4 +250,6 @@ public final class AutomationConstants {
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;
+	/** Maximum characters from a node output preview included in the AI run-summary prompt. */
+	public static final int SUMMARY_PROMPT_PREVIEW_MAX_LENGTH = 300;
 }

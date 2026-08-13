@@ -216,7 +216,7 @@ public final class AutomationDatabaseUtility {
 
 			classLogger.info("Automation engine tables initialized successfully");
 		} catch (Exception e) {
-			classLogger.error("Failed to initialize automation engine tables: {}", e.getMessage(), e);
+			classLogger.error("Failed to initialize automation engine tables", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -285,7 +285,7 @@ public final class AutomationDatabaseUtility {
 				conn.commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to mark stale automation runs: {}", e.getMessage(), e);
+			classLogger.error("Failed to mark stale automation runs", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -388,8 +388,8 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to release active-run slot for project {}, run {}: {}",
-					projectId, runId, e.getMessage(), e);
+			classLogger.error("Failed to release active-run slot for project {}, run {}",
+					projectId, runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -445,7 +445,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to set cancel-requested flag for run '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to set cancel-requested flag for run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -511,7 +511,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to insert automation run '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to insert automation run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -543,7 +543,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to update run status for '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to update run status for '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -572,7 +572,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to update run summary for '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to update run summary for '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -601,7 +601,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to update heartbeat for run '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to update heartbeat for run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -629,7 +629,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to touch heartbeat for run '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to touch heartbeat for run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -734,7 +734,7 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to batch-insert node outputs for run '{}': {}", runId, e.getMessage(), e);
+			classLogger.error("Failed to batch-insert node outputs for run '{}'", runId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -764,8 +764,8 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to mark node running for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
+			classLogger.error("Failed to mark node running for run '{}', node '{}'",
+					runId, nodeId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -804,8 +804,8 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (Exception e) {
-			classLogger.error("Failed to update node success for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
+			classLogger.error("Failed to update node success for run '{}', node '{}'",
+					runId, nodeId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);
@@ -839,8 +839,8 @@ public final class AutomationDatabaseUtility {
 			}
 			return true;
 		} catch (SQLException e) {
-			classLogger.error("Failed to update node failed for run '{}', node '{}': {}",
-					runId, nodeId, e.getMessage(), e);
+			classLogger.error("Failed to update node failed for run '{}', node '{}'",
+					runId, nodeId, e);
 			return false;
 		} finally {
 			closeConnection(schedulerDb, conn);

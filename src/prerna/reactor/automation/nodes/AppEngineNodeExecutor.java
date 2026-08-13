@@ -70,8 +70,8 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String pixel = required(config, AutomationConstants.CONFIG_PIXEL, nodeLabel);
-		String appId = optional(config, AutomationConstants.CONFIG_APP_ID);
+		String pixel = NodeConfigHelper.required(config, AutomationConstants.CONFIG_PIXEL, nodeLabel);
+		String appId = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_APP_ID);
 		String resolvedPixel = AutomationExecutionUtils.resolve(pixel, scope, configMap);
 		String resolvedAppId = appId != null ? AutomationExecutionUtils.resolve(appId, scope, configMap) : null;
 
@@ -100,17 +100,4 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 		return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel);
 	}
 
-	private static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException(
-					"App node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? null : v.toString();
-	}
 }

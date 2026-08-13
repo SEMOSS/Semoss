@@ -28,7 +28,6 @@
 package prerna.reactor.automation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +40,7 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.api.IRDBMSEngine;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -65,16 +61,12 @@ import prerna.util.Utility;
  * expected to display it for review and save it via {@code SaveAutomation} — this reactor does NOT
  * persist anything.
  */
-public final class GenerateAutomationReactor extends AbstractReactor {
+public class GenerateAutomationReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GenerateAutomationReactor.class);
 
 	private static final int DESCRIPTION_MAX_CHARS = 1000;
 	private static final String PENDING_SQL = "PENDING_SQL_GENERATION";
-
-	/** Engine types used to fetch context for the prompt. */
-	private static final List<String> SUPPORTED_ENGINE_TYPES = Arrays.asList(
-			"DATABASE", "MODEL", "VECTOR", "STORAGE", "FUNCTION");
 
 	/**
 	 * Pass 1 system prompt: structural generation only.
@@ -234,7 +226,7 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 
 		// Resolve model engine — use provided ID or fall back to first available MODEL engine
 		if (engineId == null || engineId.trim().isEmpty()) {
-			engineId = findFirstModelEngine(user);
+			engineId = AutomationExecutionUtils.findFirstModelEngine(user);
 		}
 		if (engineId == null || engineId.trim().isEmpty()) {
 			throw new IllegalArgumentException(
@@ -272,7 +264,7 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 		paramMap.put("use_history", false);
 
 		// -- Pass 1: structural generation (or edit if current doc provided) -------------
-		String enginesSection = buildAvailableEnginesSection(user);
+		String enginesSection = AutomationExecutionUtils.buildAvailableEnginesSection(user);
 		String pass1Message;
 		String systemPrompt1;
 		if (currentDoc != null) {
@@ -286,8 +278,8 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 			pass1Message = enginesSection + "\n## User's request\n" + description.trim();
 		}
 		String raw = callLlm(modelEngine, systemPrompt1, pass1Message, paramMap, projectId);
-		raw = stripCodeFences(raw);
-		validateGeneratedDoc(raw);
+		raw = AutomationExecutionUtils.stripCodeFences(raw);
+		AutomationExecutionUtils.validateGeneratedDoc(raw);
 
 		// -- Pass 2: schema-aware refinement (when DB nodes or app nodes are present) ----
 		List<String> dbEngineIds = extractDatabaseEngineIds(raw);
@@ -297,15 +289,15 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 					dbEngineIds.size(), hasAppNodes, projectId);
 			StringBuilder pass2Message = new StringBuilder("## Workflow document from pass 1\n").append(raw).append("\n");
 			if (!dbEngineIds.isEmpty()) {
-				pass2Message.append("\n").append(buildSchemaForEngineIds(dbEngineIds));
+				pass2Message.append("\n").append(AutomationExecutionUtils.buildSchemaForEngineIds(dbEngineIds));
 			}
 			if (hasAppNodes) {
-				pass2Message.append("\n").append(buildReactorListSection(projectId));
+				pass2Message.append("\n").append(AutomationExecutionUtils.buildReactorListSection(projectId));
 			}
 			try {
 				String refined = callLlm(modelEngine, SYSTEM_PROMPT_REFINE, pass2Message.toString(), paramMap, projectId);
-				refined = stripCodeFences(refined);
-				validateGeneratedDoc(refined);
+				refined = AutomationExecutionUtils.stripCodeFences(refined);
+				AutomationExecutionUtils.validateGeneratedDoc(refined);
 				raw = refined;
 			} catch (Exception e) {
 				classLogger.warn("GenerateAutomation pass 2 failed — returning pass 1 result. Reason: {}", e.getMessage());
@@ -318,7 +310,6 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 
 	// -- Private helpers -------------------------------------------------------------
 
-	/** Calls the model and returns the response text, throwing on failure. */
 	private String callLlm(IModelEngine modelEngine, String systemPrompt, String userMessage,
 			Map<String, Object> paramMap, String projectId) {
 		Map<String, Object> response;
@@ -328,7 +319,7 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 			classLogger.error("LLM call failed for GenerateAutomation on project {}", projectId, e);
 			throw new RuntimeException("AI generation failed: " + e.getMessage(), e);
 		}
-		String text = extractResponseText(response);
+		String text = AutomationExecutionUtils.extractResponseText(response);
 		if (text == null || text.isBlank()) {
 			throw new IllegalStateException(
 					"The AI model did not return a response. Try again or start with a blank automation.");
@@ -392,188 +383,6 @@ Respond with ONLY the complete updated JSON document. No markdown, no code fence
 			classLogger.warn("Failed to check for app nodes in generated doc", e);
 		}
 		return false;
-	}
-
-	/**
-	 * Returns the list of custom reactors available in the given project, formatted as a
-	 * bulleted list for the pass 2 prompt. Uses the same source as the FE reactor browser.
-	 */
-	private static String buildReactorListSection(String projectId) {
-		StringBuilder sb = new StringBuilder("## Available custom reactors in this project\n");
-		try {
-			IProject project = Utility.getProject(projectId);
-			if (project == null) {
-				sb.append("(project not found — leave app node pixel as-is)\n");
-				return sb.toString();
-			}
-			java.util.TreeSet<String> reactors = project.getAvailableReactors();
-			if (reactors == null || reactors.isEmpty()) {
-				sb.append("(none — leave app node pixel as a comment placeholder)\n");
-				return sb.toString();
-			}
-			for (String name : reactors) {
-				sb.append("- ").append(name).append("\n");
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to build reactor list for project {}", projectId, e);
-			sb.append("(reactor list unavailable — leave app node pixel as a comment placeholder)\n");
-		}
-		return sb.toString();
-	}
-
-	/**
-	 * Fetches the table/column schema (with data types) for the given engine IDs.
-	 * Uses the same metamodel API as {@code TextToSQLReactor}. Data types prevent the LLM
-	 * from generating type-mismatched WHERE clauses (e.g. comparing VARCHAR to an integer).
-	 */
-	private static String buildSchemaForEngineIds(List<String> engineIds) {
-		StringBuilder sb = new StringBuilder("## Database schema\n");
-		for (String engineId : engineIds) {
-			try {
-				IDatabaseEngine dbEngine = Utility.getDatabase(engineId);
-				if (!(dbEngine instanceof IRDBMSEngine rdbms)) {
-					sb.append("Database id=\"").append(engineId).append("\": (non-relational — no table schema)\n");
-					continue;
-				}
-				sb.append("Database id=\"").append(engineId).append("\":\n");
-				List<String> tables = rdbms.getPixelConcepts();
-				if (tables == null || tables.isEmpty()) {
-					sb.append("  (no tables found)\n");
-					continue;
-				}
-				for (String table : tables) {
-					List<String> columns = rdbms.getPixelSelectors(table);
-					sb.append("  - ").append(table).append(" (");
-					if (columns != null && !columns.isEmpty()) {
-						StringBuilder cols = new StringBuilder();
-						for (String col : columns) {
-							int sep = col.lastIndexOf("__");
-						String colName = sep >= 0 ? col.substring(sep + 2) : col;
-							String dataType = null;
-							try {
-								String physicalUri = rdbms.getPhysicalUriFromPixelSelector(col);
-								if (physicalUri != null) {
-									dataType = rdbms.getDataTypes(physicalUri);
-								}
-							} catch (Exception ignored) {
-								// Data type fetch is best-effort; column name alone is still useful
-							}
-							if (cols.length() > 0) cols.append(", ");
-							cols.append(colName);
-							if (dataType != null && !dataType.isBlank()) {
-								cols.append(": ").append(dataType.trim());
-							}
-						}
-						sb.append(cols);
-					}
-					sb.append(")\n");
-				}
-			} catch (Exception e) {
-				classLogger.warn("Failed to fetch schema for engine {}", engineId, e);
-				sb.append("Database id=\"").append(engineId).append("\": (schema unavailable)\n");
-			}
-		}
-		return sb.toString();
-	}
-
-	/**
-	 * Returns the ID of the first MODEL-type engine the user has access to, or null if none.
-	 */
-	private static String findFirstModelEngine(User user) {
-		try {
-			List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(
-					user, List.of("MODEL"), null, false, null, null, null, "1", "0", null);
-			if (engines != null && !engines.isEmpty()) {
-				Object id = engines.get(0).get("database_id");
-				return id != null ? String.valueOf(id) : null;
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to auto-discover model engine", e);
-		}
-		return null;
-	}
-
-	/**
-	 * Builds the "## Available engines" section appended to the pass 1 user message.
-	 * Lists each engine the user has access to so the LLM can populate engineId fields.
-	 */
-	private static String buildAvailableEnginesSection(User user) {
-		StringBuilder sb = new StringBuilder("## Available engines\n");
-		try {
-			List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(
-					user, SUPPORTED_ENGINE_TYPES, null, false, null, null, null, "50", "0", null);
-			if (engines == null || engines.isEmpty()) {
-				sb.append("None available — leave engineId as empty string.\n");
-				return sb.toString();
-			}
-			for (Map<String, Object> engine : engines) {
-				String id = engine.getOrDefault("database_id", "").toString();
-				String name = engine.getOrDefault("database_name", "").toString();
-				String type = engine.getOrDefault("engine_type", "").toString().toUpperCase();
-				sb.append("- type=").append(type)
-				  .append(" id=\"").append(id)
-				  .append("\" name=\"").append(name).append("\"\n");
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to build engine list for generation prompt", e);
-			sb.append("(engine list unavailable — leave engineId as empty string)\n");
-		}
-		return sb.toString();
-	}
-
-	/**
-	 * Extracts the text content from the model's response map.
-	 * Handles both {@code response} string and {@code output}/{@code content} keys.
-	 */
-	private static String extractResponseText(Map<String, Object> response) {
-		if (response == null) return null;
-		Object resp = response.get("response");
-		if (resp instanceof String s && !s.isBlank()) return s;
-		Object output = response.get("output");
-		if (output instanceof String s && !s.isBlank()) return s;
-		Object content = response.get("content");
-		if (content instanceof String s && !s.isBlank()) return s;
-		return null;
-	}
-
-	/** Strips leading/trailing markdown code fences (```json ... ``` or ``` ... ```). */
-	private static String stripCodeFences(String raw) {
-		String trimmed = raw.strip();
-		if (trimmed.startsWith("```")) {
-			int firstNewline = trimmed.indexOf('\n');
-			if (firstNewline != -1) {
-				trimmed = trimmed.substring(firstNewline + 1);
-			}
-			if (trimmed.endsWith("```")) {
-				trimmed = trimmed.substring(0, trimmed.lastIndexOf("```")).strip();
-			}
-		}
-		return trimmed;
-	}
-
-	/**
-	 * Throws if the generated doc is not parseable JSON or missing required structure.
-	 * Does not enforce strict schema — just enough to avoid crashing the FE.
-	 */
-	private static void validateGeneratedDoc(String raw) {
-		try {
-			JSONObject doc = new JSONObject(raw);
-			if (!doc.has("graph")) {
-				throw new IllegalStateException("Generated document is missing the 'graph' field.");
-			}
-			JSONObject graph = doc.getJSONObject("graph");
-			if (!graph.has("nodes")) {
-				throw new IllegalStateException("Generated graph is missing the 'nodes' array.");
-			}
-			JSONArray nodes = graph.getJSONArray("nodes");
-			if (nodes.length() == 0) {
-				throw new IllegalStateException("Generated graph has no nodes.");
-			}
-		} catch (org.json.JSONException e) {
-			classLogger.warn("Generated automation doc is not valid JSON: {}", raw, e);
-			throw new IllegalStateException(
-					"The AI model returned an invalid response. Please try again with a different description.", e);
-		}
 	}
 
 	@Override

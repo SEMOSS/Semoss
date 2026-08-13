@@ -42,6 +42,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
+
+
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -54,8 +56,11 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
 
     private static final Logger classLogger = LogManager.getLogger(SaveAutomationConfigReactor.class);
 
+    private static final java.lang.reflect.Type LIST_OF_MAP_TYPE =
+            new TypeToken<java.util.List<java.util.Map<String, Object>>>() {}.getType();
+
     public SaveAutomationConfigReactor() {
-        this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
+        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
     }
 
     @Override
@@ -91,7 +96,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
             configFile.getParentFile().mkdirs();
             Files.writeString(configFile.toPath(), config, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            classLogger.error("Error saving automation config", e);
+            classLogger.error("Error saving automation config for project {}", projectId, e);
             throw new IllegalArgumentException("Unable to save automation config: " + e.getMessage());
         }
 
@@ -112,10 +117,10 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
         }
         try {
             List<Map<String, Object>> incoming = AutomationExecutionUtils.GSON.fromJson(incomingJson,
-                    new TypeToken<List<Map<String, Object>>>() {}.getType());
+                    LIST_OF_MAP_TYPE);
             String existingJson = Files.readString(existingFile.toPath(), StandardCharsets.UTF_8);
             List<Map<String, Object>> existing = AutomationExecutionUtils.GSON.fromJson(existingJson,
-                    new TypeToken<List<Map<String, Object>>>() {}.getType());
+                    LIST_OF_MAP_TYPE);
             if (incoming == null || existing == null || existing.isEmpty()) {
                 return incomingJson;
             }
@@ -152,6 +157,16 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Saves the automation config (key/value env vars and secrets) for a project.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+            return "The project ID whose automation config should be saved.";
+        } else if (ReactorKeysEnum.CONFIG.getKey().equals(key)) {
+            return "Base64-encoded JSON array of config entries (key, value, sensitive flag).";
+        }
+        return super.getDescriptionForKey(key);
     }
 
     @Override

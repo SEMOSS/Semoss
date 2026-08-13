@@ -38,8 +38,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -72,6 +70,7 @@ public class GetAutomationReactor extends AbstractReactor {
 
     public GetAutomationReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+        this.keyRequired = new int[] { 1 };
     }
 
     @Override
@@ -110,7 +109,7 @@ public class GetAutomationReactor extends AbstractReactor {
         try {
             String json = Files.readString(automationFile.toPath(), StandardCharsets.UTF_8);
             Map<String, Object> doc = AutomationExecutionUtils.GSON.fromJson(json,
-                    new TypeToken<Map<String, Object>>() {}.getType());
+                    AutomationExecutionUtils.MAP_TYPE);
             return new NounMetadata(doc, PixelDataType.MAP, PixelOperationType.OPERATION);
         } catch (IOException e) {
             classLogger.error("Error reading automation.json for project {}", projectId, e);
@@ -121,5 +120,13 @@ public class GetAutomationReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Returns the automation pipeline definition (automation.json) for a project; returns an empty graph when none has been saved.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+            return "The project ID of the automation to retrieve.";
+        }
+        return super.getDescriptionForKey(key);
     }
 }

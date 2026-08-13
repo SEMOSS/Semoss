@@ -34,8 +34,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IModelEngine;
@@ -45,6 +43,10 @@ import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationExecutionUtils;
 import prerna.util.Utility;
 
+/**
+ * Executes a model-engine automation node. Supports LLM ({@code llm}) and embeddings
+ * ({@code embeddings}) operations via the platform {@link prerna.engine.api.IModelEngine} API.
+ */
 public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(ModelEngineNodeExecutor.class);
@@ -56,8 +58,8 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, String> scope = ctx.scope();
 		Map<String, String> configMap = ctx.configMap();
 
-		String engineId = required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
-		String operation = optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_LLM);
+		String engineId = NodeConfigHelper.required(config, AutomationConstants.CONFIG_ENGINE_ID, nodeLabel);
+		String operation = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_OPERATION, AutomationConstants.OP_LLM);
 		String resolvedEngineId = AutomationExecutionUtils.resolve(engineId, scope, configMap);
 
 		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
@@ -74,7 +76,7 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 		classLogger.debug("Model-engine node \"{}\" executing operation={} via engine {}", nodeLabel, operation, resolvedEngineId);
 		switch (operation) {
 			case AutomationConstants.OP_EMBEDDINGS: {
-				String values = required(config, AutomationConstants.CONFIG_VALUES, nodeLabel);
+				String values = NodeConfigHelper.required(config, AutomationConstants.CONFIG_VALUES, nodeLabel);
 				String resolvedValues = AutomationExecutionUtils.resolve(values, scope, configMap);
 				List<String> valueList = Arrays.asList(resolvedValues.split(","));
 				EmbeddingsModelEngineResponse response = engine.embeddings(valueList, ctx.insight(), null);
@@ -82,9 +84,9 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 			}
 			default: {
 				// llm (and vision/ner as fallback — both use ask() with the primary command field)
-				String command = required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
+				String command = NodeConfigHelper.required(config, AutomationConstants.CONFIG_COMMAND, nodeLabel);
 				String resolvedCommand = AutomationExecutionUtils.resolve(command, scope, configMap);
-				String context = optional(config, AutomationConstants.CONFIG_CONTEXT);
+				String context = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_CONTEXT);
 				String resolvedContext = (context != null)
 						? AutomationExecutionUtils.resolve(context, scope, configMap) : null;
 				Map<String, Object> params = parseParams(config, scope, configMap, nodeLabel);
@@ -98,32 +100,14 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> parseParams(Map<String, Object> config,
 			Map<String, String> scope, Map<String, String> configMap, String nodeLabel) {
-		String paramValues = optional(config, AutomationConstants.CONFIG_PARAM_VALUES);
+		String paramValues = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_PARAM_VALUES);
 		if (paramValues == null) return null;
 		String resolved = AutomationExecutionUtils.resolve(paramValues, scope, configMap);
 		try {
-			return AutomationExecutionUtils.GSON.fromJson(resolved,
-					new TypeToken<Map<String, Object>>() {}.getType());
+			return AutomationExecutionUtils.GSON.fromJson(resolved, AutomationExecutionUtils.MAP_TYPE);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": paramValues is not valid JSON: " + e.getMessage(), e);
 		}
 	}
 
-	private static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException("Model-engine node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? null : v.toString();
-	}
-
-	private static String optional(Map<String, Object> config, String key, String def) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? def : v.toString();
-	}
 }

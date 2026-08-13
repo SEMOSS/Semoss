@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +41,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,8 @@ import java.util.Map;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,7 +60,15 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * Shared static utilities for the automation execution engine.
@@ -72,6 +85,9 @@ public final class AutomationExecutionUtils {
 
 	/** Reusable {@link TypeToken} type for {@code Map<String, Object>} deserialization. */
 	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+
+	/** Reusable {@link TypeToken} type for {@code List<Map<String, Object>>} deserialization. */
+	private static final Type LIST_OBJ_MAP_TYPE = new TypeToken<List<Map<String, Object>>>() {}.getType();
 
 	/**
 	 * Shared Gson instance for the whole automation engine — public so the
@@ -145,11 +161,10 @@ public final class AutomationExecutionUtils {
 		Map<String, String> map = new HashMap<>();
 		try {
 			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-			File f = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_CONFIG_FILE_NAME);
+			File f = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_CONFIG_FILE_NAME).toFile();
 			if (!f.exists()) return map;
 			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			List<Map<String, Object>> entries = GSON.fromJson(json,
-					new TypeToken<List<Map<String, Object>>>() {}.getType());
+			List<Map<String, Object>> entries = GSON.fromJson(json, LIST_OBJ_MAP_TYPE);
 			if (entries != null) {
 				for (Map<String, Object> entry : entries) {
 					String key = (String) entry.get(AutomationConstants.CONFIG_ENTRY_KEY);
@@ -158,7 +173,7 @@ public final class AutomationExecutionUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.warn("Failed to load automation config for project {}: {}", projectId, e.getMessage(), e);
+			classLogger.warn("Failed to load automation config for project {}", projectId, e);
 		}
 		return map;
 	}
@@ -369,6 +384,57 @@ public final class AutomationExecutionUtils {
 		return "Automation completed successfully (" + completedCount + "/" + totalCount + " nodes).";
 	}
 
+	/**
+	 * Builds the user-facing portion of the LLM prompt for {@code GenerateRunSummaryReactor}.
+	 * Describes the overall run status and each step's label, status, and output preview.
+	 *
+	 * @param runDetail   map returned by {@link AutomationDatabaseUtility#getRunDetail}
+	 * @param nodeOutputs ordered list returned by {@link AutomationDatabaseUtility#getNodeOutputsForRun}
+	 * @return a plain-text prompt fragment suitable for appending after the system prompt
+	 */
+	public static String buildRunSummaryPrompt(Map<String, Object> runDetail,
+			List<Map<String, Object>> nodeOutputs) {
+		StringBuilder sb = new StringBuilder();
+
+		String status = strCfg(runDetail.get(AutomationConstants.STATUS));
+		sb.append("Run status: ").append(status != null ? status : "unknown").append("\n");
+
+		String failedNodeId = strCfg(runDetail.get(AutomationConstants.FAILED_NODE_ID));
+		String errorMsg = strCfg(runDetail.get(AutomationConstants.ERROR_MESSAGE));
+		if (failedNodeId != null) {
+			sb.append("Failed at: ").append(failedNodeId).append("\n");
+		}
+		if (errorMsg != null) {
+			sb.append("Error: ").append(errorMsg).append("\n");
+		}
+
+		if (!nodeOutputs.isEmpty()) {
+			sb.append("\nSteps:\n");
+			for (Map<String, Object> node : nodeOutputs) {
+				String label = strCfg(node.get(AutomationConstants.NODE_LABEL));
+				String nodeStatus = strCfg(node.get(AutomationConstants.STATUS));
+				String preview = strCfg(node.get(AutomationConstants.OUTPUT_PREVIEW));
+				String errDetail = strCfg(node.get(AutomationConstants.ERROR_MESSAGE));
+
+				sb.append("- ")
+					.append(label != null ? label : AutomationConstants.UNNAMED_NODE_LABEL)
+					.append(" [").append(nodeStatus != null ? nodeStatus : "unknown").append("]");
+
+				if (preview != null) {
+					String truncated = preview.length() > AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH
+							? preview.substring(0, AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH) + "..."
+							: preview;
+					sb.append(": ").append(truncated);
+				} else if (errDetail != null) {
+					sb.append(": ").append(errDetail);
+				}
+				sb.append("\n");
+			}
+		}
+
+		return sb.toString();
+	}
+
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
 	public static String generatePreview(String s) {
 		if (s == null) return null;
@@ -468,6 +534,271 @@ public final class AutomationExecutionUtils {
 			if (parsed != null) return parsed;
 		}
 		return new HashMap<>();
+	}
+
+	// -- LLM helpers (shared by GenerateAutomationReactor and ExplainAutomationReactor) ---
+
+	/**
+	 * Returns the ID of the first MODEL-type engine the user has access to, or {@code null} if none.
+	 */
+	public static String findFirstModelEngine(User user) {
+		try {
+			List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(
+					user, List.of("MODEL"), null, false, null, null, null, "1", "0", null);
+			if (engines != null && !engines.isEmpty()) {
+				Object id = engines.get(0).get("database_id");
+				return id != null ? String.valueOf(id) : null;
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to auto-discover model engine", e);
+		}
+		return null;
+	}
+
+	/**
+	 * Extracts the text content from a model engine response map.
+	 * Checks {@code response}, {@code output}, and {@code content} keys in order.
+	 */
+	public static String extractResponseText(Map<String, Object> response) {
+		if (response == null) return null;
+		Object resp = response.get("response");
+		if (resp instanceof String s && !s.isBlank()) return s;
+		Object output = response.get("output");
+		if (output instanceof String s && !s.isBlank()) return s;
+		Object content = response.get("content");
+		if (content instanceof String s && !s.isBlank()) return s;
+		return null;
+	}
+
+	// -- Generation helpers (shared by GenerateAutomationReactor and BuildAutomationReactor) ---
+
+	/**
+	 * Builds the Room options map for RunAgent — registers all user-accessible engines
+	 * as MCP tools and includes the room's built-in tools.
+	 */
+	public static Map<String, Object> buildEngineMcpOptions(User user, String systemPrompt) {
+		List<Map<String, Object>> mcpList = new ArrayList<>();
+		try {
+			List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(
+					user, GENERATION_ENGINE_TYPES, null, false, null, null, null, "50", "0", null);
+			if (engines != null) {
+				for (Map<String, Object> engine : engines) {
+					String id = engine.getOrDefault("database_id", "").toString();
+					String name = engine.getOrDefault("database_name", "").toString();
+					if (id.isBlank()) continue;
+					try {
+						IEngine engineObj = Utility.getEngine(id);
+						if (engineObj == null || !engineObj.isMCPEnabled()) continue;
+					} catch (Exception e) {
+						classLogger.debug("Skipping engine {} from MCP list — could not load: {}", id, e.getMessage());
+						continue;
+					}
+					Map<String, Object> entry = new HashMap<>();
+					entry.put("id", id);
+					entry.put("name", name);
+					entry.put("type", "ENGINE");
+					mcpList.add(entry);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to build MCP engine list for automation room", e);
+		}
+		Map<String, Object> dbMakerEntry = new HashMap<>();
+		dbMakerEntry.put("id", Constants.MCP_DATABASE_MAKER);
+		dbMakerEntry.put("name", "Database Tools");
+		dbMakerEntry.put("type", "PROJECT");
+		mcpList.add(dbMakerEntry);
+		Map<String, Object> roomEntry = new HashMap<>();
+		roomEntry.put("id", MCPUtility.ROOM_MCP_ID);
+		roomEntry.put("name", MCPUtility.ROOM_MCP_NAME);
+		roomEntry.put("type", MCPUtility.ROOM_MCP_TYPE);
+		roomEntry.put("fromRoom", true);
+		mcpList.add(roomEntry);
+		Map<String, Object> options = new HashMap<>();
+		if (systemPrompt != null && !systemPrompt.isBlank()) {
+			options.put("instructions", systemPrompt);
+		}
+		options.put("mcp", mcpList);
+		return options;
+	}
+
+	/** Engine types listed in the generation prompt so the LLM can populate engineId fields. */
+	static final List<String> GENERATION_ENGINE_TYPES = Arrays.asList("DATABASE", "MODEL", "VECTOR", "STORAGE", "FUNCTION");
+
+	/**
+	 * Builds the "## Available engines" prompt section for generation — lists each engine the
+	 * current user can access so the LLM can assign engineId fields correctly.
+	 */
+	static String buildAvailableEnginesSection(User user) {
+		StringBuilder sb = new StringBuilder("## Available engines\n");
+		try {
+			List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(
+					user, GENERATION_ENGINE_TYPES, null, false, null, null, null, "50", "0", null);
+			if (engines == null || engines.isEmpty()) {
+				sb.append("None available — leave engineId as empty string.\n");
+				return sb.toString();
+			}
+			for (Map<String, Object> engine : engines) {
+				String id = engine.getOrDefault("database_id", "").toString();
+				String name = engine.getOrDefault("database_name", "").toString();
+				String type = engine.getOrDefault("engine_type", "").toString().toUpperCase();
+				sb.append("- type=").append(type)
+				  .append(" id=\"").append(id)
+				  .append("\" name=\"").append(name).append("\"");
+				// For relational databases, include the table list so the model can match
+				// the user's intent to the right DB without needing to call get_db_schema first.
+				if ("DATABASE".equals(type) && !id.isBlank()) {
+					try {
+						IDatabaseEngine dbEngine = Utility.getDatabase(id);
+						if (dbEngine instanceof IRDBMSEngine rdbms) {
+							List<String> tables = rdbms.getPixelConcepts();
+							if (tables != null && !tables.isEmpty()) {
+								sb.append(" tables=[");
+								for (int i = 0; i < tables.size(); i++) {
+									String table = tables.get(i);
+									// Strip the "ConceptName__" prefix that pixel concepts sometimes include
+									int sep = table.lastIndexOf("__");
+									sb.append(sep >= 0 ? table.substring(sep + 2) : table);
+									if (i < tables.size() - 1) sb.append(", ");
+								}
+								sb.append("]");
+							}
+						}
+					} catch (Exception e) {
+						// Table list is best-effort; the model can still call get_db_schema if needed
+					}
+				}
+				sb.append("\n");
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to build engine list for generation prompt", e);
+			sb.append("(engine list unavailable — leave engineId as empty string)\n");
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Fetches the table/column schema (with data types) for the given list of database engine IDs.
+	 * Formatted as a prompt section for LLM use.
+	 */
+	static String buildSchemaForEngineIds(List<String> engineIds) {
+		StringBuilder sb = new StringBuilder("## Database schema\n");
+		for (String engineId : engineIds) {
+			try {
+				IDatabaseEngine dbEngine = Utility.getDatabase(engineId);
+				if (!(dbEngine instanceof IRDBMSEngine rdbms)) {
+					sb.append("Database id=\"").append(engineId).append("\": (non-relational — no table schema)\n");
+					continue;
+				}
+				sb.append("Database id=\"").append(engineId).append("\":\n");
+				List<String> tables = rdbms.getPixelConcepts();
+				if (tables == null || tables.isEmpty()) {
+					sb.append("  (no tables found)\n");
+					continue;
+				}
+				for (String table : tables) {
+					List<String> columns = rdbms.getPixelSelectors(table);
+					sb.append("  - ").append(table).append(" (");
+					if (columns != null && !columns.isEmpty()) {
+						StringBuilder cols = new StringBuilder();
+						for (String col : columns) {
+							int sep = col.lastIndexOf("__");
+							String colName = sep >= 0 ? col.substring(sep + 2) : col;
+							String dataType = null;
+							try {
+								String physicalUri = rdbms.getPhysicalUriFromPixelSelector(col);
+								if (physicalUri != null) {
+									dataType = rdbms.getDataTypes(physicalUri);
+								}
+							} catch (Exception ignored) {
+								// Data type fetch is best-effort; column name alone is still useful
+							}
+							if (cols.length() > 0) cols.append(", ");
+							cols.append(colName);
+							if (dataType != null && !dataType.isBlank()) {
+								cols.append(": ").append(dataType.trim());
+							}
+						}
+						sb.append(cols);
+					}
+					sb.append(")\n");
+				}
+			} catch (Exception e) {
+				classLogger.warn("Failed to fetch schema for engine {}", engineId, e);
+				sb.append("Database id=\"").append(engineId).append("\": (schema unavailable)\n");
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Returns the list of custom reactors available in the given project, formatted as a prompt
+	 * section for LLM use. Used to fill in app-node pixel expressions.
+	 */
+	static String buildReactorListSection(String projectId) {
+		StringBuilder sb = new StringBuilder("## Available custom reactors in this project\n");
+		try {
+			IProject project = Utility.getProject(projectId);
+			if (project == null) {
+				sb.append("(project not found — leave app node pixel as-is)\n");
+				return sb.toString();
+			}
+			java.util.TreeSet<String> reactors = project.getAvailableReactors();
+			if (reactors == null || reactors.isEmpty()) {
+				sb.append("(none — leave app node pixel as a comment placeholder)\n");
+				return sb.toString();
+			}
+			for (String name : reactors) {
+				sb.append("- ").append(name).append("\n");
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to build reactor list for project {}", projectId, e);
+			sb.append("(reactor list unavailable — leave app node pixel as a comment placeholder)\n");
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Strips leading/trailing markdown code fences ({@code ```json ... ```} or {@code ``` ... ```})
+	 * that models sometimes add despite being instructed not to.
+	 */
+	static String stripCodeFences(String raw) {
+		String trimmed = raw.strip();
+		if (trimmed.startsWith("```")) {
+			int firstNewline = trimmed.indexOf('\n');
+			if (firstNewline != -1) {
+				trimmed = trimmed.substring(firstNewline + 1);
+			}
+			if (trimmed.endsWith("```")) {
+				trimmed = trimmed.substring(0, trimmed.lastIndexOf("```")).strip();
+			}
+		}
+		return trimmed;
+	}
+
+	/**
+	 * Validates that a generated document string is parseable JSON and contains the minimum
+	 * required structure ({@code graph.nodes} must be non-empty). Throws on failure.
+	 */
+	static void validateGeneratedDoc(String raw) {
+		try {
+			JSONObject doc = new JSONObject(raw);
+			if (!doc.has("graph")) {
+				throw new IllegalStateException("Generated document is missing the 'graph' field.");
+			}
+			JSONObject graph = doc.getJSONObject("graph");
+			if (!graph.has("nodes")) {
+				throw new IllegalStateException("Generated graph is missing the 'nodes' array.");
+			}
+			JSONArray nodes = graph.getJSONArray("nodes");
+			if (nodes.length() == 0) {
+				throw new IllegalStateException("Generated graph has no nodes.");
+			}
+		} catch (org.json.JSONException e) {
+			classLogger.warn("Generated automation doc is not valid JSON (truncated): {}", raw.length() > 500 ? raw.substring(0, 500) + "..." : raw, e);
+			throw new IllegalStateException(
+					"The AI model returned an invalid response. Please try again with a different description.", e);
+		}
 	}
 
 	// -- Automation document loading -----------------------------------------------
