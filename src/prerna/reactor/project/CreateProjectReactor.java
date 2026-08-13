@@ -99,13 +99,13 @@ public class CreateProjectReactor extends AbstractReactor {
 		}
 
 		// Allow-list: CreateProject can only create CODE, BLOCKS, or INSIGHTS
-		// projects. WORKSPACE and SKILL projects have additional persistence
+		// projects. WORKSPACE, SKILL, and NOTEBOOK projects have additional setup
 		// requirements (inference-tracking WORKSPACE row + WORKSPACE_RESOURCE
-		// links for workspaces; skill metadata wiring for skills) that this
-		// reactor does not perform — calling CreateProject for those types
-		// leaves the system in a half-created state where downstream readers
-		// (e.g. GetAgentHooks, ListWorkspaces) cannot see the new row. Reject
-		// up-front and direct the caller at the right reactor.
+		// links for workspaces; skill metadata wiring for skills; sample .ipynb
+		// scaffold for notebooks) that this reactor does not perform — calling
+		// CreateProject for those types leaves the system in a half-created state
+		// where downstream readers (e.g. GetAgentHooks, ListWorkspaces) cannot see
+		// the new row. Reject up-front and direct the caller at the right reactor.
 		if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
 			projectType = IProject.PROJECT_TYPE.INSIGHTS;
 		} else {
@@ -125,6 +125,11 @@ public class CreateProjectReactor extends AbstractReactor {
 				throw new IllegalArgumentException("CreateProject cannot create SKILL-type projects. "
 						+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
 						+ "wiring that CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.NOTEBOOK) {
+				throw new IllegalArgumentException("CreateProject cannot create NOTEBOOK-type projects. "
+						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
+						+ "file that CreateProject skips.");
 			}
 		}
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
