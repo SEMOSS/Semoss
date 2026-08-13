@@ -578,10 +578,18 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 * Returns the first 8 hex characters of the engineId (using a UUID string -
+	 * dashes removed; unless platform project/engine which usually do not).
 	 */
 	public static String computeShortEngineId(String engineId) {
-		return engineId.replace("-", "").substring(0, 8);
+		String retId = engineId;
+		if (retId.contains("-")) {
+			retId = retId.replace("-", "");
+		}
+		if (retId.length() > 8) {
+			retId = retId.substring(0, 8);
+		}
+		return retId;
 	}
 
 	/**
@@ -1401,8 +1409,8 @@ public final class MCPUtility {
 	 * Typed adapter for agent callers. The established direct execution path and
 	 * its exception behavior remain unchanged.
 	 */
-	public static ToolExecutionResult executeToolResult(String engineId, String toolName,
-			Map<String, Object> paramMap, Insight insight) {
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName, Map<String, Object> paramMap,
+			Insight insight) {
 		try {
 			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
 		} catch (RuntimeException e) {

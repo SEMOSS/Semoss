@@ -138,10 +138,6 @@ public abstract class AbstractReactor implements IReactor {
 
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Methods for merging up the noun store across reactors
 	 */
@@ -509,10 +505,6 @@ public abstract class AbstractReactor implements IReactor {
 		return this.originalSignature;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Utility methods
 	 */
@@ -685,7 +677,86 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * 
+	 * Resolves the engine/project id a reactor should operate on: the id the caller
+	 * passed in, else the insight's app context - its context project, else its own
+	 * project.
+	 *
+	 * <p>
+	 * This is the standard precedence for reactors whose {@code project}/
+	 * {@code engine} key is optional. The context project is what a pixel run under
+	 * an app context (and so every project-scoped MCP tool call) already carries, so
+	 * those callers do not have to repeat the id they are already scoped to.
+	 *
+	 * <p>
+	 * Named for engine rather than project because the caller-supplied id may be any
+	 * catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
+	 * {@code SMSS_PROJECT_ID} - while the two context fallbacks are always project
+	 * ids, which are themselves engine ids ({@code IProject extends IEngine}).
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	protected String resolveContextEngineId(String engineId) {
+		return resolveContextEngineId(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor (tool/decision handlers, for
+	 * example), so the precedence lives in one place.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	public static String resolveContextEngineId(String engineId, Insight insight) {
+		String resolved = resolveContextEngineIdOrNull(engineId, insight);
+		if (resolved == null) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+		return resolved;
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for reactors that can carry on without
+	 * a project rather than fail: same precedence, but returns null instead of
+	 * throwing when nothing resolves.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	protected String resolveContextEngineIdOrNull(String engineId) {
+		return resolveContextEngineIdOrNull(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineIdOrNull(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	public static String resolveContextEngineIdOrNull(String engineId, Insight insight) {
+		if (isBlank(engineId) && insight != null) {
+			engineId = insight.getContextProjectId();
+		}
+		if (isBlank(engineId) && insight != null) {
+			engineId = insight.getProjectId();
+		}
+		return isBlank(engineId) ? null : engineId.trim();
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
+	/**
+	 *
 	 * @param engine
 	 * @param engineId
 	 * @param user
@@ -710,10 +781,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods to quickly retrieve inputs in the noun store
@@ -804,10 +871,6 @@ public abstract class AbstractReactor implements IReactor {
 			throwLoginError(details);
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * MCP
@@ -959,10 +1022,6 @@ public abstract class AbstractReactor implements IReactor {
 		return MCP_KEY_TYPE.STRING;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Throwing common errors
 	 */
@@ -1018,8 +1077,6 @@ public abstract class AbstractReactor implements IReactor {
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods in interface that are not really used at the moment...
