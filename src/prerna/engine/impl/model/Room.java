@@ -559,6 +559,7 @@ public class Room implements Serializable {
 		try {
 			String userId = insight.getUser().getPrimaryLoginToken().getId();
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
 				RoomMessageStore.refreshFromLatestProjection(this, userId);
 				if (messages.isEmpty()) {
 					throw new IllegalStateException("No messages to match tool call context");
@@ -588,6 +589,7 @@ public class Room implements Serializable {
 			boolean continueWhenReady, ResponseMessage prebuiltResponse) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			this.insight = insight;
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
 			if (messages.isEmpty()) {
 				throw new IllegalStateException("No messages to match tool call context");
