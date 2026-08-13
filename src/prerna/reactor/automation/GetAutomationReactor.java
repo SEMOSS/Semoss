@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,13 +55,13 @@ import prerna.util.Utility;
  * Returns the automation <em>definition</em> (the saved {@code automation.json} graph) for a project.
  * Returns an empty graph document when no automation has been saved yet.
  *
- * <p>There are three "get" reactors — each reads something different:
+ * <p>There are three "get" reactors  - each reads something different:
  * <ul>
- *   <li>{@code GetAutomation} (this reactor) — reads {@code automation.json}: the pipeline graph
+ *   <li>{@code GetAutomation} (this reactor)  - reads {@code automation.json}: the pipeline graph
  *       (nodes, edges, output transforms). Static config written by {@link SaveAutomationReactor}.</li>
- *   <li>{@link GetAutomationConfigReactor GetAutomationConfig} — reads {@code automation_config.json}:
+ *   <li>{@link GetAutomationConfigReactor GetAutomationConfig}  - reads {@code automation_config.json}:
  *       key/value env vars and secrets; sensitive values are masked in the response.</li>
- *   <li>{@link GetAutomationRunReactor GetAutomationRun} — reads live run state from the DB
+ *   <li>{@link GetAutomationRunReactor GetAutomationRun}  - reads live run state from the DB
  *       (AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS); used by the FE to poll execution progress.</li>
  * </ul>
  *
@@ -93,7 +96,11 @@ public class GetAutomationReactor extends AbstractReactor {
         }
 
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File automationFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
+        File automationFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_FILE_NAME).toFile();
+        String normalizedPath = Utility.normalizePath(automationFile.getAbsolutePath());
+        if (!normalizedPath.startsWith(portalsFolder)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
 
         if (!automationFile.exists() || !automationFile.isFile()) {
             // return empty graph document for brand-new automations

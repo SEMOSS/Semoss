@@ -38,9 +38,23 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 import prerna.util.Utility;
 
+/**
+ * Executes a storage-engine automation node. Supports file transfer ({@code download},
+ * {@code upload}), deletion ({@code delete}), in-memory base64 reads ({@code read-base64}),
+ * and directory listing ({@code list}) via the platform {@link prerna.engine.api.IStorageEngine} API.
+ *
+ * <p>Config fields (from {@code node.config}):
+ * <ul>
+ *   <li>{@code engineId} (required) — UUID or alias of the target storage engine</li>
+ *   <li>{@code operation} (optional) — one of {@code list} (default), {@code download},
+ *       {@code upload}, {@code delete}, {@code read-base64}</li>
+ *   <li>{@code storagePath} (required for most operations) — path within the storage engine</li>
+ *   <li>{@code filePath} (required for download/upload) — local file system path</li>
+ * </ul>
+ */
 public final class StorageEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(StorageEngineNodeExecutor.class);

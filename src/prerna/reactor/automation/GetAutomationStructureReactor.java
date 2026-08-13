@@ -28,21 +28,16 @@
 package prerna.reactor.automation;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.util.Utility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -59,8 +54,6 @@ import prerna.util.AssetUtility;
  * <p>Pixel: {@code GetAutomationStructure(project=["appId"])}
  */
 public class GetAutomationStructureReactor extends AbstractReactor {
-
-    private static final Logger classLogger = LogManager.getLogger(GetAutomationStructureReactor.class);
 
     private static final String RESULT_KEY_DESCRIPTION = "description";
     private static final String RESULT_KEY_NODES = "nodes";
@@ -89,30 +82,27 @@ public class GetAutomationStructureReactor extends AbstractReactor {
         result.put(RESULT_KEY_NODES, new ArrayList<>());
 
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File automationFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
+        File automationFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_FILE_NAME).toFile();
+        String normalizedPath = Utility.normalizePath(automationFile.getAbsolutePath());
+        if (!normalizedPath.startsWith(portalsFolder)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
 
         if (!automationFile.exists() || !automationFile.isFile()) {
             return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
         }
 
-        try {
-            String json = Files.readString(automationFile.toPath(), StandardCharsets.UTF_8);
-            Map<String, Object> doc = AutomationExecutionUtils.GSON.fromJson(json,
-                    new TypeToken<Map<String, Object>>() {}.getType());
+        Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
 
-            String description = (String) doc.getOrDefault(AutomationConstants.DOC_DESCRIPTION, "");
-            result.put(RESULT_KEY_DESCRIPTION, description != null ? description : "");
+        String description = (String) doc.getOrDefault(AutomationConstants.DOC_DESCRIPTION, "");
+        result.put(RESULT_KEY_DESCRIPTION, description != null ? description : "");
 
-            Map<?, ?> graph = (Map<?, ?>) doc.get(AutomationConstants.DOC_GRAPH);
-            if (graph != null) {
-                List<?> nodes = (List<?>) graph.get(AutomationConstants.DOC_NODES);
-                if (nodes != null) {
-                    result.put(RESULT_KEY_NODES, buildNodeSummary(nodes));
-                }
+        Map<?, ?> graph = (Map<?, ?>) doc.get(AutomationConstants.DOC_GRAPH);
+        if (graph != null) {
+            List<?> nodes = (List<?>) graph.get(AutomationConstants.DOC_NODES);
+            if (nodes != null) {
+                result.put(RESULT_KEY_NODES, buildNodeSummary(nodes));
             }
-        } catch (IOException e) {
-            classLogger.error("Error reading automation.json for project {}", projectId, e);
-            throw new IllegalArgumentException("Unable to read automation: " + e.getMessage());
         }
 
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);

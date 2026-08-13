@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationGenerationUtils;
+
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +108,7 @@ public class GenerateRunSummaryReactor extends AbstractReactor {
             classLogger.warn("GenerateRunSummary: no node outputs found for run {}", runId);
         }
 
-        String engineId = AutomationExecutionUtils.findFirstModelEngine(user);
+        String engineId = AutomationGenerationUtils.findFirstModelEngine(user);
         if (engineId == null || engineId.isBlank()) {
             throw new IllegalArgumentException(
                 "No AI model engine is available. Add a model engine connection to use this feature.");
@@ -133,7 +137,7 @@ public class GenerateRunSummaryReactor extends AbstractReactor {
             throw new RuntimeException("Summary generation failed: " + e.getMessage(), e);
         }
 
-        String summary = AutomationExecutionUtils.extractResponseText(response);
+        String summary = AutomationGenerationUtils.extractResponseText(response);
         if (summary == null || summary.isBlank()) {
             throw new IllegalStateException("The AI model did not return a summary. Try again.");
         }

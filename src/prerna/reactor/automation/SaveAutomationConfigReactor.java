@@ -27,11 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +45,8 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
-
-
 import prerna.reactor.AbstractReactor;
+import prerna.util.Utility;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -61,6 +63,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
 
     public SaveAutomationConfigReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
+        this.keyRequired = new int[] { 1, 0 };
     }
 
     @Override
@@ -79,14 +82,29 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
         }
 
         String config;
+        if (configEncoded == null || configEncoded.isEmpty()) {
+            config = AutomationConstants.EMPTY_JSON_ARRAY;
+        } else {
+            try {
+                config = new String(Base64.getDecoder().decode(configEncoded.trim()), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                // configEncoded was not Base64 - treat as raw JSON and validate it parses below
+                config = configEncoded;
+            }
+        }
+        // Validate JSON is parseable before writing anything
         try {
-            config = new String(Base64.getDecoder().decode(configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY), StandardCharsets.UTF_8);
+            AutomationExecutionUtils.GSON.fromJson(config, LIST_OF_MAP_TYPE);
         } catch (Exception e) {
-            config = configEncoded != null ? configEncoded : AutomationConstants.EMPTY_JSON_ARRAY;
+            throw new IllegalArgumentException("config must be valid JSON or Base64-encoded JSON");
         }
 
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File configFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_CONFIG_FILE_NAME);
+        File configFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_CONFIG_FILE_NAME).toFile();
+        String normalizedConfigPath = Utility.normalizePath(configFile.getAbsolutePath());
+        if (!normalizedConfigPath.startsWith(portalsFolder)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
 
         // GetAutomationConfig masks sensitive values as SENSITIVE_MASK.
         // Restore the real values from disk so a config round-trip cannot silently destroy them.

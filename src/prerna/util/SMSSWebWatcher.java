@@ -213,15 +213,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				try {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[schedulerDbNameIndex]);
 					SchedulerDatabaseUtility.startServer();
-				} catch (Exception e) {
-					classLogger.error("Failed to load and start the scheduler database", e);
-				}
-
-				try {
+					// Automation tables live in the scheduler DB, so only initialize them
+					// after the scheduler DB has started successfully.
 					AutomationDatabaseUtility.initialize();
 					AutomationDatabaseUtility.markStaleRunsInterrupted();
 				} catch (Exception e) {
-					classLogger.error("Failed to initialize automation engine tables", e);
+					classLogger.error("Failed to load and start the scheduler database", e);
 				}
 			}
 		}

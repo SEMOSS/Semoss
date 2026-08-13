@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationGenerationUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -68,24 +70,24 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 	private static final String SYSTEM_PROMPT =
 		"You are an AI assistant that helps users design automation workflows on a no-code platform. "
 		+ "Workflows are linear sequences of steps: database queries, AI model calls, file storage, vector search, or custom functions. "
-		+ "Only manual triggers exist — do not ask about scheduling.\n\n"
+		+ "Only manual triggers exist  - do not ask about scheduling.\n\n"
 		+ "You have access to tools. Use them to help the user (for example, query a database to understand its structure "
 		+ "so you can give accurate step descriptions).\n\n"
 		+ "CONVERSATION PHASES:\n\n"
-		+ "Phase 1 — Gather requirements (at most 1-2 short questions, one at a time):\n"
+		+ "Phase 1  - Gather requirements (at most 1-2 short questions, one at a time):\n"
 		+ "- Ask what the automation should do if unclear.\n"
 		+ "- Ask where results should go, or one other essential clarification.\n"
 		+ "- Keep responses under 50 words per question.\n\n"
-		+ "Phase 2 — Plan + build signal (in ONE response, once you have enough info):\n"
+		+ "Phase 2  - Plan + build signal (in ONE response, once you have enough info):\n"
 		+ "- Present a concise numbered plain-English plan.\n"
 		+ "- On the very next line after the plan, output the build signal JSON:\n"
 		+ "  {\"action\":\"build\",\"description\":\"<comprehensive 2-4 sentence description of the full workflow>\"}\n"
 		+ "- The description must include all steps in enough detail for an AI to build them.\n"
-		+ "- Do NOT ask 'does this look right?' — include the build signal in the same response as the plan.\n\n"
-		+ "Phase 3 — If the user requests changes after seeing the plan:\n"
+		+ "- Do NOT ask 'does this look right?'  - include the build signal in the same response as the plan.\n\n"
+		+ "Phase 3  - If the user requests changes after seeing the plan:\n"
 		+ "- Acknowledge in one short sentence.\n"
 		+ "- Immediately output the revised plan + a new build signal in the same response.\n"
-		+ "- Do NOT narrate what you will change — just show the revised plan and the signal.\n\n"
+		+ "- Do NOT narrate what you will change  - just show the revised plan and the signal.\n\n"
 		+ "RULES: Never mention engine IDs, node types, or JSON structure to the user. Be concise.";
 
 	public AutomationAskRoomReactor() {
@@ -116,7 +118,7 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 			throw new IllegalArgumentException("command must not be empty.");
 		}
 
-		String engineId = AutomationExecutionUtils.findFirstModelEngine(user);
+		String engineId = AutomationGenerationUtils.findFirstModelEngine(user);
 		if (engineId == null || engineId.isBlank()) {
 			throw new IllegalArgumentException(
 				"No AI model engine is available. Add a model engine connection to use this feature.");
@@ -131,7 +133,7 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 			roomId = "automationchat" + projectId.replace("-", "").substring(0, Math.min(8, projectId.replace("-", "").length()));
 		}
 
-		Map<String, Object> options = AutomationExecutionUtils.buildEngineMcpOptions(user, SYSTEM_PROMPT);
+		Map<String, Object> options = AutomationGenerationUtils.buildEngineMcpOptions(user, SYSTEM_PROMPT);
 
 		RoomUtils.createRoomIfNotExists(roomId, this.insight, modelEngine, command, null, options, null, projectId, null);
 
@@ -151,7 +153,7 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 		String status = (String) result.get("status");
 		if ("FAILED".equals(status)) {
 			String errMsg = (String) result.get("errorMessage");
-			classLogger.error("AutomationAskRoom run failed: project={} error={}", projectId, errMsg);
+			classLogger.error("AutomationAskRoom run failed: project={} error={}", projectId, (errMsg != null ? errMsg : "unknown error"));
 			throw new RuntimeException("Chat failed: " + (errMsg != null ? errMsg : "unknown error"));
 		}
 
@@ -182,7 +184,7 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Room-aware conversational AI for designing automation workflows. "
-			+ "Uses the platform RunAgent harness with MCP tool access — the model can query "
+			+ "Uses the platform RunAgent harness with MCP tool access  - the model can query "
 			+ "databases, search vectors, and use other engines during the conversation. "
 			+ "History is managed server-side. "
 			+ "Signals build-readiness via: {\"action\":\"build\",\"description\":\"...\"}";

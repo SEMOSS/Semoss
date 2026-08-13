@@ -27,10 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.PixelExecutionUtils;
+
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +49,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
-import prerna.reactor.automation.nodes.AutomationNodeExecutors;
 import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Utility;
@@ -129,7 +130,7 @@ public final class AutomationRunEngine {
 				Map<String, Object> nodeResult;
 				try {
 					nodeResult = executeSingleNode(runId, projectId, node, scope, configMap, cancelled, insight);
-				} catch (AutomationCancelledException ace) {
+				} catch (PixelExecutionUtils.AutomationCancelledException ace) {
 					classLogger.info("Automation run {} cancelled during node {} ({})", runId, nodeId, nodeLabel);
 					AutomationDatabaseUtility.updateRunStatus(runId,
 							AutomationConstants.STATUS_CANCELLED, nodeId, ace.getMessage());
@@ -225,14 +226,14 @@ public final class AutomationRunEngine {
 
 		classLogger.debug("Executing node {} ({}) type={} in run {}", nodeId, nodeLabel, type, runId);
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
-		Timestamp startedAt = toTimestamp(Instant.now());
+		Timestamp startedAt = Utility.getSqlTimestampUTC(java.time.LocalDateTime.ofInstant(Instant.now(), java.time.ZoneOffset.UTC));
 		long startMs = System.currentTimeMillis();
 
 		try {
 			AutomationNodeContext ctx = new AutomationNodeContext(
 					runId, projectId, node, scope, configMap, insight, cancelFlag);
 
-			IAutomationNodeExecutor executor = AutomationNodeExecutors.EXECUTORS.get(type);
+			IAutomationNodeExecutor executor = IAutomationNodeExecutor.EXECUTORS.get(type);
 			if (executor == null) {
 				throw new IllegalArgumentException("Unsupported node type: " + type);
 			}
@@ -252,7 +253,7 @@ public final class AutomationRunEngine {
 			result.put(AutomationConstants.RESULT_OUTPUT_VALUE, transformed);
 			return result;
 
-		} catch (AutomationCancelledException ace) {
+		} catch (PixelExecutionUtils.AutomationCancelledException ace) {
 			long durationMs = System.currentTimeMillis() - startMs;
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, startedAt, durationMs, ace.getMessage());
 			throw ace;
@@ -299,7 +300,4 @@ public final class AutomationRunEngine {
 		return result;
 	}
 
-	private static Timestamp toTimestamp(Instant instant) {
-		return Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
-	}
 }

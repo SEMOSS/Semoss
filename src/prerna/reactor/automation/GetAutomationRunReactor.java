@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -48,13 +51,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class GetAutomationRunReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(GetAutomationRunReactor.class);
+
 	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
 	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
 	public GetAutomationRunReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[]{ 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -86,22 +91,7 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
-		List<Map<String, Object>> nodeResults = new ArrayList<>();
-
-		for (Map<String, Object> nodeOutput : nodeOutputs) {
-			Map<String, Object> nodeResult = new HashMap<>();
-			nodeResult.put(AutomationConstants.NODE_ID, nodeOutput.get(AutomationConstants.NODE_ID));
-			nodeResult.put(AutomationConstants.NODE_LABEL, nodeOutput.get(AutomationConstants.NODE_LABEL));
-			nodeResult.put(AutomationConstants.STATUS, nodeOutput.get(AutomationConstants.STATUS));
-			nodeResult.put(AutomationConstants.DURATION_MS, nodeOutput.get(AutomationConstants.DURATION_MS));
-			String outputForDisplay = (String) nodeOutput.get(AutomationConstants.OUTPUT_VALUE);
-			if (outputForDisplay == null || outputForDisplay.isBlank()) {
-				outputForDisplay = (String) nodeOutput.get(AutomationConstants.OUTPUT_PREVIEW);
-			}
-			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
-			nodeResult.put(AutomationConstants.ERROR_MESSAGE, nodeOutput.get(AutomationConstants.ERROR_MESSAGE));
-			nodeResults.add(nodeResult);
-		}
+		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility.buildNodeResults(nodeOutputs);
 
 		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);

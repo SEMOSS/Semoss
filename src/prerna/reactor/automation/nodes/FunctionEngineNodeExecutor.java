@@ -32,15 +32,27 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.reflect.TypeToken;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 import prerna.util.Utility;
 
+/**
+ * Executes a function-engine automation node. Delegates to the platform
+ * {@link prerna.engine.api.IFunctionEngine} API to run arbitrary server-side functions.
+ *
+ * <p>Config fields (from {@code node.config}):
+ * <ul>
+ *   <li>{@code engineId} (required) — UUID or alias of the target function engine</li>
+ *   <li>{@code params} (optional) — JSON object of parameters to pass to the function; supports
+ *       {@code ${var}} substitution; defaults to {@code {}}</li>
+ * </ul>
+ *
+ * <p>Requires edit access to {@code engineId} because function execution runs arbitrary
+ * server-side code, which is a mutating/write operation.
+ */
 public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(FunctionEngineNodeExecutor.class);
@@ -59,9 +71,9 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 		String resolvedParams = AutomationExecutionUtils.resolve(params, scope, configMap);
 
 		resolvedEngineId = SecurityQueryUtils.testUserEngineIdForAlias(ctx.insight().getUser(), resolvedEngineId);
-		if (!SecurityEngineUtils.userCanViewEngine(ctx.insight().getUser(), resolvedEngineId)) {
+		if (!SecurityEngineUtils.userCanEditEngine(ctx.insight().getUser(), resolvedEngineId)) {
 			throw new IllegalArgumentException(
-					"Function-engine node \"" + nodeLabel + "\": engine does not exist or user does not have access: " + resolvedEngineId);
+					"Function-engine node \"" + nodeLabel + "\": engine does not exist or user does not have edit access: " + resolvedEngineId);
 		}
 
 		IFunctionEngine engine = Utility.getFunctionEngine(resolvedEngineId);
@@ -79,7 +91,7 @@ public final class FunctionEngineNodeExecutor implements IAutomationNodeExecutor
 		if (json == null || json.isBlank()) return Map.of();
 		try {
 			Map<String, Object> parsed = AutomationExecutionUtils.GSON.fromJson(json,
-					new TypeToken<Map<String, Object>>() {}.getType());
+					AutomationExecutionUtils.MAP_TYPE);
 			return parsed != null ? parsed : Map.of();
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Function-engine node \"" + nodeLabel + "\": params is not valid JSON: " + e.getMessage(), e);

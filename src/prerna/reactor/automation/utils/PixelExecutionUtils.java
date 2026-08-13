@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.automation;
+package prerna.reactor.automation.utils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +46,7 @@ import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.reactor.automation.AutomationConstants;
 
 /**
  * Shared utility for executing Pixel expressions and returning clean, serializable results.
@@ -121,7 +122,11 @@ public final class PixelExecutionUtils {
 		try {
 			Callable<NounMetadata> task = () -> {
 				if (contextSnapshot != null && !contextSnapshot.isEmpty()) {
-					ThreadStore.getInsightId();
+					// ThreadStore.setThreadMapObject calls CURRENT.get() directly, which returns
+					// null on a fresh worker thread and would NPE. Call setInsightId("") first
+					// to force initialization of the ThreadLocal map; setThreadMapObject then
+					// overwrites all values including insightId with the captured context.
+					ThreadStore.setInsightId("");
 					ThreadStore.setThreadMapObject(contextSnapshot);
 				}
 				try {
@@ -207,6 +212,25 @@ public final class PixelExecutionUtils {
 
 		public String getPixel() {
 			return pixel;
+		}
+	}
+
+	/**
+	 * Thrown mid-node when a cancellation request is detected during a blocking operation.
+	 *
+	 * <p>Using a distinct unchecked exception type (rather than a flag return value or a checked
+	 * exception) lets nodes that loop internally - such as {@code WaitNodeExecutor} sleeping in
+	 * chunks - abort cleanly without threading a cancellation result through every call frame. The
+	 * caller ({@code AutomationRunEngine.executeSingleNode}) catches this type specifically and
+	 * records the run as {@link AutomationConstants#STATUS_CANCELLED} instead of
+	 * {@link AutomationConstants#STATUS_FAILED}, so the end-user sees the correct terminal state.
+	 */
+	public static class AutomationCancelledException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		public AutomationCancelledException(String message) {
+			super(message);
 		}
 	}
 }

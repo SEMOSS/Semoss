@@ -30,6 +30,7 @@ package prerna.reactor.automation.nodes;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,9 +39,25 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 import prerna.util.Utility;
 
+/**
+ * Executes a vector-engine automation node. Supports document ingestion ({@code add-file},
+ * {@code add-csv}), deletion ({@code delete}), listing ({@code list}), and semantic search
+ * ({@code search}) via the platform {@link prerna.engine.api.IVectorDatabaseEngine} API.
+ *
+ * <p>Config fields (from {@code node.config}):
+ * <ul>
+ *   <li>{@code engineId} (required) — UUID or alias of the target vector engine</li>
+ *   <li>{@code operation} (optional) — one of {@code search} (default), {@code add-file},
+ *       {@code add-csv}, {@code delete}, {@code list}</li>
+ *   <li>{@code filePath} (required for add-file/add-csv) — comma-separated file paths</li>
+ *   <li>{@code fileNames} (required for delete) — comma-separated document names to remove</li>
+ *   <li>{@code command} (required for search) — the query string</li>
+ *   <li>{@code limit} (optional for search) — max results; default {@value AutomationConstants#DEFAULT_VECTOR_SEARCH_LIMIT}</li>
+ * </ul>
+ */
 public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 
 	private static final Logger classLogger = LogManager.getLogger(VectorEngineNodeExecutor.class);
@@ -79,7 +96,10 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 			case AutomationConstants.OP_ADD_CSV: {
 				String filePaths = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_PATH, nodeLabel);
 				String resolvedPaths = AutomationExecutionUtils.resolve(filePaths, scope, configMap);
-				List<String> paths = Arrays.asList(resolvedPaths.split(","));
+				List<String> paths = Arrays.stream(resolvedPaths.split(","))
+						.map(String::trim)
+						.filter(s -> !s.isEmpty())
+						.collect(Collectors.toList());
 				engine.addDocument(paths, null);
 				return "Added " + paths.size() + " file(s)";
 			}
@@ -90,7 +110,10 @@ public final class VectorEngineNodeExecutor implements IAutomationNodeExecutor {
 			case AutomationConstants.OP_DELETE: {
 				String fileNames = NodeConfigHelper.required(config, AutomationConstants.CONFIG_FILE_NAMES, nodeLabel);
 				String resolvedNames = AutomationExecutionUtils.resolve(fileNames, scope, configMap);
-				List<String> names = Arrays.asList(resolvedNames.split(","));
+				List<String> names = Arrays.stream(resolvedNames.split(","))
+						.map(String::trim)
+						.filter(s -> !s.isEmpty())
+						.collect(Collectors.toList());
 				engine.removeDocument(names, null);
 				return "Deleted " + names.size() + " file(s)";
 			}

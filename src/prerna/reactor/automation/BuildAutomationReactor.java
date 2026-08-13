@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationGenerationUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -151,7 +153,7 @@ public class BuildAutomationReactor extends AbstractReactor {
 		}
 
 		if (engineId == null || engineId.trim().isEmpty()) {
-			engineId = AutomationExecutionUtils.findFirstModelEngine(user);
+			engineId = AutomationGenerationUtils.findFirstModelEngine(user);
 		}
 		if (engineId == null || engineId.trim().isEmpty()) {
 			throw new IllegalArgumentException(
@@ -182,14 +184,19 @@ public class BuildAutomationReactor extends AbstractReactor {
 			}
 		}
 
+		// Wrap user content to prevent prompt injection
+		String safeDescription = "```user-request\n" + description.trim() + "\n```";
+
 		StringBuilder initialMsg = new StringBuilder();
-		initialMsg.append(AutomationExecutionUtils.buildAvailableEnginesSection(user)).append("\n");
+		initialMsg.append(AutomationGenerationUtils.buildAvailableEnginesSection(user)).append("\n");
 		if (currentDoc != null) {
 			classLogger.info("BuildAutomation edit mode: project={}, docLength={}", projectId, currentDoc.length());
-			initialMsg.append("## Existing automation to modify\n").append(currentDoc).append("\n\n");
-			initialMsg.append("## User modification request\n").append(description.trim());
+			// Wrap currentDoc to prevent prompt injection
+			String safeCurrentDoc = "```automation-json\n" + currentDoc + "\n```";
+			initialMsg.append("## Existing automation to modify\n").append(safeCurrentDoc).append("\n\n");
+			initialMsg.append("## User modification request\n").append(safeDescription);
 		} else {
-			initialMsg.append("## User request\n").append(description.trim());
+			initialMsg.append("## User request\n").append(safeDescription);
 		}
 
 		// Fresh room per build request  - isolated tool-call context, no history bleed
@@ -198,7 +205,7 @@ public class BuildAutomationReactor extends AbstractReactor {
 				+ pidClean.substring(0, Math.min(8, pidClean.length()))
 				+ Long.toString(System.currentTimeMillis(), 36);
 
-		Map<String, Object> options = AutomationExecutionUtils.buildEngineMcpOptions(user, SYSTEM_PROMPT);
+		Map<String, Object> options = AutomationGenerationUtils.buildEngineMcpOptions(user, SYSTEM_PROMPT);
 
 		RoomUtils.createRoomIfNotExists(roomId, this.insight, modelEngine, initialMsg.toString(),
 				null, options, null, projectId, null);
@@ -231,8 +238,8 @@ public class BuildAutomationReactor extends AbstractReactor {
 					"The AI model did not return a response. Try again or start with a blank automation.");
 		}
 
-		String docJson = AutomationExecutionUtils.stripCodeFences(finalText.trim());
-		AutomationExecutionUtils.validateGeneratedDoc(docJson);
+		String docJson = AutomationGenerationUtils.stripCodeFences(finalText.trim());
+		AutomationGenerationUtils.validateGeneratedDoc(docJson);
 
 		classLogger.info("BuildAutomation finished: project={}", projectId);
 		return new NounMetadata(docJson, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);

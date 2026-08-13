@@ -60,7 +60,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CancelAutomationRunReactor.class);
 
-	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
+	// Not standardized in ReactorKeysEnum - matches the local-key convention used by
 	// prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
@@ -131,7 +131,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = new HashMap<>();
-		// Cancelling a run is a mutating, side-effecting action — requires explicit confirmation.
+		// Cancelling a run is a mutating, side-effecting action - requires explicit confirmation.
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
 	}

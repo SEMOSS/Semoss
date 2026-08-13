@@ -33,8 +33,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.PixelExecutionUtils;
 
 /**
  * Executor for {@code database-engine} nodes. Runs a SQL query against a configured database engine

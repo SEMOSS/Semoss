@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,7 +89,11 @@ public class SaveAutomationReactor extends AbstractReactor {
 
         IProject project = Utility.getProject(projectId);
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File automationFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
+        File automationFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_FILE_NAME).toFile();
+        String normalizedPath = Utility.normalizePath(automationFile.getAbsolutePath());
+        if (!normalizedPath.startsWith(portalsFolder)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
 
         try {
             automationFile.getParentFile().mkdirs();

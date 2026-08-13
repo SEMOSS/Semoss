@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -121,26 +123,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			// Build final result in the same shape as GetAutomationRunReactor
 			Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
 			List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
-			List<Map<String, Object>> nodeResults = new ArrayList<>();
+			List<Map<String, Object>> nodeResults = AutomationDatabaseUtility.buildNodeResults(nodeOutputs);
 			int completedCount = 0;
-			if (nodeOutputs != null) {
-				for (Map<String, Object> output : nodeOutputs) {
-					Map<String, Object> nodeResult = new HashMap<>();
-					nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
-					nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
-					nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
-					nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
-					String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_VALUE);
-					if (outputForDisplay == null || outputForDisplay.isBlank()) {
-						outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
-					}
-					nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
-					nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
-					nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
-					nodeResults.add(nodeResult);
-					if (AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS))) {
-						completedCount++;
-					}
+			for (Map<String, Object> nodeResult : nodeResults) {
+				if (AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+					completedCount++;
 				}
 			}
 			// Trigger nodes succeed immediately in the engine but never write a SUCCESS

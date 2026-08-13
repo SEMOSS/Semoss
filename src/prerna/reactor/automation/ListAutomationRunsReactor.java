@@ -31,6 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,17 +50,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class ListAutomationRunsReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(ListAutomationRunsReactor.class);
+
 	public ListAutomationRunsReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
-		this.keyRequired = new int[]{ 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String limitStr = this.keyValue.get(this.keysToGet[1]);
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		int limit = parseLimit(limitStr);
+
+		if (projectId == null || projectId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a project id");
+		}
 
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {

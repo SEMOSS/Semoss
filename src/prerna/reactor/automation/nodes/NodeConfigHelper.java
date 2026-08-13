@@ -29,72 +29,43 @@ package prerna.reactor.automation.nodes;
 
 import java.util.Map;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 /**
- * Shared config-extraction helpers used by all automation node executors.
+ * Delegates to {@link AutomationExecutionUtils} for config-extraction helpers.
  *
- * <p>Each executor previously contained private copies of {@code required()},
- * {@code optional()}, and {@code optionalInt()} with identical logic. This class
- * centralises them so changes (e.g. to error message format) propagate everywhere.
+ * <p>The canonical implementations now live in {@code AutomationExecutionUtils}. This class
+ * is kept as a thin delegation shim so existing callers in the {@code nodes} sub-package
+ * continue to compile without modification. It will be removed in a later cleanup pass once
+ * those callers are updated to reference {@code AutomationExecutionUtils} directly.
+ *
+ * @deprecated Use {@link AutomationExecutionUtils#required}, {@link AutomationExecutionUtils#optional},
+ *             and {@link AutomationExecutionUtils#optionalInt} directly.
  */
+@Deprecated
 final class NodeConfigHelper {
 
 	private NodeConfigHelper() {
 		// utility class
 	}
 
-	/**
-	 * Returns the string value of {@code key} from {@code config}, throwing if absent or blank.
-	 *
-	 * @param config    node config map
-	 * @param key       config key to look up
-	 * @param nodeLabel display label of the containing node (used in the error message)
-	 */
+	/** @see AutomationExecutionUtils#required(Map, String, String) */
 	static String required(Map<String, Object> config, String key, String nodeLabel) {
-		Object v = config.get(key);
-		if (v == null || v.toString().isBlank()) {
-			throw new IllegalArgumentException(
-					"Node \"" + nodeLabel + "\": '" + key + "' is required");
-		}
-		return v.toString();
+		return AutomationExecutionUtils.required(config, key, nodeLabel);
 	}
 
-	/**
-	 * Returns the string value of {@code key} from {@code config}, or {@code def} if absent or blank.
-	 *
-	 * @param config node config map
-	 * @param key    config key to look up
-	 * @param def    value to return when key is absent or blank
-	 */
+	/** @see AutomationExecutionUtils#optional(Map, String, String) */
 	static String optional(Map<String, Object> config, String key, String def) {
-		Object v = config.get(key);
-		return (v == null || v.toString().isBlank()) ? def : v.toString();
+		return AutomationExecutionUtils.optional(config, key, def);
 	}
 
-	/**
-	 * Returns the string value of {@code key} from {@code config}, or {@code null} if absent or blank.
-	 *
-	 * @param config node config map
-	 * @param key    config key to look up
-	 */
+	/** @see AutomationExecutionUtils#optional(Map, String) */
 	static String optional(Map<String, Object> config, String key) {
-		return optional(config, key, null);
+		return AutomationExecutionUtils.optional(config, key);
 	}
 
-	/**
-	 * Returns the integer value of {@code key} from {@code config}, or {@code def} if absent, blank,
-	 * or not parseable as an integer.
-	 *
-	 * @param config node config map
-	 * @param key    config key to look up
-	 * @param def    default value when key is absent, blank, or unparseable
-	 */
+	/** @see AutomationExecutionUtils#optionalInt(Map, String, int) */
 	static int optionalInt(Map<String, Object> config, String key, int def) {
-		Object v = config.get(key);
-		if (v == null) return def;
-		try {
-			return Integer.parseInt(v.toString().trim());
-		} catch (NumberFormatException e) {
-			return def;
-		}
+		return AutomationExecutionUtils.optionalInt(config, key, def);
 	}
 }

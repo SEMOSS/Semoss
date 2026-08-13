@@ -27,13 +27,15 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import java.util.Map;
+
+import prerna.reactor.automation.AutomationConstants;
+
 /**
  * Executes one automation node's operation, given all the context that node type needs.
  *
  * <p>One concrete implementation per {@code node.type} value (e.g. {@code WaitNodeExecutor},
- * {@code DatabaseEngineNodeExecutor}), resolved via a
- * {@code Map<String, IAutomationNodeExecutor>} registry in
- * {@link prerna.reactor.automation.TriggerAutomationReactor#executeSingleNode} instead of the
+ * {@code DatabaseEngineNodeExecutor}), resolved via {@link #EXECUTORS} instead of the
  * previous {@code if/else} chain keyed on {@code type}.
  *
  * <p>Mirrors the shape already established in this codebase for "one conceptual operation, many
@@ -48,12 +50,31 @@ package prerna.reactor.automation.nodes;
 public interface IAutomationNodeExecutor {
 
 	/**
+	 * Shared registry of stateless node executor instances, keyed by {@code node.type} value.
+	 * Used by both {@link prerna.reactor.automation.AutomationRunEngine} and
+	 * {@link prerna.reactor.automation.RunAutomationNodeReactor}.
+	 *
+	 * <p>Static interface fields are implicitly {@code public static final} in Java.
+	 *
+	 * <!-- Map.of supports up to 10 entries; use Map.ofEntries(Map.entry(...)) if an 11th node type is added -->
+	 */
+	Map<String, IAutomationNodeExecutor> EXECUTORS = Map.of(
+			AutomationConstants.NODE_WAIT, new WaitNodeExecutor(),
+			AutomationConstants.NODE_DATABASE_ENGINE, new DatabaseEngineNodeExecutor(),
+			AutomationConstants.NODE_MODEL_ENGINE, new ModelEngineNodeExecutor(),
+			AutomationConstants.NODE_VECTOR_ENGINE, new VectorEngineNodeExecutor(),
+			AutomationConstants.NODE_STORAGE_ENGINE, new StorageEngineNodeExecutor(),
+			AutomationConstants.NODE_FUNCTION_ENGINE, new FunctionEngineNodeExecutor(),
+			AutomationConstants.NODE_APP, new AppEngineNodeExecutor()
+	);
+
+	/**
 	 * Executes this node's operation and returns its raw output - the same shape previously
 	 * returned by each {@code executeXNode} method (a String, a JSON string, or a
 	 * {@code Map<String, Object>} that the caller will serialize). The caller
-	 * ({@code executeSingleNode}) is responsible for applying the node's output transform,
-	 * generating the preview, and checkpointing success/failure to the database - executors
-	 * should not do any of that themselves.
+	 * ({@link prerna.reactor.automation.AutomationRunEngine#executeSingleNode}) is responsible for
+	 * applying the node's output transform, generating the preview, and checkpointing
+	 * success/failure to the database - executors should not do any of that themselves.
 	 *
 	 * @param ctx the node's execution context - node definition, scope, config, and callbacks
 	 *            for recursing into sibling/child nodes where the node type requires it

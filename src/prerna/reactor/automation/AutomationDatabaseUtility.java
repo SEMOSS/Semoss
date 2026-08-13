@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
 import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
@@ -184,15 +186,28 @@ public final class AutomationDatabaseUtility {
 	// -- Initialization ------------------------------------------------------------
 
 	/**
-	 * Creates automation tables in the scheduler DB if they don't exist.
-	 * Called at platform startup after the scheduler DB is loaded.
-	 * Safe to call on every startup (uses IF NOT EXISTS / metadata checks).
+	 * Creates automation tables in the scheduler DB if they don't exist, and
+	 * registers them in the OWL. Called at platform startup after the scheduler
+	 * DB is loaded. Safe to call on every startup (uses IF NOT EXISTS / metadata
+	 * checks).
 	 */
 	public static void initialize() {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
 			classLogger.warn("Scheduler DB not available - automation tables will not be created");
 			return;
+		}
+
+		// Register the automation OWL schema in the scheduler DB if any tables or
+		// columns are missing. This keeps the OWL declaration entirely within this
+		// package rather than depending on SchedulerOwlCreator.
+		AutomationOwlCreator owlCreator = new AutomationOwlCreator();
+		if (owlCreator.needsRemake(schedulerDb)) {
+			try {
+				owlCreator.remakeOwl(schedulerDb);
+			} catch (Exception e) {
+				classLogger.error("Failed to update automation OWL schema in scheduler DB", e);
+			}
 		}
 
 		Connection conn = null;
@@ -874,6 +889,43 @@ public final class AutomationDatabaseUtility {
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		return results != null ? results : new ArrayList<>();
+	}
+
+	// -- Result Assembly -----------------------------------------------------------
+
+	/**
+	 * Builds a list of per-node result maps from the raw DB output rows returned by
+	 * {@link #getNodeOutputsForRun(String)}. The shape matches what
+	 * {@link prerna.reactor.automation.GetAutomationRunReactor} and
+	 * {@link prerna.reactor.automation.TriggerAutomationReactor} return to callers.
+	 *
+	 * <p>Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
+	 * (falls back from outputValue when blank), outputValue, and errorMessage.
+	 *
+	 * @param nodeOutputs ordered rows from {@link #getNodeOutputsForRun(String)}
+	 * @return mutable list of node result maps (empty when {@code nodeOutputs} is null)
+	 */
+	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs) {
+		List<Map<String, Object>> nodeResults = new ArrayList<>();
+		if (nodeOutputs == null) {
+			return nodeResults;
+		}
+		for (Map<String, Object> output : nodeOutputs) {
+			Map<String, Object> nodeResult = new java.util.HashMap<>();
+			nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
+			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
+			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
+			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
+			String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_VALUE);
+			if (outputForDisplay == null || outputForDisplay.isBlank()) {
+				outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
+			}
+			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
+			nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
+			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+			nodeResults.add(nodeResult);
+		}
+		return nodeResults;
 	}
 
 	// -- Table Creation ------------------------------------------------------------

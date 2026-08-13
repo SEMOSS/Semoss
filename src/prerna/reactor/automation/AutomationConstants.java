@@ -229,7 +229,7 @@ public final class AutomationConstants {
 	public static final String VARCHAR_50 = "VARCHAR(50)";
 	public static final String VARCHAR_255 = "VARCHAR(255)";
 	public static final String VARCHAR_500 = "VARCHAR(500)";
-	public static final String VARCHAR_2000 = "VARCHAR(2000)";
+	public static final String VARCHAR_2000 = "VARCHAR (2000)";
 	public static final String INTEGER = "INTEGER";
 	public static final String BIGINT = "BIGINT";
 	public static final String NOT_NULL = "NOT NULL";

@@ -27,10 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.io.File;
-import java.io.IOException;
+import prerna.reactor.automation.utils.AutomationGenerationUtils;
+
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,11 +41,11 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 /**
@@ -56,7 +55,7 @@ import prerna.util.Utility;
  *
  * <p>Suitable for sharing with non-technical stakeholders or onboarding new team members.
  *
- * <p>Uses the same model-engine resolution logic as {@link GenerateAutomationReactor}:
+ * <p>Uses the same model-engine resolution logic as {@link BuildAutomationReactor}:
  * uses the {@code engine} param if provided, otherwise falls back to the first accessible MODEL engine.
  *
  * <p>Pixel: {@code ExplainAutomation(project=["appId"])}
@@ -73,7 +72,7 @@ public class ExplainAutomationReactor extends AbstractReactor {
         "You are a helpful assistant that explains software automation workflows to non-technical users. "
         + "Given the following automation JSON definition, write a 2-3 sentence plain-English explanation "
         + "of what this automation does when it runs. "
-        + "Write for a non-technical audience — do not mention JSON, nodes, config keys, or technical terms. "
+        + "Write for a non-technical audience  - do not mention JSON, nodes, config keys, or technical terms. "
         + "Start your response with: 'When you run this automation, it will...'";
 
     /**
@@ -138,16 +137,16 @@ public class ExplainAutomationReactor extends AbstractReactor {
             classLogger.info("ExplainAutomationReactor: suggest mode (in-memory content), project={}", projectId);
         } else {
             classLogger.info("ExplainAutomationReactor: narrate mode (saved file), project={}", projectId);
-            doc = loadCurrentDoc(projectId);
+            doc = AutomationExecutionUtils.loadAutomationDocOrEmpty(projectId);
             if (doc.length() > 50_000) {
                 doc = doc.substring(0, 50_000);
             }
             systemPrompt = NARRATION_SYSTEM_PROMPT;
         }
 
-        // Resolve model engine — provided ID or first accessible MODEL engine
+        // Resolve model engine  - provided ID or first accessible MODEL engine
         if (engineId == null || engineId.trim().isEmpty()) {
-            engineId = AutomationExecutionUtils.findFirstModelEngine(user);
+            engineId = AutomationGenerationUtils.findFirstModelEngine(user);
         }
         if (engineId == null || engineId.trim().isEmpty()) {
             throw new IllegalArgumentException(
@@ -179,7 +178,7 @@ public class ExplainAutomationReactor extends AbstractReactor {
             throw new RuntimeException("AI explanation failed: " + e.getMessage(), e);
         }
 
-        String explanation = AutomationExecutionUtils.extractResponseText(response);
+        String explanation = AutomationGenerationUtils.extractResponseText(response);
         if (explanation == null || explanation.isBlank()) {
             throw new IllegalStateException(
                 "The AI model did not return an explanation. Try again.");
@@ -187,19 +186,6 @@ public class ExplainAutomationReactor extends AbstractReactor {
 
         classLogger.info("ExplainAutomationReactor: completed for project {}", projectId);
         return new NounMetadata(explanation.trim(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
-    }
-
-    private String loadCurrentDoc(String projectId) {
-        try {
-            String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-            File automationFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
-            if (automationFile.exists() && automationFile.isFile()) {
-                return Files.readString(automationFile.toPath(), StandardCharsets.UTF_8);
-            }
-        } catch (IOException e) {
-            classLogger.warn("Could not read automation.json for project {} — returning empty doc", projectId, e);
-        }
-        return "{\"version\":1,\"graph\":{\"nodes\":[],\"edges\":[]}}";
     }
 
     @Override

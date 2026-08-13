@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation.nodes;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,15 +36,20 @@ import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 
 /**
- * Immutable param bundle passed to every {@link IAutomationNodeExecutor}.
+ * Param bundle passed to every {@link IAutomationNodeExecutor}.
  *
  * <p>Consolidates all per-node execution inputs so executor implementations have a single,
  * typed object to work with rather than long parameter lists.
  *
+ * <p>Note: {@code scope} is intentionally mutable and shared across all node executions within
+ * one run. Each node may add output variables to {@code scope} after it completes successfully,
+ * making those values available to subsequent nodes via {@code ${varName}} substitution.
+ *
  * @param runId      the automation run ID (use {@code "test"} for single-node test runs)
  * @param projectId  the owning project UUID
  * @param node       the raw node definition map from {@code automation.json}
- * @param scope      mutable variable scope — string key→value pairs resolved by {@code ${varName}}
+ * @param scope      mutable variable scope — string key→value pairs resolved by {@code ${varName}};
+ *                   shared across all nodes in the run and updated after each node completes
  * @param configMap  project automation config key→value pairs resolved by {@code ${config.KEY}}
  * @param insight    caller's {@link Insight} context (carries user, session, pixel engine)
  * @param cancelFlag shared flag the executor checks to honour mid-node cancellation requests
@@ -69,6 +76,13 @@ public record AutomationNodeContext(
 		return (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 	}
 
+	/**
+	 * Returns the node's config map, or an empty map if absent.
+	 *
+	 * <p>The cast to {@code Map<String, Object>} is safe: Gson always deserializes JSON objects
+	 * as {@code Map<String, Object>}, and the automation document is loaded exclusively via Gson
+	 * in {@link prerna.reactor.automation.AutomationExecutionUtils#loadAutomationDoc}.
+	 */
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> config() {
 		Object config = node.get(AutomationConstants.NODE_FIELD_CONFIG);

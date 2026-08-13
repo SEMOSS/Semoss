@@ -27,17 +27,21 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.PixelExecutionUtils;
+
 /**
- * Thrown mid-node when a cancellation request is detected during a blocking operation.
+ * Compatibility shim — extends {@link PixelExecutionUtils.AutomationCancelledException} so that
+ * existing callers importing this top-level class continue to compile unmodified.
  *
- * <p>Using a distinct unchecked exception type (rather than a flag return value or a checked
- * exception) lets nodes that loop internally - such as {@code WaitNodeExecutor} sleeping in
- * chunks - abort cleanly without threading a cancellation result through every call frame. The
- * caller ({@code TriggerAutomationReactor.executeSingleNode}) catches this type specifically and
- * records the run as {@link AutomationConstants#STATUS_CANCELLED} instead of
- * {@link AutomationConstants#STATUS_FAILED}, so the end-user sees the correct terminal state.
+ * <p>The canonical definition is now the inner class
+ * {@link PixelExecutionUtils.AutomationCancelledException}. This file will be removed in a later
+ * cleanup pass once all callers (in particular the {@code nodes/} sub-package files) are updated
+ * to reference the inner class directly.
+ *
+ * @deprecated Use {@link PixelExecutionUtils.AutomationCancelledException} directly.
  */
-public class AutomationCancelledException extends RuntimeException {
+@Deprecated
+public class AutomationCancelledException extends PixelExecutionUtils.AutomationCancelledException {
 
 	private static final long serialVersionUID = 1L;
 

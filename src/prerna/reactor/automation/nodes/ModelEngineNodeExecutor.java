@@ -30,6 +30,7 @@ package prerna.reactor.automation.nodes;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,7 +41,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 import prerna.util.Utility;
 
 /**
@@ -78,7 +79,10 @@ public final class ModelEngineNodeExecutor implements IAutomationNodeExecutor {
 			case AutomationConstants.OP_EMBEDDINGS: {
 				String values = NodeConfigHelper.required(config, AutomationConstants.CONFIG_VALUES, nodeLabel);
 				String resolvedValues = AutomationExecutionUtils.resolve(values, scope, configMap);
-				List<String> valueList = Arrays.asList(resolvedValues.split(","));
+				List<String> valueList = Arrays.stream(resolvedValues.split(","))
+						.map(String::trim)
+						.filter(s -> !s.isEmpty())
+						.collect(Collectors.toList());
 				EmbeddingsModelEngineResponse response = engine.embeddings(valueList, ctx.insight(), null);
 				return response.getResponse();
 			}

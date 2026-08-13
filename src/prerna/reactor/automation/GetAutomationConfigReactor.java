@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.util.Utility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,13 +54,13 @@ import prerna.util.AssetUtility;
 
 /**
  * Returns the automation environment config ({@code automation_config.json}) for a project.
- * Sensitive values are masked in the response — only the key and a placeholder are returned.
+ * Sensitive values are masked in the response  - only the key and a placeholder are returned.
  *
- * <p>There are three "get" reactors — each reads something different:
+ * <p>There are three "get" reactors  - each reads something different:
  * <ul>
- *   <li>{@link GetAutomationReactor GetAutomation} — reads {@code automation.json}: the pipeline graph</li>
- *   <li>{@code GetAutomationConfig} (this reactor) — reads {@code automation_config.json}: key/value env vars and secrets</li>
- *   <li>{@link GetAutomationRunReactor GetAutomationRun} — reads live run state from the DB</li>
+ *   <li>{@link GetAutomationReactor GetAutomation}  - reads {@code automation.json}: the pipeline graph</li>
+ *   <li>{@code GetAutomationConfig} (this reactor)  - reads {@code automation_config.json}: key/value env vars and secrets</li>
+ *   <li>{@link GetAutomationRunReactor GetAutomationRun}  - reads live run state from the DB</li>
  * </ul>
  *
  * <p>Pixel: {@code GetAutomationConfig(project=["appId"])}
@@ -67,6 +71,7 @@ public class GetAutomationConfigReactor extends AbstractReactor {
 
     public GetAutomationConfigReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+        this.keyRequired = new int[] { 1 };
     }
 
     @Override
@@ -84,9 +89,13 @@ public class GetAutomationConfigReactor extends AbstractReactor {
         }
 
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File configFile = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_CONFIG_FILE_NAME);
+        File configFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_CONFIG_FILE_NAME).toFile();
+        String normalizedPath = Utility.normalizePath(configFile.getAbsolutePath());
+        if (!normalizedPath.startsWith(portalsFolder)) {
+            throw new IllegalArgumentException("Invalid file path");
+        }
 
-        if (!configFile.exists()) {
+        if (!configFile.exists() || !configFile.isFile()) {
             return new NounMetadata(new ArrayList<>(), PixelDataType.VECTOR, PixelOperationType.OPERATION);
         }
 

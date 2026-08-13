@@ -36,8 +36,8 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationExecutionUtils;
-import prerna.reactor.automation.PixelExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.PixelExecutionUtils;
 import prerna.util.Utility;
 
 /**
@@ -77,6 +77,7 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 
 		classLogger.debug("App-engine node \"{}\" executing pixel in appId={}", nodeLabel, resolvedAppId != null ? resolvedAppId : "caller context");
 
+		int timeoutMs = AutomationExecutionUtils.getNodeTimeout(ctx.node());
 		if (resolvedAppId != null && !resolvedAppId.isBlank()) {
 			resolvedAppId = SecurityProjectUtils.testUserProjectIdForAlias(ctx.insight().getUser(), resolvedAppId);
 			if (!SecurityProjectUtils.userCanEditProject(ctx.insight().getUser(), resolvedAppId)) {
@@ -91,13 +92,13 @@ public final class AppEngineNodeExecutor implements IAutomationNodeExecutor {
 			ThreadStore.setContextProjectIdOverride(resolvedAppId);
 			ThreadStore.setContextProjectNameOverride(project.getProjectName());
 			try {
-				return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel);
+				return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel, timeoutMs);
 			} finally {
 				ThreadStore.clearContextProjectOverride();
 			}
 		}
 
-		return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel);
+		return PixelExecutionUtils.runAndCollect(ctx.insight(), resolvedPixel, timeoutMs);
 	}
 
 }

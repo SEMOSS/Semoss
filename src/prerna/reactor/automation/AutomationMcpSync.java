@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -117,6 +119,10 @@ public final class AutomationMcpSync {
 			generated.put(buildBuildAutomationTool(projectId));
 			MCPUtility.stampGenerator(generated, AUTOMATION_MCP_GENERATOR_ID);
 
+			// One-arg form is equivalent to two-arg: it does Utility.getProject(projectId) internally
+			// and then delegates to getProjectAssetsFolder(projectName, projectId) - same path, no difference.
+			// We already hold IProject above but the registry lookup is cheap and avoids coupling the
+			// call site to projectName extraction just for this one call.
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
 			String outputFileLoc = Paths.get(assetsFolder, "mcp", "pixel_mcp.json").toString();
 			JSONArray merged = MCPUtility.mergeGeneratedTools(
@@ -159,7 +165,7 @@ public final class AutomationMcpSync {
 					+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
 		}
 		if (hasDbNodes) {
-			description += " This automation has database nodes that accept SQL queries  - call GetAutomationSchema first"
+			description += " This automation has database nodes that accept SQL queries - call GetAutomationSchema first"
 					+ " to discover the exact table and column names before writing SQL.";
 		}
 		tool.put("description", description);
@@ -263,7 +269,7 @@ public final class AutomationMcpSync {
 	}
 
 	/**
-	 * Builds the {@code BuildAutomation} MCP tool  - lets an agent in Playground generate or edit
+	 * Builds the {@code BuildAutomation} MCP tool - lets an agent in Playground generate or edit
 	 * this project's automation from a plain-English description. Execution mode is ASK so the user
 	 * can review the generated document before it is saved.
 	 */
@@ -274,7 +280,7 @@ public final class AutomationMcpSync {
 		tool.put("description",
 				"Generates or edits this project's automation from a plain-English description. "
 				+ "The model iteratively gathers context (database schema, available reactors) before producing a complete automation document. "
-				+ "Does NOT save automatically  - call SaveAutomation with the returned JSON to persist. "
+				+ "Does NOT save automatically - call SaveAutomation with the returned JSON to persist. "
 				+ "Use currentDoc to pass the existing automation JSON (base64-encoded) for edit mode.");
 
 		JSONObject projectProp = new JSONObject();
@@ -317,7 +323,7 @@ public final class AutomationMcpSync {
 		tool.put("title", "Get Automation Database Schema");
 		tool.put("description",
 				"Returns the physical table and column names for database nodes in this automation that accept SQL input. "
-						+ "Call this before TriggerAutomation when you need to write a SQL query  - it gives you the exact "
+						+ "Call this before TriggerAutomation when you need to write a SQL query - it gives you the exact "
 						+ "table and column names available in the database.");
 
 		JSONObject projectProp = new JSONObject();
@@ -355,19 +361,19 @@ public final class AutomationMcpSync {
 	}
 
 	private static String buildPlaygroundParamDescription(String nodeType, String fieldName) {
-		if ("database-engine".equals(nodeType) && "expression".equals(fieldName)) {
+		if (AutomationConstants.NODE_DATABASE_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_EXPRESSION.equals(fieldName)) {
 			return "SQL query to execute against the connected database";
 		}
-		if ("model-engine".equals(nodeType) && "command".equals(fieldName)) {
+		if (AutomationConstants.NODE_MODEL_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_COMMAND.equals(fieldName)) {
 			return "Natural language prompt to send to the language model";
 		}
-		if ("model-engine".equals(nodeType) && "context".equals(fieldName)) {
+		if (AutomationConstants.NODE_MODEL_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_CONTEXT.equals(fieldName)) {
 			return "System instructions for the language model's behavior";
 		}
-		if ("vector-engine".equals(nodeType) && "command".equals(fieldName)) {
+		if (AutomationConstants.NODE_VECTOR_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_COMMAND.equals(fieldName)) {
 			return "Search query to run against the vector database";
 		}
-		if ("function-engine".equals(nodeType) && "params".equals(fieldName)) {
+		if (AutomationConstants.NODE_FUNCTION_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_PARAMS.equals(fieldName)) {
 			return "JSON parameters to pass to the function";
 		}
 		return "Input for the " + fieldName + " field";

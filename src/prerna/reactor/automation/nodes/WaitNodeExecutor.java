@@ -36,7 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.reactor.automation.AutomationCancelledException;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationDatabaseUtility;
-import prerna.reactor.automation.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
 
 /**
  * Executes a "wait" node: sleeps for the configured number of seconds.
@@ -58,9 +58,8 @@ public final class WaitNodeExecutor implements IAutomationNodeExecutor {
 		Map<String, Object> config = ctx.config();
 		String nodeLabel = ctx.nodeLabel();
 
-		String secondsTemplate = config.get(AutomationConstants.CONFIG_SECONDS) != null
-				? config.get(AutomationConstants.CONFIG_SECONDS).toString()
-				: String.valueOf(AutomationConstants.WAIT_DEFAULT_SECONDS);
+		String secondsTemplate = NodeConfigHelper.optional(config, AutomationConstants.CONFIG_SECONDS,
+				String.valueOf(AutomationConstants.WAIT_DEFAULT_SECONDS));
 		String resolved = AutomationExecutionUtils.resolve(secondsTemplate, ctx.scope(), ctx.configMap());
 
 		int seconds;

@@ -53,10 +53,10 @@ import prerna.util.Utility;
  *
  * <p>Returns a JSON object with:
  * <ul>
- *   <li>{@code template} — a filled Pixel call showing each param placeholder, e.g.
+ *   <li>{@code template}  - a filled Pixel call showing each param placeholder, e.g.
  *       {@code MyReactor(requiredKey=[""], optionalKey="")}</li>
- *   <li>{@code description} — the reactor's one-line description, or empty string if none</li>
- *   <li>{@code hasParams} — boolean, false when the reactor declares no keys</li>
+ *   <li>{@code description}  - the reactor's one-line description, or empty string if none</li>
+ *   <li>{@code hasParams}  - boolean, false when the reactor declares no keys</li>
  * </ul>
  *
  * <p>On any failure (project not found, reactor not found, bad metadata) returns a minimal
@@ -119,7 +119,7 @@ public final class GetReactorSignatureReactor extends AbstractReactor {
 			return fallback(result, reactorName);
 		}
 
-		// Description — best-effort
+		// Description  - best-effort
 		String description = "";
 		try {
 			String d = reactor.getReactorDescription();
@@ -196,7 +196,7 @@ public final class GetReactorSignatureReactor extends AbstractReactor {
 			String type = prop.optString("type", "string");
 			meta.put("type", type);
 			String desc = prop.optString("description", "");
-			// Suppress the default placeholder description — it adds no value
+			// Suppress the default placeholder description  - it adds no value
 			if (!desc.isBlank() && !desc.equals("No description present")) {
 				meta.put("description", desc);
 			}

@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationGenerationUtils;
+
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,7 +105,7 @@ public class GenerateNodeLabelReactor extends AbstractReactor {
             configJson = configEncoded;
         }
 
-        String engineId = AutomationExecutionUtils.findFirstModelEngine(user);
+        String engineId = AutomationGenerationUtils.findFirstModelEngine(user);
         if (engineId == null || engineId.isBlank()) {
             throw new IllegalArgumentException(
                 "No AI model engine is available. Add a model engine connection to use this feature.");
@@ -132,7 +136,7 @@ public class GenerateNodeLabelReactor extends AbstractReactor {
             throw new RuntimeException("Label generation failed: " + e.getMessage(), e);
         }
 
-        String label = AutomationExecutionUtils.extractResponseText(response);
+        String label = AutomationGenerationUtils.extractResponseText(response);
         if (label == null || label.isBlank()) {
             throw new IllegalStateException("The AI model did not return a label. Try again.");
         }

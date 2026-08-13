@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
-import prerna.reactor.automation.nodes.AutomationNodeExecutors;
 import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -56,7 +57,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RunAutomationNodeReactor.class);
 
-	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
+	// Not standardized in ReactorKeysEnum  - matches the local-key convention used by
 	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
 	private static final String NODE_ID_KEY = "nodeId";
 	private static final String RUN_ID_KEY = "runId";
@@ -101,7 +102,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
 				rawOutput = scope.get(AutomationConstants.SCOPE_TRIGGERED_AT);
 			} else {
-				IAutomationNodeExecutor executor = AutomationNodeExecutors.EXECUTORS.get(type);
+				IAutomationNodeExecutor executor = IAutomationNodeExecutor.EXECUTORS.get(type);
 				if (executor == null) {
 					throw new IllegalArgumentException("Unsupported node type: " + type);
 				}
@@ -153,7 +154,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 		Map<String, String> scope = AutomationExecutionUtils.buildInitialScope(null, this.insight.getUser());
 
 		if (contextRunId != null && !contextRunId.isEmpty()) {
-			// Scope the context run to this project — otherwise a user could pull node outputs
+			// Scope the context run to this project  - otherwise a user could pull node outputs
 			// (potentially containing other apps' secrets/data) from a run belonging to a
 			// project they don't have access to by passing an arbitrary runId.
 			Map<String, Object> contextRunDetail = AutomationDatabaseUtility.getRunDetail(contextRunId);
@@ -178,14 +179,14 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Executes a single automation node in isolation for testing — result is not persisted.";
+		return "Executes a single automation node in isolation for testing  - result is not persisted.";
 	}
 
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = new HashMap<>();
 		// Node executors can perform real side effects (DB writes, storage uploads/deletes,
-		// arbitrary pixel execution) — requires explicit human confirmation.
+		// arbitrary pixel execution)  - requires explicit human confirmation.
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
 	}
