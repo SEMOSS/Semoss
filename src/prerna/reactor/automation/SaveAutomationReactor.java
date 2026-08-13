@@ -86,6 +86,7 @@ public class SaveAutomationReactor extends AbstractReactor {
         } catch (Exception e) {
             json = jsonEncoded;
         }
+        AutomationDefinitionValidator.parseAndValidate(json);
 
         IProject project = Utility.getProject(projectId);
         String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);

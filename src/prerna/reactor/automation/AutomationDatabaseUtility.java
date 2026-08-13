@@ -37,6 +37,9 @@ import static prerna.reactor.automation.AutomationConstants.CLAIMED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
 import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_HASH;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_SNAPSHOT;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_VERSION;
 import static prerna.reactor.automation.AutomationConstants.DURATION_MS;
 import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
 import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
@@ -79,6 +82,7 @@ import static prerna.reactor.automation.AutomationConstants.VARCHAR_255;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_50;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_500;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -134,9 +138,10 @@ public final class AutomationDatabaseUtility {
 	// AUTOMATION_RUNS
 	private static final String INSERT_RUN = """
 			INSERT INTO AUTOMATION_RUNS \
-			(RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE, \
+			(RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
+			STATUS, TRIGGER_TYPE, \
 			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY) \
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
 
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -498,6 +503,7 @@ public final class AutomationDatabaseUtility {
 	 * Inserts a new automation run record.
 	 */
 	public static boolean insertRun(String runId, String projectId, String automationId,
+			int definitionVersion, String definitionHash, String definitionSnapshot,
 			String triggerType, int totalNodes, String createdBy) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) return false;
@@ -505,6 +511,7 @@ public final class AutomationDatabaseUtility {
 		Connection conn = null;
 		try {
 			conn = schedulerDb.getConnection();
+			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 			Timestamp now = toTimestamp(Instant.now());
 
 			try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
@@ -512,6 +519,9 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, runId);
 				ps.setString(index++, projectId);
 				ps.setString(index++, automationId);
+				ps.setInt(index++, definitionVersion);
+				ps.setString(index++, definitionHash);
+				queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationExecutionUtils.GSON);
 				ps.setString(index++, STATUS_RUNNING);
 				ps.setString(index++, triggerType);
 				ps.setTimestamp(index++, now);
@@ -525,7 +535,7 @@ public final class AutomationDatabaseUtility {
 				conn.commit();
 			}
 			return true;
-		} catch (SQLException e) {
+		} catch (SQLException | UnsupportedEncodingException e) {
 			classLogger.error("Failed to insert automation run '{}'", runId, e);
 			return false;
 		} finally {
@@ -666,6 +676,9 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
@@ -697,6 +710,9 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
@@ -935,35 +951,39 @@ public final class AutomationDatabaseUtility {
 
 		String tableName = TABLE_AUTOMATION_RUNS;
 
-		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
-			return;
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH,
+					DEFINITION_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID,
+					ERROR_MESSAGE, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY,
+					CANCEL_REQUESTED, RESULT_SUMMARY_COL };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER, VARCHAR_255,
+					clobType, VARCHAR_50, VARCHAR_50, dateTimeType, dateTimeType, VARCHAR_255,
+					clobType, dateTimeType, INTEGER, INTEGER, VARCHAR_255,
+					queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
+			String[] constraints = { NOT_NULL, NOT_NULL, null, null, null,
+					null, NOT_NULL, NOT_NULL, NOT_NULL, null, null,
+					null, null, null, null, null,
+					null, null };
+
+			String sql;
+			if (allowIfExists) {
+				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+			} else {
+				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			}
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
 		}
 
-		String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, STATUS, TRIGGER_TYPE,
-				STARTED_AT, COMPLETED_AT, FAILED_NODE_ID, ERROR_MESSAGE, LAST_HEARTBEAT,
-				TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED, RESULT_SUMMARY_COL };
-		String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_50, VARCHAR_50,
-				dateTimeType, dateTimeType, VARCHAR_255, clobType, dateTimeType,
-				INTEGER, INTEGER, VARCHAR_255, queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
-		String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
-				NOT_NULL, null, null, null, null,
-				null, null, null, null, null };
-
-		String sql;
-		if (allowIfExists) {
-			sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-		} else {
-			sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-		}
-		classLogger.info("Creating table {}: {}", tableName, sql);
-		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.execute();
-		}
-
-		// Migrate installs that predate cluster-safe cancel
+		// Additive migration for existing installations.
 		addColumnIfNotExists(conn, queryUtil, tableName, CANCEL_REQUESTED, queryUtil.getBooleanDataTypeName());
-		// Migrate installs that predate result summary
 		addColumnIfNotExists(conn, queryUtil, tableName, RESULT_SUMMARY_COL, VARCHAR_2000);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_VERSION, INTEGER);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_HASH, VARCHAR_255);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_SNAPSHOT, clobType);
 
 		// Primary key
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,

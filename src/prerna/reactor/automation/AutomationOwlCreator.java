@@ -34,6 +34,9 @@ import static prerna.reactor.automation.AutomationConstants.CLAIMED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
 import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_HASH;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_SNAPSHOT;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_VERSION;
 import static prerna.reactor.automation.AutomationConstants.DURATION_MS;
 import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
 import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
@@ -95,6 +98,9 @@ public class AutomationOwlCreator extends AbstractOwlCreator {
 				Pair.with(RUN_ID, VARCHAR_255),
 				Pair.with(PROJECT_ID, VARCHAR_255),
 				Pair.with(AUTOMATION_ID, VARCHAR_255),
+				Pair.with(DEFINITION_VERSION, INTEGER),
+				Pair.with(DEFINITION_HASH, VARCHAR_255),
+				Pair.with(DEFINITION_SNAPSHOT, CLOB),
 				Pair.with(STATUS, VARCHAR_255),
 				Pair.with(TRIGGER_TYPE, VARCHAR_255),
 				Pair.with(STARTED_AT, TIMESTAMP),

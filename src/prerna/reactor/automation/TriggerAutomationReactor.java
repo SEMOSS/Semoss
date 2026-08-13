@@ -29,7 +29,6 @@ package prerna.reactor.automation;
 
 import prerna.reactor.automation.utils.AutomationExecutionUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,15 +72,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 		// Validate the automation has runnable steps BEFORE claiming the run slot,
 		// so a bad automation never leaves a stale active-run record.
-		Map<String, Object> doc = AutomationExecutionUtils.loadAutomationDoc(projectId);
-		@SuppressWarnings("unchecked")
-		Map<String, Object> graph = (Map<String, Object>) doc.get(AutomationConstants.DOC_GRAPH);
-		@SuppressWarnings("unchecked")
-		List<Map<String, Object>> nodes = (List<Map<String, Object>>) graph.get(AutomationConstants.DOC_NODES);
-		List<Map<String, Object>> ordered = nodes != null ? nodes : new ArrayList<>();
-		if (ordered.isEmpty()) {
-			throw new IllegalArgumentException("Automation has no nodes to execute");
-		}
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.validate(AutomationExecutionUtils.loadAutomationDoc(projectId));
+		List<Map<String, Object>> ordered = definition.getNodes();
 		long nonTriggerCount = ordered.stream()
 				.filter(n -> !AutomationConstants.NODE_TRIGGER.equals(n.get(AutomationConstants.NODE_FIELD_TYPE)))
 				.count();
@@ -103,6 +96,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> inputsMap = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 			AutomationExecutionUtils.applyPlaygroundInputs(ordered, inputsMap);
+			definition = AutomationDefinitionValidator.validate(definition.getDocument());
+			ordered = definition.getNodes();
 
 			String triggerType = this.keyValue.get(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY);
 			if (triggerType == null || triggerType.isBlank()) {
@@ -113,6 +108,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				triggerType = AutomationConstants.TRIGGER_MANUAL;
 			}
 			AutomationDatabaseUtility.insertRun(runId, projectId, AutomationConstants.DEFAULT_AUTOMATION_ID,
+					definition.getVersion(), definition.getHash(), definition.getSnapshot(),
 					triggerType, ordered.size(), userId);
 			AutomationDatabaseUtility.insertAllNodeOutputs(runId, ordered);
 
@@ -147,7 +143,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			boolean runSucceeded = AutomationConstants.STATUS_SUCCESS.equals(runDetail.get(AutomationConstants.STATUS));
 			// Short summary shown in the sidebar UI.
 			String summary = runSucceeded
-					? AutomationExecutionUtils.buildSummaryMessage(doc, finalScope, configMap, completedCount, ordered.size())
+					? AutomationExecutionUtils.buildSummaryMessage(definition.getDocument(), finalScope, configMap,
+							completedCount, ordered.size())
 					: buildFailureSummary(runDetail);
 			runDetail.put(AutomationConstants.RESULT_SUMMARY, summary);
 			AutomationDatabaseUtility.updateRunSummary(runId, summary);

@@ -49,6 +49,9 @@ public final class AutomationConstants {
 	public static final String RUN_ID = "RUN_ID";
 	public static final String PROJECT_ID = "PROJECT_ID";
 	public static final String AUTOMATION_ID = "AUTOMATION_ID";
+	public static final String DEFINITION_VERSION = "DEFINITION_VERSION";
+	public static final String DEFINITION_HASH = "DEFINITION_HASH";
+	public static final String DEFINITION_SNAPSHOT = "DEFINITION_SNAPSHOT";
 	public static final String STATUS = "STATUS";
 	public static final String TRIGGER_TYPE = "TRIGGER_TYPE";
 	public static final String STARTED_AT = "STARTED_AT";
