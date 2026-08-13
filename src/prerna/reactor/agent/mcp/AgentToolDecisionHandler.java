@@ -48,6 +48,7 @@ import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
+import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunStatus;
@@ -133,16 +134,7 @@ public final class AgentToolDecisionHandler {
 					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
-		String engineId = engineIdFromPendingAction(pendingAction);
-		if (engineId == null && this.insight != null) {
-			engineId = this.insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = this.insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		if (roomId != null && !roomId.isBlank()) {
@@ -170,9 +162,8 @@ public final class AgentToolDecisionHandler {
 		String resultStr = toolResultContent(toolResult);
 		String executedToolStatus = toolResult.getStatusValue();
 		try {
-			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr,
-					executedToolStatus, actionId, normalizedDecision, paramMap, pendingAction,
-					userId, true);
+			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr, executedToolStatus, actionId,
+					normalizedDecision, paramMap, pendingAction, userId, true);
 		} catch (RuntimeException e) {
 			// release the claim so a retry is not wedged on EXECUTING; the tool already
 			// ran, so the retry replays via the decided/claim-race path if it was marked
