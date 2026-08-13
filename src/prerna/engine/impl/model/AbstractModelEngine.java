@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -82,6 +83,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String MAX_TOKENS = "max_tokens";
 	public static final String THINKING = "thinking";
 	public static final String EFFORT = "effort";
+	public static final String TEMPERATURE = "temperature";
 	public static final String THINKING_BUDGET = "thinking_budget";
 
 	// the init script loading tells us the provider we are using
@@ -123,6 +125,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * efforts are passed through unchecked.
 	 */
 	protected Map<String, Object> reasoningConfig = null;
+
+	/**
+	 * Whether the model accepts a temperature per the MODELMETADATA row. Null
+	 * when the table does not say either way - only an explicit false makes us
+	 * drop a caller supplied temperature.
+	 */
+	protected Boolean temperatureSupported = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -193,6 +202,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (metadata.get("reasoning") instanceof Boolean) {
 			this.reasoning = (Boolean) metadata.get("reasoning");
 		}
+		if (metadata.get("temperature") instanceof Boolean) {
+			this.temperatureSupported = (Boolean) metadata.get("temperature");
+		}
 		if (metadata.get("reasoningConfig") instanceof Map) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
@@ -262,6 +274,32 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String defaultEffort = getDefaultEffort();
 			if (defaultEffort != null) {
 				parameters.put(EFFORT, defaultEffort);
+			}
+		}
+		return parameters;
+	}
+
+	/**
+	 * Drop a caller supplied temperature when the MODELMETADATA row marks the
+	 * model as not accepting one - the reasoning models in particular reject the
+	 * param outright, and callers (including our own reactors that hardcode a
+	 * temperature) should not have to know which model is behind the engine. A
+	 * null or true metadata value leaves the parameters untouched.
+	 *
+	 * @return the same parameters map, minus the temperature when unsupported
+	 */
+	protected Map<String, Object> applyTemperatureParameter(Map<String, Object> parameters) {
+		if (parameters == null || parameters.isEmpty() || !Boolean.FALSE.equals(this.temperatureSupported)) {
+			return parameters;
+		}
+
+		Iterator<Map.Entry<String, Object>> entries = parameters.entrySet().iterator();
+		while (entries.hasNext()) {
+			Map.Entry<String, Object> entry = entries.next();
+			if (entry.getKey() != null && TEMPERATURE.equalsIgnoreCase(entry.getKey().trim())) {
+				entries.remove();
+				classLogger.info("Dropping the temperature param for model {} - the model metadata says it is not supported",
+						Utility.cleanLogString(this.engineId));
 			}
 		}
 		return parameters;
