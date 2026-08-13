@@ -1524,6 +1524,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
@@ -1683,6 +1684,38 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		return true;
+	}
+
+	/**
+	 * Set whether viewers may clone a project as a template.
+	 *
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 */
+	public boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET IS_TEMPLATE=? WHERE PROJECTID=?");
+			ps.setBoolean(1, isTemplate);
+			ps.setString(2, projectId);
+			int updatedRows = ps.executeUpdate();
+			if (updatedRows != 1) {
+				throw new IllegalArgumentException("Project does not exist");
+			}
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to update project template setting", e);
+			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

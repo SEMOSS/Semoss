@@ -465,8 +465,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -477,6 +477,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
+			ps.setBoolean(parameterIndex++, false);
 			ps.setBoolean(parameterIndex++, false);
 			if (user != null) {
 				AuthProvider ap = user.getPrimaryLogin();
@@ -1137,6 +1138,39 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Determine whether a project has been explicitly enabled as a template.
+	 *
+	 * @param projectId project identifier
+	 * @return {@code true} only when the persisted template flag is true
+	 */
+	public static boolean projectIsTemplate(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("PROJECT__IS_TEMPLATE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Failed to determine whether project is enabled as a template", e);
+			return false;
+		}
+	}
+
+	/**
+	 * Determine whether a user may clone a project. The user must be able to view
+	 * the project and the owner must have explicitly enabled it as a template.
+	 *
+	 * @param user      current user
+	 * @param projectId project identifier
+	 * @return whether the user may clone the project
+	 */
+	public static boolean userCanCloneProject(User user, String projectId) {
+		return userCanViewProject(user, projectId) && projectIsTemplate(projectId);
+	}
+
+	/**
 	 * 
 	 * @param projectId
 	 * @return
@@ -1778,6 +1812,46 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		return true;
+	}
+
+	/**
+	 * Set whether viewers may clone a project as a template.
+	 *
+	 * @param user       current user
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 * @throws IllegalAccessException when the user is not the project owner
+	 */
+	public static boolean setProjectTemplate(User user, String projectId, boolean isTemplate)
+			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
+		}
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET IS_TEMPLATE=? WHERE PROJECTID=?");
+			ps.setBoolean(1, isTemplate);
+			ps.setString(2, projectId);
+			int updatedRows = ps.executeUpdate();
+			if (updatedRows != 1) {
+				throw new IllegalArgumentException("Project does not exist");
+			}
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to update project template setting", e);
+			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3184,6 +3258,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			List<String> projectIdFilters, boolean favoritesOnly, Map<String, Object> projectMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
+		return getUserProjectList(user, projectTypes, projectIdFilters, favoritesOnly, projectMetadataFilter,
+				permissionFilters, searchTerm, limit, offset, sortFields, false);
+	}
+
+	public static List<Map<String, Object>> getUserProjectList(User user, List<String> projectTypes,
+			List<String> projectIdFilters, boolean favoritesOnly, Map<String, Object> projectMetadataFilter,
+			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields, boolean onlyTemplates) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -3201,6 +3283,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
@@ -3367,6 +3450,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		if (projectTypes != null && !projectTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
+		}
+
+		if (onlyTemplates) {
+			qs1.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(projectPrefix + "IS_TEMPLATE", "==", true, PixelDataType.BOOLEAN));
 		}
 
 		if (projectIdFilters != null && !projectIdFilters.isEmpty()) {
@@ -3623,6 +3711,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
@@ -3709,6 +3798,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
