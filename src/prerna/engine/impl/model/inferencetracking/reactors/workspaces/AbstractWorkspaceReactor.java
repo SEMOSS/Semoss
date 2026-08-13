@@ -74,6 +74,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String SYSTEM_PROMPT = "systemPrompt";
 	/** Request key for the workspace/agent default model engine id (CONFIG_JSON.model_id). */
 	static final String MODEL_ID = "modelId";
+	/** Request key controlling whether general built-in agent tools are exposed. */
+	static final String USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
@@ -321,13 +323,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null, false, null);
+				false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null, false, null);
+				null, null, false, null, false, null, false, null);
 	}
 
 	/**
@@ -358,7 +360,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
-			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks)
+			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
+			boolean useDefaultToolsProvided, Boolean useDefaultTools)
 			throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
@@ -377,6 +380,9 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			} else {
 				cfg.remove("model_id");
 			}
+		}
+		if (useDefaultToolsProvided) {
+			cfg.put("use_default_agent_tools", Boolean.TRUE.equals(useDefaultTools));
 		}
 
 		JSONArray mcpsJson = new JSONArray();
