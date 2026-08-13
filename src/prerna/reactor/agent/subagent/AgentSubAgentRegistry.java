@@ -303,12 +303,18 @@ public final class AgentSubAgentRegistry {
             }
             RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
                     req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
-                    null, null, null, null, childInsight);
+                    null, null, null, null, childInsight).withParentRunId(req.parentJobId);
             RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
             childStarted = true;
 
             // 7. Notify the parent's stream so a frontend can mount a child pane.
             if (req.parentJobId != null && !req.parentJobId.isBlank()) {
+                String childStatus = runResult.getStatus() == null
+                        ? prerna.reactor.agent.run.AgentRunStatus.SUBMITTED.name()
+                        : runResult.getStatus().name();
+                prerna.reactor.agent.stream.AgentRunStreamService.get().publishSubagentStarted(req.parentJobId,
+                        prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, childRoomId,
+                                req.workspaceId, childStatus));
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("kind", "subagent-spawned");
                 data.put("jobId", childRunId);

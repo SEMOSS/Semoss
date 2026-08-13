@@ -8,16 +8,46 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 # JAVA and JDK default version
-ARG AZUL_ZULU_VERSION=21.42.19
-ARG JAVA_HOME=/usr/lib/jvm/zulu21
-ARG JDK_VERSION=21.0.7
+ARG AZUL_ZULU_VERSION=25.34.17
+ARG JAVA_HOME=/usr/lib/jvm/zulu25
+ARG JDK_VERSION=25.0.3
+
+# FIPS 140-3 build switch. This file produces two images from one definition:
+#
+#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.24 .
+#   docker build -f Dockerfile.tomcat --build-arg FIPS_ENABLED=true \
+#       -t quay.io/semoss/tomcat-builder:11.0.24-fips .
+#
+# With FIPS_ENABLED=false nothing below is installed, so the non-FIPS image is
+# byte-identical to what it was before this switch existed. Downstream images
+# pick a base with --build-arg TOMCAT_TAG=11.0.24-fips.
+#
+# IMPORTANT: a -fips base must be paired with a war built using -P dev,fips.
+# A default war carries BouncyCastle in WEB-INF/lib, which would sit alongside
+# the validated bc-fips on the system classloader - two copies of the
+# org.bouncycastle.* namespace across two classloaders. That combination boots
+# cleanly and is quietly non-compliant.
+ARG FIPS_ENABLED=false
+
+# BouncyCastle FIPS provider jars, staged into ${JAVA_HOME}/lib/fips so they
+# travel with the existing "COPY --from=tomcat_builder /usr/lib/jvm/zulu25"
+# in every downstream image.
+#
+# Only bc-fips is the CMVP-validated module - bctls/bcpkix/bcutil are companion
+# libraries outside the certificate boundary that call into it. Before bumping
+# BC_FIPS_VERSION, confirm the new version is on the CMVP active list, not just
+# published to Maven Central.
+ARG BC_FIPS_VERSION=2.1.2
+ARG BCTLS_FIPS_VERSION=2.1.24
+ARG BCPKIX_FIPS_VERSION=2.1.12
+ARG BCUTIL_FIPS_VERSION=2.1.7
 
 # Maven default version
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 # Tomcat default version
-#ARG TOMCAT_VERSION=9.0.102
-#ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
+ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
 
@@ -25,7 +55,7 @@ ARG TOMCAT_VERSION
 ENV TOMCAT_VERSION=${TOMCAT_VERSION}
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
-# Tomcat and Maven 
+# Tomcat and Maven
 ARG TOMCAT_HOME
 ARG TOMCAT_VERSION
 ARG MAVEN_HOME
@@ -34,6 +64,13 @@ ARG MAVEN_HOME
 ARG AZUL_ZULU_VERSION
 ARG JAVA_HOME
 ARG JDK_VERSION
+
+# BouncyCastle FIPS arguments
+ARG FIPS_ENABLED
+ARG BC_FIPS_VERSION
+ARG BCTLS_FIPS_VERSION
+ARG BCPKIX_FIPS_VERSION
+ARG BCUTIL_FIPS_VERSION
 
 
 #JAVA env values for install_java.sh
@@ -45,7 +82,6 @@ LABEL maintainer="semoss@semoss.org"
 ENV TOMCAT_HOME=${TOMCAT_HOME}
 ENV JAVA_HOME=${JAVA_HOME}
 ENV PATH=$PATH:$MAVEN_HOME/bin:$TOMCAT_HOME/bin:$JAVA_HOME/bin
-# Needed for JEP
 
 RUN printenv | grep -E '^(JAVA_HOME|TOMCAT_HOME|MAVEN_HOME|PATH)=' | awk '{print "export " $0}' >> /opt/set_env.env
 
@@ -68,13 +104,13 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x install_java.sh \
 	&& /bin/bash install_java.sh \
 	&& java -version \
-	&& wget https://archive.apache.org/dist/tomcat/tomcat-9/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
-	&& tar -zxvf apache-tomcat-9.0.*.tar.gz \
+	&& wget https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+	&& tar -zxvf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& mkdir $TOMCAT_HOME \
-	&& mv apache-tomcat-9.0.*/* $TOMCAT_HOME/ \
-	&& rm -r apache-tomcat-9.0.*/ \
-  	%% rm -rf $TOMCAT_HOME/webapps/* \
-	&& rm apache-tomcat-9.0.*.tar.gz \
+	&& mv apache-tomcat-${TOMCAT_VERSION}/* $TOMCAT_HOME/ \
+	&& rm -r apache-tomcat-${TOMCAT_VERSION}/ \
+	&& rm -rf $TOMCAT_HOME/webapps/* \
+	&& rm apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& rm $TOMCAT_HOME/conf/server.xml \
 	&& rm $TOMCAT_HOME/conf/web.xml \
 	&& cp web.xml $TOMCAT_HOME/conf/web.xml \
@@ -82,6 +118,10 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x config.sh \
 	&& /bin/bash config.sh \
 	&& echo 'CATALINA_PID="$CATALINA_BASE/bin/catalina.pid"' > $TOMCAT_HOME/bin/setenv.sh \
+	&& echo '# Let ${VAR} / ${VAR:-default} in server.xml and context.xml resolve against' >> $TOMCAT_HOME/bin/setenv.sh \
+	&& echo '# container environment variables. Tomcat keeps its SystemPropertySource too,' >> $TOMCAT_HOME/bin/setenv.sh \
+	&& echo '# so -D overrides still work. Used by the <Manager> in conf/context.xml.' >> $TOMCAT_HOME/bin/setenv.sh \
+	&& echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource"' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& wget https://archive.apache.org/dist/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz\
 	&& tar -zxvf apache-maven-*.tar.gz \
 	&& mkdir /opt/apache-maven-3.9.14 \
@@ -97,11 +137,104 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod 777 /opt/apache-maven-3.9.14/bin/*.cmd \
 	&& apt-get clean all
 
+# ---------------------------------------------------------------------------
+# FIPS 140-3 wiring. Entirely skipped when FIPS_ENABLED != true.
+#
+# Step order matters: the truststore is converted BEFORE the provider swap,
+# because JKS integrity checking is SHA-1 based and keytool can no longer read
+# the source store once approved-only mode is in force.
+# ---------------------------------------------------------------------------
+RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - skipping FIPS wiring"; exit 0; fi; \
+	set -eux; \
+	\
+	# 1. Stage the provider jars. Hashes are pinned here on purpose rather than
+	#    fetched alongside the jars - pulling an artifact and its checksum from
+	#    the same source verifies nothing. A mismatch fails the build, which is
+	#    the intended behavior for a compliance boundary.
+	M2=https://repo1.maven.org/maven2/org/bouncycastle; \
+	mkdir -p ${JAVA_HOME}/lib/fips; \
+	cd ${JAVA_HOME}/lib/fips; \
+	wget -q $M2/bc-fips/${BC_FIPS_VERSION}/bc-fips-${BC_FIPS_VERSION}.jar; \
+	wget -q $M2/bctls-fips/${BCTLS_FIPS_VERSION}/bctls-fips-${BCTLS_FIPS_VERSION}.jar; \
+	wget -q $M2/bcpkix-fips/${BCPKIX_FIPS_VERSION}/bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar; \
+	wget -q $M2/bcutil-fips/${BCUTIL_FIPS_VERSION}/bcutil-fips-${BCUTIL_FIPS_VERSION}.jar; \
+	{ echo "044fcd8a29d236edea8a5b414406cdae63b475f9ad9f05fe2dc904a277941115  bc-fips-${BC_FIPS_VERSION}.jar"; \
+	  echo "d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c  bctls-fips-${BCTLS_FIPS_VERSION}.jar"; \
+	  echo "48f418d70c9551ac9225f333e5e9dfe872b4501cc566728b6d2bc7364a2223d4  bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar"; \
+	  echo "a30e550f06dcfa0fd7da1e9a501f111421406fa237467522b3ca05187429832d  bcutil-fips-${BCUTIL_FIPS_VERSION}.jar"; } > sha256.manifest; \
+	sha256sum -c sha256.manifest; \
+	rm sha256.manifest; \
+	\
+	# 2. Convert the truststore while the stock providers can still read JKS.
+	keytool -importkeystore -noprompt \
+		-srckeystore ${JAVA_HOME}/lib/security/cacerts -srcstoretype JKS -srcstorepass changeit \
+		-destkeystore ${JAVA_HOME}/lib/security/cacerts.bcfks -deststoretype BCFKS -deststorepass changeit \
+		-providername BCFIPS \
+		-providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider \
+		-providerpath ${JAVA_HOME}/lib/fips/bc-fips-${BC_FIPS_VERSION}.jar; \
+	\
+	# 3. Write a SEPARATE provider list at java.security.fips and leave the JDK
+	#    default untouched. setenv.sh selects it with
+	#    -Djava.security.properties==<file>, so it applies to the Tomcat JVM only.
+	#
+	#    Editing java.security in place breaks every other JVM in the image: the
+	#    provider jars are on CLASSPATH via setenv.sh, which only catalina.sh
+	#    sources, so Maven (own -classpath), keytool and the Playwright installer
+	#    would load SUN alone and die with "Default SSLContext not available".
+	#
+	#    SUN must stay in the list: BCFIPS seeds its DRBG from a core SecureRandom,
+	#    and without SUN that lookup recurses back into BCFIPS and dies with
+	#    StackOverflowError. BCFIPS supplies X.509 CertificateFactory and PKIX
+	#    CertPathValidator itself, so SUN is only an entropy seed source, which is
+	#    fine for compliance - the approved DRBG is still BCFIPS's. Consequence:
+	#    SUN also serves MD5, so approved-only mode cannot block MD5 for
+	#    application code. That has to be caught by code review.
+	sed -E '/^security\.provider\.[0-9]+=/d' ${JAVA_HOME}/conf/security/java.security \
+		> ${JAVA_HOME}/conf/security/java.security.fips; \
+	printf '%s\n' \
+		'security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider' \
+		'security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS' \
+		'security.provider.3=SUN' \
+		>> ${JAVA_HOME}/conf/security/java.security.fips; \
+	\
+	# 4. Providers named in java.security load from the SYSTEM classloader, so the
+	#    jars go on CLASSPATH. $TOMCAT_HOME/lib would not work - that is Tomcat's
+	#    common classloader, which is not consulted for provider loading.
+	#    Fail early if TOMCAT_HOME is unset rather than appending to /bin/setenv.sh,
+	#    and create the file if an earlier step has not already.
+	test -n "$TOMCAT_HOME" || { echo "TOMCAT_HOME is not set"; exit 1; }; \
+	mkdir -p "$TOMCAT_HOME/bin"; \
+	touch "$TOMCAT_HOME/bin/setenv.sh"; \
+	{ echo ''; \
+	  echo '# --- FIPS 140-3 ---'; \
+	  echo 'FIPS_LIB="$JAVA_HOME/lib/fips"'; \
+	  echo '# Prepended, not assigned, so a container-level CLASSPATH survives. The'; \
+	  echo '# provider jars must come first regardless.'; \
+	  echo "CLASSPATH=\"\$FIPS_LIB/bc-fips-${BC_FIPS_VERSION}.jar:\$FIPS_LIB/bctls-fips-${BCTLS_FIPS_VERSION}.jar:\$FIPS_LIB/bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar:\$FIPS_LIB/bcutil-fips-${BCUTIL_FIPS_VERSION}.jar\${CLASSPATH:+:\$CLASSPATH}\""; \
+	  echo 'export CLASSPATH'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djava.security.properties==$JAVA_HOME/conf/security/java.security.fips"'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.bouncycastle.fips.approved_only=true"'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStore=$JAVA_HOME/lib/security/cacerts.bcfks"'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStoreType=BCFKS"'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStorePassword=changeit"'; \
+	  echo '# Session id entropy. conf/context.xml reads these; without them Tomcat'; \
+	  echo '# defaults to SHA1PRNG, which BCFIPS does not implement, so JSESSIONID'; \
+	  echo '# generation silently falls through to SUN.'; \
+	  echo ': "${SESSION_SECURE_RANDOM_PROVIDER:=BCFIPS}"'; \
+	  echo ': "${SESSION_SECURE_RANDOM_ALGORITHM:=DEFAULT}"'; \
+	  echo 'export SESSION_SECURE_RANDOM_PROVIDER SESSION_SECURE_RANDOM_ALGORITHM'; } \
+	  >> "$TOMCAT_HOME/bin/setenv.sh"
+
 FROM scratch AS final
 ARG JAVA_HOME
 ARG TOMCAT_HOME
 ARG MAVEN_HOME
+ARG FIPS_ENABLED
 LABEL maintainer="semoss@semoss.org"
+# Lets downstream builds and running containers self-identify:
+#   docker inspect -f '{{index .Config.Labels "org.semoss.fips"}}' <image>
+LABEL org.semoss.fips="${FIPS_ENABLED}"
+ENV SEMOSS_FIPS=${FIPS_ENABLED}
 
 ENV TOMCAT_HOME=$TOMCAT_HOME
 ENV JAVA_HOME=$JAVA_HOME

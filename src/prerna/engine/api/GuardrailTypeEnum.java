@@ -27,16 +27,22 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.engine.impl.guardrail.AggressiveSelfHarmGuardrailEngine;
 import prerna.engine.impl.guardrail.DetoxifyGuardrailEngine;
 import prerna.engine.impl.guardrail.GLiNERGuardrailEngine;
 import prerna.engine.impl.guardrail.LocalPythonGuardrailReactorFunctionEngine;
+import prerna.engine.impl.guardrail.OnTopicGuardrailEngine;
 import prerna.engine.impl.guardrail.PromptInjectionGuardrailEngine;
+import prerna.engine.impl.guardrail.PolicyComplianceGuardrailEngine;
 
 public enum GuardrailTypeEnum {
 
+	EMBEDDED_AGGRESSIVE_SELF_HARM("EMBEDDED_AGGRESSIVE_SELF_HARM", AggressiveSelfHarmGuardrailEngine.class.getName()),
 	EMBEDDED_DETOXIFY("EMBEDDED_DETOXIFY", DetoxifyGuardrailEngine.class.getName()),
 	EMBEDDED_GLINER("EMBEDDED_GLINER", GLiNERGuardrailEngine.class.getName()),
+	EMBEDDED_ON_TOPIC("EMBEDDED_ON_TOPIC", OnTopicGuardrailEngine.class.getName()),
 	EMBEDDED_PROMPT_INJECTION("EMBEDDED_PROMPT_INJECTION", PromptInjectionGuardrailEngine.class.getName()),
+	EMBEDDED_POLICY_COMPLIANCE("EMBEDDED_POLICY_COMPLIANCE", PolicyComplianceGuardrailEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonGuardrailReactorFunctionEngine.class.getName());
 
 	private String guardrailName;

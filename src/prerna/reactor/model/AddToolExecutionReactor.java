@@ -27,20 +27,26 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -48,81 +54,157 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 /**
- * AddToolExecutionReactor: Input: roomId, toolId, toolName,
- * tool_execution_response
+ * Adds a tool execution result to a room without applying Playground project
+ * policy and returns the next paired room turn once every tool is answered.
  */
 public class AddToolExecutionReactor extends AbstractReactor {
 
+	private static final String TOOL_EXECUTION_RESPONSE = "toolExecutionResponse";
+	private static final String TOOL_PARAMETER_VALUES = "toolParameterValues";
+
 	@Deprecated
-	private final String tool_execution_response = "tool_execution_response";
+	private static final String LEGACY_TOOL_EXECUTION_RESPONSE = "tool_execution_response";
+
+	private static final String RESPONSE_PARTS_KEY = "responseParts";
+	private static final String HIDDEN_MESSAGE_KEY = "hiddenMessage";
 
 	public AddToolExecutionReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0
-				"roomId", // 1
-				"toolId", // 2
-				"toolName", // 3
-				"toolExecutionResponse", // 4
-				"toolParameterValues", // 5
-				tool_execution_response, // 6
-				ReactorKeysEnum.MCP_TOOL_STATUS.getKey() // 7
-		};
-		// TODO: once we remove the legacy tool_execution_response, we will make
-		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "roomId", "toolId", "toolName",
+				TOOL_EXECUTION_RESPONSE, TOOL_PARAMETER_VALUES, ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), LEGACY_TOOL_EXECUTION_RESPONSE,
+				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), RESPONSE_PARTS_KEY, HIDDEN_MESSAGE_KEY };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String modelId = this.keyValue.get(this.keysToGet[0]);
-		String roomId = this.keyValue.get(this.keysToGet[1]);
-		String toolId = this.keyValue.get(this.keysToGet[2]);
-		String toolName = this.keyValue.get(this.keysToGet[3]);
-		String toolResponseRaw = this.keyValue.get(this.keysToGet[4]);
+		String modelId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+		String toolId = this.keyValue.get("toolId");
+		String toolName = this.keyValue.get("toolName");
+		String toolResponseRaw = this.keyValue.get(TOOL_EXECUTION_RESPONSE);
 		if (toolResponseRaw == null) {
-			toolResponseRaw = this.keyValue.get(tool_execution_response);
+			toolResponseRaw = this.keyValue.get(LEGACY_TOOL_EXECUTION_RESPONSE);
 		}
 		if (toolResponseRaw == null) {
-			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
+			throw new IllegalArgumentException("Field " + TOOL_EXECUTION_RESPONSE + " cannot be empty");
 		}
-		Map<String, Object> toolParamterValues = getToolParamterValues();
+
+		Map<String, Object> toolParameterValues = getMap(TOOL_PARAMETER_VALUES);
+		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
+		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		String toolStatus = this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey());
+		if (paramMap == null) {
+			paramMap = new HashMap<>();
+		}
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
+		String hiddenMessage = this.keyValue.get(HIDDEN_MESSAGE_KEY);
 
 		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
 		String userId = user.getPrimaryLoginToken().getId();
-
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
 					"Model " + modelId + " does not exist or user does not have access to this model");
 		}
-		IModelEngine modelEngine = Utility.getModel(modelId);
 
-		// --- 1. Security/room loading ---
 		if (!ModelInferenceLogsUtils.validUserRoom(roomId, userId)) {
 			throw new IllegalArgumentException("User does not have access to room " + roomId);
 		}
 
+		IModelEngine modelEngine = Utility.getModel(modelId);
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-
+		String projectIdOverride = getProjectIdOverride();
+		if (projectIdOverride != null) {
+			room.setProjectId(projectIdOverride);
+		}
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.isEmpty()) {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		String toolStatus = this.keyValue.get(this.keysToGet[7]);
-		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, null, null, modelEngine, insight, toolStatus);
-
-		if (response == null) {
-			return new NounMetadata("Tool output added successfully. Additional tool executions required to continue",
+		if (room.hasToolCallBeenAnswered(toolId)) {
+			return new NounMetadata("Tool output not added: duplicate response for toolCallId " + toolId,
 					PixelDataType.CONST_STRING);
-		} else {
-			Map<String, Object> responseMap = response.toMap();
-			ResponseMessage lastResponse = null;
-			if (!messages.isEmpty() && messages.get(messages.size() - 1) instanceof ResponseMessage) {
-				lastResponse = (ResponseMessage) messages.get(messages.size() - 1);
+		}
+
+		Map<String, Object> pixelReturn = new HashMap<>();
+		List<AbstractMessage> extraMessages = new ArrayList<>();
+		try {
+			ResponseMessage prebuiltResponse = responseParts != null
+					? MessageUtils.buildResponseMessageFromParts(responseParts)
+					: null;
+
+			AskModelEngineResponse<?> response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+					toolParameterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus, prebuiltResponse);
+
+			AbstractMessage tail = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			boolean followUpAppended = prebuiltResponse != null ? tail == prebuiltResponse : response != null;
+			if (!followUpAppended) {
+				pixelReturn.put("responseMessage",
+						"Tool output added successfully. Additional tool executions required to continue");
+				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
 			}
-//        	MessageUtils.applyLegacyResponseFields(lastResponse, responseMap);
-			return new NounMetadata(responseMap, PixelDataType.MAP, PixelOperationType.OPERATION);
+
+			AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
+			ResponseMessage responseMessage = (ResponseMessage) tail;
+			if (prebuiltResponse != null) {
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+					appendHiddenPairWithPersist(room, modelEngine, hiddenMessage, responseMessage.getMessageId(), userId,
+							extraMessages);
+				}
+			} else if (responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+				RoomMessageStore.persist(room, userId);
+			} else if (responseMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
+				room.updateToolResponseMeta(responseMessage);
+			}
+
+			pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(inputMessage)));
+			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(responseMessage)));
+
+			List<Map<String, Object>> extraMessagesList = new ArrayList<>();
+			for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
+				Map<String, Object> pair = new LinkedHashMap<>();
+				pair.put("inputMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i))));
+				pair.put("responseMessage", jsonToMap(MessageUtils.toJson(extraMessages.get(i + 1))));
+				extraMessagesList.add(pair);
+			}
+			pixelReturn.put("extraMessages", extraMessagesList);
+
+			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+		} finally {
+			ClusterUtil.pushRoomAsync(room.getId());
+		}
+	}
+
+	/**
+	 * Returns a runtime-surface project override, or {@code null} to preserve the
+	 * room's existing project ownership.
+	 */
+	protected String getProjectIdOverride() {
+		return null;
+	}
+
+	private void appendHiddenPairWithPersist(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, String userId, List<AbstractMessage> extrasOut) {
+		synchronized (room) {
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+				RoomMessageStore.refreshFromLatestProjection(room, userId);
+				boolean parentExists = room.getMessages().stream()
+						.anyMatch(message -> hiddenParentId.equals(message.getMessageId()));
+				if (!parentExists) {
+					throw new IllegalStateException(
+							"Cannot append hidden cancellation messages because the parent response no longer exists");
+				}
+				MessageUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
+				RoomMessageStore.persist(room, userId);
+			}
 		}
 	}
 
@@ -139,37 +221,28 @@ public class AddToolExecutionReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "The engine id of the model used for the message. If all the tools are added for the tool_resposne message, this model is used to invoke for the response.";
-		} else if (key.equals("roomId")) {
+		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "The room id corresponding to the message history";
 		} else if (key.equals("toolId")) {
 			return "The id of the tool that was executed - must match the tool id of tool_response message";
 		} else if (key.equals("toolName")) {
 			return "The name of the tool that was executed - must match the tool name of tool_response message";
-		} else if (key.equals("toolExecutionResponse")) {
+		} else if (key.equals(TOOL_EXECUTION_RESPONSE)) {
 			return "The raw string output of the tool output";
-		} else if (key.equals("toolParameterValues")) {
+		} else if (key.equals(TOOL_PARAMETER_VALUES)) {
 			return "Map object with the string parameterName to object value for the tool execution";
-		} else if (key.equals(tool_execution_response)) {
-			return "Deprecated parameter. Please switch to toolExecutionResponse";
+		} else if (key.equals(LEGACY_TOOL_EXECUTION_RESPONSE)) {
+			return "Deprecated parameter. Please switch to " + TOOL_EXECUTION_RESPONSE;
+		} else if (RESPONSE_PARTS_KEY.equals(key)) {
+			return "Optional. When provided, the LLM follow-up call is skipped and this array of response parts"
+					+ " (each a map with type=THINKING|TEXT and matching payload) is persisted as the assistant"
+					+ " follow-up. Used by a cancel flow when the user stopped a stream that fired after"
+					+ " tool execution.";
+		} else if (HIDDEN_MESSAGE_KEY.equals(key)) {
+			return "Optional. Cancel-flow only (paired with " + RESPONSE_PARTS_KEY + "). A hidden user-side note"
+					+ " appended after the tool follow-up, plus an auto-generated assistant ack, so the model sees on"
+					+ " the next turn that its previous response was cut short. Ignored on live LLM calls.";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getToolParamterValues() {
-		GenRowStruct toolParamValuesGrs = this.store.getGenRowStruct(this.keysToGet[5]);
-		if (toolParamValuesGrs != null) {
-			Object toolParamValuesObj = toolParamValuesGrs.get(0);
-			if (toolParamValuesObj instanceof Map) {
-				return (Map<String, Object>) toolParamValuesObj;
-			} else {
-				throw new IllegalArgumentException("Expected " + this.keysToGet[5] + " to be a Map object");
-			}
-		}
-
-		return null;
 	}
 }

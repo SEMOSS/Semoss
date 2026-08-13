@@ -64,6 +64,7 @@ public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
 	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
+	private static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -129,6 +130,71 @@ public class MessageUtils {
 	}.getType();
 
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * Builds a response message from caller-supplied THINKING and TEXT parts in
+	 * their original order.
+	 *
+	 * @param responseParts serialized message parts supplied by a client
+	 * @return response containing every usable part, or an empty response
+	 */
+	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
+		ResponseMessage.Builder builder = ResponseMessage.builder();
+		if (responseParts != null) {
+			for (Map<String, Object> part : responseParts) {
+				if (part == null) {
+					continue;
+				}
+				Object typeObj = part.get("type");
+				String type = typeObj != null ? typeObj.toString() : null;
+				if ("THINKING".equals(type)) {
+					Object thinkingObj = part.get("thinking");
+					String thinking = thinkingObj != null ? thinkingObj.toString() : null;
+					if (thinking != null && !thinking.isEmpty()) {
+						builder.withThinking(thinking);
+					}
+				} else if ("TEXT".equals(type)) {
+					Object textObj = part.get("text");
+					String text = textObj != null ? textObj.toString() : null;
+					if (text != null && !text.isEmpty()) {
+						builder.withText(text);
+					}
+				}
+			}
+		}
+		return builder.build();
+	}
+
+	/**
+	 * Appends a hidden user note and platform acknowledgement to a room. The
+	 * caller is responsible for holding the room mutation lock and persisting.
+	 *
+	 * @param room           target room
+	 * @param modelEngine    model associated with the hidden input
+	 * @param hiddenMessage  hidden user-side note
+	 * @param hiddenParentId parent response id
+	 * @param extrasOut      optional collection receiving the appended pair
+	 */
+	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, List<AbstractMessage> extrasOut) {
+		InputMessage hiddenUserNote = InputMessage.builder(room).withText(hiddenMessage)
+				.withModelType(modelEngine.getModelType()).build();
+		hiddenUserNote.setPlatformGenerated(true);
+		hiddenUserNote.setVisible(false);
+		hiddenUserNote.setParentMessageId(hiddenParentId);
+
+		ResponseMessage hiddenAck = ResponseMessage.text(HIDDEN_MESSAGE_ACK);
+		hiddenAck.setPlatformGenerated(true);
+		hiddenAck.setVisible(false);
+		hiddenAck.setParentMessageId(hiddenUserNote.getMessageId());
+
+		room.getMessages().add(hiddenUserNote);
+		room.getMessages().add(hiddenAck);
+		if (extrasOut != null) {
+			extrasOut.add(hiddenUserNote);
+			extrasOut.add(hiddenAck);
+		}
+	}
 
 	/**
 	 * Normalize a tool-call `arguments` value into something the Python side can

@@ -6,6 +6,13 @@ import socketserver
 import threading
 import asyncio
 import os
+
+# Must be imported before anything that can pull in matplotlib. Importing it
+# pins the headless Agg backend, without which matplotlib autoselects a GUI
+# backend and aborts the process the moment user code plots from a worker
+# thread. See smss_inline_display for the full explanation.
+import smss_inline_display
+
 from gaas_tcp_server_handler import TCPServerHandler
 
 # logging.basicConfig(level=logging.DEBUG,
@@ -196,6 +203,8 @@ if __name__ == "__main__":
                 f"Chrooted to {args.userChrootFolder} and changed directory to /"
             )
             os.environ.clear()
+            # clearing the environment drops MPLBACKEND, so put it back
+            smss_inline_display.pin_headless_backend()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
             sys.exit(1)

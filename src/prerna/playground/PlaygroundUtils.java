@@ -27,9 +27,21 @@
  *******************************************************************************/
 package prerna.playground;
 
+import java.util.List;
+import java.util.Map;
+
+import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
+
 public class PlaygroundUtils {
 
 	public static final String PLAYGROUND_PROJECT_ID = "SYSTEM__PLAYGROUND";
+
+	// Canned assistant ack persisted after a hidden user note, keeping provider payloads role-alternating.
+	public static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
 	public static final String FOLLOW_UP_SUGGESTIONS_PROMPT = """
 			You generate follow-up suggestions only.
@@ -56,4 +68,14 @@ public class PlaygroundUtils {
 			}
 			""";
 
+	// Builds a ResponseMessage from caller-supplied THINKING/TEXT parts, in order; empty if none are usable.
+	public static ResponseMessage buildResponseMessageFromParts(List<Map<String, Object>> responseParts) {
+		return MessageUtils.buildResponseMessageFromParts(responseParts);
+	}
+
+	// Appends a hidden user-note/assistant-ack pair to the room; caller must hold the lock and persist after.
+	public static void appendHiddenPair(Room room, IModelEngine modelEngine, String hiddenMessage,
+			String hiddenParentId, List<AbstractMessage> extrasOut) {
+		MessageUtils.appendHiddenPair(room, modelEngine, hiddenMessage, hiddenParentId, extrasOut);
+	}
 }

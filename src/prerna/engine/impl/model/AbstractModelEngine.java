@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -77,6 +78,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
+	public static final String BUILT_IN_TOOLS = "built_in_tools";
+	public static final String MAX_TOKENS = "max_tokens";
 
 	// the init script loading tells us the provider we are using
 	// but we also want to know what the model brand actually is
@@ -86,14 +89,103 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
+	/**
+	 * The engine's saved built-in tool selection from MODELMETADATA - a JSON
+	 * object keyed by tool name. The security database is its only source of
+	 * truth (the value is deliberately kept out of the smss), and it rides
+	 * along on ask calls as the built_in_tools param unless the caller
+	 * supplies their own.
+	 */
+	protected Object builtinTools = null;
+
+	/**
+	 * The max output tokens to request when the caller does not name one -
+	 * the smss value when defined, otherwise the MODELMETADATA row's
+	 * maxOutputTokens. Null when neither names one, in which case the python
+	 * clients fall back to the model's own output cap.
+	 */
+	protected Long maxTokens = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
+		// backfill runtime settings from the MODELMETADATA table into the working
+		// smss properties - a value defined in the smss file always wins
+		fillModelSettingsFromMetadata();
+
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
 		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
-		this.contextWindow = contextWindowStr != null ? Integer.parseInt(contextWindowStr) : 0;
+		this.contextWindow = contextWindowStr != null && !contextWindowStr.trim().isEmpty()
+				? Integer.parseInt(contextWindowStr.trim())
+				: 0;
+		this.maxTokens = resolveMaxTokens();
+	}
+
+	/**
+	 * The effective max output tokens after the metadata merge: the smss file
+	 * wins under either key casing, then the metadata backfill placed under
+	 * the lowercase param key. A value that does not parse reads as unset
+	 * rather than failing engine open.
+	 */
+	private Long resolveMaxTokens() {
+		String value = this.smssProp.getProperty(Constants.MAX_TOKENS);
+		if (value == null || value.trim().isEmpty()) {
+			value = this.smssProp.getProperty(MAX_TOKENS);
+		}
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return Long.parseLong(value.trim());
+		} catch (NumberFormatException e) {
+			classLogger.warn("Model {} has an invalid max tokens value '{}' - ignoring it", this.engineId, value);
+			return null;
+		}
+	}
+
+	/**
+	 * Query the MODELMETADATA table once on engine open and fill in any model
+	 * settings that are not defined in the smss file. Downstream consumers (the
+	 * INIT_MODEL_ENGINE var substitution, getSmssProp callers, getContextWindow)
+	 * all read from the merged smssProp so they do not need to know about the
+	 * table. The original file contents remain untouched in origSmssProp.
+	 */
+	private void fillModelSettingsFromMetadata() {
+		if (this.engineId == null || this.engineId.trim().isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> metadata = null;
+		try {
+			metadata = SecurityModelMetadataUtils.getModelMetadata(this.engineId);
+		} catch (Exception e) {
+			classLogger.warn("Unable to load model metadata for engine {} - using smss values only", this.engineId, e);
+			return;
+		}
+		if (metadata == null) {
+			return;
+		}
+
+		fillIfMissing("context_window", metadata.get("contextWindow"));
+		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
+		this.builtinTools = metadata.get("builtinTools");
+	}
+
+	/**
+	 * Set the smss property to the metadata value only when the smss file does not
+	 * already define a non-empty value for the key.
+	 */
+	private void fillIfMissing(String smssKey, Object metadataValue) {
+		if (metadataValue == null) {
+			return;
+		}
+		String current = this.smssProp.getProperty(smssKey);
+		if (current != null && !current.trim().isEmpty()) {
+			return;
+		}
+		this.smssProp.put(smssKey, String.valueOf(metadataValue));
 	}
 
 	/**
@@ -366,61 +458,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		return embeddingsResponse;
 	}
 
-	/**
-	 * This is an abstract method for the implementation class such that tracking
-	 * occurs
-	 *
-	 * @param stringsToEmbed
-	 * @param insight
-	 * @param parameters
-	 * @return
-	 */
-	protected abstract EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters);
-
-	@Override
-	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters) {
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		EmbeddingsModelEngineResponse embeddingsResponse = imageEmbeddingsCall(imagesToEmbed, insight, parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			String messageId = GUID.v7().toUUID().toString();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/messageId,
-					/*transactionId*/messageId,
-					/*messageMethod*/"embeddings",
-					/*engine*/this,
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/null,
-					/*prompt*/null,
-					/*fullPrompt*/imagesToEmbed,
-					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime,
-					/*response*/"",
-					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-					));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime,
-				outputTime);
-
-		return embeddingsResponse;
-	}
 
 	/**
 	 *

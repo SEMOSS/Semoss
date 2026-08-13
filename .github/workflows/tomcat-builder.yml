@@ -5,7 +5,7 @@ on:
       version:
         description: 'Tomcat Version to deploy'
         required: true
-        default: '9.0.119'
+        default: '11.0.24'
   push:
     branches: [ "dev", "main" ]
     paths:
@@ -31,16 +31,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Cross-product: 4 jobs (amd64|arm64) x (standard|fips). The include
+        # entries match on `arch`, so they fill in platform/runner/uname_arch for
+        # both fips values rather than adding extra jobs.
+        fips: [false, true]
+        arch: [amd64, arm64]
         include:
-          - platform: linux/amd64
-            arch: amd64
+          - arch: amd64
+            platform: linux/amd64
             runner: ubuntu-latest
-          - platform: linux/arm64
-            arch: arm64
+            uname_arch: x86_64
+          - arch: arm64
+            platform: linux/arm64
             runner: ubuntu-24.04-arm
+            uname_arch: aarch64
     runs-on: ${{ matrix.runner }}
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '11.0.24' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,9 +72,55 @@ jobs:
           build-args: |
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
             BASE_REGISTRY=public.ecr.aws/docker/library
+            FIPS_ENABLED=${{ matrix.fips }}
           # push-by-digest: publish the blobs + per-arch manifest, but DO NOT tag.
           # The merge job stitches the digests into a single tagged manifest list.
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+
+      # The Java version comes from the ARG defaults in Dockerfile.tomcat, not from
+      # this workflow, so assert what actually landed in the image.
+      - name: Verify builder image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_ref="${IMAGE}@${{ steps.build.outputs.digest }}"
+          docker pull "$image_ref"
+          docker run --rm --entrypoint bash "$image_ref" -c '
+            set -euo pipefail
+            test "$JAVA_HOME" = "/usr/lib/jvm/zulu25"
+            test "$(uname -m)" = "${{ matrix.uname_arch }}"
+            java -version 2>&1 | grep -q "openjdk version \"25\."
+            mvn -version | grep -q "Java version: 25\."
+            # TOMCAT_HOME must survive into the final stage. If it is empty then
+            # $TOMCAT_HOME/bin drops out of PATH, catalina.sh and start.sh become
+            # unreachable, and WORKDIR points at /webapps.
+            test -n "$TOMCAT_HOME"
+            test -d "$TOMCAT_HOME/bin"
+            test -x "$TOMCAT_HOME/bin/catalina.sh"
+            command -v start.sh >/dev/null
+            if [ "${{ matrix.fips }}" = "true" ]; then
+              test -d "$JAVA_HOME/lib/fips"
+              test -f "$JAVA_HOME/lib/security/cacerts.bcfks"
+              grep -q "^security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security.fips"
+              grep -q "^security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider" "$JAVA_HOME/conf/security/java.security.fips"
+              grep -q "approved_only=true" "$TOMCAT_HOME/bin/setenv.sh"
+              grep -q "java.security.properties==" "$TOMCAT_HOME/bin/setenv.sh"
+              # the JDK default must stay usable or Maven, keytool and the
+              # Playwright installer lose TLS inside the image build
+              grep -q "^security.provider.1=SUN" "$JAVA_HOME/conf/security/java.security"
+              mvn -B -q -version >/dev/null
+              echo "FIPS variant verified"
+            else
+              # The standard image must carry NO FIPS artifacts at all, otherwise
+              # FIPS_ENABLED is leaking and the two tags are not really distinct.
+              test ! -e "$JAVA_HOME/lib/fips"
+              test ! -e "$JAVA_HOME/lib/security/cacerts.bcfks"
+              test ! -e "$JAVA_HOME/conf/security/java.security.fips"
+              ! grep -q "BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security"
+              ! grep -q "approved_only" "$TOMCAT_HOME/bin/setenv.sh"
+              echo "standard variant verified clean"
+            fi
+          '
 
       - name: Export digest
         run: |
@@ -78,7 +131,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.arch }}
+          name: digests-${{ matrix.fips }}-${{ matrix.arch }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -91,14 +144,20 @@ jobs:
   merge:
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fips: [false, true]
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.119' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '11.0.24' }}
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          # Only this variant's digests, or the two tags would point at a mixed
+          # manifest list containing both FIPS and standard images.
+          pattern: digests-${{ matrix.fips }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -115,11 +174,14 @@ jobs:
         id: meta
         shell: bash
         run: |
-          TAGS=( "-t" "${IMAGE}:${TOMCAT_VERSION}" )
-          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
-            TAGS+=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${{ vars.VERSION }}" )
+          SUFFIX=""
+          if [[ "${{ matrix.fips }}" == "true" ]]; then SUFFIX="-fips"; fi
+          TAGS=( "-t" "${IMAGE}:${TOMCAT_VERSION}${SUFFIX}" )
+          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
+            TAGS+=( "-t" "${IMAGE}:${TOMCAT_VERSION}-${{ vars.VERSION }}${SUFFIX}" )
           fi
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
+          echo "primary=${IMAGE}:${TOMCAT_VERSION}${SUFFIX}" >> "$GITHUB_OUTPUT"
 
       - name: Create and push manifest list
         working-directory: /tmp/digests
@@ -128,4 +190,4 @@ jobs:
             $(printf "${IMAGE}@sha256:%s " *)
 
       - name: Inspect manifest list
-        run: docker buildx imagetools inspect "${IMAGE}:${TOMCAT_VERSION}"
+        run: docker buildx imagetools inspect "${{ steps.meta.outputs.primary }}"

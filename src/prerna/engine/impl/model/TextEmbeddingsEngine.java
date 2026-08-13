@@ -113,13 +113,6 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 	}
 
 	@Override
-	public EmbeddingsModelEngineResponse imageEmbeddingsCall(List<String> imagesToEmbed, Insight insight,
-			Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
 			String roomId, Map<String, Object> parameters) {
 		return new AskStringModelEngineResponse("This model does not support text generation.", 0, 0);

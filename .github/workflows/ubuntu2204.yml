@@ -1,21 +1,15 @@
-name: Semoss Ubuntu Builder
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Semoss Ubuntu 22.04 Builder
 
 on:
   push:
-    branches: [ "dev", "main" ]      #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.ubuntu22.04'
       - '.github/workflows/ubuntu2204.yml'
-    # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
   workflow_dispatch:
   schedule:
-    - cron: '30 8 * * *'  # Runs every day at 8:30 AM UTC, which is 3:30 AM EST
+    - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 3:30 AM EDT (2:30 AM EST)
+
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -29,6 +23,8 @@ jobs:
       semoss_version: ${{ steps.vars.outputs.semoss_version }}
       tag_args: ${{ steps.vars.outputs.tag_args }}
       primary_tag: ${{ steps.vars.outputs.primary_tag }}
+      tag_args_fips: ${{ steps.vars.outputs.tag_args_fips }}
+      primary_tag_fips: ${{ steps.vars.outputs.primary_tag_fips }}
     steps:
       - name: Determine image, version and tags
         id: vars
@@ -39,17 +35,23 @@ jobs:
             SV="${{ vars.VERSION }}"
             PRIMARY="${IMAGE}:${{ vars.VERSION }}-ubuntu22"
             TAGS="-t ${PRIMARY}"
+            PRIMARY_FIPS="${IMAGE}:${{ vars.VERSION }}-ubuntu22-fips"
+            TAGS_FIPS="-t ${PRIMARY_FIPS}"
           else
             DATE=$(date +'%Y-%m-%d')
             IMAGE="quay.io/semoss/semoss-dev"
             SV="${{ vars.VERSION }}-SNAPSHOT"
             PRIMARY="${IMAGE}:${{ vars.VERSION }}-SNAPSHOT-ubuntu22-${DATE}"
             TAGS="-t ${PRIMARY} -t ${IMAGE}:${{ vars.VERSION }}-SNAPSHOT-ubuntu22-latest"
+            PRIMARY_FIPS="${IMAGE}:${{ vars.VERSION }}-SNAPSHOT-ubuntu22-fips-${DATE}"
+            TAGS_FIPS="-t ${PRIMARY_FIPS} -t ${IMAGE}:${{ vars.VERSION }}-SNAPSHOT-ubuntu22-fips-latest"
           fi
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "semoss_version=${SV}" >> "$GITHUB_OUTPUT"
           echo "tag_args=${TAGS}" >> "$GITHUB_OUTPUT"
           echo "primary_tag=${PRIMARY}" >> "$GITHUB_OUTPUT"
+          echo "tag_args_fips=${TAGS_FIPS}" >> "$GITHUB_OUTPUT"
+          echo "primary_tag_fips=${PRIMARY_FIPS}" >> "$GITHUB_OUTPUT"
 
   # ---------------------------------------------------------------------------
   # Build each arch natively (amd64 + arm64 CodeBuild fleets) and push BY DIGEST.
@@ -61,13 +63,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Cross-product: (amd64|arm64) x (standard|fips). include entries
+        # match on arch, so they fill in both fips legs.
+        fips: [false, true]
+        arch: [amd64, arm64]
         include:
-          - platform: linux/amd64
-            arch: amd64
+          - arch: amd64
+            platform: linux/amd64
             runner_prefix: codebuild-semoss-github-runner
             container: quay.io/semoss/test-quay:ubuntu-dind
-          - platform: linux/arm64
-            arch: arm64
+          - arch: arm64
+            platform: linux/arm64
             runner_prefix: codebuild-semoss-github-runner-arm64
             container: quay.io/semoss/test-quay:ubuntu-dind-arm64
     runs-on: ${{ matrix.runner_prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -99,6 +105,8 @@ jobs:
           build-args: |
             SEMOSS_VERSION=${{ needs.prepare.outputs.semoss_version }}
             BASE_REGISTRY=public.ecr.aws/docker/library
+            TOMCAT_TAG_SUFFIX=${{ matrix.fips && '-fips' || '' }}
+            SEMOSS_FIPS=${{ matrix.fips }}
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -110,7 +118,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.arch }}
+          name: digests-${{ matrix.fips }}-${{ matrix.arch }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -121,12 +129,16 @@ jobs:
   merge:
     needs: [ prepare, build ]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fips: [false, true]
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.fips }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -142,8 +154,8 @@ jobs:
       - name: Create and push manifest list
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create ${{ needs.prepare.outputs.tag_args }} \
+          docker buildx imagetools create ${{ matrix.fips && needs.prepare.outputs.tag_args_fips || needs.prepare.outputs.tag_args }} \
             $(printf "${{ needs.prepare.outputs.image }}@sha256:%s " *)
 
       - name: Inspect manifest list
-        run: docker buildx imagetools inspect "${{ needs.prepare.outputs.primary_tag }}"
+        run: docker buildx imagetools inspect "${{ matrix.fips && needs.prepare.outputs.primary_tag_fips || needs.prepare.outputs.primary_tag }}"

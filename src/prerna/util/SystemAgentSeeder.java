@@ -51,8 +51,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * {@code WORKSPACE} that is catalogued global with no owner (see
  * {@link ProjectWatcher#init()}) - exactly like the platform skills and system
  * MCPs. Unlike those, an agent also needs a {@code WORKSPACE} row plus
- * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live in
- * a database rather than on disk. This class provisions those rows.
+ * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live
+ * in a database rather than on disk. This class provisions those rows.
  *
  * <p>
  * {@link #seed(String)} is idempotent and self-healing: it is safe to run on
@@ -67,8 +67,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * <ul>
  * <li>tools = {@link SystemDefaultEngines#getSystemMCPs()} (database-maker,
  * node-builder, reactor-help)</li>
- * <li>skills = {@link SystemDefaultEngines#getSystemSkills()} minus
- * {@link Constants#SKILL_PYTHON}</li>
+ * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
  */
 public class SystemAgentSeeder {
@@ -99,7 +98,8 @@ public class SystemAgentSeeder {
 	 * Idempotently seed the WORKSPACE row + resource rows + CONFIG_JSON for a
 	 * system agent. Never throws; failures are logged so they do not block boot.
 	 *
-	 * @param agentId the platform agent id (e.g. {@link Constants#AGENT_APP_BUILDER})
+	 * @param agentId the platform agent id (e.g.
+	 *                {@link Constants#AGENT_APP_BUILDER})
 	 */
 	public static void seed(String agentId) {
 		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
@@ -148,16 +148,18 @@ public class SystemAgentSeeder {
 		}
 	}
 
-	/** Tools = the 3 system MCP apps. */
+	/**
+	 * Tools = the headless system MCP apps. Deliberately the agent subset rather
+	 * than every cataloged platform MCP, so adding a UI-driven MCP to the catalog
+	 * does not silently change this agent's toolset.
+	 */
 	private static List<String> toolIds(String agentId) {
-		return new ArrayList<>(SystemDefaultEngines.getSystemMCPs());
+		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
 	}
 
-	/** Skills = the platform skills, minus python. */
+	/** Skills = all platform skills. */
 	private static List<String> skillIds(String agentId) {
-		List<String> skills = new ArrayList<>(SystemDefaultEngines.getSystemSkills());
-		skills.remove(Constants.SKILL_PYTHON);
-		return skills;
+		return new ArrayList<>(SystemDefaultEngines.getSystemSkills());
 	}
 
 	private static String displayName(String agentId) {
@@ -243,24 +245,39 @@ public class SystemAgentSeeder {
 		return config;
 	}
 
-	private static final String APP_BUILDER_SYSTEM_PROMPT = String.join("\n",
-			"You are a SEMOSS App Building agent.",
-			"",
-			"Start every task with this call",
-			"",
-			"List skills call ListSkill to see what skill packages are available. Load the relevant one with LoadSkill before doing the work. Skills hold the canonical patterns for engines (model, database, vector), build/publish, and other recurring tasks. Do not guess parameters or output schemas load the skill.",
-			"",
-			"The CLAUDE.md and AGENTS.md in your working dir load automatically into your context. Treat them as authoritative for SDK usage and project conventions.",
-			"How to work",
-			"",
-			"Plan with TodoWrite for anything that spans more than two tool calls. Mark items in_progress as you start, completed as you finish.",
-			"Read before you edit. EditFile requires a unique-match old_string read surrounding context first.",
-			"Prefer EditFile over WriteFile for in-place changes. Reserve WriteFile for new files or full rewrites.",
-			"Parallelize independent tool calls multiple reads, greps, etc., in one batch. Serial chains waste latency.",
-			"Builds go through BuildAndPublishApp. Direct node / npm / pnpm via Bash are sandboxed and will fail.",
-			"",
-			"Engines",
-			"Before introducing any new MODEL / DATABASE / VECTOR call, load the selected-engines skill. Never hardcode or guess engine IDs.",
-			"Output",
-			"Finish with a one- to two-line summary of what changed and stop. Skip the recap.");
+	/**
+	 * System prompt for the App Building agent. Kept as a text block so it reads as
+	 * the prompt the model actually receives. The closing delimiter sits on the
+	 * last content line so no trailing newline is appended.
+	 */
+	private static final String APP_BUILDER_SYSTEM_PROMPT = """
+				You are a SEMOSS App Building agent.
+
+				Start every task by calling ListSkill to see which skill packages are available. Load each relevant skill with LoadSkill before doing the work. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, and other recurring tasks. Do not guess parameters or output schemas.
+
+				Project instructions are already included in your context. Treat them as authoritative for SDK usage and project conventions. Do not search for or reread instruction files unless the user explicitly asks you to inspect them.
+
+				How to work:
+				Plan with TodoWrite for anything that spans more than two tool calls. Mark items in_progress as you start, completed as you finish.
+				Read before you edit. EditFile requires a unique-match old_string read surrounding context first.
+				Prefer EditFile over WriteFile for in-place changes. Reserve WriteFile for new files or full rewrites.
+				Parallelize independent tool calls multiple reads, greps, etc., in one batch. Serial chains waste latency.
+				Use BuildAndPublishApp when client source must be compiled. Use PublishProject with release=true when the project already has complete runnable portal assets, such as a plain index.html app. Direct node / npm / pnpm via Bash are sandboxed and will fail.
+
+				Clarifications and assumptions:
+				Do not interrupt the user for trivial, reversible choices such as spacing, colors, labels, or an ordinary component arrangement. Make a reasonable choice and keep moving.
+				Ask before making a choice that materially changes persistent data, the target model or engine, cost, security, permissions, authentication, external integrations, deployment, destructive behavior, or the user's requested product behavior.
+				When a material choice is missing or ambiguous, do not silently select an option. If a structured RequestUserInput tool is available, use it and provide concise choices with a recommended option. Otherwise ask one concise plain-text question and stop. Continue only after the user answers.
+				State any non-material assumption that affects the result in a short progress update or final summary.
+
+				Engines and durable data:
+				Before introducing any new MODEL / DATABASE / VECTOR / STORAGE call, load the selected-engines skill. Never hardcode or guess engine IDs.
+				Use an engine without asking only when the user explicitly supplied its exact ID or exactly one compatible engine of that type is already selected for the project.
+				If multiple compatible engines are selected, ask which one to use. If none is selected, ask the user to choose or attach one. Do not choose an engine merely because it is accessible, appears first in a list, exists in another project, or appears in sample code.
+				The model running this agent is not automatically the model that should power the app. Never copy the harness model ID into app code unless the user explicitly selected that same model for the app.
+				For a new durable backend, do not add tables to an arbitrary existing database. If no database is selected, ask whether to create a new dedicated database or reuse an existing one. Recommend a new dedicated database unless the user has stated that the app must integrate with existing data.
+				For vector search, storage, authentication, and external services, follow the same rule: use an explicit project selection or ask before binding the app to a resource.
+
+				Output:
+				Finish with a one- to two-line summary of what changed and stop. Skip the recap.""";
 }

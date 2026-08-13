@@ -43,8 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -52,6 +50,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
+import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
@@ -79,6 +78,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	private static final int CONNECT_INITIAL_INTERVAL_MS = 100;
 	private static final int CONNECT_MAX_INTERVAL_MS = 500;
 	private static final long CONNECT_TIMEOUT_MS = 30_000L;
+	// how a matplotlib figure rendered inline by smss_inline_display.py arrives on
+	// the stdout stream
+	private static final String INLINE_IMAGE_PREFIX = "<img src='data:image/";
 
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
@@ -477,9 +479,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 * @param insightId
 	 */
 	private void exposeLog(String data, String jobId) {
-		classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
+		// an inlined matplotlib figure is a multi-MB base64 data URI. It still goes to
+		// the front end in full, but writing it to the logs is pure noise
+		boolean inlineImage = data != null && data.startsWith(INLINE_IMAGE_PREFIX);
+		if (inlineImage) {
+			classLogger.debug("Exposing inline image of {} chars to jobId = '{}'", data.length(), jobId);
+		} else {
+			classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
+		}
 		if (jobId != null && data != null) {
-			pyLogger.info(data);
+			if (!inlineImage) {
+				pyLogger.info(data);
+			}
 			PixelJobManager.getManager().addStdOut(jobId, data);
 		} else {
 			// 2025-07-08
