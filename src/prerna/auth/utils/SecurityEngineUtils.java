@@ -72,6 +72,7 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -85,6 +86,11 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityEngineUtils.class);
+
+	private static String getAuditEngineTypeName(String engineId) {
+		IEngine.CATALOG_TYPE engineType = getEngineType(engineId);
+		return engineType == null ? "ENGINE" : engineType.name();
+	}
 
 	/**
 	 * Add an entire database into the security db
@@ -443,6 +449,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
+		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
+				newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -631,6 +639,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
+			for (Map<String, String> request : requests) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null,
+						request.get("userid"), request.get("type"), request.get("permission"), request);
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_APPROVE", "ENGINE", engineId,
+						null, null, engineId, null, request.get("requestid"), request.get("userid"),
+						request.get("type"), request.get("permission"), null);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to approve engine user access requests", e);
 		} finally {
@@ -731,6 +746,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (String requestId : requestIds) {
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_REJECT", "ENGINE", engineId,
+						null, null, engineId, null, requestId, null, null, null, null);
 			}
 
 			// Adding Notification
@@ -1046,6 +1065,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null, newUserId,
+					null, permission, endDate == null ? null : Map.of("endDate", endDate));
 		} catch (Exception e) {
 			classLogger.error("Failed to add engine user", e);
 			throw new IllegalArgumentException(
@@ -1151,6 +1172,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (Map<String, Object> permissionRow : permission) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null,
+						(String) permissionRow.get("userid"), (String) permissionRow.get("type"),
+						(String) permissionRow.get("permission"), permissionRow);
 			}
 
 			// Adding Notification
@@ -1269,6 +1295,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null,
+					existingUserId, existingUserType,
+					AccessPermissionEnum.getPermissionValueById(existingUserPermission), newPermission,
+					endDate == null ? null : Map.of("endDate", endDate));
 
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
@@ -1412,6 +1442,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (Map<String, Object> thisPermissionMap : permission) {
+				String userId = (String) thisPermissionMap.get("userid");
+				UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null,
+						userId, (String) thisPermissionMap.get("type"),
+						AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(userId)),
+						(String) thisPermissionMap.get("permission"), thisPermissionMap);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
@@ -1621,6 +1658,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
+				getEngineDisplayNameForId(engineId), Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1683,6 +1722,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
+				getEngineDisplayNameForId(engineId), Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -1767,6 +1808,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
+			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
+					getEngineDisplayNameForId(engineId), Map.of("field", "visibility", "visibility", visibility));
 
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine visibility", e);
@@ -1894,6 +1937,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_UPDATE", getAuditEngineTypeName(engineId), engineId,
+				newEngineName, Map.of("field", "name", "name", newEngineName));
 		return true;
 	}
 

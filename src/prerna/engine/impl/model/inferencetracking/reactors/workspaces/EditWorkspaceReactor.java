@@ -45,6 +45,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.SystemDefaultEngines;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
@@ -204,6 +205,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return new NounMetadata(partial, PixelDataType.MAP);
 		}
 
+		UserAuditTrailUtils.recordWorkspaceLifecycle(user, "WORKSPACE_UPDATE", workspaceId, workspaceName,
+				Map.of("isActive", isActive, "resourceCount", workspaceResources.size(), "dependencyCount",
+						dependencyList.size()));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

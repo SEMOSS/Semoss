@@ -43,9 +43,11 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
@@ -114,6 +116,11 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), "ENGINE_UPDATE",
+				engineType == null ? "ENGINE" : engineType.name(), engineId,
+				SecurityEngineUtils.getEngineDisplayNameForId(engineId),
+				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet()), "source", "load"));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));

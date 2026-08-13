@@ -54,6 +54,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.PythonVariableValidator;
 import prerna.util.Settings;
@@ -180,7 +181,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(modelId);
-		} catch (Exception e) {
+			UserAuditTrailUtils.recordEngineLifecycle(user, "MODEL_CREATE", "MODEL", modelId, modelName,
+					Map.of("global", global, "modelType", modelType.getModelName()));
+			} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 		}

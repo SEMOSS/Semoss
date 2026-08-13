@@ -59,6 +59,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -349,9 +350,12 @@ public class UploadEngineReactor extends AbstractReactor {
 			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
 		}
 
-		ClusterUtil.pushEngine(engineId);
+			ClusterUtil.pushEngine(engineId);
+			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_CREATE",
+					engineType == null ? "ENGINE" : engineType.name(), engineId, engineName,
+					Map.of("global", global));
 
-		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
+			Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

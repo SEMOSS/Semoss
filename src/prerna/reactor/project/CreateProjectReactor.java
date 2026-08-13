@@ -42,6 +42,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -133,10 +134,12 @@ public class CreateProjectReactor extends AbstractReactor {
 		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, gitProvider, gitCloneUrl,
 				this.insight.getUser(), logger);
 
-		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
-				project.getProjectId());
-		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
-				PixelOperationType.MARKET_PLACE_ADDITION);
+			Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
+					project.getProjectId());
+			UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_CREATE", project.getProjectId(), projectName,
+					Map.of("projectType", projectType.name(), "global", global));
+			NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+					PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}

@@ -82,6 +82,7 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.parser.ParserException;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1514,6 +1515,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 
+			UserAuditTrailUtils.recordPermissionUpdate(user, "PROJECT", projectId, null, projectId, null, null,
+					existingUserId, existingUserType,
+					AccessPermissionEnum.getPermissionValueById(existingUserPermission), newPermission,
+					endDate == null ? null : Map.of("endDate", endDate));
+
 			// Adding Notification
 			// Check notificationDb (conditional)
 			if (Utility.isNotificationDatabaseEnabled()) {
@@ -1622,6 +1628,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							NotificationConstants.Priority.MEDIUM, existingPermission,
 							requests.get(i).get("permission"));
 				}
+				UserAuditTrailUtils.recordPermissionUpdate(user, "PROJECT", projectId, null, projectId, null, null,
+						newUserId, newUserType, existingPermission, requests.get(i).get("permission"),
+						endDate == null ? null : Map.of("endDate", endDate));
 			}
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -4456,6 +4465,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
+			for (Map<String, String> request : requests) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "PROJECT", projectId, null, projectId, null, null,
+						request.get("userid"), request.get("type"), request.get("permission"),
+						request);
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_APPROVE", "PROJECT", projectId,
+						null, projectId, null, null, request.get("requestid"), request.get("userid"),
+						request.get("type"), request.get("permission"), null);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to approve project user access requests", e);
 		} finally {
@@ -4556,6 +4573,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			for (String requestId : requestIdList) {
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_REJECT", "PROJECT", projectId,
+						null, projectId, null, null, requestId, null, null, null, null);
+			}
 
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
@@ -4647,6 +4668,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			for (Map<String, String> permissionRow : permission) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "PROJECT", projectId, null, projectId, null, null,
+						permissionRow.get("userid"), permissionRow.get("type"), permissionRow.get("permission"),
+						endDate == null ? null : Map.of("endDate", endDate));
+			}
 
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
@@ -4715,6 +4741,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (String existingUserId : existingUserIds) {
+				UserAuditTrailUtils.recordPermissionDelete(user, "PROJECT", projectId, null, projectId, null, null,
+						existingUserId, null,
+						AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(existingUserId)),
+						null);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to remove project users", e);

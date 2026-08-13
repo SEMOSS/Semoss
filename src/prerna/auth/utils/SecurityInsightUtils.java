@@ -80,6 +80,7 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -1547,6 +1548,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId,
+					newUserId, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
@@ -1627,6 +1630,9 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionUpdate(user, "INSIGHT", insightId, null, projectId, null, insightId,
+					existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission),
+					newPermission, endDate == null ? null : Map.of("endDate", endDate));
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
@@ -1711,6 +1717,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			for (Map<String, String> request : requests) {
+				String existingPermission = AccessPermissionEnum
+						.getPermissionValueById(existingUserPermission.get(request.get("userid")));
+				UserAuditTrailUtils.recordPermissionUpdate(user, "INSIGHT", insightId, null, projectId, null,
+						insightId, request.get("userid"), request.get("type"), existingPermission,
+						request.get("permission"), endDate == null ? null : Map.of("endDate", endDate));
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
 		} finally {
@@ -1766,6 +1779,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionDelete(user, "INSIGHT", insightId, null, projectId, null, insightId,
+					existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission), null);
 		} catch (SQLException e) {
 			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
@@ -3123,6 +3138,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
+			for (Map<String, String> permissionRow : permission) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId,
+						permissionRow.get("userid"), permissionRow.get("type"), permissionRow.get("permission"),
+						endDate == null ? null : Map.of("endDate", endDate));
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve available metadata values.", e);
 		} finally {
@@ -3176,6 +3196,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (String existingUserId : existingUserIds) {
+				UserAuditTrailUtils.recordPermissionDelete(user, "INSIGHT", insightId, null, projectId, null,
+						insightId, existingUserId, null,
+						AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(existingUserId)),
+						null);
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve available metadata values.", e);
@@ -3298,6 +3324,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			if (!insertPs.getConnection().getAutoCommit()) {
 				insertPs.getConnection().commit();
 			}
+			for (Map<String, String> request : requests) {
+				UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId,
+						request.get("userid"), request.get("type"), request.get("permission"), request);
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_APPROVE", "INSIGHT", insightId,
+						null, projectId, null, insightId, request.get("requestid"), request.get("userid"),
+						request.get("type"), request.get("permission"), null);
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to remove expired insight user.", e);
 		} finally {
@@ -3380,6 +3413,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+			for (String requestId : requestIdList) {
+				UserAuditTrailUtils.recordAccessRequestDecision(user, "ACCESS_REQUEST_REJECT", "INSIGHT", insightId,
+						null, projectId, null, insightId, requestId, null, null, null, null);
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to remove expired insight user.", e);

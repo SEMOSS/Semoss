@@ -32,9 +32,11 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadInputUtility;
 
 @Deprecated
@@ -65,6 +67,11 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityEngineUtils.updateEngineMetadata(databaseId, metadata);
+		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(databaseId);
+		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), "ENGINE_UPDATE",
+				engineType == null ? "DATABASE" : engineType.name(), databaseId,
+				SecurityEngineUtils.getEngineDisplayNameForId(databaseId),
+				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the database"));

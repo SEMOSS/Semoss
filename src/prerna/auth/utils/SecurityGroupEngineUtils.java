@@ -55,6 +55,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -457,6 +458,8 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null, groupId,
+					groupType, permission, endDate == null ? null : Map.of("endDate", endDate));
 		} catch (SQLException e) {
 			classLogger.error("Unable to determine the highest group-based engine permission.", e);
 		} finally {
@@ -564,6 +567,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null, groupId,
+					groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (SQLException e) {
 			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		} finally {
@@ -620,6 +626,8 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+			UserAuditTrailUtils.recordPermissionDelete(user, "ENGINE", engineId, null, null, engineId, null, groupId,
+					groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null);
 		} catch (SQLException e) {
 			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		} finally {

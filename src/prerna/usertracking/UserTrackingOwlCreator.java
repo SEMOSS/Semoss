@@ -111,6 +111,30 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("END_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("TOTAL_EXECUTION_TIME", "BIGINT"),
 				Pair.with("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)));
+
+		addTable("USER_AUDIT_EVENTS", Arrays.asList(
+				Pair.with("EVENT_ID", VARCHAR_255),
+				Pair.with("EVENT_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("EVENT_TYPE", VARCHAR_255),
+				Pair.with("ACTION", VARCHAR_255),
+				Pair.with("STATUS", "VARCHAR(50)"),
+				Pair.with("ACTOR_USER_ID", VARCHAR_255),
+				Pair.with("ACTOR_USER_TYPE", VARCHAR_255),
+				Pair.with("ACTOR_USER_NAME", VARCHAR_255),
+				Pair.with("SESSION_ID", VARCHAR_255),
+				Pair.with("REQUEST_ID", VARCHAR_255),
+				Pair.with("IP_ADDR", VARCHAR_255),
+				Pair.with("TARGET_TYPE", VARCHAR_255),
+				Pair.with("TARGET_ID", VARCHAR_255),
+				Pair.with("TARGET_NAME", "VARCHAR(1000)"),
+				Pair.with("PROJECT_ID", VARCHAR_255),
+				Pair.with("ENGINE_ID", VARCHAR_255),
+				Pair.with("INSIGHT_ID", VARCHAR_255),
+				Pair.with("ROOM_ID", VARCHAR_255),
+				Pair.with("OLD_VALUE", CLOB_DATATYPE_NAME),
+				Pair.with("NEW_VALUE", CLOB_DATATYPE_NAME),
+				Pair.with("DETAILS", CLOB_DATATYPE_NAME),
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME)));
 		// @formatter:on
 	}
 }

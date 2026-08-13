@@ -55,6 +55,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -173,6 +174,8 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(functionId);
+			UserAuditTrailUtils.recordEngineLifecycle(user, "FUNCTION_CREATE", "FUNCTION", functionId, functionName,
+					Map.of("functionType", functionType.getFunctionName()));
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);

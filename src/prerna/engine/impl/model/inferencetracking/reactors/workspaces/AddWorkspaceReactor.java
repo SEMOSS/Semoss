@@ -46,6 +46,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
 public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
@@ -124,6 +125,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 			return getError("Failed to create workspace: " + e.getMessage());
 		}
 
+		UserAuditTrailUtils.recordWorkspaceLifecycle(user, "WORKSPACE_CREATE", workspaceId, workspaceName,
+				Map.of("resourceCount", workspaceResources.size(), "dependencyCount", dependencyList.size()));
 		return getSuccess(workspaceId);
 	}
 
