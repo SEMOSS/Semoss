@@ -103,8 +103,8 @@
           "display_name": "Output Format",
           "type": "optional",
           "input": "string",
-          "options": ["png", "jpeg", "webp", "auto"],
-          "default": "auto",
+          "options": ["png", "jpeg", "webp"],
+          "default": "png",
           "show_in_ui": true
         }
       ]

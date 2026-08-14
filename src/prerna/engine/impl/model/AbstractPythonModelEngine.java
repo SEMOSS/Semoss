@@ -300,6 +300,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 		}
 
+		parameters = applyReasoningParameters(parameters);
+		parameters = applyTemperatureParameter(parameters);
+
 		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
 

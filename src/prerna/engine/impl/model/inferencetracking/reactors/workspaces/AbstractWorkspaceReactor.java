@@ -84,6 +84,10 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String IS_ACTIVE = "isActive";
 	/** Request key for the agent tool-loop turn cap (CONFIG_JSON.budgets.max_turns). */
 	static final String MAX_TURNS = "maxTurns";
+	/** Request key for the agent reflection cap (CONFIG_JSON.budgets.max_reflections). */
+	static final String MAX_REFLECTIONS = "maxReflections";
+	/** Request key for the agent wall-clock cap in seconds (CONFIG_JSON.budgets.max_seconds). */
+	static final String MAX_SECONDS = "maxSeconds";
 	/** Request key for the subagent delegation depth cap (CONFIG_JSON.spawn_policy.max_subagent_depth). */
 	static final String MAX_SUBAGENT_DEPTH = "maxSubagentDepth";
 	/** Request key for the per-run subagent spawn budget (CONFIG_JSON.spawn_policy.max_subagents_per_run). */
