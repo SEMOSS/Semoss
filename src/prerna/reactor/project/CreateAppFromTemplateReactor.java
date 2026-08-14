@@ -47,8 +47,8 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
@@ -66,7 +66,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateAppFromTemplateReactor.class.getName();
 
-	// PROJECTMETA tag marking a project as platform-managed; never copied onto a clone
+	// PROJECTMETA tag marking a project as platform-managed;
+	// never copied onto a clone
 	private static final String SYSTEM_TAG = "SYSTEM";
 
 	/*
@@ -156,7 +157,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 							+ e.getMessage());
 		}
 
-
 		if (IProject.PROJECT_TYPE.WORKSPACE == projectEnumType) {
 			try {
 				User user = this.insight.getUser();
@@ -191,8 +191,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				}
 
 				SecurityProjectUtils.updateProjectDependencies(user, newProjectId, dependencyList);
-				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId,
-						user.getPrimaryLoginToken().getId(),
+				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId, user.getPrimaryLoginToken().getId(),
 						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
 				if (sourceConfigJson != null) {
 					ModelInferenceLogsUtils.updateWorkspaceConfigJson(newProjectId, sourceConfigJson);
@@ -219,7 +218,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
+				classLogger.error(
+						"Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
 						projectTemplateId, newProject.getProjectId(), e);
 				try {
 					newProject.delete();

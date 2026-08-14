@@ -61,7 +61,8 @@ import prerna.util.AssetUtility;
  * <ul>
  * <li>Every file under the source's skill content folder (SKILL.md + any
  * helpers).</li>
- * <li>The description, re-synthesized into the clone's SKILL.md frontmatter.</li>
+ * <li>The description, re-synthesized into the clone's SKILL.md
+ * frontmatter.</li>
  * </ul>
  *
  * <p>

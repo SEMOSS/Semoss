@@ -31,7 +31,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
-	// @formatter:off
+	// @formatter:off 
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),

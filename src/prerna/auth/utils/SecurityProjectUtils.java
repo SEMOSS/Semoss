@@ -3453,8 +3453,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		if (onlyTemplates) {
-			qs1.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(projectPrefix + "IS_TEMPLATE", "==", true, PixelDataType.BOOLEAN));
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "IS_TEMPLATE", "==", true,
+					PixelDataType.BOOLEAN));
 		}
 
 		if (projectIdFilters != null && !projectIdFilters.isEmpty()) {
