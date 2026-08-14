@@ -189,12 +189,28 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	#    fine for compliance - the approved DRBG is still BCFIPS's. Consequence:
 	#    SUN also serves MD5, so approved-only mode cannot block MD5 for
 	#    application code. That has to be caught by code review.
-	sed -E '/^security\.provider\.[0-9]+=/d' ${JAVA_HOME}/conf/security/java.security \
+	#
+	#    The ssl.*ManagerFactory.algorithm defaults are rewritten to PKIX in the
+	#    same pass. The JDK ships ssl.KeyManagerFactory.algorithm=SunX509, an
+	#    algorithm name only SunJSSE implements - BCJSSE registers PKIX (and its
+	#    X.509 alias) and nothing else. With SunJSSE dropped from the provider
+	#    list, KeyManagerFactory.getDefaultAlgorithm() still returns SunX509 and
+	#    every default-constructed SSLContext dies with NoSuchAlgorithmException,
+	#    typically surfacing as "Default SSLContext not available" on the first
+	#    outbound HTTPS call rather than at startup.
+	#
+	#    The existing lines are deleted rather than substituted in place: a
+	#    substitution silently no-ops if the JDK ever stops shipping the property,
+	#    which would put us back on the broken default with a green build.
+	sed -E -e '/^security\.provider\.[0-9]+=/d' -e '/^ssl\.(Key|Trust)ManagerFactory\.algorithm=/d' \
+		${JAVA_HOME}/conf/security/java.security \
 		> ${JAVA_HOME}/conf/security/java.security.fips; \
 	printf '%s\n' \
 		'security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider' \
 		'security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS' \
 		'security.provider.3=SUN' \
+		'ssl.KeyManagerFactory.algorithm=PKIX' \
+		'ssl.TrustManagerFactory.algorithm=PKIX' \
 		>> ${JAVA_HOME}/conf/security/java.security.fips; \
 	\
 	# 4. Providers named in java.security load from the SYSTEM classloader, so the
@@ -216,6 +232,13 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.bouncycastle.fips.approved_only=true"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStore=$JAVA_HOME/lib/security/cacerts.bcfks"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStoreType=BCFKS"'; \
+	  echo '# BCFKS is registered by BCFIPS only. Naming the provider explicitly'; \
+	  echo '# keeps TrustStoreManager off the "try every provider in order" path,'; \
+	  echo '# where SUN is asked for BCFKS first and the resulting'; \
+	  echo '# KeyStoreException is swallowed into an empty trust anchor set - TLS'; \
+	  echo '# then fails at handshake time with PKIX path building failed instead'; \
+	  echo '# of at load time.'; \
+	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStoreProvider=BCFIPS"'; \
 	  echo 'CATALINA_OPTS="$CATALINA_OPTS -Djavax.net.ssl.trustStorePassword=changeit"'; \
 	  echo '# Session id entropy. conf/context.xml reads these; without them Tomcat'; \
 	  echo '# defaults to SHA1PRNG, which BCFIPS does not implement, so JSESSIONID'; \
