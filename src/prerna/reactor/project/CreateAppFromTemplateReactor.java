@@ -47,8 +47,8 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
@@ -66,7 +66,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateAppFromTemplateReactor.class.getName();
 
-	// PROJECTMETA tag marking a project as platform-managed; never copied onto a clone
+	// PROJECTMETA tag marking a project as platform-managed;
+	// never copied onto a clone
 	private static final String SYSTEM_TAG = "SYSTEM";
 
 	/*
@@ -78,11 +79,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	public CreateAppFromTemplateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TEMPLATE.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
-	}
-
-	// Allow viewer cloning for agents and skills but not apps
-	static boolean canCloneProject(IProject.PROJECT_TYPE projectType, boolean canEdit) {
-		return projectType == IProject.PROJECT_TYPE.WORKSPACE || projectType == IProject.PROJECT_TYPE.SKILL || canEdit;
 	}
 
 	@Override
@@ -108,10 +104,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 		// Use the template to populate the parameters needed to create the new project
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
-		boolean canEdit = SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectTemplateId);
-		if (!canCloneProject(projectEnumType, canEdit)) {
-			throw new IllegalArgumentException(
-					"Only owners and editors can clone regular projects. Agents and skills can be cloned with read-only access.");
+		if (!SecurityProjectUtils.userCanCloneProject(this.insight.getUser(), projectTemplateId)) {
+			throw new IllegalArgumentException("This project is not enabled as a template and cannot be cloned.");
 		}
 
 		// Create new project
@@ -163,7 +157,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 							+ e.getMessage());
 		}
 
-
 		if (IProject.PROJECT_TYPE.WORKSPACE == projectEnumType) {
 			try {
 				User user = this.insight.getUser();
@@ -198,8 +191,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				}
 
 				SecurityProjectUtils.updateProjectDependencies(user, newProjectId, dependencyList);
-				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId,
-						user.getPrimaryLoginToken().getId(),
+				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId, user.getPrimaryLoginToken().getId(),
 						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
 				if (sourceConfigJson != null) {
 					ModelInferenceLogsUtils.updateWorkspaceConfigJson(newProjectId, sourceConfigJson);
@@ -226,7 +218,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
+				classLogger.error(
+						"Failed to clone workspace inference log entry from template '{}' to new project '{}'.",
 						projectTemplateId, newProject.getProjectId(), e);
 				try {
 					newProject.delete();
