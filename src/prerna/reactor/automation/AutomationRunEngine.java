@@ -239,7 +239,6 @@ public final class AutomationRunEngine {
 
 			AutomationNodeContext ctx = new AutomationNodeContext(
 					runId, projectId, node, scope, configMap, insight, cancelFlag);
-
 			IAutomationNodeExecutor executor = IAutomationNodeExecutor.EXECUTORS.get(type);
 			if (executor == null) {
 				throw new IllegalArgumentException("Unsupported node type: " + type);

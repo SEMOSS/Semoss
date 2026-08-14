@@ -116,6 +116,7 @@ public class CreateAutomationReactor extends AbstractReactor {
                     "SaveAutomation(project=[\"%s\"], json=[\"%s\"]);", projectId, encodedDefinition));
             PixelExecutionUtils.runAndCollect(this.insight, String.format(
                     "SaveAutomationConfig(project=[\"%s\"], config=[\"%s\"]);", projectId, encodedConfig));
+            MCPUtility.addMCPTag(project);
         } catch (PixelExecutionUtils.AutomationPixelException e) {
             classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
             throw new IllegalStateException(
