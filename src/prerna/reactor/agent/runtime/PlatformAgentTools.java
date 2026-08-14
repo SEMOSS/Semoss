@@ -36,6 +36,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -100,6 +101,15 @@ final class PlatformAgentTools {
 			throw new IllegalArgumentException("Unknown platform agent tool: " + toolName);
 		}
 		return handler.execute(params, ctx);
+	}
+
+	static ToolExecutionResult executeDefaultToolResult(String toolName, Map<String, Object> params,
+			AgentRunContext ctx) throws Exception {
+		String output = executeDefaultTool(toolName, params, ctx);
+		if (getDefaultToolsMcpId() == null && output != null && output.startsWith("Error:")) {
+			return ToolExecutionResult.error(output, output);
+		}
+		return ToolExecutionResult.success(output);
 	}
 
 	@SuppressWarnings("unchecked")

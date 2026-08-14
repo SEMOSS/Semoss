@@ -74,6 +74,7 @@ public final class AgentSubAgentRegistry {
     private static final Logger logger = LogManager.getLogger(AgentSubAgentRegistry.class);
 
     private static final String DEFAULT_HARNESS_TYPE = "semoss";
+    private static final String ROOM_OPTION_INSTRUCTIONS = "instructions";
 
     private static final AgentSubAgentRegistry INSTANCE = new AgentSubAgentRegistry();
 
@@ -195,9 +196,17 @@ public final class AgentSubAgentRegistry {
                     ? new HashMap<>()
                     : new HashMap<>(parentRoom.getOptionsMap());
 
+            // Never clone the live instructions value. While an agent is running, the
+            // harness temporarily replaces it with a fully composed prompt containing
+            // parent-specific runtime context. The child must compose its own runtime
+            // prompt from a clean authored system prompt.
+            clonedOptions.remove(ROOM_OPTION_INSTRUCTIONS);
+
+            boolean namedSpawn = req.workspaceId != null && !req.workspaceId.trim().isEmpty();
+
             // Named spawn: re-seed options.workspace so the child loads its own CONFIG_JSON.
             // Anonymous spawn: leave options.workspace inherited from the parent.
-            if (req.workspaceId != null && !req.workspaceId.trim().isEmpty()) {
+            if (namedSpawn) {
                 Map<String, Object> wsMap = new HashMap<>();
                 wsMap.put("workspace_id", req.workspaceId.trim());
                 clonedOptions.put("workspace", wsMap);
@@ -220,11 +229,12 @@ public final class AgentSubAgentRegistry {
                 clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR);
             }
 
-            // 2. Determine the system prompt for the child room.
-            //    Override > parent's resolved system prompt.
-            String effectiveContext = (req.additionalContext != null && !req.additionalContext.trim().isEmpty())
-                    ? req.additionalContext
-                    : parentRoom.getRoomOrWorkspaceSystemPrompt();
+            // 2. Resolve only the authored system-prompt layer. The child's harness adds its
+            //    own built-in instructions, tools, skills, room id, and working directory.
+            String childAuthoredSystemPrompt = resolveChildAuthoredSystemPrompt(req, namedSpawn);
+            if (childAuthoredSystemPrompt != null) {
+                clonedOptions.put(ROOM_OPTION_INSTRUCTIONS, childAuthoredSystemPrompt);
+            }
 
             // 3. Create child room. It is always separate from the parent room, while
             //    optional working-dir inheritance is handled through child room options.
@@ -248,7 +258,7 @@ public final class AgentSubAgentRegistry {
                     req.prompt,                   // question (used for default room name)
                     req.workspaceId,
                     clonedOptions,
-                    effectiveContext,
+                    childAuthoredSystemPrompt,
                     parentRoom.getProjectId(),
                     req.parentRoomId);
 
@@ -293,12 +303,18 @@ public final class AgentSubAgentRegistry {
             }
             RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
                     req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
-                    null, null, null, null, childInsight);
+                    null, null, null, null, childInsight).withParentRunId(req.parentJobId);
             RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
             childStarted = true;
 
             // 7. Notify the parent's stream so a frontend can mount a child pane.
             if (req.parentJobId != null && !req.parentJobId.isBlank()) {
+                String childStatus = runResult.getStatus() == null
+                        ? prerna.reactor.agent.run.AgentRunStatus.SUBMITTED.name()
+                        : runResult.getStatus().name();
+                prerna.reactor.agent.stream.AgentRunStreamService.get().publishSubagentStarted(req.parentJobId,
+                        prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, childRoomId,
+                                req.workspaceId, childStatus));
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("kind", "subagent-spawned");
                 data.put("jobId", childRunId);
@@ -470,5 +486,34 @@ public final class AgentSubAgentRegistry {
             cursor = m.getParentJobId();
         }
         return null;
+    }
+
+    /**
+     * Resolve the child-authored system prompt without copying a parent's composed
+     * runtime prompt.
+     *
+     * <ul>
+     *   <li>An explicit per-spawn context always wins.</li>
+     *   <li>A named child with no override loads its own workspace system prompt.</li>
+     *   <li>An anonymous child with no override inherits the parent's clean authored system prompt.</li>
+     * </ul>
+     */
+    private static String resolveChildAuthoredSystemPrompt(SpawnRequest req, boolean namedSpawn) {
+        String explicitContext = trimToNull(req.additionalContext);
+        if (explicitContext != null) {
+            return explicitContext;
+        }
+        if (namedSpawn) {
+            return null;
+        }
+        return trimToNull(req.parentAuthoredSystemPrompt);
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

@@ -39,7 +39,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -48,12 +51,14 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
+import prerna.reactor.agent.run.AgentRoomNamer;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -183,6 +188,7 @@ public final class AgentRunner {
 			IModelEngine modelEngine = null;
 			String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
 			if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+				validateSelectedModel(insight, runtimeModelId);
 				modelEngine = Utility.getModel(runtimeModelId);
 				if (modelEngine == null) {
 					throw new IllegalArgumentException(
@@ -208,6 +214,7 @@ public final class AgentRunner {
 						+ "workspace/agent config (CONFIG_JSON).");
 			}
 			logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
+			validateSelectedModel(insight, modelId);
 
 			if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
 				modelEngine = Utility.getModel(modelId);
@@ -240,10 +247,6 @@ public final class AgentRunner {
 			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
 					.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
 					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls)
-					// Root runs are not registered as subagents and resolve to depth 0.
-					// Child runs are recorded by AgentSubAgentRegistry before their
-					// virtual thread starts, so this lookup can classify the run without
-					// storing transient spawn state on the durable room options.
 					.spawnDepth(resolveSpawnDepth())
 					.resumeMode(resumeMode)
 					.agentConfig(agentConfig).build();
@@ -253,6 +256,9 @@ public final class AgentRunner {
 			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
 				throw new IllegalArgumentException("RunAgent media input is not supported for harnessType='"
 						+ harness.getName() + "'");
+			}
+			if (!resumeMode && ctx.getSpawnDepth() == 0) {
+				AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
 			}
 
 			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
@@ -317,6 +323,21 @@ public final class AgentRunner {
 			return result;
 		} finally {
 			ACTIVE_ROOMS.remove(roomId);
+		}
+	}
+
+	private static void validateSelectedModel(Insight insight, String modelId) {
+		if (insight == null || insight.getUser() == null || modelId == null
+				|| !SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId)
+				|| SecurityEngineUtils.getEngineType(modelId) != IEngine.CATALOG_TYPE.MODEL) {
+			throw new IllegalArgumentException("Model engine was not found or is not accessible");
+		}
+
+		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(modelId);
+		Object capabilityValue = metadata == null ? null : metadata.get(Constants.MODEL_CAPABILITY);
+		String capability = capabilityValue == null ? null : String.valueOf(capabilityValue).trim();
+		if (capability != null && !capability.isEmpty() && !"TEXT_GENERATION".equalsIgnoreCase(capability)) {
+			throw new IllegalArgumentException("Model engine was not found or is not accessible");
 		}
 	}
 

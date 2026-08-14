@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.reactor;
 
+import java.util.Objects;
+
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.agent.AgentCancelHook;
 import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -53,42 +56,53 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
 		PixelJobManager jobManager = PixelJobManager.getManager();
 		PixelJobRunner jobRunner = jobManager.getJob(jobId);
+		if (jobRunner == null) {
+			return new NounMetadata("Pixel job " + jobId + " not found", PixelDataType.CONST_STRING,
+					PixelOperationType.OPERATION);
+		}
+
+		User user = this.insight.getUser();
+		User jobUser = jobRunner.getInsight() == null ? null : jobRunner.getInsight().getUser();
+		boolean isOwner = user != null && jobUser != null
+				&& Objects.equals(User.getSingleLogginName(user), User.getSingleLogginName(jobUser));
+		boolean isAdmin = user != null && SecurityAdminUtils.userIsAdmin(user);
+		if (!isOwner && !isAdmin) {
+			throw new IllegalArgumentException("User does not have permission to stop this pixel job");
+		}
+
 		String insightId = null;
 		if (jobRunner != null && jobRunner.getInsight() != null) {
 			insightId = jobRunner.getInsight().getInsightId();
 		}
 
-		// generic terminal envelope so any subscriber sees cancel without waiting on status polling
+		// generic terminal envelope so any subscriber sees cancel without waiting on
+		// status polling
 		JobStreamEnvelopes.jobCancelled(jobId, "user-requested");
 
 		InterruptResult interruptResult = jobManager.interruptThread(jobId);
 
-		User user = this.insight.getUser();
 		SocketClient pySocketClient = user == null ? null : user.getPythonSocketClient(false);
 		if (pySocketClient != null && (insightId != null || jobId != null)) {
 			pySocketClient.interruptInsightJob(insightId, jobId);
 		}
 
-		// agent-aware extras (subagent cascade + CLI sidecar interrupt); no-op for non-agent jobs
+		// agent-aware extras (subagent cascade + CLI sidecar interrupt); no-op for
+		// non-agent jobs
 		AgentCancelHook.onStop(jobId);
 
-		if (jobRunner == null) {
-			jobManager.clearJob(jobId);
-		} else {
-			final PixelJobRunner jobThread = jobRunner;
-			Thread cleanupThread = new Thread(() -> {
-				try {
-					jobThread.joinExecution();
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				} finally {
-					jobManager.clearJob(jobId);
-					jobManager.removeJob(jobId);
-				}
-			}, "pixel-job-cleanup-" + jobId);
-			cleanupThread.setDaemon(true);
-			cleanupThread.start();
-		}
+		final PixelJobRunner jobThread = jobRunner;
+		Thread cleanupThread = new Thread(() -> {
+			try {
+				jobThread.joinExecution();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} finally {
+				jobManager.clearJob(jobId);
+				jobManager.removeJob(jobId);
+			}
+		}, "pixel-job-cleanup-" + jobId);
+		cleanupThread.setDaemon(true);
+		cleanupThread.start();
 
 		String message;
 		if (interruptResult == InterruptResult.CANCEL_REQUESTED) {

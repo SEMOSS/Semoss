@@ -25,8 +25,11 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaInputType,
     ModelSettings,
 )
-from ...text_generation.abstract_text_generation_client import ModelLimits
 from ...utils import string_to_bool
+from ..semoss_base.builtin_tools import (
+    built_in_tool_request_fields,
+    normalize_built_in_tools,
+)
 from ..semoss_base.reasoning import normalize_reasoning
 
 MODEL_MAX_OUTPUT_TOKENS = {
@@ -64,14 +67,12 @@ class AnthropicMessageBuilder:
         self,
         semoss_messages: List[SEMOSSMessage],
         model_settings: ModelSettings,
-        model_limits: ModelLimits,
         model_name: str,
         use_beta_header: Optional[bool] = False,
         beta_feature_name: Optional[str] = "extended_thinking",
         thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
-        self.model_limits = model_limits
         self.model_name = model_name
         self.model_settings = model_settings
         self.use_beta_header = use_beta_header
@@ -453,17 +454,13 @@ class AnthropicMessageBuilder:
             has_structured_input=has_schema,
         )
 
-    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+    def _build_built_in_tools(self, built_in_tools: Any) -> List[Dict[str, Any]]:
         anthropic_built_in_tools: List[Dict[str, Any]] = []
-        for tool in built_in_tools:
-            if tool.lower() == "web_search":
-                anthropic_built_in_tools.append(
-                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
-                )
-            elif tool.lower() == "code_execution":
-                anthropic_built_in_tools.append(
-                    {"type": "code_execution_20250825", "name": "code_execution"}
-                )
+        for selection in normalize_built_in_tools(built_in_tools):
+            spec = built_in_tool_request_fields(selection)
+            spec.setdefault("type", selection["alias"])
+            spec.setdefault("name", selection["name"])
+            anthropic_built_in_tools.append(spec)
         return anthropic_built_in_tools
 
     def _build_tool_choice(
@@ -803,7 +800,8 @@ class AnthropicMessageBuilder:
         max_tokens = (
             kwargs.pop("max_tokens", None)
             or kwargs.pop("max_completion_tokens", None)
-            or self.model_limits.max_completion_tokens
+            or self.model_settings.max_tokens
+            or self._get_model_max_output_tokens(self.model_name)
         )
 
         # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET (legacy only)

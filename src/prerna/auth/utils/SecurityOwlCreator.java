@@ -46,6 +46,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 	static {
 		relationshipsRequired.add(
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
+		relationshipsRequired.add(
+				new String[] { "ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID" });
 	}
 
 	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
@@ -83,6 +85,30 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("METAKEY", VARCHAR_255),
 				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
 				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("MODELMETADATA", Arrays.asList(
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("MODELID", VARCHAR_255),
+				Pair.with("CATALOGMODELKEY", VARCHAR_255),
+				Pair.with("MODELPROVIDER", VARCHAR_255),
+				Pair.with("SERVINGPROVIDER", VARCHAR_255),
+				Pair.with("CAPABILITY", VARCHAR_255),
+				Pair.with("FAMILY", VARCHAR_255),
+				Pair.with("INPUTMODALITIES", CLOB_DATATYPE_NAME),
+				Pair.with("OUTPUTMODALITIES", CLOB_DATATYPE_NAME),
+				Pair.with("CONTEXTWINDOW", "BIGINT"),
+				Pair.with("MAXOUTPUTTOKENS", "BIGINT"),
+				Pair.with("BUILTINTOOLS", CLOB_DATATYPE_NAME),
+				Pair.with("ATTACHMENT", BOOLEAN_DATATYPE_NAME),
+				Pair.with("REASONING", BOOLEAN_DATATYPE_NAME),
+				Pair.with("TOOLCALL", BOOLEAN_DATATYPE_NAME),
+				Pair.with("STRUCTUREDOUTPUT", BOOLEAN_DATATYPE_NAME),
+				Pair.with("TEMPERATURE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("KNOWLEDGECUTOFF", VARCHAR_255),
+				Pair.with("RELEASEDATE", VARCHAR_255),
+				Pair.with("SUPPORTEDPARAMETERS", CLOB_DATATYPE_NAME),
+				Pair.with("REASONINGCONFIG", CLOB_DATATYPE_NAME),
+				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME)));
 
 		addTable("ENGINEPERMISSION", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
@@ -445,6 +471,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 	protected void writeRelations(WriteOWLEngine owler) throws Exception {
 		// joins
 		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
+		owler.addRelation("ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID");
 		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
 		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
 

@@ -60,8 +60,8 @@ import prerna.util.Utility;
  */
 public abstract class AbstractOwlCreator {
 
-	private static final String BASE_CONCEPT_URI = "http://semoss.org/ontologies/Concept";
-	private static final String CONTAINS_RELATION_BASE = "http://semoss.org/ontologies/Relation/Contains/";
+	private static final String BASE_CONCEPT_URI = AbstractOWLEngine.BASE_NODE_URI;
+	private static final String CONTAINS_RELATION_BASE = AbstractOWLEngine.BASE_PROPERTY_URI + "/";
 
 	// Pairs each table name with its respective columns (column name -> datatype).
 	// concepts are tables within the db, props are columns within a concept.

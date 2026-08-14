@@ -71,6 +71,11 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	private static final String PACKAGE_KEY = "package";
 
+	/**
+	 * Stamped into every generated tool as {@link MCPUtility#SMSS_MCP_GENERATOR}.
+	 */
+	private static final String GENERATOR_ID = "MakePixelMCP";
+
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(), PACKAGE_KEY,
 				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey() };
@@ -87,16 +92,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null || projectId.isEmpty()) {
-			projectId = insight.getContextProjectId();
-			if (projectId == null || projectId.isEmpty()) {
-				projectId = insight.getProjectId();
-			}
-		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
 
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
@@ -257,6 +253,16 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			addedReactorNames.add(functionName);
 		}
 
+		// Both the scan and the explicit-reactor path feed this array.
+		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
+
+		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+
+		// Only a full scan rebuilds every tool, so a run narrowed to named reactors or
+		// a package must not prune what it did not look at.
+		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
+				scanAll);
+
 		JSONObject mcpJson = new JSONObject();
 		mcpJson.put("tools", toolsArray);
 		JSONObject _meta = new JSONObject();
@@ -265,7 +271,6 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		_meta.put("last_modified_date", todayUTC.format(formatter));
 		mcpJson.put("_meta", _meta);
 
-		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();

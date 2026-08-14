@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-10",
+    "file_last_modified_date": "2026-08-10",
+    "source_file": "/opt/semosshome/project/platform__database-maker/app_root/version/assets/py/mcp_driver.py"
+  },
+  "tools": [
+    {
+      "name": "run_query",
+      "title": "Run Query",
+      "description": "Executes one SQL query against a database and returns plain JSON with headers, rows, and row_count. Raises a tool error when the query cannot be executed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "description": "Unique database engine identifier."
+          },
+          "query": {
+            "type": "string",
+            "description": "SQL query to execute."
+          }
+        },
+        "required": ["database_id", "query"]
+      },
+      "_meta": {
+        "generated_on": "2026-08-10",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "run_query"
+      },
+      "_type": "python"
+    },
+    {
+      "name": "run_script",
+      "title": "Run Script",
+      "description": "Executes a SQL script statement-by-statement and returns plain JSON execution details. Stops and raises a tool error on the first failed statement; earlier statements may already be committed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "description": "Unique database engine identifier."
+          },
+          "script": {
+            "type": "string",
+            "description": "SQL statements to execute."
+          }
+        },
+        "required": ["database_id", "script"]
+      },
+      "_meta": {
+        "generated_on": "2026-08-10",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "run_script"
+      },
+      "_type": "python"
+    },
+    {
+      "name": "get_schema",
+      "title": "Get Schema",
+      "description": "Returns a simplified database schema as plain JSON. When playground=true, also saves the schema under insight assets and returns the asset path.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "description": "Unique database engine identifier."
+          },
+          "playground": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to persist a copy under the current insight's assets."
+          }
+        },
+        "required": ["database_id"]
+      },
+      "_meta": {
+        "generated_on": "2026-08-10",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "get_schema"
+      },
+      "_type": "python"
+    },
+    {
+      "name": "search_database",
+      "title": "Search Database",
+      "description": "Lists accessible databases whose name contains the search term. Returns plain JSON records with database_id, database_name, database_display_name, database_subtype, and date_created.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "search_term": {
+            "type": "string",
+            "description": "Case-insensitive partial database-name match. Pass an empty string to list all databases."
+          }
+        },
+        "required": ["search_term"]
+      },
+      "_meta": {
+        "generated_on": "2026-08-10",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "search_database"
+      },
+      "_type": "python"
+    },
+    {
+      "name": "create_new_db",
+      "title": "Create New Database",
+      "description": "Idempotently creates one H2 database with the exact requested name. Returns status=exists when one exact match already exists. Fails without creating when multiple exact matches exist, and reports do_not_retry when a creation side effect cannot be verified unambiguously.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "database_name": {
+            "type": "string",
+            "description": "Exact name for the database."
+          }
+        },
+        "required": ["database_name"]
+      },
+      "_meta": {
+        "generated_on": "2026-08-10",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {},
+        "SMSS_FUNCTION_NAME": "create_new_db"
+      },
+      "_type": "python"
+    }
+  ]
+}

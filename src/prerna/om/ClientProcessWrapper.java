@@ -51,6 +51,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -89,8 +90,16 @@ public class ClientProcessWrapper {
 	private static final long SOCKET_CLIENT_READY_WAIT_INTERVAL_MS = 1_000L;
 	private static final long SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS = 60_000L;
 
-	private final Object lockCreate = new Object();
-	private final Object lockDestroy = new Object();
+	// Fallback classpath entries for the spawned SocketServer worker, used when the
+	// caller does not pass an explicit cp.
+	private static final String[] DEFAULT_CP_ENTRIES = new String[] { "fst-3.0.4-jdk17.jar", "objenesis-3.3.jar",
+			"javassist-3.30.2-GA.jar", "log4j-api-2.25.4.jar", "log4j-core-2.25.4.jar", "gson-2.13.2.jar",
+			"jackson-core-2.22.0.jar", "commons-io-2.21.0.jar", "commons-lang3-3.20.0.jar",
+			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.133.Final.jar", "netty-common-4.1.133.Final.jar",
+			"netty-buffer-4.1.133.Final.jar", "netty-transport-4.1.133.Final.jar", "classes" };
+
+	private final ReentrantLock lockCreate = new ReentrantLock();
+	private final ReentrantLock lockDestroy = new ReentrantLock();
 
 	private SocketClient socketClient;
 	private Process process;
@@ -179,7 +188,8 @@ public class ClientProcessWrapper {
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
 			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
 			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
-		synchronized (lockCreate) {
+		lockCreate.lock();
+		try {
 			this.nativePyServer = nativePyServer;
 			this.chrootSymlinkHelper = chrootSymlinkHelper;
 			this.classPath = classPath;
@@ -303,26 +313,8 @@ public class ClientProcessWrapper {
 				}
 				Thread t = new Thread(socketClient);
 				t.start();
-				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;
-				synchronized (socketClient) {
-					while (!socketClient.isReady() && !socketClient.isKillAll()) {
-						long remainingWaitMillis = waitDeadline - System.currentTimeMillis();
-						if (remainingWaitMillis <= 0) {
-							throw new IllegalArgumentException(
-									"Timed out waiting for isolated analytics engine socket client to become ready");
-						}
-						try {
-							socketClient.wait(Math.min(SOCKET_CLIENT_READY_WAIT_INTERVAL_MS, remainingWaitMillis));
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							classLogger.error("Interrupted while waiting for socket client readiness", e);
-							throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
-						}
-					}
-				}
-				if (socketClient.isKillAll()) {
-					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-				}
+				socketClient.awaitReadyOrKill(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS,
+						SOCKET_CLIENT_READY_WAIT_INTERVAL_MS);
 				classLogger.info("Setting the socket client ");
 			} catch (Exception e) {
 				if (debug) {
@@ -333,6 +325,8 @@ public class ClientProcessWrapper {
 						this.port, e);
 				throw e;
 			}
+		} finally {
+			lockCreate.unlock();
 		}
 	}
 
@@ -346,7 +340,8 @@ public class ClientProcessWrapper {
 	 *                      directory and any namespace-sandbox folders
 	 */
 	public void shutdown(boolean cleanUpFolder) {
-		synchronized (lockDestroy) {
+		lockDestroy.lock();
+		try {
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -398,6 +393,8 @@ public class ClientProcessWrapper {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
 				}
 			}
+		} finally {
+			lockDestroy.unlock();
 		}
 		if (this.port > 0) {
 			if (!PortAllocator.isPortAvailable(this.port)) {
@@ -574,7 +571,7 @@ public class ClientProcessWrapper {
 	public static Process startTCPServer(String cp, String insightFolder, String port) {
 		Process thisProcess = null;
 		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
+			cp = getDefaultCP();
 		}
 		String specificPath = Utility.getCP(cp, insightFolder);
 		try {
@@ -677,7 +674,7 @@ public class ClientProcessWrapper {
 	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
 		Process thisProcess = null;
 		if (cp == null) {
-			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;netty-all-4.1.47.Final.jar;classes";
+			cp = getDefaultCP();
 		}
 		String specificPath = Utility.getCP(cp, insightFolder);
 		try {
@@ -1334,7 +1331,6 @@ public class ClientProcessWrapper {
 			commandsStarter[5] = starter;
 
 			starter = chrootDir + dir + "/starter.sh";
-
 		}
 
 		try {
@@ -1409,5 +1405,19 @@ public class ClientProcessWrapper {
 		} catch (IOException e) {
 			classLogger.error("Failed to write the log4j2.properties file for the socket server", e);
 		}
+	}
+
+	/**
+	 * Build the fallback worker classpath from {@link #DEFAULT_CP_ENTRIES}.
+	 *
+	 * <p>
+	 * The separator is cosmetic: {@code Utility.getCP} substring-matches jar names
+	 * against this value rather than splitting it, so the same string works on
+	 * Windows and Linux.
+	 *
+	 * @return the default classpath string for the spawned SocketServer worker
+	 */
+	private static String getDefaultCP() {
+		return String.join(";", DEFAULT_CP_ENTRIES);
 	}
 }

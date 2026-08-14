@@ -44,6 +44,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
@@ -89,6 +90,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		if (roomId == null || roomId.isEmpty()) {
 			throw new IllegalArgumentException("Room ID is required");
 		}
+		String userId = user.getPrimaryLoginToken().getId();
+		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
 		String parentMessageId = this.keyValue.get(ReactorKeysEnum.PARENT_MESSAGE_ID.getKey());
 		if (parentMessageId == null || parentMessageId.isEmpty()) {
@@ -137,6 +140,17 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		List<Map<String, Object>> typeResults = new ArrayList<>();
 
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
+
+		// Prevent compaction on invalid message states
+		if (!branch.isEmpty() && (branch.getLast() instanceof InputMessage || branch.getLast().hasToolCallPart())) {
+			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
+					+ " is an input message. Compact after the assistant has responded.");
+		}
+
+		if (!branch.isEmpty() && branch.getLast().hasToolCallPart()) {
+			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
+					+ " has unanswered tool calls. Compact once the tool call has been resolved.");
+		}
 
 		if (autoDetect) {
 			if (!roomHasViewableModel) {

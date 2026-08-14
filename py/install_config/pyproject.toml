@@ -1,6 +1,6 @@
 [project]
 name = "semoss"
-version = "5.3.0"
+version = "5.4.0"
 description = "semoss"
 authors = [
     {name = "Ryan Weiler", email = "ryanweiler92@gmail.com"}
@@ -10,17 +10,17 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.14.0",
     "annoy>=1.17.3",
-    "anthropic[bedrock,vertex]==0.116.0",
+    "anthropic[bedrock,vertex]==0.121.0",
     "asksageclient>=1.42",
     "azure-ai-formrecognizer>=3.3.3",
     "azure-common>=1.1.28",
     "azure-search-documents>=12.0.0",
     "azure-core>=1.41.0",
     "bm25s>=0.3.9",
-    "boto3>=1.43.9",
+    "boto3>=1.43.67",
     "beautifulsoup4>=4.15.0",
     "chonky==0.1.7",
-    "claude-agent-sdk==0.2.116",
+    "claude-agent-sdk==0.2.134",
     "github-copilot-sdk==0.3.0",
     "datasets==2.14.3",
     "deepdiff>=9.1.0",
@@ -28,8 +28,8 @@ dependencies = [
     "faiss-cpu==1.14.3",
     "flask>=3.1.0",
     "gliner>=0.2.22",
-    "google-auth>=2.55.2",
-    "google-genai==2.11.0",
+    "google-auth>=2.56.3",
+    "google-genai==2.17.0",
     "grpcio-status>=1.82.1",
     "guidance>=0.3.1",
     "gunicorn>=26.0.0",
@@ -48,7 +48,7 @@ dependencies = [
     "matplotlib>=3.11.0",
     "nltk>=3.9.1",
     "numpy>=2.2.6",
-    "openai==2.45.0",
+    "openai==2.53.0",
     "openpyxl>=3.1.5",
     "ordered-set>=4.1.0",
     "pandas==2.2.3",

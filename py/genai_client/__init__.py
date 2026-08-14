@@ -70,6 +70,10 @@ def __getattr__(name: str) -> Any:
         from .embedders.vertex_embedder import VertexAiEmbedder
 
         return VertexAiEmbedder
+    elif name == "GoogleGenAiEmbedder":
+        from .embedders.google_genai_embedder import GoogleGenAiEmbedder
+
+        return GoogleGenAiEmbedder
     elif name == "OpenAiTokenizer":
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
@@ -113,7 +117,7 @@ def get_text_gen_client(client_type, **kwargs):
 
             return OpenAiClient(**kwargs)
     elif client_type == "BEDROCK":
-        from .text_generation.bedrock_client import BedrockClient
+        from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient(**kwargs)
     elif client_type == "VERTEX":
@@ -193,6 +197,7 @@ __all__ = [
     "AzureOpenAiEmbedder",
     "TextEmbeddingsInference",
     "VertexAiEmbedder",
+    "GoogleGenAiEmbedder",
     "OpenAiTokenizer",
     "HuggingfaceTokenizer",
     "LocalWordCountTokenizer",

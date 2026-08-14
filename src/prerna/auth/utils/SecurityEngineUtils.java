@@ -127,17 +127,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			displayName = engineName;
 		}
 
+		Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
+		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndCost[0];
 		boolean engineExists = containsEngineId(engineId);
 		if (engineExists) {
-			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
-			updateEngineTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);
+			updateEngineTypeAndSubType(engineId, engineType, (String) typeAndCost[1]);
 			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
-			return;
 		} else {
-			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
-			addEngine(engineId, engineName, displayName, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1],
+			addEngine(engineId, engineName, displayName, engineType, (String) typeAndCost[1],
 					(String) typeAndCost[2], global, user);
+		}
+
+		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
+			try {
+				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
+			} catch (Exception e) {
+				classLogger.error("Failed to save model metadata for engine {}. The engine is catalogued without it",
+						Utility.cleanLogString(engineId), e);
+			}
 		}
 
 		// TODO: need to see when we should be updating the database metadata
@@ -1431,6 +1439,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
+		deletes.add("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEACCESSREQUEST WHERE ENGINEID=?");
 
 		for (String deleteQuery : deletes) {

@@ -29,6 +29,7 @@ package prerna.reactor.agent.runtime;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -49,6 +50,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -87,6 +89,8 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final String PARAM_PATH = "path";
+	private static final String PARAM_NEW_PATH = "new_path";
 
 	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
 			"pwd", "ls", "dir", "find", "cat", "head", "tail", "wc", "stat",
@@ -111,49 +115,50 @@ final class PlatformAgentToolHandlers {
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
 		add(tools, handler("ReadFile",
-				"Reads a file from the working directory. Returns content with line numbers.",
+				"Reads a file from the working directory. Returns content with line numbers "
+						+ "and a continuation marker when more lines remain.",
 				objectSchema(props(
-						prop("file_path", stringProp("Path to read, relative to the working directory.")),
+						prop(PARAM_PATH, stringProp("Path to read, relative to the working directory.")),
 						prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
 						prop("limit", integerProp("Maximum lines to return. Defaults to 2000."))),
-						List.of("file_path")),
+						List.of(PARAM_PATH)),
 				PlatformAgentToolHandlers::readFile));
 		add(tools, handler("WriteFile",
 				"Writes text to a file under the working directory, creating parent directories as needed.",
 				objectSchema(props(
-						prop("filePath", stringProp("Path to write, relative to the working directory.")),
+						prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
 						prop("content", stringProp("Complete file content."))),
-						List.of("filePath", "content")),
+						List.of(PARAM_PATH, "content")),
 				PlatformAgentToolHandlers::writeFile));
 		add(tools, handler("EditFile",
 				"Performs one exact string replacement in a file. Fails if the old string is not unique unless replace_all=true.",
 				objectSchema(props(
-						prop("file_path", stringProp("Path to edit, relative to the working directory.")),
+						prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
 						prop("old_string", stringProp("Exact text to replace.")),
 						prop("new_string", stringProp("Replacement text.")),
 						prop("replace_all", booleanProp("Replace every occurrence instead of requiring uniqueness."))),
-						List.of("file_path", "old_string", "new_string")),
+						List.of(PARAM_PATH, "old_string", "new_string")),
 				PlatformAgentToolHandlers::editFile));
 		add(tools, handler("MultiEdit",
 				"Applies multiple exact string replacements to one file in a single all-or-nothing operation.",
 				objectSchema(props(
-						prop("file_path", stringProp("Path to edit, relative to the working directory.")),
+						prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
 						prop("edits_json", stringProp(
 								"JSON array of edits: [{\"old_string\":\"...\",\"new_string\":\"...\",\"replace_all\":false}]."))),
-						List.of("file_path", "edits_json")),
+						List.of(PARAM_PATH, "edits_json")),
 				PlatformAgentToolHandlers::multiEdit));
 		add(tools, handler("MoveFile",
 				"Moves or renames a path under the working directory.",
 				objectSchema(props(
-						prop("filePath", stringProp("Existing path, relative to the working directory.")),
-						prop("newValue", stringProp("New path, relative to the working directory."))),
-						List.of("filePath", "newValue")),
+						prop(PARAM_PATH, stringProp("Existing path, relative to the working directory.")),
+						prop(PARAM_NEW_PATH, stringProp("New path, relative to the working directory."))),
+						List.of(PARAM_PATH, PARAM_NEW_PATH)),
 				PlatformAgentToolHandlers::moveFile));
 		add(tools, handler("DeleteFile",
 				"Deletes a file or directory under the working directory.",
 				objectSchema(props(
-						prop("filePath", stringProp("Path to delete, relative to the working directory."))),
-						List.of("filePath")),
+						prop(PARAM_PATH, stringProp("Path to delete, relative to the working directory."))),
+						List.of(PARAM_PATH)),
 				PlatformAgentToolHandlers::deleteFile));
 		add(tools, handler("GlobFiles",
 				"Finds files matching a glob pattern under the working directory.",
@@ -262,7 +267,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String readFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		int offset = parseIntOr(params.get("offset"), 1);
 		int limit = parseIntOr(params.get("limit"), DEFAULT_READ_MAX_LINES);
 		if (offset < 1) {
@@ -278,7 +286,8 @@ final class PlatformAgentToolHandlers {
 		if (!file.isFile()) {
 			return "Error: not a file: " + filePath;
 		}
-		List<String> lines = Files.readAllLines(file.toPath());
+		String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		List<String> lines = content.lines().toList();
 		int start = offset - 1;
 		if (start >= lines.size()) {
 			return "";
@@ -288,14 +297,18 @@ final class PlatformAgentToolHandlers {
 		for (int i = start; i < end; i++) {
 			sb.append(String.format("%6d\t%s%n", i + 1, lines.get(i)));
 		}
+		if (end < lines.size()) {
+			sb.append(String.format("%n[--- file continues: showing lines %d-%d of %d; continue with offset=%d. ---]%n",
+					start + 1, end, lines.size(), end + 1));
+		}
 		return sb.toString();
 	}
 
 	private static String writeFile(Map<String, Object> params, ToolContext tc) {
-		String filePath = firstStringParam(params, "filePath", "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
 		String content = stringParam(params, "content");
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		File file = tc.resolve(filePath);
 		saveTextFile(file, content, tc);
@@ -303,7 +316,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String editFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		String oldString = stringParam(params, "old_string");
 		String newString = stringParam(params, "new_string");
 		boolean replaceAll = parseBoolean(params.get("replace_all"));
@@ -333,7 +349,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String multiEdit(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		String editsJson = stringParam(params, "edits_json");
 		if (editsJson == null || editsJson.trim().isEmpty()) {
 			return "Error: edits_json is required";
@@ -394,13 +413,13 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String moveFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = firstStringParam(params, "filePath", "file_path");
-		String newValue = firstStringParam(params, "newValue", "new_value");
+		String filePath = stringParam(params, PARAM_PATH);
+		String newValue = stringParam(params, PARAM_NEW_PATH);
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		if (newValue == null || newValue.trim().isEmpty()) {
-			return "Error: newValue is required";
+			return "Error: new_path is required";
 		}
 		File source = tc.resolve(filePath);
 		File target = tc.resolve(newValue);
@@ -417,9 +436,9 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String deleteFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = firstStringParam(params, "filePath", "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		File target = tc.resolve(filePath);
 		if (!target.exists()) {
@@ -439,14 +458,15 @@ final class PlatformAgentToolHandlers {
 		}
 		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 		List<Path> matches = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> {
-					Path rel = baseDir.toPath().relativize(p);
-					return matcher.matches(rel) || matcher.matches(p.getFileName());
-				})
-				.limit(MAX_GLOB_RESULTS)
-				.forEach(matches::add);
+		try (Stream<Path> paths = Files.walk(baseDir.toPath())) {
+			paths.filter(p -> !Files.isDirectory(p))
+					.filter(p -> {
+						Path rel = baseDir.toPath().relativize(p);
+						return matcher.matches(rel) || matcher.matches(p.getFileName());
+					})
+					.limit(MAX_GLOB_RESULTS)
+					.forEach(matches::add);
+		}
 		if (matches.isEmpty()) {
 			return "No files matched pattern: " + pattern;
 		}
@@ -501,12 +521,13 @@ final class PlatformAgentToolHandlers {
 		boolean isCountMode = "count".equals(outputMode);
 		List<String> results = new ArrayList<>();
 		List<Path> paths = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
-						|| fileMatcher.matches(baseDir.toPath().relativize(p)))
-				.sorted()
-				.forEach(paths::add);
+		try (Stream<Path> walk = Files.walk(baseDir.toPath())) {
+			walk.filter(p -> !Files.isDirectory(p))
+					.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
+							|| fileMatcher.matches(baseDir.toPath().relativize(p)))
+					.sorted()
+					.forEach(paths::add);
+		}
 		for (Path p : paths) {
 			if (results.size() >= headLimit) {
 				break;
@@ -1026,47 +1047,43 @@ final class PlatformAgentToolHandlers {
 		return value == null ? null : value.toString();
 	}
 
-	private static String firstStringParam(Map<String, Object> params, String first, String second) {
-		String value = stringParam(params, first);
-		return value != null ? value : stringParam(params, second);
-	}
-
 	private static boolean parseBoolean(Object value) {
 		return value != null && "true".equalsIgnoreCase(value.toString().trim());
 	}
 
 	private static int parseIntOr(Object value, int defaultValue) {
-		if (value == null || value.toString().trim().isEmpty()) {
+		Long parsed = parseIntegralLong(value);
+		if (parsed == null || parsed < Integer.MIN_VALUE || parsed > Integer.MAX_VALUE) {
 			return defaultValue;
 		}
-		try {
-			return Integer.parseInt(value.toString().trim());
-		} catch (NumberFormatException e) {
-			return defaultValue;
-		}
+		return parsed.intValue();
 	}
 
 	private static long parseLongAtLeast(Object value, long defaultValue, long minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
-		}
-		try {
-			long parsed = Long.parseLong(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
-		}
+		Long parsed = parseIntegralLong(value);
+		return parsed != null && parsed >= minInclusive ? parsed : defaultValue;
 	}
 
 	private static int parseIntAtLeast(Object value, int defaultValue, int minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
+		int parsed = parseIntOr(value, defaultValue);
+		return parsed >= minInclusive ? parsed : defaultValue;
+	}
+
+	private static Long parseIntegralLong(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = value.toString().trim();
+		if (text.isEmpty()) {
+			return null;
 		}
 		try {
-			int parsed = Integer.parseInt(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
+			if (value instanceof Number) {
+				return new BigDecimal(text).longValueExact();
+			}
+			return Long.parseLong(text);
+		} catch (NumberFormatException | ArithmeticException ignored) {
+			return null;
 		}
 	}
 

@@ -28,8 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.impl.ProjectHelper;
 
 public class ProjectWatcher extends AbstractFileWatcher {
@@ -70,6 +69,52 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					ensureSkillTag(engineId);
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
+
+		// loading platform mcps (system apps - most are headless, some expose a UI
+		// served from the web app rather than from a published portal)
+		List<String> defaultMCPs = SystemDefaultEngines.getSystemMCPs();
+		for (String engineId : defaultMCPs) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, "MCP", "SYSTEM");
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			} else {
+				// surface a bad deploy at boot instead of at the first tool call
+				classLogger.warn("Platform MCP '{}' is registered but {}/platform__{} is missing; its tools will "
+						+ "not be available", engineId, folderToWatch, fileName);
+			}
+		}
+
+		// loading platform agents (immutable, global system workspaces)
+		List<String> defaultAgents = SystemDefaultEngines.getSystemAgents();
+		for (String engineId : defaultAgents) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
+					SystemAgentSeeder.seed(engineId);
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
 					continue;
@@ -111,6 +156,43 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	}
 
 	/**
+	 * Ensures a platform project carries each of the given PROJECTMETA tags (e.g.
+	 * "MCP", "SYSTEM"). Mirrors {@link #ensureSkillTag(String)}: addProject
+	 * early-returns when the project already exists in the security db, so this
+	 * runs on every boot; it is idempotent (only writes when a tag is missing) and
+	 * preserves any other tag values already on the project. Never blocks project
+	 * load. The literal "MCP" tag matches MCPUtility.addMCPTag.
+	 */
+	private static void ensureProjectTags(String projectId, String... requiredTags) {
+		try {
+			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
+					false);
+			List<Object> tags = new ArrayList<>();
+			Object existing = meta.get("tag");
+			if (existing instanceof List) {
+				tags.addAll((List<?>) existing);
+			} else if (existing != null) {
+				tags.add(existing);
+			}
+			boolean changed = false;
+			for (String req : requiredTags) {
+				if (!tags.contains(req)) {
+					tags.add(req);
+					changed = true;
+				}
+			}
+			if (changed) {
+				Map<String, Object> update = new HashMap<>();
+				update.put("tag", tags);
+				SecurityProjectUtils.updateProjectMetadata(projectId, update);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),
+					projectId, e.getMessage());
+		}
+	}
+
+	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
 	@Override
@@ -140,12 +222,16 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 
 		if (!ClusterUtil.IS_CLUSTER) {
-			List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
+			// reserved system apps (platform skills + platform mcps) reload from disk
+			// every boot and must never be pruned during file-system reconciliation
+			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemAgents());
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
-				if (!projectIds.contains(project) && !defaultPlatforms.contains(project)) {
+				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}
@@ -168,12 +254,10 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	 */
 	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
 		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
-		FileInputStream fileIn = null;
 		String projectId = null;
 		try {
-			Properties prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
-			prop.load(fileIn);
+			String smssFile = Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile);
+			Properties prop = Utility.loadProperties(smssFile);
 
 			projectId = prop.getProperty(Constants.PROJECT);
 
@@ -195,14 +279,6 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
-		} finally {
-			try {
-				if (fileIn != null) {
-					fileIn.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close input stream for smss file {}/{}", folderToWatch, newFile, e);
-			}
 		}
 
 		return projectId;

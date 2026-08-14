@@ -46,6 +46,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -136,7 +137,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				Map<String, String> skillMap = new HashMap<>();
 				skillMap.put("id", resourceId);
 				skillMap.put("type", rType);
-				skillMap.put("name", info.name);
+				skillMap.put("name", info.displayName);
 				skillMap.put("slug", info.slug);
 				if (info.description != null) {
 					skillMap.put("description", info.description);
@@ -175,6 +176,10 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.warn("Failed to load CONFIG_JSON for workspace '{}': {}", workspaceId, e.getMessage());
 		}
+
+		// Server-computed capability list (not stored data, so kept out of config_json)
+		// driving the FE's "add hook" dropdown for CONFIG_JSON.hooks[].
+		current.put("known_hook_kinds", new ArrayList<>(AgentHookRegistry.knownKinds()));
 
 		return new NounMetadata(current, PixelDataType.MAP);
 	}

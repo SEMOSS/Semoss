@@ -35,8 +35,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
@@ -49,7 +49,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightStepsReactor.class);
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final Gson PRETTY_GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
 	public GeneratePlaywrightStepsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "sessionId", ReactorKeysEnum.ROOM_ID.getKey(),
@@ -139,7 +139,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			String userContext) {
 		try {
 			// Convert interactive elements to clean JSON
-			String elementsJson = json.writeValueAsString(interactiveElements);
+			String elementsJson = PRETTY_GSON.toJson(interactiveElements);
 
 			Map<String, Object> summary = (Map<String, Object>) extractionData.get("summary");
 

@@ -33,9 +33,7 @@ import java.nio.file.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -44,8 +42,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class SaveAllReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SaveAllReactor.class);
-
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public SaveAllReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title", "description",
@@ -63,6 +59,14 @@ public class SaveAllReactor extends AbstractReactor {
 		String title = this.keyValue.get(this.keysToGet[3]);
 		String desc = this.keyValue.get(this.keysToGet[4]);
 		String intent = this.keyValue.get(this.keysToGet[5]);
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to edit the project");
+		}
 
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
@@ -76,7 +80,7 @@ public class SaveAllReactor extends AbstractReactor {
 		RecordingMeta existingMeta = null;
 		if (Files.exists(file)) {
 			try {
-				StepsEnvelope existing = json.readValue(file.toFile(), StepsEnvelope.class);
+				StepsEnvelope existing = PlaywrightUtility.readStepsEnvelope(file.toFile());
 				existingMeta = existing.meta();
 			} catch (Exception e) {
 				classLogger.warn("Unable to read existing recording metadata from '{}'; creating fresh metadata", file,
@@ -96,7 +100,7 @@ public class SaveAllReactor extends AbstractReactor {
 		// TODO: shouldn't be returning the full path
 		String filePath = null;
 		try {
-			json.writeValue(file.toFile(), env);
+			PlaywrightUtility.writeStepsEnvelope(file.toFile(), env);
 			filePath = file.toAbsolutePath().toString();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to save script to: " + file, e);

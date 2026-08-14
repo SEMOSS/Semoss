@@ -1,0 +1,61 @@
+{
+    "_meta": {
+        "last_modified_date": "2026-03-23",
+        "file_last_modified_date": "2026-03-23",
+        "source_file": "/Users/rweiler/Documents/SEMOSS/workspace/Semoss/project/ReactorHelpMCP__4b4e1df8-cff6-4345-863b-5631a0e51000/app_root/version/assets/py/mcp_driver.py"
+    },
+    "tools": [
+        {
+            "name": "runPixel",
+            "title": "Run Pixel",
+            "description": "Run an arbitrary pixel expression and return the full JSON output.\nArgs:\n    pixel (str): The pixel expression to execute.\nReturns:\n    str: The JSON output from the pixel execution.",
+            "inputSchema": {
+                "properties": {
+                    "pixel": {
+                        "title": "Pixel",
+                        "description": "The pixel expression to execute.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "pixel"
+                ],
+                "title": "Run Pixel Arguments",
+                "type": "object"
+            },
+            "_meta": {
+                "generated_on": "2026-04-22",
+                "SMSS_MCP_EXECUTION": "ask",
+                "SMSS_MCP_UI": {},
+                "SMSS_FUNCTION_NAME": "runPixel"
+            },
+            "_type": "python"
+        },
+        {
+            "name": "runPixelHelp",
+            "title": "Run Pixel Help",
+            "description": "Run the specified reactor with the --help flag and return the clean output.\nArgs:\n    reactor_name (str): The name of the reactor to run.\nReturns:\n    str: The clean output from the reactor's help command, or an error message if something goes wrong.",
+            "inputSchema": {
+                "properties": {
+                    "reactor_name": {
+                        "title": "Reactor Name",
+                        "description": "The name of the reactor to run.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "reactor_name"
+                ],
+                "title": "Run Pixel Help Arguments",
+                "type": "object"
+            },
+            "_meta": {
+                "generated_on": "2026-03-23",
+                "SMSS_MCP_EXECUTION": "auto",
+                "SMSS_MCP_UI": {},
+                "SMSS_FUNCTION_NAME": "runPixelHelp"
+            },
+            "_type": "python"
+        }
+    ]
+}

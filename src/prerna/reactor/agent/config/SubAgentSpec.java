@@ -27,20 +27,26 @@
  *******************************************************************************/
 package prerna.reactor.agent.config;
 
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Declarative spec for a named subagent the parent agent can delegate to.
  *
  * <p>Each spec surfaces to the LLM as a synthesized MCP tool named {@link #getAlias() alias};
  * invoking the tool spawns a child run against the configured {@link #getWorkspaceId() workspaceId}.
- * Specs are loaded from {@code WORKSPACE.CONFIG_JSON.subagents[]} by
- * {@link AgentConfigLoader#resolveSubagents(org.json.JSONObject)} and attached to
- * {@link AgentConfig#getSubagents()}.
+ * Target workspace ids are loaded from {@code WORKSPACE.CONFIG_JSON.subagents[]} by
+ * {@link AgentConfigLoader#resolveSubagents(org.json.JSONObject)}. The loader derives each
+ * alias from the target agent's current name and uses its current description before attaching
+ * the resolved specs to {@link AgentConfig#getSubagents()}.
  *
  * <p>Immutable.
  */
 public final class SubAgentSpec {
+
+    private static final String ALIAS_PREFIX = "agent_";
+    private static final int MAX_ALIAS_LENGTH = 64;
 
     private final String alias;
     private final String workspaceId;
@@ -56,6 +62,45 @@ public final class SubAgentSpec {
         this.alias       = alias.trim();
         this.workspaceId = workspaceId.trim();
         this.description = description;
+    }
+
+    /**
+     * Generates a provider-safe tool alias from the target agent's current name and
+     * disambiguates names that normalize identically within one parent workspace.
+     */
+    public static String generateAlias(String agentName, String workspaceId, Set<String> usedAliases) {
+        if (agentName == null || agentName.trim().isEmpty()) {
+            throw new IllegalArgumentException("agentName is required");
+        }
+        if (workspaceId == null || workspaceId.trim().isEmpty()) {
+            throw new IllegalArgumentException("workspaceId is required");
+        }
+        if (usedAliases == null) {
+            throw new IllegalArgumentException("usedAliases is required");
+        }
+
+        String slug = agentName.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_-]+", "_")
+                .replaceAll("_+", "_").replaceAll("^[_-]+|[_-]+$", "");
+        if (slug.isEmpty()) {
+            slug = "subagent";
+        }
+        String base = truncateAlias(ALIAS_PREFIX + slug, MAX_ALIAS_LENGTH);
+        if (usedAliases.add(base)) {
+            return base;
+        }
+
+        String stableSuffix = "_" + Integer.toUnsignedString(workspaceId.hashCode(), 16);
+        String candidate = truncateAlias(base, MAX_ALIAS_LENGTH - stableSuffix.length()) + stableSuffix;
+        int counter = 2;
+        while (!usedAliases.add(candidate)) {
+            String counterSuffix = stableSuffix + "_" + counter++;
+            candidate = truncateAlias(base, MAX_ALIAS_LENGTH - counterSuffix.length()) + counterSuffix;
+        }
+        return candidate;
+    }
+
+    private static String truncateAlias(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     /** Tool name the LLM sees; must be unique within a workspace's subagent list. */

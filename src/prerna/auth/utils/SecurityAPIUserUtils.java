@@ -126,8 +126,53 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 			return false;
 		}
 
-		String typedHash = hash(secretKey, salt);
-		return saltedPassword.equals(typedHash);
+		if (!credentialMatches(secretKey, saltedPassword, salt)) {
+			return false;
+		}
+
+		if (isLegacySalt(salt)) {
+			migrateSecretKeyToApprovedHash(clientId, secretKey);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Rehash the secret key with PBKDF2 if the stored salt is still legacy. Called
+	 * after the secret key is verified, since that is when the plaintext is
+	 * available. The secret key itself does not change, so nothing has to be
+	 * reissued. Failures are logged so valid credentials are not rejected.
+	 *
+	 * @param clientId
+	 * @param secretKey
+	 */
+	private static void migrateSecretKeyToApprovedHash(String clientId, String secretKey) {
+		runCredentialMigration(clientId, () -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String salt = AbstractSecurityUtils.generateSalt();
+			String saltedPassword = AbstractSecurityUtils.hash(secretKey, salt);
+
+			String updateQuery = "UPDATE " + SMSS_USER_TABLE_NAME + " SET PASSWORD=?, SALT=? WHERE ID=? AND TYPE=?";
+
+			PreparedStatement ps = null;
+			try {
+				int parameterIndex = 1;
+				ps = securityDb.getPreparedStatement(updateQuery);
+				ps.setString(parameterIndex++, saltedPassword);
+				ps.setString(parameterIndex++, salt);
+				ps.setString(parameterIndex++, clientId);
+				ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+				classLogger.info("Migrated a stored API user secret key hash to the approved scheme");
+			} catch (SQLException e) {
+				classLogger.error("Unable to migrate the stored secret key hash to the approved scheme.", e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		});
 	}
 
 	/**

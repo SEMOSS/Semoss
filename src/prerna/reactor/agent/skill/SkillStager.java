@@ -53,8 +53,8 @@ import org.json.JSONObject;
  * <ol>
  *   <li>Resolves the skill project's identity and content folder via
  *       {@link SkillProjects#resolve} (SKILL.md frontmatter under the
- *       project's {@code version/assets/skill/} or legacy
- *       {@code version/assets/public/} folder).</li>
+ *       project's {@code version/assets/public/} or legacy
+ *       {@code version/assets/skill/} folder).</li>
  *   <li>Checks the existing {@code .skill-meta} sidecar at
  *       {@code <workingDir>/.claude/skills/<slug>/.skill-meta}. If the source
  *       folder's last-modified time matches what we previously staged, the

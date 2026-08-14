@@ -29,7 +29,6 @@ package prerna.reactor.agent.mcp;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -37,14 +36,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -55,6 +53,8 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.StreamingOutput;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -63,9 +63,11 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.api.IMCP;
+import prerna.engine.api.ToolExecutionResult;
+import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
@@ -98,15 +100,58 @@ public final class MCPUtility {
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+
+	/**
+	 * Records which generator produced a tool. A generator replaces tools carrying
+	 * its own id; a tool without this key is owned by nobody and always survives.
+	 */
+	public static final String SMSS_MCP_GENERATOR = "SMSS_MCP_GENERATOR";
+
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
 
+	/**
+	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
+	 *             and is what the tool routing paths read first. Do not add new
+	 *             reads of this key.
+	 */
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
+
+	/**
+	 * @deprecated Use {@link #SMSS_ENGINE_NAME}. Same reasoning as
+	 *             {@link #SMSS_PROJECT_ID}.
+	 */
 	@Deprecated
 	public static final String SMSS_PROJECT_NAME = "SMSS_PROJECT_NAME";
+
+	/**
+	 * Reserved id standing in where an engine or project UUID would normally go. An
+	 * MCP id is otherwise always a real catalog entry; this fixed, deliberately
+	 * unmistakable value instead means "there is no engine - read the tools from
+	 * the room's own asset folder". Used both in {@code room.options.mcp} and as
+	 * the {@link #SMSS_ENGINE_ID} on the tools themselves.
+	 *
+	 * <p>
+	 * Persisted in room OPTIONS and in the LLM-facing tool name prefix.
+	 */
+	public static final String ROOM_MCP_ID = "__room__";
+
+	/** Display name shown in the room's MCP list. */
+	public static final String ROOM_MCP_NAME = "Room Tools";
+
+	/**
+	 * Type reported for the room's own toolbox, published as
+	 * {@link #SMSS_ENGINE_TYPE} on its tools. Not an {@code IEngine.CATALOG_TYPE}
+	 * value: a room has no engine or project behind it, only its folder.
+	 *
+	 * <p>
+	 * Safe to change, unlike {@link #ROOM_MCP_ID}. Nothing dispatches on it: the
+	 * room options form tests for "VECTOR", the tool sidebar tests for "PROJECT".
+	 */
+	public static final String ROOM_MCP_TYPE = "ROOM";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
@@ -117,9 +162,10 @@ public final class MCPUtility {
 	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
 
 	// Regex pattern for "a" + UUID + "_"
-	// UUID format: 8-4-4-4-12 hexadecimal digits
-	private static final Pattern UUID_PREFIX_PATTERN = Pattern
-			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
+	// UUID format: 8-4-4-4-12 hexadecimal digits. Separators may be "-" (legacy
+	// names persisted before LLM-name sanitization) or "_" (sanitized names).
+	private static final Pattern UUID_PREFIX_PATTERN = Pattern.compile(
+			"^a([0-9a-fA-F]{8})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{12})_");
 
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
@@ -197,8 +243,15 @@ public final class MCPUtility {
 	 * they never pollute the shared globals dict. File modification-time checking
 	 * ensures the module is reloaded automatically when the source file changes.
 	 *
-	 * @param engine             the engine whose {@code assets/py} folder contains
-	 *                           the driver
+	 * @param engine             the engine backing this tool, or {@code null} for a
+	 *                           folder-backed scope (room/insight) that has no
+	 *                           catalog entry. Only used for project-scoped Python
+	 *                           translator selection and chroot symlinking.
+	 * @param assetsFolder       the folder whose {@code py} subfolder contains the
+	 *                           driver
+	 * @param scopeId            id used to namespace the module alias and the
+	 *                           generated function def. Must be unique per scope
+	 *                           (engine id, project id, or room id)
 	 * @param insight            the calling insight (provides the Python translator
 	 *                           and globals store)
 	 * @param functionName       the Python function to invoke inside the driver
@@ -207,10 +260,14 @@ public final class MCPUtility {
 	 * @param paramMap           runtime argument values keyed by parameter name
 	 * @return the stringified result of the Python function call
 	 */
-	public static String runPythonTool(IEngine engine, Insight insight, String functionName,
-			JSONObject functionProperties, Map<String, Object> paramMap) {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
+	public static String runPythonTool(IEngine engine, String assetsFolder, String scopeId, Insight insight,
+			String functionName, JSONObject functionProperties, Map<String, Object> paramMap) {
+		if (assetsFolder == null || assetsFolder.isBlank()) {
+			throw new IllegalArgumentException("An assets folder is required to run a python tool");
+		}
+		if (scopeId == null || scopeId.isBlank()) {
+			throw new IllegalArgumentException("A scope id is required to run a python tool");
+		}
 
 		// load the path to have access to the file
 		String pyFolderLoc = assetsFolder + "/py";
@@ -267,21 +324,21 @@ public final class MCPUtility {
 			pyt = insight.getPyTranslator();
 		}
 
-		// Use an engine-namespaced alias so concurrent calls for different engines
+		// Use a scope-namespaced alias so concurrent calls for different scopes
 		// writing to the same insight_globals never overwrite each other's mcp_driver
 		// reference. The module is loaded from an explicit file path so sys.modules is
 		// never mutated and third-party packages (e.g. torch) are not affected.
-		String modAlias = "__smss_mcp_" + engine.getEngineId().replace("-", "_") + "__";
+		String safeScopeId = scopeId.replaceAll("[^A-Za-z0-9_]", "_");
+		String modAlias = "__smss_mcp_" + safeScopeId + "__";
 		String modMtimeKey = modAlias + "_mtime__";
-		String funcDefName = "__smss_run_" + engine.getEngineId().replace("-", "_") + "__";
+		String funcDefName = "__smss_run_" + safeScopeId + "__";
 		String mcpFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
 		// All temp vars (_f, _mt, _spec, _mod, _drv, ...) live inside the function's
 		// local scope and never touch insight_globals. Only globals()[modAlias] and
 		// globals()[modMtimeKey] are written - both are per-engine keys - so
-		// concurrent
-		// threads for different engines on the same insight cannot overwrite each
-		// other's
-		// state. funcDefName is also per-engine so the def itself doesn't collide.
+		// concurrent threads for different engines on the same insight cannot overwrite
+		// each other's state. funcDefName is also per-engine so the def itself doesn't
+		// collide.
 		String runScript = """
 				def <funcDefName>():
 				    import importlib.util as _ilu, os as _os, hashlib as _hl, sys as _sys
@@ -314,7 +371,7 @@ public final class MCPUtility {
 				);
 		runScript = runScript
 				/*
-				 * Will delete the below replace. Only here for backwards compatability using
+				 * Will delete the below replace. Only here for backwards compatibility using
 				 * incorrect syntax to access ROOT, APP_ROOT, USER_ROOT as storing in globals
 				 * can cause race conditions
 				 */
@@ -327,11 +384,40 @@ public final class MCPUtility {
 				.replace("<functionName>", functionName)
 				.replace("<paramString>", paramString.toString());
 		// @formatter:on
-		classLogger.info("Running python tool '{}.{}({})' from {} engine '{}'", modAlias, functionName, paramString,
-				engine.getCatalogType(), engine.getEngineId());
+		if (engine != null) {
+			classLogger.info("Running python tool '{}.{}({})' from {} engine '{}'", modAlias, functionName, paramString,
+					engine.getCatalogType(), engine.getEngineId());
+		} else {
+			classLogger.info("Running python tool '{}.{}({})' from folder scope '{}'", modAlias, functionName,
+					paramString, scopeId);
+		}
 
 		return stringifyMcpResult(
 				pyt.runScriptWithExplicitAssetPaths(insight, runScript, assetsFolder, new String[] { pyFolderLoc }));
+	}
+
+	/**
+	 * Convenience overload that derives the assets folder and scope id from the
+	 * engine. Mirrors
+	 * {@link #runPixelTool(IEngine, Insight, String, JSONObject, Map)}.
+	 *
+	 * @param engine             the engine whose {@code assets/py} folder contains
+	 *                           the driver
+	 * @param insight            the calling insight
+	 * @param functionName       the Python function to invoke inside the driver
+	 * @param functionProperties JSON schema of the function's parameters
+	 * @param paramMap           runtime argument values keyed by parameter name
+	 * @return the stringified result of the Python function call
+	 */
+	public static String runPythonTool(IEngine engine, Insight insight, String functionName,
+			JSONObject functionProperties, Map<String, Object> paramMap) {
+		if (engine == null) {
+			throw new IllegalArgumentException("Engine must not be null - use the assetsFolder overload instead");
+		}
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
+				engine.getEngineName());
+		return runPythonTool(engine, assetsFolder, engine.getEngineId(), insight, functionName, functionProperties,
+				paramMap);
 	}
 
 	/**
@@ -493,10 +579,18 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 * Returns the first 8 hex characters of the engineId (using a UUID string -
+	 * dashes removed; unless platform project/engine which usually do not).
 	 */
 	public static String computeShortEngineId(String engineId) {
-		return engineId.replace("-", "").substring(0, 8);
+		String retId = engineId;
+		if (retId.contains("-")) {
+			retId = retId.replace("-", "");
+		}
+		if (retId.length() > 8) {
+			retId = retId.substring(0, 8);
+		}
+		return retId;
 	}
 
 	/**
@@ -551,26 +645,41 @@ public final class MCPUtility {
 	 * skip truncation.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, maxLength, false);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name, truncating to maxLength. When
+	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_]
+	 * (see {@link #requiresLLMNameSanitization}); other providers keep the raw
+	 * engine id so existing LLM-facing names are unchanged.
+	 */
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength,
+			boolean sanitizeForLLM) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
 
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		String idForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(engineId) : engineId;
+		String shortIdForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(computeShortEngineId(engineId))
+				: computeShortEngineId(engineId);
 
 		if (maxLength == Integer.MAX_VALUE) {
 			// No length limit: use the full UUID prefix (preserves existing behavior)
+			String fullPrefix = "a" + idForPrefix + "_";
 			for (int i = 0; i < toolsArray.length(); i++) {
 				JSONObject toolMap = toolsArray.getJSONObject(i);
 				String currentName = toolMap.getString("name");
-				toolMap.put("name", "a" + engineId + "_" + currentName);
+				toolMap.put("name", fullPrefix + currentName);
 			}
 			return jsonToolsMap;
 		}
 
 		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
 		// fall back to short 8-hex prefix and truncate if still needed.
-		String fullPrefix = "a" + engineId + "_";
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String fullPrefix = "a" + idForPrefix + "_";
+		String shortPrefix = "a" + shortIdForPrefix + "_";
 
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
@@ -593,13 +702,40 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * LLM-facing tool names must stay within [a-zA-Z0-9_]. Amazon Nova (Bedrock)
+	 * deterministically fails with "Model produced invalid sequence as part of
+	 * ToolUse" whenever a tool name contains a hyphen (e.g. from a hyphenated
+	 * engine id), and underscores are accepted by every provider. Only the
+	 * SEMOSS-injected prefix is sanitized; the author's tool name is appended
+	 * untouched.
+	 */
+	public static String sanitizeEngineIdForLLMName(String engineId) {
+		return engineId == null ? null : engineId.replaceAll("[^a-zA-Z0-9_]", "_");
+	}
+
+	/**
+	 * Whether LLM-facing tool names must be sanitized for the given model engine.
+	 * Only Bedrock engines opt in: Amazon Nova is the model family that rejects
+	 * hyphenated tool names, and scoping the rename here keeps every other
+	 * provider's tool names byte-identical to their historical form.
+	 */
+	public static boolean requiresLLMNameSanitization(IModelEngine modelEngine) {
+		return modelEngine != null && ModelTypeEnum.BEDROCK == modelEngine.getModelType();
+	}
+
+	/**
 	 * Strips the engine ID prefix from a tool function name. Tries the short prefix
-	 * (a{8hex}_) first, then falls back to the legacy full-UUID prefix.
+	 * (a{8hex}_) first, then the sanitized full prefix, then falls back to the
+	 * legacy raw full prefix (names persisted before LLM-name sanitization).
 	 */
 	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String shortPrefix = "a" + sanitizeEngineIdForLLMName(computeShortEngineId(engineId)) + "_";
 		if (functionName.startsWith(shortPrefix)) {
 			return functionName.substring(shortPrefix.length());
+		}
+		String sanitizedFullPrefix = "a" + sanitizeEngineIdForLLMName(engineId) + "_";
+		if (functionName.startsWith(sanitizedFullPrefix)) {
+			return functionName.substring(sanitizedFullPrefix.length());
 		}
 		String fullPrefix = "a" + engineId + "_";
 		if (functionName.startsWith(fullPrefix)) {
@@ -619,9 +755,10 @@ public final class MCPUtility {
 
 		Matcher matcher = UUID_PREFIX_PATTERN.matcher(input);
 		if (matcher.find()) {
-			String prefix = matcher.group();
-			// remove the "a" and the "_" after the project id
-			prefix = prefix.substring(1, prefix.length() - 1);
+			// rebuild the canonical hyphenated UUID regardless of which separator
+			// ("-" legacy, "_" sanitized) appeared in the LLM-facing name
+			String prefix = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3) + "-"
+					+ matcher.group(4) + "-" + matcher.group(5);
 			String remaining = input.substring(matcher.end());
 			return new String[] { prefix, remaining };
 		}
@@ -661,6 +798,10 @@ public final class MCPUtility {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			String llmFacingName = (String) responseToolMap.get("name");
 
+			if (hasText(llmFacingName) && !hasText(responseToolMap.get("title"))) {
+				responseToolMap.put("title", llmFacingName);
+			}
+
 			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
 				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
 				Object rawMeta = toolEntry.get("_meta");
@@ -675,12 +816,19 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (toolEntry.containsKey("title")) {
-					responseToolMap.put("title", toolEntry.get("title"));
+				Object declaredTitle = toolEntry.get("title");
+				if (hasText(declaredTitle)) {
+					responseToolMap.put("title", declaredTitle);
+				} else {
+					// No declared title, so label the tool with the name it declared before
+					// the engine-id prefix was appended (and possibly truncated) for the LLM
+					Object originalToolName = enrichedMeta.get(SMSS_ORIGINAL_TOOL_NAME);
+					responseToolMap.put("title", hasText(originalToolName) ? originalToolName : origFunctionName);
 				}
 				if (toolEntry.containsKey("description")) {
 					responseToolMap.put("description", toolEntry.get("description"));
 				}
+				applyMissingArgumentDefaults(responseToolMap, toolEntry);
 
 				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
 				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(enrichedMeta));
@@ -731,8 +879,11 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (mcpTool != null && mcpTool.has("title")) {
+				if (mcpTool != null && hasText(mcpTool.opt("title"))) {
 					responseToolMap.put("title", mcpTool.getString("title"));
+				} else {
+					// origFunctionName is already the name with the engine-id prefix removed
+					responseToolMap.put("title", origFunctionName);
 				}
 				if (mcpTool != null && mcpTool.has("description")) {
 					responseToolMap.put("description", mcpTool.getString("description"));
@@ -763,69 +914,46 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * 
-	 * @param toolStep
+	 * Whether the value is a non-blank string. Tool metadata arrives from JSON, so
+	 * a key can be present while holding null, a blank string, or a non-string.
 	 */
-	public static void updateCOTToolStepWithEngineMeta(Map<String, Object> toolStep) {
-		Map<String, JSONObject> mcpToolsJsonCache = new HashMap<>();
-		Map<String, Object> toolDetails = (Map<String, Object>) toolStep.get("details");
-		if (toolDetails == null) {
+	private static boolean hasText(Object value) {
+		return value instanceof String && !((String) value).isBlank();
+	}
+
+	/**
+	 * Materializes schema defaults that a model omitted from a tool call. JSON
+	 * Schema's {@code default} is only an annotation, so not every provider echoes
+	 * pinned routing inputs such as recording_file and project_id. Applying only
+	 * missing top-level values preserves every value the model/user supplied.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void applyMissingArgumentDefaults(Map<String, Object> responseToolMap,
+			Map<String, Object> toolEntry) {
+		Object rawSchema = toolEntry.get("inputSchema");
+		if (!(rawSchema instanceof Map)) {
 			return;
 		}
-		String responseProjectIdToolFunctionName = (String) toolDetails.get("tool_name");
-		String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(
-				responseProjectIdToolFunctionName);
-		if (responseProjectIdToolFunctionNameSplit == null) {
-			// if the tool function doesn't start with _projectid_
-			// then this response is already in proper format for the FE
+		Object rawProperties = ((Map<String, Object>) rawSchema).get("properties");
+		if (!(rawProperties instanceof Map)) {
 			return;
 		}
-		String engineId = responseProjectIdToolFunctionNameSplit[0];
-		String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
 
-		// now that we have the projectId
-		// lets append some of the mcp metadata back into the response
-
-		JSONObject mcpToolsJson = mcpToolsJsonCache.get(engineId);
-		if (mcpToolsJson == null) {
-			IEngine engine = null;
-			try {
-				engine = Utility.getEngine(engineId);
-			} catch (Exception ex) {
-				// ignore
+		Object rawArguments = responseToolMap.get("arguments");
+		Map<String, Object> arguments = rawArguments instanceof Map ? (Map<String, Object>) rawArguments
+				: new HashMap<>();
+		for (Map.Entry<String, Object> propertyEntry : ((Map<String, Object>) rawProperties).entrySet()) {
+			if (arguments.containsKey(propertyEntry.getKey()) || !(propertyEntry.getValue() instanceof Map)) {
+				continue;
 			}
-			if (engine == null) {
-				engine = Utility.getProject(engineId);
-			}
-			if (engine == null) {
-				// technically speaking you could have a function start with _
-				// but will assume this is in proper format
-				return;
-			}
-			mcpToolsJson = MCPUtility.getAggregatedTools(engine);
-			mcpToolsJsonCache.put(engineId, mcpToolsJson);
-		}
-
-		if (mcpToolsJson != null) {
-			JSONArray mcpToolsArray = mcpToolsJson.getJSONArray("tools");
-			JSONObject mcpTool = null;
-			PROJECT_MCP_LOOP: for (int toolIndex = 0; toolIndex < mcpToolsArray.length(); toolIndex++) {
-				JSONObject _tool = mcpToolsArray.getJSONObject(toolIndex);
-				if (_tool.has("name") && _tool.getString("name").equals(origFunctionName)) {
-					mcpTool = _tool;
-					break PROJECT_MCP_LOOP;
-				}
-			}
-
-			// add back the title from mcp structure
-			if (mcpTool != null && mcpTool.has("title")) {
-				toolDetails.put("title", mcpTool.getString("title"));
-			}
-
-			if (mcpToolsJson.has("_meta")) {
-				toolDetails.put("_meta", mcpToolsJson.get("_meta"));
+			Map<String, Object> property = (Map<String, Object>) propertyEntry.getValue();
+			if (property.containsKey("default")) {
+				arguments.put(propertyEntry.getKey(), property.get("default"));
+			} else if (property.containsKey("const")) {
+				arguments.put(propertyEntry.getKey(), property.get("const"));
 			}
 		}
+		responseToolMap.put("arguments", arguments);
 	}
 
 	/**
@@ -885,27 +1013,7 @@ public final class MCPUtility {
 	 * @return
 	 */
 	public static JSONObject getAggregatedTools(IEngine engine) {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
-		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
-
-		JSONObject toolMap = new JSONObject();
-		JSONArray toolsArray = new JSONArray();
-		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
-		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
-		toolMap.put("tools", toolsArray);
-
-		// add in meta as well
-		JSONObject _meta = new JSONObject();
-		_meta.put(MCPUtility.SMSS_PROJECT_ID, engine.getEngineId());
-		_meta.put(MCPUtility.SMSS_PROJECT_NAME, engine.getEngineName());
-		_meta.put(MCPUtility.SMSS_ENGINE_ID, engine.getEngineId());
-		_meta.put(MCPUtility.SMSS_ENGINE_NAME, engine.getEngineName());
-		_meta.put(MCPUtility.SMSS_ENGINE_TYPE, engine.getCatalogType().name());
-		toolMap.put("_meta", _meta);
-
-		return toolMap;
+		return MCPFactory.build(engine).getMCPTools();
 	}
 
 	/**
@@ -975,7 +1083,7 @@ public final class MCPUtility {
 				String prettyJson = mcpJson.toString(4);
 				writer.write(prettyJson);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to write mcp definitions to '{}'", pythonJsonFileLoc, e);
 				throw new IllegalArgumentException(
 						"Unable to write pixel_mcp.json file. Detailed error = " + e.getMessage());
 			}
@@ -996,12 +1104,10 @@ public final class MCPUtility {
 				String jsonTxt = FileUtils.readFileToString(jsonFile, StandardCharsets.UTF_8);
 				JSONObject json = new JSONObject(jsonTxt);
 				return json;
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
 			} catch (JSONException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to parse json file '{}'", jsonFileLoc, e);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to read json file '{}'", jsonFileLoc, e);
 			}
 		}
 		return new JSONObject();
@@ -1023,12 +1129,10 @@ public final class MCPUtility {
 					JSONArray toolObj = json.getJSONArray(node);
 					return toolObj;
 				}
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
 			} catch (JSONException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to parse node '{}' from json file '{}'", node, jsonFileLoc, e);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to read json file '{}'", jsonFileLoc, e);
 			}
 		}
 		return new JSONArray();
@@ -1172,8 +1276,108 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Stamps {@link #SMSS_MCP_GENERATOR} onto every tool in the array. Call it on
+	 * the finished array so a generator with more than one build path marks all of
+	 * them.
+	 *
+	 * @param tools       the generated tools, modified in place
+	 * @param generatorId the generator, conventionally the reactor name without the
+	 *                    "Reactor" suffix
+	 */
+	public static void stampGenerator(JSONArray tools, String generatorId) {
+		if (tools == null) {
+			return;
+		}
+		for (int i = 0; i < tools.length(); i++) {
+			JSONObject tool = tools.optJSONObject(i);
+			if (tool == null) {
+				continue;
+			}
+			JSONObject meta = tool.optJSONObject("_meta");
+			if (meta == null) {
+				meta = new JSONObject();
+				tool.put("_meta", meta);
+			}
+			meta.put(SMSS_MCP_GENERATOR, generatorId);
+		}
+	}
+
+	/**
+	 * Reads an existing {@code *_mcp.json}. A malformed file is logged and treated
+	 * as absent, since nothing can load it in that state.
+	 *
+	 * @param filePath full path to the definition file
+	 * @return the parsed file, or null when it is missing or unusable
+	 */
+	public static JSONObject readMcpJson(String filePath) {
+		File existing = new File(filePath);
+		if (!existing.isFile()) {
+			return null;
+		}
+		try {
+			return new JSONObject(FileUtils.readFileToString(existing, StandardCharsets.UTF_8));
+		} catch (Exception e) {
+			classLogger.warn("Existing {} could not be parsed and will be replaced: {}", filePath, e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Merges generated tools into the tools already in a definition file.
+	 *
+	 * <p>
+	 * A generated tool replaces any existing tool of the same name. A tool stamped
+	 * with {@code generatorId} that was not regenerated is dropped when
+	 * {@code completeRegeneration} is set. Everything else is kept.
+	 *
+	 * @param existingMcpJson      the parsed existing file, or null when there is
+	 *                             none
+	 * @param generated            the generated tools, already stamped by
+	 *                             {@link #stampGenerator}, in their given order
+	 * @param generatorId          the generator whose own output may be replaced
+	 * @param completeRegeneration true when {@code generated} is this generator's
+	 *                             entire output. Pass false for a run scoped to a
+	 *                             subset, which would otherwise prune the
+	 *                             generator's other tools.
+	 * @return generated tools followed by the surviving existing tools
+	 */
+	public static JSONArray mergeGeneratedTools(JSONObject existingMcpJson, JSONArray generated, String generatorId,
+			boolean completeRegeneration) {
+		JSONArray merged = new JSONArray();
+		Set<String> generatedNames = new HashSet<>();
+		for (int i = 0; i < generated.length(); i++) {
+			JSONObject tool = generated.getJSONObject(i);
+			merged.put(tool);
+			String name = tool.optString("name", null);
+			if (name != null) {
+				generatedNames.add(name);
+			}
+		}
+
+		JSONArray existing = existingMcpJson != null ? existingMcpJson.optJSONArray("tools") : null;
+		if (existing == null) {
+			return merged;
+		}
+		for (int i = 0; i < existing.length(); i++) {
+			JSONObject tool = existing.optJSONObject(i);
+			if (tool == null) {
+				continue;
+			}
+			if (generatedNames.contains(tool.optString("name", null))) {
+				continue;
+			}
+			JSONObject meta = tool.optJSONObject("_meta");
+			if (completeRegeneration && meta != null && generatorId.equals(meta.optString(SMSS_MCP_GENERATOR, null))) {
+				continue;
+			}
+			merged.put(tool);
+		}
+		return merged;
+	}
+
+	/**
 	 * Add the MCP tag to an existing engine (engine and project)
-	 * 
+	 *
 	 * @param engine
 	 */
 	public static void addMCPTag(IEngine engine) {
@@ -1214,6 +1418,17 @@ public final class MCPUtility {
 	 * AgentToolDecisionHandler (HITL approve/edit).
 	 */
 	public static Object executeTool(String engineId, String toolName, Map<String, Object> paramMap, Insight insight) {
+		// A room's toolbox is backed by its own asset folder, so there is no engine or
+		// project to resolve.
+		if (ROOM_MCP_ID.equals(engineId)) {
+			if (insight == null) {
+				throw new IllegalArgumentException("Caller insight is required to execute a room MCP tool");
+			}
+			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(insight.getInsightFolder());
+			String cleaned = removeEngineIdFromToolsMethodName(engineId, toolName);
+			return roomMcp.callTool(cleaned, paramMap, insight);
+		}
+
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -1232,6 +1447,20 @@ public final class MCPUtility {
 
 		IMCP mcp = MCPFactory.build(engine);
 		return mcp.callTool(toolName, paramMap, insight);
+	}
+
+	/**
+	 * Typed adapter for agent callers. The established direct execution path and
+	 * its exception behavior remain unchanged.
+	 */
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName, Map<String, Object> paramMap,
+			Insight insight) {
+		try {
+			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
+		} catch (RuntimeException e) {
+			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			return ToolExecutionResult.error(message, message);
+		}
 	}
 
 	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers

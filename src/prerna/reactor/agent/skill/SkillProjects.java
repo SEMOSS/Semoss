@@ -45,28 +45,27 @@ import prerna.util.AssetUtility;
  * project's {@code SKILL.md} and are read on demand - there is no separate
  * registry table.
  *
- * <p>The skill content folder is {@code <project>/version/assets/skill/}
- * (written by {@code CreateSkillReactor}); the built-in platform skill
- * projects ship their {@code SKILL.md} under the read-only
- * {@code version/assets/public/} folder instead, so resolution probes both.
+ * <p>
+ * The skill content folder is {@code <project>/version/assets/public/} (written
+ * by {@code CreateSkillReactor}), matching where the built-in platform skill
+ * projects ship their {@code SKILL.md}; skills created before content moved to
+ * {@code public/} may still have theirs under the legacy
+ * {@code version/assets/skill/} folder instead, so resolution probes both.
  *
- * <p>{@link #resolve(String)} is best-effort and never throws: name and slug
- * always fall back (frontmatter name, then the securitydb display name, then
- * the project id) so callers can safely build responses and staging paths for
+ * <p>
+ * {@link #resolve(String)} is best-effort and never throws: {@code name} and
+ * {@code slug} always fall back (frontmatter name, then the securitydb display
+ * name, then the project id), and {@code displayName} falls back in the
+ * opposite order (securitydb display name, then frontmatter name, then the
+ * project id), so callers can safely build responses and staging paths for
  * stale or partially-broken attachments.
  */
 public final class SkillProjects {
 
-	private static final Logger logger = LogManager.getLogger(SkillProjects.class);
+	private static final Logger classLogger = LogManager.getLogger(SkillProjects.class);
 
-	/**
-	 * Legacy subfolder under {@code <project>/version/assets/} where the shipped
-	 * platform skill projects keep their {@code SKILL.md} (readable by read-only
-	 * users). Probed after {@link Skill#SKILL_ASSET_SUBFOLDER}.
-	 */
-	public static final String LEGACY_SKILL_ASSET_SUBFOLDER = "public";
-
-	private SkillProjects() {}
+	private SkillProjects() {
+	}
 
 	/**
 	 * Immutable identity snapshot of one skill project.
@@ -74,20 +73,37 @@ public final class SkillProjects {
 	public static final class SkillInfo {
 		/** Project id (== skill id). Never null. */
 		public final String projectId;
-		/** Display name: frontmatter name, else display name, else project id. Never null. */
+		/**
+		 * Canonical, immutable content identity: frontmatter name, else display name,
+		 * else project id. This is what {@link UpdateSkillReactor} anchors its
+		 * name-immutability guard and frontmatter rewrite to, and what {@link #slug} is
+		 * derived from. Never null.
+		 */
 		public final String name;
+		/**
+		 * The project's own stored name (what the creator supplied at creation time),
+		 * else frontmatter name, else project id - for user-facing listings where the
+		 * caller's chosen name should be shown even if it differs from the content's
+		 * own declared {@code name:}. Never null.
+		 */
+		public final String displayName;
 		/** Frontmatter description, or null when absent/unreadable. */
 		public final String description;
 		/** Filesystem-safe folder name derived from {@link #name}. Never null. */
 		public final String slug;
-		/** Directory containing SKILL.md, or null when the project/folder is unresolvable. */
+		/**
+		 * Directory containing SKILL.md, or null when the project/folder is
+		 * unresolvable.
+		 */
 		public final Path skillDir;
 		/** True when the SKILL.md frontmatter was actually read. */
 		public final boolean found;
 
-		SkillInfo(String projectId, String name, String description, String slug, Path skillDir, boolean found) {
+		SkillInfo(String projectId, String name, String displayName, String description, String slug, Path skillDir,
+				boolean found) {
 			this.projectId = projectId;
 			this.name = name;
+			this.displayName = displayName;
 			this.description = description;
 			this.slug = slug;
 			this.skillDir = skillDir;
@@ -103,14 +119,13 @@ public final class SkillProjects {
 		if (projectId == null || projectId.trim().isEmpty()) {
 			return false;
 		}
-		return IProject.PROJECT_TYPE.SKILL.name()
-				.equals(SecurityProjectUtils.getProjectTypeForId(projectId.trim()));
+		return IProject.PROJECT_TYPE.SKILL.name().equals(SecurityProjectUtils.getProjectTypeForId(projectId.trim()));
 	}
 
 	/**
-	 * Resolves the identity of a skill project. Best-effort: never throws and
-	 * never returns null; on failure the returned {@link SkillInfo} carries
-	 * fallback name/slug values, a null description, and {@code found=false}.
+	 * Resolves the identity of a skill project. Best-effort: never throws and never
+	 * returns null; on failure the returned {@link SkillInfo} carries fallback
+	 * name/slug values, a null description, and {@code found=false}.
 	 */
 	public static SkillInfo resolve(String projectId) {
 		Path skillDir = resolveSkillDir(projectId);
@@ -124,20 +139,21 @@ public final class SkillProjects {
 				fm = Skill.parseFrontmatter(content);
 				found = true;
 			} catch (Exception e) {
-				logger.warn("SkillProjects: failed to read '{}' for skill project '{}': {}",
-						skillFile, projectId, e.getMessage());
+				classLogger.warn("SkillProjects: failed to read '{}' for skill project '{}': {}", skillFile, projectId,
+						e.getMessage());
 			}
 		}
 
 		String name = firstNonBlank(fm.name, displayNameQuiet(projectId), projectId);
+		String displayName = firstNonBlank(displayNameQuiet(projectId), fm.name, projectId);
 		String description = (fm.description == null || fm.description.isEmpty()) ? null : fm.description;
 		String slug = Skill.slugify(name);
-		return new SkillInfo(projectId, name, description, slug, skillDir, found);
+		return new SkillInfo(projectId, name, displayName, description, slug, skillDir, found);
 	}
 
 	/**
 	 * Returns the directory holding the project's {@code SKILL.md} - the
-	 * {@code skill/} assets subfolder, else the legacy {@code public/} subfolder -
+	 * {@code public/} assets subfolder, else the legacy {@code skill/} subfolder -
 	 * or null when the project cannot be resolved or neither folder has a
 	 * {@code SKILL.md}.
 	 */
@@ -151,26 +167,43 @@ public final class SkillProjects {
 			// required for the platform__<id> folder convention
 			assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		} catch (Exception e) {
-			logger.warn("SkillProjects: could not resolve assets folder for skill project '{}': {}",
-					projectId, e.getMessage());
+			classLogger.warn("SkillProjects: could not resolve assets folder for skill project '{}': {}", projectId,
+					e.getMessage());
 			return null;
 		}
 		Path primary = Paths.get(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
 		if (Files.isRegularFile(primary.resolve(Skill.SKILL_FILE))) {
 			return primary;
 		}
-		Path legacy = Paths.get(assetsFolder, LEGACY_SKILL_ASSET_SUBFOLDER);
+		Path legacy = Paths.get(assetsFolder, Skill.LEGACY_SKILL_ASSET_SUBFOLDER);
 		if (Files.isRegularFile(legacy.resolve(Skill.SKILL_FILE))) {
 			return legacy;
 		}
 		return null;
 	}
 
+	/**
+	 * Returns the assets-relative folder holding the skill's content, with a
+	 * leading slash: {@code /public}, or {@code /skill} for skills created before
+	 * content moved. Derived from {@link #resolveSkillDir(String)}, which probes
+	 * both for a {@code SKILL.md}; defaults to {@code /public} when neither has
+	 * one.
+	 *
+	 * <p>
+	 * This is the form the asset utilities want - {@code FileSystemUtil} and
+	 * {@code EngineUtility.getSpecificEngineAssetsFolder} work in paths relative to
+	 * {@code version/assets} rather than absolute ones.
+	 */
+	public static String contentSubfolder(String projectId) {
+		Path skillDir = resolveSkillDir(projectId);
+		return "/" + (skillDir != null ? skillDir.getFileName().toString() : Skill.SKILL_ASSET_SUBFOLDER);
+	}
+
 	private static String displayNameQuiet(String projectId) {
 		try {
 			return SecurityProjectUtils.getProjectDisplayNameForId(projectId);
 		} catch (Exception e) {
-			logger.warn("SkillProjects: failed display-name lookup for '{}': {}", projectId, e.getMessage());
+			classLogger.warn("SkillProjects: failed display-name lookup for '{}': {}", projectId, e.getMessage());
 			return null;
 		}
 	}

@@ -40,6 +40,7 @@ import prerna.reactor.agent.AgentRunner;
 public final class RunAgentRequest {
 
 	private final String roomId;
+	private final String parentRunId;
 	private final String input;
 	private final String engineIdFallback;
 	private final String harnessType;
@@ -57,14 +58,23 @@ public final class RunAgentRequest {
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
-				agentParamMap, mediaInputPaths, mediaUrls, insight, false);
+				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null);
 	}
 
 	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
 			boolean resumeMode) {
+		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
+				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null);
+	}
+
+	private RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
+			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
+			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
+			boolean resumeMode, String parentRunId) {
 		this.roomId = roomId;
+		this.parentRunId = trimmedStringValue(parentRunId);
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
 		this.harnessType = harnessType;
@@ -91,6 +101,19 @@ public final class RunAgentRequest {
 
 	public String getRoomId() {
 		return roomId;
+	}
+
+	public String getParentRunId() {
+		return parentRunId;
+	}
+
+	/**
+	 * Returns an immutable copy associated with the durable run that spawned it.
+	 * Root runs use the original request and therefore retain a {@code null} parent.
+	 */
+	public RunAgentRequest withParentRunId(String parentRunId) {
+		return new RunAgentRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns,
+				maxReflections, paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId);
 	}
 
 	public String getInput() {
@@ -144,6 +167,7 @@ public final class RunAgentRequest {
 	public Map<String, Object> toPersistedMap() {
 		Map<String, Object> map = new HashMap<>();
 		map.put("roomId", roomId);
+		map.put("parentRunId", parentRunId);
 		map.put("input", input);
 		map.put("engineIdFallback", engineIdFallback);
 		map.put("harnessType", harnessType);
@@ -176,7 +200,8 @@ public final class RunAgentRequest {
 				listValue(map.get("mediaInputPaths")),
 				listValue(map.get("mediaUrls")),
 				insight,
-				booleanValue(map.get("resumeMode")));
+				booleanValue(map.get("resumeMode")),
+				stringValue(map.get("parentRunId")));
 	}
 
 	private static List<String> immutableStringList(List<String> values) {
@@ -214,6 +239,11 @@ public final class RunAgentRequest {
 		}
 		String str = String.valueOf(value);
 		return str.trim().isEmpty() ? null : str;
+	}
+
+	private static String trimmedStringValue(Object value) {
+		String str = stringValue(value);
+		return str == null ? null : str.trim();
 	}
 
 	private static int intValue(Object value, int defaultValue) {

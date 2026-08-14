@@ -27,15 +27,19 @@
  *******************************************************************************/
 package prerna.remoteviewer.service;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.microsoft.playwright.Page;
+
 import prerna.reactor.playwright.Coords;
 import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.PlaywrightStepType;
 import prerna.reactor.playwright.Selector;
+import prerna.reactor.playwright.TriggerNewTab;
 import prerna.reactor.playwright.Viewport;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
@@ -53,7 +57,6 @@ public class RemoteBrowserRecordingService {
 
 	private static final Logger classLogger = LogManager.getLogger(RemoteBrowserRecordingService.class);
 
-	private static final String DEFAULT_TAB_ID = "tab-1";
 	private static final int DEFAULT_CLICK_WAIT_MS = 300;
 	private static final double DEVICE_SCALE_FACTOR = 1.0;
 
@@ -74,6 +77,7 @@ public class RemoteBrowserRecordingService {
 			if (enabled != null) {
 				session.setRecordingEnabled(enabled.booleanValue());
 				if (enabled.booleanValue()) {
+					session.getPlaywrightSession().endReplayTabBinding();
 					session.clearRecordingBuffer();
 					recordCurrentNavigation(session);
 				} else if (Boolean.TRUE.equals(event.getDiscard())) {
@@ -94,6 +98,7 @@ public class RemoteBrowserRecordingService {
 			recordClick(session, event);
 			break;
 		case "type-text":
+		case "fill-element":
 			recordType(session, event);
 			break;
 		case "key":
@@ -101,16 +106,22 @@ public class RemoteBrowserRecordingService {
 			break;
 		case "navigate":
 			session.clearPendingTypeStep();
-			appendStep(session,
+			appendStep(session, event,
 					buildStep(session, event, PlaywrightStepType.NAVIGATE, event.getUrl(), null, null, null, null),
 					true);
-			session.startNextRemoteBrowserRecordedStepOnNewPage();
+			session.startNextRemoteBrowserRecordedStepOnNewPage(tabId(session, event));
+
 			addLegacyStep(session, event);
 			break;
 		case "wheel":
 			session.clearPendingTypeStep();
-			appendStep(session, buildStep(session, event, PlaywrightStepType.SCROLL, null, coords(event), null, null,
-					toInteger(event.getDeltaY())), false);
+			appendStep(session, event, buildStep(session, event, PlaywrightStepType.SCROLL, null, coords(event), null,
+					null, toInteger(event.getDeltaY())), false);
+			addLegacyStep(session, event);
+			break;
+		case "selected-text-context":
+			session.clearPendingTypeStep();
+			recordContext(session, event);
 			addLegacyStep(session, event);
 			break;
 		default:
@@ -153,40 +164,55 @@ public class RemoteBrowserRecordingService {
 		PlaywrightStep step = new PlaywrightStep(0, PlaywrightStepType.NAVIGATE, url, null, null, null, null, null,
 				null, null, 100, viewport(session, null), System.currentTimeMillis(), null, null, false, false, null,
 				null, Boolean.TRUE, Boolean.FALSE, null, null);
-		appendStep(session, step, true);
-		session.startNextRemoteBrowserRecordedStepOnNewPage();
+		String recordingTabId = session.getRecordingTabId(session.getActiveTabId());
+		session.appendRemoteBrowserRecordedStep(recordingTabId, step, true);
+		session.startNextRemoteBrowserRecordedStepOnNewPage(recordingTabId);
 	}
 
 	private static void recordClick(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		PlaywrightStep step = buildStep(session, event, PlaywrightStepType.CLICK, null, coords(event), null,
 				waitAfter(event), null);
-		appendStep(session, step, false);
+		appendStep(session, event, step, false);
 		addLegacyStep(session, event);
+	}
+
+	private static void recordContext(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		Coords start = coords(event);
+		if (start == null || event.getEndX() == null || event.getEndY() == null) {
+			throw new IllegalArgumentException("Context recording requires selection bounds");
+		}
+		Coords end = new Coords((int) Math.round(event.getEndX()), (int) Math.round(event.getEndY()));
+		PlaywrightStep step = new PlaywrightStep(0, PlaywrightStepType.CONTEXT, null, start, List.of(start, end),
+				"Extract selected website text", null, null, null, null, null, viewport(session, event),
+				System.currentTimeMillis(),
+				event.getLabel() == null || event.getLabel().isBlank() ? "Selected website text" : event.getLabel(),
+				event.getDescription(), false, false, null, null, Boolean.TRUE, Boolean.FALSE, Boolean.TRUE, null);
+		appendStep(session, event, step, false);
 	}
 
 	private static void recordType(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
 		String signature = selectorSignature(event);
 		String text = Boolean.TRUE.equals(event.getIsPassword()) ? "" : nullToEmpty(event.getText());
 		PlaywrightStep previous = session.getPendingTypeStep(signature);
-		if (previous == null) {
-			previous = session.getPendingTypeStep();
-		}
 
 		if (previous != null) {
+			String nextText = "fill-element".equals(event.getType()) ? text : nullToEmpty(previous.text()) + text;
 			PlaywrightStep updated = new PlaywrightStep(previous.id(), previous.type(), previous.url(),
-					coordsOrPrevious(event, previous), previous.multiCoords(), previous.prompt(),
-					nullToEmpty(previous.text()) + text, previous.pressEnter(), previous.deltaY(), previous.waitUntil(),
-					previous.waitAfterMs(), viewport(session, event), previous.timestamp(), label(event, previous),
+					coordsOrPrevious(event, previous), previous.multiCoords(), previous.prompt(), nextText,
+					previous.pressEnter(), previous.deltaY(), previous.waitUntil(), previous.waitAfterMs(),
+					viewport(session, event), previous.timestamp(), label(event, previous),
 					description(event, previous), previous.isPassword(), storeValue(event, previous),
 					selectorOrPrevious(event, previous), previous.isTriggerNewTab(), shouldRun(event), required(event),
 					sendToPlayground(event), tag(event, previous));
-			session.replaceLastRemoteBrowserRecordedStep(DEFAULT_TAB_ID, updated);
+			session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
+
 			session.setPendingTypeStep(signature, updated);
 			return;
 		}
+		session.clearPendingTypeStep();
 
 		PlaywrightStep step = buildStep(session, event, PlaywrightStepType.TYPE, null, coords(event), text, null, null);
-		PlaywrightStep appended = appendStep(session, step, false);
+		PlaywrightStep appended = appendStep(session, event, step, false);
 		session.setPendingTypeStep(signature, appended);
 		addLegacyStep(session, event);
 	}
@@ -197,16 +223,14 @@ public class RemoteBrowserRecordingService {
 		}
 		String signature = selectorSignature(event);
 		PlaywrightStep previous = session.getPendingTypeStep(signature);
-		if (previous == null) {
-			previous = session.getPendingTypeStep();
-		}
 		if (previous != null && isTextDeletingKey(event.getKey())) {
-			String currentValue = RemoteBrowserSelectorService.focusedValueIfMatches(session.getPage(),
+			String currentValue = RemoteBrowserSelectorService.focusedValueIfMatches(session.getActivePage(),
 					selectorOrPrevious(event, previous));
 			if (currentValue != null) {
 				PlaywrightStep updated = withText(previous,
 						Boolean.TRUE.equals(event.getIsPassword()) ? "" : currentValue, event);
-				session.replaceLastRemoteBrowserRecordedStep(DEFAULT_TAB_ID, updated);
+				session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
+
 				session.setPendingTypeStep(selectorSignatureForStep(updated), updated);
 			}
 			return;
@@ -218,7 +242,7 @@ public class RemoteBrowserRecordingService {
 					previous.timestamp(), previous.label(), previous.description(), previous.isPassword(),
 					previous.storeValue(), previous.selector(), previous.isTriggerNewTab(), previous.shouldRun(),
 					previous.required(), previous.sendToPlayground(), previous.tag());
-			session.replaceLastRemoteBrowserRecordedStep(DEFAULT_TAB_ID, updated);
+			session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
 			session.setPendingTypeStep(selectorSignature(event), updated);
 			return;
 		}
@@ -242,19 +266,29 @@ public class RemoteBrowserRecordingService {
 		return "Shift".equals(key) || "Control".equals(key) || "Alt".equals(key) || "Meta".equals(key);
 	}
 
-	private static PlaywrightStep appendStep(RemoteBrowserSession session, PlaywrightStep step, boolean startNewPage) {
-		boolean resolvedStartNewPage = startNewPage || session.consumeNextRemoteBrowserRecordedStepStartsNewPage();
-		return session.appendRemoteBrowserRecordedStep(DEFAULT_TAB_ID, step, resolvedStartNewPage);
+	private static PlaywrightStep appendStep(RemoteBrowserSession session, RemoteBrowserInputEvent event,
+			PlaywrightStep step, boolean startNewPage) {
+		String tabId = tabId(session, event);
+		boolean resolvedStartNewPage = startNewPage || session.consumeNextRemoteBrowserRecordedStepStartsNewPage(tabId);
+		return session.appendRemoteBrowserRecordedStep(tabId, step, resolvedStartNewPage);
 	}
 
 	private static PlaywrightStep buildStep(RemoteBrowserSession session, RemoteBrowserInputEvent event,
 			PlaywrightStepType type, String url, Coords coords, String text, Integer waitAfterMs, Integer deltaY) {
 		boolean isPassword = Boolean.TRUE.equals(event.getIsPassword());
 		boolean storeValue = Boolean.TRUE.equals(event.getStoreValue()) && !isPassword;
+		TriggerNewTab trigger = event.getTriggeredTabId() == null ? null
+				: new TriggerNewTab(true, session.getRecordingTabId(event.getTriggeredTabId()));
 		return new PlaywrightStep(0, type, url, coords, null, null, text, null, deltaY, event.getWaitUntil(),
 				waitAfterMs, viewport(session, event), System.currentTimeMillis(), event.getLabel(),
-				event.getDescription(), isPassword, storeValue, event.getSelector(), null, shouldRun(event),
+				event.getDescription(), isPassword, storeValue, event.getSelector(), trigger, shouldRun(event),
 				required(event), sendToPlayground(event), event.getTag());
+	}
+
+	private static String tabId(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		String tabId = event == null ? null : event.getTabId();
+		String liveTabId = tabId == null || tabId.isBlank() ? session.getActiveTabId() : tabId;
+		return session.getRecordingTabId(liveTabId);
 	}
 
 	private static boolean isRecordingControl(RemoteBrowserInputEvent event) {
@@ -379,7 +413,8 @@ public class RemoteBrowserRecordingService {
 
 	private static String safeUrl(RemoteBrowserSession session) {
 		try {
-			return session.getPage().url();
+			Page page = session.getActivePage();
+			return page == null ? "" : page.url();
 		} catch (Exception e) {
 			classLogger.warn("Unable to read current URL for session {}; recording step with empty URL",
 					session.getSessionId(), e);

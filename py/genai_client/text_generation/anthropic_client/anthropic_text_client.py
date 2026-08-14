@@ -24,6 +24,7 @@ from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
+from ...message_builders.semoss_base.builtin_tools import has_built_in_tool
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import (
     ModelEngineException,
@@ -305,10 +306,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if self.model_settings.global_param_override:
                 kwargs.update(self.model_settings.global_param_override)
 
-            built_in_tools = kwargs.get("built_in_tools", []) or []
-            web_search_enabled = any(
-                isinstance(tool, str) and tool.lower() == "web_search"
-                for tool in built_in_tools
+            web_search_enabled = has_built_in_tool(
+                kwargs.get("built_in_tools"), "web_search"
             )
             inline_citations = kwargs.get("inline_citations", None)
             if inline_citations is None:
@@ -327,7 +326,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 msg_builder_response = AnthropicMessageBuilder().build_messages(
                     semoss_messages,
                     self.model_settings,
-                    self.model_limits,
                     self.model_name,
                     self.use_beta_header,
                     self.beta_feature_name,
@@ -1114,7 +1112,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         msg_builder_response = AnthropicMessageBuilder().build_messages(
             semoss_messages,
             self.model_settings,
-            self.model_limits,
             self.model_name,
             self.use_beta_header if self.use_beta_header else False,
             self.beta_feature_name,

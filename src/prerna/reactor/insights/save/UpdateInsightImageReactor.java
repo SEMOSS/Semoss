@@ -29,6 +29,8 @@ package prerna.reactor.insights.save;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.ThreadStore;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.reactor.utils.ImageCaptureReactor;
@@ -53,6 +55,10 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 		
 		String projectId = getProject();
 		String rdbmsId = getRdbmsId();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			throw new IllegalArgumentException("User does not have permission to edit this insight");
+		}
 		String feUrl = getUrl();
 		String sessionId = ThreadStore.getSessionId();
 		Object params = getExecutionParams();
