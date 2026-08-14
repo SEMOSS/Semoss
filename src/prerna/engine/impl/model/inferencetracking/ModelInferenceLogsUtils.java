@@ -255,7 +255,7 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
 			executeSql(conn, sql);
-			} else {
+		} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
 				executeSql(conn, sql);
@@ -440,7 +440,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns true when the user submitted the given batch (batch_submit row exists).
+	 * Returns true when the user submitted the given batch (batch_submit row
+	 * exists).
 	 */
 	public static boolean userOwnsBatch(String userId, String providerBatchId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -467,8 +468,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns the user's batch submissions for an engine, most recent first.
-	 * Each map has: providerBatchId, submittedAt, engineId, requestCount.
+	 * Returns the user's batch submissions for an engine, most recent first. Each
+	 * map has: providerBatchId, submittedAt, engineId, requestCount.
 	 */
 	public static List<Map<String, Object>> getUserBatches(String userId, String engineId, int limit) {
 		List<Map<String, Object>> out = new ArrayList<>();
@@ -512,9 +513,9 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * Returns the stored input prompts for a batch as customId -> command map.
-	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written
-	 * at submit time. TRANSACTION_ID has the form "batchId.customId", so customId
-	 * is extracted as the suffix after "batchId.".
+	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written at
+	 * submit time. TRANSACTION_ID has the form "batchId.customId", so customId is
+	 * extracted as the suffix after "batchId.".
 	 */
 	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
 		Map<String, String> out = new HashMap<>();
@@ -549,10 +550,10 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch item.
-	 * The INPUT row is written at submit time before token counts are known; this
-	 * back-fills them at results time so usage analytics (which derive the input/
-	 * response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
+	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch
+	 * item. The INPUT row is written at submit time before token counts are known;
+	 * this back-fills them at results time so usage analytics (which derive the
+	 * input/ response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
 	 * Matched by the per-item TRANSACTION_ID ("batchId.customId").
 	 */
 	public static void updateBatchInputTokens(String transactionId, Integer inputTokens) {
@@ -1045,7 +1046,6 @@ public class ModelInferenceLogsUtils {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
 			ps.setString(index++, roomId);
-			ps.execute();
 			if (ps.execute()) {
 				ResultSet rs = ps.getResultSet();
 				if (rs.next()) {
@@ -1055,6 +1055,46 @@ public class ModelInferenceLogsUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether room exists for roomId '{}'.", roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether a room exists and belongs to the given user.
+	 * <p>
+	 * This is the cheapest way to validate room access - it only touches the ROOM
+	 * table and never loads the room's messages, builds a {@link Room}, populates
+	 * the user's room hash, or takes the room mutation lock. Use this instead of
+	 * {@code RoomUtils.getOrLoadRoom} when the caller only needs an access check.
+	 * Inactive (closed) rooms are still considered accessible here, matching the
+	 * behavior of {@link #getRoomById(String, String)}.
+	 * </p>
+	 *
+	 * @param roomId room identifier
+	 * @param userId user identifier
+	 * @return {@code true} if the room exists for this user
+	 */
+	public static boolean doCheckRoomExistsForUser(String roomId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, roomId);
+			ps.setString(index++, userId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				if (rs.next()) {
+					int count = rs.getInt(1);
+					return count >= 1;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to check whether room exists for roomId '{}' and userId '{}'.", roomId, userId,
+					e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1590,8 +1630,8 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * Updates a room's display name only when the current name is still unset or
-	 * still equal to the auto-derived default (the truncated initial request set
-	 * at room creation). A custom name set by the user is never overwritten.
+	 * still equal to the auto-derived default (the truncated initial request set at
+	 * room creation). A custom name set by the user is never overwritten.
 	 *
 	 * @param userId      user identifier
 	 * @param roomId      room identifier
@@ -1599,8 +1639,7 @@ public class ModelInferenceLogsUtils {
 	 * @param defaultName auto-derived name that is allowed to be replaced
 	 * @return {@code true} when a row was updated
 	 */
-	public static boolean doSetNameForRoomIfDefault(String userId, String roomId, String roomName,
-			String defaultName) {
+	public static boolean doSetNameForRoomIfDefault(String userId, String roomId, String roomName, String defaultName) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=? "
 				+ "AND (ROOM_NAME IS NULL OR ROOM_NAME='' OR ROOM_NAME=?)";
@@ -3778,16 +3817,17 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Detaches a skill project from every workspace that references it: deletes the
 	 * WORKSPACE_RESOURCE__ rows (RESOURCE_TYPE='SKILL') and scrubs the matching
-	 * {@code CONFIG_JSON.skills[]} mirror entry in each affected workspace. Does NOT
-	 * delete the underlying Project - callers (typically the project-delete path)
-	 * own that.
+	 * {@code CONFIG_JSON.skills[]} mirror entry in each affected workspace. Does
+	 * NOT delete the underlying Project - callers (typically the project-delete
+	 * path) own that.
 	 *
-	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
+	 * <p>
+	 * Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
 	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
-	 * the mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
-	 * still returns, so the run-time {@code SkillStager} fails it every run. The
-	 * referencing workspaces are captured before the row deletes so the mirror can be
-	 * scrubbed afterward.
+	 * the mirror leaves a dangling skill id that
+	 * {@code AgentConfigLoader.resolveSkills} still returns, so the run-time
+	 * {@code SkillStager} fails it every run. The referencing workspaces are
+	 * captured before the row deletes so the mirror can be scrubbed afterward.
 	 *
 	 * @param projectId skill project identifier
 	 */

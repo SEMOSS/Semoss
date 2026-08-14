@@ -98,6 +98,36 @@ approved-only mode is in force keytool can no longer read the source truststore.
 Hashes are pinned in the Dockerfile rather than fetched next to the jars.
 Downloading an artifact and its checksum from the same source verifies nothing.
 
+### 4.1 TLS defaults
+
+Swapping the provider list is not enough on its own - three JDK defaults name
+SunJSSE machinery that is no longer registered, and each one fails late rather
+than at startup:
+
+| Setting | JDK default | FIPS value | Set in |
+|---------|-------------|------------|--------|
+| `ssl.KeyManagerFactory.algorithm` | `SunX509` | `PKIX` | `java.security.fips` |
+| `ssl.TrustManagerFactory.algorithm` | `PKIX` | `PKIX` (pinned) | `java.security.fips` |
+| `javax.net.ssl.trustStoreProvider` | unset | `BCFIPS` | `setenv.sh` |
+
+- **`SunX509` is a SunJSSE-only algorithm name.** BCJSSE registers `PKIX` and its
+  `X.509` alias, nothing else. Leave the default in place and
+  `KeyManagerFactory.getDefaultAlgorithm()` still returns `SunX509`, so every
+  default-constructed `SSLContext` throws `NoSuchAlgorithmException` - usually
+  seen as `Default SSLContext not available` on the first outbound HTTPS call.
+- `ssl.TrustManagerFactory.algorithm` already defaults to `PKIX`, but it is
+  written explicitly so a JDK default change cannot move it.
+- **`BCFKS` is registered by BCFIPS only.** Without
+  `javax.net.ssl.trustStoreProvider`, `TrustStoreManager` walks the provider list
+  in order, asks SUN for `BCFKS` first, and swallows the resulting
+  `KeyStoreException` into an empty trust anchor set. The failure then shows up
+  at handshake time as `PKIX path building failed`, not at load time.
+
+Both `java.security.fips` lines are written by deleting the JDK entries and
+appending ours, never by in-place substitution - a substitution silently no-ops
+if the property ever stops shipping, which puts the image back on the broken
+default with a green build.
+
 `tomcat-builder.yml` crosses `arch` with `fips` (4 build jobs, 2 merge jobs) and
 asserts each variant is genuinely what it claims - including that the standard
 image contains **no** FIPS artifacts, which catches `FIPS_ENABLED` leaking.
@@ -211,8 +241,10 @@ than reading config, and exits non-zero on failure:
 
 It checks provider order, that SecureRandom and SHA-256 come from BCFIPS,
 AES-256-GCM, PBKDF2, that a sub-112-bit password is rejected, that the BCFKS
-truststore loads, and that `context.xml` resolves session IDs to BCFIPS through
-the same `IntrospectionUtils` path the Tomcat Digester uses.
+truststore loads through the named provider, that the TLS defaults from section
+4.1 resolve to BCJSSE and `SSLContext.getDefault()` actually builds, and that
+`context.xml` resolves session IDs to BCFIPS through the same
+`IntrospectionUtils` path the Tomcat Digester uses.
 
 It also reports which provider serves MD5, as a standing reminder of section 8.
 
