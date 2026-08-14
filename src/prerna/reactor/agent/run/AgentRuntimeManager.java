@@ -28,10 +28,15 @@
 package prerna.reactor.agent.run;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.github.f4b6a3.uuid.alt.GUID;
+import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
@@ -40,11 +45,20 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.ClaudeCodeAgentHarness;
 import prerna.reactor.agent.runtime.SemossAgentHarness;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
+import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
+import prerna.reactor.agent.subagent.SubAgentMeta;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
 public final class AgentRuntimeManager {
+
+	private static final Logger logger = LogManager.getLogger(AgentRuntimeManager.class);
+	private static final Gson GSON = new Gson();
 
 	private static final int MAX_ERROR_LENGTH = 8000;
 	private static final String WAIT_TIMEOUT_MS = "AGENT_RUN_WAIT_TIMEOUT_MS";
@@ -80,6 +94,9 @@ public final class AgentRuntimeManager {
 		}
 		String userId = resolveUserId(request.getInsight());
 		store.insertSubmitted(resolvedRunId, request, userId);
+		if (supportsCanonicalStreaming(request.getHarnessType())) {
+			AgentRunStreamService.get().register(resolvedRunId);
+		}
 		worker.rememberInsight(resolvedRunId, request.getInsight());
 		worker.signal();
 		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
@@ -103,6 +120,15 @@ public final class AgentRuntimeManager {
 	public void signalWorkerForResume(String runId, prerna.om.Insight insight) {
 		if (runId != null && !runId.trim().isEmpty() && insight != null) {
 			worker.rememberInsight(runId, insight);
+			try {
+				AgentRunRecord record = store.getRun(runId, insight);
+				if (record != null && record.getRequest() != null
+						&& isSemossHarness(record.getRequest().getHarnessType())) {
+					AgentRunStreamService.get().register(runId);
+				}
+			} catch (Exception e) {
+				// stream re-registration is best-effort
+			}
 		}
 		worker.signal();
 	}
@@ -122,7 +148,7 @@ public final class AgentRuntimeManager {
 			try {
 				AgentRunActionStore actionStore = new AgentRunActionStore();
 				List<Map<String, Object>> pendingActions = actionStore.getPendingActions(runId);
-				run.put("pendingActions", pendingActions);
+				run.put("pendingActions", normalizePendingActions(pendingActions));
 			} catch (Exception e) {
 				// best-effort - don't fail the getRun call
 			}
@@ -139,12 +165,11 @@ public final class AgentRuntimeManager {
 		String roomId = trimToNull(run.get("roomId"));
 		String userId = resolveUserId(insight);
 		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
-		if (room == null) {
-			run.put("messages", List.of());
-			return run;
+		List<Map<String, Object>> messages = room == null ? new ArrayList<>() : collectRunMessages(room, runId);
+		if (ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(run.get("harnessType")))) {
+			messages = ClaudeCodeRunActivityAdapter.projectMessages(run, messages);
 		}
-
-		run.put("messages", collectRunMessages(room, runId));
+		run.put("messages", messages);
 		return run;
 	}
 
@@ -183,7 +208,9 @@ public final class AgentRuntimeManager {
 		}
 		worker.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
-		store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled");
+		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
+			notifyStreamCancelled(runId, "Agent run cancelled");
+		}
 		return getRun(runId, insight);
 	}
 
@@ -193,7 +220,95 @@ public final class AgentRuntimeManager {
 		}
 		String message = reason == null || reason.trim().isEmpty() ? "Agent run cancelled" : reason.trim();
 		worker.cancel(runId);
-		return store.markCancelledIfNotTerminal(runId, runId, message);
+		boolean cancelled = store.markCancelledIfNotTerminal(runId, runId, message);
+		if (cancelled) {
+			notifyStreamCancelled(runId, message);
+		}
+		return cancelled;
+	}
+
+	/**
+	 * Snapshot of one run shaped for the agent streaming poll contract.
+	 */
+	public Map<String, Object> getRunSnapshot(String runId, Insight insight) {
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		Map<String, Object> run = store.getRunMap(runId, insight);
+		if (run == null) {
+			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
+		}
+		Map<String, Object> snapshot = new HashMap<>();
+		snapshot.put("runId", run.get("runId"));
+		snapshot.put("roomId", run.get("roomId"));
+		snapshot.put("status", run.get("status"));
+		snapshot.put("inputMessageId", run.get("inputMessageId"));
+		snapshot.put("finalOutputMessageId", run.get("finalOutputMessageId"));
+		snapshot.put("finalText", run.get("finalText"));
+		snapshot.put("errorMessage", run.get("errorMessage"));
+		List<Map<String, Object>> pendingActions = new ArrayList<>();
+		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
+			try {
+				pendingActions = normalizePendingActions(new AgentRunActionStore().getPendingActions(runId));
+			} catch (Exception e) {
+				// best-effort - snapshot still carries the run status
+			}
+		}
+		snapshot.put("pendingActions", pendingActions);
+		return snapshot;
+	}
+
+	private static boolean isSemossHarness(String harnessType) {
+		return harnessType == null || harnessType.trim().isEmpty()
+				|| SemossAgentHarness.NAME.equalsIgnoreCase(harnessType.trim());
+	}
+
+	private static boolean supportsCanonicalStreaming(String harnessType) {
+		return isSemossHarness(harnessType)
+				|| ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
+	}
+
+	private static void notifyStreamCancelled(String runId, String message) {
+		AgentRunStreamService streams = AgentRunStreamService.get();
+		streams.markTerminal(runId);
+		SubAgentMeta meta = AgentSubAgentRegistry.getManager().lookup(runId);
+		if (meta != null && meta.getParentJobId() != null && !meta.getParentJobId().isBlank()) {
+			Map<String, Object> item = AgentStreamItems.subagentItem(runId, meta.getAlias(), meta.getChildRoomId(),
+					meta.getWorkspaceId(), AgentRunStatus.CANCELLED.name());
+			item.put("error", AgentStreamItems.truncate(message, AgentStreamItems.MAX_RESULT_PREVIEW_CHARS));
+			streams.publishSubagentCompleted(meta.getParentJobId(), item);
+		}
+	}
+
+	private static List<Map<String, Object>> normalizePendingActions(List<Map<String, Object>> actions) {
+		if (actions == null) {
+			return new ArrayList<>();
+		}
+		for (Map<String, Object> action : actions) {
+			normalizeJsonField(action, "toolArgs");
+			normalizeJsonField(action, "toolMeta");
+			normalizeJsonField(action, "editedArgs");
+		}
+		return actions;
+	}
+
+	private static void normalizeJsonField(Map<String, Object> action, String key) {
+		Object value = action.get(key);
+		if (!(value instanceof String)) {
+			return;
+		}
+		String json = ((String) value).trim();
+		if (json.isEmpty()) {
+			action.put(key, null);
+			return;
+		}
+		try {
+			Object parsed = GSON.fromJson(json, Object.class);
+			action.put(key, parsed instanceof Map ? parsed : null);
+		} catch (Exception e) {
+			action.put(key, null);
+			logger.warn("AgentRuntimeManager: malformed {} JSON on actionId={}", key, action.get("actionId"));
+		}
 	}
 
 	boolean isCancelled(Throwable t) {

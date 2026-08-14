@@ -156,6 +156,7 @@ public final class AgentConfigLoader {
         b.modelId(StringUtils.trimToNull(modelId));
         b.modelParams(paramMap);
         b.agentParams(agentParams);
+        b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
 
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));

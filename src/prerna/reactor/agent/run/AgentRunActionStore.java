@@ -113,16 +113,28 @@ public final class AgentRunActionStore {
 	 * Used by {@code GetAgentRunReactor} to surface pending actions.
 	 */
 	public List<Map<String, Object>> getActionsForRun(String runId) {
+		return getActionsForRun(runId, null);
+	}
+
+	/**
+	 * Return all action rows for a run id and, when supplied, the owning user.
+	 * Owner-scoped read surfaces should always use this overload.
+	 */
+	public List<Map<String, Object>> getActionsForRun(String runId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
-					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ? ORDER BY DATE_CREATED ASC";
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?"
+					+ (userId != null ? " AND USER_ID = ?" : "") + " ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
+			if (userId != null) {
+				ps.setString(2, userId);
+			}
 			rs = ps.executeQuery();
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (rs.next()) {
@@ -173,7 +185,7 @@ public final class AgentRunActionStore {
 		try {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
-					+ "RESULT, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
 					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, actionId);
@@ -216,9 +228,10 @@ public final class AgentRunActionStore {
 	 * @param result      the tool result (approve/edit), the user's response (respond),
 	 *                    or the rejection message (reject)
 	 * @param status      the decided status: APPROVED, EDITED, REJECTED, RESPONDED
+	 * @param toolStatus  execution status persisted for exact replay
 	 */
 	public boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
-			String status) {
+			String status, String toolStatus) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
@@ -228,6 +241,9 @@ public final class AgentRunActionStore {
 			}
 			if (result != null) {
 				query.append(", RESULT = ?");
+			}
+			if (toolStatus != null) {
+				query.append(", TOOL_STATUS = ?");
 			}
 			query.append(" WHERE ACTION_ID = ? AND RUN_ID = ? AND USER_ID = ? AND STATUS IN ('PENDING', 'EXECUTING')");
 
@@ -240,6 +256,9 @@ public final class AgentRunActionStore {
 			}
 			if (result != null) {
 				setClob(db, ps, idx++, result);
+			}
+			if (toolStatus != null) {
+				ps.setString(idx++, toolStatus);
 			}
 			ps.setString(idx++, actionId);
 			ps.setString(idx++, runId);
@@ -346,6 +365,7 @@ public final class AgentRunActionStore {
 		map.put("uiUrl", clobToString(rs, "UI_URL"));
 		map.put("status", rs.getString("STATUS"));
 		map.put("result", clobToString(rs, "RESULT"));
+		map.put("toolStatus", rs.getString("TOOL_STATUS"));
 		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
 		map.put("decidedAt", stringValue(rs.getTimestamp("DECIDED_AT")));
 		map.put("userId", rs.getString("USER_ID"));

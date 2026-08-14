@@ -49,55 +49,68 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 
 /**
- * Lists every skill discovered on disk under the conventional skill-host directories of a working
- * directory, deduplicated by name with the same first-match-wins precedence as the
- * {@code LoadSkill} tool.
+ * Lists every skill discovered on disk under the conventional skill-host
+ * directories of a working directory, deduplicated by name with the same
+ * first-match-wins precedence as the {@code LoadSkill} tool.
  *
- * <p>The directory scanned is chosen, in order:
+ * <p>
+ * The directory scanned is chosen, in order:
  * <ol>
- *   <li>{@code projectId} (optional) - the project's assets folder
- *       ({@code AssetUtility.getProjectAssetsFolder}). Requires that the caller can view the
- *       project ({@code SecurityProjectUtils.userCanViewProject}).</li>
- *   <li>{@code roomId} (optional) - the room's folder
- *       ({@code Room.getRoomFolderPath}). Resolved via {@code getRoomById(roomId, userId)}, which
- *       only returns rooms the caller owns.</li>
- *   <li>otherwise - the current insight's working directory ({@code Insight.getInsightFolder}).</li>
+ * <li>{@code projectId} (optional) - the project's assets folder
+ * ({@code AssetUtility.getProjectAssetsFolder}). Requires that the caller can
+ * view the project ({@code SecurityProjectUtils.userCanViewProject}).</li>
+ * <li>{@code roomId} (optional) - the room's folder
+ * ({@code Room.getRoomFolderPath}). Resolved via
+ * {@code getRoomById(roomId, userId)}, which only returns rooms the caller
+ * owns.</li>
+ * <li>otherwise - the current insight's working directory
+ * ({@code Insight.getInsightFolder}).</li>
  * </ol>
  * {@code projectId} and {@code roomId} are mutually exclusive.
  *
- * <p>This is the public/core counterpart of the {@code Agent_Tools} {@code ListSkill} reactor.
- * Discovery is delegated entirely to {@link SkillScanner#scan(String)} -- the same logic the
+ * <p>
+ * This is the public/core counterpart of the {@code Agent_Tools}
+ * {@code ListSkill} reactor. Discovery is delegated entirely to
+ * {@link SkillScanner#scan(String)} -- the same logic the
  * {@link prerna.reactor.agent.runtime.SemossAgentHarness} uses to build its
- * {@code <available_skills>} system-prompt block -- so all paths agree on what is available.
- * This reactor reads the physical filesystem; skill projects themselves are listed via
- * {@code MyProjects} (projects with {@code PROJECT.TYPE = SKILL}).
+ * {@code <available_skills>} system-prompt block -- so all paths agree on what
+ * is available. This reactor reads the physical filesystem; skill projects
+ * themselves are listed via {@code MyProjects} (projects with
+ * {@code PROJECT.TYPE = SKILL}).
  *
- * <p>Returns a list of skill maps (one per skill), each with {@code name}, {@code path} (the
- * working-dir-relative path to its {@code SKILL.md}), {@code directory} (the relative path to the
- * skill folder), and {@code description} (a one-liner from YAML frontmatter {@code description:}
- * when present, else the first non-blank line after the H1). When {@code includeContent} is true,
- * each map also carries {@code content} - the SKILL.md body (everything after the frontmatter).
- * When {@code includeAll} is true, each map also carries {@code files} - an array of the other
- * files under the skill directory, each {@code {path, directory, content}} with {@code path} and
- * {@code directory} relative to the working directory (same shape as the top-level skill, so the
- * tree can be recreated; empty directories are not represented). {@code includeAll} implies
- * {@code includeContent}.
+ * <p>
+ * Returns a list of skill maps (one per skill), each with {@code name},
+ * {@code path} (the working-dir-relative path to its {@code SKILL.md}),
+ * {@code directory} (the relative path to the skill folder), and
+ * {@code description} (a one-liner from YAML frontmatter {@code description:}
+ * when present, else the first non-blank line after the H1). When
+ * {@code includeContent} is true, each map also carries {@code content} - the
+ * SKILL.md body (everything after the frontmatter). When {@code includeAll} is
+ * true, each map also carries {@code files} - an array of the other files under
+ * the skill directory, each {@code {path, directory, content}} with
+ * {@code path} and {@code directory} relative to the working directory (same
+ * shape as the top-level skill, so the tree can be recreated; empty directories
+ * are not represented). {@code includeAll} implies {@code includeContent}.
  * Empty list when no skills are found.
  */
 public class ListSkillsReactor extends AbstractReactor {
 
-	/** Key carrying the target project id - uses the platform-standard {@code project} noun. */
-	private static final String PROJECT = ReactorKeysEnum.PROJECT.getKey();
-
-	/** Optional flag - when true, each skill map includes a {@code content} entry (body after frontmatter). */
+	/**
+	 * Optional flag - when true, each skill map includes a {@code content} entry
+	 * (body after frontmatter).
+	 */
 	private static final String INCLUDE_CONTENT = "includeContent";
 
-	/** Optional flag - when true, also crawl the rest of each skill folder into a {@code files} array (implies includeContent). */
+	/**
+	 * Optional flag - when true, also crawl the rest of each skill folder into a
+	 * {@code files} array (implies includeContent).
+	 */
 	private static final String INCLUDE_ALL = "includeAll";
 
 	public ListSkillsReactor() {
-		this.keysToGet   = new String[] { PROJECT, ReactorKeysEnum.ROOM_ID.getKey(), INCLUDE_CONTENT, INCLUDE_ALL };
-		this.keyRequired = new int[]    { 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
+				INCLUDE_CONTENT, INCLUDE_ALL };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -105,8 +118,8 @@ public class ListSkillsReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = getLogger(this.getClass().getName());
 
-		String projectId = trimToNull(this.keyValue.get(PROJECT));
-		String roomId    = trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
+		String projectId = trimToNull(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+		String roomId = trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 		if (projectId != null && roomId != null) {
 			throw new IllegalArgumentException("Specify only one of project or roomId, not both.");
 		}
@@ -119,7 +132,8 @@ public class ListSkillsReactor extends AbstractReactor {
 
 		String workingDir = resolveWorkingDir(projectId, roomId);
 		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir, includeContent, includeAll);
-		logger.info("ListSkillsReactor: discovered {} skill(s) projectId={} roomId={} includeContent={} includeAll={} workingDir={}",
+		logger.info(
+				"ListSkillsReactor: discovered {} skill(s) projectId={} roomId={} includeContent={} includeAll={} workingDir={}",
 				skills.size(), projectId, roomId, includeContent, includeAll, workingDir);
 
 		List<Map<String, Object>> rows = new ArrayList<>(skills.size());
@@ -141,8 +155,9 @@ public class ListSkillsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Resolves the directory to scan based on the optional {@code projectId}/{@code roomId} inputs,
-	 * enforcing access. Falls back to the current insight's working directory when neither is given.
+	 * Resolves the directory to scan based on the optional
+	 * {@code projectId}/{@code roomId} inputs, enforcing access. Falls back to the
+	 * current insight's working directory when neither is given.
 	 */
 	private String resolveWorkingDir(String projectId, String roomId) {
 		User user = this.insight == null ? null : this.insight.getUser();
@@ -169,7 +184,10 @@ public class ListSkillsReactor extends AbstractReactor {
 		return this.insight == null ? null : this.insight.getInsightFolder();
 	}
 
-	/** Converts crawled {@link SkillFile}s into response maps: {@code {path, directory, content}}. */
+	/**
+	 * Converts crawled {@link SkillFile}s into response maps:
+	 * {@code {path, directory, content}}.
+	 */
 	private static List<Map<String, Object>> toFileMaps(List<SkillFile> files) {
 		List<Map<String, Object>> out = new ArrayList<>();
 		if (files == null) {
@@ -204,19 +222,19 @@ public class ListSkillsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Lists every skill discovered on disk under <root|client|java|py>/(.skills|.agents/skills|"
-		     + ".agents/skill|.claude/skills|.claude/skill)/<name>/SKILL.md, deduplicated by name "
-		     + "(first-match-wins, matching LoadSkill precedence). Scans the given project's assets folder "
-		     + "(project) or room folder (roomId); defaults to the current insight when neither is given. "
-		     + "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
-		     + "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
-		     + "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
-		     + "(implies includeContent). Reads the filesystem, not the DB "
-		     + "(skill projects are listed via MyProjects with type=SKILL).";
+				+ ".agents/skill|.claude/skills|.claude/skill)/<name>/SKILL.md, deduplicated by name "
+				+ "(first-match-wins, matching LoadSkill precedence). Scans the given project's assets folder "
+				+ "(project) or room folder (roomId); defaults to the current insight when neither is given. "
+				+ "Returns a list of skill maps {name, path, directory, description}; pass includeContent=true "
+				+ "to add a 'content' entry with each SKILL.md body (everything after the frontmatter), or "
+				+ "includeAll=true to also add a 'files' array crawling the rest of each skill folder "
+				+ "(implies includeContent). Reads the filesystem, not the DB "
+				+ "(skill projects are listed via MyProjects with type=SKILL).";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (PROJECT.equals(key)) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
 			return "Optional. Project id whose assets folder to scan for skills. Requires view access "
 					+ "to the project. Mutually exclusive with roomId.";
 		}
