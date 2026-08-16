@@ -133,6 +133,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 */
 	protected Boolean temperatureSupported = null;
 
+	protected Double inputTokenCredit = null;
+	protected Double outputTokenCredit = null;
+	protected Double cacheReadMultiplier = null;
+	protected Double cacheWriteMultiplier = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -210,7 +215,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
 			this.reasoningConfig = config.isEmpty() ? null : config;
 		}
+		this.inputTokenCredit = (Double) metadata.get("inputTokenCredit");
+		this.outputTokenCredit = (Double) metadata.get("outputTokenCredit");
+		this.cacheReadMultiplier = (Double) metadata.get("cacheReadMultiplier");
+		this.cacheWriteMultiplier = (Double) metadata.get("cacheWriteMultiplier");
 	}
+
+	public Double getInputTokenCredit() { return inputTokenCredit; }
+	public Double getOutputTokenCredit() { return outputTokenCredit; }
+	public Double getCacheReadMultiplier() { return cacheReadMultiplier; }
+	public Double getCacheWriteMultiplier() { return cacheWriteMultiplier; }
 
 	/**
 	 * Set the smss property to the metadata value only when the smss file does not

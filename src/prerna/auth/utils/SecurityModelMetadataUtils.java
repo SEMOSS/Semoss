@@ -514,7 +514,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, INPUTTOKENCREDIT, OUTPUTTOKENCREDIT, CACHETOKENREADMULTIPLIER, CACHETOKENWRITEMULTIPLIER FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -556,7 +556,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, INPUTTOKENCREDIT, OUTPUTTOKENCREDIT, CACHETOKENREADMULTIPLIER, CACHETOKENWRITEMULTIPLIER FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -944,6 +944,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("supportedParameters", parseStoredList(rs.getString("SUPPORTEDPARAMETERS")));
 		metadata.put("reasoningConfig", parseStoredJsonObject(rs.getString("REASONINGCONFIG")));
 		metadata.put("benchmarks", parseStoredJsonArray(rs.getString("BENCHMARKS")));
+		metadata.put("inputTokenCredit", getNullableDouble(rs, "INPUTTOKENCREDIT"));
+		metadata.put("outputTokenCredit", getNullableDouble(rs, "OUTPUTTOKENCREDIT"));
+		metadata.put("cacheReadMultiplier", getNullableDouble(rs, "CACHETOKENREADMULTIPLIER"));
+		metadata.put("cacheWriteMultiplier", getNullableDouble(rs, "CACHETOKENWRITEMULTIPLIER"));
 		return metadata;
 	}
 
@@ -1052,6 +1056,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		} else {
 			ps.setBoolean(index, value);
 		}
+	}
+
+	private static Double getNullableDouble(ResultSet rs, String column) throws SQLException {
+		double value = rs.getDouble(column);
+		return rs.wasNull() ? null : value;
 	}
 
 	private static Long getNullableLong(ResultSet rs, String column) throws SQLException {
