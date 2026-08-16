@@ -65,7 +65,7 @@ public enum ModelTypeEnum {
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
 
-	// routing engine — dispatches to backing engines based on keyword or LLM classification
+	// routing engine - dispatches to backing engines per its assets/router.json config
 	MODEL_ROUTER("MODEL_ROUTER", ModelRouterEngine.class.getName()),
 	;
 	// @formatter:on
