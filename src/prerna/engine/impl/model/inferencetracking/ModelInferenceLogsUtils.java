@@ -2088,6 +2088,8 @@ public class ModelInferenceLogsUtils {
 			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_CREDIT_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(BUDGET_USED) ";
 		}
 
 		// SQL query to fetch the total tokens or response time
@@ -2177,6 +2179,8 @@ public class ModelInferenceLogsUtils {
 			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_CREDIT_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(BUDGET_USED) ";
 		}
 
 		// Step 4: Get total usage for the user excluding the engines in the

@@ -3523,6 +3523,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", Constants.USER_MODEL_MAX_TOKEN_KEY));
 		qs.addSelector(
 				new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXCREDITS", Constants.USER_MODEL_MAX_CREDIT_KEY));
 
 		qs.addSelector(
 				new QueryColumnSelector("ENGINEPERMISSION__USAGERESTRICTION", Constants.ENGINE_USAGE_RESTRICTION_KEY));
@@ -3531,6 +3532,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", Constants.ENGINE_MAX_TOKEN_KEY));
 		qs.addSelector(
 				new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", Constants.ENGINE_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXCREDITS", Constants.ENGINE_MAX_CREDIT_KEY));
 
 		// filter to the engine
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);

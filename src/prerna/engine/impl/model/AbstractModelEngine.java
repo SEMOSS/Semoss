@@ -542,7 +542,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			// update current usage based on this new request
 			ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse,
-					inputTime, outputTime);
+					inputTime, outputTime, this.inputTokenCredit, this.outputTokenCredit,
+					this.cacheReadMultiplier, this.cacheWriteMultiplier);
 
 			String currentRoomName = room.getRoomName();
 
@@ -650,7 +651,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		// update current usage based on this new request
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime,
-				outputTime);
+				outputTime, this.inputTokenCredit, this.outputTokenCredit,
+				this.cacheReadMultiplier, this.cacheWriteMultiplier);
 
 		return embeddingsResponse;
 	}
