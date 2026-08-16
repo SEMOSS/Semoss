@@ -141,7 +141,7 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxResponseTime.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "engine");
-					rl = new ArrayList<>();
+					List<Map<String, Object>> rl = new ArrayList<>();
 					rl.add(new HashMap<>(userRestrictionMap));
 					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
@@ -165,7 +165,7 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxCredits.doubleValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "engine");
-					rl = new ArrayList<>();
+					List<Map<String, Object>> rl = new ArrayList<>();
 					rl.add(new HashMap<>(userRestrictionMap));
 					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
@@ -197,7 +197,7 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxTokens.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
-					rl = new ArrayList<>();
+					List<Map<String, Object>> rl = new ArrayList<>();
 					rl.add(new HashMap<>(userRestrictionMap));
 					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
@@ -219,7 +219,7 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxResponseTime.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
-					rl = new ArrayList<>();
+					List<Map<String, Object>> rl = new ArrayList<>();
 					rl.add(new HashMap<>(userRestrictionMap));
 					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
@@ -242,7 +242,7 @@ public final class ModelUsageRestrictionUtility {
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxCredits.doubleValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
-					rl = new ArrayList<>();
+					List<Map<String, Object>> rl = new ArrayList<>();
 					rl.add(new HashMap<>(userRestrictionMap));
 					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
