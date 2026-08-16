@@ -3546,6 +3546,12 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, requestIf, "TOTAL_REQUESTS"));
 
+		// Total credits spent (null-safe: engines without credit rates → 0)
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "BUDGET_USED", null),
+				new QueryConstantSelector(0), "TOTAL_CREDITS"));
+
 		// Filter by user ID
 		String userId = user.getPrimaryLoginToken().getId();
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
