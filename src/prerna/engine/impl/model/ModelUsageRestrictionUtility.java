@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +118,10 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "engine");
+					List<Map<String, Object>> rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
@@ -135,6 +140,10 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxResponseTime.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "engine");
+					rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else if (Constants.MODEL_CREDIT_RESTRICTION_VALUE
 						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
@@ -155,6 +164,10 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.doubleValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxCredits.doubleValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "engine");
+					rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else {
 					classLogger.warn("Unknown engine level model restriction type = '" + engineLvlModelUsageRestriction
@@ -183,6 +196,10 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
+					rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
@@ -201,6 +218,10 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxResponseTime.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
+					rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
 					Number userLvlModelUsageMaxCredits = (Number) engineUserPermissionMap
@@ -220,10 +241,128 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.doubleValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxCredits.doubleValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
+					rl = new ArrayList<>();
+					rl.add(new HashMap<>(userRestrictionMap));
+					userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, rl);
 
 				} else {
 					classLogger.warn("Unknown user level model restriction type = '" + userLvlModelUsageRestriction
 							+ "' for user = " + User.getSingleLogginName(user));
+				}
+			}
+			// group fallback — only reached when no individual engine-level or user-level
+			// restriction applies. Each distinct (type, frequency) pair is an independent
+			// constraint that must pass. Within the same (type, frequency) bucket, groups
+			// are unioned — the user gets the MAX (most permissive) limit across all groups
+			// that share that bucket. Different types or different frequencies must each pass.
+			else if (Utility.isModelInferenceLogsEnabled()) {
+				List<Map<String, Object>> groupPermissions = SecurityEngineUtils.getGroupEngineUsagePermissionMap(user, engineId);
+				if (groupPermissions != null && !groupPermissions.isEmpty()) {
+					// Build buckets keyed by "type|frequency". Within each bucket keep the MAX limit.
+					Map<String, Map<String, Object>> limitBuckets = new HashMap<>();
+					for (Map<String, Object> groupPerm : groupPermissions) {
+						String groupRestriction = (String) groupPerm.get(Constants.GROUP_USAGE_RESTRICTION_KEY);
+						String groupFrequency   = (String) groupPerm.get(Constants.GROUP_USAGE_FREQUENCY_KEY);
+						String groupId          = (String) groupPerm.get("group_id");
+						if (groupRestriction == null || groupRestriction.isEmpty()) continue;
+
+						Number limit = null;
+						if      (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction))
+							limit = (Number) groupPerm.get(Constants.GROUP_MAX_CREDIT_KEY);
+						else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction))
+							limit = (Number) groupPerm.get(Constants.GROUP_MAX_TOKEN_KEY);
+						else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction))
+							limit = (Number) groupPerm.get(Constants.GROUP_MAX_RESPONSE_TIME_KEY);
+						if (limit == null) continue;
+
+						String bucketKey = groupRestriction.toLowerCase() + "|"
+								+ (groupFrequency == null ? "" : groupFrequency.toUpperCase());
+						Map<String, Object> existing = limitBuckets.get(bucketKey);
+						if (existing == null || limit.doubleValue() > (Double) existing.get("limit")) {
+							Map<String, Object> bucket = new HashMap<>();
+							bucket.put("type",      groupRestriction);
+							bucket.put("frequency", groupFrequency);
+							bucket.put("limit",     limit.doubleValue());
+							bucket.put("groupId",   groupId);
+							limitBuckets.put(bucketKey, bucket);
+						}
+					}
+
+					// Check every bucket independently; collect all passing results.
+					// Primary = tightest bucket: credit(0) > token(1) > compute(2);
+					// within the same type, smallest maxValue wins.
+					List<Map<String, Object>> allGroupRestrictions = new ArrayList<>();
+					Map<String, Object> primaryBucket = null;
+					Number primaryUsage               = null;
+					int    primaryTypePriority        = Integer.MAX_VALUE;
+					double primaryLimit               = Double.MAX_VALUE;
+
+					for (Map<String, Object> bucket : limitBuckets.values()) {
+						String bType      = (String) bucket.get("type");
+						String bFrequency = (String) bucket.get("frequency");
+						double bLimit     = (Double)  bucket.get("limit");
+						String bGroupId   = (String) bucket.get("groupId");
+
+						currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+								bType, user, engineId, currentDateTime, bFrequency);
+
+						if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
+							if (currentUsage.doubleValue() > bLimit)
+								throw new IllegalArgumentException(String.format(ENGINE_CREDIT_LIMIT_EXCEEDED_MESSAGE,
+										currentUsage.doubleValue(), bLimit));
+						} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
+							if (currentUsage.intValue() > (int) bLimit)
+								throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+										currentUsage.intValue(), (int) bLimit));
+						} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
+							if (currentUsage.doubleValue() > bLimit)
+								throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
+										currentUsage.doubleValue(), bLimit));
+						}
+
+						// Build list entry for this bucket
+						Map<String, Object> entry = new HashMap<>();
+						entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,             bType);
+						entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE,      "group");
+						entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME, bGroupId);
+						entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,         bFrequency);
+						if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
+							entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.intValue());
+							entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     (int) bLimit);
+						} else {
+							entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.doubleValue());
+							entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     bLimit);
+						}
+						allGroupRestrictions.add(entry);
+
+						// Track primary: credit(0) > token(1) > compute(2); within same type, smallest limit
+						int bPriority = Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(bType) ? 0
+								      : Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(bType)   ? 1 : 2;
+						if (bPriority < primaryTypePriority
+								|| (bPriority == primaryTypePriority && bLimit < primaryLimit)) {
+							primaryBucket       = bucket;
+							primaryUsage        = currentUsage;
+							primaryTypePriority = bPriority;
+							primaryLimit        = bLimit;
+						}
+					}
+
+					if (primaryBucket != null) {
+						String pType    = (String) primaryBucket.get("type");
+						String pGroupId = (String) primaryBucket.get("groupId");
+						userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,             pType);
+						userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE,      "group");
+						userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME, pGroupId);
+						if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(pType)) {
+							userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, primaryUsage.intValue());
+							userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     (int) primaryLimit);
+						} else {
+							userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, primaryUsage.doubleValue());
+							userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     primaryLimit);
+						}
+						userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, allGroupRestrictions);
+					}
 				}
 			}
 		}
