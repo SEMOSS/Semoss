@@ -1515,13 +1515,9 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Return room-grain results. date_created is the room's latest matching
-		// message timestamp and drives stable room-level pagination.
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
-		QueryFunctionSelector latestMatchSelector = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-				"MESSAGE__DATE_CREATED", "date_created");
-		qs.addSelector(latestMatchSelector);
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 
 		// Use the search-specific conversion so malformed searchable content cannot
 		// abort an otherwise unrelated room/project search.
@@ -1546,8 +1542,6 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
 				"?like", keyword, PixelDataType.CONST_STRING));
 
-		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_ID"));
-		qs.addGroupBy(new QueryColumnSelector("ROOM__ROOM_NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
 		if (limit > 0) {
