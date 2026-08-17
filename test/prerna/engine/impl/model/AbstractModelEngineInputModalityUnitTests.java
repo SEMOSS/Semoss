@@ -30,6 +30,7 @@ package prerna.engine.impl.model;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.Gson;
 
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.InputMessage;
@@ -76,6 +79,19 @@ class AbstractModelEngineInputModalityUnitTests {
 	}
 
 	@Test
+	void rejectsPdfWhenModelDoesNotAllowPdfInput() {
+		TestModelEngine engine = new TestModelEngine(
+				Set.of(MessagePartType.TEXT.name(), AskModelEngineResponse.IMAGE));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pdfMedia()));
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> engine.validateInputModalities(List.of(), message));
+
+		assertTrue(exception.getMessage().contains("does not allow PDF input"));
+	}
+
+	@Test
 	void doesNotRestrictInputWhenMetadataDoesNotConfigureModalities() {
 		TestModelEngine engine = new TestModelEngine(null);
 		InputMessage message = newMessage();
@@ -104,6 +120,10 @@ class AbstractModelEngineInputModalityUnitTests {
 		Room room = new Room();
 		room.setId("test-room");
 		return InputMessage.builder(room).build();
+	}
+
+	private static MessageInputMedia pdfMedia() {
+		return new Gson().fromJson("{\"mimeType\":\"application/pdf\"}", MessageInputMedia.class);
 	}
 
 	private static class TestModelEngine extends AbstractModelEngine {
