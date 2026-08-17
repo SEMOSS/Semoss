@@ -36,7 +36,7 @@ import prerna.om.Insight;
 import prerna.reactor.automation.AutomationConstants;
 
 /**
- * Param bundle passed to every {@link IAutomationNodeExecutor}.
+ * Param bundle passed to the managed Python step executor.
  *
  * <p>Consolidates all per-node execution inputs so executor implementations have a single,
  * typed object to work with rather than long parameter lists.

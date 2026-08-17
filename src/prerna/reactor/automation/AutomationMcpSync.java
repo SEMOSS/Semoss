@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationExecutionUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -57,173 +55,54 @@ import prerna.util.Constants;
 import prerna.util.git.GitRepoUtils;
 
 /**
- * Keeps each project's own {@code assets/mcp/pixel_mcp.json} in sync with a project-scoped
- * {@code TriggerAutomation} MCP tool entry, called by {@link SaveAutomationReactor} on every save
- * so the project's automation is always discoverable as an MCP tool without a separate manual
- * "make this an MCP tool" step.
- *
- * <p>A single-purpose class (not folded into {@link AutomationExecutionUtils}, which is scoped to
- * run-execution concerns) so the MCP-catalog-sync responsibility stays isolated and easy to find.
- *
- * <p>Uses {@code org.json} (JSONObject/JSONArray) throughout because {@link MCPUtility} is built
- * on org.json, and converting between org.json and Gson just to call those helpers would add
- * unnecessary overhead and type-safety risk. Gson is used everywhere else in the automation package.
+ * Maintains the generated Automation MCP catalog for a project.
  */
 public final class AutomationMcpSync {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationMcpSync.class);
-
-	/** Stamped into the generated tool as {@link MCPUtility#SMSS_MCP_GENERATOR} so re-saves replace it in place. */
 	private static final String AUTOMATION_MCP_GENERATOR_ID = "AutomationMCP";
 
 	private AutomationMcpSync() {
-		// utility class
 	}
 
 	/**
-	 * Writes/updates the project-scoped {@code TriggerAutomation} entry. Uses the same
-	 * merge/generator-stamp helpers as {@code MakePixelMCPReactor} (a distinct generator id), so
-	 * it never disturbs tools the user authored by hand or generated through other flows in the
-	 * same file.
-	 *
-	 * <p>{@code project} is kept as a required argument on the generated tool (matching the
-	 * existing convention for reactor-scanned MCP tools) rather than hardcoded - the id is still
-	 * fixed to this project by construction of the pixel expression itself, so callers only ever
-	 * need to (re-)confirm which project, never guess a different one.
-	 *
-	 * <p>Failures here are logged and swallowed - the automation save itself must not fail just
-	 * because the MCP catalog couldn't be refreshed.
-	 *
-	 * @param project   the resolved project, or {@code null} if it could not be loaded (e.g.
-	 *                  deleted concurrently) - a no-op in that case, logged as a warning
-	 * @param projectId the project id (used even when {@code project} is present, for clarity)
-	 * @param user      the user performing the save, used as the git commit author
+	 * Syncs the net-new Automation MCP contract: trigger the workflow or add one managed action.
 	 */
 	public static void syncTriggerAutomationTool(IProject project, String projectId, User user, String automationJson) {
-		if (project == null) {
-			classLogger.warn("Skipping automation MCP tool sync for project {}: project could not be loaded.",
-					projectId);
-			return;
-		}
-		if (automationJson == null || automationJson.isBlank()) {
-			classLogger.warn("Skipping automation MCP tool sync for project {}: automation JSON is empty.", projectId);
+		if (project == null || automationJson == null || automationJson.isBlank()) {
+			classLogger.warn("Skipping Automation MCP sync for project {}: project or definition is unavailable.", projectId);
 			return;
 		}
 
 		try {
-			boolean hasDbNodes = hasPlaygroundDbNodes(automationJson);
-			JSONArray generated = new JSONArray().put(buildTriggerAutomationTool(projectId, automationJson, hasDbNodes));
-			if (hasDbNodes) {
-				generated.put(buildGetAutomationSchemaTool(projectId));
-			}
-			generated.put(buildBuildAutomationTool(projectId));
+			JSONArray generated = new JSONArray()
+					.put(buildTriggerAutomationTool(projectId, automationJson))
+					.put(buildAddAutomationStepTool(projectId))
+					.put(buildUpdateCustomStepTool(projectId));
 			MCPUtility.stampGenerator(generated, AUTOMATION_MCP_GENERATOR_ID);
 
-			// One-arg form is equivalent to two-arg: it does Utility.getProject(projectId) internally
-			// and then delegates to getProjectAssetsFolder(projectName, projectId) - same path, no difference.
-			// We already hold IProject above but the registry lookup is cheap and avoids coupling the
-			// call site to projectName extraction just for this one call.
 			String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
 			String outputFileLoc = Paths.get(assetsFolder, "mcp", "pixel_mcp.json").toString();
 			JSONArray merged = MCPUtility.mergeGeneratedTools(
 					MCPUtility.readMcpJson(outputFileLoc), generated, AUTOMATION_MCP_GENERATOR_ID, true);
-
 			writeMcpJson(outputFileLoc, merged);
 
 			MCPUtility.addMCPTag(project);
 			commitAndPush(project, projectId, assetsFolder, user);
 		} catch (Exception e) {
-			classLogger.warn("Failed to sync TriggerAutomation MCP tool for project {}", projectId, e);
+			classLogger.warn("Failed to sync Automation MCP tools for project {}", projectId, e);
 		}
 	}
 
-	// -- Private helpers -------------------------------------------------------------
-
-	private static JSONObject buildTriggerAutomationTool(String projectId, String automationJson, boolean hasDbNodes) {
+	private static JSONObject buildTriggerAutomationTool(String projectId, String automationJson) {
 		JSONObject tool = new JSONObject();
 		tool.put("name", "TriggerAutomation");
 		tool.put("title", "Trigger Automation");
+		tool.put("description", readDescription(automationJson)
+				+ " Triggers this project's configured automation.");
 
-		String docDescription = null;
-		try {
-			if (automationJson != null && !automationJson.isBlank()) {
-				JSONObject doc = new JSONObject(automationJson);
-				String raw = doc.optString(AutomationConstants.DOC_DESCRIPTION, "").trim();
-				if (!raw.isEmpty()) {
-					docDescription = raw;
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to read description from automation JSON for project {}", projectId, e);
-		}
-
-		String description;
-		if (docDescription != null) {
-			description = docDescription + " Triggers the automation and returns a per-workflow summary once complete.";
-		} else {
-			description = "Manually triggers the automation configured for this project/app and returns a "
-					+ "per-workflow summary once complete (e.g. \"Indexed 20 files\").";
-		}
-		if (hasDbNodes) {
-			description += " This automation has database nodes that accept SQL queries - call GetAutomationSchema first"
-					+ " to discover the exact table and column names before writing SQL.";
-		}
-		tool.put("description", description);
-
-		JSONObject projectProp = new JSONObject();
-		projectProp.put("type", "string");
-		projectProp.put("title", "Project");
-		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
-		projectProp.put("default", projectId);
 		JSONObject properties = new JSONObject();
-		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
-
-		JSONObject inputsProperties = new JSONObject();
-		try {
-			if (automationJson != null && !automationJson.isBlank()) {
-				JSONObject doc = new JSONObject(automationJson);
-				JSONObject graph = doc.optJSONObject("graph");
-				JSONArray nodes = graph != null ? graph.optJSONArray("nodes") : null;
-				if (nodes != null) {
-					for (int i = 0; i < nodes.length(); i++) {
-						JSONObject node = nodes.optJSONObject(i);
-						if (node == null) continue;
-						String nodeLabel = node.optString("label", "");
-						JSONArray fillable = node.optJSONArray("playgroundFillable");
-						if (fillable == null || fillable.length() == 0) continue;
-						String nodeType = node.optString("type", "");
-						for (int j = 0; j < fillable.length(); j++) {
-							String fieldName = fillable.optString(j);
-							if (fieldName == null || fieldName.isBlank()) continue;
-							String paramName = AutomationExecutionUtils.buildPlaygroundParamName(nodeLabel, fieldName);
-							String paramDescription = buildPlaygroundParamDescription(nodeType, fieldName);
-							JSONObject paramProp = new JSONObject();
-							paramProp.put("type", "string");
-							paramProp.put("description", paramDescription);
-							inputsProperties.put(paramName, paramProp);
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to scan automation nodes for playground inputs for project {}", projectId, e);
-		}
-
-		if (!inputsProperties.isEmpty()) {
-			JSONObject inputsProp = new JSONObject();
-			inputsProp.put("type", "object");
-			inputsProp.put("description", "Optional inputs to inject into automation nodes before running. Populate fields with values relevant to the user's request.");
-			inputsProp.put("properties", inputsProperties);
-			properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, inputsProp);
-		}
-
-		JSONObject triggerTypeProp = new JSONObject();
-		triggerTypeProp.put("type", "string");
-		triggerTypeProp.put("title", "Trigger Type");
-		triggerTypeProp.put("description", "How this automation was triggered. Always use: " + AutomationConstants.TRIGGER_PLAYGROUND);
-		triggerTypeProp.put("default", AutomationConstants.TRIGGER_PLAYGROUND);
-		properties.put(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY, triggerTypeProp);
-
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProjectProperty(projectId));
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("type", "object");
 		inputSchema.put("title", "TriggerAutomation_Arguments");
@@ -234,118 +113,115 @@ public final class AutomationMcpSync {
 		JSONObject uiJson = new JSONObject();
 		uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
 		uiJson.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1");
-
 		JSONObject meta = new JSONObject();
 		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "TriggerAutomation");
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 		tool.put("_meta", meta);
-
 		return tool;
 	}
 
-	/** Returns true if any database-engine node has {@code expression} in its {@code playgroundFillable} list. */
-	private static boolean hasPlaygroundDbNodes(String automationJson) {
-		if (automationJson == null || automationJson.isBlank()) return false;
-		try {
-			JSONObject doc = new JSONObject(automationJson);
-			JSONObject graph = doc.optJSONObject("graph");
-			JSONArray nodes = graph != null ? graph.optJSONArray("nodes") : null;
-			if (nodes == null) return false;
-			for (int i = 0; i < nodes.length(); i++) {
-				JSONObject node = nodes.optJSONObject(i);
-				if (node == null) continue;
-				if (!AutomationConstants.NODE_DATABASE_ENGINE.equals(node.optString("type"))) continue;
-				JSONArray fillable = node.optJSONArray("playgroundFillable");
-				if (fillable == null) continue;
-				for (int j = 0; j < fillable.length(); j++) {
-					if (AutomationConstants.CONFIG_EXPRESSION.equals(fillable.optString(j))) return true;
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to parse automation JSON while checking for DB nodes", e);
-		}
-		return false;
-	}
-
-	/**
-	 * Builds the {@code BuildAutomation} MCP tool - lets an agent in Playground generate or edit
-	 * this project's automation from a plain-English description. Execution mode is ASK so the user
-	 * can review the generated document before it is saved.
-	 */
-	private static JSONObject buildBuildAutomationTool(String projectId) {
+	private static JSONObject buildAddAutomationStepTool(String projectId) {
 		JSONObject tool = new JSONObject();
-		tool.put("name", "BuildAutomation");
-		tool.put("title", "Build / Edit Automation");
+		tool.put("name", "AddAutomationStep");
+		tool.put("title", "Add Automation Action");
 		tool.put("description",
-				"Generates or edits this project's automation from a plain-English description. "
-				+ "The model iteratively gathers context (database schema, available reactors) before producing a complete automation document. "
-				+ "Does NOT save automatically - call SaveAutomation with the returned JSON to persist. "
-				+ "Use currentDoc to pass the existing automation JSON (base64-encoded) for edit mode.");
-
-		JSONObject projectProp = new JSONObject();
-		projectProp.put("type", "string");
-		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
-		projectProp.put("default", projectId);
-
-		JSONObject descProp = new JSONObject();
-		descProp.put("type", "string");
-		descProp.put("description", "Plain-English description of what the automation should do, or how to modify the existing one. Will be base64-encoded automatically if needed.");
-
-		JSONObject currentDocProp = new JSONObject();
-		currentDocProp.put("type", "string");
-		currentDocProp.put("description", "Optional base64-encoded JSON of the current automation document. Include this to edit rather than generate from scratch.");
+				"Adds one action to this automation, creates its managed Python implementation, and connects it "
+						+ "to an upstream node. Supported actions are model.llm, model.embeddings, database.query, "
+						+ "database.write, vector.search, vector.list, vector.delete, vector.add-file, vector.add-csv, "
+						+ "vector.download, storage.list, storage.download, storage.upload, storage.delete, "
+						+ "storage.read-base64, function.execute, app.run-pixel, and python-step.skeleton.");
 
 		JSONObject properties = new JSONObject();
-		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
-		properties.put(AutomationConstants.DOC_DESCRIPTION, descProp);
-		properties.put("currentDoc", currentDocProp);
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProjectProperty(projectId));
+		properties.put("nodeId", stringProperty("Unique safe node ID, such as query_claims."));
+		properties.put("actionId", actionIdProperty());
+		properties.put("config", stringProperty("JSON configuration for the selected action. Do not include nodeType or operation; the approved actionId determines both. For model.llm, engineId may be omitted to create an incomplete draft that the user configures in the inspector before running."));
+		properties.put("label", stringProperty("Short action-oriented label shown in the workflow."));
+		properties.put("outputVar", stringProperty("Unique output variable, such as claims_rows."));
+		properties.put("afterNodeId", stringProperty("Optional upstream node ID. Defaults to trigger when omitted."));
 
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("type", "object");
-		inputSchema.put("title", "BuildAutomation_Arguments");
+		inputSchema.put("title", "AddAutomationStep_Arguments");
 		inputSchema.put("properties", properties);
-		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put(AutomationConstants.DOC_DESCRIPTION));
+		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId")
+				.put("actionId").put("config").put("label").put("outputVar"));
 		tool.put("inputSchema", inputSchema);
 
 		JSONObject meta = new JSONObject();
-		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "BuildAutomation");
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-		tool.put("_meta", meta);
-
-		return tool;
-	}
-
-	/** Builds the auto-executable {@code GetAutomationSchema} companion tool. */
-	private static JSONObject buildGetAutomationSchemaTool(String projectId) {
-		JSONObject tool = new JSONObject();
-		tool.put("name", "GetAutomationSchema");
-		tool.put("title", "Get Automation Database Schema");
-		tool.put("description",
-				"Returns the physical table and column names for database nodes in this automation that accept SQL input. "
-						+ "Call this before TriggerAutomation when you need to write a SQL query - it gives you the exact "
-						+ "table and column names available in the database.");
-
-		JSONObject projectProp = new JSONObject();
-		projectProp.put("type", "string");
-		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
-		projectProp.put("default", projectId);
-		JSONObject properties = new JSONObject();
-		properties.put(ReactorKeysEnum.PROJECT.getKey(), projectProp);
-
-		JSONObject inputSchema = new JSONObject();
-		inputSchema.put("type", "object");
-		inputSchema.put("title", "GetAutomationSchema_Arguments");
-		inputSchema.put("properties", properties);
-		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
-		tool.put("inputSchema", inputSchema);
-
-		JSONObject meta = new JSONObject();
-		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "GetAutomationSchema");
+		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "AddAutomationStep");
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		tool.put("_meta", meta);
-
 		return tool;
+	}
+
+	private static JSONObject buildUpdateCustomStepTool(String projectId) {
+		JSONObject tool = new JSONObject();
+		tool.put("name", "UpdateAutomationCustomStep");
+		tool.put("title", "Write Custom Automation Step");
+		tool.put("description",
+				"Replaces the source for an existing custom python-step node. Use this after AddAutomationStep "
+						+ "creates a python-step.skeleton. Provide the sourceHash returned when that step was created. "
+						+ "Use custom steps for editable integrations such as GitHub or email; never embed credentials.");
+
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProjectProperty(projectId));
+		properties.put("nodeId", stringProperty("Existing python-step node ID."));
+		properties.put("source", stringProperty("Complete Python source defining run(context, inputs)."));
+		properties.put("expectedSourceHash",
+				stringProperty("Current sourceHash returned when the step was created or last updated."));
+		JSONObject inputSchema = new JSONObject();
+		inputSchema.put("type", "object");
+		inputSchema.put("title", "UpdateAutomationCustomStep_Arguments");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId")
+				.put("source").put("expectedSourceHash"));
+		tool.put("inputSchema", inputSchema);
+
+		JSONObject meta = new JSONObject();
+		meta.put(MCPUtility.SMSS_FUNCTION_NAME, "UpdateAutomationCustomStep");
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		tool.put("_meta", meta);
+		return tool;
+	}
+
+	private static String readDescription(String automationJson) {
+		try {
+			String description = new JSONObject(automationJson).optString(AutomationConstants.DOC_DESCRIPTION, "").trim();
+			if (!description.isEmpty()) {
+				return description;
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to read Automation description for MCP catalog", e);
+		}
+		return "Runs this project's automation workflow.";
+	}
+
+	private static JSONObject fixedProjectProperty(String projectId) {
+		JSONObject projectProp = new JSONObject();
+		projectProp.put("type", "string");
+		projectProp.put("description", "The project ID for this automation. Always use: " + projectId);
+		projectProp.put("default", projectId);
+		projectProp.put("const", projectId);
+		return projectProp;
+	}
+
+	private static JSONObject stringProperty(String description) {
+		JSONObject property = new JSONObject();
+		property.put("type", "string");
+		property.put("description", description);
+		return property;
+	}
+
+	private static JSONObject actionIdProperty() {
+		JSONObject property = stringProperty("Approved business action to add. This determines the internal canvas node type and operation.");
+		JSONArray values = new JSONArray();
+		for (AutomationStepTemplateRegistry.ActionDefinition action : AutomationStepTemplateRegistry.getActions()) {
+			values.put(action.getActionId());
+		}
+		property.put("enum", values);
+		return property;
 	}
 
 	private static void writeMcpJson(String outputFileLoc, JSONArray tools) throws IOException {
@@ -360,32 +236,12 @@ public final class AutomationMcpSync {
 		Files.writeString(outputFile.toPath(), mcpJson.toString(4), StandardCharsets.UTF_8);
 	}
 
-	private static String buildPlaygroundParamDescription(String nodeType, String fieldName) {
-		if (AutomationConstants.NODE_DATABASE_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_EXPRESSION.equals(fieldName)) {
-			return "SQL query to execute against the connected database";
-		}
-		if (AutomationConstants.NODE_MODEL_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_COMMAND.equals(fieldName)) {
-			return "Natural language prompt to send to the language model";
-		}
-		if (AutomationConstants.NODE_MODEL_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_CONTEXT.equals(fieldName)) {
-			return "System instructions for the language model's behavior";
-		}
-		if (AutomationConstants.NODE_VECTOR_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_COMMAND.equals(fieldName)) {
-			return "Search query to run against the vector database";
-		}
-		if (AutomationConstants.NODE_FUNCTION_ENGINE.equals(nodeType) && AutomationConstants.CONFIG_PARAMS.equals(fieldName)) {
-			return "JSON parameters to pass to the function";
-		}
-		return "Input for the " + fieldName + " field";
-	}
-
 	private static void commitAndPush(IProject project, String projectId, String assetsFolder, User user) {
 		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
 		GitRepoUtils.addSpecificFiles(versionFolder, gitRelativeFilePaths);
 		GitRepoUtils.commitAddedFiles(versionFolder, "sync: automation MCP tool", user);
-
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushProjectFolder(project, assetsFolder);
 		}

@@ -49,15 +49,15 @@ import org.apache.logging.log4j.Logger;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
-import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
+import prerna.reactor.automation.nodes.PythonStepNodeExecutor;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.Utility;
 
 /**
  * Executes an automation run synchronously. Called by {@link TriggerAutomationReactor}
  * on the virtual thread provided by the platform's {@code runPixelAsync} endpoint.
- * Iterates the dependency-ordered nodes supplied by the validated definition, dispatches each to its {@link IAutomationNodeExecutor},
- * and writes per-node status to the DB as it goes.
+ * Iterates the dependency-ordered nodes supplied by the validated definition, executes each
+ * managed Python step, and writes per-node status to the DB as it goes.
  */
 public final class AutomationRunEngine {
 
@@ -65,6 +65,7 @@ public final class AutomationRunEngine {
 
 	/** In-memory cancellation flags - fast path; the DB flag is the cluster-safe source of truth. */
 	static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
+	private static final PythonStepNodeExecutor PYTHON_STEP_EXECUTOR = new PythonStepNodeExecutor();
 
 	private AutomationRunEngine() {}
 
@@ -239,11 +240,7 @@ public final class AutomationRunEngine {
 
 			AutomationNodeContext ctx = new AutomationNodeContext(
 					runId, projectId, node, scope, configMap, insight, cancelFlag);
-			IAutomationNodeExecutor executor = IAutomationNodeExecutor.EXECUTORS.get(type);
-			if (executor == null) {
-				throw new IllegalArgumentException("Unsupported node type: " + type);
-			}
-			Object rawOutput = executor.execute(ctx);
+			Object rawOutput = PYTHON_STEP_EXECUTOR.execute(ctx);
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> transformConfig = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_OUTPUT_TRANSFORM);

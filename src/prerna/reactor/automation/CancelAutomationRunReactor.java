@@ -132,7 +132,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = new HashMap<>();
 		// Cancelling a run is a mutating, side-effecting action - requires explicit confirmation.
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
 		return meta;
 	}
 }

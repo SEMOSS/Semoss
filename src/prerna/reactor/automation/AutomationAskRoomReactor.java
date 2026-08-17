@@ -28,22 +28,20 @@
 package prerna.reactor.automation;
 
 import prerna.reactor.automation.utils.AutomationGenerationUtils;
+import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.PixelExecutionUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
-import prerna.reactor.agent.run.RunAgentRequest;
-import prerna.reactor.agent.run.RunAgentResult;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -52,7 +50,7 @@ import prerna.util.Utility;
 
 /**
  * Room-aware conversational AI assistant for building automation workflows.
- * Uses the platform RunAgent harness for server-side history and MCP tool access.
+ * Uses the established AskPlayground room turn flow for server-side history and MCP tool access.
  * All user engines are registered as MCP tools so the model can query databases,
  * search vectors, etc. during the design conversation.
  *
@@ -60,39 +58,33 @@ import prerna.util.Utility;
  */
 public class AutomationAskRoomReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AutomationAskRoomReactor.class);
-
 	private static final String ROOM_KEY = "room";
-	private static final String HARNESS_TYPE = "semoss";
-	private static final int MAX_TURNS = 8;
-	private static final long CHAT_TIMEOUT_MS = 180_000L;
 
 	private static final String SYSTEM_PROMPT =
-		"You are an AI assistant that helps users design automation workflows on a no-code platform. "
-		+ "Workflows are linear sequences of steps: database queries, AI model calls, file storage, vector search, or custom functions. "
-		+ "Only manual triggers exist  - do not ask about scheduling.\n\n"
-		+ "You have access to tools. Use them to help the user (for example, query a database to understand its structure "
-		+ "so you can give accurate step descriptions).\n\n"
-		+ "CONVERSATION PHASES:\n\n"
-		+ "Phase 1  - Gather requirements (at most 1-2 short questions, one at a time):\n"
-		+ "- Ask what the automation should do if unclear.\n"
-		+ "- Ask where results should go, or one other essential clarification.\n"
-		+ "- Keep responses under 50 words per question.\n\n"
-		+ "Phase 2  - Plan + build signal (in ONE response, once you have enough info):\n"
-		+ "- Present a concise numbered plain-English plan.\n"
-		+ "- On the very next line after the plan, output the build signal JSON:\n"
-		+ "  {\"action\":\"build\",\"description\":\"<comprehensive 2-4 sentence description of the full workflow>\"}\n"
-		+ "- The description must include all steps in enough detail for an AI to build them.\n"
-		+ "- Do NOT ask 'does this look right?'  - include the build signal in the same response as the plan.\n\n"
-		+ "Phase 3  - If the user requests changes after seeing the plan:\n"
-		+ "- Acknowledge in one short sentence.\n"
-		+ "- Immediately output the revised plan + a new build signal in the same response.\n"
-		+ "- Do NOT narrate what you will change  - just show the revised plan and the signal.\n\n"
-		+ "RULES: Never mention engine IDs, node types, or JSON structure to the user. Be concise.";
+		"You help users design and safely author directed automation workflows. Workflows contain a manual "
+		+ "trigger and typed actions for databases, models, vectors, storage, functions, Pixel, or managed Python. "
+		+ "Graph edges determine execution order; do not describe the workflow as an inherently linear sequence.\n\n"
+		+ "Use available read-only tools to gather necessary context before proposing an action. For example, inspect "
+		+ "database schema before suggesting SQL. Never invent tables, columns, engine identifiers, or capabilities.\n\n"
+		+ "When the user asks to add an action, explain the intended action in concise business language, then use "
+		+ "AddAutomationStep. Automation tools execute automatically. Select one supported "
+		+ "operation, provide the matching node type and complete JSON config, a unique safe node ID, a unique output "
+		+ "variable, and the upstream node ID when it is not trigger. Do not call broad document-replacement tools to "
+		+ "add a normal step.\n\n"
+		+ "For an editable external integration such as GitHub or email, first use AddAutomationStep with "
+		+ "python-step.skeleton, then use UpdateAutomationCustomStep with the returned sourceHash. Put the integration "
+		+ "inside run(context, inputs), keep credentials as user-configured placeholders, and never make the request "
+		+ "directly from the chat.\n\n"
+		+ "Managed source is project-owned. AddAutomationStep creates it only once. Never claim an existing generated "
+		+ "Python file was replaced: setup changes require PreviewAutomationStepUpdate and explicit "
+		+ "ApplyAutomationStepUpdate using the previewed source hash. Do not expose internal IDs, node types, raw JSON, "
+		+ "or source hashes unless the user asks for technical details. Ask at most one essential clarification at a "
+		+ "time and keep normal replies concise.";
 
 	public AutomationAskRoomReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ROOM_KEY, ReactorKeysEnum.COMMAND.getKey() };
-		this.keyRequired = new int[] { 1, 0, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ROOM_KEY, ReactorKeysEnum.COMMAND.getKey(),
+				ReactorKeysEnum.ENGINE.getKey() };
+		this.keyRequired = new int[] { 1, 0, 1, 0 };
 	}
 
 	@Override
@@ -118,10 +110,17 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 			throw new IllegalArgumentException("command must not be empty.");
 		}
 
-		String engineId = AutomationGenerationUtils.findFirstModelEngine(user);
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if (engineId == null || engineId.isBlank()) {
+			engineId = AutomationGenerationUtils.findFirstModelEngine(user);
+		}
 		if (engineId == null || engineId.isBlank()) {
 			throw new IllegalArgumentException(
 				"No AI model engine is available. Add a model engine connection to use this feature.");
+		}
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalArgumentException("Model engine does not exist or user does not have access.");
 		}
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
@@ -130,40 +129,21 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 		}
 
 		if (roomId == null || roomId.isBlank()) {
-			roomId = "automationchat" + projectId.replace("-", "").substring(0, Math.min(8, projectId.replace("-", "").length()));
+			String projectToken = projectId.replace("-", "");
+			String engineToken = engineId.replaceAll("[^A-Za-z0-9]", "");
+			roomId = "automationchat" + projectToken.substring(0, Math.min(8, projectToken.length()))
+					+ engineToken.substring(0, Math.min(8, engineToken.length()));
 		}
 
-		Map<String, Object> options = AutomationGenerationUtils.buildEngineMcpOptions(user, SYSTEM_PROMPT);
+		Map<String, Object> options = AutomationGenerationUtils.buildEngineMcpOptions(
+				user, SYSTEM_PROMPT, projectId);
 
 		RoomUtils.createRoomIfNotExists(roomId, this.insight, modelEngine, command, null, options, null, projectId, null);
 
-		RunAgentRequest request = new RunAgentRequest(
-				roomId, command, engineId, HARNESS_TYPE, null,
-				MAX_TURNS, 0, null, null, null, null, this.insight);
-
-		RunAgentResult handle = AgentRuntimeManager.get().run(request);
-		Map<String, Object> result;
-		try {
-			result = AgentRuntimeManager.get().waitForRun(handle.getRunId(), this.insight, CHAT_TIMEOUT_MS);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException("Chat interrupted.", e);
-		}
-
-		String status = (String) result.get("status");
-		if ("FAILED".equals(status)) {
-			String errMsg = (String) result.get("errorMessage");
-			classLogger.error("AutomationAskRoom run failed: project={} error={}", projectId, (errMsg != null ? errMsg : "unknown error"));
-			throw new RuntimeException("Chat failed: " + (errMsg != null ? errMsg : "unknown error"));
-		}
-
-		String finalText = (String) result.get("finalText");
-		if (finalText == null || finalText.isBlank()) {
-			throw new IllegalStateException("The AI model did not respond. Try again.");
-		}
-
-		classLogger.info("AutomationAskRoom completed: project={}", projectId);
-		return new NounMetadata(finalText.strip(), PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		Object result = PixelExecutionUtils.runAndCollect(this.insight,
+				"AskPlayground(engine=" + pixelStringList(engineId) + ", roomId=" + pixelStringList(roomId)
+						+ ", command=" + pixelStringList(command) + ", context=[], image=[], paramValues=[{}]);");
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	/**
@@ -181,13 +161,14 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 		}
 	}
 
+	private static String pixelStringList(String value) {
+		return "[" + AutomationExecutionUtils.GSON.toJson(value) + "]";
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return "Room-aware conversational AI for designing automation workflows. "
-			+ "Uses the platform RunAgent harness with MCP tool access  - the model can query "
-			+ "databases, search vectors, and use other engines during the conversation. "
-			+ "History is managed server-side. "
-			+ "Signals build-readiness via: {\"action\":\"build\",\"description\":\"...\"}";
+			+ "Uses AskPlayground with project-scoped MCP tools and server-side room history.";
 	}
 
 	@Override
@@ -196,6 +177,7 @@ public class AutomationAskRoomReactor extends AbstractReactor {
 			case "project" -> "The project ID the automation belongs to.";
 			case "room" -> "Room ID for this conversation (defaults to automationchat{projectId}).";
 			case "command" -> "The user message, base64-encoded.";
+			case "engine" -> "Optional model engine ID for this chat. Defaults to the first accessible model.";
 			default -> super.getDescriptionForKey(key);
 		};
 	}

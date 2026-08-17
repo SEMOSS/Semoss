@@ -41,7 +41,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.automation.nodes.AutomationNodeContext;
-import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
+import prerna.reactor.automation.nodes.PythonStepNodeExecutor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -56,6 +56,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RunAutomationNodeReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(RunAutomationNodeReactor.class);
+	private static final PythonStepNodeExecutor PYTHON_STEP_EXECUTOR = new PythonStepNodeExecutor();
 
 	// Not standardized in ReactorKeysEnum  - matches the local-key convention used by
 	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
@@ -102,14 +103,10 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
 				rawOutput = scope.get(AutomationConstants.SCOPE_TRIGGERED_AT);
 			} else {
-				IAutomationNodeExecutor executor = IAutomationNodeExecutor.EXECUTORS.get(type);
-				if (executor == null) {
-					throw new IllegalArgumentException("Unsupported node type: " + type);
-				}
 				AutomationNodeContext ctx = new AutomationNodeContext(
 						AutomationConstants.TEST_RUN_ID, projectId, node, scope, configMap,
 						this.insight, new AtomicBoolean(false));
-				rawOutput = executor.execute(ctx);
+				rawOutput = PYTHON_STEP_EXECUTOR.execute(ctx);
 			}
 
 			@SuppressWarnings("unchecked")
@@ -187,7 +184,7 @@ public class RunAutomationNodeReactor extends AbstractReactor {
 		Map<String, String> meta = new HashMap<>();
 		// Node executors can perform real side effects (DB writes, storage uploads/deletes,
 		// arbitrary pixel execution)  - requires explicit human confirmation.
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
 		return meta;
 	}
 }

@@ -35,6 +35,7 @@ public final class AutomationConstants {
 
 	public static final String AUTOMATION_FILE_NAME = "automation.json";
 	public static final String AUTOMATION_CONFIG_FILE_NAME = "automation-config.json";
+	public static final String AUTOMATION_STEPS_FOLDER = "automation/steps";
 
 	public static final String SENSITIVE_MASK = "***";
 
@@ -110,6 +111,7 @@ public final class AutomationConstants {
 	public static final String NODE_FUNCTION_ENGINE = "function-engine";
 	public static final String NODE_WAIT = "wait";
 	public static final String NODE_APP = "app";
+	public static final String NODE_PYTHON_STEP = "python-step";
 
 	// -- Node config keys (node.config map fields, shared across executors) --------
 
@@ -129,6 +131,10 @@ public final class AutomationConstants {
 	public static final String CONFIG_PIXEL = "pixel";
 	public static final String CONFIG_APP_ID = "appId";
 	public static final String CONFIG_TIMEOUT_SECONDS = "timeoutSeconds";
+	public static final String CONFIG_STEP_REF = "stepRef";
+	public static final String CONFIG_INPUTS = "inputs";
+	public static final String CONFIG_PURPOSE = "purpose";
+	public static final String CONFIG_OUTPUT_DESCRIPTION = "outputDescription";
 	public static final String DEFAULT_STORAGE_PATH = "/";
 	public static final String EMPTY_JSON_OBJECT = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
@@ -149,6 +155,8 @@ public final class AutomationConstants {
 	public static final String OP_DOWNLOAD = "download";
 	public static final String OP_UPLOAD = "upload";
 	public static final String OP_READ_BASE64 = "read-base64";
+	public static final String OP_RUN_PIXEL = "run-pixel";
+	public static final String OP_SKELETON = "skeleton";
 
 	// -- Node execution defaults / bounds --------------------------------------------
 
@@ -218,8 +226,6 @@ public final class AutomationConstants {
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	/** Human-readable, per-workflow summary surfaced to MCP/agent consumers (see {@link #DOC_RESULT_MESSAGE_TEMPLATE}). */
 	public static final String RESULT_SUMMARY = "summary";
-	/** Enriched summary including per-step output previews, sent as the MCP tool response so the LLM can describe what happened. */
-	public static final String RESULT_LLM_CONTEXT = "llmContext";
 
 	// -- Pixel execution defaults ----------------------------------------------------
 
@@ -253,6 +259,4 @@ public final class AutomationConstants {
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;
-	/** Maximum characters from a node output preview included in the AI run-summary prompt. */
-	public static final int SUMMARY_PROMPT_PREVIEW_MAX_LENGTH = 300;
 }

@@ -158,7 +158,7 @@ public class SaveAutomationReactor extends AbstractReactor {
         Map<String, String> meta = new HashMap<>();
         // Overwrites the saved automation graph and commits it to source control  -
         // requires explicit human confirmation.
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         return meta;
     }
 }

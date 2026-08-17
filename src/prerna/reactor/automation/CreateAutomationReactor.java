@@ -30,6 +30,8 @@ package prerna.reactor.automation;
 import prerna.reactor.automation.utils.PixelExecutionUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -46,20 +48,13 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 
 /**
- * Creates a new automation project and returns its ID so the LLM can immediately chain to
- * {@code QuickEditAutomation} to interactively build it.
+ * Creates a new blank automation project and returns its ID for visual or chat-based authoring.
  *
  * <p>The project name must start with a letter and contain only letters, numbers, and spaces
  * (enforced by {@code CreateProject}).
- *
- * <p>Typical LLM flow:
- * <ol>
- *   <li>LLM calls {@code CreateAutomation(projectName=["My Automation"])} — auto, no UI</li>
- *   <li>LLM immediately chains {@code QuickEditAutomation(project=["<returnedId>"], editDescription=["..."])}</li>
- *   <li>User sees the editor open with the AI-generated draft</li>
- * </ol>
  *
  * <p>Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
  */
@@ -116,6 +111,7 @@ public class CreateAutomationReactor extends AbstractReactor {
                     "SaveAutomation(project=[\"%s\"], json=[\"%s\"]);", projectId, encodedDefinition));
             PixelExecutionUtils.runAndCollect(this.insight, String.format(
                     "SaveAutomationConfig(project=[\"%s\"], config=[\"%s\"]);", projectId, encodedConfig));
+            createStepsDirectory(projectId);
             MCPUtility.addMCPTag(project);
         } catch (PixelExecutionUtils.AutomationPixelException e) {
             classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
@@ -132,10 +128,19 @@ public class CreateAutomationReactor extends AbstractReactor {
         result.put(RESULT_PROJECT_NAME, projectName);
         result.put(RESULT_MESSAGE,
                 "Created automation project \"" + projectName + "\" (id: " + projectId + "). "
-                + "Call QuickEditAutomation(project=[\"" + projectId
-                + "\"], editDescription=[\"<what to build>\"]) to build the automation.");
+                + "Open the Automation workspace to add actions or use Automation Chat.");
 
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+    }
+
+    private static void createStepsDirectory(String projectId) {
+        Path stepsDirectory = Path.of(AssetUtility.getProjectAssetsFolder(projectId),
+                AutomationConstants.AUTOMATION_STEPS_FOLDER);
+        try {
+            Files.createDirectories(stepsDirectory);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to create the automation steps directory.", e);
+        }
     }
 
     private static String buildStarterDefinition() {
@@ -159,14 +164,14 @@ public class CreateAutomationReactor extends AbstractReactor {
     @Override
     public Map<String, String> getMcpToolMetadata() {
         Map<String, String> meta = new HashMap<>();
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         return meta;
     }
 
     @Override
     public String getReactorDescription() {
         return "Creates a new blank automation project and returns its ID. "
-                + "Immediately chain QuickEditAutomation with the returned project ID to build the automation. "
+                + "Open the Automation workspace or use Automation Chat to build the workflow. "
                 + "Project names must start with a letter and contain only letters, numbers, and spaces.";
     }
 

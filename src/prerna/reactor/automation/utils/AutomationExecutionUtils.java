@@ -263,7 +263,7 @@ public final class AutomationExecutionUtils {
 
 	/**
 	 * Normalises any of the three dataset formats into a canonical {@code {headers, values}} map:
-	 *   1. List&lt;Map&gt; (rows-as-objects)  - produced by {@link DatabaseEngineNodeExecutor}
+	 *   1. List&lt;Map&gt; (rows-as-objects)
 	 *   2. {@code {data: {headers, values}}}  - SEMOSS wrapped envelope
 	 *   3. {@code {headers, values}}  - SEMOSS direct
 	 */
@@ -271,7 +271,7 @@ public final class AutomationExecutionUtils {
 	private static Map<String, Object> extractDataset(Object parsed) {
 		if (parsed == null) return null;
 
-		// Format 1: rows-as-objects list from DatabaseEngineNodeExecutor
+		// Format 1: rows-as-objects list
 		if (parsed instanceof List) {
 			List<Object> list = (List<Object>) parsed;
 			if (list.isEmpty()) return null;
@@ -371,57 +371,6 @@ public final class AutomationExecutionUtils {
 			}
 		}
 		return "Automation completed successfully (" + completedCount + "/" + totalCount + " nodes).";
-	}
-
-	/**
-	 * Builds the user-facing portion of the LLM prompt for {@code GenerateRunSummaryReactor}.
-	 * Describes the overall run status and each step's label, status, and output preview.
-	 *
-	 * @param runDetail   map returned by {@link AutomationDatabaseUtility#getRunDetail}
-	 * @param nodeOutputs ordered list returned by {@link AutomationDatabaseUtility#getNodeOutputsForRun}
-	 * @return a plain-text prompt fragment suitable for appending after the system prompt
-	 */
-	public static String buildRunSummaryPrompt(Map<String, Object> runDetail,
-			List<Map<String, Object>> nodeOutputs) {
-		StringBuilder sb = new StringBuilder();
-
-		String status = strCfg(runDetail.get(AutomationConstants.STATUS));
-		sb.append("Run status: ").append(status != null ? status : "unknown").append("\n");
-
-		String failedNodeId = strCfg(runDetail.get(AutomationConstants.FAILED_NODE_ID));
-		String errorMsg = strCfg(runDetail.get(AutomationConstants.ERROR_MESSAGE));
-		if (failedNodeId != null) {
-			sb.append("Failed at: ").append(failedNodeId).append("\n");
-		}
-		if (errorMsg != null) {
-			sb.append("Error: ").append(errorMsg).append("\n");
-		}
-
-		if (!nodeOutputs.isEmpty()) {
-			sb.append("\nSteps:\n");
-			for (Map<String, Object> node : nodeOutputs) {
-				String label = strCfg(node.get(AutomationConstants.NODE_LABEL));
-				String nodeStatus = strCfg(node.get(AutomationConstants.STATUS));
-				String preview = strCfg(node.get(AutomationConstants.OUTPUT_PREVIEW));
-				String errDetail = strCfg(node.get(AutomationConstants.ERROR_MESSAGE));
-
-				sb.append("- ")
-					.append(label != null ? label : AutomationConstants.UNNAMED_NODE_LABEL)
-					.append(" [").append(nodeStatus != null ? nodeStatus : "unknown").append("]");
-
-				if (preview != null) {
-					String truncated = preview.length() > AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH
-							? preview.substring(0, AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH) + "..."
-							: preview;
-					sb.append(": ").append(truncated);
-				} else if (errDetail != null) {
-					sb.append(": ").append(errDetail);
-				}
-				sb.append("\n");
-			}
-		}
-
-		return sb.toString();
 	}
 
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */

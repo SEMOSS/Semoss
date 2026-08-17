@@ -142,20 +142,6 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			runDetail.put(AutomationConstants.RESULT_SUMMARY, summary);
 			AutomationDatabaseUtility.updateRunSummary(runId, summary);
 
-			// Enriched context sent to the LLM as the MCP tool response, so it can describe
-			// what each step actually did rather than just echoing the node count.
-			if (runSucceeded) {
-				StringBuilder llmContext = new StringBuilder(summary);
-				for (Map<String, Object> step : nodeResults) {
-					String label = (String) step.get(AutomationConstants.NODE_LABEL);
-					String preview = (String) step.get(AutomationConstants.OUTPUT_PREVIEW);
-					if (preview != null && !preview.isBlank()) {
-						llmContext.append("\n- ").append(label).append(": ").append(preview);
-					}
-				}
-				runDetail.put(AutomationConstants.RESULT_LLM_CONTEXT, llmContext.toString());
-			}
-
 			return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 
 		} catch (Exception e) {
@@ -202,7 +188,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = new HashMap<>();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
 		// Same "system app" resourceURI scheme used by the Playwright browser-sockets tool
 		// (see PlaywrightMCPToolBuilder) - resolved client-side to the automation workspace's

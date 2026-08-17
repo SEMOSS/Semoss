@@ -262,7 +262,7 @@ public final class PixelExecutionUtils {
 	 * Thrown mid-node when a cancellation request is detected during a blocking operation.
 	 *
 	 * <p>Using a distinct unchecked exception type (rather than a flag return value or a checked
-	 * exception) lets nodes that loop internally - such as {@code WaitNodeExecutor} sleeping in
+	 * exception) lets managed Python steps that loop internally
 	 * chunks - abort cleanly without threading a cancellation result through every call frame. The
 	 * caller ({@code AutomationRunEngine.executeSingleNode}) catches this type specifically and
 	 * records the run as {@link AutomationConstants#STATUS_CANCELLED} instead of

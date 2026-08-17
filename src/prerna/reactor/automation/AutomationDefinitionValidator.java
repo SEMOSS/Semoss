@@ -11,6 +11,33 @@
  * 	Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * ----------------------------------------------------------------------------
  * If your use of this software includes any GPLv2 components:
  * 	This program is free software; you can redistribute it and/or
@@ -41,7 +68,6 @@ import java.util.TreeMap;
 
 import com.google.gson.JsonParseException;
 
-import prerna.reactor.automation.nodes.IAutomationNodeExecutor;
 import prerna.reactor.automation.utils.AutomationExecutionUtils;
 
 /**
@@ -120,14 +146,38 @@ public final class AutomationDefinitionValidator {
 					"graph.nodes[" + i + "].type");
 			if (AutomationConstants.NODE_TRIGGER.equals(type)) {
 				triggerCount++;
-			} else if (!IAutomationNodeExecutor.EXECUTORS.containsKey(type)) {
-				throw new IllegalArgumentException("Unsupported automation node type: " + type + ".");
+			} else {
+				validateManagedStep(node, i, type);
 			}
 		}
 		if (triggerCount != 1) {
 			throw new IllegalArgumentException("Automation definition must contain exactly one trigger node.");
 		}
 		return nodeIds;
+	}
+
+	private static void validateManagedStep(Map<String, Object> node, int index, String type) {
+		Map<String, Object> config = requireMap(node.get(AutomationConstants.NODE_FIELD_CONFIG),
+				"graph.nodes[" + index + "].config");
+		AutomationStepTemplateRegistry.selectAction(type, config);
+		String stepRef = requireNonblankString(config.get(AutomationConstants.CONFIG_STEP_REF),
+				"graph.nodes[" + index + "].config.stepRef");
+		if (!stepRef.matches("^automation/steps/[A-Za-z0-9][A-Za-z0-9_.-]*\\.py$")) {
+			throw new IllegalArgumentException("Automation python step references must be a .py file directly under "
+					+ AutomationConstants.AUTOMATION_STEPS_FOLDER + ".");
+		}
+		if (AutomationConstants.NODE_PYTHON_STEP.equals(type)) {
+			requireNonblankString(config.get(AutomationConstants.CONFIG_PURPOSE),
+					"graph.nodes[" + index + "].config.purpose");
+		}
+		Object inputs = config.get(AutomationConstants.CONFIG_INPUTS);
+		if (inputs != null) {
+			requireMap(inputs, "graph.nodes[" + index + "].config.inputs");
+		}
+		Object outputDescription = config.get(AutomationConstants.CONFIG_OUTPUT_DESCRIPTION);
+		if (outputDescription != null && !(outputDescription instanceof String)) {
+			throw new IllegalArgumentException("Automation python step outputDescription must be a string.");
+		}
 	}
 
 	private static void validateEdgesAndDag(List<Map<String, Object>> edges, Set<String> nodeIds) {

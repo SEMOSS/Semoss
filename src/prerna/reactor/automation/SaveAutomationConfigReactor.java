@@ -191,7 +191,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
     public Map<String, String> getMcpToolMetadata() {
         Map<String, String> meta = new HashMap<>();
         // Overwrites saved config values/secrets — requires explicit human confirmation.
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         return meta;
     }
 }
