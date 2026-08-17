@@ -500,7 +500,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 						/*messageId*/ inputMessage.getMessageId(),
 						/*transactionId*/askModelResponse.getMessageId(),
-						/*messageMethod*/"ask",
+						/*messageMethod*/inferenceLogMessageMethod("ask"),
 						/*engine*/this,
 						/*insightId*/room.getInsight().getInsightId(),
 						/*projectContextId*/room.getInsight().getContextProjectId(),
@@ -573,6 +573,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 	}
 
+	/**
+	 * messageMethod recorded on inference log rows written by this engine.
+	 * Delegating engines (e.g. the model router) override this to tag their
+	 * rows, so ask-history queries and usage aggregations can separate the
+	 * delegating row from the actual model call.
+	 */
+	protected String inferenceLogMessageMethod(String method) {
+		return method;
+	}
+
 	@Override
 	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
@@ -613,7 +623,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/messageId,
 					/*transactionId*/messageId,
-					/*messageMethod*/"embeddings",
+					/*messageMethod*/inferenceLogMessageMethod("embeddings"),
 					/*engine*/this,
 					/*insightId*/insight.getInsightId(),
 					/*projectContextId*/insight.getContextProjectId(),
