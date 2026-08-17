@@ -28,11 +28,15 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +50,8 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
@@ -133,6 +139,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 */
 	protected Boolean temperatureSupported = null;
 
+	/**
+	 * Input modalities configured in MODELMETADATA. Null means the metadata does
+	 * not restrict request content.
+	 */
+	protected Set<String> inputModalities = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -198,6 +210,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		fillIfMissing("context_window", metadata.get("contextWindow"));
 		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
 		this.builtinTools = metadata.get("builtinTools");
+		this.inputModalities = toModalitySet(metadata.get("inputModalities"));
 
 		if (metadata.get("reasoning") instanceof Boolean) {
 			this.reasoning = (Boolean) metadata.get("reasoning");
@@ -210,6 +223,19 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
 			this.reasoningConfig = config.isEmpty() ? null : config;
 		}
+	}
+
+	private static Set<String> toModalitySet(Object value) {
+		if (!(value instanceof Collection<?>)) {
+			return null;
+		}
+		Set<String> modalities = new LinkedHashSet<>();
+		for (Object modality : (Collection<?>) value) {
+			if (modality != null && !modality.toString().isBlank()) {
+				modalities.add(modality.toString().trim().toUpperCase(Locale.ROOT));
+			}
+		}
+		return modalities.isEmpty() ? null : modalities;
 	}
 
 	/**
@@ -467,6 +493,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				question = MessageUtils.toJsonArray(room.getMessages());
 			}
 
+			validateInputModalities(room.getMessages(), inputMessage);
+
 			ZonedDateTime inputTime = ZonedDateTime.now();
 			AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 					parameters);
@@ -571,6 +599,44 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			return askModelResponse;
 		}
+	}
+
+	void validateInputModalities(List<AbstractMessage> messages, AbstractMessage inputMessage) {
+		if (this.inputModalities == null) {
+			return;
+		}
+		List<AbstractMessage> requestMessages = messages == null ? List.of() : messages;
+		if (inputMessage != null) {
+			requestMessages = MessageUtils.getMessageBranchWithNewMessage(requestMessages, inputMessage);
+		}
+		for (AbstractMessage message : requestMessages) {
+			validateInputModalities(message);
+		}
+	}
+
+	private void validateInputModalities(AbstractMessage message) {
+		if (message == null) {
+			return;
+		}
+		for (MessagePart part : message.getParts()) {
+			String modality = modalityFor(part);
+			if (modality != null && !this.inputModalities.contains(modality)) {
+				String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
+				throw new IllegalArgumentException("Model " + model + " does not allow " + modality
+						+ " input. Configured input modalities: " + this.inputModalities);
+			}
+		}
+	}
+
+	private static String modalityFor(MessagePart part) {
+		if (part == null) {
+			return null;
+		}
+		return switch (part.getType()) {
+		case TEXT, SYSTEM -> MessagePartType.TEXT.name();
+		case MEDIA -> AskModelEngineResponse.IMAGE;
+		default -> null;
+		};
 	}
 
 	@Override
