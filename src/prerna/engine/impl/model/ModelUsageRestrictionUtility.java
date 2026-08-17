@@ -35,6 +35,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public final class ModelUsageRestrictionUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId) {
-		Map<String, Object> userRestrictionMap = new HashMap<>();
+		Map<String, Object> userRestrictionMap = new LinkedHashMap<>();
 
 		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user, engineId);
 		if (engineUserPermission == null || engineUserPermission.isEmpty()) {

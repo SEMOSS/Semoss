@@ -51,7 +51,7 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String USAGE_RESTRICTION_LIMIT_SOURCE = "limitSource";
 	public static final String USAGE_RESTRICTION_LIMIT_SOURCE_NAME = "limitSourceName";
 	public static final String USAGE_RESTRICTION_FREQUENCY = "frequency";
-	public static final String RESTRICTIONS = "restrictions";
+	public static final String RESTRICTIONS = "allRestrictions";
 
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
