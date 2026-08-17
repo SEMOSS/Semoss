@@ -714,6 +714,11 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGERESTRICTION"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGEFREQUENCY"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXTOKENS"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXRESPONSETIME"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXCREDITS"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPENGINEPERMISSION__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		if (limit > 0) {
