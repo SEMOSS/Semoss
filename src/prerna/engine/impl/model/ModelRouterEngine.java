@@ -155,6 +155,13 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	public static final String ROUTER_CONFIG = "ROUTER_CONFIG";
 	/** Conventional config file name looked up when ROUTER_CONFIG is not set. */
 	public static final String DEFAULT_CONFIG_FILE = "router.json";
+	/**
+	 * Optional SMSS property holding the initial config JSON inline. Engine
+	 * creation from the UI opens the engine before any asset can be uploaded, so
+	 * this is read once to seed the config file when it does not exist yet. The
+	 * file is the source of truth afterwards - later edits belong in the file.
+	 */
+	public static final String ROUTER_CONFIG_JSON = "ROUTER_CONFIG_JSON";
 
 	/** Response metadata keys describing the routing decision. */
 	public static final String METADATA_ROUTER_ENGINE_ID = "router_engine_id";
@@ -319,6 +326,9 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	public synchronized void reloadConfig() throws IOException {
 		File configFile = resolveConfigFile();
 		if (!configFile.exists()) {
+			bootstrapConfigFileIfNeeded(configFile);
+		}
+		if (!configFile.exists()) {
 			throw new IOException("ModelRouterEngine: routing config not found at " + configFile.getAbsolutePath()
 					+ ". Place a " + DEFAULT_CONFIG_FILE + " in the engine assets folder"
 					+ " (or set " + ROUTER_CONFIG + " in the SMSS to use a different file name).");
@@ -326,6 +336,27 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		String json = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
 		RouterConfig cfg = parseAndValidateConfig(json, configFile.getName(), this.engineId);
 		applyConfig(cfg);
+	}
+
+	/**
+	 * Seed the config file from the ROUTER_CONFIG_JSON smss property when the
+	 * file does not exist yet - engine creation opens the engine before any
+	 * asset can be uploaded. Never overwrites an existing file.
+	 */
+	private void bootstrapConfigFileIfNeeded(File configFile) throws IOException {
+		String bootstrapJson = this.smssProp.getProperty(ROUTER_CONFIG_JSON);
+		if (bootstrapJson == null || bootstrapJson.trim().isEmpty()) {
+			return;
+		}
+		File parentFolder = configFile.getParentFile();
+		if (parentFolder != null && !parentFolder.exists() && !parentFolder.mkdirs()) {
+			throw new IOException("ModelRouterEngine: could not create assets folder " + parentFolder.getAbsolutePath());
+		}
+		try (Writer writer = new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8)) {
+			writer.write(bootstrapJson.trim());
+		}
+		classLogger.info("ModelRouterEngine '{}' seeded {} from the {} smss property",
+				this.engineId, configFile.getName(), ROUTER_CONFIG_JSON);
 	}
 
 	/**
