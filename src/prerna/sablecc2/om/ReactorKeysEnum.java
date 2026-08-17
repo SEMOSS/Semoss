@@ -31,7 +31,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
-	// @formatter:off
+	// @formatter:off 
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
@@ -207,6 +207,7 @@ public enum ReactorKeysEnum {
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
 	OFFSET("offset", 											"Offset to add for the query results"),
 	ONLY_FAVORITES("onlyFavorites", 							"Get engines/insights which are favorited by the user"),
+	ONLY_TEMPLATES("onlyTemplates", 							"Get projects which are enabled as templates"),
 	OPERATOR("operator", 										"The operator to use for identifying this filter such as > , < = != etc. "),
 	OPERATORU("operatoru", 										"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 											"Map of option values"),

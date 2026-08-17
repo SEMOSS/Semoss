@@ -559,6 +559,7 @@ public class Room implements Serializable {
 		try {
 			String userId = insight.getUser().getPrimaryLoginToken().getId();
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
 				RoomMessageStore.refreshFromLatestProjection(this, userId);
 				if (messages.isEmpty()) {
 					throw new IllegalStateException("No messages to match tool call context");
@@ -588,6 +589,7 @@ public class Room implements Serializable {
 			boolean continueWhenReady, ResponseMessage prebuiltResponse) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			this.insight = insight;
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
 			if (messages.isEmpty()) {
 				throw new IllegalStateException("No messages to match tool call context");
@@ -1008,7 +1010,8 @@ public class Room implements Serializable {
 	 */
 	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
 		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
-		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength,
+				MCPUtility.requiresLLMNameSanitization(modelEngine));
 		Object existing = params.get("tools");
 		if (existing instanceof List<?>) {
 			@SuppressWarnings("unchecked")
@@ -1063,8 +1066,19 @@ public class Room implements Serializable {
 	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
 	 * @return list of tool definition maps ready to pass to the LLM
 	 */
-	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength) {
+		return getAllToolsJsonForRoom(maxLength, false);
+	}
+
+	/**
+	 * Same as {@link #getAllToolsJsonForRoom(int)}, additionally sanitizing the
+	 * LLM-facing tool names for providers that require it (see
+	 * {@link MCPUtility#requiresLLMNameSanitization}). The lookup map is keyed by
+	 * the exact names sent to the model, so callers must pass the same flag the
+	 * model invocation used.
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength, boolean sanitizeToolNamesForLLM) {
 		toolLookupByLLMName.clear();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
@@ -1077,7 +1091,7 @@ public class Room implements Serializable {
 		if (InternalMCP.hasDefinitions(getRoomFolderPath())) {
 			ensureUnique.add(MCPUtility.ROOM_MCP_ID);
 			try {
-				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength));
+				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength, sanitizeToolNamesForLLM));
 			} catch (Exception e) {
 				classLogger.error("Unable to add the room's own MCP tools", e);
 			}
@@ -1091,7 +1105,7 @@ public class Room implements Serializable {
 						if (mcpMap.containsKey("id")) {
 							String id = (String) mcpMap.get("id");
 							if (!ensureUnique.contains(id)) {
-								aggregated.addAll(getToolJson(id, maxLength));
+								aggregated.addAll(getToolJson(id, maxLength, sanitizeToolNamesForLLM));
 								ensureUnique.add(id);
 							}
 						} else {
@@ -1121,7 +1135,7 @@ public class Room implements Serializable {
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
 							if (!ensureUnique.contains(toolId)) {
-								aggregated.addAll(getToolJson(toolId, maxLength));
+								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM));
 								ensureUnique.add(toolId);
 							}
 						}
@@ -1141,7 +1155,7 @@ public class Room implements Serializable {
 								}
 								String toolId = mcp.optString("id", null);
 								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
-									aggregated.addAll(getToolJson(toolId, maxLength));
+									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM));
 									ensureUnique.add(toolId);
 								}
 							}
@@ -1165,12 +1179,14 @@ public class Room implements Serializable {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can reverse-resolve
 	 * LLM-facing names.
 	 *
-	 * @param engineId  the engine/project UUID
-	 * @param maxLength maximum allowed tool name length
+	 * @param engineId                the engine/project UUID
+	 * @param maxLength               maximum allowed tool name length
+	 * @param sanitizeToolNamesForLLM whether the injected engine-id prefix must be
+	 *                                restricted to [a-zA-Z0-9_] (Bedrock/Nova)
 	 * @return list of non-disabled tool definition maps
 	 */
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, boolean sanitizeToolNamesForLLM) {
 		// room level MCPs
 		if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(this.getRoomFolderPath());
@@ -1191,7 +1207,7 @@ public class Room implements Serializable {
 				}
 			}
 			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.ROOM_MCP_ID, toolMap,
-					maxLength);
+					maxLength, sanitizeToolNamesForLLM);
 			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
 				return new ArrayList<>();
 			}
@@ -1267,7 +1283,8 @@ public class Room implements Serializable {
 			engineMeta = toolMap.getJSONObject("_meta").toMap();
 		}
 
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength,
+				sanitizeToolNamesForLLM);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();

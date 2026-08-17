@@ -51,9 +51,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -74,6 +77,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityModelMetadataUtils.class);
 	private static final Gson GSON = new Gson();
+	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
@@ -118,7 +123,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		normalizeCapabilityProperty(normalized);
 		normalizeListProperty(normalized, Constants.INPUT_MODALITIES, true);
 		normalizeListProperty(normalized, Constants.OUTPUT_MODALITIES, true);
-		normalizeListProperty(normalized, Constants.BUILTIN_TOOLS, false);
+		normalizeBuiltinToolsProperty(normalized);
 		normalizeBooleanProperty(normalized, Constants.ATTACHMENT);
 		normalizeBooleanProperty(normalized, Constants.REASONING);
 		normalizeBooleanProperty(normalized, Constants.TOOL_CALL);
@@ -595,7 +600,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
 		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
 		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
-		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
+		capabilities.put("builtinTools", emptyMapIfNull(modelMetadata.get("builtinTools")));
 		capabilities.put("attachment", modelMetadata.get("attachment"));
 		capabilities.put("reasoning", modelMetadata.get("reasoning"));
 		capabilities.put("toolCall", modelMetadata.get("toolCall"));
@@ -784,6 +789,58 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return json == null ? null : parseList(json);
 	}
 
+	/**
+	 * Built-in tools are stored as a JSON object keyed by tool name holding
+	 * the selected catalog definition for each tool. An empty selection is
+	 * stored as SQL NULL; anything that is not a JSON object is rejected.
+	 */
+	private static void normalizeBuiltinToolsProperty(Map<String, Object> details) {
+		String key = Constants.BUILTIN_TOOLS;
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		if (value == null || value.toString().trim().isEmpty()) {
+			details.put(key, null);
+			return;
+		}
+
+		JsonElement json;
+		try {
+			json = value instanceof String ? JsonParser.parseString(value.toString()) : GSON.toJsonTree(value);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name", e);
+		}
+		if (!json.isJsonObject()) {
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name");
+		}
+
+		JsonObject selection = json.getAsJsonObject();
+		JsonObject normalized = new JsonObject();
+		for (Map.Entry<String, JsonElement> entry : selection.entrySet()) {
+			String toolName = entry.getKey().trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+			if (!LOWER_SNAKE_CASE_PATTERN.matcher(toolName).matches()) {
+				throw new IllegalArgumentException("Invalid " + key + " tool name " + entry.getKey());
+			}
+			normalized.add(toolName, entry.getValue());
+		}
+		// store an unset selection as SQL NULL rather than an empty JSON object
+		details.put(key, normalized.size() == 0 ? null : GSON.toJson(normalized));
+	}
+
+	/**
+	 * Stored built-in tools are a JSON object keyed by tool name; anything
+	 * else in the column reads as unset. Whole numbers parse as longs rather
+	 * than gson's default doubles, since the selection is forwarded to the
+	 * python clients where a max_uses of 5.0 is not the same request as 5.
+	 */
+	private static Map<?, ?> parseStoredBuiltinTools(String json) {
+		if (json == null || !json.trim().startsWith("{")) {
+			return null;
+		}
+		return LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
+	}
+
 	private static void normalizeBooleanProperty(Map<String, Object> details, String key) {
 		if (!details.containsKey(key)) {
 			return;
@@ -876,7 +933,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
 		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
 		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
-		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
+		metadata.put("builtinTools", parseStoredBuiltinTools(rs.getString("BUILTINTOOLS")));
 		metadata.put("attachment", getNullableBoolean(rs, "ATTACHMENT"));
 		metadata.put("reasoning", getNullableBoolean(rs, "REASONING"));
 		metadata.put("toolCall", getNullableBoolean(rs, "TOOLCALL"));

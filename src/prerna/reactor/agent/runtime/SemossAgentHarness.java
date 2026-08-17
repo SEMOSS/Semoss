@@ -139,6 +139,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		// AgentConfigLoader has already combined the caller's requested limit with
 		// the workspace cap. This is the one wall-clock budget the harness enforces.
 		int enforcedMaxSeconds = agentConfig.getBudgets().getMaxSeconds();
+		if (!agentConfig.useDefaultAgentTools()) {
+			paramMap.put(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS, false);
+		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
