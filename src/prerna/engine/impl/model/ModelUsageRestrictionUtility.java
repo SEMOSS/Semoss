@@ -200,7 +200,7 @@ public final class ModelUsageRestrictionUtility {
 			allRestrictions.sort(Comparator
 					.comparingInt((Map<String, Object> e) -> typePriority((String) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE)))
 					.thenComparingInt(e -> frequencyPriority((String) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY)))
-					.thenComparingDouble((Map<String, Object> e) -> -((Number) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE)).doubleValue()));
+					.thenComparingDouble((Map<String, Object> e) -> ((Number) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE)).doubleValue()));
 
 			Map<String, Object> primary = allRestrictions.get(0);
 			String pType    = (String) primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE);
