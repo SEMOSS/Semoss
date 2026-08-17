@@ -250,11 +250,18 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = insight.getUser().getRoomHash().get(roomId);
-				// A user's room cache outlives individual HTTP Insight instances. Always
-				// attach the current caller before any room operation uses transient context.
-				room.setInsight(insight);
-				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
-				ensureRoomMessagesUpToDate(room, insight);
+				// A cache hit can arrive while another request is still streaming a response
+				// into this same Room. Refreshing from Redis without the mutation lock can
+				// replace that request's in-flight message list with the last persisted
+				// projection, leaving newly appended messages with missing parents. Updating
+				// the transient Insight can also switch request context mid-stream. Keep all
+				// cache-hit updates inside the room-wide mutation lock.
+				try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+					// Attach the current caller before any room operation uses transient context.
+					room.setInsight(insight);
+					refreshCachedRoomMessagesIfRedisEnabled(room, insight);
+					ensureRoomMessagesUpToDate(room, insight);
+				}
 				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
 			} catch (ClassCastException e) {
@@ -603,7 +610,8 @@ public final class RoomUtils {
 				// Tool metadata enrichment still supports legacy UUID-prefixed names.
 			}
 		}
-		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine),
+				MCPUtility.requiresLLMNameSanitization(roomModelEngine));
 
 		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage message : messages) {

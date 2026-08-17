@@ -460,6 +460,127 @@
         "metric": "dominance",
         "source": "https://z.ai/blog/glm-5.2",
         "date": "2026-06-16"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 40.5,
+        "metric": "accuracy",
+        "dataset": "text-only subset",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 54.7,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "dataset": "text-only subset",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "CritPt",
+        "score": 20.9,
+        "metric": "accuracy",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "AIME",
+        "score": 99.2,
+        "metric": "accuracy",
+        "version": "2026",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "HMMT",
+        "score": 94.4,
+        "metric": "accuracy",
+        "version": "November 2025",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "HMMT",
+        "score": 92.5,
+        "metric": "accuracy",
+        "version": "February 2026",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "IMOAnswerBench",
+        "score": 91,
+        "metric": "accuracy",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "GPQA Diamond",
+        "score": 91.2,
+        "metric": "accuracy",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "NL2Repo",
+        "score": 48.9,
+        "metric": "resolve rate",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "DeepSWE",
+        "score": 46.2,
+        "metric": "resolve rate",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "Program Bench",
+        "score": 63.7,
+        "metric": "score",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 81,
+        "metric": "success rate",
+        "harness": "Terminus 2",
+        "version": "2.1",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "PostTrainBench",
+        "score": 34.3,
+        "metric": "score",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "SWE Marathon",
+        "score": 13,
+        "metric": "resolve rate",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "MCP Atlas",
+        "score": 76.8,
+        "metric": "score",
+        "dataset": "public subset",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
+      },
+      {
+        "name": "Tool-Decathlon",
+        "score": 48.2,
+        "metric": "score",
+        "source": "https://z.ai/blog/glm-5.2",
+        "date": "2026-06-16"
       }
     ],
     "provider": "zhipuai",
@@ -856,6 +977,7 @@
         "temperature",
         "tool_choice",
         "tools",
+        "top_a",
         "top_k",
         "top_logprobs",
         "top_p"
@@ -1061,6 +1183,82 @@
         "score": 84.6,
         "metric": "accuracy",
         "source": "https://llm-stats.com/benchmarks/gpqa"
+      }
+    ],
+    "provider": "microsoft"
+  },
+  "mai-code-1.1-flash": {
+    "id": "microsoft/mai-code-1.1-flash",
+    "name": "MAI-Code-1.1-Flash",
+    "description": "Microsoft coding model with native vision support, optimized for fast and efficient software development",
+    "family": "mai",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "release_date": "2026-08-11",
+    "last_updated": "2026-08-11",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 256000,
+      "output": 128000
+    },
+    "links": [
+      {
+        "label": "Announcement",
+        "url": "https://microsoft.ai/news/mai-code-1-1-flash-br-better-faster-at-a-quarter-of-the-cost/",
+        "type": "announcement"
+      }
+    ],
+    "provider": "microsoft"
+  },
+  "phi-4-mini": {
+    "id": "microsoft/phi-4-mini",
+    "name": "Phi-4-mini",
+    "description": "Compact Microsoft instruction model tuned for efficient coding assistance, reasoning, and low-latency agent tasks",
+    "family": "phi",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "knowledge": "2023-10",
+    "release_date": "2024-12-11",
+    "last_updated": "2024-12-11",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 128000,
+      "output": 4096
+    },
+    "links": [
+      {
+        "label": "Weights",
+        "url": "https://huggingface.co/microsoft/Phi-4-mini-instruct",
+        "type": "weights"
+      }
+    ],
+    "benchmarks": [
+      {
+        "name": "MMLU",
+        "score": 67.3,
+        "metric": "accuracy",
+        "source": "https://huggingface.co/microsoft/Phi-4-mini-instruct/resolve/main/README.md"
       }
     ],
     "provider": "microsoft"
@@ -1317,24 +1515,7 @@
         "date": "2025-03-14"
       }
     ],
-    "provider": "cohere",
-    "openrouter": {
-      "id": "cohere/command-a",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": null
-    }
+    "provider": "cohere"
   },
   "command-r-plus-08-2024": {
     "id": "cohere/command-r-plus-08-2024",
@@ -2056,6 +2237,65 @@
       "output": 2048
     },
     "provider": "nvidia"
+  },
+  "nemotron-3.5-lightning": {
+    "id": "nvidia/nemotron-3.5-lightning",
+    "name": "Nemotron 3.5 Lightning 30B A3B",
+    "description": "Fast NVIDIA Nemotron MoE for reliable agentic tasks across enterprise workloads",
+    "family": "nemotron",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-08-11",
+    "last_updated": "2026-08-11",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 262144,
+      "output": 262144
+    },
+    "provider": "nvidia",
+    "openrouter": {
+      "id": "nvidia/nemotron-3.5-lightning",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": null,
+        "default_enabled": null,
+        "mandatory": false,
+        "supported_efforts": null,
+        "supports_max_tokens": null
+      }
+    }
   },
   "nemotron-content-safety-reasoning-4b": {
     "id": "nvidia/nemotron-content-safety-reasoning-4b",
@@ -2832,6 +3072,80 @@
       "context": 1048576,
       "output": 65536
     },
+    "benchmarks": [
+      {
+        "name": "SWE-Bench Pro",
+        "score": 54.2,
+        "metric": "resolve rate",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 54,
+        "metric": "accuracy",
+        "harness": "Terminus 2",
+        "version": "2.1",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "MLE-Bench",
+        "score": 39.2,
+        "metric": "average position score",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDPval-AA",
+        "score": 1140,
+        "metric": "Elo",
+        "version": "v2",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 74,
+        "metric": "success rate",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 74.5,
+        "metric": "accuracy",
+        "variant": "no tools",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 76.5,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDM-MRCR",
+        "score": 72.2,
+        "metric": "accuracy",
+        "variant": "128k average, 8-needle",
+        "version": "v2",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDM-MRCR",
+        "score": 21.3,
+        "metric": "accuracy",
+        "variant": "1M pointwise, 8-needle",
+        "version": "v2",
+        "source": "https://deepmind.google/models/model-cards/gemini-3-5-flash-lite/",
+        "date": "2026-07-21"
+      }
+    ],
     "provider": "google",
     "openrouter": {
       "id": "google/gemini-3.5-flash-lite",
@@ -3680,6 +3994,91 @@
       "context": 1048576,
       "output": 65536
     },
+    "benchmarks": [
+      {
+        "name": "SWE-Bench Pro",
+        "score": 58.7,
+        "metric": "resolve rate",
+        "harness": "Antigravity",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "DeepSWE",
+        "score": 49,
+        "metric": "resolve rate",
+        "variant": "high reasoning",
+        "version": "1.1",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 78,
+        "metric": "accuracy",
+        "harness": "Terminus 2",
+        "version": "2.1",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "MLE-Bench",
+        "score": 63.9,
+        "metric": "average position score",
+        "dataset": "Partial 30",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDPval-AA",
+        "score": 1421,
+        "metric": "Elo",
+        "version": "v2",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 83,
+        "metric": "success rate",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 85.2,
+        "metric": "accuracy",
+        "variant": "no tools",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 89.4,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDM-MRCR",
+        "score": 91.8,
+        "metric": "accuracy",
+        "variant": "128k average, 8-needle",
+        "version": "v2",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      },
+      {
+        "name": "GDM-MRCR",
+        "score": 54,
+        "metric": "accuracy",
+        "variant": "1M pointwise, 8-needle",
+        "version": "v2",
+        "source": "https://deepmind.google/models/evals-methodology/gemini-3-6-flash/",
+        "date": "2026-07-21"
+      }
+    ],
     "provider": "google",
     "openrouter": {
       "id": "google/gemini-3.6-flash",
@@ -4593,6 +4992,80 @@
     },
     "provider": "google"
   },
+  "inkling-small": {
+    "id": "thinkingmachines/inkling-small",
+    "name": "Inkling Small",
+    "description": "Multimodal MoE reasoning model (276B total, 12B active) for text, image, and audio",
+    "family": "ling",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2026-07-30",
+    "last_updated": "2026-07-30",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 1048576,
+      "output": 1048576
+    },
+    "license": "Apache-2.0",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/thinkingmachines/Inkling-Small"
+      }
+    ],
+    "provider": "thinkingmachines",
+    "openrouter": {
+      "id": "thinkingmachines/inkling-small",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "high",
+        "default_enabled": true,
+        "mandatory": false,
+        "supported_efforts": [
+          "max",
+          "high",
+          "medium",
+          "low",
+          "minimal",
+          "none"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
   "inkling": {
     "id": "thinkingmachines/inkling",
     "name": "Inkling",
@@ -4640,6 +5113,7 @@
         "reasoning",
         "reasoning_effort",
         "repetition_penalty",
+        "response_format",
         "seed",
         "stop",
         "temperature",
@@ -5022,6 +5496,229 @@
       }
     }
   },
+  "allam-2-7b": {
+    "id": "sdaia/allam-2-7b",
+    "name": "ALLaM-2-7b",
+    "description": "ALLaM-2-7b instruction tuned model by SDAIA",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": false,
+    "temperature": true,
+    "release_date": "2025-01-23",
+    "last_updated": "2025-01-23",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 4096,
+      "output": 4096
+    },
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/ALLaM-AI/ALLaM-2.0-7B-Instruct"
+      }
+    ],
+    "provider": "sdaia"
+  },
+  "granite-4-h-small": {
+    "id": "ibm/granite-4-h-small",
+    "name": "Granite-4.0-H-Small",
+    "description": "Open-weight hybrid model for enterprise chat, coding, retrieval-augmented generation, and tool-calling workloads",
+    "family": "granite",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2025-10-02",
+    "last_updated": "2025-10-02",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 131072
+    },
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/ibm-granite/granite-4.0-h-small"
+      }
+    ],
+    "provider": "ibm"
+  },
+  "muse-glimmer-30b": {
+    "id": "meta/muse-glimmer-30b",
+    "name": "Muse Glimmer 30B",
+    "description": "Muse Glimmer is a 30-billion-parameter open-weight multimodal model from Meta Superintelligence Labs, distilled from Muse Spark for always-on local agents, tool use, coding, and image understanding.",
+    "family": "muse",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2026-01-04",
+    "release_date": "2026-08-10",
+    "last_updated": "2026-08-10",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 131072
+    },
+    "license": "Apache 2.0",
+    "links": [
+      {
+        "label": "Announcement",
+        "url": "https://research.meta.ai/blog/introducing-muse-glimmer-open-agentic-model",
+        "type": "announcement"
+      },
+      {
+        "label": "Model card",
+        "url": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "type": "model_card"
+      },
+      {
+        "label": "Developer docs",
+        "url": "https://developer.meta.com/ai/models/muse-glimmer/",
+        "type": "docs"
+      }
+    ],
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/meta-models/Muse-Glimmer-30B"
+      }
+    ],
+    "benchmarks": [
+      {
+        "name": "MCP Atlas",
+        "score": 75.5,
+        "metric": "success rate",
+        "variant": "public",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "DeepSearch QA",
+        "score": 74.6,
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "SWE-Bench Pro",
+        "score": 51.2,
+        "metric": "resolve rate",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "SWE-Bench Verified",
+        "score": 76,
+        "metric": "resolve rate",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 51.7,
+        "metric": "success rate",
+        "variant": "with terminus2",
+        "version": "2.1",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 65.9,
+        "metric": "success rate",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "AIME 2026",
+        "score": 94.7,
+        "metric": "accuracy",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "GPQA Diamond",
+        "score": 83.5,
+        "metric": "accuracy",
+        "variant": "AA",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 78.8,
+        "metric": "accuracy",
+        "source": "https://huggingface.co/meta-models/Muse-Glimmer-30B",
+        "date": "2026-08-10"
+      }
+    ],
+    "provider": "meta",
+    "openrouter": {
+      "id": "meta/muse-glimmer-30b",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "medium",
+        "default_enabled": null,
+        "mandatory": true,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
   "muse-spark-1.1": {
     "id": "meta/muse-spark-1.1",
     "name": "Muse Spark 1.1",
@@ -5200,6 +5897,40 @@
     ],
     "provider": "meta"
   },
+  "llama-3.2-1b": {
+    "id": "meta/llama-3.2-1b",
+    "name": "Llama-3.2-1B",
+    "description": "Compact open Llama base model for lightweight and on-device use",
+    "family": "llama",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": false,
+    "temperature": true,
+    "knowledge": "2023-12",
+    "release_date": "2024-09-25",
+    "last_updated": "2024-09-25",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "Llama 3.2 Community License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/meta-llama/Llama-3.2-1B"
+      }
+    ],
+    "provider": "meta"
+  },
   "llama-3.3-70b-instruct": {
     "id": "meta/llama-3.3-70b-instruct",
     "name": "Llama-3.3-70B-Instruct",
@@ -5330,6 +6061,142 @@
     ],
     "provider": "meta"
   },
+  "llama-3.2-3b": {
+    "id": "meta/llama-3.2-3b",
+    "name": "Llama-3.2-3B",
+    "description": "Small open Llama base model for lightweight text generation and self-hosting",
+    "family": "llama",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": false,
+    "temperature": true,
+    "knowledge": "2023-12",
+    "release_date": "2024-09-25",
+    "last_updated": "2024-09-25",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "Llama 3.2 Community License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/meta-llama/Llama-3.2-3B"
+      }
+    ],
+    "provider": "meta"
+  },
+  "muse-spark-1.2": {
+    "id": "meta/muse-spark-1.2",
+    "name": "Muse Spark 1.2",
+    "description": "Muse Spark 1.2 is a coding-focused update to Muse Spark 1.1 with improvements in code generation, complex debugging, codebase understanding, and end-to-end developer workflows.",
+    "family": "muse",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-08-05",
+    "last_updated": "2026-08-05",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1048576,
+      "output": 131072
+    },
+    "provider": "meta",
+    "openrouter": {
+      "id": "meta/muse-spark-1.2",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "medium",
+        "default_enabled": null,
+        "mandatory": true,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
+  "apertus-70b": {
+    "id": "swiss-ai/apertus-70b",
+    "name": "Apertus 70B",
+    "description": "Fully open 70B multilingual LLM supporting 1800+ languages with 65K context. Trained on 15T tokens of compliant open data. Apache 2.0, EU AI Act compliant.",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "knowledge": "2025-09",
+    "release_date": "2025-09-02",
+    "last_updated": "2025-09-02",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 65536,
+      "output": 8192
+    },
+    "license": "Apache-2.0",
+    "links": [
+      {
+        "label": "Paper",
+        "url": "https://arxiv.org/abs/2509.14233",
+        "type": "paper"
+      }
+    ],
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509"
+      }
+    ],
+    "provider": "swiss-ai"
+  },
   "longcat-2.0": {
     "id": "meituan/longcat-2.0",
     "name": "LongCat-2.0",
@@ -5435,6 +6302,34 @@
         "supports_max_tokens": true
       }
     }
+  },
+  "grok-4.1-fast": {
+    "id": "xai/grok-4.1-fast",
+    "name": "Grok 4.1 Fast",
+    "description": "xAI's fast agentic tool-calling model with a 2M context window; non-reasoning variant for low-latency responses",
+    "family": "grok",
+    "attachment": true,
+    "reasoning": false,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2025-11-19",
+    "last_updated": "2025-11-19",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 2000000,
+      "output": 30000
+    },
+    "provider": "xai"
   },
   "grok-4.3": {
     "id": "xai/grok-4.3",
@@ -5607,7 +6502,7 @@
   "grok-4.5": {
     "id": "xai/grok-4.5",
     "name": "Grok 4.5",
-    "description": "xAI's latest Grok for chat, coding, agentic tools, and lower hallucination risk",
+    "description": "xAI's Grok model for chat, coding, agentic tools, and lower hallucination risk",
     "family": "grok",
     "attachment": true,
     "reasoning": true,
@@ -5669,6 +6564,13 @@
         "version": "1.1",
         "source": "https://x.ai/news/grok-4-5",
         "date": "2026-07-08"
+      },
+      {
+        "name": "SWE Marathon",
+        "score": 29,
+        "metric": "pass@1",
+        "source": "https://x.ai/news/grok-4-5",
+        "date": "2026-07-08"
       }
     ],
     "provider": "xai",
@@ -5698,6 +6600,69 @@
         "default_enabled": true,
         "mandatory": true,
         "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
+  "grok-4.6": {
+    "id": "xai/grok-4.6",
+    "name": "Grok 4.6",
+    "description": "xAI's frontier model for long-running agents, coding, knowledge work, and visual projects",
+    "family": "grok",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2026-02-01",
+    "release_date": "2026-08-12",
+    "last_updated": "2026-08-12",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 500000,
+      "output": 500000
+    },
+    "provider": "xai",
+    "openrouter": {
+      "id": "x-ai/grok-4.6",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "high",
+        "default_enabled": true,
+        "mandatory": true,
+        "supported_efforts": [
+          "xhigh",
           "high",
           "medium",
           "low"
@@ -5921,6 +6886,39 @@
     },
     "provider": "mistral"
   },
+  "ministral-8b-instruct-2410": {
+    "id": "mistral/ministral-8b-instruct-2410",
+    "name": "Ministral 8B Instruct",
+    "description": "Efficient open Mistral edge model for on-device chat and function calling",
+    "family": "ministral",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2024-10-16",
+    "last_updated": "2024-10-16",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "Mistral Research License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/mistralai/Ministral-8B-Instruct-2410"
+      }
+    ],
+    "provider": "mistral"
+  },
   "mistral-large-2411": {
     "id": "mistral/mistral-large-2411",
     "name": "Mistral Large 2.1",
@@ -6110,25 +7108,7 @@
         "date": "2026-05-30"
       }
     ],
-    "provider": "mistral",
-    "openrouter": {
-      "id": "mistralai/mistral-medium-3",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
-      ],
-      "reasoning": null
-    }
+    "provider": "mistral"
   },
   "mistral-small-latest": {
     "id": "mistral/mistral-small-latest",
@@ -6160,6 +7140,41 @@
       {
         "label": "Hugging Face",
         "url": "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603"
+      }
+    ],
+    "provider": "mistral"
+  },
+  "mistral-small-3-1-24b-instruct-2503": {
+    "id": "mistral/mistral-small-3-1-24b-instruct-2503",
+    "name": "Mistral Small 3.1 24B",
+    "description": "Efficient multimodal model for instruction following, coding, reasoning, and function calling",
+    "family": "mistral-small",
+    "attachment": true,
+    "reasoning": false,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2024-06",
+    "release_date": "2025-03-17",
+    "last_updated": "2025-03-17",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 128000,
+      "output": 16384
+    },
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503"
       }
     ],
     "provider": "mistral"
@@ -6347,39 +7362,50 @@
         "score": 77.6,
         "metric": "resolved",
         "source": "https://huggingface.co/mistralai/Mistral-Medium-3.5-128B"
+      },
+      {
+        "name": "τ³-Telecom",
+        "score": 91.4,
+        "metric": "accuracy",
+        "variant": "public preview",
+        "source": "https://mistral.ai/news/vibe-remote-agents-mistral-medium-3-5/",
+        "date": "2026-05-22"
       }
     ],
-    "provider": "mistral",
-    "openrouter": {
-      "id": "mistralai/mistral-medium-3-5",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "frequency_penalty",
-        "include_reasoning",
-        "max_tokens",
-        "presence_penalty",
-        "reasoning",
-        "reasoning_effort",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
+    "provider": "mistral"
+  },
+  "codestral-22b-v0.1": {
+    "id": "mistral/codestral-22b-v0.1",
+    "name": "Codestral-22B-v0.1",
+    "description": "Open Mistral code model for fill-in-the-middle and 80+ programming languages",
+    "family": "codestral",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": false,
+    "temperature": true,
+    "release_date": "2024-05-29",
+    "last_updated": "2024-05-29",
+    "modalities": {
+      "input": [
+        "text"
       ],
-      "reasoning": {
-        "default_effort": "high",
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": [
-          "high",
-          "none"
-        ],
-        "supports_max_tokens": null
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 32768,
+      "output": 8192
+    },
+    "license": "Mistral AI Non-Production License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/mistralai/Codestral-22B-v0.1"
       }
-    }
+    ],
+    "provider": "mistral"
   },
   "codestral-latest": {
     "id": "mistral/codestral-latest",
@@ -6510,25 +7536,40 @@
         "date": "2026-05-31"
       }
     ],
-    "provider": "mistral",
-    "openrouter": {
-      "id": "mistralai/devstral-2512",
-      "match_method": "exact_id",
-      "supported_parameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
+    "provider": "mistral"
+  },
+  "magistral-small-2506": {
+    "id": "mistral/magistral-small-2506",
+    "name": "Magistral Small",
+    "description": "Open Mistral reasoning model for transparent step-by-step problem solving",
+    "family": "magistral",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2025-06-10",
+    "last_updated": "2025-06-10",
+    "modalities": {
+      "input": [
+        "text"
       ],
-      "reasoning": null
-    }
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "Apache 2.0",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/mistralai/Magistral-Small-2506"
+      }
+    ],
+    "provider": "mistral"
   },
   "mistral-large-latest": {
     "id": "mistral/mistral-large-latest",
@@ -6562,25 +7603,7 @@
         "url": "https://huggingface.co/mistralai/Mistral-Large-3-675B-Instruct-2512"
       }
     ],
-    "provider": "mistral",
-    "openrouter": {
-      "id": "mistralai/mistral-large",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "frequency_penalty",
-        "max_tokens",
-        "presence_penalty",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
-      ],
-      "reasoning": null
-    }
+    "provider": "mistral"
   },
   "devstral-medium-2507": {
     "id": "mistral/devstral-medium-2507",
@@ -6834,7 +7857,6 @@
         "include_reasoning",
         "max_tokens",
         "reasoning",
-        "stop",
         "temperature",
         "tool_choice",
         "tools"
@@ -7380,6 +8402,39 @@
       }
     }
   },
+  "deepseek-v3.1": {
+    "id": "deepseek/deepseek-v3.1",
+    "name": "DeepSeek-V3.1",
+    "description": "Hybrid-reasoning DeepSeek model with thinking and non-thinking modes",
+    "family": "deepseek",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2025-08-21",
+    "last_updated": "2025-08-21",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "MIT License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1"
+      }
+    ],
+    "provider": "deepseek"
+  },
   "deepseek-v4-flash": {
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash",
@@ -7571,6 +8626,287 @@
       }
     }
   },
+  "deepseek-v4-flash-0731": {
+    "id": "deepseek/deepseek-v4-flash-0731",
+    "name": "DeepSeek V4 Flash 0731",
+    "description": "Official DeepSeek V4 Flash release with enhanced agentic capabilities and integrated DSpark speculative decoding",
+    "family": "deepseek-flash",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2025-05",
+    "release_date": "2026-07-31",
+    "last_updated": "2026-07-31",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 1000000,
+      "output": 384000
+    },
+    "license": "MIT",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
+      }
+    ],
+    "benchmarks": [
+      {
+        "name": "Terminal-Bench",
+        "score": 82.7,
+        "metric": "pass@1",
+        "variant": "max",
+        "version": "2.1",
+        "source": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
+      },
+      {
+        "name": "NL2Repo",
+        "score": 54.2,
+        "metric": "resolve rate",
+        "harness": "DeepSeek Harness minimal mode",
+        "variant": "max effort",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "CyberGym",
+        "score": 76.7,
+        "metric": "score",
+        "harness": "DeepSeek Harness minimal mode",
+        "variant": "max effort",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "DeepSWE",
+        "score": 54.4,
+        "metric": "resolve rate",
+        "harness": "DeepSeek Harness minimal mode",
+        "variant": "max effort",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "Toolathlon-Verified",
+        "score": 70.3,
+        "metric": "score",
+        "harness": "DeepSeek Harness minimal mode",
+        "variant": "max effort",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "Agents' Last Exam",
+        "score": 25.2,
+        "metric": "score",
+        "harness": "DeepSeek Harness minimal mode",
+        "variant": "max effort",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "AutomationBench",
+        "score": 25.1,
+        "metric": "success rate",
+        "variant": "max effort",
+        "dataset": "public",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "DSBench-FullStack",
+        "score": 68.7,
+        "metric": "score",
+        "variant": "max effort",
+        "dataset": "internal",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      },
+      {
+        "name": "DSBench-Hard",
+        "score": 59.6,
+        "metric": "score",
+        "variant": "max effort",
+        "dataset": "internal",
+        "source": "https://api-docs.deepseek.com/updates/",
+        "date": "2026-07-31"
+      }
+    ],
+    "provider": "deepseek",
+    "openrouter": {
+      "id": "deepseek/deepseek-v4-flash-0731",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_a",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "high",
+        "default_enabled": true,
+        "mandatory": false,
+        "supported_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
+  "deepseek-v3": {
+    "id": "deepseek/deepseek-v3",
+    "name": "DeepSeek-V3",
+    "description": "Open DeepSeek MoE chat model for coding, math, and general reasoning",
+    "family": "deepseek",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2024-12-26",
+    "last_updated": "2024-12-26",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 131072,
+      "output": 8192
+    },
+    "license": "DeepSeek Model License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3"
+      }
+    ],
+    "provider": "deepseek"
+  },
+  "deepseek-v3.2": {
+    "id": "deepseek/deepseek-v3.2",
+    "name": "DeepSeek V3.2",
+    "description": "Hybrid-reasoning DeepSeek model with thinking and non-thinking modes, sparse attention, and tool-use",
+    "family": "deepseek",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2024-07",
+    "release_date": "2025-12-01",
+    "last_updated": "2025-12-01",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 128000,
+      "output": 64000
+    },
+    "license": "MIT License",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.2"
+      }
+    ],
+    "provider": "deepseek",
+    "openrouter": {
+      "id": "deepseek/deepseek-v3.2",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": null,
+        "default_enabled": false,
+        "mandatory": false,
+        "supported_efforts": null,
+        "supports_max_tokens": null
+      }
+    }
+  },
+  "deepseek-ocr-2": {
+    "id": "deepseek/deepseek-ocr-2",
+    "name": "DeepSeek OCR 2",
+    "description": "High-accuracy OCR model for extracting text from documents, screenshots, receipts, and natural scenes",
+    "attachment": true,
+    "reasoning": false,
+    "tool_call": false,
+    "release_date": "2026-01-27",
+    "last_updated": "2026-01-27",
+    "modalities": {
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 8192,
+      "output": 8192
+    },
+    "provider": "deepseek"
+  },
   "deepseek-r1": {
     "id": "deepseek/deepseek-r1",
     "name": "DeepSeek-R1",
@@ -7639,7 +8975,6 @@
       "supported_parameters": [
         "frequency_penalty",
         "include_reasoning",
-        "max_completion_tokens",
         "max_tokens",
         "presence_penalty",
         "reasoning",
@@ -7725,6 +9060,64 @@
         "top_p"
       ],
       "reasoning": null
+    }
+  },
+  "deepseek-v4-pro-0813": {
+    "id": "deepseek/deepseek-v4-pro-0813",
+    "name": "DeepSeek V4 Pro 0813",
+    "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
+    "family": "deepseek-thinking",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-08-12",
+    "last_updated": "2026-08-12",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1000000,
+      "output": 384000
+    },
+    "provider": "deepseek",
+    "openrouter": {
+      "id": "deepseek/deepseek-v4-pro-0813",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "high",
+        "default_enabled": null,
+        "mandatory": false,
+        "supported_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "supports_max_tokens": null
+      }
     }
   },
   "deepseek-reasoner": {
@@ -8123,6 +9516,61 @@
     ],
     "provider": "alibaba"
   },
+  "qwen3.7-flash": {
+    "id": "alibaba/qwen3.7-flash",
+    "name": "Qwen3.7 Flash",
+    "description": "Lightweight multimodal Qwen model for high-throughput text, image, and video tasks",
+    "family": "qwen",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-07-15",
+    "last_updated": "2026-07-15",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1000000,
+      "input": 991000,
+      "output": 65536
+    },
+    "provider": "alibaba",
+    "openrouter": {
+      "id": "qwen/qwen3.7-flash",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "response_format",
+        "seed",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": null,
+        "default_enabled": true,
+        "mandatory": false,
+        "supported_efforts": null,
+        "supports_max_tokens": true
+      }
+    }
+  },
   "qwen3.7-plus": {
     "id": "alibaba/qwen3.7-plus",
     "name": "Qwen3.7 Plus",
@@ -8309,6 +9757,136 @@
       "context": 1000000,
       "output": 131072
     },
+    "benchmarks": [
+      {
+        "name": "Terminal-Bench",
+        "score": 86.6,
+        "metric": "accuracy",
+        "variant": "xhigh",
+        "version": "2.1",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "SWE-Bench Pro",
+        "score": 67.7,
+        "metric": "resolve rate",
+        "harness": "Claude Code",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "DeepSWE",
+        "score": 56.6,
+        "metric": "resolve rate",
+        "harness": "Claude Code",
+        "variant": "xhigh",
+        "version": "1.1",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "NL2Repo",
+        "score": 55.9,
+        "metric": "resolve rate",
+        "harness": "Claude Code",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "FrontierSWE",
+        "score": 73.5,
+        "metric": "dominance score",
+        "harness": "Claude Code",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "MLS-Bench-Lite",
+        "score": 41,
+        "metric": "score",
+        "harness": "Claude Code",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "AutomationBench",
+        "score": 27.3,
+        "metric": "pass@1",
+        "variant": "xhigh",
+        "dataset": "600-task public subset",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "Toolathlon Verified",
+        "score": 72.5,
+        "metric": "pass@1",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "WideSearch",
+        "score": 81.9,
+        "metric": "F1",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 56.2,
+        "metric": "accuracy",
+        "variant": "xhigh, with tools",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "GPQA Diamond",
+        "score": 92.6,
+        "metric": "accuracy",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 43.6,
+        "metric": "accuracy",
+        "variant": "xhigh, no tools",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "IFBench",
+        "score": 82.8,
+        "metric": "score",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 86.1,
+        "metric": "success rate",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      },
+      {
+        "name": "MMMU Pro",
+        "score": 82.3,
+        "metric": "accuracy",
+        "variant": "xhigh",
+        "source": "https://www.alibabacloud.com/blog/qwen3-8-max-a-new-bar-for-coding-and-cowork_603421",
+        "date": "2026-08-03"
+      }
+    ],
     "provider": "alibaba"
   },
   "qwen3.6-35b-a3b": {
@@ -8910,7 +10488,7 @@
     "name": "Qwen3.5 9B",
     "description": "Qwen instruction model for multilingual chat, reasoning, and tool use",
     "family": "qwen",
-    "attachment": false,
+    "attachment": true,
     "reasoning": true,
     "tool_call": true,
     "structured_output": true,
@@ -8919,7 +10497,9 @@
     "last_updated": "2026-02-23",
     "modalities": {
       "input": [
-        "text"
+        "text",
+        "image",
+        "video"
       ],
       "output": [
         "text"
@@ -9189,6 +10769,35 @@
       }
     }
   },
+  "qwen3.5-flash": {
+    "id": "alibaba/qwen3.5-flash",
+    "name": "Qwen3.5 Flash",
+    "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
+    "family": "qwen",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-02-23",
+    "last_updated": "2026-02-23",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1000000,
+      "output": 65536
+    },
+    "provider": "alibaba"
+  },
   "qwen3-max": {
     "id": "alibaba/qwen3-max",
     "name": "Qwen3 Max",
@@ -9320,6 +10929,71 @@
       }
     }
   },
+  "qwen3.8-max": {
+    "id": "alibaba/qwen3.8-max",
+    "name": "Qwen3.8 Max",
+    "description": "2.4-trillion-parameter MoE flagship for coding, professional work, multimodal understanding, and long-horizon agentic workflows",
+    "family": "qwen",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2026-08-03",
+    "last_updated": "2026-08-03",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1000000,
+      "output": 131072
+    },
+    "provider": "alibaba",
+    "openrouter": {
+      "id": "qwen/qwen3.8-max",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "xhigh",
+        "default_enabled": true,
+        "mandatory": true,
+        "supported_efforts": [
+          "xhigh",
+          "high",
+          "medium",
+          "low",
+          "minimal"
+        ],
+        "supports_max_tokens": null
+      }
+    }
+  },
   "qwen3-coder-flash": {
     "id": "alibaba/qwen3-coder-flash",
     "name": "Qwen3 Coder Flash",
@@ -9366,6 +11040,39 @@
       ],
       "reasoning": null
     }
+  },
+  "qwen3-235b-a22b-instruct-2507": {
+    "id": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "name": "Qwen3 235B-A22B Instruct 2507",
+    "description": "Updated large open Qwen3 MoE instruct model for multilingual chat, coding, and tool use",
+    "family": "qwen",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2025-07-21",
+    "last_updated": "2025-07-21",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 262144,
+      "output": 16384
+    },
+    "license": "Apache 2.0",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507"
+      }
+    ],
+    "provider": "alibaba"
   },
   "qwen-flash": {
     "id": "alibaba/qwen-flash",
@@ -9630,6 +11337,39 @@
       }
     }
   },
+  "qwen2.5-coder-0.5b": {
+    "id": "alibaba/qwen2.5-coder-0.5b",
+    "name": "Qwen2.5-Coder-0.5B",
+    "description": "Tiny open Qwen code model for lightweight completion and on-device coding",
+    "family": "qwen",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": false,
+    "temperature": true,
+    "release_date": "2024-11-12",
+    "last_updated": "2024-11-12",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 32768,
+      "output": 8192
+    },
+    "license": "Apache 2.0",
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B"
+      }
+    ],
+    "provider": "alibaba"
+  },
   "qwen3.6-max-preview": {
     "id": "alibaba/qwen3.6-max-preview",
     "name": "Qwen3.6 Max Preview",
@@ -9684,6 +11424,63 @@
         "supported_efforts": null,
         "supports_max_tokens": null
       }
+    }
+  },
+  "qwen3-coder-next": {
+    "id": "alibaba/qwen3-coder-next",
+    "name": "Qwen3 Coder Next",
+    "description": "Open-weight Qwen coding model for agents, repository edits, and multi-turn tool use",
+    "family": "qwen",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "knowledge": "2025-09",
+    "release_date": "2026-02-03",
+    "last_updated": "2026-02-03",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": true,
+    "limit": {
+      "context": 262144,
+      "output": 65536
+    },
+    "weights": [
+      {
+        "label": "Hugging Face",
+        "url": "https://huggingface.co/Qwen/Qwen3-Coder-Next"
+      }
+    ],
+    "provider": "alibaba",
+    "openrouter": {
+      "id": "qwen/qwen3-coder-next",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ],
+      "reasoning": null
     }
   },
   "qwen3.6-plus": {
@@ -10370,28 +12167,7 @@
         "date": "2025-05-25"
       }
     ],
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-opus-4",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_tokens",
-        "reasoning",
-        "stop",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-haiku-4-5": {
     "id": "anthropic/claude-haiku-4-5",
@@ -10455,6 +12231,36 @@
         "supports_max_tokens": null
       }
     }
+  },
+  "claude-mythos-5": {
+    "id": "anthropic/claude-mythos-5",
+    "name": "Claude Mythos 5",
+    "description": "Restricted Claude model for advanced cybersecurity and biology research workflows",
+    "family": "claude-mythos",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": false,
+    "knowledge": "2026-01-31",
+    "release_date": "2026-06-09",
+    "last_updated": "2026-06-09",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "pdf"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 1000000,
+      "output": 128000
+    },
+    "provider": "anthropic"
   },
   "claude-3-7-sonnet-20250219": {
     "id": "anthropic/claude-3-7-sonnet-20250219",
@@ -10958,29 +12764,7 @@
         "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
       }
     ],
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-sonnet-4",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_tokens",
-        "reasoning",
-        "stop",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-opus-4-1": {
     "id": "anthropic/claude-opus-4-1",
@@ -11015,12 +12799,9 @@
       "match_method": "normalized_id",
       "supported_parameters": [
         "include_reasoning",
-        "max_completion_tokens",
         "max_tokens",
         "reasoning",
-        "response_format",
         "stop",
-        "structured_outputs",
         "temperature",
         "tool_choice",
         "tools",
@@ -11126,32 +12907,7 @@
       "context": 200000,
       "output": 64000
     },
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-sonnet-4.5",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_completion_tokens",
-        "max_tokens",
-        "reasoning",
-        "response_format",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-opus-4-5-20251101": {
     "id": "anthropic/claude-opus-4-5-20251101",
@@ -11189,32 +12945,7 @@
         "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public"
       }
     ],
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-opus-4.5",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_completion_tokens",
-        "max_tokens",
-        "reasoning",
-        "response_format",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "verbosity"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-3-5-haiku-20241022": {
     "id": "anthropic/claude-3-5-haiku-20241022",
@@ -11281,32 +13012,7 @@
       "context": 200000,
       "output": 64000
     },
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-haiku-4.5",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_completion_tokens",
-        "max_tokens",
-        "reasoning",
-        "response_format",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-opus-4-7": {
     "id": "anthropic/claude-opus-4-7",
@@ -11560,29 +13266,7 @@
         "date": "2025-05-24"
       }
     ],
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-sonnet-4",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_tokens",
-        "reasoning",
-        "stop",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-opus-4-5": {
     "id": "anthropic/claude-opus-4-5",
@@ -11817,28 +13501,7 @@
         "date": "2025-05-25"
       }
     ],
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-opus-4",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_tokens",
-        "reasoning",
-        "stop",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "claude-opus-5": {
     "id": "anthropic/claude-opus-5",
@@ -11867,6 +13530,161 @@
       "context": 1000000,
       "output": 128000
     },
+    "benchmarks": [
+      {
+        "name": "SWE-Bench Verified",
+        "score": 96,
+        "metric": "resolved",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "SWE-Bench Pro",
+        "score": 79.2,
+        "metric": "resolve rate",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "SWE-Bench Multilingual",
+        "score": 89.5,
+        "metric": "resolve rate",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "SWE-Bench Multimodal",
+        "score": 59.4,
+        "metric": "resolve rate",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "DeepSWE",
+        "score": 68.8,
+        "metric": "resolve rate",
+        "version": "1.1",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "FrontierCode",
+        "score": 53.4,
+        "metric": "mean@5",
+        "variant": "medium effort",
+        "dataset": "Main",
+        "version": "1.1",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "Frontier-Bench",
+        "score": 43.3,
+        "metric": "mean reward",
+        "harness": "mini-SWE-agent",
+        "variant": "max effort",
+        "version": "v0.1",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "BrowseComp",
+        "score": 90.8,
+        "metric": "accuracy",
+        "variant": "single agent",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 56.3,
+        "metric": "accuracy",
+        "variant": "no tools",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 64.7,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "DeepSearchQA",
+        "score": 95,
+        "metric": "F1",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/news/claude-opus-5",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "OSWorld",
+        "score": 70.6,
+        "metric": "success rate",
+        "version": "2.0",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "GDPval-AA",
+        "score": 1861,
+        "metric": "Elo",
+        "variant": "max effort",
+        "version": "v2",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "AA-Briefcase",
+        "score": 1720,
+        "metric": "Elo",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "AutomationBench",
+        "score": 26,
+        "metric": "success rate",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "ARC-AGI-1",
+        "score": 97.5,
+        "metric": "accuracy",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "ARC-AGI-2",
+        "score": 90.4,
+        "metric": "accuracy",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "ARC-AGI-3",
+        "score": 30.2,
+        "metric": "RHAE",
+        "variant": "high effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      },
+      {
+        "name": "HealthBench Professional",
+        "score": 59.8,
+        "metric": "score",
+        "variant": "max effort",
+        "source": "https://www.anthropic.com/claude-opus-5-system-card",
+        "date": "2026-07-24"
+      }
+    ],
     "provider": "anthropic",
     "openrouter": {
       "id": "anthropic/claude-opus-5",
@@ -11927,32 +13745,7 @@
       "context": 200000,
       "output": 32000
     },
-    "provider": "anthropic",
-    "openrouter": {
-      "id": "anthropic/claude-opus-4.1",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_completion_tokens",
-        "max_tokens",
-        "reasoning",
-        "response_format",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_k",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "anthropic"
   },
   "sonar": {
     "id": "perplexity/sonar",
@@ -12592,6 +14385,124 @@
       "context": 1048576,
       "output": 131072
     },
+    "benchmarks": [
+      {
+        "name": "DeepSWE",
+        "score": 67.5,
+        "metric": "resolve rate",
+        "harness": "Kimi Code",
+        "variant": "max effort",
+        "version": "1.1",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 88.3,
+        "metric": "accuracy",
+        "harness": "Kimi Code",
+        "variant": "max effort",
+        "version": "2.1",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "FrontierSWE",
+        "score": 81.2,
+        "metric": "dominance score",
+        "harness": "Kimi Code",
+        "variant": "max effort",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "Program Bench",
+        "score": 77.8,
+        "metric": "score",
+        "harness": "Kimi Code",
+        "variant": "max effort",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "SWE Marathon",
+        "score": 42,
+        "metric": "resolve rate",
+        "harness": "Claude Code",
+        "variant": "max effort",
+        "version": "1.1",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "GDPval-AA",
+        "score": 1668,
+        "metric": "Elo",
+        "variant": "max effort",
+        "version": "v2",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "AA-Briefcase",
+        "score": 1548,
+        "metric": "Elo",
+        "variant": "max effort",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "AutomationBench",
+        "score": 30.8,
+        "metric": "success rate",
+        "variant": "max effort",
+        "dataset": "600-task public subset",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "JobBench",
+        "score": 52.9,
+        "metric": "score",
+        "variant": "max effort",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "SpreadsheetBench",
+        "score": 34.8,
+        "metric": "score",
+        "harness": "Claude Code",
+        "variant": "max effort",
+        "version": "2",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "BrowseComp",
+        "score": 91.2,
+        "metric": "accuracy",
+        "variant": "max effort, context compaction",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "CharXiv Reasoning",
+        "score": 91.3,
+        "metric": "accuracy",
+        "variant": "max effort, with tools",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      },
+      {
+        "name": "ZeroBench",
+        "score": 41,
+        "metric": "pass@5",
+        "variant": "max effort, with tools",
+        "source": "https://www.kimi.com/blog/kimi-k3",
+        "date": "2026-07-16"
+      }
+    ],
     "provider": "moonshotai",
     "openrouter": {
       "id": "moonshotai/kimi-k3",
@@ -13533,21 +15444,7 @@
       "context": 128000,
       "output": 16384
     },
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/gpt-5.2-chat",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "max_completion_tokens",
-        "max_tokens",
-        "response_format",
-        "seed",
-        "structured_outputs",
-        "tool_choice",
-        "tools"
-      ],
-      "reasoning": null
-    }
+    "provider": "openai"
   },
   "o3-mini": {
     "id": "openai/o3-mini",
@@ -14143,36 +16040,7 @@
       "context": 200000,
       "output": 100000
     },
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/o4-mini-deep-research",
-      "match_method": "exact_id",
-      "supported_parameters": [
-        "frequency_penalty",
-        "include_reasoning",
-        "logit_bias",
-        "logprobs",
-        "max_tokens",
-        "presence_penalty",
-        "reasoning",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_logprobs",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "openai"
   },
   "gpt-realtime-2.1": {
     "id": "openai/gpt-realtime-2.1",
@@ -14232,36 +16100,7 @@
       "context": 200000,
       "output": 100000
     },
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/o3-deep-research",
-      "match_method": "exact_id",
-      "supported_parameters": [
-        "frequency_penalty",
-        "include_reasoning",
-        "logit_bias",
-        "logprobs",
-        "max_tokens",
-        "presence_penalty",
-        "reasoning",
-        "response_format",
-        "seed",
-        "stop",
-        "structured_outputs",
-        "temperature",
-        "tool_choice",
-        "tools",
-        "top_logprobs",
-        "top_p"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": false,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "openai"
   },
   "gpt-5-codex": {
     "id": "openai/gpt-5-codex",
@@ -14314,28 +16153,7 @@
         "date": "2026-06-01"
       }
     ],
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/gpt-5-codex",
-      "match_method": "exact_id",
-      "supported_parameters": [
-        "include_reasoning",
-        "max_tokens",
-        "reasoning",
-        "response_format",
-        "seed",
-        "structured_outputs",
-        "tool_choice",
-        "tools"
-      ],
-      "reasoning": {
-        "default_effort": null,
-        "default_enabled": null,
-        "mandatory": true,
-        "supported_efforts": null,
-        "supports_max_tokens": null
-      }
-    }
+    "provider": "openai"
   },
   "gpt-3.5-turbo": {
     "id": "openai/gpt-3.5-turbo",
@@ -14903,21 +16721,7 @@
       "context": 128000,
       "output": 16384
     },
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/gpt-5.3-chat",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "max_completion_tokens",
-        "max_tokens",
-        "response_format",
-        "seed",
-        "structured_outputs",
-        "tool_choice",
-        "tools"
-      ],
-      "reasoning": null
-    }
+    "provider": "openai"
   },
   "gpt-realtime-whisper": {
     "id": "openai/gpt-realtime-whisper",
@@ -15018,7 +16822,6 @@
       "supported_parameters": [
         "include_reasoning",
         "max_completion_tokens",
-        "max_tokens",
         "reasoning",
         "reasoning_effort",
         "response_format",
@@ -15069,6 +16872,140 @@
       "input": 272000,
       "output": 128000
     },
+    "benchmarks": [
+      {
+        "name": "SWE-Bench Pro",
+        "score": 52.4,
+        "metric": "resolve rate",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 46.3,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "version": "2.0",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MCP Atlas",
+        "score": 56.1,
+        "metric": "score",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Toolathlon",
+        "score": 35.5,
+        "metric": "score",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "τ²-Bench Telecom",
+        "score": 92.5,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "GPQA Diamond",
+        "score": 82.8,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 37.7,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 24.3,
+        "metric": "accuracy",
+        "variant": "without tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 39,
+        "metric": "success rate",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MMMU Pro",
+        "score": 69.5,
+        "metric": "accuracy",
+        "variant": "with Python",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MMMU Pro",
+        "score": 66.1,
+        "metric": "accuracy",
+        "variant": "without tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OmniDocBench",
+        "score": 0.2419,
+        "metric": "overall edit distance",
+        "variant": "reasoning effort none",
+        "version": "1.5",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OpenAI MRCR",
+        "score": 44.2,
+        "metric": "accuracy",
+        "variant": "8-needle, 64K-128K",
+        "version": "v2",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OpenAI MRCR",
+        "score": 33.1,
+        "metric": "accuracy",
+        "variant": "8-needle, 128K-256K",
+        "version": "v2",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Graphwalks",
+        "score": 73.4,
+        "metric": "accuracy",
+        "variant": "BFS, 0-128K",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Graphwalks",
+        "score": 50.8,
+        "metric": "accuracy",
+        "variant": "parents, 0-128K",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      }
+    ],
     "provider": "openai",
     "openrouter": {
       "id": "openai/gpt-5.4-nano",
@@ -15182,6 +17119,140 @@
       "input": 272000,
       "output": 128000
     },
+    "benchmarks": [
+      {
+        "name": "SWE-Bench Pro",
+        "score": 54.4,
+        "metric": "resolve rate",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Terminal-Bench",
+        "score": 60,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "version": "2.0",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MCP Atlas",
+        "score": 57.7,
+        "metric": "score",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Toolathlon",
+        "score": 42.9,
+        "metric": "score",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "τ²-Bench Telecom",
+        "score": 93.4,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "GPQA Diamond",
+        "score": 88,
+        "metric": "accuracy",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 41.5,
+        "metric": "accuracy",
+        "variant": "with tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Humanity's Last Exam",
+        "score": 28.2,
+        "metric": "accuracy",
+        "variant": "without tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OSWorld-Verified",
+        "score": 72.1,
+        "metric": "success rate",
+        "variant": "reasoning effort xhigh",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MMMU Pro",
+        "score": 78,
+        "metric": "accuracy",
+        "variant": "with Python",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "MMMU Pro",
+        "score": 76.6,
+        "metric": "accuracy",
+        "variant": "without tools",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OmniDocBench",
+        "score": 0.1263,
+        "metric": "overall edit distance",
+        "variant": "reasoning effort none",
+        "version": "1.5",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OpenAI MRCR",
+        "score": 47.7,
+        "metric": "accuracy",
+        "variant": "8-needle, 64K-128K",
+        "version": "v2",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "OpenAI MRCR",
+        "score": 33.6,
+        "metric": "accuracy",
+        "variant": "8-needle, 128K-256K",
+        "version": "v2",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Graphwalks",
+        "score": 76.3,
+        "metric": "accuracy",
+        "variant": "BFS, 0-128K",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      },
+      {
+        "name": "Graphwalks",
+        "score": 71.5,
+        "metric": "accuracy",
+        "variant": "parents, 0-128K",
+        "source": "https://openai.com/index/introducing-gpt-5-4-mini-and-nano/",
+        "date": "2026-03-17"
+      }
+    ],
     "provider": "openai",
     "openrouter": {
       "id": "openai/gpt-5.4-mini",
@@ -16529,7 +18600,6 @@
       "supported_parameters": [
         "include_reasoning",
         "max_completion_tokens",
-        "max_tokens",
         "reasoning",
         "reasoning_effort",
         "response_format",
@@ -16638,20 +18708,7 @@
       "context": 128000,
       "output": 16384
     },
-    "provider": "openai",
-    "openrouter": {
-      "id": "openai/gpt-5.1-chat",
-      "match_method": "explicit_alias",
-      "supported_parameters": [
-        "max_completion_tokens",
-        "response_format",
-        "seed",
-        "structured_outputs",
-        "tool_choice",
-        "tools"
-      ],
-      "reasoning": null
-    }
+    "provider": "openai"
   },
   "sarvam-30b": {
     "id": "sarvam/sarvam-30b",
@@ -16704,6 +18761,64 @@
       "output": 131072
     },
     "provider": "sarvam"
+  },
+  "seed-2.0-code": {
+    "id": "bytedance-seed/seed-2.0-code",
+    "name": "Seed 2.0 Code",
+    "description": "ByteDance Seed coding model for multimodal software engineering and long-running agents",
+    "family": "seed",
+    "attachment": true,
+    "reasoning": true,
+    "tool_call": true,
+    "structured_output": true,
+    "temperature": true,
+    "release_date": "2026-02-14",
+    "last_updated": "2026-02-14",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 262144,
+      "output": 131072
+    },
+    "provider": "bytedance-seed",
+    "openrouter": {
+      "id": "bytedance-seed/seed-2.0-code",
+      "match_method": "exact_id",
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": "medium",
+        "default_enabled": null,
+        "mandatory": false,
+        "supported_efforts": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "supports_max_tokens": null
+      }
+    }
   },
   "step-3.5-flash": {
     "id": "stepfun/step-3.5-flash",
@@ -16998,5 +19113,179 @@
       }
     ],
     "provider": "stepfun"
+  },
+  "amazon.nova-pro-v1:0": {
+    "id": "amazon-bedrock/amazon.nova-pro-v1:0",
+    "name": "Nova Pro",
+    "description": "Flagship model for demanding analysis, coding, and production agent workflows",
+    "family": "nova-pro",
+    "attachment": true,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "knowledge": "2024-10",
+    "release_date": "2024-12-03",
+    "last_updated": "2024-12-03",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 300000,
+      "output": 8192
+    },
+    "provider": "amazon-bedrock",
+    "openrouter": {
+      "id": "amazon/nova-pro-v1",
+      "match_method": "explicit_alias",
+      "supported_parameters": [
+        "max_tokens",
+        "stop",
+        "temperature",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "reasoning": null
+    }
+  },
+  "amazon.nova-micro-v1:0": {
+    "id": "amazon-bedrock/amazon.nova-micro-v1:0",
+    "name": "Nova Micro",
+    "description": "Efficient model for low-latency assistance, extraction, and routine automation",
+    "family": "nova-micro",
+    "attachment": false,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "knowledge": "2024-10",
+    "release_date": "2024-12-03",
+    "last_updated": "2024-12-03",
+    "modalities": {
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 128000,
+      "output": 8192
+    },
+    "provider": "amazon-bedrock",
+    "openrouter": {
+      "id": "amazon/nova-micro-v1",
+      "match_method": "explicit_alias",
+      "supported_parameters": [
+        "max_tokens",
+        "stop",
+        "temperature",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "reasoning": null
+    }
+  },
+  "amazon.nova-lite-v1:0": {
+    "id": "amazon-bedrock/amazon.nova-lite-v1:0",
+    "name": "Nova Lite",
+    "description": "Efficient model for low-latency assistance, extraction, and routine automation",
+    "family": "nova-lite",
+    "attachment": true,
+    "reasoning": false,
+    "tool_call": true,
+    "temperature": true,
+    "knowledge": "2024-10",
+    "release_date": "2024-12-03",
+    "last_updated": "2024-12-03",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 300000,
+      "output": 8192
+    },
+    "provider": "amazon-bedrock",
+    "openrouter": {
+      "id": "amazon/nova-lite-v1",
+      "match_method": "explicit_alias",
+      "supported_parameters": [
+        "max_tokens",
+        "stop",
+        "temperature",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "reasoning": null
+    }
+  },
+  "amazon.nova-2-lite-v1:0": {
+    "id": "amazon-bedrock/amazon.nova-2-lite-v1:0",
+    "name": "Nova 2 Lite",
+    "description": "Multimodal reasoning model for visual analysis, planning, and tool use",
+    "family": "nova",
+    "attachment": false,
+    "reasoning": true,
+    "tool_call": true,
+    "temperature": true,
+    "release_date": "2024-12-01",
+    "last_updated": "2024-12-01",
+    "modalities": {
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ]
+    },
+    "open_weights": false,
+    "limit": {
+      "context": 128000,
+      "output": 4096
+    },
+    "provider": "amazon-bedrock",
+    "openrouter": {
+      "id": "amazon/nova-2-lite-v1",
+      "match_method": "explicit_alias",
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "stop",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_p"
+      ],
+      "reasoning": {
+        "default_effort": null,
+        "default_enabled": null,
+        "mandatory": false,
+        "supported_efforts": null,
+        "supports_max_tokens": null
+      }
+    }
   }
 }

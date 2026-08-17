@@ -113,6 +113,14 @@ public final class AgentRunActionStore {
 	 * Used by {@code GetAgentRunReactor} to surface pending actions.
 	 */
 	public List<Map<String, Object>> getActionsForRun(String runId) {
+		return getActionsForRun(runId, null);
+	}
+
+	/**
+	 * Return all action rows for a run id and, when supplied, the owning user.
+	 * Owner-scoped read surfaces should always use this overload.
+	 */
+	public List<Map<String, Object>> getActionsForRun(String runId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -120,9 +128,13 @@ public final class AgentRunActionStore {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
 					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ? ORDER BY DATE_CREATED ASC";
+					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?"
+					+ (userId != null ? " AND USER_ID = ?" : "") + " ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
+			if (userId != null) {
+				ps.setString(2, userId);
+			}
 			rs = ps.executeQuery();
 			List<Map<String, Object>> results = new ArrayList<>();
 			while (rs.next()) {
