@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -48,13 +47,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Pixel: {@code CancelAutomationRun(project=["appId"], runId=["running-run-id"])}
  *
  * <p>Sets a cluster-safe cancellation flag ({@code AUTOMATION_RUNS.CANCEL_REQUESTED}, via
- * {@link AutomationDatabaseUtility#setCancelRequested(String)}) that the executing pod's
- * between-node check polls regardless of which pod that is - this is the source of truth. Also
- * attempts an in-memory same-pod signal ({@link AutomationRunEngine#requestCancellation(String)})
- * as a fast path when the run happens to be executing on the pod that received this request. The
- * run's {@code STATUS} is transitioned to CANCELLED by whichever pod is actually executing it,
- * not by this reactor - a truly orphaned run (no pod executing it) is instead caught by the
- * periodic stale-heartbeat sweep.
+ * {@link AutomationDatabaseUtility#setCancelRequested(String)}) that the executing pod polls
+ * regardless of which pod owns the Python run. The same-pod fast path also interrupts the
+ * matching Python socket job, allowing native Python and blocking bridge calls to stop promptly.
+ * The run's {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
+ * reactor; a truly orphaned run is caught by the periodic stale-heartbeat sweep.
  */
 public class CancelAutomationRunReactor extends AbstractReactor {
 
@@ -111,8 +108,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		// would be a lie. The executing pod transitions STATUS to CANCELLED itself once it
 		// observes the flag; a truly orphaned run (crashed, nobody polling) is caught by the
 		// periodic stale-heartbeat sweep (AutomationDatabaseUtility.markStaleRunsInterrupted).
-		boolean signalledLocally = AutomationRunEngine.requestCancellation(runId);
 		AutomationDatabaseUtility.setCancelRequested(runId);
+		boolean signalledLocally = AutomationPythonRunRegistry.requestCancellation(runId);
 
 		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);
 
@@ -128,11 +125,4 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		return "Requests cancellation of a running automation run for the given project.";
 	}
 
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		Map<String, String> meta = new HashMap<>();
-		// Cancelling a run is a mutating, side-effecting action - requires explicit confirmation.
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
-	}
 }

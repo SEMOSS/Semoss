@@ -11,6 +11,8 @@
  * 	Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
  * ----------------------------------------------------------------------------
  * If your use of this software includes any GPLv2 components:
  * 	This program is free software; you can redistribute it and/or
@@ -27,8 +29,8 @@ package prerna.reactor.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -36,77 +38,103 @@ import org.junit.jupiter.api.Test;
 class AutomationDefinitionValidatorTest {
 
 	@Test
-	void validatesTriggerOnlyDefinitionWithoutRequiringRunnableSteps() {
+	void validatesTypedGraphWithControlAndDataEdges() {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"}]", "[]"));
+				AutomationDefinitionValidator.parseAndValidate("""
+						{
+						  "formatVersion": 2,
+						  "triggerBindings": [{"id": "manual", "type": "manual"}],
+						  "graph": {
+						    "nodes": [
+						      {"id": "start", "type": "trigger.start", "config": {}},
+						      {"id": "query", "type": "database.query", "config": {}},
+						      {"id": "model", "type": "model.chat", "config": {}}
+						    ],
+						    "edges": [
+						      {"id": "control-start-query", "kind": "control", "source": "start", "sourcePort": "next", "target": "query", "targetPort": "in"},
+						      {"id": "data-query-output", "kind": "data", "source": "query", "sourcePort": "rows", "target": "model", "targetPort": "context"}
+						    ]
+						  }
+						}
+						""");
 
-		assertEquals(AutomationConstants.DOC_CURRENT_VERSION, definition.getVersion());
-		assertEquals(1, definition.getNodes().size());
+		assertEquals(3, definition.nodes().size());
+		assertEquals(2, definition.edges().size());
 	}
 
 	@Test
-	void canonicalizesEquivalentDocumentsToTheSameSnapshotAndHash() {
-		String first = """
-				{"version":1,"graph":{"nodes":[{"id":"trigger","type":"trigger"},{"id":"wait","type":"wait"}],
-				"edges":[{"source":"trigger","target":"wait"}]}}""";
-		String second = """
-				{"graph":{"edges":[{"target":"wait","source":"trigger"}],
-				"nodes":[{"type":"trigger","id":"trigger"},{"type":"wait","id":"wait"}]},"version":1}""";
-
-		AutomationDefinitionValidator.ValidatedDefinition firstDefinition =
-				AutomationDefinitionValidator.parseAndValidate(first);
-		AutomationDefinitionValidator.ValidatedDefinition secondDefinition =
-				AutomationDefinitionValidator.parseAndValidate(second);
-
-		assertEquals(firstDefinition.getSnapshot(), secondDefinition.getSnapshot());
-		assertEquals(firstDefinition.getHash(), secondDefinition.getHash());
+	void rejectsUnknownNodesAndNonWhileSelfEdges() {
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[{"id":"start","type":"trigger.start"},{"id":"unknown","type":"unknown"}],"edges":[]}}
+						"""));
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[{"id":"start","type":"trigger.start"}],"edges":[{"id":"loop","kind":"control","source":"start","sourcePort":"next","target":"start","targetPort":"in"}]}}
+						"""));
 	}
 
 	@Test
-	void rejectsInvalidVersionsAndNodes() {
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(
-						"{\"version\":2,\"graph\":{\"nodes\":[],\"edges\":[]}}"));
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"trigger\",\"type\":\"wait\"}]", "[]")));
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"unknown\",\"type\":\"unknown\"}]", "[]")));
-	}
-
-	@Test
-	void rejectsInvalidEdgesAndCycles() {
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"}]", "[{\"source\":\"trigger\",\"target\":\"missing\"}]")));
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"}]", "[{\"source\":\"trigger\",\"target\":\"trigger\"}]")));
-		assertThrows(IllegalArgumentException.class, () ->
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"one\",\"type\":\"wait\"},{\"id\":\"two\",\"type\":\"wait\"}]",
-						"[{\"source\":\"trigger\",\"target\":\"one\"},{\"source\":\"one\",\"target\":\"two\"},{\"source\":\"two\",\"target\":\"one\"}]")));
-	}
-
-	@Test
-	void ordersNodesByDependenciesWhilePreservingReadyNodeDocumentOrder() {
+	void rendersDeterministicCurrentNodePythonSource() {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(document(
-						"[{\"id\":\"trigger\",\"type\":\"trigger\"},{\"id\":\"second\",\"type\":\"wait\"},"
-								+ "{\"id\":\"first\",\"type\":\"wait\"},{\"id\":\"join\",\"type\":\"wait\"}]",
-						"[{\"source\":\"trigger\",\"target\":\"first\"},{\"source\":\"trigger\",\"target\":\"second\"},"
-								+ "{\"source\":\"first\",\"target\":\"join\"},{\"source\":\"second\",\"target\":\"join\"}]"));
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"start","type":"trigger.start","config":{}},
+						  {"id":"node","type":"database.query","config":{}}
+						],"edges":[
+						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"node","targetPort":"in"}
+						]}}
+						""");
 
-		List<String> nodeIds = definition.getExecutionOrder().stream()
-				.map(node -> (String) node.get(AutomationConstants.NODE_FIELD_ID))
-				.toList();
+		String source = AutomationSourceRenderer.renderNode(definition.nodes().get(1));
 
-		assertEquals(List.of("trigger", "second", "first", "join"), nodeIds);
+		assertTrue(source.contains("def run(scope):"));
+		assertTrue(source.contains("from ai_server import DatabaseEngine"));
+		assertTrue(source.contains("database.execQuery(query=QUERY, return_pandas=False)"));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationSourceRenderer.renderNode(definition.nodes().get(0)));
 	}
 
-	private static String document(String nodes, String edges) {
-		return "{\"version\":1,\"graph\":{\"nodes\":" + nodes + ",\"edges\":" + edges + "}}";
+	@Test
+	void rendersNativePythonForEveryExecutableNodeType() {
+		Map<String, String> expectedCalls = Map.ofEntries(
+				Map.entry("database.query", "DatabaseEngine"),
+				Map.entry("database.insert", "DatabaseEngine"),
+				Map.entry("database.update", "DatabaseEngine"),
+				Map.entry("model.chat", "ModelEngine"),
+				Map.entry("model.embeddings", "ModelEngine"),
+				Map.entry("model.vision", "ModelEngine"),
+				Map.entry("model.ner", "ModelEngine"),
+				Map.entry("storage.action", "StorageEngine"),
+				Map.entry("storage.list", "StorageEngine"),
+				Map.entry("storage.read", "StorageEngine"),
+				Map.entry("storage.upload", "StorageEngine"),
+				Map.entry("storage.download", "StorageEngine"),
+				Map.entry("storage.delete", "StorageEngine"),
+				Map.entry("vector.action", "VectorEngine"),
+				Map.entry("vector.search", "VectorEngine"),
+				Map.entry("vector.add", "VectorEngine"),
+				Map.entry("vector.delete", "VectorEngine"),
+				Map.entry("function.execute", "FunctionEngine"),
+				Map.entry("app.pixel", "Insight"),
+				Map.entry("control.wait", "time.sleep"),
+				Map.entry("developer.python", "def run(scope):"));
+
+		for (Map.Entry<String, String> expected : expectedCalls.entrySet()) {
+			String source = AutomationSourceRenderer.renderNode(Map.of(
+					"id", "node",
+					"type", expected.getKey(),
+					"config", Map.of()));
+			assertTrue(source.contains(expected.getValue()), expected.getKey());
+			assertTrue(!source.contains("automation.run_current_node"), expected.getKey());
+		}
+	}
+
+	@Test
+	void rejectsNonObjectNodeConfig() {
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[{"id":"start","type":"trigger.start","config":"invalid"}],"edges":[]}}
+						"""));
 	}
 }

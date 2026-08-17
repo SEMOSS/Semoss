@@ -27,113 +27,66 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationExecutionUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 /**
- * Returns the automation <em>definition</em> (the saved {@code automation.json} graph) for a project.
- * Returns an empty graph document when no automation has been saved yet.
- *
- * <p>There are three "get" reactors  - each reads something different:
- * <ul>
- *   <li>{@code GetAutomation} (this reactor)  - reads {@code automation.json}: the pipeline graph
- *       (nodes, edges, output transforms). Static config written by {@link SaveAutomationReactor}.</li>
- *   <li>{@link GetAutomationConfigReactor GetAutomationConfig}  - reads {@code automation_config.json}:
- *       key/value env vars and secrets; sensitive values are masked in the response.</li>
- *   <li>{@link GetAutomationRunReactor GetAutomationRun}  - reads live run state from the DB
- *       (AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS); used by the FE to poll execution progress.</li>
- * </ul>
+ * Returns an automation graph together with its persisted per-node Python sources.
  *
  * <p>Pixel: {@code GetAutomation(project=["appId"])}
  */
 public class GetAutomationReactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(GetAutomationReactor.class);
+	public GetAutomationReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
+	}
 
-    public GetAutomationReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-        this.keyRequired = new int[] { 1 };
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Must provide a project id.");
+		}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String projectId = this.keyValue.get(this.keysToGet[0]);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access.");
+		}
 
-        if (projectId == null || projectId.isEmpty()) {
-            throw new IllegalArgumentException("Must provide a project id");
-        }
+		IProject project = Utility.getProject(projectId);
+		if (project != null && project.requirePublish(true)) {
+			// requirePublish refreshes the project assets before the definition is read.
+		}
 
-        projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-        if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-            throw new IllegalArgumentException("Project does not exist or user does not have access");
-        }
+		AutomationDefinitionService.DefinitionFiles files =
+				AutomationDefinitionService.load(projectId);
+		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
+				AutomationRuntimeUtils.MAP_TYPE);
+		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-        IProject project = Utility.getProject(projectId);
-        if (project != null && project.requirePublish(true)) {
-            classLogger.info("Pulled project {} from cluster", projectId);
-        }
+	@Override
+	public String getReactorDescription() {
+		return "Returns the automation graph and persisted nodeSources map for a project.";
+	}
 
-        String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File automationFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_FILE_NAME).toFile();
-        String normalizedPath = Utility.normalizePath(automationFile.getAbsolutePath());
-        if (!normalizedPath.startsWith(portalsFolder)) {
-            throw new IllegalArgumentException("Invalid file path");
-        }
-
-        if (!automationFile.exists() || !automationFile.isFile()) {
-            // return empty graph document for brand-new automations
-            Map<String, Object> empty = new HashMap<>();
-            empty.put(AutomationConstants.DOC_VERSION, AutomationConstants.DOC_CURRENT_VERSION);
-            Map<String, Object> graph = new HashMap<>();
-            graph.put(AutomationConstants.DOC_NODES, new ArrayList<>());
-            graph.put(AutomationConstants.DOC_EDGES, new ArrayList<>());
-            empty.put(AutomationConstants.DOC_GRAPH, graph);
-            return new NounMetadata(empty, PixelDataType.MAP, PixelOperationType.OPERATION);
-        }
-
-        try {
-            String json = Files.readString(automationFile.toPath(), StandardCharsets.UTF_8);
-            Map<String, Object> doc = AutomationExecutionUtils.GSON.fromJson(json,
-                    AutomationExecutionUtils.MAP_TYPE);
-            return new NounMetadata(doc, PixelDataType.MAP, PixelOperationType.OPERATION);
-        } catch (IOException e) {
-            classLogger.error("Error reading automation.json for project {}", projectId, e);
-            throw new IllegalArgumentException("Unable to read automation: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public String getReactorDescription() {
-        return "Returns the automation pipeline definition (automation.json) for a project; returns an empty graph when none has been saved.";
-    }
-
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-            return "The project ID of the automation to retrieve.";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The project ID or alias of the automation to retrieve.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

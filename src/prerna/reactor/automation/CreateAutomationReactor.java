@@ -27,39 +27,31 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.PixelExecutionUtils;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
+import prerna.util.git.GitRepoUtils;
 
 /**
- * Creates a new automation project and returns its ID so the LLM can immediately chain to
- * {@code QuickEditAutomation} to interactively build it.
+ * Creates a new automation project and returns its ID.
  *
  * <p>The project name must start with a letter and contain only letters, numbers, and spaces
  * (enforced by {@code CreateProject}).
- *
- * <p>Typical LLM flow:
- * <ol>
- *   <li>LLM calls {@code CreateAutomation(projectName=["My Automation"])} — auto, no UI</li>
- *   <li>LLM immediately chains {@code QuickEditAutomation(project=["<returnedId>"], editDescription=["..."])}</li>
- *   <li>User sees the editor open with the AI-generated draft</li>
- * </ol>
  *
  * <p>Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
  */
@@ -106,18 +98,10 @@ public class CreateAutomationReactor extends AbstractReactor {
         IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION,
                 false, null, null, user, classLogger);
         String projectId = project.getProjectId();
-        String definition = buildStarterDefinition();
-        String encodedDefinition = Base64.getEncoder().encodeToString(definition.getBytes(StandardCharsets.UTF_8));
-        String encodedConfig = Base64.getEncoder().encodeToString(
-                AutomationConstants.EMPTY_JSON_ARRAY.getBytes(StandardCharsets.UTF_8));
-
         try {
-            PixelExecutionUtils.runAndCollect(this.insight, String.format(
-                    "SaveAutomation(project=[\"%s\"], json=[\"%s\"]);", projectId, encodedDefinition));
-            PixelExecutionUtils.runAndCollect(this.insight, String.format(
-                    "SaveAutomationConfig(project=[\"%s\"], config=[\"%s\"]);", projectId, encodedConfig));
-            MCPUtility.addMCPTag(project);
-        } catch (PixelExecutionUtils.AutomationPixelException e) {
+            AutomationDefinitionService.createStarter(projectId);
+            syncStarterDefinition(project, projectId);
+        } catch (RuntimeException e) {
             classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
             throw new IllegalStateException(
                     "Automation project was created but its starter assets could not be scaffolded: " + e.getMessage(), e);
@@ -132,41 +116,36 @@ public class CreateAutomationReactor extends AbstractReactor {
         result.put(RESULT_PROJECT_NAME, projectName);
         result.put(RESULT_MESSAGE,
                 "Created automation project \"" + projectName + "\" (id: " + projectId + "). "
-                + "Call QuickEditAutomation(project=[\"" + projectId
-                + "\"], editDescription=[\"<what to build>\"]) to build the automation.");
+                + "Use GetAutomation and SaveAutomation to edit the workflow.");
 
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
     }
 
-    private static String buildStarterDefinition() {
-        Map<String, Object> trigger = new LinkedHashMap<>();
-        trigger.put(AutomationConstants.NODE_FIELD_ID, "trigger");
-        trigger.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_TRIGGER);
-        trigger.put(AutomationConstants.NODE_FIELD_LABEL, "Start");
-        trigger.put(AutomationConstants.NODE_FIELD_CONFIG, Map.of());
-
-        Map<String, Object> graph = new LinkedHashMap<>();
-        graph.put(AutomationConstants.DOC_NODES, java.util.List.of(trigger));
-        graph.put(AutomationConstants.DOC_EDGES, java.util.List.of());
-
-        Map<String, Object> definition = new LinkedHashMap<>();
-        definition.put(AutomationConstants.DOC_VERSION, AutomationConstants.DOC_CURRENT_VERSION);
-        definition.put(AutomationConstants.DOC_DESCRIPTION, "");
-        definition.put(AutomationConstants.DOC_GRAPH, graph);
-        return prerna.reactor.automation.utils.AutomationExecutionUtils.GSON.toJson(definition);
-    }
-
-    @Override
-    public Map<String, String> getMcpToolMetadata() {
-        Map<String, String> meta = new HashMap<>();
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-        return meta;
+    private void syncStarterDefinition(IProject project, String projectId) {
+        List<String> files = new ArrayList<>();
+        for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
+            files.add(path.toString());
+        }
+        String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+        try {
+            GitRepoUtils.addSpecificFiles(versionFolder, files);
+            GitRepoUtils.commitAddedFiles(versionFolder, "Create automation definition", this.insight.getUser());
+        } catch (Exception e) {
+            classLogger.warn("Git commit failed for automation creation", e);
+        }
+        if (ClusterUtil.IS_CLUSTER) {
+            try {
+                ClusterUtil.pushProjectFolder(project, versionFolder);
+            } catch (Exception e) {
+                classLogger.warn("Cluster push failed for automation creation", e);
+            }
+        }
+        SecurityProjectUtils.updateProjectLastEditedDate(projectId);
     }
 
     @Override
     public String getReactorDescription() {
         return "Creates a new blank automation project and returns its ID. "
-                + "Immediately chain QuickEditAutomation with the returned project ID to build the automation. "
                 + "Project names must start with a letter and contain only letters, numbers, and spaces.";
     }
 

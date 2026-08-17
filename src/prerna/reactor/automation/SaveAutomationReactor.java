@@ -27,14 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Base64;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +41,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,111 +50,129 @@ import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
+/**
+ * Validates and saves an automation graph definition and its per-node Python sources.
+ *
+ * <p>Pixel: {@code SaveAutomation(project=["appId"], json=["<base64-json>"],
+ * nodeSources=["<optional-base64-json-map>"])}
+ */
 public class SaveAutomationReactor extends AbstractReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(SaveAutomationReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SaveAutomationReactor.class);
+	private static final String NODE_SOURCES_KEY = AutomationConstants.DOC_NODE_SOURCES;
 
-    public SaveAutomationReactor() {
-        this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey() };
-    }
+	public SaveAutomationReactor() {
+		this.keysToGet = new String[] {
+				ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.JSON.getKey(),
+				NODE_SOURCES_KEY };
+		this.keyRequired = new int[] { 1, 1, 0 };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String projectId = this.keyValue.get(this.keysToGet[0]);
-        String jsonEncoded = this.keyValue.get(this.keysToGet[1]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String definition = decodeRequired(this.keyValue.get(ReactorKeysEnum.JSON.getKey()),
+				"Must provide a nonblank automation definition.");
+		Map<String, String> nodeSources = decodeNodeSources(this.keyValue.get(NODE_SOURCES_KEY));
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Must provide a project id.");
+		}
 
-        if (projectId == null || projectId.isEmpty()) {
-            throw new IllegalArgumentException("Must provide a project id");
-        }
-        if (jsonEncoded == null || jsonEncoded.isEmpty()) {
-            throw new IllegalArgumentException("Must provide automation JSON");
-        }
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have edit access.");
+		}
 
-        projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-        if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-            throw new IllegalArgumentException("Project does not exist or user does not have edit access");
-        }
+		AutomationDefinitionService.DefinitionFiles files =
+				AutomationDefinitionService.save(projectId, definition, nodeSources);
+		syncDefinitionAssets(projectId);
 
-        String json;
-        try {
-            json = new String(Base64.getDecoder().decode(jsonEncoded), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            json = jsonEncoded;
-        }
-        AutomationDefinitionValidator.parseAndValidate(json);
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("saved", true);
+		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 
-        IProject project = Utility.getProject(projectId);
-        String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-        File automationFile = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_FILE_NAME).toFile();
-        String normalizedPath = Utility.normalizePath(automationFile.getAbsolutePath());
-        if (!normalizedPath.startsWith(portalsFolder)) {
-            throw new IllegalArgumentException("Invalid file path");
-        }
+	private void syncDefinitionAssets(String projectId) {
+		IProject project = Utility.getProject(projectId);
+		if (project != null) {
+			List<String> files = new ArrayList<>();
+			for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
+				files.add(path.toString());
+			}
+			String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
+			try {
+				GitRepoUtils.addSpecificFiles(versionFolder, files);
+				GitRepoUtils.commitAddedFiles(versionFolder, "Update automation definition", this.insight.getUser());
+			} catch (Exception e) {
+				classLogger.warn("Git commit failed for automation save", e);
+			}
+			if (ClusterUtil.IS_CLUSTER) {
+				try {
+					ClusterUtil.pushProjectFolder(project, versionFolder);
+				} catch (Exception e) {
+					classLogger.warn("Cluster push failed for automation save", e);
+				}
+			}
+		} else {
+			classLogger.warn("Project {} not found in registry; skipping automation version sync", projectId);
+		}
+		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
+	}
 
-        try {
-            automationFile.getParentFile().mkdirs();
-            Files.writeString(automationFile.toPath(), json, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            classLogger.error("Error saving automation JSON for project {}", projectId, e);
-            throw new IllegalArgumentException("Unable to save automation: " + e.getMessage());
-        }
+	private static String decodeRequired(String value, String error) {
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException(error);
+		}
+		return decode(value);
+	}
 
-        if (project == null) {
-            classLogger.warn("Project {} not found in registry  - skipping git commit and cluster push", projectId);
-            SecurityProjectUtils.updateProjectLastEditedDate(projectId);
-            AutomationMcpSync.syncTriggerAutomationTool(null, projectId, this.insight.getUser(), json);
-            return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-        }
+	@SuppressWarnings("unchecked")
+	private static Map<String, String> decodeNodeSources(String value) {
+		if (value == null || value.isBlank()) {
+			return Map.of();
+		}
+		Object parsed = AutomationRuntimeUtils.GSON.fromJson(decode(value), Object.class);
+		if (!(parsed instanceof Map<?, ?> raw)) {
+			throw new IllegalArgumentException("nodeSources must be a JSON object keyed by node id.");
+		}
+		Map<String, String> sources = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : raw.entrySet()) {
+			if (!(entry.getKey() instanceof String nodeId) || !(entry.getValue() instanceof String source)) {
+				throw new IllegalArgumentException("nodeSources must map node ids to Python source strings.");
+			}
+			sources.put(nodeId, source);
+		}
+		return sources;
+	}
 
-        List<String> files = new ArrayList<>();
-        files.add(automationFile.getAbsolutePath());
-        String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-        try {
-            GitRepoUtils.addSpecificFiles(versionFolder, files);
-            GitRepoUtils.commitAddedFiles(versionFolder, "Update automation graph", this.insight.getUser());
-        } catch (Exception e) {
-            classLogger.warn("Git commit failed for automation save", e);
-        }
+	private static String decode(String value) {
+		try {
+			return new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException ignored) {
+			return value;
+		}
+	}
 
-        if (ClusterUtil.IS_CLUSTER) {
-            try {
-                ClusterUtil.pushProjectFolder(project, versionFolder);
-            } catch (Exception e) {
-                classLogger.warn("Cluster push failed", e);
-            }
-        }
+	@Override
+	public String getReactorDescription() {
+		return "Validates and saves an automation graph with Python source for each non-start node.";
+	}
 
-        SecurityProjectUtils.updateProjectLastEditedDate(projectId);
-
-        // Keep this project's own MCP tool catalog in sync with every save, so the automation is
-        // always discoverable as a "TriggerAutomation" tool without a separate manual step.
-        AutomationMcpSync.syncTriggerAutomationTool(project, projectId, this.insight.getUser(), json);
-
-        return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-    }
-
-    @Override
-    public String getReactorDescription() {
-        return "Saves the automation graph (automation.json) for a project.";
-    }
-
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-            return "The project ID of the automation to save.";
-        } else if (ReactorKeysEnum.JSON.getKey().equals(key)) {
-            return "Base64-encoded JSON document representing the automation graph (nodes, edges, transforms).";
-        }
-        return super.getDescriptionForKey(key);
-    }
-
-    @Override
-    public Map<String, String> getMcpToolMetadata() {
-        Map<String, String> meta = new HashMap<>();
-        // Overwrites the saved automation graph and commits it to source control  -
-        // requires explicit human confirmation.
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-        return meta;
-    }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The project ID or alias of the automation to save.";
+		}
+		if (ReactorKeysEnum.JSON.getKey().equals(key)) {
+			return "Base64-encoded workflow graph JSON.";
+		}
+		if (NODE_SOURCES_KEY.equals(key)) {
+			return "Optional raw or Base64-encoded JSON object: { nodeId: Python run(scope) source }. "
+					+ "Omitted node entries receive a generated current-node bridge source.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

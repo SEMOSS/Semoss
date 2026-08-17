@@ -62,12 +62,11 @@ import prerna.reactor.automation.AutomationConstants;
 /**
  * Shared static utilities for the automation execution engine.
  *
- * <p>Centralizes logic shared across {@link prerna.reactor.automation.TriggerAutomationReactor} and
- * {@link prerna.reactor.automation.RunAutomationNodeReactor}.
+ * <p>Centralizes logic shared by the graph runtime and its engine executors.
  */
-public final class AutomationExecutionUtils {
+public final class AutomationRuntimeUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(AutomationExecutionUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(AutomationRuntimeUtils.class);
 
 	/** Prefix for config-map lookups within a template, e.g. {@code ${config.API_KEY}}. */
 	private static final String CONFIG_VAR_PREFIX = "config.";
@@ -101,7 +100,7 @@ public final class AutomationExecutionUtils {
 					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
 			.create();
 
-	private AutomationExecutionUtils() {}
+	private AutomationRuntimeUtils() {}
 
 	/**
 	 * Resolves {@code ${varName}} and {@code ${config.KEY}} placeholders in a template string
@@ -345,85 +344,6 @@ public final class AutomationExecutionUtils {
 		return scope;
 	}
 
-	/**
-	 * Builds the human-readable, per-workflow summary surfaced to MCP/agent consumers as the
-	 * primary tool result (instead of a raw run-detail JSON blob).
-	 *
-	 * <p>Resolves {@code automation.json}'s optional {@link AutomationConstants#DOC_RESULT_MESSAGE_TEMPLATE}
-	 * (e.g. {@code "Indexed ${file_count} files"}) against the final run scope + config using the
-	 * same {@code ${var}}/{@code ${config.KEY}} substitution as node templates. Falls back to a
-	 * generic completed-nodes message when the template is absent, blank, or resolves to blank.
-	 *
-	 * @param doc            the parsed {@code automation.json} document
-	 * @param finalScope     the run's scope after all nodes completed (output vars included)
-	 * @param configMap      project automation config key-value pairs
-	 * @param completedCount number of nodes that completed successfully
-	 * @param totalCount     total number of nodes in the run
-	 */
-	public static String buildSummaryMessage(Map<String, Object> doc, Map<String, String> finalScope,
-			Map<String, String> configMap, int completedCount, int totalCount) {
-		Object rawTemplate = doc != null ? doc.get(AutomationConstants.DOC_RESULT_MESSAGE_TEMPLATE) : null;
-		String template = strCfg(rawTemplate);
-		if (template != null) {
-			String resolved = resolve(template, finalScope, configMap);
-			if (resolved != null && !resolved.isBlank()) {
-				return resolved;
-			}
-		}
-		return "Automation completed successfully (" + completedCount + "/" + totalCount + " nodes).";
-	}
-
-	/**
-	 * Builds the user-facing portion of the LLM prompt for {@code GenerateRunSummaryReactor}.
-	 * Describes the overall run status and each step's label, status, and output preview.
-	 *
-	 * @param runDetail   map returned by {@link AutomationDatabaseUtility#getRunDetail}
-	 * @param nodeOutputs ordered list returned by {@link AutomationDatabaseUtility#getNodeOutputsForRun}
-	 * @return a plain-text prompt fragment suitable for appending after the system prompt
-	 */
-	public static String buildRunSummaryPrompt(Map<String, Object> runDetail,
-			List<Map<String, Object>> nodeOutputs) {
-		StringBuilder sb = new StringBuilder();
-
-		String status = strCfg(runDetail.get(AutomationConstants.STATUS));
-		sb.append("Run status: ").append(status != null ? status : "unknown").append("\n");
-
-		String failedNodeId = strCfg(runDetail.get(AutomationConstants.FAILED_NODE_ID));
-		String errorMsg = strCfg(runDetail.get(AutomationConstants.ERROR_MESSAGE));
-		if (failedNodeId != null) {
-			sb.append("Failed at: ").append(failedNodeId).append("\n");
-		}
-		if (errorMsg != null) {
-			sb.append("Error: ").append(errorMsg).append("\n");
-		}
-
-		if (!nodeOutputs.isEmpty()) {
-			sb.append("\nSteps:\n");
-			for (Map<String, Object> node : nodeOutputs) {
-				String label = strCfg(node.get(AutomationConstants.NODE_LABEL));
-				String nodeStatus = strCfg(node.get(AutomationConstants.STATUS));
-				String preview = strCfg(node.get(AutomationConstants.OUTPUT_PREVIEW));
-				String errDetail = strCfg(node.get(AutomationConstants.ERROR_MESSAGE));
-
-				sb.append("- ")
-					.append(label != null ? label : AutomationConstants.UNNAMED_NODE_LABEL)
-					.append(" [").append(nodeStatus != null ? nodeStatus : "unknown").append("]");
-
-				if (preview != null) {
-					String truncated = preview.length() > AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH
-							? preview.substring(0, AutomationConstants.SUMMARY_PROMPT_PREVIEW_MAX_LENGTH) + "..."
-							: preview;
-					sb.append(": ").append(truncated);
-				} else if (errDetail != null) {
-					sb.append(": ").append(errDetail);
-				}
-				sb.append("\n");
-			}
-		}
-
-		return sb.toString();
-	}
-
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
 	public static String generatePreview(String s) {
 		if (s == null) return null;
@@ -431,10 +351,10 @@ public final class AutomationExecutionUtils {
 				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
 	}
 
-	// -- Playground input helpers --------------------------------------------------
+	// -- Runtime input helpers -----------------------------------------------------
 
 	/**
-	 * Extracts playground input values from the Pixel MAP noun and overwrites the matching
+	 * Extracts caller-supplied input values from the Pixel MAP noun and overwrites the matching
 	 * config field on each node before execution. Nodes without a {@code playgroundFillable}
 	 * list or whose listed fields are absent from the node config are skipped with a warning.
 	 *
@@ -443,16 +363,16 @@ public final class AutomationExecutionUtils {
 	 * @return the flattened {@code String → String} inputs map (empty when no inputs were passed)
 	 */
 	@SuppressWarnings("unchecked")
-	public static Map<String, String> applyPlaygroundInputs(List<Map<String, Object>> nodes, Map<String, Object> inputsMap) {
-		Map<String, String> playgroundInputs = new HashMap<>();
+	public static Map<String, String> applyRuntimeInputs(List<Map<String, Object>> nodes, Map<String, Object> inputsMap) {
+		Map<String, String> runtimeInputs = new HashMap<>();
 		if (inputsMap != null) {
 			for (Map.Entry<String, Object> entry : inputsMap.entrySet()) {
 				if (entry.getValue() != null) {
-					playgroundInputs.put(entry.getKey(), entry.getValue().toString());
+					runtimeInputs.put(entry.getKey(), entry.getValue().toString());
 				}
 			}
 		}
-		if (!playgroundInputs.isEmpty()) {
+		if (!runtimeInputs.isEmpty()) {
 			for (Map<String, Object> node : nodes) {
 				List<String> fillable = (List<String>) node.get("playgroundFillable");
 				if (fillable == null || fillable.isEmpty()) continue;
@@ -460,24 +380,24 @@ public final class AutomationExecutionUtils {
 				Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 				if (config == null) continue;
 				for (String fieldName : fillable) {
-					String paramName = buildPlaygroundParamName(nodeLabel, fieldName);
-					String value = playgroundInputs.get(paramName);
+					String paramName = buildRuntimeInputName(nodeLabel, fieldName);
+					String value = runtimeInputs.get(paramName);
 					if (value != null) {
 						if (config.containsKey(fieldName)) {
 							config.put(fieldName, value);
 						} else {
-							classLogger.warn("Playground input '{}' targets field '{}' which does not exist in node '{}' config - skipping",
+							classLogger.warn("Runtime input '{}' targets field '{}' which does not exist in node '{}' config - skipping",
 									paramName, fieldName, nodeLabel);
 						}
 					}
 				}
 			}
 		}
-		return playgroundInputs;
+		return runtimeInputs;
 	}
 
 	/**
-	 * Builds a stable MCP parameter name for a playground-fillable node field.
+	 * Builds a stable parameter name for a runtime-fillable node field.
 	 * Slugifies the node label (lowercase, non-alphanumeric chars -> underscore, collapsed)
 	 * and appends the field name. Falls back to {@code "input_" + fieldName} if label is blank.
 	 *
@@ -485,7 +405,7 @@ public final class AutomationExecutionUtils {
 	 * @param fieldName the config field name (e.g. "expression", "command")
 	 * @return a deterministic, URL-safe parameter name
 	 */
-	public static String buildPlaygroundParamName(String nodeLabel, String fieldName) {
+	public static String buildRuntimeInputName(String nodeLabel, String fieldName) {
 		if (nodeLabel != null && !nodeLabel.trim().isEmpty()) {
 			String slug = nodeLabel.trim()
 					.toLowerCase()
@@ -526,8 +446,7 @@ public final class AutomationExecutionUtils {
 	}
 
 	// -- Node config access helpers -----------------------------------------------
-	// These mirror the methods in NodeConfigHelper (nodes sub-package), which now
-	// delegates to these. New callers should use AutomationExecutionUtils directly.
+	// -- Node config access helpers ------------------------------------------------
 
 	/**
 	 * Returns the string value of {@code key} from {@code config}, throwing if absent or blank.
@@ -582,48 +501,6 @@ public final class AutomationExecutionUtils {
 			return Integer.parseInt(v.toString().trim());
 		} catch (NumberFormatException e) {
 			return def;
-		}
-	}
-
-	// -- Automation document loading -----------------------------------------------
-
-	/**
-	 * Reads a project's {@code automation.json} as a raw JSON string.
-	 * Returns a minimal blank document string when the file does not exist or cannot be read,
-	 * rather than throwing. Suitable for callers (e.g. LLM prompts) that need a fallback value.
-	 *
-	 * @param projectId the project to load the automation doc for
-	 * @return the file contents, or {@code {"version":1,"graph":{"nodes":[],"edges":[]}}} when absent
-	 */
-	public static String loadAutomationDocOrEmpty(String projectId) {
-		try {
-			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-			File f = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
-			if (f.exists() && f.isFile()) {
-				return Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			}
-		} catch (IOException e) {
-			classLogger.warn("Could not read automation.json for project {}  - returning empty doc", projectId, e);
-		}
-		return "{\"version\":1,\"graph\":{\"nodes\":[],\"edges\":[]}}";
-	}
-
-	/**
-	 * Loads and parses a project's {@code automation.json} (graph + trigger config).
-	 * Throws if the file is missing or unreadable.
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, Object> loadAutomationDoc(String projectId) {
-		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-		File f = new File(portalsFolder + "/" + AutomationConstants.AUTOMATION_FILE_NAME);
-		if (!f.exists()) {
-			throw new IllegalArgumentException("No automation.json found for this project. Save an automation first.");
-		}
-		try {
-			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			return GSON.fromJson(json, MAP_TYPE);
-		} catch (IOException e) {
-			throw new IllegalStateException("Failed to read automation.json: " + e.getMessage(), e);
 		}
 	}
 

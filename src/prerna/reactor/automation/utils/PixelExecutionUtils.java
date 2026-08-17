@@ -161,8 +161,8 @@ public final class PixelExecutionUtils {
 				future.cancel(true);
 
 				// Future.cancel(true) only interrupts the worker. Some engine calls do not honor
-				// interruption immediately, so returning here would let AutomationRunEngine release
-				// its project lease while side effects may still be in flight. Hold the caller until
+				// interruption immediately, so returning here would release the automation run
+				// lease while side effects may still be in flight. Hold the caller until
 				// the worker has actually terminated, then report the timeout.
 				awaitTermination(executionTerminated);
 				throw new AutomationNodeTimeoutException(pixel, timeoutSeconds);
@@ -264,8 +264,8 @@ public final class PixelExecutionUtils {
 	 * <p>Using a distinct unchecked exception type (rather than a flag return value or a checked
 	 * exception) lets nodes that loop internally - such as {@code WaitNodeExecutor} sleeping in
 	 * chunks - abort cleanly without threading a cancellation result through every call frame. The
-	 * caller ({@code AutomationRunEngine.executeSingleNode}) catches this type specifically and
-	 * records the run as {@link AutomationConstants#STATUS_CANCELLED} instead of
+	 * Python bridge catches this type specifically and records the run as
+	 * {@link AutomationConstants#STATUS_CANCELLED} instead of
 	 * {@link AutomationConstants#STATUS_FAILED}, so the end-user sees the correct terminal state.
 	 */
 	public static class AutomationCancelledException extends RuntimeException {

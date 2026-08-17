@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +58,7 @@ import prerna.util.AssetUtility;
  *
  * <p>There are three "get" reactors  - each reads something different:
  * <ul>
- *   <li>{@link GetAutomationReactor GetAutomation}  - reads {@code automation.json}: the pipeline graph</li>
+ *   <li>{@link GetAutomationReactor GetAutomation}  - reads the workflow graph and per-node sources</li>
  *   <li>{@code GetAutomationConfig} (this reactor)  - reads {@code automation_config.json}: key/value env vars and secrets</li>
  *   <li>{@link GetAutomationRunReactor GetAutomationRun}  - reads live run state from the DB</li>
  * </ul>
@@ -101,7 +101,7 @@ public class GetAutomationConfigReactor extends AbstractReactor {
 
         try {
             String json = Files.readString(configFile.toPath(), StandardCharsets.UTF_8);
-            List<Map<String, Object>> entries = AutomationExecutionUtils.GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
+            List<Map<String, Object>> entries = AutomationRuntimeUtils.GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {}.getType());
             if (entries != null) {
                 for (Map<String, Object> entry : entries) {
                     Object sensitive = entry.get(AutomationConstants.CONFIG_ENTRY_SENSITIVE);

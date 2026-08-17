@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +47,6 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.util.Utility;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -94,7 +93,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
         }
         // Validate JSON is parseable before writing anything
         try {
-            AutomationExecutionUtils.GSON.fromJson(config, LIST_OF_MAP_TYPE);
+            AutomationRuntimeUtils.GSON.fromJson(config, LIST_OF_MAP_TYPE);
         } catch (Exception e) {
             throw new IllegalArgumentException("config must be valid JSON or Base64-encoded JSON");
         }
@@ -134,10 +133,10 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
             return incomingJson;
         }
         try {
-            List<Map<String, Object>> incoming = AutomationExecutionUtils.GSON.fromJson(incomingJson,
+            List<Map<String, Object>> incoming = AutomationRuntimeUtils.GSON.fromJson(incomingJson,
                     LIST_OF_MAP_TYPE);
             String existingJson = Files.readString(existingFile.toPath(), StandardCharsets.UTF_8);
-            List<Map<String, Object>> existing = AutomationExecutionUtils.GSON.fromJson(existingJson,
+            List<Map<String, Object>> existing = AutomationRuntimeUtils.GSON.fromJson(existingJson,
                     LIST_OF_MAP_TYPE);
             if (incoming == null || existing == null || existing.isEmpty()) {
                 return incomingJson;
@@ -159,7 +158,7 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
                     }
                 }
             }
-            return restoredAny ? AutomationExecutionUtils.GSON.toJson(incoming) : incomingJson;
+            return restoredAny ? AutomationRuntimeUtils.GSON.toJson(incoming) : incomingJson;
         } catch (Exception e) {
             // Never let a merge problem overwrite good secrets - keep the existing file untouched.
             classLogger.warn("Could not merge sensitive automation config; keeping existing file. Cause: {}",
@@ -187,11 +186,4 @@ public class SaveAutomationConfigReactor extends AbstractReactor {
         return super.getDescriptionForKey(key);
     }
 
-    @Override
-    public Map<String, String> getMcpToolMetadata() {
-        Map<String, String> meta = new HashMap<>();
-        // Overwrites saved config values/secrets — requires explicit human confirmation.
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-        return meta;
-    }
 }

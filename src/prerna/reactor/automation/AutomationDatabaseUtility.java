@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationExecutionUtils;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
@@ -525,7 +525,7 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, automationId);
 				ps.setInt(index++, definitionVersion);
 				ps.setString(index++, definitionHash);
-				queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationExecutionUtils.GSON);
+				queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
 				ps.setString(index++, STATUS_RUNNING);
 				ps.setString(index++, triggerType);
 				ps.setTimestamp(index++, now);
@@ -858,7 +858,7 @@ public final class AutomationDatabaseUtility {
 				ps.setLong(index++, durationMs);
 				ps.setString(index++, outputVar);
 				// Handle CLOB for potentially large output values
-				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationExecutionUtils.GSON);
+				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
 				ps.setString(index++, outputPreview);
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);

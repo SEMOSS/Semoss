@@ -33,8 +33,11 @@ public final class AutomationConstants {
 
 	// -- File names ----------------------------------------------------------------
 
-	public static final String AUTOMATION_FILE_NAME = "automation.json";
 	public static final String AUTOMATION_CONFIG_FILE_NAME = "automation-config.json";
+	/** Canonical graph document for typed-node Python automations. */
+	public static final String AUTOMATION_PYTHON_DEFINITION_FILE_NAME = "automation-workflow.json";
+	/** Directory containing one Python implementation for each non-start node. */
+	public static final String AUTOMATION_NODE_SOURCES_FOLDER_NAME = "automation-nodes";
 
 	public static final String SENSITIVE_MASK = "***";
 
@@ -100,16 +103,30 @@ public final class AutomationConstants {
 	public static final String TRIGGER_MANUAL = "MANUAL";
 	public static final String TRIGGER_PLAYGROUND = "PLAYGROUND";
 
-	// -- Node types (Phase 1) ------------------------------------------------------
+	// -- Node types -----------------------------------------------------------------
 
-	public static final String NODE_TRIGGER = "trigger";
-	public static final String NODE_DATABASE_ENGINE = "database-engine";
-	public static final String NODE_STORAGE_ENGINE = "storage-engine";
-	public static final String NODE_VECTOR_ENGINE = "vector-engine";
-	public static final String NODE_MODEL_ENGINE = "model-engine";
-	public static final String NODE_FUNCTION_ENGINE = "function-engine";
-	public static final String NODE_WAIT = "wait";
-	public static final String NODE_APP = "app";
+	public static final String NODE_START = "trigger.start";
+	public static final String NODE_DATABASE_QUERY = "database.query";
+	public static final String NODE_DATABASE_INSERT = "database.insert";
+	public static final String NODE_DATABASE_UPDATE = "database.update";
+	public static final String NODE_MODEL_CHAT = "model.chat";
+	public static final String NODE_MODEL_EMBEDDINGS = "model.embeddings";
+	public static final String NODE_MODEL_VISION = "model.vision";
+	public static final String NODE_MODEL_NER = "model.ner";
+	public static final String NODE_STORAGE_ACTION = "storage.action";
+	public static final String NODE_STORAGE_LIST = "storage.list";
+	public static final String NODE_STORAGE_READ = "storage.read";
+	public static final String NODE_STORAGE_UPLOAD = "storage.upload";
+	public static final String NODE_STORAGE_DOWNLOAD = "storage.download";
+	public static final String NODE_STORAGE_DELETE = "storage.delete";
+	public static final String NODE_VECTOR_ACTION = "vector.action";
+	public static final String NODE_VECTOR_SEARCH = "vector.search";
+	public static final String NODE_VECTOR_ADD = "vector.add";
+	public static final String NODE_VECTOR_DELETE = "vector.delete";
+	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
+	public static final String NODE_APP_PIXEL = "app.pixel";
+	public static final String NODE_CONTROL_WAIT = "control.wait";
+	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors) --------
 
@@ -160,15 +177,16 @@ public final class AutomationConstants {
 	public static final int WAIT_DEFAULT_SECONDS = 1;
 	public static final int WAIT_CANCEL_CHECK_INTERVAL_SECONDS = 5;
 
-	// -- automation.json document field names ----------------------------------------
+	// -- Document field names -------------------------------------------------------
 
-	public static final String DOC_VERSION = "version";
 	public static final String DOC_GRAPH = "graph";
 	public static final String DOC_NODES = "nodes";
 	public static final String DOC_EDGES = "edges";
-	public static final int DOC_CURRENT_VERSION = 1;
-	public static final String DOC_RESULT_MESSAGE_TEMPLATE = "resultMessageTemplate";
+	public static final int PYTHON_DOC_CURRENT_VERSION = 2;
 	public static final String DOC_DESCRIPTION = "description";
+	public static final String DOC_TRIGGER_BINDINGS = "triggerBindings";
+	public static final String DOC_FORMAT_VERSION = "formatVersion";
+	public static final String DOC_NODE_SOURCES = "nodeSources";
 
 	// -- Node/edge field names --------------------------------------------------------
 
@@ -180,6 +198,14 @@ public final class AutomationConstants {
 	public static final String NODE_FIELD_OUTPUT_VAR = "outputVar";
 	public static final String EDGE_FIELD_SOURCE = "source";
 	public static final String EDGE_FIELD_TARGET = "target";
+	public static final String EDGE_FIELD_KIND = "kind";
+	public static final String EDGE_FIELD_SOURCE_PORT = "sourcePort";
+	public static final String EDGE_FIELD_TARGET_PORT = "targetPort";
+	public static final String EDGE_KIND_CONTROL = "control";
+	public static final String EDGE_KIND_DATA = "data";
+	public static final String NODE_FIELD_CODE_MODE = "codeMode";
+	public static final String NODE_CODE_MODE_GENERATED = "generated";
+	public static final String NODE_CODE_MODE_CUSTOM = "custom";
 	public static final String UNNAMED_NODE_LABEL = "unnamed";
 
 	// -- automation-config.json entry field names ------------------------------------
@@ -216,10 +242,8 @@ public final class AutomationConstants {
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
-	/** Human-readable, per-workflow summary surfaced to MCP/agent consumers (see {@link #DOC_RESULT_MESSAGE_TEMPLATE}). */
+	/** Human-readable result summary for an automation workflow run. */
 	public static final String RESULT_SUMMARY = "summary";
-	/** Enriched summary including per-step output previews, sent as the MCP tool response so the LLM can describe what happened. */
-	public static final String RESULT_LLM_CONTEXT = "llmContext";
 
 	// -- Pixel execution defaults ----------------------------------------------------
 
@@ -253,6 +277,4 @@ public final class AutomationConstants {
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;
-	/** Maximum characters from a node output preview included in the AI run-summary prompt. */
-	public static final int SUMMARY_PROMPT_PREVIEW_MAX_LENGTH = 300;
 }
