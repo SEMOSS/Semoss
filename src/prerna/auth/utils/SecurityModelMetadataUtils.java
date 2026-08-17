@@ -87,7 +87,13 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
-			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY);
+			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY,
+			"inputTokenCredit", "outputTokenCredit", "cacheReadMultiplier", "cacheWriteMultiplier");
+	private static final Map<String, String> CREDIT_FIELD_TO_COLUMN = Map.of(
+			"inputTokenCredit", "INPUTTOKENCREDIT",
+			"outputTokenCredit", "OUTPUTTOKENCREDIT",
+			"cacheReadMultiplier", "CACHETOKENREADMULTIPLIER",
+			"cacheWriteMultiplier", "CACHETOKENWRITEMULTIPLIER");
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY,
 			Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
@@ -266,9 +272,59 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
-		merged.putAll(updates);
-		upsertModelMetadata(engineId, merged);
+		Map<String, Object> creditUpdates = new LinkedHashMap<>();
+		Map<String, Object> regularUpdates = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : updates.entrySet()) {
+			if (CREDIT_FIELD_TO_COLUMN.containsKey(entry.getKey())) {
+				creditUpdates.put(entry.getKey(), entry.getValue());
+			} else {
+				regularUpdates.put(entry.getKey(), entry.getValue());
+			}
+		}
+		if (!creditUpdates.isEmpty()) {
+			updateCreditRateColumns(engineId, creditUpdates);
+		}
+		if (!regularUpdates.isEmpty()) {
+			Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+			merged.putAll(regularUpdates);
+			upsertModelMetadata(engineId, merged);
+		}
+	}
+
+	private static void updateCreditRateColumns(String engineId, Map<String, Object> creditUpdates) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		StringBuilder sb = new StringBuilder("UPDATE MODELMETADATA SET ");
+		List<Object> params = new ArrayList<>();
+		boolean first = true;
+		for (Map.Entry<String, Object> entry : creditUpdates.entrySet()) {
+			String col = CREDIT_FIELD_TO_COLUMN.get(entry.getKey());
+			if (col == null) continue;
+			if (!first) sb.append(", ");
+			sb.append(col).append("=?");
+			params.add(entry.getValue());
+			first = false;
+		}
+		sb.append(" WHERE ENGINEID=?");
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(sb.toString());
+			for (int i = 0; i < params.size(); i++) {
+				Object val = params.get(i);
+				if (val == null) {
+					ps.setNull(i + 1, Types.DOUBLE);
+				} else {
+					ps.setDouble(i + 1, Double.parseDouble(val.toString()));
+				}
+			}
+			ps.setString(params.size() + 1, engineId);
+			ps.executeUpdate();
+			ConnectionUtils.commitConnection(ps.getConnection());
+		} catch (SQLException e) {
+			classLogger.error("Failed to update credit rates for engine {}", engineId, e);
+			throw new IllegalArgumentException("Failed to save credit rates", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
 	}
 
 	/**
