@@ -312,9 +312,13 @@ public class SemossAgentHarness implements IAgentHarness {
 				// execution signal, not the legacy response-type field.
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
-					restoreAskMetadataForParameterTools(response, defaultAndExplicitTools);
+					// subAgentTools is resolved separately from defaultAndExplicitTools;
+					// merge so restoreAskMetadataForParameterTools also sees them.
+					List<Map<String, Object>> toolsForMetaRestore = new ArrayList<>(defaultAndExplicitTools);
+					toolsForMetaRestore.addAll(subAgentTools);
+					restoreAskMetadataForParameterTools(response, toolsForMetaRestore, subAgentSpecs);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
-					publishToolItemsQueued(ctx, response, subAgentSpecs);
+					publishToolItemsQueued(ctx, response);
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
@@ -566,8 +570,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response,
-			List<SubAgentSpec> specs) {
+	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response) {
 		String runId = ctx.getRunId();
 		if (runId == null || runId.trim().isEmpty()) {
 			return;
@@ -578,9 +581,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		for (Map<String, Object> toolCall : toolCalls) {
 			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
-			if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
-				continue;
-			}
 			Object metaObj = toolCall.get("_meta");
 			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
 			AgentRunStreamService.get().publishToolStarted(runId, AgentStreamItems.toolItem(tc.toolCallId,
@@ -874,33 +874,35 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * The model returns only a tool name and arguments, not the definition's
-	 * metadata. Room metadata enrichment covers room/workspace MCP tools, while
-	 * harness-explicit tools arrive through {@code paramValues.tools}. Reattach
-	 * only explicit ask-mode definitions so they enter the durable input-required
-	 * path without granting caller-defined auto tools an execution identity.
+	 * Room metadata enrichment only covers room/workspace MCP tools. Reattach
+	 * {@code _meta} for explicit ask-mode tools and subagent tools too, since
+	 * neither comes from that enrichment.
 	 */
 	@SuppressWarnings("unchecked")
-	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools) {
+	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools,
+			List<SubAgentSpec> subAgentSpecs) {
 		if (response == null || tools == null || tools.isEmpty()) {
 			return;
 		}
-		Map<String, Map<String, Object>> askToolsByName = new HashMap<>();
+		Map<String, Map<String, Object>> metaByName = new HashMap<>();
 		for (Map<String, Object> tool : tools) {
 			if (tool == null || tool.get("name") == null) {
 				continue;
 			}
+			String name = String.valueOf(tool.get("name"));
 			Object metaObj = tool.get("_meta");
 			if (!(metaObj instanceof Map)) {
 				continue;
 			}
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
-			if ("ask".equalsIgnoreCase(String.valueOf(execution))) {
-				askToolsByName.put(String.valueOf(tool.get("name")), tool);
+			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
+			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
+			if (isAsk || isSubAgentTool) {
+				metaByName.put(name, tool);
 			}
 		}
-		if (!askToolsByName.isEmpty()) {
-			MCPUtility.updateToolResponseWithProjectMeta(response, null, askToolsByName);
+		if (!metaByName.isEmpty()) {
+			MCPUtility.updateToolResponseWithProjectMeta(response, null, metaByName);
 		}
 	}
 
