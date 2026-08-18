@@ -62,16 +62,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the engine/project id or set the app context");
-		}
+		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
 
 		// get engine
 		IEngine engine = null;

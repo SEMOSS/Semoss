@@ -65,6 +65,9 @@ public final class AgentConfig {
     // Agent specific params
     private final Map<String, Object> agentParams;
 
+    // Tool policy
+    private final boolean useDefaultAgentTools;
+
     // Filesystem
     private final String workingDir;
 
@@ -104,6 +107,7 @@ public final class AgentConfig {
         this.agentParams     = b.agentParams != null
         		? Collections.unmodifiableMap(new HashMap<>(b.agentParams))
         		: Collections.emptyMap();
+        this.useDefaultAgentTools = b.useDefaultAgentTools;
         this.workingDir      = b.workingDir;
         this.mcps            = b.mcps != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.mcps))
@@ -213,6 +217,11 @@ public final class AgentConfig {
     	return agentParams;
     }
 
+    /** Whether the harness may expose its general built-in tools for this agent. */
+    public boolean useDefaultAgentTools() {
+        return useDefaultAgentTools;
+    }
+
     // Filesystem
     /**
      * Working directory the agent operates in (the project being worked on).
@@ -296,6 +305,7 @@ public final class AgentConfig {
         private String modelId;
         private Map<String, Object> modelParams;
         private Map<String, Object> agentParams;
+        private boolean useDefaultAgentTools = true;
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
@@ -314,6 +324,7 @@ public final class AgentConfig {
         public Builder modelId(String v)             { this.modelId = v;             return this; }
         public Builder modelParams(Map<String, Object> v) { this.modelParams = v;    return this; }
         public Builder agentParams(Map<String, Object> v) { this.agentParams = v;    return this; }
+        public Builder useDefaultAgentTools(boolean v)    { this.useDefaultAgentTools = v; return this; }
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }

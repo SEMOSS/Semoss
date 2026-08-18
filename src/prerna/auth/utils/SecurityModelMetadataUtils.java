@@ -51,9 +51,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -74,6 +77,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityModelMetadataUtils.class);
 	private static final Gson GSON = new Gson();
+	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
@@ -82,8 +87,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
-			Constants.REASONING, Constants.REASONING_CONFIG);
-	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
+			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY);
+	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY,
+			Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
 			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
 			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
@@ -110,13 +116,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		Map<String, Object> normalized = new LinkedHashMap<>(modelDetails);
 		normalized.keySet().removeAll(REMOVED_METADATA_KEYS);
 		normalizeStringProperty(normalized, Constants.DESCR, false);
+		normalizeStringProperty(normalized, Constants.CATALOG_MODEL_KEY, false);
 		normalizeStringProperty(normalized, Constants.MODEL_PROVIDER, true);
 		normalizeStringProperty(normalized, Constants.SERVING_PROVIDER, true);
 		normalizeStringProperty(normalized, Constants.MODEL_FAMILY, false);
 		normalizeCapabilityProperty(normalized);
 		normalizeListProperty(normalized, Constants.INPUT_MODALITIES, true);
 		normalizeListProperty(normalized, Constants.OUTPUT_MODALITIES, true);
-		normalizeListProperty(normalized, Constants.BUILTIN_TOOLS, false);
+		normalizeBuiltinToolsProperty(normalized);
 		normalizeBooleanProperty(normalized, Constants.ATTACHMENT);
 		normalizeBooleanProperty(normalized, Constants.REASONING);
 		normalizeBooleanProperty(normalized, Constants.TOOL_CALL);
@@ -163,6 +170,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 		Map<String, Object> details = new LinkedHashMap<>();
 		copyIfPresent(properties, details, Constants.MODEL);
+		copyIfPresent(properties, details, Constants.CATALOG_MODEL_KEY);
 		copyIfPresent(properties, details, Constants.MODEL_PROVIDER);
 		copyIfPresent(properties, details, Constants.SERVING_PROVIDER);
 		copyIfPresent(properties, details, Constants.MODEL_CAPABILITY);
@@ -205,14 +213,15 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = modelMetadataExists(securityDb, metadata.engineId());
 		String sql = exists
-				? "UPDATE MODELMETADATA SET MODELID=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
-				: "INSERT INTO MODELMETADATA (MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				? "UPDATE MODELMETADATA SET MODELID=?, CATALOGMODELKEY=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
+				: "INSERT INTO MODELMETADATA (MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(sql);
 			int index = 1;
 			setNullableString(ps, index++, metadata.modelId());
+			setNullableString(ps, index++, metadata.catalogModelKey());
 			setNullableString(ps, index++, metadata.modelProvider());
 			setNullableString(ps, index++, metadata.servingProvider());
 			setNullableString(ps, index++, metadata.capability());
@@ -263,6 +272,38 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Reapply the metadata carried inside an engine export onto the engine it was
+	 * uploaded as. The export writes whatever {@link #getModelMetadata(String)}
+	 * returned, so the values are mapped back to their {@link Constants} keys and
+	 * revalidated before being saved.
+	 * <p>
+	 * This runs as a merge on top of whatever cataloguing the upload already
+	 * saved from the smss file and the static catalog. Every value the export
+	 * carried wins, and a value the export did not carry is left alone rather than
+	 * blanked, so an export made before a column existed cannot erase what the
+	 * catalog just filled in.
+	 *
+	 * @param engineId         the engine as it now exists in this instance
+	 * @param exportedMetadata the parsed contents of the exported metadata file
+	 */
+	public static void restoreModelMetadata(String engineId, Map<String, Object> exportedMetadata) {
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("Engine id cannot be empty");
+		}
+		if (exportedMetadata == null || exportedMetadata.isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> exported = toDetails(exportedMetadata);
+		if (exported.isEmpty()) {
+			return;
+		}
+		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		merged.putAll(exported);
+		upsertModelMetadata(engineId.trim(), merged);
+	}
+
+	/**
 	 * Backfill MODELMETADATA from the static catalog for the requested model
 	 * engines, or for every model engine in the security database when no engine
 	 * ids are given. This is the bulk version of what
@@ -280,8 +321,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * @param engineIds engines to sync, or null/empty for all model engines
 	 * @param force     overwrite stored values instead of only filling gaps
 	 * @param dryRun    report what would change without writing
-	 * @return one result map per engine holding engineId, modelId, status, and the
-	 *         list of fields that changed
+	 * @return one result map per engine holding engineId, modelId, catalogModelKey,
+	 *         status, and the list of fields that changed
 	 */
 	public static List<Map<String, Object>> syncModelMetadataFromCatalog(Collection<String> engineIds, boolean force,
 			boolean dryRun) {
@@ -321,16 +362,20 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 		}
 		result.put("modelId", modelId);
-		if (modelId == null) {
+
+		String catalogModelKey = nullableString(merged.get(Constants.CATALOG_MODEL_KEY));
+		result.put("catalogModelKey", catalogModelKey);
+		String lookupId = catalogModelKey != null ? catalogModelKey : modelId;
+		if (lookupId == null) {
 			result.put("status", "NO_MODEL_ID");
 			return result;
 		}
 
 		Map<String, Object> defaults;
 		try {
-			defaults = StaticModelMetadataCatalog.getStaticDefaults(modelId);
+			defaults = StaticModelMetadataCatalog.getStaticDefaults(lookupId);
 		} catch (RuntimeException e) {
-			classLogger.warn("Unable to read the static catalog for engine {} model {}", engineId, modelId, e);
+			classLogger.warn("Unable to read the static catalog for engine {} model {}", engineId, lookupId, e);
 			result.put("status", "ERROR");
 			return result;
 		}
@@ -370,7 +415,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			return result;
 		}
 		classLogger.info("Synced model metadata for engine {} model {} fields {}", engineId,
-				Utility.cleanLogString(modelId), changedFields);
+				Utility.cleanLogString(lookupId), changedFields);
 		result.put("status", "UPDATED");
 		return result;
 	}
@@ -423,33 +468,45 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Convert a stored metadata row back into the {@link Constants} keyed shape the
 	 * upsert accepts. Returns an empty map when the engine has no row yet.
+	 * <p>
+	 * Values that are not set are left out rather than mapped to an explicit null.
+	 * The upsert reads the map by key and writes SQL NULL either way, so the two
+	 * are equivalent there, but it lets a caller merging two of these maps tell an
+	 * unset value apart from one that is genuinely empty.
 	 */
 	private static Map<String, Object> toDetails(Map<String, Object> existing) {
 		Map<String, Object> details = new LinkedHashMap<>();
 		if (existing == null) {
 			return details;
 		}
-		details.put(Constants.MODEL, existing.get("modelId"));
-		details.put(Constants.MODEL_PROVIDER, existing.get("modelProvider"));
-		details.put(Constants.SERVING_PROVIDER, existing.get("servingProvider"));
-		details.put(Constants.MODEL_CAPABILITY, existing.get("capability"));
-		details.put(Constants.MODEL_FAMILY, existing.get("family"));
-		details.put(Constants.INPUT_MODALITIES, existing.get("inputModalities"));
-		details.put(Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
-		details.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
-		details.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
-		details.put(Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
-		details.put(Constants.ATTACHMENT, existing.get("attachment"));
-		details.put(Constants.REASONING, existing.get("reasoning"));
-		details.put(Constants.TOOL_CALL, existing.get("toolCall"));
-		details.put(Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
-		details.put(Constants.TEMPERATURE, existing.get("temperature"));
-		details.put(Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
-		details.put(Constants.RELEASE_DATE, existing.get("releaseDate"));
-		details.put(Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
-		details.put(Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
-		details.put(Constants.BENCHMARKS, existing.get("benchmarks"));
+		putIfNotNull(details, Constants.MODEL, existing.get("modelId"));
+		putIfNotNull(details, Constants.CATALOG_MODEL_KEY, existing.get("catalogModelKey"));
+		putIfNotNull(details, Constants.MODEL_PROVIDER, existing.get("modelProvider"));
+		putIfNotNull(details, Constants.SERVING_PROVIDER, existing.get("servingProvider"));
+		putIfNotNull(details, Constants.MODEL_CAPABILITY, existing.get("capability"));
+		putIfNotNull(details, Constants.MODEL_FAMILY, existing.get("family"));
+		putIfNotNull(details, Constants.INPUT_MODALITIES, existing.get("inputModalities"));
+		putIfNotNull(details, Constants.OUTPUT_MODALITIES, existing.get("outputModalities"));
+		putIfNotNull(details, Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+		putIfNotNull(details, Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		putIfNotNull(details, Constants.BUILTIN_TOOLS, existing.get("builtinTools"));
+		putIfNotNull(details, Constants.ATTACHMENT, existing.get("attachment"));
+		putIfNotNull(details, Constants.REASONING, existing.get("reasoning"));
+		putIfNotNull(details, Constants.TOOL_CALL, existing.get("toolCall"));
+		putIfNotNull(details, Constants.STRUCTURED_OUTPUT, existing.get("structuredOutput"));
+		putIfNotNull(details, Constants.TEMPERATURE, existing.get("temperature"));
+		putIfNotNull(details, Constants.KNOWLEDGE_CUTOFF, existing.get("knowledgeCutoff"));
+		putIfNotNull(details, Constants.RELEASE_DATE, existing.get("releaseDate"));
+		putIfNotNull(details, Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
+		putIfNotNull(details, Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
+		putIfNotNull(details, Constants.BENCHMARKS, existing.get("benchmarks"));
 		return details;
+	}
+
+	private static void putIfNotNull(Map<String, Object> details, String key, Object value) {
+		if (value != null) {
+			details.put(key, value);
+		}
 	}
 
 	/**
@@ -457,7 +514,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -499,7 +556,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -543,7 +600,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("outputModalities", emptyListIfNull(modelMetadata.get("outputModalities")));
 		capabilities.put("contextWindow", emptyStringIfNull(modelMetadata.get("contextWindow")));
 		capabilities.put("maxOutputTokens", emptyStringIfNull(modelMetadata.get("maxOutputTokens")));
-		capabilities.put("builtinTools", emptyListIfNull(modelMetadata.get("builtinTools")));
+		capabilities.put("builtinTools", emptyMapIfNull(modelMetadata.get("builtinTools")));
 		capabilities.put("attachment", modelMetadata.get("attachment"));
 		capabilities.put("reasoning", modelMetadata.get("reasoning"));
 		capabilities.put("toolCall", modelMetadata.get("toolCall"));
@@ -574,7 +631,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	private static boolean containsMetadata(Map<String, Object> details) {
-		return details.containsKey(Constants.MODEL) || details.containsKey(Constants.MODEL_PROVIDER)
+		return details.containsKey(Constants.MODEL) || details.containsKey(Constants.CATALOG_MODEL_KEY)
+				|| details.containsKey(Constants.MODEL_PROVIDER)
 				|| details.containsKey(Constants.SERVING_PROVIDER) || details.containsKey(Constants.MODEL_CAPABILITY)
 				|| details.containsKey(Constants.MODEL_FAMILY)
 				|| details.containsKey(Constants.INPUT_MODALITIES) || details.containsKey(Constants.OUTPUT_MODALITIES)
@@ -603,6 +661,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static ModelMetadata toMetadata(String engineId, Map<String, Object> details) {
 		return new ModelMetadata(engineId, nullableString(details.get(Constants.MODEL)),
+				nullableString(details.get(Constants.CATALOG_MODEL_KEY)),
 				nullableString(details.get(Constants.MODEL_PROVIDER)), nullableString(details.get(Constants.SERVING_PROVIDER)),
 				nullableString(details.get(Constants.MODEL_CAPABILITY)),
 				nullableString(details.get(Constants.MODEL_FAMILY)),
@@ -730,6 +789,58 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return json == null ? null : parseList(json);
 	}
 
+	/**
+	 * Built-in tools are stored as a JSON object keyed by tool name holding
+	 * the selected catalog definition for each tool. An empty selection is
+	 * stored as SQL NULL; anything that is not a JSON object is rejected.
+	 */
+	private static void normalizeBuiltinToolsProperty(Map<String, Object> details) {
+		String key = Constants.BUILTIN_TOOLS;
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		if (value == null || value.toString().trim().isEmpty()) {
+			details.put(key, null);
+			return;
+		}
+
+		JsonElement json;
+		try {
+			json = value instanceof String ? JsonParser.parseString(value.toString()) : GSON.toJsonTree(value);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name", e);
+		}
+		if (!json.isJsonObject()) {
+			throw new IllegalArgumentException(key + " must be a JSON object keyed by tool name");
+		}
+
+		JsonObject selection = json.getAsJsonObject();
+		JsonObject normalized = new JsonObject();
+		for (Map.Entry<String, JsonElement> entry : selection.entrySet()) {
+			String toolName = entry.getKey().trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+			if (!LOWER_SNAKE_CASE_PATTERN.matcher(toolName).matches()) {
+				throw new IllegalArgumentException("Invalid " + key + " tool name " + entry.getKey());
+			}
+			normalized.add(toolName, entry.getValue());
+		}
+		// store an unset selection as SQL NULL rather than an empty JSON object
+		details.put(key, normalized.size() == 0 ? null : GSON.toJson(normalized));
+	}
+
+	/**
+	 * Stored built-in tools are a JSON object keyed by tool name; anything
+	 * else in the column reads as unset. Whole numbers parse as longs rather
+	 * than gson's default doubles, since the selection is forwarded to the
+	 * python clients where a max_uses of 5.0 is not the same request as 5.
+	 */
+	private static Map<?, ?> parseStoredBuiltinTools(String json) {
+		if (json == null || !json.trim().startsWith("{")) {
+			return null;
+		}
+		return LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
+	}
+
 	private static void normalizeBooleanProperty(Map<String, Object> details, String key) {
 		if (!details.containsKey(key)) {
 			return;
@@ -813,6 +924,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		Map<String, Object> metadata = new LinkedHashMap<>();
 		metadata.put("engineId", rs.getString("ENGINEID"));
 		metadata.put("modelId", rs.getString("MODELID"));
+		metadata.put("catalogModelKey", rs.getString("CATALOGMODELKEY"));
 		metadata.put("modelProvider", rs.getString("MODELPROVIDER"));
 		metadata.put("servingProvider", rs.getString("SERVINGPROVIDER"));
 		metadata.put("capability", rs.getString("CAPABILITY"));
@@ -821,7 +933,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("outputModalities", parseStoredList(rs.getString("OUTPUTMODALITIES")));
 		metadata.put("contextWindow", getNullableLong(rs, "CONTEXTWINDOW"));
 		metadata.put("maxOutputTokens", getNullableLong(rs, "MAXOUTPUTTOKENS"));
-		metadata.put("builtinTools", parseStoredList(rs.getString("BUILTINTOOLS")));
+		metadata.put("builtinTools", parseStoredBuiltinTools(rs.getString("BUILTINTOOLS")));
 		metadata.put("attachment", getNullableBoolean(rs, "ATTACHMENT"));
 		metadata.put("reasoning", getNullableBoolean(rs, "REASONING"));
 		metadata.put("toolCall", getNullableBoolean(rs, "TOOLCALL"));
@@ -952,7 +1064,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return rs.wasNull() ? null : value;
 	}
 
-	private record ModelMetadata(String engineId, String modelId, String modelProvider, String servingProvider,
+	private record ModelMetadata(String engineId, String modelId, String catalogModelKey, String modelProvider,
+			String servingProvider,
 			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
 			Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
 			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
