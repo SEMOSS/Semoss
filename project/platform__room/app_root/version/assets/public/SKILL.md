@@ -1,6 +1,6 @@
 ---
 name: room
-description: Use when writing code in an app that creates, lists, renames, pins, or deletes playground rooms, reads/updates room options (model, system prompt, MCPs, temperature), or reads chat history from a room. Covers CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, GetPlaygroundMessages, and AskCOTRoom / COTRoomResult via @semoss/sdk's runPixel. Do not use for LLM completions (see model) or document/vector ingestion (see vector).
+description: Use when writing code in an app that creates, lists, renames, pins, or deletes playground rooms, reads/updates room options (model, system prompt, MCPs, temperature), or reads chat history from a room. Covers CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, and GetPlaygroundMessages via @semoss/sdk's runPixel. Do not use for LLM completions (see model), document/vector ingestion (see vector), or an autonomous multi-turn agent loop (see agent-run).
 ---
 
 # Room
@@ -156,29 +156,7 @@ For a simple conversational message, call `LLM(...)` with the room's `roomId`:
 LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["${prompt}"]);
 ```
 
-The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, images).
-
-### Chain-of-thought planning — `AskCOTRoom` / `COTRoomResult`
-
-For multi-step plan-then-execute flows, use the COT (chain-of-thought) variant. `AskCOTRoom` produces a plan; the client executes each step (typically via tool calls); `COTRoomResult` finalizes the conversation turn.
-
-```
-AskCOTRoom(
-  engine=["${MODEL_ID}"],
-  roomId=["${roomId}"],
-  command=["<encode>${prompt}</encode>"],
-  context=["<encode>${context}</encode>"],
-  image=[],
-  parentMessageId=["${parentMessageId}"],
-  paramValues=[{"max_new_tokens": 2000, "temperature": 0.3}]
-);
-```
-
-```
-COTRoomResult(engine=["${MODEL_ID}"], roomId=["${roomId}"]);
-```
-
-Both return `{ inputMessage, responseMessage }` shaped like `GetPlaygroundMessages` rows. Skip COT unless you specifically need plan-then-execute behavior; plain `LLM()` is the right call for one-shot chat turns.
+The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, images). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
 
 ## Response shape
 
@@ -196,8 +174,6 @@ All room pixels follow the standard `runPixel` envelope; the room-specific paylo
 | `GetRoomOptions`       | `{ OPTIONS?: { instructions, mcp, tokenLength, temperature, workspace?, predefinedPrompts } }` |
 | `UpdateRoomOptions`    | success boolean                                                               |
 | `GetPlaygroundMessages`| `PixelMessage[]` (see "Read history" above)                                   |
-| `AskCOTRoom`           | `{ inputMessage: PixelMessage, responseMessage: PixelMessage }`               |
-| `COTRoomResult`        | `{ inputMessage: PixelMessage, responseMessage: PixelMessage }`               |
 
 For the full `runPixel` envelope fields (`insightID`, `pixelReturn[].pixelExpression`, `timeToRun`, etc.), see the response-schema section of the `model` or `database` skill.
 
@@ -250,6 +226,7 @@ const rooms = pixelReturn[0].output;
 ## Related
 
 - `model` — `LLM()` reference; pair with a `roomId` for threaded chat turns.
+- `agent-run` — autonomous, multi-turn agent loop against a room, instead of a single `LLM()` turn.
 - `file-uploads` — two-step upload pattern for attaching media to a room's first user message.
 - `vector` — embedding/retrieval pixels for grounding room responses on documents.
 - `database` — query a database from inside a room (e.g., via an MCP tool or direct `SqlQuery()` call).
