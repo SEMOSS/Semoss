@@ -2717,6 +2717,58 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Updates only the core {@code WORKSPACE} display columns (NAME, DESCRIPTION,
+	 * SYSTEM_PROMPT) plus DATE_UPDATED. Leaves IS_ACTIVE, CONFIG_JSON, and the
+	 * WORKSPACE_RESOURCE rows untouched - unlike
+	 * {@link #updateWorkspaceEntry(String, String, String, String, boolean, List)},
+	 * which replaces the full resource set.
+	 *
+	 * <p>
+	 * Used by {@code SystemAgentSeeder} to self-heal the legacy display columns on
+	 * every boot the same way {@link #updateWorkspaceConfigJson(String, JSONObject)}
+	 * self-heals the config mirror. The legacy SYSTEM_PROMPT column is what
+	 * GetWorkspace/ListWorkspaces surface to the FE, so it must track the seeded
+	 * prompt or the UI shows a stale value after the constant changes.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param name         workspace display name
+	 * @param description  workspace description payload
+	 * @param systemPrompt workspace system prompt payload
+	 * @throws SQLException if the update fails
+	 */
+	public static void updateWorkspaceCoreFields(String workspaceId, String name, String description,
+			String systemPrompt) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+				int index = 1;
+				ps.setString(index++, name);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update core fields for workspaceId '{}'.", workspaceId, e);
+			throw new SQLException("Failed to update workspace core fields: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
 	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
 	 * the authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in
 	 * sync - the same dual-write pattern MCPs use
