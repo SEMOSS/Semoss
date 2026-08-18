@@ -57,8 +57,12 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * <p>
  * {@link #seed(String)} is idempotent and self-healing: it is safe to run on
  * every boot. It creates the {@code WORKSPACE} row once, back-fills any missing
- * resource rows on subsequent boots, and always rewrites {@code CONFIG_JSON} so
- * a drifted mirror is repaired. If the ModelInferenceLogsDatabase feature is
+ * resource rows on subsequent boots, and always rewrites both {@code CONFIG_JSON}
+ * (the runtime source read by {@code AgentConfigLoader}) and the legacy
+ * NAME/DESCRIPTION/SYSTEM_PROMPT columns (the display source surfaced to the
+ * Agent UI by GetWorkspace/ListWorkspaces) so a drifted mirror on either side is
+ * repaired. Hand-edits to a system agent's prompt are therefore intentionally
+ * clobbered on the next boot. If the ModelInferenceLogsDatabase feature is
  * disabled it no-ops (the project itself still catalogs).
  *
  * <p>
@@ -142,6 +146,8 @@ public class SystemAgentSeeder {
 				}
 			}
 
+			ModelInferenceLogsUtils.updateWorkspaceCoreFields(agentId, displayName(agentId), description(agentId),
+					systemPrompt(agentId));
 			ModelInferenceLogsUtils.updateWorkspaceConfigJson(agentId, buildConfigJson(agentId, tools, skills));
 		} catch (Exception e) {
 			classLogger.error("Failed to seed system agent workspace '{}'", agentId, e);
