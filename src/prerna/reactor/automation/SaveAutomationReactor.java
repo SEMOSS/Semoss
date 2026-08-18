@@ -87,7 +87,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 
 		AutomationDefinitionService.DefinitionFiles files =
 				AutomationDefinitionService.save(projectId, definition, nodeSources);
-		syncDefinitionAssets(projectId);
+		AutomationMcpSync.sync(projectId, files.definition(), this.insight.getUser());
+		syncDefinitionAssets(projectId, this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
@@ -95,17 +96,22 @@ public class SaveAutomationReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	private void syncDefinitionAssets(String projectId) {
+	static void syncDefinitionAssets(String projectId, prerna.auth.User user) {
 		IProject project = Utility.getProject(projectId);
 		if (project != null) {
 			List<String> files = new ArrayList<>();
 			for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
 				files.add(path.toString());
 			}
+			java.nio.file.Path mcpFile = java.nio.file.Path.of(AssetUtility.getProjectAssetsFolder(projectId),
+					"mcp", "pixel_mcp.json");
+			if (java.nio.file.Files.isRegularFile(mcpFile)) {
+				files.add(mcpFile.toString());
+			}
 			String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			try {
 				GitRepoUtils.addSpecificFiles(versionFolder, files);
-				GitRepoUtils.commitAddedFiles(versionFolder, "Update automation definition", this.insight.getUser());
+				GitRepoUtils.commitAddedFiles(versionFolder, "Update automation definition", user);
 			} catch (Exception e) {
 				classLogger.warn("Git commit failed for automation save", e);
 			}

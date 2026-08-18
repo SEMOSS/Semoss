@@ -18,19 +18,26 @@ in the authenticated user's Python insight.
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
 | `GetAutomationConfig` / `SaveAutomationConfig` | `project` | Reads or saves masked project config entries used by runtime placeholder resolution. |
 
-No automation-specific MCP registration or source generation via an LLM is supported.
+## MCP authoring
+
+Saving or creating an automation generates project-scoped MCP tools in
+`assets/mcp/pixel_mcp.json`. The Automation Workspace chat uses these tools to add a typed
+generated node, reconfigure a generated node, or update an explicitly custom node with an
+optimistic source-hash check. MCP tools never receive the whole graph or bypass Java-owned
+control-flow validation.
 
 ## Persisted files
 
-All files live in the project portals directory:
+Workflow artifacts live at the project asset root. Automation config remains in
+the project portals directory because it uses the existing masked-config storage flow:
 
 | File | Purpose |
 | --- | --- |
 | `automation-workflow.json` | Canonical typed graph (`formatVersion: 2`). |
-| `automation-nodes/<base64url-node-id>.py` | One persisted `run(scope)` source file per non-start node. |
-| `automation-config.json` | Project config values; sensitive values are masked on reads. |
+| `automation-nodes/<label_slug>_<uuid-prefix>.py` | One persisted `run(scope)` source file per non-start node. |
+| `portals/automation-config.json` | Project config values; sensitive values are masked on reads. |
 
-`automation-workflow.py` is not used. `SaveAutomation` versions and synchronizes the graph and all current node-source files with the project.
+`automation-workflow.py` is not used. `SaveAutomation` versions and synchronizes the graph and all current node-source files with the project. Legacy portal-based and Base64-named node files are read as a compatibility fallback and migrated on the next save.
 
 ## Runtime behavior
 

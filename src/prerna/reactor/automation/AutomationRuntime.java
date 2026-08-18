@@ -56,11 +56,20 @@ final class AutomationRuntime {
 					node.get(AutomationConstants.NODE_FIELD_ID));
 			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 				node.putIfAbsent(AutomationConstants.NODE_FIELD_OUTPUT_VAR,
-						node.get(AutomationConstants.NODE_FIELD_ID));
+						defaultOutputVariable(node));
 			}
 			nodes.add(node);
 		}
 		return nodes;
+	}
+
+	private static String defaultOutputVariable(Map<String, Object> node) {
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		if (type == null || id == null || id.length() < 6) {
+			return id;
+		}
+		return type.replace('.', '_') + "_" + id.substring(id.length() - 6);
 	}
 
 	/**
@@ -106,17 +115,28 @@ final class AutomationRuntime {
 
 	/** Runs one node module with the workflow scope supplied by the Java scheduler. */
 	static String buildNodeInvocationScript(String source, Map<String, String> scope) {
+		return buildNodeInvocationScript(source, scope, Map.of());
+	}
+
+	static String buildNodeInvocationScript(String source, Map<String, String> scope,
+			Map<String, String> config) {
 		return """
 				import base64 as _automation_b64
 				import json as _automation_json
 				_automation_scope = _automation_json.loads(
 				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
+				_automation_config = _automation_json.loads(
+				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
+				_automation_scope["_automation_config"] = _automation_config
 
 				%s
 
 				_automation_result = run(_automation_scope)
 				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
-				""".formatted(encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())), source);
+				""".formatted(
+						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
+						encode(AutomationRuntimeUtils.GSON.toJson(config != null ? config : Map.of())),
+						source);
 	}
 
 	@SuppressWarnings("unchecked")

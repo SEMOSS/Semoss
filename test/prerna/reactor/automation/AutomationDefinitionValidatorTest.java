@@ -47,8 +47,8 @@ class AutomationDefinitionValidatorTest {
 						  "graph": {
 						    "nodes": [
 						      {"id": "start", "type": "trigger.start", "config": {}},
-						      {"id": "query", "type": "database.query", "config": {}},
-						      {"id": "model", "type": "model.chat", "config": {}}
+						      {"id": "query", "type": "database.query", "config": {"engineId":"database-id","query":"SELECT 1"}},
+						      {"id": "model", "type": "model.chat", "config": {"engineId":"model-id","prompt":"Summarize ${query_out}"}}
 						    ],
 						    "edges": [
 						      {"id": "control-start-query", "kind": "control", "source": "start", "sourcePort": "next", "target": "query", "targetPort": "in"},
@@ -80,7 +80,7 @@ class AutomationDefinitionValidatorTest {
 				AutomationDefinitionValidator.parseAndValidate("""
 						{"formatVersion":2,"graph":{"nodes":[
 						  {"id":"start","type":"trigger.start","config":{}},
-						  {"id":"node","type":"database.query","config":{}}
+						  {"id":"node","type":"database.query","config":{"engineId":"database-id","query":"SELECT 1"}}
 						],"edges":[
 						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"node","targetPort":"in"}
 						]}}
@@ -90,7 +90,8 @@ class AutomationDefinitionValidatorTest {
 
 		assertTrue(source.contains("def run(scope):"));
 		assertTrue(source.contains("from ai_server import DatabaseEngine"));
-		assertTrue(source.contains("database.execQuery(query=QUERY, return_pandas=False)"));
+		assertTrue(source.contains("def resolve(value, scope):"));
+		assertTrue(source.contains("database.execQuery(query=resolve(QUERY, scope), return_pandas=False)"));
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationSourceRenderer.renderNode(definition.nodes().get(0)));
 	}
@@ -131,10 +132,35 @@ class AutomationDefinitionValidatorTest {
 	}
 
 	@Test
+	void createsReadableNodeSourceFileNames() {
+		assertEquals("query_customers_638c9b63", AutomationDefinitionService.safeNodeFileName(Map.of(
+				"id", "database-query-638c9b63-8d23-48e0-ad5a-8555025753e0",
+				"type", "database.query",
+				"label", "Query Customers")));
+		assertEquals("database_query_638c9b63", AutomationDefinitionService.safeNodeFileName(Map.of(
+				"id", "database-query-638c9b63-8d23-48e0-ad5a-8555025753e0",
+				"type", "database.query",
+				"label", "")));
+	}
+
+	@Test
 	void rejectsNonObjectNodeConfig() {
 		assertThrows(IllegalArgumentException.class, () ->
 				AutomationDefinitionValidator.parseAndValidate("""
 						{"formatVersion":2,"graph":{"nodes":[{"id":"start","type":"trigger.start","config":"invalid"}],"edges":[]}}
+						"""));
+	}
+
+	@Test
+	void rejectsEngineBackedNodesWithoutRequiredConfiguration() {
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"start","type":"trigger.start","config":{}},
+						  {"id":"function","type":"function.execute","config":{"arguments":"{}"}}
+						],"edges":[
+						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"function","targetPort":"in"}
+						]}}
 						"""));
 	}
 }

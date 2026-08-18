@@ -71,6 +71,7 @@ public class GetAutomationReactor extends AbstractReactor {
 
 		AutomationDefinitionService.DefinitionFiles files =
 				AutomationDefinitionService.load(projectId);
+		AutomationMcpSync.sync(projectId, files.definition(), this.insight.getUser());
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());

@@ -115,7 +115,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					scope.put(entry.getKey(), valueAsString(entry.getValue()));
 				}
 			}
-			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes, files.nodeSources(), scope);
+			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes,
+					files.nodeSources(), scope, AutomationRuntimeUtils.loadConfig(projectId));
 			finishRun(runId);
 			return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
 					PixelOperationType.OPERATION);
@@ -136,16 +137,22 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
-			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope) {
+			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope,
+			Map<String, String> config) {
 		for (Map<String, Object> node : runNodes) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 				break;
 			}
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Map<String, Object> nodeResult = AutomationConstants.NODE_START.equals(type)
 					? executeStartNode(runId, node, scope)
-					: executeNodeSource(projectId, runId, node, nodeSources.get(
-							node.get(AutomationConstants.NODE_FIELD_ID)), scope);
+					: executeNodeSource(projectId, runId, node,
+							AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
+											? AutomationSourceRenderer.renderNode(node)
+											: nodeSources.get(nodeId),
+							scope, config);
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				break;
 			}
@@ -173,7 +180,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, String> scope) {
+			String source, Map<String, String> scope, Map<String, String> config) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException("Automation node has no persisted Python source: "
 					+ node.get(AutomationConstants.NODE_FIELD_ID));
@@ -188,7 +195,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
 		try {
 			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
-					AutomationRuntime.buildNodeInvocationScript(source, scope),
+					AutomationRuntime.buildNodeInvocationScript(source, scope, config),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			return persistNativeNodeResult(runId, node, value, started, startedMs);

@@ -58,13 +58,19 @@ public final class AutomationDefinitionService {
 	 * @return graph and Python source
 	 */
 	public static DefinitionFiles load(String projectId) {
+		Path assetsFolder = getAssetsFolder(projectId);
 		Path portalsFolder = getPortalsFolder(projectId);
-		Path definitionFile = portalsFolder.resolve(AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME);
+		Path definitionFile = definitionPath(assetsFolder);
+		Path legacyDefinitionFile = definitionPath(portalsFolder);
 		try {
 			if (!Files.isRegularFile(definitionFile)) {
-				AutomationDefinitionValidator.ValidatedDefinition starter =
-						AutomationDefinitionValidator.parseAndValidate(emptyDefinition());
-				return new DefinitionFiles(emptyDefinition(), defaultNodeSources(starter));
+				if (Files.isRegularFile(legacyDefinitionFile)) {
+					definitionFile = legacyDefinitionFile;
+				} else {
+					AutomationDefinitionValidator.ValidatedDefinition starter =
+							AutomationDefinitionValidator.parseAndValidate(emptyDefinition());
+					return new DefinitionFiles(emptyDefinition(), defaultNodeSources(starter));
+				}
 			}
 			String definition = Files.readString(definitionFile, StandardCharsets.UTF_8);
 			AutomationDefinitionValidator.ValidatedDefinition validated =
@@ -73,7 +79,7 @@ public final class AutomationDefinitionService {
 			for (Map<String, Object> node : validated.nodes()) {
 				if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 					String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-					Path sourceFile = nodeSourcePath(portalsFolder, nodeId);
+					Path sourceFile = findNodeSourceFile(assetsFolder, portalsFolder, node);
 					sources.put(nodeId, Files.isRegularFile(sourceFile)
 							? Files.readString(sourceFile, StandardCharsets.UTF_8)
 							: AutomationSourceRenderer.renderNode(node));
@@ -96,20 +102,24 @@ public final class AutomationDefinitionService {
 	public static DefinitionFiles save(String projectId, String definitionJson, Map<String, String> nodeSources) {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
 				AutomationDefinitionValidator.parseAndValidate(definitionJson);
-		Path portalsFolder = getPortalsFolder(projectId);
-		Path definitionFile = portalsFolder.resolve(AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME);
+		Path assetsFolder = getAssetsFolder(projectId);
+		Path definitionFile = definitionPath(assetsFolder);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
 
 		try {
-			Files.createDirectories(portalsFolder);
+			Files.createDirectories(assetsFolder);
 			writeReplace(definitionFile, definitionJson);
-			Path nodesFolder = portalsFolder.resolve(AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME);
+			Path nodesFolder = nodesFolder(assetsFolder);
 			Files.createDirectories(nodesFolder);
-			for (Map.Entry<String, String> entry : sourcesToPersist.entrySet()) {
-				writeReplace(nodeSourcePath(portalsFolder, entry.getKey()), entry.getValue());
+			for (Map<String, Object> node : definition.nodes()) {
+				if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+					continue;
+				}
+				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+				writeReplace(nodeSourcePath(assetsFolder, node), sourcesToPersist.get(nodeId));
 			}
-			removeDeletedNodeSources(nodesFolder, sourcesToPersist);
-			Files.deleteIfExists(portalsFolder.resolve("automation-workflow.py"));
+			removeDeletedNodeSources(nodesFolder, definition);
+			Files.deleteIfExists(assetsFolder.resolve("automation-workflow.py"));
 			return new DefinitionFiles(definitionJson, sourcesToPersist);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to save Python automation definition: " + e.getMessage(), e);
@@ -132,14 +142,45 @@ public final class AutomationDefinitionService {
 	 * @return canonical artifact paths
 	 */
 	public static List<Path> getArtifactPaths(String projectId) {
+		Path assetsFolder = getAssetsFolder(projectId);
 		Path portalsFolder = getPortalsFolder(projectId);
+		Path folder = Files.isRegularFile(definitionPath(assetsFolder)) ? assetsFolder : portalsFolder;
 		DefinitionFiles definition = load(projectId);
+		AutomationDefinitionValidator.ValidatedDefinition validated =
+				AutomationDefinitionValidator.parseAndValidate(definition.definition());
 		List<Path> paths = new java.util.ArrayList<>();
-		paths.add(portalsFolder.resolve(AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME));
-		for (String nodeId : definition.nodeSources().keySet()) {
-			paths.add(nodeSourcePath(portalsFolder, nodeId));
+		paths.add(definitionPath(folder));
+		for (Map<String, Object> node : validated.nodes()) {
+			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				paths.add(findNodeSourceFile(assetsFolder, portalsFolder, node));
+			}
 		}
 		return paths;
+	}
+
+	private static Path definitionPath(Path folder) {
+		return folder.resolve(AutomationConstants.AUTOMATION_PYTHON_DEFINITION_FILE_NAME);
+	}
+
+	private static Path nodesFolder(Path folder) {
+		return folder.resolve(AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME).normalize();
+	}
+
+	private static Path findNodeSourceFile(Path assetsFolder, Path portalsFolder, Map<String, Object> node) {
+		Path current = nodeSourcePath(assetsFolder, node);
+		if (Files.isRegularFile(current)) {
+			return current;
+		}
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Path assetsLegacy = legacyNodeSourcePath(assetsFolder, nodeId);
+		if (Files.isRegularFile(assetsLegacy)) {
+			return assetsLegacy;
+		}
+		Path portalsCurrent = nodeSourcePath(portalsFolder, node);
+		if (Files.isRegularFile(portalsCurrent)) {
+			return portalsCurrent;
+		}
+		return legacyNodeSourcePath(portalsFolder, nodeId);
 	}
 
 	private static Map<String, String> defaultNodeSources(AutomationDefinitionValidator.ValidatedDefinition definition) {
@@ -176,6 +217,15 @@ public final class AutomationDefinitionService {
 		return result;
 	}
 
+	private static Path getAssetsFolder(String projectId) {
+		String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
+		Path path = Path.of(assetsFolder).toAbsolutePath().normalize();
+		if (!path.startsWith(Path.of(assetsFolder).toAbsolutePath().normalize())) {
+			throw new IllegalArgumentException("Invalid automation definition path.");
+		}
+		return path;
+	}
+
 	private static Path getPortalsFolder(String projectId) {
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
 		Path path = Path.of(portalsFolder).toAbsolutePath().normalize();
@@ -198,25 +248,58 @@ public final class AutomationDefinitionService {
 		}
 	}
 
-	private static Path nodeSourcePath(Path portalsFolder, String nodeId) {
-		Path folder = portalsFolder.resolve(AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME).normalize();
-		Path result = folder.resolve(safeNodeFileName(nodeId) + ".py").normalize();
-		if (!result.startsWith(folder)) {
+	private static Path nodeSourcePath(Path folder, Map<String, Object> node) {
+		Path nodesFolder = nodesFolder(folder);
+		Path result = nodesFolder.resolve(safeNodeFileName(node) + ".py").normalize();
+		if (!result.startsWith(nodesFolder)) {
 			throw new IllegalArgumentException("Invalid automation node source path.");
 		}
 		return result;
 	}
 
-	static String safeNodeFileName(String nodeId) {
+	private static Path legacyNodeSourcePath(Path folder, String nodeId) {
+		Path nodesFolder = nodesFolder(folder);
+		return nodesFolder.resolve(legacySafeNodeFileName(nodeId) + ".py").normalize();
+	}
+
+	static String safeNodeFileName(Map<String, Object> node) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String label = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		String slug = slugify(label);
+		if (slug.isBlank()) {
+			slug = slugify(type);
+		}
+		if (slug.isBlank()) {
+			slug = "automation_node";
+		}
+		String uuidPrefix = nodeId != null && nodeId.matches(".*[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$")
+				? nodeId.substring(nodeId.length() - 36, nodeId.length() - 28).toLowerCase()
+				: "node";
+		return slug + "_" + uuidPrefix;
+	}
+
+	private static String slugify(String value) {
+		if (value == null) {
+			return "";
+		}
+		return value.toLowerCase(java.util.Locale.ROOT)
+				.replaceAll("[^a-z0-9]+", "_")
+				.replaceAll("^_+|_+$", "");
+	}
+
+	private static String legacySafeNodeFileName(String nodeId) {
 		return java.util.Base64.getUrlEncoder().withoutPadding()
 				.encodeToString(nodeId.getBytes(StandardCharsets.UTF_8));
 	}
 
-	private static void removeDeletedNodeSources(Path nodesFolder, Map<String, String> currentSources)
-			throws IOException {
+	private static void removeDeletedNodeSources(Path nodesFolder,
+			AutomationDefinitionValidator.ValidatedDefinition definition) throws IOException {
 		java.util.Set<String> currentFiles = new java.util.HashSet<>();
-		for (String nodeId : currentSources.keySet()) {
-			currentFiles.add(safeNodeFileName(nodeId) + ".py");
+		for (Map<String, Object> node : definition.nodes()) {
+			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				currentFiles.add(safeNodeFileName(node) + ".py");
+			}
 		}
 		try (java.util.stream.Stream<Path> paths = Files.list(nodesFolder)) {
 			for (Path path : paths.filter(Files::isRegularFile).toList()) {

@@ -49,6 +49,8 @@ class AutomationRuntimeTest {
 
 		assertTrue(!script.contains("AutomationPythonNodeBridge"));
 		assertTrue(!script.contains("def run_current_node("));
+		assertTrue(!script.contains("def _automation_resolve("));
+		assertTrue(script.contains("_automation_scope[\"_automation_config\"] = _automation_config"));
 		assertTrue(script.contains("_automation_result = run(_automation_scope)"));
 		assertTrue(script.contains(source.strip()));
 	}
@@ -75,10 +77,14 @@ class AutomationRuntimeTest {
 	}
 
 	private static Map<String, Object> definition(String type, String codeMode) {
+		Map<String, Object> config = switch (type) {
+			case "database.query" -> Map.of("engineId", "database-id", "query", "SELECT 1");
+			default -> Map.of();
+		};
 		return Map.of("formatVersion", 2, "graph", Map.of(
 				"nodes", List.of(
 						Map.of("id", "start", "type", "trigger.start", "config", Map.of()),
-						Map.of("id", "node", "type", type, "codeMode", codeMode, "config", Map.of())),
+						Map.of("id", "node", "type", type, "codeMode", codeMode, "config", config)),
 				"edges", List.of(Map.of("id", "edge", "kind", "control", "source", "start",
 						"sourcePort", "next", "target", "node", "targetPort", "in"))));
 	}

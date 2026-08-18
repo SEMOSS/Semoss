@@ -100,6 +100,7 @@ public class CreateAutomationReactor extends AbstractReactor {
         String projectId = project.getProjectId();
         try {
             AutomationDefinitionService.createStarter(projectId);
+            AutomationMcpSync.sync(projectId, AutomationDefinitionService.load(projectId).definition(), user);
             syncStarterDefinition(project, projectId);
         } catch (RuntimeException e) {
             classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
@@ -125,6 +126,11 @@ public class CreateAutomationReactor extends AbstractReactor {
         List<String> files = new ArrayList<>();
         for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
             files.add(path.toString());
+        }
+        java.nio.file.Path mcpFile = java.nio.file.Path.of(AssetUtility.getProjectAssetsFolder(projectId),
+                "mcp", "pixel_mcp.json");
+        if (java.nio.file.Files.isRegularFile(mcpFile)) {
+            files.add(mcpFile.toString());
         }
         String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
         try {

@@ -37,6 +37,24 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 /** Renders the default implementation for exactly one automation node. */
 public final class AutomationSourceRenderer {
 
+	private static final String RESOLVE_HELPER = """
+			import re
+
+			def resolve(value, scope):
+			    if not isinstance(value, str):
+			        return value
+
+			    def replace(match):
+			        key = match.group(1)
+			        if key.startswith("config."):
+			            config = scope.get("_automation_config", {})
+			            return config.get(key[7:], match.group(0))
+			        return scope.get(key, match.group(0))
+
+			    return re.sub(r"\\$\\{([^}]+)\\}", replace, value)
+
+			""";
+
 	private static final String LEGACY_DEFAULT_SOURCE = """
 			# Generated SEMOSS Automation node implementation.
 			# Java binds this script to one immutable run-snapshot node.
@@ -62,7 +80,7 @@ public final class AutomationSourceRenderer {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
 				? (Map<String, Object>) map : Map.of();
-		return switch (type) {
+		String source = switch (type) {
 			case AutomationConstants.NODE_DATABASE_QUERY -> databaseQuerySource(config);
 			case AutomationConstants.NODE_DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 			case AutomationConstants.NODE_DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
@@ -86,6 +104,7 @@ public final class AutomationSourceRenderer {
 			case AutomationConstants.NODE_DEVELOPER_PYTHON -> developerSource();
 			default -> developerSource();
 		};
+		return RESOLVE_HELPER + source;
 	}
 
 	private static String databaseQuerySource(Map<String, Object> config) {
@@ -97,8 +116,8 @@ public final class AutomationSourceRenderer {
 				QUERY = %s
 
 				def run(scope):
-				    database = DatabaseEngine(engine_id=ENGINE_ID)
-				    return database.execQuery(query=QUERY, return_pandas=False)
+				    database = DatabaseEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return database.execQuery(query=resolve(QUERY, scope), return_pandas=False)
 				""".formatted(value(config, "engineId"), value(config, "query"));
 	}
 
@@ -111,8 +130,8 @@ public final class AutomationSourceRenderer {
 				QUERY = %s
 
 				def run(scope):
-				    database = DatabaseEngine(engine_id=ENGINE_ID)
-				    return database.%s(query=QUERY)
+				    database = DatabaseEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return database.%s(query=resolve(QUERY, scope))
 				""".formatted(value(config, "engineId"), value(config, "query"), method);
 	}
 
@@ -120,15 +139,17 @@ public final class AutomationSourceRenderer {
 		return """
 				# Call a SEMOSS model directly through the Python SDK.
 				from ai_server import ModelEngine
+				import json
 
 				ENGINE_ID = %s
 				PROMPT = %s
 				SYSTEM_PROMPT = %s
-				PARAMETERS = %s
+				PARAMETERS_JSON = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=ENGINE_ID)
-				    return model.ask(command=PROMPT, context=SYSTEM_PROMPT, param_dict=PARAMETERS)
+				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
+				    parameters = json.loads(resolve(PARAMETERS_JSON, scope) or "{}")
+				    return model.ask(command=resolve(PROMPT, scope), context=resolve(SYSTEM_PROMPT, scope), param_dict=parameters)
 				""".formatted(value(config, "engineId"), value(config, "prompt"),
 				value(config, "systemPrompt"), value(config, "paramValues"));
 	}
@@ -142,8 +163,8 @@ public final class AutomationSourceRenderer {
 				VALUES = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=ENGINE_ID)
-				    return model.embeddings(strings_to_embed=VALUES)
+				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return model.embeddings(strings_to_embed=resolve(VALUES, scope))
 				""".formatted(value(config, "engineId"), value(config, "text"));
 	}
 
@@ -157,8 +178,8 @@ public final class AutomationSourceRenderer {
 				IMAGE = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=ENGINE_ID)
-				    return model.ask(command=PROMPT, image=[IMAGE])
+				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return model.ask(command=resolve(PROMPT, scope), image=[resolve(IMAGE, scope)])
 				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "image"));
 	}
 
@@ -172,8 +193,8 @@ public final class AutomationSourceRenderer {
 				ENTITIES = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=ENGINE_ID)
-				    return model.ner(text=TEXT, entities=ENTITIES)
+				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return model.ner(text=resolve(TEXT, scope), entities=resolve(ENTITIES, scope))
 				""".formatted(value(config, "engineId"), value(config, "text"), value(config, "entities"));
 	}
 
@@ -186,8 +207,8 @@ public final class AutomationSourceRenderer {
 				STORAGE_PATH = %s
 
 				def run(scope):
-				    storage = StorageEngine(engine_id=ENGINE_ID)
-				    return storage.%s(%s)
+				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return storage.%s(resolve(%s, scope))
 				""".formatted(value(config, "engineId"), value(config, "path"), method, argument);
 	}
 
@@ -201,8 +222,8 @@ public final class AutomationSourceRenderer {
 				FILE_PATH = %s
 
 				def run(scope):
-				    storage = StorageEngine(engine_id=ENGINE_ID)
-				    return storage.%s(storagePath=STORAGE_PATH, localPath=FILE_PATH)
+				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return storage.%s(storagePath=resolve(STORAGE_PATH, scope), localPath=resolve(FILE_PATH, scope))
 				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"), method);
 	}
 
@@ -216,8 +237,8 @@ public final class AutomationSourceRenderer {
 				LIMIT = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=ENGINE_ID)
-				    return vector.nearestNeighbor(search_statement=QUERY, limit=LIMIT)
+				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return vector.nearestNeighbor(search_statement=resolve(QUERY, scope), limit=resolve(LIMIT, scope))
 				""".formatted(value(config, "engineId"), value(config, "value"), value(config, "limit"));
 	}
 
@@ -227,11 +248,11 @@ public final class AutomationSourceRenderer {
 				from ai_server import VectorEngine
 
 				ENGINE_ID = %s
-				FILE_PATHS = %s.split(",")
+				FILE_PATHS = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=ENGINE_ID)
-				    return vector.addDocument(file_paths=FILE_PATHS)
+				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return vector.addDocument(file_paths=resolve(FILE_PATHS, scope).split(","))
 				""".formatted(value(config, "engineId"), value(config, "value"));
 	}
 
@@ -241,11 +262,11 @@ public final class AutomationSourceRenderer {
 				from ai_server import VectorEngine
 
 				ENGINE_ID = %s
-				FILE_NAMES = %s.split(",")
+				FILE_NAMES = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=ENGINE_ID)
-				    return vector.removeDocument(file_names=FILE_NAMES)
+				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return vector.removeDocument(file_names=resolve(FILE_NAMES, scope).split(","))
 				""".formatted(value(config, "engineId"), value(config, "value"));
 	}
 
@@ -260,18 +281,21 @@ public final class AutomationSourceRenderer {
 				FILE_PATH = %s
 
 				def run(scope):
-				    storage = StorageEngine(engine_id=ENGINE_ID)
-				    if OPERATION == "list":
-				        return storage.list(STORAGE_PATH)
-				    if OPERATION == "read-base64":
-				        return storage.readBlobToMemory(STORAGE_PATH)
-				    if OPERATION == "upload":
-				        return storage.copyToStorage(storagePath=STORAGE_PATH, localPath=FILE_PATH)
-				    if OPERATION == "download":
-				        return storage.copyToLocal(storagePath=STORAGE_PATH, localPath=FILE_PATH)
-				    if OPERATION == "delete":
-				        return storage.deleteFromStorage(STORAGE_PATH)
-				    raise ValueError(f"Unsupported storage operation: {OPERATION}")
+				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
+				    operation = resolve(OPERATION, scope)
+				    storage_path = resolve(STORAGE_PATH, scope)
+				    file_path = resolve(FILE_PATH, scope)
+				    if operation == "list":
+				        return storage.list(storage_path)
+				    if operation == "read-base64":
+				        return storage.readBlobToMemory(storage_path)
+				    if operation == "upload":
+				        return storage.copyToStorage(storagePath=storage_path, localPath=file_path)
+				    if operation == "download":
+				        return storage.copyToLocal(storagePath=storage_path, localPath=file_path)
+				    if operation == "delete":
+				        return storage.deleteFromStorage(storage_path)
+				    raise ValueError(f"Unsupported storage operation: {operation}")
 				""".formatted(value(config, "engineId"), value(config, "operation"),
 				value(config, "path"), value(config, "destination"));
 	}
@@ -287,16 +311,18 @@ public final class AutomationSourceRenderer {
 				LIMIT = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=ENGINE_ID)
-				    if OPERATION == "search":
-				        return vector.nearestNeighbor(search_statement=VALUE, limit=LIMIT)
-				    if OPERATION in ("add", "add-file"):
-				        return vector.addDocument(file_paths=VALUE.split(","))
-				    if OPERATION == "delete":
-				        return vector.removeDocument(file_names=VALUE.split(","))
-				    if OPERATION == "list":
+				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
+				    operation = resolve(OPERATION, scope)
+				    value = resolve(VALUE, scope)
+				    if operation == "search":
+				        return vector.nearestNeighbor(search_statement=value, limit=resolve(LIMIT, scope))
+				    if operation in ("add", "add-file"):
+				        return vector.addDocument(file_paths=value.split(","))
+				    if operation == "delete":
+				        return vector.removeDocument(file_names=value.split(","))
+				    if operation == "list":
 				        return vector.listDocuments()
-				    raise ValueError(f"Unsupported vector operation: {OPERATION}")
+				    raise ValueError(f"Unsupported vector operation: {operation}")
 				""".formatted(value(config, "engineId"), value(config, "operation"),
 				value(config, "value"), value(config, "limit"));
 	}
@@ -311,8 +337,8 @@ public final class AutomationSourceRenderer {
 				ARGUMENTS = %s
 
 				def run(scope):
-				    function = FunctionEngine(engine_id=ENGINE_ID)
-				    return function.execute(parameterMap=json.loads(ARGUMENTS))
+				    function = FunctionEngine(engine_id=resolve(ENGINE_ID, scope))
+				    return function.execute(parameterMap=json.loads(resolve(ARGUMENTS, scope)))
 				""".formatted(value(config, "engineId"), value(config, "arguments"));
 	}
 
@@ -324,7 +350,7 @@ public final class AutomationSourceRenderer {
 				PIXEL = %s
 
 				def run(scope):
-				    return Insight().run_pixel(PIXEL)
+				    return Insight().run_pixel(resolve(PIXEL, scope))
 				""".formatted(value(config, "pixel"));
 	}
 
@@ -336,8 +362,9 @@ public final class AutomationSourceRenderer {
 				SECONDS = %s
 
 				def run(scope):
-				    time.sleep(SECONDS)
-				    return {"waitedSeconds": SECONDS}
+				    seconds = float(resolve(SECONDS, scope))
+				    time.sleep(seconds)
+				    return {"waitedSeconds": seconds}
 				""".formatted(value(config, "durationSeconds"));
 	}
 
@@ -351,7 +378,14 @@ public final class AutomationSourceRenderer {
 	}
 
 	private static String value(Map<String, Object> config, String key) {
-		return AutomationRuntimeUtils.GSON.toJson(config.get(key));
+		Object value = config.get(key);
+		if (value == null) {
+			return "None";
+		}
+		if (value instanceof Boolean bool) {
+			return bool ? "True" : "False";
+		}
+		return AutomationRuntimeUtils.GSON.toJson(value);
 	}
 
 	static boolean isLegacyDefaultSource(String source) {

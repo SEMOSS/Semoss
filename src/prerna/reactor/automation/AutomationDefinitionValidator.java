@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -130,6 +131,7 @@ public final class AutomationDefinitionValidator {
 
 	private static Map<String, String> validateNodes(List<Map<String, Object>> nodes) {
 		Map<String, String> nodeTypes = new LinkedHashMap<>();
+		Set<String> outputVariables = new HashSet<>();
 		int startCount = 0;
 		for (int index = 0; index < nodes.size(); index++) {
 			Map<String, Object> node = nodes.get(index);
@@ -145,11 +147,23 @@ public final class AutomationDefinitionValidator {
 			}
 			if (AutomationConstants.NODE_START.equals(nodeType)) {
 				startCount++;
+			} else if (node.containsKey(AutomationConstants.NODE_FIELD_OUTPUT_VAR)) {
+				String outputVar = requireNonblankString(
+						node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
+						"graph.nodes[" + index + "].outputVar");
+				if (!outputVariables.add(outputVar)) {
+					throw new IllegalArgumentException(
+							"Python automation definition has duplicate outputVar: " + outputVar + ".");
+				}
 			}
 			Object config = node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			if (config != null && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' config must be an object.");
 			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map
+					? (Map<String, Object>) map : Map.of();
+			validateNodeConfig(nodeId, nodeType, nodeConfig);
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
@@ -164,6 +178,79 @@ public final class AutomationDefinitionValidator {
 			throw new IllegalArgumentException("Python automation definition must contain exactly one start node.");
 		}
 		return nodeTypes;
+	}
+
+	private static void validateNodeConfig(String nodeId, String nodeType, Map<String, Object> config) {
+		if (AutomationConstants.NODE_START.equals(nodeType)
+				|| AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)) {
+			return;
+		}
+		if (requiresEngine(nodeType)) {
+			requireConfigString(nodeId, config, AutomationConstants.CONFIG_ENGINE_ID);
+		}
+		switch (nodeType) {
+			case AutomationConstants.NODE_DATABASE_QUERY,
+					AutomationConstants.NODE_DATABASE_INSERT,
+					AutomationConstants.NODE_DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
+			case AutomationConstants.NODE_MODEL_CHAT -> requireConfigString(nodeId, config, "prompt");
+			case AutomationConstants.NODE_MODEL_EMBEDDINGS,
+					AutomationConstants.NODE_MODEL_NER -> requireConfigString(nodeId, config, "text");
+			case AutomationConstants.NODE_MODEL_VISION -> {
+				requireConfigString(nodeId, config, "prompt");
+				requireConfigString(nodeId, config, "image");
+			}
+			case AutomationConstants.NODE_STORAGE_READ,
+					AutomationConstants.NODE_STORAGE_UPLOAD,
+					AutomationConstants.NODE_STORAGE_DOWNLOAD,
+					AutomationConstants.NODE_STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
+			case AutomationConstants.NODE_VECTOR_SEARCH,
+					AutomationConstants.NODE_VECTOR_ADD,
+					AutomationConstants.NODE_VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
+			case AutomationConstants.NODE_FUNCTION_EXECUTE -> requireConfigString(nodeId, config, "arguments");
+			case AutomationConstants.NODE_APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);
+			default -> {
+				// All supported node types are covered above or require only an engine ID.
+			}
+		}
+	}
+
+	private static boolean requiresEngine(String nodeType) {
+		return nodeType.startsWith("database.")
+				|| nodeType.startsWith("model.")
+				|| nodeType.startsWith("storage.")
+				|| nodeType.startsWith("vector.")
+				|| AutomationConstants.NODE_FUNCTION_EXECUTE.equals(nodeType);
+	}
+
+	private static void validateWaitConfig(String nodeId, Map<String, Object> config) {
+		Object value = config.get("durationSeconds");
+		if (value instanceof Number number
+				&& number.doubleValue() >= AutomationConstants.WAIT_MIN_SECONDS
+				&& number.doubleValue() <= AutomationConstants.WAIT_MAX_SECONDS) {
+			return;
+		}
+		if (value instanceof String string) {
+			try {
+				double seconds = Double.parseDouble(string);
+				if (seconds >= AutomationConstants.WAIT_MIN_SECONDS
+						&& seconds <= AutomationConstants.WAIT_MAX_SECONDS) {
+					return;
+				}
+			} catch (NumberFormatException ignored) {
+				// Report the shared validation error below.
+			}
+		}
+		throw new IllegalArgumentException("Node '" + nodeId + "' durationSeconds must be between "
+				+ AutomationConstants.WAIT_MIN_SECONDS + " and " + AutomationConstants.WAIT_MAX_SECONDS + ".");
+	}
+
+	private static void requireConfigString(String nodeId, Map<String, Object> config, String key) {
+		Object value = config.get(key);
+		if (!(value instanceof String string) || string.isBlank()) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
+					+ " must be a nonblank string.");
+		}
 	}
 
 	private static void validateEdges(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
