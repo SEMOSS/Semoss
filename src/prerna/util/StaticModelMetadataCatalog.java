@@ -80,6 +80,14 @@ public final class StaticModelMetadataCatalog {
 	}.getType();
 	private static final Object CACHE_LOCK = new Object();
 
+	/**
+	 * Serving providers a SEMOSS model engine can actually connect to (OPEN_AI,
+	 * AZURE_OPEN_AI, VERTEX, BEDROCK, ANTHROPIC), in the normalized form produced
+	 * by {@link StaticBuiltinToolsCatalog#normalizeProviderKey(String)}.
+	 */
+	private static final Set<String> CONNECTABLE_SERVING_PROVIDERS = Set.of("openai", "azure", "google", "bedrock",
+			"anthropic");
+
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^[a-z][a-z-]*\\.(?=.)");
 	private static final Pattern VERSION_SUFFIX_PATTERN = Pattern.compile("-v\\d+(?::\\d+)?$");
 	private static final Pattern DATE_SUFFIX_PATTERN = Pattern.compile("-\\d{4}-?\\d{2}-?\\d{2}$");
@@ -240,6 +248,11 @@ public final class StaticModelMetadataCatalog {
 			defaults.put(Constants.SUPPORTED_PARAMETERS, supportedParameters);
 		}
 		putJson(defaults, Constants.REASONING_CONFIG, openRouter, "reasoning");
+
+		JsonArray pricing = buildOrderedPricing(model);
+		if (pricing != null) {
+			defaults.put(Constants.PRICING, GSON.toJson(pricing));
+		}
 
 		return normalizeIndividually(modelId, defaults);
 	}
@@ -656,6 +669,70 @@ public final class StaticModelMetadataCatalog {
 		if (longValue >= minimum) {
 			target.put(targetKey, longValue);
 		}
+	}
+
+	/**
+	 * Flatten the catalog's pricing object - serving provider to model id to
+	 * rates - into an array ordered for display: the model maker's own pricing
+	 * first, then the serving providers a SEMOSS engine can connect to,
+	 * alphabetically. Aggregator pricing is dropped. Entries keep the original
+	 * catalog provider key (e.g. "amazon-bedrock") so the stored value can be
+	 * traced back to the file; matching runs on the normalized form.
+	 */
+	private static JsonArray buildOrderedPricing(JsonObject model) {
+		JsonObject pricing = getObject(model, "pricing");
+		if (pricing == null) {
+			return null;
+		}
+
+		String modelProvider = null;
+		JsonElement provider = model.get("provider");
+		if (provider != null && provider.isJsonPrimitive()) {
+			modelProvider = StaticBuiltinToolsCatalog.normalizeProviderKey(provider.getAsString());
+		}
+
+		List<String> ownKeys = new ArrayList<>();
+		List<String> hostKeys = new ArrayList<>();
+		for (String servingKey : pricing.keySet()) {
+			if (!pricing.get(servingKey).isJsonObject()) {
+				continue;
+			}
+			String normalized = StaticBuiltinToolsCatalog.normalizeProviderKey(servingKey);
+			if (normalized == null) {
+				continue;
+			}
+			if (normalized.equals(modelProvider)) {
+				ownKeys.add(servingKey);
+			} else if (CONNECTABLE_SERVING_PROVIDERS.contains(normalized)) {
+				hostKeys.add(servingKey);
+			}
+		}
+		ownKeys.sort(Comparator.naturalOrder());
+		hostKeys.sort(Comparator.naturalOrder());
+
+		List<String> orderedKeys = new ArrayList<>(ownKeys);
+		orderedKeys.addAll(hostKeys);
+
+		JsonArray entries = new JsonArray();
+		for (String servingKey : orderedKeys) {
+			JsonObject ratesByModelId = pricing.getAsJsonObject(servingKey);
+			for (Map.Entry<String, JsonElement> rateEntry : ratesByModelId.entrySet()) {
+				if (!rateEntry.getValue().isJsonObject()) {
+					continue;
+				}
+				JsonObject entry = new JsonObject();
+				entry.addProperty("servingProvider", servingKey);
+				entry.addProperty("modelId", rateEntry.getKey());
+				for (Map.Entry<String, JsonElement> rate : rateEntry.getValue().getAsJsonObject().entrySet()) {
+					if ("servingProvider".equals(rate.getKey()) || "modelId".equals(rate.getKey())) {
+						continue;
+					}
+					entry.add(rate.getKey(), rate.getValue().deepCopy());
+				}
+				entries.add(entry);
+			}
+		}
+		return entries.size() == 0 ? null : entries;
 	}
 
 	private static void putJson(Map<String, Object> target, String targetKey, JsonObject source, String sourceKey) {

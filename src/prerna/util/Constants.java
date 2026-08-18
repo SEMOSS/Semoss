@@ -499,6 +499,7 @@ public class Constants {
 	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
 	public static final String REASONING_CONFIG = "REASONING_CONFIG";
 	public static final String BENCHMARKS = "BENCHMARKS";
+	public static final String PRICING = "PRICING";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
