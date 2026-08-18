@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -46,6 +45,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -69,8 +69,6 @@ import prerna.util.Utility;
 public abstract class AbstractModelEngine extends AbstractEngine implements IModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractModelEngine.class);
-	private static final String FILE_INPUT_MODALITY = "FILE";
-	private static final String PDF_INPUT_MODALITY = "PDF";
 
 	public static final String OPEN_AI_KEY = "OPEN_AI_KEY";
 	public static final String AWS_SECRET_KEY = "AWS_SECRET_KEY";
@@ -236,7 +234,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		Set<String> modalities = new LinkedHashSet<>();
 		for (Object modality : (Collection<?>) value) {
 			if (modality != null && !modality.toString().isBlank()) {
-				modalities.add(modality.toString().trim().toUpperCase(Locale.ROOT));
+				modalities.add(ModelModalityEnum.fromName(modality.toString()).name());
 			}
 		}
 		return modalities.isEmpty() ? null : modalities;
@@ -637,8 +635,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			return null;
 		}
 		return switch (part.getType()) {
-		case TEXT, SYSTEM -> MessagePartType.TEXT.name();
-		case MEDIA -> part instanceof MediaMessagePart ? modalityFor((MediaMessagePart) part) : FILE_INPUT_MODALITY;
+		case TEXT, SYSTEM -> ModelModalityEnum.TEXT.name();
+		case MEDIA -> part instanceof MediaMessagePart ? modalityFor((MediaMessagePart) part)
+				: ModelModalityEnum.FILE.name();
 		default -> null;
 		};
 	}
@@ -648,19 +647,21 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		String mimeType = media == null ? null : media.getMimeType();
 		if (mimeType == null || mimeType.isBlank()) {
 			// URL media currently represents image input and does not carry a MIME type.
-			return AskModelEngineResponse.IMAGE;
+			return ModelModalityEnum.IMAGE.name();
 		}
 
 		String[] mimeParts = mimeType.split("/", 2);
-		String mimeFamily = mimeParts[0].trim().toUpperCase(Locale.ROOT);
-		if (mimeFamily.equals(AskModelEngineResponse.IMAGE) || mimeFamily.equals("AUDIO")
-				|| mimeFamily.equals("VIDEO")) {
-			return mimeFamily;
+		String mimeFamily = mimeParts[0].trim();
+		if (ModelModalityEnum.IMAGE.getCatalogName().equalsIgnoreCase(mimeFamily)
+				|| ModelModalityEnum.AUDIO.getCatalogName().equalsIgnoreCase(mimeFamily)
+				|| ModelModalityEnum.VIDEO.getCatalogName().equalsIgnoreCase(mimeFamily)) {
+			return ModelModalityEnum.fromName(mimeFamily).name();
 		}
-		if (mimeParts.length == 2 && PDF_INPUT_MODALITY.equalsIgnoreCase(mimeParts[1].trim())) {
-			return PDF_INPUT_MODALITY;
+		if (mimeParts.length == 2
+				&& ModelModalityEnum.PDF.getCatalogName().equalsIgnoreCase(mimeParts[1].trim())) {
+			return ModelModalityEnum.PDF.name();
 		}
-		return FILE_INPUT_MODALITY;
+		return ModelModalityEnum.FILE.name();
 	}
 
 	/**

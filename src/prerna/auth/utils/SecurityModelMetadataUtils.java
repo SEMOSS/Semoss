@@ -60,6 +60,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -82,8 +83,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
 			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
-	private static final Set<String> MODALITIES = Set.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR", "FILE",
-			"PDF");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
@@ -733,10 +732,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				continue;
 			}
 			if (modality) {
-				value = value.toUpperCase(Locale.ROOT);
-				if (!MODALITIES.contains(value)) {
-					throw new IllegalArgumentException("Unsupported modality " + value);
-				}
+				value = ModelModalityEnum.fromName(value).name();
 			} else {
 				value = value.toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
 				if (!LOWER_SNAKE_CASE_PATTERN.matcher(value).matches()) {

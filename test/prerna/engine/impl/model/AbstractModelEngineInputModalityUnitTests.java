@@ -41,11 +41,11 @@ import org.junit.jupiter.api.Test;
 
 import com.google.gson.Gson;
 
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MediaMessagePart;
 import prerna.engine.impl.model.message.MessageInputMedia;
-import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -55,7 +55,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void rejectsImageWhenModelOnlyAllowsTextInput() {
-		TestModelEngine engine = new TestModelEngine(Set.of(MessagePartType.TEXT.name()));
+		TestModelEngine engine = new TestModelEngine(Set.of(ModelModalityEnum.TEXT.name()));
 		InputMessage message = newMessage();
 		message.addPart(new TextMessagePart("describe this"));
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
@@ -70,7 +70,7 @@ class AbstractModelEngineInputModalityUnitTests {
 	@Test
 	void acceptsImageWhenModelAllowsImageInput() {
 		TestModelEngine engine = new TestModelEngine(
-				Set.of(MessagePartType.TEXT.name(), AskModelEngineResponse.IMAGE));
+				Set.of(ModelModalityEnum.TEXT.name(), ModelModalityEnum.IMAGE.name()));
 		InputMessage message = newMessage();
 		message.addPart(new TextMessagePart("describe this"));
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
@@ -81,7 +81,7 @@ class AbstractModelEngineInputModalityUnitTests {
 	@Test
 	void rejectsPdfWhenModelDoesNotAllowPdfInput() {
 		TestModelEngine engine = new TestModelEngine(
-				Set.of(MessagePartType.TEXT.name(), AskModelEngineResponse.IMAGE));
+				Set.of(ModelModalityEnum.TEXT.name(), ModelModalityEnum.IMAGE.name()));
 		InputMessage message = newMessage();
 		message.addPart(new MediaMessagePart(pdfMedia()));
 
@@ -102,7 +102,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void ignoresUnsupportedPartsOnConversationBranchesNotSentToModel() {
-		TestModelEngine engine = new TestModelEngine(Set.of(MessagePartType.TEXT.name()));
+		TestModelEngine engine = new TestModelEngine(Set.of(ModelModalityEnum.TEXT.name()));
 		InputMessage root = newMessage();
 		root.addPart(new TextMessagePart("root"));
 		InputMessage imageBranch = newMessage();

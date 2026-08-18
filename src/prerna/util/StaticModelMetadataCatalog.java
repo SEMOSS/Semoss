@@ -60,6 +60,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.ModelModalityEnum;
 
 /**
  * Read-only view over the curated model catalog stored in meta/model.json.
@@ -279,27 +280,33 @@ public final class StaticModelMetadataCatalog {
 		if (outputModalities.isEmpty()) {
 			return null;
 		}
-		if (outputModalities.contains("video")) {
+		if (containsModality(outputModalities, ModelModalityEnum.VIDEO)) {
 			return "VIDEO_GENERATION";
 		}
-		if (outputModalities.contains("image")) {
+		if (containsModality(outputModalities, ModelModalityEnum.IMAGE)) {
 			return "IMAGE_GENERATION";
 		}
-		if (outputModalities.contains("audio")) {
-			return inputModalities.contains("text") ? "SPEECH_SYNTHESIS" : "TRANSCRIPTION";
+		if (containsModality(outputModalities, ModelModalityEnum.AUDIO)) {
+			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? "SPEECH_SYNTHESIS"
+					: "TRANSCRIPTION";
 		}
-		if (outputModalities.contains("vector")) {
+		if (containsModality(outputModalities, ModelModalityEnum.VECTOR)) {
 			return "EMBEDDING";
 		}
-		if (outputModalities.contains("text")) {
-			if (!inputModalities.contains("text") && inputModalities.contains("audio")) {
+		if (containsModality(outputModalities, ModelModalityEnum.TEXT)) {
+			if (!containsModality(inputModalities, ModelModalityEnum.TEXT)
+					&& containsModality(inputModalities, ModelModalityEnum.AUDIO)) {
 				return "TRANSCRIPTION";
 			}
-			if (inputModalities.contains("text") && !placeholderOutputLimit) {
+			if (containsModality(inputModalities, ModelModalityEnum.TEXT) && !placeholderOutputLimit) {
 				return "TEXT_GENERATION";
 			}
 		}
 		return null;
+	}
+
+	private static boolean containsModality(List<String> modalities, ModelModalityEnum modality) {
+		return modalities.stream().anyMatch(modalityName -> modality.getCatalogName().equalsIgnoreCase(modalityName));
 	}
 
 	/**
