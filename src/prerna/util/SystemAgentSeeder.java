@@ -146,10 +146,6 @@ public class SystemAgentSeeder {
 				}
 			}
 
-			// Self-heal both stores every boot: the legacy display columns (what
-			// GetWorkspace/ListWorkspaces surface to the Agent UI) and CONFIG_JSON
-			// (what AgentConfigLoader prefers at run time). Rewriting only one of
-			// them lets the UI show a prompt the agent no longer runs on.
 			ModelInferenceLogsUtils.updateWorkspaceCoreFields(agentId, displayName(agentId), description(agentId),
 					systemPrompt(agentId));
 			ModelInferenceLogsUtils.updateWorkspaceConfigJson(agentId, buildConfigJson(agentId, tools, skills));
