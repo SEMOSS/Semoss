@@ -5,6 +5,7 @@ from ...utils import (
     get_image_extension,
     fetch_and_encode_image,
 )
+from ..semoss_base.builtin_tools import built_in_tool_names
 from ..semoss_base.reasoning import normalize_reasoning
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -483,9 +484,15 @@ class BedrockMessageBuilder:
 
         return None
 
-    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
-        """Convert generic built-in tool names to Bedrock systemTool format."""
-        return [{"systemTool": {"name": tool}} for tool in built_in_tools]
+    def _build_built_in_tools(self, built_in_tools: Any) -> List[Dict[str, Any]]:
+        """Convert built-in tool selections to Bedrock systemTool format.
+        Converse systemTools carry only a name - the catalog's Bedrock-hosted
+        OpenAI web search (which does take params) runs through the OpenAI
+        Responses client instead, so params are intentionally unused here."""
+        return [
+            {"systemTool": {"name": tool}}
+            for tool in built_in_tool_names(built_in_tools)
+        ]
 
     def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
         """Convert MCP-formatted tools to Bedrock tool configuration."""

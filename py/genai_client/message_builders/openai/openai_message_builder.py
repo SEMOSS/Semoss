@@ -2,6 +2,10 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 import json
 from pydantic import BaseModel
 from ...utils import get_image_extension, string_to_bool
+from ..semoss_base.builtin_tools import (
+    built_in_tool_request_fields,
+    normalize_built_in_tools,
+)
 from ..semoss_base.reasoning import normalize_reasoning
 from .openai_models import (
     OpenAIResponsesToolCall,
@@ -63,8 +67,11 @@ class OpenAIMessageBuilder:
             request.update(self.model_settings.global_param_override)
 
         if "built_in_tools" in request:
-            built_in_tools = request.pop("built_in_tools")
-            openai_built_in = [{"type": tool} for tool in built_in_tools]
+            openai_built_in = []
+            for selection in normalize_built_in_tools(request.pop("built_in_tools")):
+                spec = built_in_tool_request_fields(selection)
+                spec.setdefault("type", selection["alias"])
+                openai_built_in.append(spec)
             if openai_built_in:
                 existing_tools = request.get("tools", [])
                 existing_tools.extend(openai_built_in)

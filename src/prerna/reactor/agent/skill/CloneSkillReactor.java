@@ -61,7 +61,8 @@ import prerna.util.AssetUtility;
  * <ul>
  * <li>Every file under the source's skill content folder (SKILL.md + any
  * helpers).</li>
- * <li>The description, re-synthesized into the clone's SKILL.md frontmatter.</li>
+ * <li>The description, re-synthesized into the clone's SKILL.md
+ * frontmatter.</li>
  * </ul>
  *
  * <p>
@@ -82,8 +83,8 @@ import prerna.util.AssetUtility;
  * </ul>
  *
  * <p>
- * Authorization: caller must be able to view the source skill-project
- * ({@link SecurityProjectUtils#userCanViewProject}).
+ * Authorization: caller must be able to view the source skill-project and the
+ * project must be explicitly enabled as a template.
  */
 public class CloneSkillReactor extends AbstractReactor {
 
@@ -111,6 +112,9 @@ public class CloneSkillReactor extends AbstractReactor {
 		if (!SecurityProjectUtils.userCanViewProject(user, sourceSkillId)) {
 			throw new IllegalArgumentException(
 					"Skill " + sourceSkillId + " does not exist or user does not have permission to view it");
+		}
+		if (!SecurityProjectUtils.userCanCloneProject(user, sourceSkillId)) {
+			throw new IllegalArgumentException("This skill is not enabled as a template and cannot be cloned.");
 		}
 
 		if (!SkillProjects.isSkillProject(sourceSkillId)) {

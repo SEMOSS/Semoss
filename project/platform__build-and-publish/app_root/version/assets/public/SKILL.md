@@ -1,11 +1,11 @@
 ---
 name: build-and-publish
-description: Use when compiling, building, or publishing the React app after making changes to source files — at the end of any turn that edited client code, or when the user asks to build, rebuild, or deploy. Invoke the BuildAndPublishApp tool with the project id. Do not attempt to run node, npm, pnpm, or any JavaScript build command via Bash — the sandbox blocks node execution, and BuildAndPublishApp is the only supported build path.
+description: Use when compiling, building, or publishing the React app after making changes to source files — at the end of any turn that edited client code, or when the user asks to build, rebuild, or deploy. Invoke the BuildAndPublishApp tool with the project id when client source must be compiled. For already-runnable portal assets, invoke PublishProject(project, release=true). Do not attempt to run node, npm, pnpm, or any JavaScript build command via Bash — the sandbox blocks node execution, and BuildAndPublishApp is the only supported build path.
 ---
 
 # Build and publish
 
-After making changes to source files in the React app, compile and publish by invoking the `BuildAndPublishApp` tool. This is the only supported path — node, npm, pnpm, and other JS build tooling are not available in the sandbox.
+After making changes to source files in the React app, compile and publish by invoking the `BuildAndPublishApp` tool. This is the only supported compilation path — node, npm, pnpm, and other JS build tooling are not available in the sandbox.
 
 ## When to build
 
@@ -20,6 +20,14 @@ BuildAndPublishApp(project="<PROJECT_ID>")
 ```
 
 The project id is provided in the system prompt. On success, the built output is written to `assets/portals/` and the project is published automatically.
+
+## When to publish without building
+
+When runnable assets already exist in `assets/portals` and do not need compilation, such as a plain `index.html` app, publish them directly:
+
+```
+PublishProject(project="<PROJECT_ID>", release=true)
+```
 
 ## Do not
 

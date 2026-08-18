@@ -92,16 +92,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null || projectId.isEmpty()) {
-			projectId = insight.getContextProjectId();
-			if (projectId == null || projectId.isEmpty()) {
-				projectId = insight.getProjectId();
-			}
-		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
 
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(

@@ -85,6 +85,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.RemoteMCP;
+import prerna.engine.impl.SkillMCP;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -1661,16 +1662,33 @@ public class Project implements IProject {
 
 	private IMCP getProjectMCP() {
 		if (this.projectMCP == null) {
+			IMCP mcp;
 			String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
 			if (endpoint != null && !endpoint.isBlank()) {
 				String authToken = this.smssProp.getProperty(MCP_AUTH_TOKEN);
 				String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
-				this.projectMCP = new RemoteMCP(this, endpoint, authScheme, authToken);
+				mcp = new RemoteMCP(this, endpoint, authScheme, authToken);
 			} else {
-				this.projectMCP = InternalMCP.genFromEngine(this);
+				mcp = InternalMCP.genFromEngine(this);
+			}
+			// a skill always serves its list/read tools on top of whatever it defines
+			if (isSkill()) {
+				this.projectMCP = new SkillMCP(this, mcp);
+			} else {
+				this.projectMCP = mcp;
 			}
 		}
 		return this.projectMCP;
+	}
+
+	/**
+	 * True when this is a skill project - content is a {@code SKILL.md} plus helper
+	 * files rather than an app. Read off this project's own
+	 * {@code PROJECT_ENUM_TYPE}, so it costs nothing; the id-only equivalent,
+	 * {@code SkillProjects.isSkillProject(projectId)}, queries securitydb instead.
+	 */
+	private boolean isSkill() {
+		return IProject.PROJECT_TYPE.SKILL == this.projectType;
 	}
 
 	@Override
