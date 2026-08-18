@@ -116,7 +116,6 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 					throw new IllegalStateException("Unable to read the guardrail configuration: " + e.getMessage(), e);
 				}
 				try {
-					// same parser the runtime pipeline handler uses
 					JSONObject root = new JSONObject(content);
 					if (root.has(PIPELINES_KEY)) {
 						pipelines = root.getJSONObject(PIPELINES_KEY).toMap();

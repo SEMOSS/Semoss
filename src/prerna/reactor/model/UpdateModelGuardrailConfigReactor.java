@@ -88,9 +88,6 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 	private static final String DEFAULT_MASK_TARGET_PARAM = "prompt";
 	private static final String DEFAULT_PIPELINE_FILE = "pipeline.json";
 
-	// the output slot is instantiated as IOutputReactor by the pipeline
-	// handler - an input-only class there breaks every call to the engine at
-	// proxy creation, so the whitelists are enforced per slot
 	private static final Set<String> INPUT_REACTOR_WHITELIST = new HashSet<>(Arrays.asList(
 			GenericGuardrailInputReactor.class.getName(),
 			GenericGuardrailInputOutputReactor.class.getName()));
@@ -125,8 +122,6 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 		Map<String, Object> pipelines = validateConfigStructure(config);
 		validateGuardrailEngines(user, pipelines);
 
-		// round-trip through the same parser the runtime pipeline handler
-		// uses so we never write a file it cannot read back
 		String json = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(config);
 		try {
 			new JSONObject(json).getJSONObject(PIPELINES_KEY);
@@ -165,8 +160,6 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 				} catch (IOException e) {
 					throw new IllegalStateException("Wrote the guardrail configuration but was unable to add the PIPELINE key to the engine smss file: " + e.getMessage(), e);
 				}
-				// the in-memory props are what the guardrail proxy reads, so
-				// the running engine picks the key up without a reload
 				model.getSmssProp().setProperty(IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
 				ClusterUtil.pushEngineSmss(engineId);
 			}
