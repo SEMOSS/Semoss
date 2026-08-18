@@ -153,6 +153,9 @@ public final class MCPUtility {
 	 */
 	public static final String ROOM_MCP_TYPE = "ROOM";
 
+	/** Pixel tool definition path relative to an engine, project, or room asset folder. */
+	public static final String PIXEL_MCP_RELATIVE_PATH = "/mcp/pixel_mcp.json";
+
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
 
