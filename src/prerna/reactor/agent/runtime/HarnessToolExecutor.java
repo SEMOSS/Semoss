@@ -235,14 +235,9 @@ final class HarnessToolExecutor {
 		List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
 		fireBeforeTool(toolHooks, ctx, tc, currentIter);
 
-		// Spawn/wait/check calls surface as subagent items, never tool items.
-		boolean subagentTool = SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName,
-				ctx.getAgentConfig().getSubagents());
-		if (!subagentTool) {
-			Map<String, Object> runningPatch = new LinkedHashMap<>();
-			runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
-			AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
-		}
+		Map<String, Object> runningPatch = new LinkedHashMap<>();
+		runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
+		AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
 
 		long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
@@ -252,10 +247,8 @@ final class HarnessToolExecutor {
 		try {
 			outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
 		} catch (AgentCancelledException cancelEx) {
-			if (!subagentTool) {
-				publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
-						System.currentTimeMillis() - startMs);
-			}
+			publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
+					System.currentTimeMillis() - startMs);
 			throw cancelEx;
 		}
 		long durMs = System.currentTimeMillis() - startMs;
@@ -263,11 +256,9 @@ final class HarnessToolExecutor {
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 		publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
-		if (!subagentTool) {
-			publishToolItemTerminal(jobId, tc,
-					outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
-					outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
-		}
+		publishToolItemTerminal(jobId, tc,
+				outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+				outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
 
 		logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}", tc.rawToolName, durMs,
 				outcome.success);

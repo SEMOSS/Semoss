@@ -1835,6 +1835,10 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		// Exclude subagent rooms -- these are real Room rows (their roomId is the
+		// subagent's runId) created purely as a spawned subagent's private
+		// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
+		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
