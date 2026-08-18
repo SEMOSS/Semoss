@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	build-and-publish
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	build-and-publish
+PROJECT_DISPLAY_NAME	Build and Publish
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	SKILL
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

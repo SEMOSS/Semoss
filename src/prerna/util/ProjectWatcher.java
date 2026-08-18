@@ -69,6 +69,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					ensureSkillTag(engineId);
+					ensureDisplayName(engineId, folderToWatch + "/platform__" + fileName);
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
@@ -89,6 +90,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, "MCP", "SYSTEM");
+					ensureDisplayName(engineId, folderToWatch + "/platform__" + fileName);
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
@@ -112,6 +114,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
+					ensureDisplayName(engineId, folderToWatch + "/platform__" + fileName);
 					SystemAgentSeeder.seed(engineId);
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
@@ -189,6 +192,34 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),
 					projectId, e.getMessage());
+		}
+	}
+
+	/**
+	 * Syncs the securitydb display name for a platform project from its smss
+	 * PROJECT_DISPLAY_NAME. Platform smss files must keep PROJECT_ALIAS =
+	 * "platform" to satisfy the platform__<id> folder convention, so the alias
+	 * can never carry the human-readable name; only the display name can.
+	 * addProject early-returns when the project already exists in the security
+	 * db, so rows seeded before the smss display names existed are stuck showing
+	 * "platform" in catalog listings unless healed here. Runs on every boot; it
+	 * is idempotent (only writes when the values differ) and never blocks
+	 * project load.
+	 */
+	private static void ensureDisplayName(String projectId, String smssPath) {
+		try {
+			Properties prop = Utility.loadProperties(smssPath);
+			String smssDisplayName = prop.getProperty(Constants.PROJECT_DISPLAY_NAME);
+			if (smssDisplayName == null || smssDisplayName.trim().isEmpty()) {
+				return;
+			}
+			smssDisplayName = smssDisplayName.trim();
+			String currentDisplayName = SecurityProjectUtils.getProjectDisplayNameForId(projectId);
+			if (!smssDisplayName.equals(currentDisplayName)) {
+				SecurityProjectUtils.updateProjectDisplayName(projectId, smssDisplayName);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure display name on platform project '{}': {}", projectId, e.getMessage());
 		}
 	}
 

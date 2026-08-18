@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	room
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	room
+PROJECT_DISPLAY_NAME	Room
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	SKILL
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

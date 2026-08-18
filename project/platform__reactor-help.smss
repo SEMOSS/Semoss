@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	reactor-help
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	reactor-help
+PROJECT_DISPLAY_NAME	Reactor Help
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	CODE
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

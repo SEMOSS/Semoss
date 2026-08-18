@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	agent-run
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	agent-run
+PROJECT_DISPLAY_NAME	Agent Run
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	SKILL
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

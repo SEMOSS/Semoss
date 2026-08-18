@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	file-uploads
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	file-uploads
+PROJECT_DISPLAY_NAME	File Uploads
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	SKILL
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

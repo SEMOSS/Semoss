@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	database-maker
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	database-maker
+PROJECT_DISPLAY_NAME	Database Maker
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	CODE
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

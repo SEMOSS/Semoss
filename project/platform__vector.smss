@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	vector
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	vector
+PROJECT_DISPLAY_NAME	Vector
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	SKILL
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

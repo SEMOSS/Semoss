@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	browser-automation
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	browser-automation
+PROJECT_DISPLAY_NAME	Browser Automation
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	CODE
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database

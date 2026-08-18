@@ -928,8 +928,40 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * System-level display name update - no permission check. Intended for
+	 * boot-time cataloging where there is no user context (e.g. syncing platform
+	 * project display names from their smss files). User-driven renames must go
+	 * through {@link #setProjectDisplayName(User, String, String)} instead.
+	 *
+	 * @param projectId
+	 * @param displayName
+	 */
+	public static void updateProjectDisplayName(String projectId, String displayName) {
+		if (displayName == null || displayName.trim().isEmpty()) {
+			return;
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, displayName.trim());
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update project display name for project id {}",
+					Utility.cleanLogString(projectId), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
 	 * Get user databases + global databases
-	 * 
+	 *
 	 * @param userId
 	 * @return
 	 */

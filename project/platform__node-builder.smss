@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	node-builder
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	node-builder
+PROJECT_DISPLAY_NAME	Node Builder
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	CODE
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database
