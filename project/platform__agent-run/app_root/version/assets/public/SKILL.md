@@ -1,20 +1,20 @@
 ---
 name: agent-run
-description: Use when writing code in an app that starts, streams, or resumes a durable autonomous agent run — as opposed to a single one-shot LLM() turn (see model) or a plan-then-execute AskCOTRoom flow (see room). Covers submitAgentRun (RunAgent), subscribeAgentRun/pollAgentRun for live streaming, getAgentRun for reconciliation after a page reload, decideAgentRunAction/submitAgentToolDecision for resuming a run paused on a human tool decision, and getSubagentRuns for subagents the run spawned, all via @semoss/sdk. Do not use for a single chat turn (see room/model) or plan-then-execute COT flows (see room's AskCOTRoom).
+description: Use when writing code in an app that starts, streams, or resumes a durable autonomous agent run. Covers runAgent (RunAgent), subscribeRunAgent/pollAgentRun for live streaming, getAgentRun for reconciliation after a page reload, decideAgentRunAction/submitAgentToolDecision for resuming a run paused on a human tool decision, and getSubagentRuns for subagents the run spawned, all via @semoss/sdk. Do not use for a single one-shot chat turn (see room/model).
 ---
 
 # Agent Run
 
-An **agent run** is a server-driven, multi-turn agentic loop (`RunAgent`) — the model calls tools, gets results, and keeps going on its own until it produces a final answer, hits a limit, or pauses for a human decision. This is different from a plain `LLM()` turn (see the `room` skill), which is a single request/response with no autonomous looping, and from `AskCOTRoom` (also in `room`), which plans steps but leaves execution to the caller. All agent-run calls go through `@semoss/sdk`'s dedicated functions, not raw `runPixel` — they wrap `RunAgent`, `GetAgentRun`, `GetSubagentRuns`, and `RunMCPTool`.
+An **agent run** is a server-driven, multi-turn agentic loop (`RunAgent`) — the model calls tools, gets results, and keeps going on its own until it produces a final answer, hits a limit, or pauses for a human decision. This is different from a plain `LLM()` turn (see the `room` skill), which is a single request/response with no autonomous looping. All agent-run calls go through `@semoss/sdk`'s dedicated functions, not raw `runPixel` — they wrap `RunAgent`, `GetAgentRun`, `GetSubagentRuns`, and `RunMCPTool`.
 
 A run is identified by its own `runId` (also its `jobId`, the model-facing handle) and writes its messages into a normal room (`roomId`), so `GetPlaygroundMessages` on that room shows the same message history a plain chat turn would.
 
-## Usage — submit and stream a run
+## Usage — start and stream a run
 
 ```typescript
-import { submitAgentRun, subscribeAgentRun } from "@semoss/sdk";
+import { runAgent, subscribeRunAgent } from "@semoss/sdk";
 
-const { runId } = await submitAgentRun(
+const { runId } = await runAgent(
   {
     roomId: "<room-uuid>",
     command: "Research the top 3 competitors and summarize their pricing.",
@@ -23,7 +23,7 @@ const { runId } = await submitAgentRun(
   insightId,
 );
 
-const subscription = subscribeAgentRun(runId, {
+const subscription = subscribeRunAgent(runId, {
   onEvent: (event, items) => {
     // event.type: "item.started" | "item.updated" | "item.completed"
     // items.itemsById / items.itemOrder hold the accumulated view — see "Item events" below.
@@ -41,20 +41,20 @@ const subscription = subscribeAgentRun(runId, {
 subscription.stop();
 ```
 
-`submitAgentRun` always returns immediately with `status: "SUBMITTED"` — it never waits for the run to finish. Stream progress with `subscribeAgentRun`.
+`runAgent` always returns immediately with `status: "SUBMITTED"` — it never waits for the run to finish. Stream progress with `subscribeRunAgent`.
 
 ## Run lifecycle
 
-### Submit — `submitAgentRun` (`RunAgent`)
+### Start — `runAgent` (`RunAgent`)
 
 ```typescript
-submitAgentRun(
+runAgent(
   {
     roomId: string,
     command: string,
     engine?: string,        // defaults to the room's configured model
     harnessType?: string,   // which agent harness runs the loop, e.g. "semoss"
-    workspaceId?: string,   // workspace whose tools/config the run should use
+    agentId?: string,       // the agent whose tools/config the run should use
     maxTurns?: number,      // cap on model round-trips before the run stops itself
     maxReflections?: number,
     images?: string[],
@@ -66,12 +66,14 @@ submitAgentRun(
 
 Returns `{ runId, roomId, status }` — a thin handle, not a full snapshot. Fetch `getAgentRun(runId)` if you need the rest immediately.
 
-### Stream progress — `subscribeAgentRun`
+> `agentId` is sent to the backend as `workspaceId` (a workspace record IS the backend's agent) — use `agentId` here, it's the term callers should reach for.
+
+### Stream progress — `subscribeRunAgent`
 
 Polls a run to completion, handling dedup, ordering, and retry/backoff internally — a transport failure never concludes the run failed.
 
 ```typescript
-subscribeAgentRun(
+subscribeRunAgent(
   runId,
   {
     onEvent: (event, items) => { ... },     // fires per new item event, deduped, in order
@@ -89,20 +91,20 @@ subscribeAgentRun(
 
 Returns an `AgentRunSubscription`: `stop()` (stop polling locally, does not cancel the run), `getItems()` (current items-state, for seeding a late-joining renderer), `pokeNow()` (poll immediately instead of waiting out the current interval — use right after an action you know changed the run, e.g. deciding a paused tool call).
 
-If you'd rather drive polling yourself instead of using `subscribeAgentRun`, the lower-level pieces are exposed too: `pollAgentRun(runId)` drains one batch of events plus the current snapshot, and `applyAgentRunItemEvent`/`createAgentRunItemsState` do the same event-accumulation `subscribeAgentRun` does internally, for a custom reducer.
+If you'd rather drive polling yourself instead of using `subscribeRunAgent`, the lower-level pieces are exposed too: `pollAgentRun(runId)` drains one batch of events plus the current snapshot, and `applyAgentRunItemEvent`/`createAgentRunItemsState` do the same event-accumulation `subscribeRunAgent` does internally, for a custom reducer.
 
 ### Reconnect after a page reload
 
-`subscribeAgentRun` only starts from your own `submitAgentRun` call in memory — it does not survive a reload. Persist `runId` alongside whatever message it's tied to, and on reload:
+`subscribeRunAgent` only starts from your own `runAgent` call in memory — it does not survive a reload. Persist `runId` alongside whatever message it's tied to, and on reload:
 
 ```typescript
-import { getAgentRun, subscribeAgentRun } from "@semoss/sdk";
+import { getAgentRun, subscribeRunAgent } from "@semoss/sdk";
 
 const snapshot = await getAgentRun(runId, { includeMessages: true }, insightId);
 
 if (snapshot.status === "RUNNING" || snapshot.status === "INPUT_REQUIRED") {
   // still going (or paused) — resume streaming
-  subscribeAgentRun(runId, handlers);
+  subscribeRunAgent(runId, handlers);
 } else {
   // already terminal — snapshot.finalText / snapshot.errorMessage has the answer
 }
@@ -133,7 +135,7 @@ await submitAgentToolDecision(pendingAction, "submit", editedArgs, insightId);
 await submitAgentToolDecision(pendingAction, "reject", undefined, insightId);
 ```
 
-Either call pokes the run's live `subscribeAgentRun` subscription (if one is active in this session) so it notices the resumed run immediately instead of waiting out `INPUT_REQUIRED`'s slower interval.
+Either call pokes the run's live `subscribeRunAgent` subscription (if one is active in this session) so it notices the resumed run immediately instead of waiting out `INPUT_REQUIRED`'s slower interval.
 
 ### Subagents
 
@@ -158,7 +160,7 @@ The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellati
 
 | Function | Returns |
 | --- | --- |
-| `submitAgentRun` | `{ runId, roomId, status }` |
+| `runAgent` | `{ runId, roomId, status }` |
 | `pollAgentRun` | `{ run: AgentRunSnapshot, events: AgentRunItemEvent[], droppedEvents }` |
 | `getAgentRun` | `AgentRunSnapshot & { messages? }` (messages only when `includeMessages: true`) |
 | `getSubagentRuns` | `SubagentRunSummary[]` |
@@ -169,5 +171,5 @@ The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellati
 
 ## Related
 
-- `room` — plain one-shot `LLM()` turns and `AskCOTRoom` plan-then-execute flows; use `agent-run` instead when the model needs to autonomously call tools across multiple turns without the caller driving each step.
+- `room` — plain one-shot `LLM()` turns; use `agent-run` instead when the model needs to autonomously call tools across multiple turns without the caller driving each step.
 - `model` — `LLM()` reference for single-turn completions.
