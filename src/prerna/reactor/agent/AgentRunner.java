@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -336,7 +337,8 @@ public final class AgentRunner {
 		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(modelId);
 		Object capabilityValue = metadata == null ? null : metadata.get(Constants.MODEL_CAPABILITY);
 		String capability = capabilityValue == null ? null : String.valueOf(capabilityValue).trim();
-		if (capability != null && !capability.isEmpty() && !"TEXT_GENERATION".equalsIgnoreCase(capability)) {
+		if (capability != null && !capability.isEmpty()
+				&& !ModelCapabilityEnum.TEXT_GENERATION.name().equalsIgnoreCase(capability)) {
 			throw new IllegalArgumentException("Model engine was not found or is not accessible");
 		}
 	}

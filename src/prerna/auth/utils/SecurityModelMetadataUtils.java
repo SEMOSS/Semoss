@@ -60,6 +60,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -81,8 +82,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
-			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
@@ -708,16 +707,13 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		}
 		capability = capability.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
 		capability = switch (capability) {
-		case "CHAT", "LLM" -> "TEXT_GENERATION";
-		case "EMBEDDINGS" -> "EMBEDDING";
-		case "TTS", "TEXT_TO_SPEECH" -> "SPEECH_SYNTHESIS";
-		case "STT", "SPEECH_TO_TEXT" -> "TRANSCRIPTION";
+		case "CHAT", "LLM" -> ModelCapabilityEnum.TEXT_GENERATION.name();
+		case "EMBEDDINGS" -> ModelCapabilityEnum.EMBEDDING.name();
+		case "TTS", "TEXT_TO_SPEECH" -> ModelCapabilityEnum.SPEECH_SYNTHESIS.name();
+		case "STT", "SPEECH_TO_TEXT" -> ModelCapabilityEnum.TRANSCRIPTION.name();
 		default -> capability;
 		};
-		if (!CAPABILITIES.contains(capability)) {
-			throw new IllegalArgumentException("Unsupported model capability " + capability);
-		}
-		details.put(Constants.MODEL_CAPABILITY, capability);
+		details.put(Constants.MODEL_CAPABILITY, ModelCapabilityEnum.fromName(capability).name());
 	}
 
 	private static void normalizeListProperty(Map<String, Object> details, String key, boolean modality) {

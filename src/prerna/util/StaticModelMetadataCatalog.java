@@ -60,6 +60,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
 
 /**
@@ -281,25 +282,25 @@ public final class StaticModelMetadataCatalog {
 			return null;
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.VIDEO)) {
-			return "VIDEO_GENERATION";
+			return ModelCapabilityEnum.VIDEO_GENERATION.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.IMAGE)) {
-			return "IMAGE_GENERATION";
+			return ModelCapabilityEnum.IMAGE_GENERATION.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.AUDIO)) {
-			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? "SPEECH_SYNTHESIS"
-					: "TRANSCRIPTION";
+			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? ModelCapabilityEnum.SPEECH_SYNTHESIS.name()
+					: ModelCapabilityEnum.TRANSCRIPTION.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.VECTOR)) {
-			return "EMBEDDING";
+			return ModelCapabilityEnum.EMBEDDING.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.TEXT)) {
 			if (!containsModality(inputModalities, ModelModalityEnum.TEXT)
 					&& containsModality(inputModalities, ModelModalityEnum.AUDIO)) {
-				return "TRANSCRIPTION";
+				return ModelCapabilityEnum.TRANSCRIPTION.name();
 			}
 			if (containsModality(inputModalities, ModelModalityEnum.TEXT) && !placeholderOutputLimit) {
-				return "TEXT_GENERATION";
+				return ModelCapabilityEnum.TEXT_GENERATION.name();
 			}
 		}
 		return null;
