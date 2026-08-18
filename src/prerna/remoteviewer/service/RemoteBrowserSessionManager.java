@@ -53,6 +53,7 @@ import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
+import prerna.reactor.playwright.PlaywrightDownloadRegistry;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
@@ -191,7 +192,7 @@ public class RemoteBrowserSessionManager {
 			Browser browser = PlaywrightBrowserProvider.getBrowser();
 
 			Browser.NewContextOptions ctxOpts = new Browser.NewContextOptions().setViewportSize(vpWidth, vpHeight)
-					.setDeviceScaleFactor(1.0);
+					.setDeviceScaleFactor(1.0).setAcceptDownloads(true);
 			BrowserContext context = user.getOrCreateSharedPlaywrightContext(browser, ctxOpts);
 			page = context.newPage();
 
@@ -220,6 +221,19 @@ public class RemoteBrowserSessionManager {
 
 		RemoteBrowserSession session = new RemoteBrowserSession(sessionId, userId, playwrightSession, vpWidth,
 				vpHeight);
+		PlaywrightDownloadRegistry downloadRegistry = playwrightSession.getDownloadRegistry();
+		downloadRegistry.beginRun();
+		downloadRegistry.addRecordListener(record -> {
+			if (record == null || !"ready".equals(record.getStatus())) {
+				return;
+			}
+			if (record.getTriggerStepId() != null) {
+				session.markDownloadExpected(record.getTriggerStepId());
+			} else if (session.isRecordingEnabled()) {
+				session.markLatestDownloadExpected();
+			}
+		});
+		downloadRegistry.setRecordListener(record -> sendDownloadReady(session, record));
 
 		// Store before navigating so the session is findable immediately
 		sessions.put(sessionId, session);
@@ -287,6 +301,9 @@ public class RemoteBrowserSessionManager {
 				return;
 			}
 			try {
+				// Register immediately so the download listener is attached before a
+				// popup can emit a native download during its initial load.
+				String newTabId = ps.registerPage(newPage, null);
 				registerNavigationListener(session, newPage);
 				try {
 					newPage.waitForLoadState(com.microsoft.playwright.options.LoadState.LOAD,
@@ -305,7 +322,6 @@ public class RemoteBrowserSessionManager {
 				} catch (Exception ignored) {
 				}
 
-				String newTabId = ps.registerPage(newPage, null);
 				session.markNewlyOpenedTab(newTabId);
 				newPage.onClose(closedPage -> {
 					ps.removeReplayBindings(closedPage);
@@ -416,6 +432,31 @@ public class RemoteBrowserSessionManager {
 		sender.send(LOOP_GSON.toJson(payload));
 	}
 
+	/** Sends the current run's download metadata to a newly connected viewer. */
+	public void sendDownloadState(RemoteBrowserSession session) {
+		if (session == null) {
+			return;
+		}
+		for (PlaywrightDownloadRegistry.DownloadRecord record : session.getPlaywrightSession()
+				.getDownloadRegistry().getActiveRunRecords()) {
+			sendDownloadReady(session, record);
+		}
+	}
+
+	private void sendDownloadReady(RemoteBrowserSession session, PlaywrightDownloadRegistry.DownloadRecord record) {
+		if (session == null || record == null) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "download-ready");
+		payload.put("download", record.toMap());
+		sender.send(LOOP_GSON.toJson(payload));
+	}
+
 	private static String safeTitle(Page page) {
 		try {
 			return page.title();
@@ -453,8 +494,14 @@ public class RemoteBrowserSessionManager {
 							session.getSessionId(), session.eventQueue.size(), event.getType());
 					if ("selected-text-context".equals(event.getType())) {
 						handleSelectedTextContext(session, event);
+					} else if ("full-page-text-context".equals(event.getType())) {
+						handleFullPageTextContext(session, event);
 					} else if (isRecordingControl(event)) {
 						try {
+							Boolean recordingEnabled = event.getRecording() != null ? event.getRecording() : event.getRecord();
+							if (Boolean.TRUE.equals(recordingEnabled)) {
+								session.getPlaywrightSession().getDownloadRegistry().beginRun();
+							}
 							RemoteBrowserRecordingService.record(session, event);
 							sendRecordingControlResult(session, event, true, null);
 						} catch (RuntimeException e) {
@@ -466,12 +513,37 @@ public class RemoteBrowserSessionManager {
 						event.setTabId(session.getActiveTabId());
 						session.clearNewlyOpenedTab();
 						Map<String, Object> executionResult;
+						PlaywrightDownloadRegistry downloadRegistry = session.getPlaywrightSession().getDownloadRegistry();
+						boolean recordingDownloadCandidate = session.isRecordingEnabled()
+								&& "mouse-click".equals(event.getType());
+						if (recordingDownloadCandidate) {
+							session.beginDownloadClickCandidate();
+						}
 						session.getPlaywrightSession().getOperationLock().lock();
 						try {
+							if ("prepare-replay".equals(event.getType())) {
+								downloadRegistry.beginRun();
+							}
+							downloadRegistry.setActiveTrigger(new PlaywrightDownloadRegistry.DownloadTrigger(
+									event.getRequestId(), event.getStepId()));
 							if (!isTabControl(event)) {
 								RemoteBrowserSelectorService.enrich(session, event);
 							}
 							executionResult = RemoteBrowserInputService.dispatch(session, event);
+							if (Boolean.TRUE.equals(executionResult.get("success"))
+									&& "mouse-click".equals(event.getType())
+									&& Boolean.TRUE.equals(event.getDownloadExpected())) {
+								PlaywrightDownloadRegistry.DownloadTrigger trigger = new PlaywrightDownloadRegistry.DownloadTrigger(
+										event.getRequestId(), event.getStepId());
+								boolean observed = downloadRegistry.awaitDownload(session.getActivePage(),
+										downloadRegistry.getActiveRunId(), trigger,
+										PlaywrightDownloadRegistry.replayWaitTimeoutMs());
+								executionResult.put("downloadWaitTimedOut", !observed);
+								if (!observed) {
+									executionResult.put("downloadWaitError",
+											"No browser download was observed for replay step " + event.getStepId());
+								}
+							}
 							if ("mouse-move".equals(event.getType())) {
 								sendCursorState(session, event);
 							}
@@ -486,6 +558,10 @@ public class RemoteBrowserSessionManager {
 								RemoteBrowserRecordingService.record(session, event);
 							}
 						} finally {
+							if (recordingDownloadCandidate) {
+								session.finishDownloadClickCandidate();
+							}
+							downloadRegistry.clearActiveTrigger();
 							session.getPlaywrightSession().getOperationLock().unlock();
 						}
 						if (isTabControl(event)) {
@@ -577,6 +653,12 @@ public class RemoteBrowserSessionManager {
 		response.put("url", executionResult.get("url"));
 		if (executionResult.get("error") != null) {
 			response.put("error", executionResult.get("error"));
+		}
+		if (executionResult.get("downloadWaitTimedOut") != null) {
+			response.put("downloadWaitTimedOut", executionResult.get("downloadWaitTimedOut"));
+		}
+		if (executionResult.get("downloadWaitError") != null) {
+			response.put("downloadWaitError", executionResult.get("downloadWaitError"));
 		}
 		sender.send(LOOP_GSON.toJson(response));
 	}
@@ -771,6 +853,36 @@ public class RemoteBrowserSessionManager {
 			response.put("error",
 					e.getMessage() == null || e.getMessage().isBlank() ? "Could not capture selected website text"
 							: e.getMessage());
+		} finally {
+			session.getPlaywrightSession().getOperationLock().unlock();
+		}
+		sender.send(LOOP_GSON.toJson(response));
+	}
+
+	private static void handleFullPageTextContext(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+
+		Map<String, Object> response = new LinkedHashMap<>();
+		response.put("type", "full-page-text-context-result");
+		response.put("requestId", event.getRequestId());
+		session.getPlaywrightSession().getOperationLock().lock();
+		try {
+			if (event.getExpectedTabId() != null && !event.getExpectedTabId().isBlank()
+					&& !event.getExpectedTabId().equals(session.getActiveTabId())) {
+				throw new IllegalStateException("Full-page text belongs to " + event.getExpectedTabId()
+						+ ", but the active browser tab is " + session.getActiveTabId());
+			}
+			response.put("context", RemoteBrowserSelectedTextService.captureFullPage(session));
+			response.put("success", true);
+		} catch (Exception e) {
+			classLogger.warn("Full-page text capture failed for session {}: {}", session.getSessionId(), e.getMessage());
+			response.put("success", false);
+			response.put("error", e.getMessage() == null || e.getMessage().isBlank()
+					? "Could not capture full-page website text"
+					: e.getMessage());
 		} finally {
 			session.getPlaywrightSession().getOperationLock().unlock();
 		}

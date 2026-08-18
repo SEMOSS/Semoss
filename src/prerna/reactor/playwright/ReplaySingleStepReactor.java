@@ -35,6 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -135,6 +136,7 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 				response.put("error", "Session not found");
 				return response;
 			}
+			String downloadRunId = s.getDownloadRegistry().beginRun();
 
 			// Execute the step and capture result
 			PlaywrightStep stepToExecute = step;
@@ -143,14 +145,25 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			}
 
 			Map<String, Object> executionResult;
+			boolean downloadObserved = true;
 			ScreenshotResponse screenshot;
 			s.getOperationLock().lock();
 			try {
+				s.getDownloadRegistry().setActiveTrigger(new PlaywrightDownloadRegistry.DownloadTrigger(null, stepId));
 				executionResult = PlaywrightSessionUtility.applyStep(s, stepToExecute, actualTabId);
+				if (Boolean.TRUE.equals(step.downloadExpected()) && executionResult != null
+						&& !"failed".equals(executionResult.get("status"))) {
+					downloadObserved = s.getDownloadRegistry().awaitDownload(s.getPage(actualTabId), downloadRunId,
+							new PlaywrightDownloadRegistry.DownloadTrigger(null, stepId),
+							PlaywrightDownloadRegistry.replayWaitTimeoutMs());
+				}
 				screenshot = ScreenshotReactor.screenshot(s, actualTabId);
 			} finally {
+				s.getDownloadRegistry().clearActiveTrigger();
 				s.getOperationLock().unlock();
 			}
+			appendDownloadResult(response, s, Boolean.TRUE.equals(step.downloadExpected()) ? stepId : null,
+					Boolean.TRUE.equals(step.downloadExpected()) && !downloadObserved);
 			response.put("screenshot", screenshot);
 
 			if (executionResult != null && !"failed".equals(executionResult.get("status"))) {
@@ -197,6 +210,11 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 			try {
 				PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
 				if (s != null) {
+					try {
+						appendDownloadResult(response, s, null, false);
+					} catch (Exception downloadEx) {
+						classLogger.error("Failed to persist downloads after replay error", downloadEx);
+					}
 					String actualTabId = tabId != null && !tabId.isEmpty() ? tabId : "tab-1";
 					if (s.getPage(actualTabId) != null) {
 						ScreenshotResponse screenshot = ScreenshotReactor.screenshot(s, actualTabId);
@@ -209,6 +227,52 @@ public class ReplaySingleStepReactor extends AbstractReactor {
 		}
 
 		return response;
+	}
+
+	private void appendDownloadResult(Map<String, Object> response, PlaywrightSession session, Integer expectedStepId,
+			boolean downloadWaitTimedOut) {
+		PlaywrightDownloadRegistry registry = session.getDownloadRegistry();
+		registry.awaitIdle(5_000);
+		List<Map<String, Object>> saved = new java.util.ArrayList<>();
+		List<Map<String, Object>> errors = new java.util.ArrayList<>();
+		for (PlaywrightDownloadRegistry.DownloadRecord record : registry.getActiveRunRecords()) {
+			if ("ready".equals(record.getStatus())) {
+				try {
+					saved.add(registry.persistRecord(record, this.insight));
+				} catch (Exception e) {
+					registry.markSaveFailed(record.getDownloadId(), e.getMessage());
+				}
+			}
+			if ("failed".equals(record.getStatus()) || "save-failed".equals(record.getStatus())) {
+				Map<String, Object> error = new HashMap<>();
+				error.put("downloadId", record.getDownloadId());
+				error.put("runId", record.getRunId());
+				error.put("stepId", record.getTriggerStepId());
+				error.put("fileName", record.getFileName());
+				error.put("status", record.getStatus());
+				error.put("error", record.getError());
+				errors.add(error);
+			}
+		}
+		if (downloadWaitTimedOut) {
+			Map<String, Object> error = new HashMap<>();
+			error.put("status", "capture-timeout");
+			error.put("stepId", expectedStepId);
+			error.put("error", "No browser download was observed for replay step " + expectedStepId + " within "
+					+ PlaywrightDownloadRegistry.replayWaitTimeoutMs() + " ms");
+			errors.add(error);
+		}
+		if (!saved.isEmpty() && this.insight.getRoomId() != null) {
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
+		}
+		response.put("downloadSummary", saved.isEmpty()
+				? "No browser downloads were saved to the current insight"
+				: "Downloaded " + saved.size() + " file" + (saved.size() == 1 ? "" : "s")
+						+ " and saved them to the current insight under /browser-downloads/"
+						+ registry.getActiveRunId() + "/");
+		response.put("downloadCount", saved.size());
+		response.put("downloads", saved);
+		response.put("downloadErrors", errors);
 	}
 
 	/**

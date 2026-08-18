@@ -47,7 +47,8 @@ public class RemoteBrowserInputEventValidator {
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList("mouse-click", "mouse-move",
 			"mouse-down", "mouse-up", "wheel", "type-text", "key", "navigate", "close-session", "navigate-back",
-			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context", "switch-tab",
+			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context",
+			"full-page-text-context", "switch-tab",
 			"switch-replay-tab", "prepare-replay", "new-tab", "close-tab", "fill-element"));
 	private static final int MAX_WAIT_AFTER_MS = 60_000;
 
@@ -76,6 +77,9 @@ public class RemoteBrowserInputEventValidator {
 		}
 		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
 			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
+		if (event.getStepId() != null && event.getStepId() < 0) {
+			throw new IllegalArgumentException("stepId must be non-negative");
 		}
 		if (event.getExpectedUrl() != null && event.getExpectedUrl().length() > MAX_URL_LENGTH) {
 			throw new IllegalArgumentException("expectedUrl exceeds max length " + MAX_URL_LENGTH);
@@ -188,6 +192,10 @@ public class RemoteBrowserInputEventValidator {
 					&& Math.abs(event.getEndY() - event.getY()) < MIN_SELECTION_SIZE) {
 				throw new IllegalArgumentException("selected-text-context selection is too small");
 			}
+			break;
+
+		case "full-page-text-context":
+			validateRequestId(event);
 			break;
 
 		// close-session, navigate-back, navigate-forward, reload - no payload to
