@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-12"
+    "last_modified_date": "2026-08-17"
   },
   "tools": [
     {
       "name": "list_room_skill_files",
       "title": "List Room Skill Files",
-      "description": "List the files in the SEMOSS 'room' skill, the platform's guidance for working with playground rooms, the persistent named conversations that carry chat history, a selected model, a system prompt, and MCP tool configuration. Call this when the user asks about creating/listing/renaming/pinning/deleting rooms, reading or updating room options (model, system prompt, temperature, attached MCPs), reading chat history, or binding an insight to a room, and when they name CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, GetPlaygroundMessages, AskCOTRoom, or COTRoomResult. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for plain LLM completions (see the model skill) or document ingestion (see the vector skill).",
+      "description": "List the files in the SEMOSS 'room' skill, the platform's guidance for working with playground rooms, the persistent named conversations that carry chat history, a selected model, a system prompt, and MCP tool configuration. Call this when the user asks about creating/listing/renaming/pinning/deleting rooms, reading or updating room options (model, system prompt, temperature, attached MCPs), reading chat history, or binding an insight to a room, and when they name CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, or GetPlaygroundMessages. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for plain LLM completions (see the model skill), document ingestion (see the vector skill), or an autonomous multi-turn agent loop (see the agent-run skill).",
       "inputSchema": {
         "type": "object",
         "title": "list_room_skill_files_Arguments",
