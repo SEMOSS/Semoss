@@ -69,8 +69,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
  * they stay in sync with the platform lists automatically:
  * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemMCPs()} (database-maker,
- * node-builder, reactor-help)</li>
+ * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}
+ * (database-maker, node-builder, reactor-help, app-filesystem,
+ * room-filesystem)</li>
  * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
  */

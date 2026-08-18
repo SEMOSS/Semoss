@@ -1077,6 +1077,7 @@ public class Constants {
 	public static final String SKILL_MODEL = "model";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_SEMOSS_SDK = "semoss-sdk";
 	public static final String SKILL_VECTOR = "vector";
 
 	// system (platform) mcp names
@@ -1084,6 +1085,8 @@ public class Constants {
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

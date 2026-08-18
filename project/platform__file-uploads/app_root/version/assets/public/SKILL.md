@@ -1,6 +1,6 @@
 ---
 name: file-uploads
-description: Use when writing code in an app that attaches files (images, PDFs, any upload) to an LLM prompt, or that uploads a file into the current insight workspace. Covers the two-step pattern - POST the bytes to /api/uploadFile/baseUpload (or call uploadInsight from @semoss/sdk) to get back {fileName, fileLocation}, then send an LLM message whose parts array carries one MEDIA part per file referencing fileLocation, never the bytes again. Also covers the multipart field name, why Content-Type must not be set by hand, extension filtering, and retry handling when the upload fails. Do not use for the LLM call itself (see model) or for reading files already in the app's asset folder.
+description: Use when writing code in an app that attaches files of any type (image, PDF, Word, spreadsheet, CSV, audio, video) to an LLM prompt, or that uploads a file into the current insight workspace. Covers the two-step pattern - POST the bytes to /api/uploadFile/baseUpload (or call uploadInsight from @semoss/sdk) to get back {fileName, fileLocation}, then reference those filenames in the pixel call with the media argument, never re-sending the bytes. Also covers the MEDIA parts form used by the room/playground path, the multipart field name, why Content-Type must not be set by hand, extension filtering, and retry handling when the upload fails. Do not use for the LLM call itself (see model) or for reading files already in the app's asset folder.
 ---
 
 # File uploads
@@ -8,9 +8,20 @@ description: Use when writing code in an app that attaches files (images, PDFs, 
 Attaching a file to an LLM prompt is always two sequential network calls, in this order:
 
 1. **Upload.** POST the raw bytes as `multipart/form-data` to the SEMOSS file-upload endpoint. The backend stores them in the insight workspace and returns one `{ fileName, fileLocation }` per file.
-2. **Pixel call.** Send the LLM message. The `fileLocation` strings from step 1 travel as `MEDIA` parts. The bytes are not re-sent.
+2. **Pixel call.** Send the LLM message, referencing the names from step 1. The bytes are not re-sent.
 
-Run step 1 to completion before starting step 2. If the user attached nothing, or step 1 returns an empty array, skip straight to step 2 with a text-only part.
+Run step 1 to completion before starting step 2. If the user attached nothing, or step 1 returns an empty array, skip straight to step 2 with no media.
+
+Any file type can be uploaded and attached - image, PDF, Word, spreadsheet, CSV, audio, video. Nothing in this two-step pattern is images-only. Whether the model can read a given type is a property of the model, so pick one that supports what the user is attaching.
+
+**Step 2 has two forms, and picking the wrong one fails silently.** Use the one that matches the pixel the app calls:
+
+| Calling | Attach with | Section |
+| --- | --- | --- |
+| `LLM()` | the top-level `media` argument | [Step 2a](#step-2a---llm-with-the-media-argument) |
+| the room / playground chat path | a `parts` array with `MEDIA` parts | [Step 2b](#step-2b---room-path-with-media-parts) |
+
+A `MEDIA` part handed to `LLM()` inside `full_prompt` is silently ignored, and `media=` is not read by the room parts path. See the `model` skill for the `LLM()` call itself.
 
 ## Step 1 - upload the bytes
 
@@ -50,9 +61,26 @@ The response is a JSON array with one entry per input file, in the same order:
 
 `fileLocation` is the server-side path step 2 needs. Keep the array in memory until step 2 completes.
 
-## Step 2 - reference the files in the LLM message
+## Step 2a - `LLM()` with the `media` argument
 
-Build a `parts` array: the user's text first, then one `MEDIA` part per uploaded file.
+For a direct `LLM()` call, pass the uploaded `fileName` values straight into the top-level `media` argument. No parts array is involved:
+
+```typescript
+const media = uploaded.map((f) => f.fileName);
+
+const { errors, pixelReturn } = await runPixel(
+	`LLM(engine="${MODEL_ID}", command=["${prompt}"], media=${JSON.stringify(media)});`,
+	insightId,
+);
+```
+
+`media` accepts a single string or an array, and is not images-only - pass any file type. Always use `media`; an older `image` argument is still accepted by the server but is a deprecated legacy alias, so never write it in new code.
+
+This only works with the `command=` form. `media` is dropped when `full_prompt` is used; see the `model` skill for how media travels inside `full_prompt`.
+
+## Step 2b - room path with `MEDIA` parts
+
+The room / playground chat path takes an input message instead, built as a `parts` array: the user's text first, then one `MEDIA` part per uploaded file.
 
 ```typescript
 type Part =
@@ -85,7 +113,9 @@ for (const f of uploaded) {
 }
 ```
 
-Submit `parts` as the input message to whatever pixel/chat call the app already uses, with the same `insightId` from step 1 and the target model id. See the `model` skill for the `LLM()` call itself.
+Submit `parts` as the input message to the room/chat call the app already uses, with the same `insightId` from step 1 and the target model id.
+
+Do not hand this `parts` array to `LLM()`. `LLM()` does not read `MEDIA` parts - inside `full_prompt` they are silently skipped, so the model answers as if no file were attached. For `LLM()`, use [Step 2a](#step-2a---llm-with-the-media-argument).
 
 ## Filtering by extension
 
