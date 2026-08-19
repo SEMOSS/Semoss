@@ -124,6 +124,7 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_512;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_8;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
