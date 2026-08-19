@@ -1,13 +1,13 @@
 ---
 name: python
-description: Use when writing Python in a SEMOSS app — `py/mcp_driver.py`, helper modules, or any code that runs inside the SEMOSS Python runtime. Covers what SEMOSS injects (`ROOT`, active insight context), what to import from `ai_server` / `semoss` / `smssutil`, the `@mcp_metadata` decorator for exposing MCP tools, and how Python reaches Pixel via `Insight().run_pixel(...)`. For what Pixel commands to actually run, see the `database`, `model`, and `vector` skills. Do not use for Java reactor authoring or frontend `@semoss/sdk` calls.
+description: Use when writing Python in a platform app — `py/mcp_driver.py`, helper modules, or any code that runs inside the platform Python runtime. Covers what the platform injects (`ROOT`, active insight context), what to import from `ai_server` / `semoss` / `smssutil`, the `@mcp_metadata` decorator for exposing MCP tools, and how Python reaches Pixel via `Insight().run_pixel(...)`. For what Pixel commands to actually run, see the `database`, `model`, and `vector` skills. Do not use for Java reactor authoring or frontend `@semoss/sdk` calls.
 ---
 
-# Python in SEMOSS
+# Python on the platform
 
-Python code in a SEMOSS app runs in a managed runtime backed by a TCP server proxy. This skill covers the Python-side glue: what's injected, what to import, and how to bridge to Pixel. For the actual Pixel command syntax (LLM, SqlQuery, VectorDatabaseQuery, etc.), see the matching skill — Python doesn't change those, you just pass them as strings to `Insight().run_pixel(...)`.
+Python code in a platform app runs in a managed runtime backed by a TCP server proxy. This skill covers the Python-side glue: what's injected, what to import, and how to bridge to Pixel. For the actual Pixel command syntax (LLM, SqlQuery, VectorDatabaseQuery, etc.), see the matching skill — Python doesn't change those, you just pass them as strings to `Insight().run_pixel(...)`.
 
-## What SEMOSS injects vs what you import
+## What the platform injects vs what you import
 
 | Symbol                                                                             | Source                                                            | Notes                                                                        |
 | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -30,7 +30,7 @@ Two options:
 ```python
 import os
 
-out_path = os.path.join(ROOT, "report.txt")  # noqa: F821 — injected by SEMOSS
+out_path = os.path.join(ROOT, "report.txt")  # noqa: F821 — injected by the platform
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(content)
 ```
@@ -39,7 +39,7 @@ with open(out_path, "w", encoding="utf-8") as f:
 
 ## Exposing Python as an MCP tool
 
-Decorate a top-level function in `py/mcp_driver.py` with `@mcp_metadata`. SEMOSS discovers it automatically:
+Decorate a top-level function in `py/mcp_driver.py` with `@mcp_metadata`. The platform discovers it automatically:
 
 ```python
 import json
@@ -60,7 +60,7 @@ def get_inventory(category: str) -> str:
         return json.dumps({"success": False, "error": str(e), "traceback": traceback.format_exc()})
 ```
 
-- Every parameter needs a type hint — that's how SEMOSS builds the input schema.
+- Every parameter needs a type hint — that's how the platform builds the input schema.
 - Function name → tool title; docstring → description.
 - Return a JSON string (`json.dumps(...)`), not a raw dict.
 - Wrap the body in try/except and return `traceback.format_exc()` on failure — much easier to debug from the playground.

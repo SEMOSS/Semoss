@@ -7,7 +7,7 @@ description: Use when writing code in an app that attaches files of any type (im
 
 Attaching a file to an LLM prompt is always two sequential network calls, in this order:
 
-1. **Upload.** POST the raw bytes as `multipart/form-data` to the SEMOSS file-upload endpoint. The backend stores them in the insight workspace and returns one `{ fileName, fileLocation }` per file.
+1. **Upload.** POST the raw bytes as `multipart/form-data` to the platform file-upload endpoint. The backend stores them in the insight workspace and returns one `{ fileName, fileLocation }` per file.
 2. **Pixel call.** Send the LLM message, referencing the names from step 1. The bytes are not re-sent.
 
 Run step 1 to completion before starting step 2. If the user attached nothing, or step 1 returns an empty array, skip straight to step 2 with no media.
@@ -40,7 +40,7 @@ Calling the endpoint directly:
 POST {MODULE}/api/uploadFile/baseUpload?insightId={insightId}&path={encodedPath}&userSpace=false
 ```
 
-- `MODULE` is the SEMOSS base URL (for example `/Monolith_Dev`).
+- `MODULE` is the platform base URL (for example `/Monolith_Dev`).
 - `insightId` is the insight the LLM call will run under. Required.
 - `path` is the destination subpath inside the insight workspace, URL-encoded. `""` is valid and uploads to the workspace root.
 
@@ -51,7 +51,7 @@ const fd = new FormData();
 for (const f of files) fd.append("file", f); // same key for every file
 ```
 
-Send with `credentials: "include"` so the SEMOSS session cookie rides along. **Do not set `Content-Type` by hand** - the browser has to set it to add the multipart boundary, and setting it yourself produces a doubled header the backend rejects.
+Send with `credentials: "include"` so the platform session cookie rides along. **Do not set `Content-Type` by hand** - the browser has to set it to add the multipart boundary, and setting it yourself produces a doubled header the backend rejects.
 
 The response is a JSON array with one entry per input file, in the same order:
 

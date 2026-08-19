@@ -1,6 +1,6 @@
 ---
 name: model
-description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included. Do not use for vector database queries (see semoss-vector) or guardrail engines (see semoss-guardrail).
+description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included. Do not use for vector database queries (see vector).
 ---
 
 # Model Engine
@@ -244,7 +244,7 @@ Full response shape returned from a `runPixel` call that wraps an `LLM()` comman
 | Field | Meaning |
 | --- | --- |
 | `pixelId` | sequence ID of the command within the call |
-| `pixelExpression` | the parsed pixel string SEMOSS actually executed. Useful for debugging encoding issues |
+| `pixelExpression` | the parsed pixel string the platform actually executed. Useful for debugging encoding issues |
 | `isMeta` | internal flag; ignore for model responses |
 | `timeToRun` | execution time in milliseconds |
 | `operationType` | categorization of the pixel; `["OPERATION"]` for LLM calls |
