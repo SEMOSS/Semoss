@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -716,6 +717,20 @@ public final class FileSystemUtil {
 	 * @param destFileName   The destination relative path for the copy.
 	 */
 	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		copyAsset(assetFolder, sourceFileName, destFileName, false);
+	}
+
+	/**
+	 * Copies a file or directory within the asset folder, optionally replacing an
+	 * existing destination.
+	 *
+	 * @param assetFolder    The base folder for the assets.
+	 * @param sourceFileName The current relative path of the file/directory to
+	 *                       copy.
+	 * @param destFileName   The destination relative path for the copy.
+	 * @param override       If true, delete an existing destination before copying.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName, boolean override) {
 		while (sourceFileName.startsWith("/")) {
 			sourceFileName = sourceFileName.substring(1);
 		}
@@ -730,9 +745,26 @@ public final class FileSystemUtil {
 		if (!sourceFile.exists()) {
 			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
 		}
+
+		Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
+		Path destPath = destFile.toPath().toAbsolutePath().normalize();
+		if (sourcePath.equals(destPath) || sourcePath.startsWith(destPath)
+				|| (sourceFile.isDirectory() && destPath.startsWith(sourcePath))) {
+			throw new IllegalArgumentException("Source and destination paths cannot contain one another");
+		}
+
 		if (destFile.exists()) {
-			throw new IllegalArgumentException(
-					"A file or directory already exists at the destination: " + destFileName);
+			if (!override) {
+				throw new IllegalArgumentException(
+						"A file or directory already exists at the destination: " + destFileName);
+			}
+			try {
+				FileUtils.forceDelete(destFile);
+			} catch (IOException e) {
+				classLogger.error("Error deleting existing copy destination {}", destFileName, e);
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Unable to replace existing destination " + destFileName));
+			}
 		}
 
 		try {

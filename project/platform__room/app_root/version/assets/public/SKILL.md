@@ -5,7 +5,7 @@ description: Use when writing code in an app that creates, lists, renames, pins,
 
 # Room
 
-A **room** is a persistent, named conversation on the SEMOSS platform — it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
+A **room** is a persistent, named conversation on the platform — it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
 
 > **Bind the insight to the room before asking.** Pass `SetRoomForInsight(roomId=...)` once per session — typically alongside your first `GetPlaygroundMessages` / `GetRoomOptions` call — so subsequent `LLM(...)` turns in this insight thread into the room's history.
 
@@ -156,7 +156,7 @@ For a simple conversational message, call `LLM(...)` with the room's `roomId`:
 LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["${prompt}"]);
 ```
 
-The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, images). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
+The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, attaching media with `media=`). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
 
 ## Response shape
 
