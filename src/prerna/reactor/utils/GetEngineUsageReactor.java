@@ -84,10 +84,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 			Every engine is addressed by its `engineId` and does the same work no matter which channel calls it. Pick the tab that matches where your code runs:
 
-			- **Pixel** - the platform's server-side scripting language, submitted to the `runPixel` REST endpoint. Every other channel is a wrapper around it, so this tab is the reference for what each operation actually does.
-			- **JavaScript/TypeScript** - `runPixel` from the `@semoss/sdk` package, for app front ends.
-			- **Python** - engine classes from the `ai_server` package, which build the Pixel and hand back a plain dict.
-			- **Java** - `Utility` helpers, for reactors and other server-side code.
+			| Tab | Where it runs | What it calls |
+			| --- | --- | --- |
+			| Pixel | anywhere that can make a REST call | the platform's server-side scripting language, submitted to the `runPixel` endpoint. Every other channel wraps it, so this tab is the reference for what each operation actually does |
+			| JavaScript/TypeScript | app front ends | `runPixel` from the `@semoss/sdk` package |
+			| Python | notebooks and server-side scripts | engine classes from the `ai_server` package, which build the Pixel and hand back a plain dict |
+			| Java | reactors and other server-side code | `Utility` helpers |
 
 			Some engine types add further tabs, for example LangChain adapters or an OpenAI-compatible endpoint for a Model engine.
 
@@ -95,10 +97,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 			`runPixel` returns a JSON envelope rather than a bare result:
 
-			- `pixelReturn[i].output` holds the result of the i-th expression you submitted. This is the payload each tab documents.
-			- `pixelReturn[i].operationType` of `["ERROR"]` means that expression failed and its `output` is the error message.
-			- Entries with `isMeta` set to `true` are bookkeeping; skip them.
-			- `insightID` identifies the session the Pixel ran under. Reuse it to keep server-side state across calls.
+			| Field | What it tells you |
+			| --- | --- |
+			| `pixelReturn[i].output` | the result of the i-th expression you submitted. This is the payload each tab documents |
+			| `pixelReturn[i].operationType` | `["ERROR"]` means that expression failed and its `output` is the error message |
+			| `pixelReturn[i].isMeta` | `true` marks a bookkeeping entry; skip them |
+			| `insightID` | identifies the session the Pixel ran under. Reuse it to keep server-side state across calls |
 
 			The SDKs unwrap most of that for you. The Python engine classes return `pixelReturn[0].output` directly, and `runPixel` from `@semoss/sdk` returns the parsed envelope alongside an `errors` array it pre-collects from every `ERROR` entry, so one check covers both transport and application failures.
 
@@ -188,17 +192,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						## What you can do
 
-						- **Generate text** - send a prompt and get the model's answer back.
-						- **Hold a conversation** - chat calls are stateful by default; a *room* holds the history so follow-up turns build on earlier ones.
-						- **Send images** - pass a public URL or an uploaded file to a vision-capable model.
-						- **Constrain the output** - pass a JSON schema and get schema-valid JSON back.
-						- **Create embeddings** - turn text into vectors, usually to store in a Vector engine.
+						| Capability | How |
+						| --- | --- |
+						| Generate text | send a prompt and get the model's answer back |
+						| Hold a conversation | chat calls are stateful by default; a *room* holds the history so follow-up turns build on earlier ones |
+						| Send media | pass a public URL or an uploaded file of any type (image, pdf, document, spreadsheet, audio, video); what the model can actually read depends on the model |
+						| Constrain the output | pass a JSON schema and get schema-valid JSON back |
+						| Create embeddings | turn text into vectors, usually to store in a Vector engine |
 
 						## Key concepts
 
-						- **Rooms.** Pass a `roomId` (Pixel, JavaScript) or `room_id` (Python) to keep a thread going. Omit it and the current insight id is used as the room identifier.
-						- **schemaVersion 2 responses.** `response` is the concatenated text kept for convenience; `parts` is the full ordered content and can mix modalities in one turn (text, thinking, tool_call, tool_result, media). `messageType` (`CHAT`, `TOOL`, `IMAGE`) summarizes the turn.
-						- **Token accounting.** Every response carries `numberOfTokensInPrompt` and `numberOfTokensInResponse`, plus cache and thinking counts when the provider reports them.
+						| Concept | What to know |
+						| --- | --- |
+						| Rooms | pass a `roomId` (Pixel, JavaScript) or `room_id` (Python) to keep a thread going. Omit it and the current insight id is used as the room identifier |
+						| schemaVersion 2 responses | `response` is the concatenated text kept for convenience; `parts` is the full ordered content and can mix modalities in one turn (text, thinking, tool_call, tool_result, media). `messageType` (`CHAT`, `TOOL`, `IMAGE`) summarizes the turn |
+						| Token accounting | every response carries `numberOfTokensInPrompt` and `numberOfTokensInResponse`, plus cache and thinking counts when the provider reports them |
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -275,11 +283,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						]
 						```
 
-						Generation with Image
+						Generation with Media
+
+						`media` takes the name of a file already uploaded to the insight or room, or a base64 data uri. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model.
 
 						```
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Media</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Media</encode>", media = "myReport.pdf");
 						```
 
 						Example Output
@@ -405,12 +415,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						LLM(engine="${MODEL_ID}", command=["Sample Question"], paramValues=[{"schema": {"type":"object","properties":{"sample_property":{"type":"string"}},"required":["sample_property"]}}]);
 						```
 
-						Generation with Image
+						Generation with Media
 
-						Pass either a public `url` or a server-accessible `image` filename as a top-level argument. Use `roomId` to thread several image turns into one conversation.
+						Pass either a public `url` or a server-accessible `media` filename as a top-level argument. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model. Use `roomId` to thread several media turns into one conversation.
 
 						```
 						LLM(engine="${MODEL_ID}", roomId="my_room_id", command=["What is in this image?"], url="https://your_image_url.com");
+						LLM(engine="${MODEL_ID}", roomId="my_room_id", command=["What is in this file?"], media="myReport.pdf");
 						```
 
 						Attaching Uploaded Files
@@ -542,8 +553,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						`command` (str): prompt sent to the model.<br/>
 						`room_id` (Optional[str]): conversation identifier.<br/>
 						`context` (Optional[str]): system prompt context.<br/>
-						`image` (Optional[List]): base64 image payload(s).<br/>
-						`url` (Optional[List]): image URL(s).<br/>
+						`media` (Optional[List]): file names already uploaded to the insight or room, or base64 payload(s). Any file type - image, pdf, document, spreadsheet, audio, video.<br/>
+						`url` (Optional[List]): media URL(s).<br/>
 						`use_history` (Optional[bool]): include history for this call.<br/>
 						`param_dict` (Optional[Dict]): model/provider parameters.<br/>
 						`insight_id` (Optional[str]): insight identifier.<br/>
@@ -605,14 +616,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						]
 						```
 
-						Generation with Image / Vision
+						Generation with Media
 
-						Use only for models that support image input.
+						`media` accepts file names already uploaded to the insight or room, or base64 data. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model, so use this only with a model that supports the type you are sending.
 
 						```python
-						prompt = 'Sample Command With Image'
+						prompt = 'Sample Command With Media'
 						output = model.ask(command = prompt, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-						output = model.ask(command = prompt, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						output = model.ask(command = prompt, media=['myReport.pdf'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
 						```
 
 						Example Output
