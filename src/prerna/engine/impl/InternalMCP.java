@@ -193,18 +193,12 @@ public class InternalMCP implements IMCP {
 		return genFromFolder(normalized, MCPUtility.ROOM_MCP_ID, MCPUtility.ROOM_MCP_NAME, MCPUtility.ROOM_MCP_TYPE);
 	}
 
-	/** Python tool definitions, relative to an assets folder. */
-	private static final String PY_MCP_REL = "/mcp/py_mcp.json";
-
-	/** Pixel tool definitions, relative to an assets folder. */
-	private static final String PIXEL_MCP_REL = "/mcp/pixel_mcp.json";
-
 	private String pyMcpPath() {
-		return this.assetsFolder + PY_MCP_REL;
+		return this.assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 	}
 
 	private String pixelMcpPath() {
-		return this.assetsFolder + PIXEL_MCP_REL;
+		return this.assetsFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 	}
 
 	/**
@@ -218,7 +212,8 @@ public class InternalMCP implements IMCP {
 		if (assetsFolder == null || assetsFolder.isBlank()) {
 			return false;
 		}
-		return new File(assetsFolder + PIXEL_MCP_REL).isFile() || new File(assetsFolder + PY_MCP_REL).isFile();
+		return new File(assetsFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH).isFile()
+				|| new File(assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH).isFile();
 	}
 
 	/**

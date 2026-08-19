@@ -132,7 +132,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		if (!mcpFolder.exists()) {
 			mcpFolder.mkdir();
 		}
-		String outputFileLoc = projectAssetFolder + "/mcp/py_mcp.json";
+		String outputFileLoc = projectAssetFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 		String script = "smssutil.add_function_to_mcp(src_file='" + mcpPyFileLoc + "', dest_file='" + outputFileLoc
@@ -149,7 +149,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		}
 
 		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/py_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PY_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
