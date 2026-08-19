@@ -67,6 +67,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
@@ -342,8 +343,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (cannedResponse != null) {
 						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
-							throw new SemossPixelException(
-									"Unable to process this request due to content policy (guardrail input exception)");
+							throw new SemossPixelException(blockMessageOrDefault(resultMap,
+									"Unable to process this request due to content policy (guardrail input exception)"));
 						}
 						classLogger.warn("Guardrail {} short-circuited the model call with a canned response",
 								reactor.getClass().getSimpleName());
@@ -351,8 +352,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 
 					if (!pass) {
-						throw new SemossPixelException(
-								"Unable to process this request due to content policy (guardrail input exception)");
+						closeRoomIfRequested(resultMap, args);
+						throw new SemossPixelException(blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail input exception)"));
 					}
 				}
 			}
@@ -456,14 +458,40 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
 
 					if (!pass) {
-						throw new SemossPixelException(
-								"Unable to process this request due to content policy (guardrail output exception)");
+						closeRoomIfRequested(resultMap, args);
+						throw new SemossPixelException(blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail output exception)"));
 					}
 				}
 			}
 
 			return processedArguments.get(PipelineReactorUtils.RESULT);
 		}
+	}
+
+	private void closeRoomIfRequested(Map<String, Object> resultMap, Object[] args) {
+		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.CLOSE_ROOM))) {
+			return;
+		}
+		for (Object arg : args) {
+			if (arg instanceof Room) {
+				Room room = (Room) arg;
+				try {
+					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
+					ModelInferenceLogsUtils.doSetRoomToInactive(userId, room.getId());
+					classLogger.warn("Guardrail closed room {} after a block", room.getId());
+				} catch (Exception e) {
+					// never let bookkeeping suppress the block itself
+					classLogger.error("Failed to close room after guardrail block", e);
+				}
+				return;
+			}
+		}
+	}
+
+	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {
+		String configured = (String) resultMap.get(PipelineReactorUtils.BLOCK_ERROR_MESSAGE);
+		return configured != null && !configured.isEmpty() ? configured : fallback;
 	}
 
 	/**

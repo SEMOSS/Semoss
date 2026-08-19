@@ -67,8 +67,8 @@ import prerna.util.Utility;
  * Optional SMSS keys:
  *   {@code BLOCKED_MESSAGE} canned replacement text; only takes effect
  *       when mounted on an {@code input} pipeline with
- *   {@code maskOnGuardrailFailure=true}. Output pipelines can only block a
- *       failing response today, not rewrite it.
+ *   {@code respondWithGuardrailMessage=true}. Output pipelines can only
+ *       block a failing response today, not rewrite it.
  * Optional per-call parameter {@code policy} overrides {@code POLICY_DESCRIPTION}.
  */
 public class PolicyComplianceGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {

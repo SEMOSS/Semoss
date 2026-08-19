@@ -197,11 +197,21 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		String cannedResponse = null;
 		Boolean respondWithGuardrailMessage = helper.getConfigParameter("respondWithGuardrailMessage", Boolean.class);
 		if (Boolean.TRUE.equals(respondWithGuardrailMessage) && !output.isPass()) {
-			cannedResponse = output.getReturnPrompt();
+			String candidate = output.getReturnPrompt();
+			Object original = guardrailEngineParams.get(DEFAULT_MASK_TARGET_PARAM);
+			if (candidate != null && !candidate.equals(original)) {
+				cannedResponse = candidate;
+			} else {
+				classLogger.warn("respondWithGuardrailMessage is enabled but guardrail engine '{}' returned the input "
+						+ "unchanged; blocking instead of responding.", guardrailEngineId);
+			}
 		}
 
+		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
+		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
+
 		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked,
-				cannedResponse);
+				cannedResponse, closeRoomOnBlock, blockErrorMessage);
 
 		// Update the processedArguments with the interim result
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
@@ -216,7 +226,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
-			boolean masked, String cannedResponse) {
+			boolean masked, String cannedResponse, Boolean closeRoomOnBlock, String blockErrorMessage) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		// when we masked the input we neutralized the failure, so let it pass downstream
@@ -225,6 +235,12 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		resultMap.put(PipelineReactorUtils.MASKED, masked);
 		if (cannedResponse != null) {
 			resultMap.put(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE, cannedResponse);
+		}
+		if (Boolean.TRUE.equals(closeRoomOnBlock) && !results.isPass() && !masked && cannedResponse == null) {
+			resultMap.put(PipelineReactorUtils.CLOSE_ROOM, true);
+		}
+		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
+			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
 		}
 
 		return resultMap;
