@@ -138,16 +138,15 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 		// Every recording was rebuilt, so a stamped tool that is absent had its
 		// recording deleted.
 		JSONArray mergedTools = MCPUtility.mergeGeneratedTools(
-				MCPUtility.readMcpJson(assetFolder + PlaywrightMCPToolBuilder.MCP_OUTPUT_REL), toolsArray, GENERATOR_ID,
+				MCPUtility.readMcpJson(assetFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH), toolsArray, GENERATOR_ID,
 				true);
 		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(mergedTools);
 
 		String prettyJson = mcpJson.toString(4);
-		FileSystemUtil.saveAssetFiles(assetFolder, List.of(PlaywrightMCPToolBuilder.MCP_OUTPUT_REL),
-				List.of(prettyJson));
+		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH), List.of(prettyJson));
 
 		classLogger.info("Saved room MCP to {}{} ({} playback tool(s) generated, {} other tool(s) preserved)",
-				assetFolder, PlaywrightMCPToolBuilder.MCP_OUTPUT_REL, toolsArray.length(),
+				assetFolder, MCPUtility.PIXEL_MCP_RELATIVE_PATH, toolsArray.length(),
 				mergedTools.length() - toolsArray.length());
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}

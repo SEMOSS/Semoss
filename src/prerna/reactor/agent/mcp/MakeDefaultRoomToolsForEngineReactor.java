@@ -75,11 +75,11 @@ import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 /** Generates the default MCP tools for an engine into a room folder. */
-public class MakeEngineRoomMCPReactor extends AbstractReactor {
+public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MakeEngineRoomMCPReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(MakeDefaultRoomToolsForEngineReactor.class);
 
-	private static final String GENERATOR_ID = "MakeEngineRoomMCP";
+	private static final String GENERATOR_ID = "MakeDefaultRoomToolsForEngine";
 
 	private enum EngineRoomTool {
 		BROWSE_ENGINE_ASSETS(BrowseEngineAssetsReactor.class, MCPExecution.AUTO, false),
@@ -113,23 +113,23 @@ public class MakeEngineRoomMCPReactor extends AbstractReactor {
 		}
 	}
 
-	private static final List<EngineRoomTool> ENGINE_ASSET_TOOLS = List.of(
-			EngineRoomTool.BROWSE_ENGINE_ASSETS, EngineRoomTool.SEARCH_ENGINE_ASSETS,
-			EngineRoomTool.GET_ENGINE_ASSETS, EngineRoomTool.SAVE_ENGINE_ASSETS,
+	private static final List<EngineRoomTool> ENGINE_ASSET_TOOLS = List.of(EngineRoomTool.BROWSE_ENGINE_ASSETS,
+			EngineRoomTool.SEARCH_ENGINE_ASSETS, EngineRoomTool.GET_ENGINE_ASSETS, EngineRoomTool.SAVE_ENGINE_ASSETS,
 			EngineRoomTool.NEW_ENGINE_ASSETS_FILE, EngineRoomTool.NEW_ENGINE_ASSETS_DIRECTORY,
 			EngineRoomTool.RENAME_ENGINE_ASSET, EngineRoomTool.COPY_ENGINE_ASSET);
 
-	private static final Map<IEngine.CATALOG_TYPE, List<EngineRoomTool>> ENGINE_TYPE_TOOLS = Map.of(
-			IEngine.CATALOG_TYPE.DATABASE, List.of(EngineRoomTool.GET_DATABASE_TABLE_STRUCTURE),
-			IEngine.CATALOG_TYPE.FUNCTION, List.of(EngineRoomTool.EXECUTE_FUNCTION_ENGINE),
-			IEngine.CATALOG_TYPE.STORAGE, List.of(EngineRoomTool.LIST_STORAGE_PATH,
-					EngineRoomTool.LIST_STORAGE_PATH_DETAILS, EngineRoomTool.PULL_FROM_STORAGE,
-					EngineRoomTool.PUSH_TO_STORAGE),
-			IEngine.CATALOG_TYPE.VECTOR, List.of(EngineRoomTool.LIST_VECTOR_DOCUMENTS,
-					EngineRoomTool.CREATE_VECTOR_EMBEDDINGS, EngineRoomTool.QUERY_VECTOR_DATABASE,
-					EngineRoomTool.REMOVE_VECTOR_DOCUMENT, EngineRoomTool.DOWNLOAD_VECTOR_FILE));
+	private static final Map<IEngine.CATALOG_TYPE, List<EngineRoomTool>> ENGINE_TYPE_TOOLS = Map
+			.of(IEngine.CATALOG_TYPE.DATABASE, List.of(EngineRoomTool.GET_DATABASE_TABLE_STRUCTURE),
+					IEngine.CATALOG_TYPE.FUNCTION, List.of(EngineRoomTool.EXECUTE_FUNCTION_ENGINE),
+					IEngine.CATALOG_TYPE.STORAGE,
+					List.of(EngineRoomTool.LIST_STORAGE_PATH, EngineRoomTool.LIST_STORAGE_PATH_DETAILS,
+							EngineRoomTool.PULL_FROM_STORAGE, EngineRoomTool.PUSH_TO_STORAGE),
+					IEngine.CATALOG_TYPE.VECTOR,
+					List.of(EngineRoomTool.LIST_VECTOR_DOCUMENTS, EngineRoomTool.CREATE_VECTOR_EMBEDDINGS,
+							EngineRoomTool.QUERY_VECTOR_DATABASE, EngineRoomTool.REMOVE_VECTOR_DOCUMENT,
+							EngineRoomTool.DOWNLOAD_VECTOR_FILE));
 
-	public MakeEngineRoomMCPReactor() {
+	public MakeDefaultRoomToolsForEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -184,8 +184,7 @@ public class MakeEngineRoomMCPReactor extends AbstractReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	private static List<EngineRoomTool> getDefaultTools(IEngine.CATALOG_TYPE engineType,
-			boolean canEdit) {
+	private static List<EngineRoomTool> getDefaultTools(IEngine.CATALOG_TYPE engineType, boolean canEdit) {
 		List<EngineRoomTool> engineTypeTools = ENGINE_TYPE_TOOLS.get(engineType);
 		if (engineTypeTools == null) {
 			return List.of();
@@ -210,8 +209,8 @@ public class MakeEngineRoomMCPReactor extends AbstractReactor {
 		try {
 			reactor = engineRoomTool.reactorClass.getConstructor().newInstance();
 		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"Could not instantiate reactor " + engineRoomTool.reactorClass.getName(), e);
+			throw new IllegalArgumentException("Could not instantiate reactor " + engineRoomTool.reactorClass.getName(),
+					e);
 		}
 
 		JSONObject tool = reactor.asMcpTool();
@@ -235,8 +234,7 @@ public class MakeEngineRoomMCPReactor extends AbstractReactor {
 
 	private static JSONObject wrapMcpJson(JSONArray tools) {
 		JSONObject meta = new JSONObject();
-		meta.put("last_modified_date",
-				LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+		meta.put("last_modified_date", LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 		return new JSONObject().put("_meta", meta).put("tools", tools);
 	}
 

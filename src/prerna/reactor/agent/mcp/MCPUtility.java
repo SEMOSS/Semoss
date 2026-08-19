@@ -153,8 +153,11 @@ public final class MCPUtility {
 	 */
 	public static final String ROOM_MCP_TYPE = "ROOM";
 
-	/** Pixel tool definition path relative to an engine, project, or room asset folder. */
+	// Pixel tool definition path relative to an asset folder.
 	public static final String PIXEL_MCP_RELATIVE_PATH = "/mcp/pixel_mcp.json";
+
+	// Python tool definitions, relative to an assets folder.
+	public static final String PY_MCP_RELATIVE_PATH = "/mcp/py_mcp.json";
 
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
@@ -653,9 +656,9 @@ public final class MCPUtility {
 
 	/**
 	 * Appends engine ID prefix to each tool name, truncating to maxLength. When
-	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_]
-	 * (see {@link #requiresLLMNameSanitization}); other providers keep the raw
-	 * engine id so existing LLM-facing names are unchanged.
+	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_] (see
+	 * {@link #requiresLLMNameSanitization}); other providers keep the raw engine id
+	 * so existing LLM-facing names are unchanged.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength,
 			boolean sanitizeForLLM) {
@@ -760,8 +763,8 @@ public final class MCPUtility {
 		if (matcher.find()) {
 			// rebuild the canonical hyphenated UUID regardless of which separator
 			// ("-" legacy, "_" sanitized) appeared in the LLM-facing name
-			String prefix = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3) + "-"
-					+ matcher.group(4) + "-" + matcher.group(5);
+			String prefix = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3) + "-" + matcher.group(4)
+					+ "-" + matcher.group(5);
 			String remaining = input.substring(matcher.end());
 			return new String[] { prefix, remaining };
 		}
@@ -1029,7 +1032,7 @@ public final class MCPUtility {
 	public static JSONObject findPythonToolWithCellId(IEngine engine, String cellId) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
 		for (int i = 0; i < existingTools.length(); i++) {
@@ -1059,7 +1062,7 @@ public final class MCPUtility {
 	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
 		if (!mcpJson.has("tools")) {
