@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "list_pagination_skill_files",
+      "title": "List Pagination Skill Files",
+      "description": "List the files in the platform 'pagination' skill, the platform's guidance for building long or growing lists in a React app - infinite scroll, load-more buttons, and searchable paged tables that accumulate results page by page. Call this when the user asks for a list, table, feed, or picker over data that needs paging, and when they name useIteratorPixel, useIteratorApi, limit/offset paging, hasMore, or debounced search. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for a one-shot pixel fetch (usePixel, see the app-bootstrap skill) and not for choosing which pixel to run (see the database, room, and model skills).",
+      "inputSchema": {
+        "type": "object",
+        "title": "list_pagination_skill_files_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The pagination skill (pagination). Always this value.",
+            "enum": [
+              "pagination"
+            ],
+            "default": "pagination"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ListSkillFiles"
+      }
+    },
+    {
+      "name": "read_pagination_skill_file",
+      "title": "Read Pagination Skill File",
+      "description": "Read one file from the platform 'pagination' skill in full, for writing React list UIs over paged data with @semoss/sdk/react. Pass filePath exactly as list_pagination_skill_files reports it; SKILL.md is the main guide and covers choosing between useIteratorPixel (pixel with a total count) and useIteratorApi (REST or any promise, short-page detection), the stable-limit and deps-reset rules, update() for in-place row patches after mutations, enabled gating, an IntersectionObserver infinite-scroll sentinel, and debouncing search inputs that drive the deps.",
+      "inputSchema": {
+        "type": "object",
+        "title": "read_pagination_skill_file_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The pagination skill (pagination). Always this value.",
+            "enum": [
+              "pagination"
+            ],
+            "default": "pagination"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Path of the file to read, relative to the skill folder, as reported by list_pagination_skill_files. Use 'SKILL.md' for the main guide.",
+            "default": "SKILL.md"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ReadSkillFile"
+      }
+    }
+  ]
+}

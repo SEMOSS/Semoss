@@ -53,8 +53,17 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
+
+		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
+		if (roomOptionsSearch != null) {
+			roomOptionsSearch = roomOptionsSearch.trim();
+			if (roomOptionsSearch.isEmpty()) {
+				roomOptionsSearch = null;
+			}
+		}
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null) {
+		if (projectId == null && roomOptionsSearch == null) {
 			projectId = this.insight.getContextProjectId();
 		}
 
@@ -75,15 +84,6 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		String pinnedStr = this.keyValue.get(ReactorKeysEnum.PINNED.getKey());
 		if (pinnedStr != null && !pinnedStr.trim().isEmpty()) {
 			pinned = Boolean.parseBoolean(pinnedStr.trim());
-		}
-
-		// Optional free-text search against the OPTIONS JSON column.
-		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
-		if (roomOptionsSearch != null) {
-			roomOptionsSearch = roomOptionsSearch.trim();
-			if (roomOptionsSearch.isEmpty()) {
-				roomOptionsSearch = null;
-			}
 		}
 
 		// Call new overload of getUserConversations

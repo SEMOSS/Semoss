@@ -1,6 +1,6 @@
 ---
 name: app-bootstrap
-description: Use when scaffolding a platform app from scratch in any flavor - plain HTML, vanilla TS, or React - or when an existing app's plumbing is wrong - blank screen on load, "module is required", "No response" from a pixel, a login screen that never clears, or pixels that succeed in isolation but fail against the project. Covers the Insight lifecycle (new Insight / initialize / destroy), how the base insight is created with SetContext so requests are valid, gating on isInitialized/isAuthorized/isReady, the runPixel response envelope and error handling, Env and the semoss-env tag for dev vs published builds, auth, uploads, websockets, and embed auth. React bindings are one optional layer on top, not a requirement. Do not use for what a specific pixel returns - see the database, model, vector, room, agent-run, and file-uploads skills.
+description: Use when scaffolding a platform app from scratch in any flavor - plain HTML, vanilla TS, or React - or when an existing app's plumbing is wrong - blank screen on load, "module is required", "No response" from a pixel, a login screen that never clears, or pixels that succeed in isolation but fail against the project. Covers the Insight lifecycle (new Insight / initialize / destroy), how the base insight is created with SetContext so requests are valid, gating on isInitialized/isAuthorized/isReady, the runPixel response envelope and error handling, Env and the semoss-env tag for dev vs published builds, auth, uploads, websockets, and embed auth, plus async job control (terminate/status/error endpoints for Stop buttons and failure detail) and session rehydration after a reload (/api/session/insights, GetCurrentInsightId). React bindings are one optional layer on top, not a requirement. Do not use for what a specific pixel returns - see the database, model, vector, room, agent-run, and file-uploads skills.
 ---
 
 # Platform SDK: app bootstrap
@@ -386,6 +386,42 @@ while (!done) {
 `partial(insightId)` is the older single-string equivalent and is deprecated; use
 `getPixelJobStreaming`. For durable multi-turn agent runs, use the `agent-run` skill instead -
 it has its own subscription API.
+
+### Controlling an async job
+
+Three REST endpoints the SDK does not wrap complete the async story. All are `POST` with a
+form-encoded `jobId` field:
+
+```ts
+const form = (jobId: string) => {
+  const fd = new URLSearchParams();
+  fd.set("jobId", jobId);
+  return fd;
+};
+
+// Stop button - the ONLY way to cancel a running job
+await fetch(`${Env.MODULE}/api/engine/terminate`, { method: "POST", body: form(jobId) });
+
+// job status: e.g. "InProgress", "Complete", "Error", "UNKNOWN_JOB"
+const s = await fetch(`${Env.MODULE}/api/engine/status`, { method: "POST", body: form(jobId) });
+
+// stderr of a failed job - the only way to surface what went wrong
+const e = await fetch(`${Env.MODULE}/api/engine/error`, { method: "POST", body: form(jobId) });
+// -> { status, message: string[] }
+```
+
+Any UI that starts a long-running `runPixelAsync` job should offer terminate, and read
+`/api/engine/error` when the streaming status lands on `Error` - the streaming messages alone
+do not carry the failure detail.
+
+### Rehydrating after a page reload
+
+`GET ${Env.MODULE}/api/session/insights` returns the set of insight ids still open for the
+current session. On app startup, check it before creating a new insight - reattaching to a
+live insight (pass `insightId` to `initialize`) preserves loaded frames, Python state, and
+uploaded files that a fresh insight would lose. Two pixel helpers are useful when composing
+requests: `GetCurrentInsightId()` and `GetCurrentContextProjectId()` (no arguments) return the
+current insight id and the app's project id.
 
 ### Websockets
 

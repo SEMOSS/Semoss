@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "list_user_skill_files",
+      "title": "List User Skill Files",
+      "description": "List the files in the platform 'user' skill, the platform's guidance for the current user's identity, per-user preferences, and notifications inside an app. Call this when the user asks to greet the logged-in user, get their name/email/username/groups, check platform-admin status, remember per-user settings across sessions (theme, defaults, onboarding flags), or show a notification bell with unread counts, and when they name GetCurrentUser, GetUserInfo, SetUserMetadata, GetUserMetadata, PollNotifications, FetchNotifications, or MarkNotificationRead. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for login/logout (see the app-bootstrap skill), project or engine roles and sharing (see the permissions skill), or per-user file storage (see the app-data skill).",
+      "inputSchema": {
+        "type": "object",
+        "title": "list_user_skill_files_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The user skill (user). Always this value.",
+            "enum": [
+              "user"
+            ],
+            "default": "user"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ListSkillFiles"
+      }
+    },
+    {
+      "name": "read_user_skill_file",
+      "title": "Read User Skill File",
+      "description": "Read one file from the platform 'user' skill in full, for writing code that reads user identity, stores preferences, or renders notifications through runPixel. Pass filePath exactly as list_user_skill_files reports it; SKILL.md is the main guide and covers the provider-keyed GetCurrentUser response (id, name, username, email, groups, isAdmin), why the REST identity endpoints cannot be trusted for email, the SetUserMetadata/GetUserMetadata durable per-user key-value store, the read-only notification pixels and their gotchas (no CreateNotification exists; DeleteNotification with no id deletes everything), and the RequestEngine/RequestInsight self-service access flows.",
+      "inputSchema": {
+        "type": "object",
+        "title": "read_user_skill_file_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The user skill (user). Always this value.",
+            "enum": [
+              "user"
+            ],
+            "default": "user"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Path of the file to read, relative to the skill folder, as reported by list_user_skill_files. Use 'SKILL.md' for the main guide.",
+            "default": "SKILL.md"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ReadSkillFile"
+      }
+    }
+  ]
+}

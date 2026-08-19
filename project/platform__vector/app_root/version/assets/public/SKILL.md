@@ -1,6 +1,6 @@
 ---
 name: vector
-description: Use when writing code in an app that does semantic search, RAG, or ingests documents into a vector database on the platform — running nearest-neighbor queries, listing/adding/removing documents, or feeding retrieved chunks into an LLM. Covers VectorDatabaseQuery(), ListDocumentsInVectorDatabase(), CreateEmbeddingsFromDocuments(), CreateEmbeddingsFromVectorCSVFile(), and RemoveDocumentFromVectorDatabase() pixel commands via @semoss/sdk's runPixel, plus listing engines with MyEngines(engineTypes=["VECTOR"]). Do not use for raw SQL/graph queries (see database-engine) or direct LLM calls without retrieval (see model-engine).
+description: Use when writing code in an app that does semantic search, RAG, or ingests documents into a vector database on the platform — running nearest-neighbor queries, listing/adding/removing documents, feeding retrieved chunks into an LLM, downloading the original source document behind a citation, or tuning chunking at ingest time. Covers VectorDatabaseQuery(), ListDocumentsInVectorDatabase(), CreateEmbeddingsFromDocuments() and its chunking paramValues, CreateEmbeddingsFromVectorCSVFile(), RemoveDocumentFromVectorDatabase(), VectorFileDownload(), ListAllRecordsInVectorDatabase(), and VectorAttachFileToSource() pixel commands via @semoss/sdk's runPixel, plus listing engines with MyEngines(engineTypes=["VECTOR"]). Do not use for raw SQL/graph queries (see database-engine) or direct LLM calls without retrieval (see model-engine).
 ---
 
 # Vector Engine
@@ -117,6 +117,46 @@ Pass `fileNames` — the source identifiers as listed by `ListDocumentsInVectorD
 ```
 RemoveDocumentFromVectorDatabase(engine="${VECTOR_ID}", fileNames=["fileName1.pdf", "fileName2.pdf"]);
 ```
+
+### Tuning chunking at ingest time
+
+`CreateEmbeddingsFromDocuments` accepts a `paramValues` map controlling how documents are split and indexed:
+
+```
+CreateEmbeddingsFromDocuments(engine="${VECTOR_ID}", filePaths=["file1.pdf"], paramValues=[{"chunkingMethod":"recursive", "contentLength":512, "contentOverlap":64}]);
+```
+
+| Key | Meaning |
+| --- | --- |
+| `chunkingMethod` | `token` (default), `recursive`, or `semantic` |
+| `contentLength` / `contentOverlap` | chunk size and overlap (in chunk units) |
+| `chunkUnit` | what contentLength counts |
+| `extractionMethod` | PDF text extraction: `default` or `fitz` |
+| `columnsToIndex` / `columnsToRemove` / `columnsToReturn` | CSV ingestion column control |
+| `useHybridSearch`, `keywordSearchParam`, `returnThreshold` | retrieval behavior knobs |
+| `customDocumentProcessor`, `customDocumentProcessorFunctionID` | route extraction through a function engine (e.g. OCR - see the functions skill) |
+
+Defaults are sensible; reach for these when chunks come back too coarse/fine or scanned PDFs extract poorly (`customDocumentProcessor` + an OCR function engine).
+
+### Download the source document behind a citation
+
+Every RAG app gets asked to "open the actual PDF". `VectorFileDownload` retrieves the original source files back out of the vector database:
+
+```
+VectorFileDownload(engine="${VECTOR_ID}", fileNames=["doc1.pdf"]);
+```
+
+Returns a **download key** (operationType includes `FILE_DOWNLOAD`) for the standard two-step download flow (see app-bootstrap): open `${Env.MODULE}/api/engine/downloadFile?insightId=...&fileKey=...`. Multiple `fileNames` come back as a single zip. Missing files are reported as a warning noun rather than an error - check for it. If sources were ingested as pre-chunked CSVs, attach the original file first with `VectorAttachFileToSource(engine=, filePath=, source=)` (requires edit access) so there is something to download.
+
+### Inspect the raw chunks
+
+`ListDocumentsInVectorDatabase` lists documents; to see the actual **chunks** (for a debugging UI, chunk-quality review, or "show matched context" views):
+
+```
+ListAllRecordsInVectorDatabase(engine="${VECTOR_ID}");
+```
+
+Returns every chunk as `{ Source, Modality, Divider, Part, Tokens, Content }`. This is the full index - page it client-side for large databases.
 
 ## Response shape
 
