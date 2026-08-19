@@ -159,7 +159,9 @@ class AnthropicMessageBuilder:
                         else:
                             tool_result_part = AnthropicToolResultContentPart(
                                 tool_use_id=p.tool_result.id,
-                                content=p.tool_result.output,
+                                content=self._parse_tool_result_content(
+                                    p.tool_result.output
+                                ),
                             )
                             content_parts.append(tool_result_part)
 
@@ -574,6 +576,67 @@ class AnthropicMessageBuilder:
             return AnthropicRoles.ASSISTANT
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _parse_tool_result_content(
+        self, output: Optional[str]
+    ) -> Union[str, List[Dict[str, Any]]]:
+        """Convert a tool output string into Anthropic tool-result content.
+
+        If *output* is a JSON array of MCP content blocks (each dict has a
+        ``type`` key of ``"text"``, ``"image"``, or ``"document"``), the blocks
+        are translated to Anthropic format.  Any other value — plain text, a
+        JSON object, an unrecognised block type — is returned as a string so
+        the existing single-string path is preserved.
+        """
+        if not output:
+            return "Tool executed successfully."
+
+        try:
+            parsed = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return output
+
+        if not isinstance(parsed, list):
+            return output
+
+        blocks: List[Dict[str, Any]] = []
+        for item in parsed:
+            if not isinstance(item, dict) or "type" not in item:
+                return output  # not a content-block array — fall back
+            block_type = item["type"]
+            if block_type == "text":
+                blocks.append({"type": "text", "text": item.get("text", "")})
+            elif block_type == "image":
+                # MCP spec: {"type":"image","data":"<base64>","mimeType":"image/png"}
+                mime = item.get("mimeType", "image/png")
+                if mime == "image/jpg":
+                    mime = "image/jpeg"
+                blocks.append(
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime,
+                            "data": item.get("data", ""),
+                        },
+                    }
+                )
+            elif block_type == "document":
+                mime = item.get("mimeType", "application/pdf")
+                blocks.append(
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime,
+                            "data": item.get("data", ""),
+                        },
+                    }
+                )
+            else:
+                return output  # unknown block type — fall back to raw string
+
+        return blocks if blocks else output
 
     def _build_text_content_part(self, content: str) -> AnthropicTextContentPart:
         """Build Anthropic text content part"""

@@ -64,7 +64,7 @@ class AnthropicToolUseContentPart(BaseModel):
 class AnthropicToolResultContentPart(BaseModel):
     type: str = "tool_result"
     tool_use_id: str
-    content: str
+    content: Union[str, List[Dict[str, Any]]]
 
 
 # Result block for Anthropic server-side tools (web_search,
