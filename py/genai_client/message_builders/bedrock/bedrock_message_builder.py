@@ -85,9 +85,11 @@ class BedrockMessageBuilder:
                         content_blocks.append(tool_use_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = self._parse_tool_result_blocks(output)
                         tool_result_data = {
                             "toolUseId": p.tool_result.id,
-                            "content": [{"text": p.tool_result.output}],
+                            "content": self._build_bedrock_tool_content(output, blocks),
                         }
                         tool_result_part = BedrockToolResultContentBlock(
                             toolResult=tool_result_data
@@ -525,13 +527,47 @@ class BedrockMessageBuilder:
 
         return BedrockToolUseContentBlock(toolUse=tool_use_data)
 
+    def _parse_tool_result_blocks(self, output: str):
+        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        try:
+            parsed = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(parsed, list):
+            return None
+        for item in parsed:
+            if not isinstance(item, dict) or "type" not in item:
+                return None
+            if item["type"] not in ("text", "image", "document"):
+                return None
+        return parsed or None
+
+    def _build_bedrock_tool_content(self, output: str, blocks) -> list:
+        """Convert MCP content blocks to Bedrock tool result content array."""
+        if blocks is None:
+            return [{"text": output or "Tool executed successfully."}]
+        result = []
+        for b in blocks:
+            if b["type"] == "text":
+                result.append({"text": b["text"]})
+            elif b["type"] == "image":
+                fmt = b.get("mimeType", "image/png").split("/")[-1]
+                result.append({"image": {"format": fmt,
+                                         "source": {"bytes": base64.b64decode(b["data"])}}})
+            elif b["type"] == "document":
+                fmt = b.get("mimeType", "application/pdf").split("/")[-1]
+                result.append({"document": {"format": fmt, "name": "document",
+                                            "source": {"bytes": base64.b64decode(b["data"])}}})
+        return result or [{"text": output or "Tool executed successfully."}]
+
     def _build_tool_result_block(
         self, tool_use_id: str, tool_name: str, result_content: str
     ) -> BedrockToolResultContentBlock:
         """Build a tool result content block."""
+        blocks = self._parse_tool_result_blocks(result_content)
         tool_result_data = {
             "toolUseId": tool_use_id,
-            "content": [{"text": result_content}],
+            "content": self._build_bedrock_tool_content(result_content, blocks),
         }
 
         return BedrockToolResultContentBlock(toolResult=tool_result_data)
