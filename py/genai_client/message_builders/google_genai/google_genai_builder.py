@@ -72,12 +72,15 @@ class GoogleGenAIMessageBuilder:
                         parts.append(fc_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = self._parse_tool_result_blocks(output)
                         parts.append(
-                            Part.from_function_response(
+                            self._build_function_response_part(
                                 name=tool_id_to_name.get(
                                     p.tool_result.id, "unknown_tool"
                                 ),
-                                response={"result": p.tool_result.output},
+                                output=output,
+                                blocks=blocks,
                             )
                         )
 
@@ -176,9 +179,13 @@ class GoogleGenAIMessageBuilder:
                                 break
 
                         if tool_name and message.content:
+                            output = message.content
+                            blocks = self._parse_tool_result_blocks(output)
                             pending_tool_responses.append(
-                                Part.from_function_response(
-                                    name=tool_name, response={"result": message.content}
+                                self._build_function_response_part(
+                                    name=tool_name,
+                                    output=output,
+                                    blocks=blocks,
                                 )
                             )
 
@@ -324,6 +331,61 @@ class GoogleGenAIMessageBuilder:
         )
 
         return config, stream
+
+    def _supports_multimodal_function_response(self) -> bool:
+        """Multimodal function responses (FunctionResponsePart/Blob) require Gemini 3+."""
+        model_name = (self.model_settings.model_name or "").lower()
+        return "gemini-3" in model_name
+
+    def _build_function_response_part(self, name: str, output: str, blocks) -> Part:
+        """Build a function_response Part.
+
+        For Gemini 3+ models, image/document blocks are embedded as nested
+        FunctionResponsePart entries inside the Part so the model can analyze
+        them visually. On older models the binary is silently dropped and only
+        the text description is sent.
+        """
+        text_parts = [b["text"] for b in blocks if b["type"] == "text"] if blocks else None
+        text = "\n".join(text_parts) if text_parts else ("See attached media." if blocks else output)
+
+        if blocks and self._supports_multimodal_function_response():
+            media_parts = []
+            for block in blocks:
+                if block["type"] in ("image", "document"):
+                    mime = block.get("mimeType", "image/png")
+                    ext = mime.split("/")[-1]
+                    media_parts.append(
+                        types.FunctionResponsePart(
+                            inline_data=types.FunctionResponseBlob(
+                                mime_type=mime,
+                                display_name=f"attachment.{ext}",
+                                data=base64.b64decode(block["data"]),
+                            )
+                        )
+                    )
+            if media_parts:
+                return Part.from_function_response(
+                    name=name,
+                    response={"result": text},
+                    parts=media_parts,
+                )
+
+        return Part.from_function_response(name=name, response={"result": text})
+
+    def _parse_tool_result_blocks(self, output: str):
+        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        try:
+            parsed = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(parsed, list):
+            return None
+        for item in parsed:
+            if not isinstance(item, dict) or "type" not in item:
+                return None
+            if item["type"] not in ("text", "image", "document"):
+                return None
+        return parsed or None
 
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""
