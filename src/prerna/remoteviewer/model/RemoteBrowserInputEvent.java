@@ -118,6 +118,10 @@ public class RemoteBrowserInputEvent {
 	private String replayTriggerTabId;
 	/** Optional recording/replay step id associated with this action. */
 	private Integer stepId;
+	/** Enables or pauses browser diagnostic event collection. */
+	private Boolean debugEnabled;
+	/** Clears pending browser diagnostic events. */
+	private Boolean clear;
 
 	// ---- getters & setters ----
 
@@ -431,5 +435,21 @@ public class RemoteBrowserInputEvent {
 
 	public void setStepId(Integer stepId) {
 		this.stepId = stepId;
+	}
+
+	public Boolean getDebugEnabled() {
+		return debugEnabled;
+	}
+
+	public void setDebugEnabled(Boolean debugEnabled) {
+		this.debugEnabled = debugEnabled;
+	}
+
+	public Boolean getClear() {
+		return clear;
+	}
+
+	public void setClear(Boolean clear) {
+		this.clear = clear;
 	}
 }

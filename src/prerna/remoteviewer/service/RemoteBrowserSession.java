@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -45,6 +46,7 @@ import com.microsoft.playwright.Page;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.StepsEnvelope;
+import prerna.remoteviewer.model.RemoteBrowserDebugEvent;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
 
@@ -65,6 +67,7 @@ import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
  * </ul>
  */
 public class RemoteBrowserSession {
+	private static final int MAX_DEBUG_EVENTS = 1_000;
 
 	private final String sessionId;
 	private final String userId;
@@ -77,6 +80,10 @@ public class RemoteBrowserSession {
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private final AtomicBoolean navigationLoading = new AtomicBoolean(false);
+	private final AtomicBoolean debugEnabled = new AtomicBoolean(false);
+	private final AtomicLong debugSequence = new AtomicLong();
+	private final AtomicLong droppedDebugEvents = new AtomicLong();
+	private final BlockingQueue<RemoteBrowserDebugEvent> debugEventQueue = new LinkedBlockingQueue<>(MAX_DEBUG_EVENTS);
 
 	/** Queue of input events waiting to be processed by the session thread. */
 	public final BlockingQueue<RemoteBrowserInputEvent> eventQueue = new LinkedBlockingQueue<>(256);
@@ -218,6 +225,45 @@ public class RemoteBrowserSession {
 	 */
 	public boolean updateNavigationLoading(boolean loading) {
 		return navigationLoading.getAndSet(loading) != loading;
+	}
+
+	public boolean isDebugEnabled() {
+		return debugEnabled.get();
+	}
+
+	public void setDebugEnabled(boolean enabled) {
+		debugEnabled.set(enabled);
+		if (!enabled) {
+			clearDebugEvents();
+		}
+	}
+
+	public void clearDebugEvents() {
+		debugEventQueue.clear();
+		droppedDebugEvents.set(0);
+	}
+
+	public String nextDebugEventId() {
+		return "debug-" + debugSequence.incrementAndGet();
+	}
+
+	public void enqueueDebugEvent(RemoteBrowserDebugEvent event) {
+		if (!debugEnabled.get() || event == null) {
+			return;
+		}
+		if (!debugEventQueue.offer(event)) {
+			droppedDebugEvents.incrementAndGet();
+		}
+	}
+
+	public List<RemoteBrowserDebugEvent> drainDebugEvents(int maximum) {
+		List<RemoteBrowserDebugEvent> events = new ArrayList<>(Math.max(0, maximum));
+		debugEventQueue.drainTo(events, Math.max(0, maximum));
+		return events;
+	}
+
+	public long consumeDroppedDebugEvents() {
+		return droppedDebugEvents.getAndSet(0);
 	}
 
 	public List<RemoteBrowserRecordedStep> getRemoteBrowserRecordedSteps() {

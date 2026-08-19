@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.remoteviewer.service;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -47,7 +48,10 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.ConsoleMessage;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Request;
+import com.microsoft.playwright.Response;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.WaitUntilState;
 
@@ -55,6 +59,7 @@ import prerna.auth.User;
 import prerna.reactor.playwright.PlaywrightBrowserProvider;
 import prerna.reactor.playwright.PlaywrightDownloadRegistry;
 import prerna.reactor.playwright.PlaywrightSession;
+import prerna.remoteviewer.model.RemoteBrowserDebugEvent;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
 
@@ -94,6 +99,13 @@ public class RemoteBrowserSessionManager {
 	private final int maxSessionsPerUser;
 	private static final String DEFAULT_START_URL = "https://example.com";
 	private static final double FRAME_CAPTURE_TIMEOUT_MS = 2_000;
+	private static final int MAX_DEBUG_EVENTS_PER_BATCH = 100;
+	private static final int MAX_DEBUG_URL_LENGTH = 2_048;
+	private static final int MAX_DEBUG_TEXT_LENGTH = 4_096;
+	private final Map<Request, DebugRequestTrace> debugRequestTraces = new ConcurrentHashMap<>();
+
+	private record DebugRequestTrace(String sessionId, String requestId, long startedAt) {
+	}
 	private static final String JS_PAGE_SCROLL_METRICS = """
 			() => {
 			  const root = document.scrollingElement || document.documentElement || document.body;
@@ -360,6 +372,7 @@ public class RemoteBrowserSessionManager {
 		}
 		page.onRequest(request -> {
 			try {
+				handleDebugRequest(session, page, request);
 				if (!session.isClosed() && request.isNavigationRequest() && request.frame() == page.mainFrame()
 						&& page == session.getActivePage()) {
 					sendNavigationLoading(session, true);
@@ -376,6 +389,7 @@ public class RemoteBrowserSessionManager {
 		});
 		page.onRequestFailed(request -> {
 			try {
+				handleDebugRequestFailed(session, page, request);
 				if (!session.isClosed() && request.isNavigationRequest() && request.frame() == page.mainFrame()
 						&& page == session.getActivePage()) {
 					sendNavigationLoading(session, false);
@@ -390,6 +404,152 @@ public class RemoteBrowserSessionManager {
 				sendNavigationLoading(session, false);
 			}
 		});
+		page.onResponse(response -> handleDebugResponse(session, page, response));
+		page.onRequestFinished(request -> removeDebugRequestTrace(session, request));
+		page.onConsoleMessage(message -> handleDebugConsole(session, page, message));
+		page.onPageError(message -> handleDebugPageError(session, page, message));
+	}
+
+	private void handleDebugRequest(RemoteBrowserSession session, Page page, Request request) {
+		if (session.isClosed() || !session.isDebugEnabled()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		String requestId = "request-" + session.nextDebugEventId();
+		debugRequestTraces.put(request, new DebugRequestTrace(session.getSessionId(), requestId, now));
+		session.enqueueDebugEvent(RemoteBrowserDebugEvent.network(session.nextDebugEventId(), "request", requestId,
+				now, debugTabId(session, page), truncate(request.method(), 32), sanitizeDebugUrl(request.url()),
+				truncate(request.resourceType(), 64), null, null, null, null));
+	}
+
+	private void handleDebugResponse(RemoteBrowserSession session, Page page, Response response) {
+		Request request = response.request();
+		DebugRequestTrace trace = getDebugRequestTrace(session, request);
+		if (session.isClosed() || !session.isDebugEnabled()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		String requestId = trace == null ? "request-" + session.nextDebugEventId() : trace.requestId();
+		Long durationMs = trace == null ? null : Math.max(0, now - trace.startedAt());
+		session.enqueueDebugEvent(RemoteBrowserDebugEvent.network(session.nextDebugEventId(), "response", requestId,
+				now, debugTabId(session, page), truncate(request.method(), 32), sanitizeDebugUrl(response.url()),
+				truncate(request.resourceType(), 64), response.status(), truncate(response.statusText(), 256), durationMs,
+				null));
+	}
+
+	private void handleDebugRequestFailed(RemoteBrowserSession session, Page page, Request request) {
+		DebugRequestTrace trace = removeDebugRequestTrace(session, request);
+		if (session.isClosed() || !session.isDebugEnabled()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		String requestId = trace == null ? "request-" + session.nextDebugEventId() : trace.requestId();
+		Long durationMs = trace == null ? null : Math.max(0, now - trace.startedAt());
+		session.enqueueDebugEvent(RemoteBrowserDebugEvent.network(session.nextDebugEventId(), "failed", requestId,
+				now, debugTabId(session, page), truncate(request.method(), 32), sanitizeDebugUrl(request.url()),
+				truncate(request.resourceType(), 64), null, null, durationMs,
+				truncate(request.failure(), MAX_DEBUG_TEXT_LENGTH)));
+	}
+
+	private void handleDebugConsole(RemoteBrowserSession session, Page page, ConsoleMessage consoleMessage) {
+		if (session.isClosed() || !session.isDebugEnabled()) {
+			return;
+		}
+		session.enqueueDebugEvent(RemoteBrowserDebugEvent.console(session.nextDebugEventId(),
+				System.currentTimeMillis(), debugTabId(session, page), truncate(consoleMessage.type(), 32),
+				truncate(consoleMessage.text(), MAX_DEBUG_TEXT_LENGTH), sanitizeDebugLocation(consoleMessage.location())));
+	}
+
+	private void handleDebugPageError(RemoteBrowserSession session, Page page, String message) {
+		if (session.isClosed() || !session.isDebugEnabled()) {
+			return;
+		}
+		session.enqueueDebugEvent(RemoteBrowserDebugEvent.pageError(session.nextDebugEventId(),
+				System.currentTimeMillis(), debugTabId(session, page), truncate(message, MAX_DEBUG_TEXT_LENGTH)));
+	}
+
+	private DebugRequestTrace removeDebugRequestTrace(RemoteBrowserSession session, Request request) {
+		DebugRequestTrace trace = getDebugRequestTrace(session, request);
+		if (trace != null) {
+			debugRequestTraces.remove(request, trace);
+		}
+		return trace;
+	}
+
+	private DebugRequestTrace getDebugRequestTrace(RemoteBrowserSession session, Request request) {
+		DebugRequestTrace trace = debugRequestTraces.get(request);
+		if (trace == null || !session.getSessionId().equals(trace.sessionId())) {
+			return null;
+		}
+		return trace;
+	}
+
+	private static String debugTabId(RemoteBrowserSession session, Page page) {
+		String tabId = session.getPlaywrightSession().findTabId(page);
+		return tabId == null || tabId.isBlank() ? session.getActiveTabId() : tabId;
+	}
+
+	private static String sanitizeDebugUrl(String rawUrl) {
+		if (rawUrl == null || rawUrl.isBlank()) {
+			return "";
+		}
+		try {
+			URI uri = URI.create(rawUrl);
+			String scheme = uri.getScheme();
+			if (scheme != null && ("data".equalsIgnoreCase(scheme) || "javascript".equalsIgnoreCase(scheme))) {
+				return scheme.toLowerCase() + ":[redacted]";
+			}
+			if (uri.getHost() != null) {
+				String base = new URI(scheme, null, uri.getHost(), uri.getPort(), uri.getPath(), null, null).toString();
+				String query = redactQuery(uri.getRawQuery());
+				return truncate(query.isEmpty() ? base : base + "?" + query, MAX_DEBUG_URL_LENGTH);
+			}
+		} catch (Exception ignored) {
+		}
+		return truncate(stripFragmentAndQuery(rawUrl), MAX_DEBUG_URL_LENGTH);
+	}
+
+	private static String redactQuery(String query) {
+		if (query == null || query.isBlank()) {
+			return "";
+		}
+		StringBuilder redacted = new StringBuilder();
+		for (String part : query.split("&")) {
+			if (redacted.length() > 0) {
+				redacted.append('&');
+			}
+			int equals = part.indexOf('=');
+			String name = equals < 0 ? part : part.substring(0, equals);
+			redacted.append(name).append("=REDACTED");
+		}
+		return redacted.toString();
+	}
+
+	private static String sanitizeDebugLocation(String location) {
+		return truncate(stripFragmentAndQuery(location), MAX_DEBUG_URL_LENGTH);
+	}
+
+	private static String stripFragmentAndQuery(String value) {
+		if (value == null) {
+			return "";
+		}
+		int question = value.indexOf('?');
+		int fragment = value.indexOf('#');
+		int end = value.length();
+		if (question >= 0) {
+			end = Math.min(end, question);
+		}
+		if (fragment >= 0) {
+			end = Math.min(end, fragment);
+		}
+		return value.substring(0, end);
+	}
+
+	private static String truncate(String value, int maximum) {
+		if (value == null || value.length() <= maximum) {
+			return value;
+		}
+		return value.substring(0, maximum);
 	}
 
 	private void sendNavigationLoading(RemoteBrowserSession session, boolean loading) {
@@ -492,7 +652,9 @@ public class RemoteBrowserSessionManager {
 				while ((event = session.eventQueue.poll()) != null) {
 					classLogger.info("Remote viewer event dequeued session={} queueRemaining={} type={}",
 							session.getSessionId(), session.eventQueue.size(), event.getType());
-					if ("selected-text-context".equals(event.getType())) {
+					if ("debug-control".equals(event.getType())) {
+						handleDebugControl(session, event);
+					} else if ("selected-text-context".equals(event.getType())) {
 						handleSelectedTextContext(session, event);
 					} else if ("full-page-text-context".equals(event.getType())) {
 						handleFullPageTextContext(session, event);
@@ -574,6 +736,7 @@ public class RemoteBrowserSessionManager {
 					}
 					session.touchActivity();
 				}
+				sendDebugEvents(session);
 
 				Page page = session.getActivePage();
 				if (page == null || page.isClosed()) {
@@ -764,6 +927,49 @@ public class RemoteBrowserSessionManager {
 		return "recording".equals(event.getType()) || "recording-control".equals(event.getType());
 	}
 
+	private void handleDebugControl(RemoteBrowserSession session, RemoteBrowserInputEvent event) {
+		if (Boolean.TRUE.equals(event.getClear())) {
+			session.clearDebugEvents();
+		}
+		if (event.getDebugEnabled() != null) {
+			session.setDebugEnabled(event.getDebugEnabled());
+			if (!event.getDebugEnabled()) {
+				debugRequestTraces.entrySet()
+						.removeIf(entry -> session.getSessionId().equals(entry.getValue().sessionId()));
+			}
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+		Map<String, Object> response = new LinkedHashMap<>();
+		response.put("type", "debug-control-result");
+		response.put("requestId", event.getRequestId());
+		response.put("success", true);
+		response.put("enabled", session.isDebugEnabled());
+		sender.send(LOOP_GSON.toJson(response));
+	}
+
+	private static void sendDebugEvents(RemoteBrowserSession session) {
+		if (!session.isDebugEnabled()) {
+			return;
+		}
+		RemoteBrowserFrameSender sender = session.getRemoteBrowserFrameSender();
+		if (sender == null || !session.isWsConnected()) {
+			return;
+		}
+		List<RemoteBrowserDebugEvent> events = session.drainDebugEvents(MAX_DEBUG_EVENTS_PER_BATCH);
+		long droppedCount = session.consumeDroppedDebugEvents();
+		if (events.isEmpty() && droppedCount == 0) {
+			return;
+		}
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("type", "debug-events");
+		payload.put("events", events);
+		payload.put("droppedCount", droppedCount);
+		sender.send(LOOP_GSON.toJson(payload));
+	}
+
 	private static boolean isTabControl(RemoteBrowserInputEvent event) {
 		String type = event == null ? null : event.getType();
 		return "new-tab".equals(type) || "switch-tab".equals(type) || "switch-replay-tab".equals(type)
@@ -896,6 +1102,8 @@ public class RemoteBrowserSessionManager {
 			t.interrupt();
 		}
 		RemoteBrowserRecordingService.discardRecording(s);
+		s.setDebugEnabled(false);
+		debugRequestTraces.entrySet().removeIf(entry -> s.getSessionId().equals(entry.getValue().sessionId()));
 		s.setRemoteBrowserFrameSender(null);
 		s.setWsConnected(false);
 		classLogger.info("Closed remote browser viewer transport {}; Playwright session remains user-owned",
