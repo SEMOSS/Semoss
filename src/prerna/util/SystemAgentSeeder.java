@@ -69,8 +69,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
  * they stay in sync with the platform lists automatically:
  * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemMCPs()} (database-maker,
- * node-builder, reactor-help)</li>
+ * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}
+ * (database-maker, node-builder, reactor-help, app-filesystem,
+ * room-filesystem)</li>
  * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
  */
@@ -177,7 +178,7 @@ public class SystemAgentSeeder {
 
 	private static String description(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
-			return "System agent for building SEMOSS apps.";
+			return "System agent for building platform apps.";
 		}
 		return "";
 	}
@@ -257,7 +258,7 @@ public class SystemAgentSeeder {
 	 * last content line so no trailing newline is appended.
 	 */
 	private static final String APP_BUILDER_SYSTEM_PROMPT = """
-			You are a SEMOSS App Building agent.
+			You are an App Building agent for this platform.
 
 			Start every task by calling ListSkills to see which skill packages are available. Load each relevant skill with LoadSkill before doing the work. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, and other recurring tasks. Do not guess parameters or output schemas.
 

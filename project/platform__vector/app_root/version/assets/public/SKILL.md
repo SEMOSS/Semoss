@@ -229,7 +229,7 @@ Same envelope as every other pixel call:
 - `insightID` — insight ID used for the pixel execution.
 - `pixelReturn[]` — array of results, one per pixel command in the call. For a single vector pixel, always index `[0]`.
 
-Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel SEMOSS actually executed — useful for debugging encoding), `isMeta`, `timeToRun` (ms), and `operationType`. For successful embedding calls, `operationType` is `["SUCCESS"]`; for queries and listings it is `["OPERATION"]`.
+Each `pixelReturn[i]` carries `pixelId`, `pixelExpression` (the parsed pixel the platform actually executed — useful for debugging encoding), `isMeta`, `timeToRun` (ms), and `operationType`. For successful embedding calls, `operationType` is `["SUCCESS"]`; for queries and listings it is `["OPERATION"]`.
 
 ## `VectorDatabaseQuery` output
 
