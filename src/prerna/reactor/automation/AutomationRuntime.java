@@ -147,14 +147,20 @@ final class AutomationRuntime {
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
 
-				%s
-
-				_automation_result = run(_automation_scope)
+				_automation_module = {
+				    "__name__": "__automation_node__",
+				    "resolve": resolve,
+				}
+				exec(_automation_b64.urlsafe_b64decode("%s").decode("utf-8"), _automation_module)
+				_automation_run = _automation_module.get("run")
+				if not callable(_automation_run):
+				    raise ValueError("Automation node source must define callable run(scope).")
+				_automation_result = _automation_run(_automation_scope)
 				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
 				""".formatted(
 						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
 						encode(AutomationRuntimeUtils.GSON.toJson(config != null ? config : Map.of())),
-						source);
+						encode(source));
 	}
 
 	/**

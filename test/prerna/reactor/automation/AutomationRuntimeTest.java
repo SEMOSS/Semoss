@@ -51,8 +51,21 @@ class AutomationRuntimeTest {
 		assertTrue(!script.contains("def run_current_node("));
 		assertTrue(script.contains("def resolve(value, scope):"));
 		assertTrue(script.contains("_automation_scope[\"_automation_config\"] = _automation_config"));
-		assertTrue(script.contains("_automation_result = run(_automation_scope)"));
-		assertTrue(script.contains(source.strip()));
+		assertTrue(script.contains("_automation_module = {"));
+		assertTrue(script.contains("\"resolve\": resolve"));
+		assertTrue(script.contains("exec(_automation_b64.urlsafe_b64decode"));
+		assertTrue(script.contains("_automation_run = _automation_module.get(\"run\")"));
+		assertTrue(script.contains("_automation_result = _automation_run(_automation_scope)"));
+		assertTrue(!script.contains(source.strip()));
+	}
+
+	@Test
+	void requiresCallableRunFromIsolatedNodeModule() {
+		String script = AutomationRuntime.buildNodeInvocationScript("value = 1", Map.of());
+
+		assertTrue(script.contains("if not callable(_automation_run):"));
+		assertTrue(script.contains("Automation node source must define callable run(scope)."));
+		assertTrue(script.contains("\"__name__\": \"__automation_node__\""));
 	}
 
 	@Test
