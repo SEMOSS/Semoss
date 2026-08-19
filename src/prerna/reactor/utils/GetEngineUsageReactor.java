@@ -553,8 +553,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						`command` (str): prompt sent to the model.<br/>
 						`room_id` (Optional[str]): conversation identifier.<br/>
 						`context` (Optional[str]): system prompt context.<br/>
-						`image` (Optional[List]): base64 image payload(s).<br/>
-						`url` (Optional[List]): image URL(s).<br/>
+						`media` (Optional[List]): file names already uploaded to the insight or room, or base64 payload(s). Any file type - image, pdf, document, spreadsheet, audio, video.<br/>
+						`url` (Optional[List]): media URL(s).<br/>
 						`use_history` (Optional[bool]): include history for this call.<br/>
 						`param_dict` (Optional[Dict]): model/provider parameters.<br/>
 						`insight_id` (Optional[str]): insight identifier.<br/>
