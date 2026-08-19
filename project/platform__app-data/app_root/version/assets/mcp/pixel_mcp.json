@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "list_app_data_skill_files",
+      "title": "List App Data Skill Files",
+      "description": "List the files in the platform 'app-data' skill, the platform's guidance for persisting data and files durably from an app - app config files, bundled data, user-generated files, per-user saved files, reading files back at runtime, serving stored images, and querying a CSV in memory without a database. Call this when the user asks to save or load app settings, store files permanently, read a bundled data file, show an image stored with the app, or filter/aggregate an uploaded CSV, and when they name SaveAppAssets, GetAppAssets, GetAppAssetsBase64, BrowseAppAssets, SaveUserAssets, CopyAppAssetsToInsight, the space argument, FileRead, CreateFrame, or QueryAll. CRITICAL to consult before any persistence design: it covers which spaces are ephemeral vs durable, why end users cannot write project space, and the assets/public read jail for view-only users. Returns each file with its path, name, and description; start with SKILL.md. Not for S3-style storage engines (see the storage skill) or SQL data (see the database skill).",
+      "inputSchema": {
+        "type": "object",
+        "title": "list_app_data_skill_files_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The app-data skill (app-data). Always this value.",
+            "enum": [
+              "app-data"
+            ],
+            "default": "app-data"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ListSkillFiles"
+      }
+    },
+    {
+      "name": "read_app_data_skill_file",
+      "title": "Read App Data Skill File",
+      "description": "Read one file from the platform 'app-data' skill in full, for writing code that persists and reads app or user data through runPixel. Pass filePath exactly as list_app_data_skill_files reports it; SKILL.md is the main guide and covers the three file spaces (ephemeral insight, durable git-backed project, durable per-user), the two correctness traps (project writes need EDIT permission; view-only users can read only assets/public), the full SaveAppAssets/GetAppAssets family, base64 image serving because project files are not URL-addressable, the space argument path-prefix inconsistency, the FileRead | Import | Frame | QueryAll CSV query flow, and why SetAppConfig is not durable.",
+      "inputSchema": {
+        "type": "object",
+        "title": "read_app_data_skill_file_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The app-data skill (app-data). Always this value.",
+            "enum": [
+              "app-data"
+            ],
+            "default": "app-data"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Path of the file to read, relative to the skill folder, as reported by list_app_data_skill_files. Use 'SKILL.md' for the main guide.",
+            "default": "SKILL.md"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ReadSkillFile"
+      }
+    }
+  ]
+}

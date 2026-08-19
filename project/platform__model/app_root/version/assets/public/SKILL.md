@@ -1,6 +1,6 @@
 ---
 name: model
-description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included. Do not use for vector database queries (see vector).
+description: Use when writing code in an app that calls an LLM, embedding model, or other model engine, OR when listing/selecting models the user has access to. Covers the LLM() and MyEngines() pixel commands via @semoss/sdk's runPixel, including prompt/completion calls, conversational history, structured outputs, attaching media of any type (image, PDF, Word, spreadsheet, audio, video) with the media argument, and parsing model responses. Also covers which top-level arguments full_prompt drops, media included, plus the other model pixels: Embeddings(), MultiModalEmbeddings(), Vision(), NER(), GetContextWindow(), GetUserModelUsage(), and the provider batch API (BatchLLM, GetModelBatchStatus, GetModelBatchResults). Do not use for vector database queries (see vector).
 ---
 
 # Model Engine
@@ -197,6 +197,56 @@ useEffect(() => {
   );
 }, []);
 ```
+
+## Beyond LLM() - other model pixels
+
+### Embeddings
+
+Text to vectors, for custom similarity/clustering/dedup work outside a vector database (for document search with a vector DB, use the vector skill instead):
+
+```
+Embeddings(engine="${EMBEDDING_MODEL_ID}", values=["first text", "second text"]);
+```
+
+Returns a map with the vectors in `pixelReturn[0].output`. If the engine is not an embedding model, the output is the literal string "This model does not support embeddings." - check for it. `MultiModalEmbeddings(engine=, text=, image=, video=)` embeds any combination of modalities (image/video accept base64, data URLs, or remote URLs), with results broken out by modality.
+
+### Vision and NER
+
+```
+Vision(engine="${MODEL_ID}", command=["Describe this diagram"], image=["${urlOrBase64}"]);
+NER(engine="${NER_MODEL_ID}", prompt=["<encode>${text}</encode>"], entities=["PERSON","EMAIL"], maskEntities=[true]);
+```
+
+`Vision` is the image-text-to-text task for models exposing it. `NER` extracts (and with `maskEntities` redacts) named entities - the engine must actually be an NER model or the call fails.
+
+### Token budget and usage
+
+```
+GetContextWindow(model="${MODEL_ID}");            // -> context window as an int (0 if unset)
+GetUserModelUsage(engine=["${MODEL_ID}"]);        // -> current user's INPUT_TOKENS, OUTPUT_TOKENS, CACHE_* , THINKING_TOKENS, TOTAL_REQUESTS (optional startDate/endDate)
+GetUserModelUsageRestrictions(engine="${MODEL_ID}"); // -> the user's quota/restriction state
+```
+
+Use `GetContextWindow` before trimming history client-side (or trigger `CompactRoomMessages` - see the room skill). Surface `GetUserModelUsageRestrictions` to warn users before they hit a quota mid-task.
+
+### Batch API - bulk work at lower cost
+
+For large offline workloads (classify 10k rows, summarize a document set), the provider batch APIs are typically ~50% cheaper than interactive calls:
+
+```
+BatchLLM(engine="${MODEL_ID}", requests=["<encode>prompt one</encode>", "<encode>prompt two</encode>"]);
+```
+
+`requests` entries are plain strings or `{command, context}` maps; the call returns a batch id. Then poll:
+
+```
+GetModelBatchStatus(engine="${MODEL_ID}", batchId="${batchId}");
+GetModelBatchResults(engine="${MODEL_ID}", batchId="${batchId}");
+CancelModelBatch(engine="${MODEL_ID}", batchId="${batchId}");
+ListModelBatches(engine="${MODEL_ID}", limit=[20]);
+```
+
+Batches are owned per user - polling someone else's batch id fails. Completion takes minutes to hours; persist the batch id (see app-data) rather than holding it in component state.
 
 # LLM response schema
 
