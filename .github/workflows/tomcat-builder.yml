@@ -103,6 +103,17 @@ jobs:
               test -f "$JAVA_HOME/lib/security/cacerts.bcfks"
               grep -q "^security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security.fips"
               grep -q "^security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider" "$JAVA_HOME/conf/security/java.security.fips"
+              # TLS defaults. SunX509 is a SunJSSE-only algorithm name and BCFKS
+              # is a BCFIPS-only store type, so leaving either default in place
+              # breaks TLS at first use rather than at startup. Exactly one line
+              # each - a stale JDK default left behind would still match a plain
+              # grep and win, since the last assignment is the one that applies.
+              sec_fips="$JAVA_HOME/conf/security/java.security.fips"
+              test "$(grep -c "^ssl.KeyManagerFactory.algorithm=" "$sec_fips")" = 1
+              test "$(grep -c "^ssl.TrustManagerFactory.algorithm=" "$sec_fips")" = 1
+              grep -q "^ssl.KeyManagerFactory.algorithm=PKIX$" "$sec_fips"
+              grep -q "^ssl.TrustManagerFactory.algorithm=PKIX$" "$sec_fips"
+              grep -q "javax.net.ssl.trustStoreProvider=BCFIPS" "$TOMCAT_HOME/bin/setenv.sh"
               grep -q "approved_only=true" "$TOMCAT_HOME/bin/setenv.sh"
               grep -q "java.security.properties==" "$TOMCAT_HOME/bin/setenv.sh"
               # the JDK default must stay usable or Maven, keytool and the
@@ -118,6 +129,7 @@ jobs:
               test ! -e "$JAVA_HOME/conf/security/java.security.fips"
               ! grep -q "BouncyCastleFipsProvider" "$JAVA_HOME/conf/security/java.security"
               ! grep -q "approved_only" "$TOMCAT_HOME/bin/setenv.sh"
+              ! grep -q "trustStoreProvider" "$TOMCAT_HOME/bin/setenv.sh"
               echo "standard variant verified clean"
             fi
           '

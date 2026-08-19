@@ -87,14 +87,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
-			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY);
+			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY, Constants.PRICING);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY,
 			Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
 			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
 			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
 			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
-			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.DESCR);
+			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING, Constants.DESCR);
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
@@ -134,6 +134,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		normalizeListProperty(normalized, Constants.SUPPORTED_PARAMETERS, false);
 		normalizeJsonObjectProperty(normalized, Constants.REASONING_CONFIG);
 		normalizeJsonArrayProperty(normalized, Constants.BENCHMARKS);
+		normalizePricingProperty(normalized);
 		normalizePositiveLongProperty(normalized, Constants.CONTEXT_WINDOW);
 		normalizePositiveLongProperty(normalized, Constants.MAX_TOKENS);
 		return normalized;
@@ -190,6 +191,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.SUPPORTED_PARAMETERS);
 		copyIfPresent(properties, details, Constants.REASONING_CONFIG);
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
+		copyIfPresent(properties, details, Constants.PRICING);
 
 		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
 		merged.putAll(details);
@@ -213,8 +215,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = modelMetadataExists(securityDb, metadata.engineId());
 		String sql = exists
-				? "UPDATE MODELMETADATA SET MODELID=?, CATALOGMODELKEY=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=? WHERE ENGINEID=?"
-				: "INSERT INTO MODELMETADATA (MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+				? "UPDATE MODELMETADATA SET MODELID=?, CATALOGMODELKEY=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=?, PRICING=? WHERE ENGINEID=?"
+				: "INSERT INTO MODELMETADATA (MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -241,6 +243,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			setNullableString(ps, index++, metadata.supportedParametersJson());
 			setNullableString(ps, index++, metadata.reasoningConfigJson());
 			setNullableString(ps, index++, metadata.benchmarksJson());
+			setNullableString(ps, index++, metadata.pricingJson());
 			ps.setString(index, metadata.engineId());
 			ps.executeUpdate();
 			ConnectionUtils.commitConnection(ps.getConnection());
@@ -500,6 +503,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		putIfNotNull(details, Constants.SUPPORTED_PARAMETERS, existing.get("supportedParameters"));
 		putIfNotNull(details, Constants.REASONING_CONFIG, existing.get("reasoningConfig"));
 		putIfNotNull(details, Constants.BENCHMARKS, existing.get("benchmarks"));
+		putIfNotNull(details, Constants.PRICING, existing.get("pricing"));
 		return details;
 	}
 
@@ -514,7 +518,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID=?";
+		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID=?";
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
@@ -556,7 +560,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			int end = Math.min(start + MODEL_METADATA_QUERY_BATCH_SIZE, normalizedEngineIds.size());
 			List<String> batch = normalizedEngineIds.subList(start, end);
 			String placeholders = String.join(",", Collections.nCopies(batch.size(), "?"));
-			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS FROM MODELMETADATA WHERE ENGINEID IN ("
+			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
 			PreparedStatement ps = null;
@@ -611,6 +615,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("supportedParameters", emptyListIfNull(modelMetadata.get("supportedParameters")));
 		capabilities.put("reasoningConfig", emptyMapIfNull(modelMetadata.get("reasoningConfig")));
 		capabilities.put("benchmarks", emptyListIfNull(modelMetadata.get("benchmarks")));
+		capabilities.put("pricing", emptyListIfNull(modelMetadata.get("pricing")));
 		return capabilities;
 	}
 
@@ -642,7 +647,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				|| details.containsKey(Constants.TOOL_CALL) || details.containsKey(Constants.STRUCTURED_OUTPUT)
 				|| details.containsKey(Constants.TEMPERATURE) || details.containsKey(Constants.KNOWLEDGE_CUTOFF)
 				|| details.containsKey(Constants.RELEASE_DATE) || details.containsKey(Constants.SUPPORTED_PARAMETERS)
-				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS);
+				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS)
+				|| details.containsKey(Constants.PRICING);
 	}
 
 	/**
@@ -677,7 +683,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				nullableString(details.get(Constants.KNOWLEDGE_CUTOFF)),
 				nullableString(details.get(Constants.RELEASE_DATE)),
 				nullableString(details.get(Constants.SUPPORTED_PARAMETERS)),
-				nullableString(details.get(Constants.REASONING_CONFIG)), nullableString(details.get(Constants.BENCHMARKS)));
+				nullableString(details.get(Constants.REASONING_CONFIG)), nullableString(details.get(Constants.BENCHMARKS)),
+				nullableString(details.get(Constants.PRICING)));
 	}
 
 	private static void normalizeStringProperty(Map<String, Object> details, String key, boolean identifier) {
@@ -912,6 +919,62 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		details.put(key, GSON.toJson(json));
 	}
 
+	/**
+	 * Pricing is stored as a JSON array of per-serving-provider rate entries.
+	 * Entries missing the identifying servingProvider/modelId strings are
+	 * dropped individually so one bad entry does not discard the rest. Values
+	 * round-trip through the long-or-double gson so integer rates re-serialize
+	 * identically and catalog sync comparisons stay stable.
+	 */
+	private static void normalizePricingProperty(Map<String, Object> details) {
+		String key = Constants.PRICING;
+		if (!details.containsKey(key)) {
+			return;
+		}
+		Object value = details.get(key);
+		if (value == null || value.toString().trim().isEmpty()) {
+			details.put(key, null);
+			return;
+		}
+
+		List<?> parsed;
+		try {
+			String json = value instanceof String ? value.toString() : GSON.toJson(value);
+			parsed = LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
+		} catch (RuntimeException e) {
+			throw new IllegalArgumentException(key + " must be a JSON array of pricing entries", e);
+		}
+		if (parsed == null) {
+			details.put(key, null);
+			return;
+		}
+
+		List<Map<?, ?>> entries = new ArrayList<>();
+		for (Object element : parsed) {
+			if (element instanceof Map<?, ?> entry
+					&& entry.get("servingProvider") instanceof String servingProvider
+					&& !servingProvider.trim().isEmpty()
+					&& entry.get("modelId") instanceof String modelId && !modelId.trim().isEmpty()) {
+				entries.add(entry);
+			} else {
+				classLogger.warn("Ignoring {} entry without a servingProvider and modelId", key);
+			}
+		}
+		details.put(key, entries.isEmpty() ? null : GSON.toJson(entries));
+	}
+
+	/**
+	 * Stored pricing is a JSON array of rate entries; anything else in the
+	 * column reads as unset. Whole numbers parse as longs rather than gson's
+	 * default doubles so re-serialized rates match the catalog exactly.
+	 */
+	private static List<?> parseStoredPricing(String json) {
+		if (json == null || !json.trim().startsWith("[")) {
+			return null;
+		}
+		return LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
+	}
+
 	private static List<?> parseStoredJsonArray(String json) {
 		return json == null ? null : GSON.fromJson(json, List.class);
 	}
@@ -944,6 +1007,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		metadata.put("supportedParameters", parseStoredList(rs.getString("SUPPORTEDPARAMETERS")));
 		metadata.put("reasoningConfig", parseStoredJsonObject(rs.getString("REASONINGCONFIG")));
 		metadata.put("benchmarks", parseStoredJsonArray(rs.getString("BENCHMARKS")));
+		metadata.put("pricing", parseStoredPricing(rs.getString("PRICING")));
 		return metadata;
 	}
 
@@ -1069,6 +1133,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
 			Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
 			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
-			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson) {
+			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson, String pricingJson) {
 	}
 }

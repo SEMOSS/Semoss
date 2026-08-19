@@ -256,7 +256,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		// Both the scan and the explicit-reactor path feed this array.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
 
-		String outputFileLoc = projectAssetFolder + "/mcp/pixel_mcp.json";
+		String outputFileLoc = projectAssetFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 
 		// Only a full scan rebuilds every tool, so a run narrowed to named reactors or
 		// a package must not prune what it did not look at.
@@ -300,7 +300,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

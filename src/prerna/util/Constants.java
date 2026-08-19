@@ -499,6 +499,7 @@ public class Constants {
 	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
 	public static final String REASONING_CONFIG = "REASONING_CONFIG";
 	public static final String BENCHMARKS = "BENCHMARKS";
+	public static final String PRICING = "PRICING";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -1069,6 +1070,8 @@ public class Constants {
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
 	// system (platform) skill names
+	public static final String SKILL_AGENT_RUN = "agent-run";
+	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
@@ -1083,6 +1086,8 @@ public class Constants {
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_AUTOMATION = "automation-portal";
+	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

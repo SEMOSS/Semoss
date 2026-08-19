@@ -149,7 +149,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		if (!mcpFolder.exists()) {
 			mcpFolder.mkdir();
 		}
-		String outputFileLoc = engineAssetsFolder + "/mcp/py_mcp.json";
+		String outputFileLoc = engineAssetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 //		String script = null;
@@ -184,7 +184,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/py_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PY_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

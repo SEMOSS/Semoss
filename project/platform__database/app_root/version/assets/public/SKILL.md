@@ -243,7 +243,7 @@ Full response shape returned from a `runPixel` call that wraps a `SqlQuery()` or
 ## pixelReturn[0] fields
 
 - `pixelId` — sequence ID of the command within the call.
-- `pixelExpression` — the parsed pixel string SEMOSS actually executed. Useful for debugging encoding issues.
+- `pixelExpression` — the parsed pixel string the platform actually executed. Useful for debugging encoding issues.
 - `isMeta` — internal flag; ignore for query responses.
 - `timeToRun` — execution time in milliseconds.
 - `operationType` — categorization of the pixel; `["OPERATION"]` for database queries.
@@ -253,7 +253,7 @@ Full response shape returned from a `runPixel` call that wraps a `SqlQuery()` or
 - `data.values` _(array of arrays)_ — rows returned by the query. Each row is a tuple whose cells align positionally with `data.headers`. **Use this as the primary payload.**
 - `data.headers` _(string[])_ — display column names. Aliased where the query aliased them.
 - `data.rawHeaders` _(string[])_ — raw underlying column names as reported by the engine (before any aliasing).
-- `headerInfo[]` — per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a SEMOSS transform rather than the underlying SQL.
+- `headerInfo[]` — per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a platform transform rather than the underlying SQL.
 - `sources[]` — `{ name, type }` identifying the engine(s) queried. `name` is the database engine ID; `type` is typically `"RAW_ENGINE_QUERY"`.
 - `numCollected` _(number)_ — number of rows actually returned, bounded by the `limit` argument.
 - `taskId` _(string | "null")_ — background-task ID when the query streamed; the literal string `"null"` for synchronous returns.
