@@ -684,12 +684,12 @@ public abstract class AbstractReactor implements IReactor {
 	 * <p>
 	 * This is the standard precedence for reactors whose {@code project}/
 	 * {@code engine} key is optional. The context project is what a pixel run under
-	 * an app context (and so every project-scoped MCP tool call) already carries, so
-	 * those callers do not have to repeat the id they are already scoped to.
+	 * an app context (and so every project-scoped MCP tool call) already carries,
+	 * so those callers do not have to repeat the id they are already scoped to.
 	 *
 	 * <p>
-	 * Named for engine rather than project because the caller-supplied id may be any
-	 * catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
+	 * Named for engine rather than project because the caller-supplied id may be
+	 * any catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
 	 * {@code SMSS_PROJECT_ID} - while the two context fallbacks are always project
 	 * ids, which are themselves engine ids ({@code IProject extends IEngine}).
 	 *
@@ -722,9 +722,9 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * {@link #resolveContextEngineId(String)} for reactors that can carry on without
-	 * a project rather than fail: same precedence, but returns null instead of
-	 * throwing when nothing resolves.
+	 * {@link #resolveContextEngineId(String)} for reactors that can carry on
+	 * without a project rather than fail: same precedence, but returns null instead
+	 * of throwing when nothing resolves.
 	 *
 	 * @param engineId the caller-supplied id, may be null/blank
 	 * @return the resolved, trimmed id, or null when there is none
@@ -1819,6 +1819,33 @@ public abstract class AbstractReactor implements IReactor {
 			return grs.getAllStrValues();
 		}
 		return null;
+	}
+
+	/**
+	 * Get every string value supplied for an aliased key definition, e.g.
+	 * "media,image". {@link #organizeKeys()} resolves aliases only into
+	 * {@link #keyValue}, and only for the first value of a key, so a multi-valued
+	 * key has to be read off the noun store directly - which means the alias
+	 * resolution has to be repeated here. Values from every alias are combined, so
+	 * supplying more than one accepted name is additive rather than one silently
+	 * winning.
+	 *
+	 * @param keyDefinition A key definition, optionally comma-separated aliases.
+	 * @return Every value supplied under any of the aliases; empty when none were
+	 *         supplied.
+	 */
+	protected List<String> getListStringForAliasedKey(String keyDefinition) {
+		List<String> values = new ArrayList<>();
+		if (keyDefinition == null) {
+			return values;
+		}
+		for (String alias : keyDefinition.split(",")) {
+			GenRowStruct grs = getGenRowStruct(alias.trim());
+			if (grs != null && !grs.isEmpty()) {
+				values.addAll(grs.getAllStrValues());
+			}
+		}
+		return values;
 	}
 
 	/**

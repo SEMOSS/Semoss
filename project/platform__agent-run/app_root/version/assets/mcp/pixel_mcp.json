@@ -6,7 +6,7 @@
     {
       "name": "list_agent_run_skill_files",
       "title": "List Agent Run Skill Files",
-      "description": "List the files in the SEMOSS 'agent-run' skill, the platform's guidance for starting, streaming, and interacting with a durable autonomous agent run via @semoss/sdk, as opposed to a single one-shot LLM() turn (see the room/model skills). Call this when the user asks about RunAgent/runAgent, streaming or polling a run's progress, reconnecting to a run after a page reload, approving/declining a paused tool call (RunMCPTool / decideAgentRunAction / submitAgentToolDecision), or subagents spawned by a run (GetSubagentRuns / getSubagentRuns), and when they name AgentRunSnapshot, AgentRunItem, AgentRunItemEvent, subscribeRunAgent, pollAgentRun, or getAgentRun. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for a plain one-shot chat message (see the room skill).",
+      "description": "List the files in the platform 'agent-run' skill, the platform's guidance for starting, streaming, and interacting with a durable autonomous agent run via @semoss/sdk, as opposed to a single one-shot LLM() turn (see the room/model skills). Call this when the user asks about RunAgent/runAgent, streaming or polling a run's progress, reconnecting to a run after a page reload, approving/declining a paused tool call (RunMCPTool / decideAgentRunAction / submitAgentToolDecision), or subagents spawned by a run (GetSubagentRuns / getSubagentRuns), and when they name AgentRunSnapshot, AgentRunItem, AgentRunItemEvent, subscribeRunAgent, pollAgentRun, or getAgentRun. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for a plain one-shot chat message (see the room skill).",
       "inputSchema": {
         "type": "object",
         "title": "list_agent_run_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_agent_run_skill_file",
       "title": "Read Agent Run Skill File",
-      "description": "Read one file from the SEMOSS 'agent-run' skill in full, for writing code that starts or drives a durable autonomous agent run. Pass filePath exactly as list_agent_run_skill_files reports it; SKILL.md is the main guide and covers submitting a run, streaming its progress, reconnecting after a reload, resuming a paused run on a human tool decision, and reading subagents it spawned.",
+      "description": "Read one file from the platform 'agent-run' skill in full, for writing code that starts or drives a durable autonomous agent run. Pass filePath exactly as list_agent_run_skill_files reports it; SKILL.md is the main guide and covers submitting a run, streaming its progress, reconnecting after a reload, resuming a paused run on a human tool decision, and reading subagents it spawned.",
       "inputSchema": {
         "type": "object",
         "title": "read_agent_run_skill_file_Arguments",

@@ -3586,13 +3586,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Get the list of the project ids that the user has access to
 	 * 
 	 * @param user
+	 * @param projectTypes
 	 * @param includeGlobal
 	 * @param includeDiscoverable
 	 * @param includeExistingAccess
 	 * @return
 	 */
-	public static List<String> getUserProjectIdList(User user, boolean includeGlobal, boolean includeDiscoverable,
-			boolean includeExistingAccess) {
+	public static List<String> getUserProjectIdList(User user, List<String> projectTypes, boolean includeGlobal,
+			boolean includeDiscoverable, boolean includeExistingAccess) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String projectPrefix = "PROJECT__";
 		String projectPermissionPrefix = "PROJECTPERMISSION__";
@@ -3614,6 +3615,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (includeDiscoverable) {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "DISCOVERABLE", "==", true,
 					PixelDataType.BOOLEAN));
+		}
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
 		String existingAccessComparator = "==";
 		if (!includeExistingAccess) {

@@ -154,7 +154,7 @@ const subagents = await getSubagentRuns(parentRunId, insightId);
 
 ### Known limitation — cancellation is not reliable yet
 
-The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellation, but the underlying interrupt can be silently swallowed while the harness is blocked on a model call, so the run may keep going past the cancel request. Don't build a user-facing "Stop" control on top of it without confirming this has been fixed — the SEMOSS Playground app itself currently shows a plain spinner instead of a working Stop button during an agent run, for this reason.
+The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellation, but the underlying interrupt can be silently swallowed while the harness is blocked on a model call, so the run may keep going past the cancel request. Don't build a user-facing "Stop" control on top of it without confirming this has been fixed — the platform Playground app itself currently shows a plain spinner instead of a working Stop button during an agent run, for this reason.
 
 ## Response shapes
 
