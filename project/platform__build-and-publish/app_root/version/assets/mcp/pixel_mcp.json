@@ -6,7 +6,7 @@
     {
       "name": "list_build_and_publish_skill_files",
       "title": "List Build And Publish Skill Files",
-      "description": "List the files in the SEMOSS 'build-and-publish' skill, the platform's guidance for compiling and publishing a React app after editing client source. Call this when the user asks to build, rebuild, compile, publish, or deploy an app, or when a turn has just edited client code and needs to be built. Explains that BuildAndPublishApp is the only supported build path, that node/npm/pnpm are blocked in the sandbox, and when to use PublishProject(project, release=true) for already-runnable portal assets. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md.",
+      "description": "List the files in the platform 'build-and-publish' skill, the platform's guidance for compiling and publishing a React app after editing client source. Call this when the user asks to build, rebuild, compile, publish, or deploy an app, or when a turn has just edited client code and needs to be built. Explains that BuildAndPublishApp is the only supported build path, that node/npm/pnpm are blocked in the sandbox, and when to use PublishProject(project, release=true) for already-runnable portal assets. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md.",
       "inputSchema": {
         "type": "object",
         "title": "list_build_and_publish_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_build_and_publish_skill_file",
       "title": "Read Build And Publish Skill File",
-      "description": "Read one file from the SEMOSS 'build-and-publish' skill in full, before building or publishing an app. Pass filePath exactly as list_build_and_publish_skill_files reports it; SKILL.md is the main guide and covers when to build versus skip, how to invoke BuildAndPublishApp, publishing without building, what never to run, and what to do when a build fails.",
+      "description": "Read one file from the platform 'build-and-publish' skill in full, before building or publishing an app. Pass filePath exactly as list_build_and_publish_skill_files reports it; SKILL.md is the main guide and covers when to build versus skip, how to invoke BuildAndPublishApp, publishing without building, what never to run, and what to do when a build fails.",
       "inputSchema": {
         "type": "object",
         "title": "read_build_and_publish_skill_file_Arguments",

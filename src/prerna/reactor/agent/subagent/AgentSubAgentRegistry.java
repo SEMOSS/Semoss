@@ -38,11 +38,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentRunContext;
@@ -75,6 +77,7 @@ public final class AgentSubAgentRegistry {
 
     private static final String DEFAULT_HARNESS_TYPE = "semoss";
     private static final String ROOM_OPTION_INSTRUCTIONS = "instructions";
+    private static final String[] ROOM_OPTION_MODEL_KEYS = { "engine", "model", "modelId", "engineId" };
 
     private static final AgentSubAgentRegistry INSTANCE = new AgentSubAgentRegistry();
 
@@ -203,6 +206,7 @@ public final class AgentSubAgentRegistry {
             clonedOptions.remove(ROOM_OPTION_INSTRUCTIONS);
 
             boolean namedSpawn = req.workspaceId != null && !req.workspaceId.trim().isEmpty();
+            boolean namedWorkspaceHasModel = namedSpawn && workspaceHasConfiguredModel(req.workspaceId);
 
             // Named spawn: re-seed options.workspace so the child loads its own CONFIG_JSON.
             // Anonymous spawn: leave options.workspace inherited from the parent.
@@ -213,6 +217,13 @@ public final class AgentSubAgentRegistry {
                 // A named subagent has its own MCP set per its workspace CONFIG_JSON.
                 // Drop inherited mcp[] so the parent's per-room additions don't bleed in.
                 clonedOptions.remove("mcp");
+                // Prefer the named workspace's CONFIG_JSON.model_id. If it has no model,
+                // retain the cloned parent selectors as the fallback.
+                if (namedWorkspaceHasModel) {
+                    for (String modelKey : ROOM_OPTION_MODEL_KEYS) {
+                        clonedOptions.remove(modelKey);
+                    }
+                }
             }
 
             // Shared-filesystem mode. When the caller asked for inherit_parent_workdir,
@@ -250,7 +261,7 @@ public final class AgentSubAgentRegistry {
             }
             String resolvedEngine = (req.engine != null && !req.engine.trim().isEmpty())
                     ? req.engine.trim()
-                    : parentRoom.getModelId();
+                    : namedWorkspaceHasModel ? null : parentRoom.getModelId();
             Room childRoom = RoomUtils.createRoomIfNotExists(
                     childRoomId,
                     callerInsight,
@@ -507,6 +518,17 @@ public final class AgentSubAgentRegistry {
             return null;
         }
         return trimToNull(req.parentAuthoredSystemPrompt);
+    }
+
+    private static boolean workspaceHasConfiguredModel(String workspaceId) {
+        try {
+            JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId.trim());
+            return config != null && trimToNull(config.optString("model_id", null)) != null;
+        } catch (Exception e) {
+            logger.warn("Unable to resolve model_id for named subagent workspace '{}'; falling back to parent model: {}",
+                    workspaceId, e.getMessage());
+            return false;
+        }
     }
 
     private static String trimToNull(String value) {

@@ -141,8 +141,9 @@ public final class AgentRuntimeManager {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		// When the run is paused for user input, attach the pending actions
-		// so the UI can render approve/decline forms or open portal URLs.
+		// Always present, matching getRunSnapshot's contract - populated only
+		// when the run is paused for user input to approve/decline or open portal URLs.
+		run.put("pendingActions", new ArrayList<>());
 		String status = String.valueOf(run.get("status"));
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(status)) {
 			try {

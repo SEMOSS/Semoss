@@ -6,7 +6,7 @@
     {
       "name": "list_vector_skill_files",
       "title": "List Vector Skill Files",
-      "description": "List the files in the SEMOSS 'vector' skill, the platform's guidance for semantic search, RAG, and document ingestion against a SEMOSS vector database. Call this when the user asks about vector databases, embeddings, similarity or nearest-neighbor search, chunking, retrieval, RAG, or ingesting documents into a SEMOSS app, and when they name VectorDatabaseQuery, ListDocumentsInVectorDatabase, CreateEmbeddingsFromDocuments, CreateEmbeddingsFromVectorCSVFile, RemoveDocumentFromVectorDatabase, or MyEngines(engineTypes=[\"VECTOR\"]). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for raw SQL or graph queries (see the database skill) or for LLM calls without retrieval (see the model skill).",
+      "description": "List the files in the platform 'vector' skill, the platform's guidance for semantic search, RAG, and document ingestion against a platform vector database. Call this when the user asks about vector databases, embeddings, similarity or nearest-neighbor search, chunking, retrieval, RAG, or ingesting documents into a platform app, and when they name VectorDatabaseQuery, ListDocumentsInVectorDatabase, CreateEmbeddingsFromDocuments, CreateEmbeddingsFromVectorCSVFile, RemoveDocumentFromVectorDatabase, or MyEngines(engineTypes=[\"VECTOR\"]). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for raw SQL or graph queries (see the database skill) or for LLM calls without retrieval (see the model skill).",
       "inputSchema": {
         "type": "object",
         "title": "list_vector_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_vector_skill_file",
       "title": "Read Vector Skill File",
-      "description": "Read one file from the SEMOSS 'vector' skill in full, for writing code that runs semantic search, manages documents in a vector index, or wires retrieved chunks into an LLM call for RAG. Pass filePath exactly as list_vector_skill_files reports it; SKILL.md is the main guide and covers the VectorDatabaseQuery usage pattern, metadata and source-document filtering, listing and adding documents, pre-chunked CSV ingestion, and the end-to-end RAG example.",
+      "description": "Read one file from the platform 'vector' skill in full, for writing code that runs semantic search, manages documents in a vector index, or wires retrieved chunks into an LLM call for RAG. Pass filePath exactly as list_vector_skill_files reports it; SKILL.md is the main guide and covers the VectorDatabaseQuery usage pattern, metadata and source-document filtering, listing and adding documents, pre-chunked CSV ingestion, and the end-to-end RAG example.",
       "inputSchema": {
         "type": "object",
         "title": "read_vector_skill_file_Arguments",
