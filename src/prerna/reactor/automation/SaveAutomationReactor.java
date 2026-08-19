@@ -93,6 +93,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
+				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -176,8 +178,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 			return "Base64-encoded workflow graph JSON.";
 		}
 		if (NODE_SOURCES_KEY.equals(key)) {
-			return "Optional raw or Base64-encoded JSON object: { nodeId: Python run(scope) source }. "
-					+ "Omitted node entries receive a generated current-node bridge source.";
+			return "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
+					+ "The trigger source may declare non-private globals; omitted entries receive generated source.";
 		}
 		return super.getDescriptionForKey(key);
 	}

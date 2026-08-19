@@ -90,10 +90,10 @@ class AutomationDefinitionValidatorTest {
 
 		assertTrue(source.contains("def run(scope):"));
 		assertTrue(source.contains("from ai_server import DatabaseEngine"));
-		assertTrue(source.contains("def resolve(value, scope):"));
+		assertTrue(!source.contains("def resolve(value, scope):"));
 		assertTrue(source.contains("database.execQuery(query=resolve(QUERY, scope), return_pandas=False)"));
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationSourceRenderer.renderNode(definition.nodes().get(0)));
+		assertTrue(AutomationSourceRenderer.renderNode(definition.nodes().get(0))
+				.contains("Declare globals in trigger.start config.globals"));
 	}
 
 	@Test
@@ -118,6 +118,7 @@ class AutomationDefinitionValidatorTest {
 				Map.entry("vector.delete", "VectorEngine"),
 				Map.entry("function.execute", "FunctionEngine"),
 				Map.entry("app.pixel", "Insight"),
+				Map.entry("agent.run", "RunAgent"),
 				Map.entry("control.wait", "time.sleep"),
 				Map.entry("developer.python", "def run(scope):"));
 
@@ -161,6 +162,53 @@ class AutomationDefinitionValidatorTest {
 						],"edges":[
 						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"function","targetPort":"in"}
 						]}}
+						"""));
+	}
+
+	@Test
+	void validatesRunAgentConfiguration() {
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"start","type":"trigger.start","config":{}},
+						  {"id":"agent","type":"agent.run","config":{"roomId":"room"}}
+						],"edges":[
+						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"agent","targetPort":"in"}
+						]}}
+						"""));
+
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"start","type":"trigger.start","config":{}},
+						  {"id":"agent","type":"agent.run","config":{"roomId":"room","command":"Investigate ${ticket}"}}
+						],"edges":[
+						  {"id":"edge","kind":"control","source":"start","sourcePort":"next","target":"agent","targetPort":"in"}
+						]}}
+						""");
+		String source = AutomationSourceRenderer.renderNode(definition.nodes().get(1));
+		assertTrue(source.contains("RunAgent("));
+		assertTrue(source.contains("paramValues="));
+	}
+
+	@Test
+	void validatesCanonicalTriggerGlobalsAndPythonSource() {
+		AutomationDefinitionValidator.parseAndValidate("""
+				{"formatVersion":2,"graph":{"nodes":[
+				  {"id":"start","type":"trigger.start","config":{
+				    "globals":[{"name":"ticket","defaultValue":"INC-123","description":"Ticket to process"}],
+				    "pythonSource":"def run(scope):\\n    return {}"
+				  }}
+				],"edges":[]}}
+				""");
+
+		assertThrows(IllegalArgumentException.class, () ->
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"start","type":"trigger.start","config":{
+						    "globals":[{"name":"_secret","defaultValue":"value"}]
+						  }}
+						],"edges":[]}}
 						"""));
 	}
 }

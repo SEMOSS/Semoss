@@ -139,6 +139,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
 			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope,
 			Map<String, String> config) {
+		Map<String, Object> result = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 				break;
@@ -146,7 +147,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Map<String, Object> nodeResult = AutomationConstants.NODE_START.equals(type)
-					? executeStartNode(runId, node, scope)
+					? executeStartNode(projectId, runId, node,
+							AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)), scope)
 					: executeNodeSource(projectId, runId, node,
 							AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
 									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
@@ -156,27 +158,62 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				break;
 			}
+			if (AutomationConstants.NODE_START.equals(type)) {
+				result.put(AutomationConstants.RESULT_GLOBALS,
+						nodeResult.getOrDefault(AutomationConstants.RESULT_GLOBALS, Map.of()));
+			}
 			Object output = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
 			String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 			if (output != null && outputVar != null) {
 				scope.put(outputVar, output.toString());
 			}
 		}
-		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("scope", scope);
 		return result;
 	}
 
-	private Map<String, Object> executeStartNode(String runId, Map<String, Object> node, Map<String, String> scope) {
+	private Map<String, Object> executeStartNode(String projectId, String runId, Map<String, Object> node,
+			String source, Map<String, String> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
-		String output = scope.get(AutomationConstants.SCOPE_TRIGGERED_AT);
-		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, System.currentTimeMillis() - startedMs,
-				null, output, AutomationRuntimeUtils.generatePreview(output));
-		AutomationPythonRunRegistry.nodeCompleted(runId);
-		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
+		try {
+			Map<String, Object> declaredGlobals = AutomationRuntime.triggerGlobalDefaults(node);
+			for (Map.Entry<String, Object> entry : declaredGlobals.entrySet()) {
+				scope.putIfAbsent(entry.getKey(), valueAsString(entry.getValue()));
+			}
+			PyTranslator translator = this.insight.getPyTranslator();
+			if (translator == null) {
+				throw new IllegalStateException("Python runtime is not available for this insight.");
+			}
+			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
+					AutomationRuntime.buildTriggerInvocationScript(source, scope),
+					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
+			Object value = AutomationRuntime.normalizeNodeResult(raw);
+			Map<String, String> sourceGlobals = normalizeScope(value);
+			for (Map.Entry<String, String> entry : sourceGlobals.entrySet()) {
+				scope.putIfAbsent(entry.getKey(), entry.getValue());
+			}
+			Map<String, String> globals = new LinkedHashMap<>(sourceGlobals);
+			for (String name : declaredGlobals.keySet()) {
+				globals.put(name, scope.get(name));
+			}
+			String output = AutomationRuntimeUtils.GSON.toJson(globals);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, System.currentTimeMillis() - startedMs,
+					null, output, AutomationRuntimeUtils.generatePreview(output));
+			AutomationPythonRunRegistry.nodeCompleted(runId);
+			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
+			result.put(AutomationConstants.RESULT_GLOBALS, globals);
+			return result;
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+			throw e instanceof RuntimeException runtimeException
+					? runtimeException
+					: new RuntimeException(e);
+		}
 	}
 
 	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
@@ -305,6 +342,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId));
 		detail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		detail.put("scope", normalizeScope(pythonResult.get("scope")));
+		detail.put(AutomationConstants.RESULT_GLOBALS, normalizeScope(
+				pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
 		detail.put("pythonResult", pythonResult);
 		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
 				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
@@ -400,7 +439,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			return "The project ID or alias containing the automation workflow.";
 		}
 		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) {
-			return "Optional values for fields declared in node playgroundFillable arrays.";
+			return "Optional values overriding globals declared by trigger Python; other values remain available in scope.";
 		}
 		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
 			return "Optional trigger source: MANUAL (default) or PLAYGROUND.";

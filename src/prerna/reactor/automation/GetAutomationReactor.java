@@ -75,12 +75,14 @@ public class GetAutomationReactor extends AbstractReactor {
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
+				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the automation graph and persisted nodeSources map for a project.";
+		return "Returns the automation graph, nodeSources, and trigger Python global defaults for a project.";
 	}
 
 	@Override

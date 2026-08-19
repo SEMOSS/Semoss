@@ -49,7 +49,7 @@ class AutomationRuntimeTest {
 
 		assertTrue(!script.contains("AutomationPythonNodeBridge"));
 		assertTrue(!script.contains("def run_current_node("));
-		assertTrue(!script.contains("def _automation_resolve("));
+		assertTrue(script.contains("def resolve(value, scope):"));
 		assertTrue(script.contains("_automation_scope[\"_automation_config\"] = _automation_config"));
 		assertTrue(script.contains("_automation_result = run(_automation_scope)"));
 		assertTrue(script.contains(source.strip()));
@@ -74,6 +74,68 @@ class AutomationRuntimeTest {
 
 		assertEquals(List.of("start", "node"), AutomationRuntime.nodesForRun(definition).stream()
 				.map(node -> node.get("id")).toList());
+	}
+
+	@Test
+	void exposesOnlyLiteralNonPrivateTriggerGlobalsForDefaults() {
+		Map<String, Object> globals = AutomationRuntime.declaredGlobals("""
+				customer_id = "12345"
+				max_results = 25
+				enabled = True
+				_private = "hidden"
+				computed = make_value()
+				    nested = "not global"
+				""");
+
+		assertEquals(Map.of("customer_id", "12345", "max_results", 25.0, "enabled", true), globals);
+	}
+
+	@Test
+	void findsTriggerSourceByNodeTypeRatherThanFixedId() {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.validate(Map.of("formatVersion", 2, "graph", Map.of(
+						"nodes", List.of(Map.of("id", "manual-trigger", "type", "trigger.start", "config", Map.of())),
+						"edges", List.of())));
+
+		assertEquals(Map.of("region", "east"), AutomationRuntime.declaredGlobals(definition,
+				Map.of("manual-trigger", "region = \"east\"")));
+	}
+
+	@Test
+	void usesTriggerConfigGlobalsAndCanonicalPythonSource() {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate("""
+						{"formatVersion":2,"graph":{"nodes":[
+						  {"id":"trigger","type":"trigger.start","config":{
+						    "globals":[
+						      {"name":"ticket","defaultValue":"INC-123","description":"Ticket to process"},
+						      {"name":"limit","defaultValue":25}
+						    ],
+						    "pythonSource":"def run(scope):\\n    return {}"
+						  }}
+						],"edges":[]}}
+						""");
+
+		assertEquals(Map.of("ticket", "INC-123", "limit", 25.0),
+				AutomationRuntime.declaredGlobals(definition, Map.of("trigger", "legacy = True")));
+		assertEquals("def run(scope):\n    return {}",
+				AutomationRuntime.triggerSource(definition, Map.of("trigger", "legacy = True")));
+	}
+
+	@Test
+	void wrapsTriggerSourceInAnIsolatedModule() {
+		String source = """
+				customer_id = "12345"
+				def run(scope):
+				    return {"computed": scope["input"]}
+				""";
+
+		String script = AutomationRuntime.buildTriggerInvocationScript(source, Map.of("input", "value"));
+
+		assertTrue(script.contains("exec(_automation_b64.urlsafe_b64decode"));
+		assertTrue(script.contains("_automation_module.items()"));
+		assertTrue(script.contains("_automation_globals"));
+		assertTrue(!script.contains("customer_id = \"12345\""));
 	}
 
 	private static Map<String, Object> definition(String type, String codeMode) {

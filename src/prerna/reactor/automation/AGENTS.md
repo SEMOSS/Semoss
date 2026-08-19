@@ -9,9 +9,9 @@ in the authenticated user's Python insight.
 | Pixel | Request | Response / behavior |
 | --- | --- | --- |
 | `CreateAutomation` | `projectName` | Creates a project with a starter graph. |
-| `GetAutomation` | `project` | Returns the definition as the top-level map, plus `nodeSources: { nodeId: source }`. |
-| `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. Omitted node entries receive generated `run(scope)` source. |
-| `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java executes the canonical control path and invokes each node's `run(scope)` independently. |
+| `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, plus `nodeSources: { nodeId: source }`. |
+| `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. Trigger source belongs in `trigger.start.config.pythonSource`; legacy `python` and trigger source entries are migrated. |
+| `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
 | `GetActiveAutomationRun` | `project` | Returns the active run lock or an empty map. |
 | `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
@@ -46,7 +46,7 @@ TriggerAutomation (virtual thread)
   -> validates and snapshots the graph
   -> claims AUTOMATION_ACTIVE_RUN
   -> inserts AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS
-  -> Java executes trigger.start natively, then visits each control-edge node in order
+  -> Java seeds trigger globals and executes trigger Python, then visits each control-edge node in order
   -> PyTranslator.runScriptWithExplicitAssetPaths(...) executes that node's source only
   -> Python module invokes its documented ai_server engine SDK or direct Pixel call
   -> releases the lock in finally
@@ -61,10 +61,15 @@ Supported native-Python runtime types are:
   `storage.download`, `storage.delete`
 - `vector.action`, `vector.search`, `vector.add`, `vector.delete`
 - `function.execute`, `app.pixel`, `control.wait`
+- `agent.run`
 
-Control branches/loops are rejected before execution. `developer.python` and custom-code nodes
-execute their own persisted `run(scope)` source. Node source may return any JSON-serializable
-value; Java persists it as the current node output. Generated sources import their documented
+Control branches/loops are rejected before execution. Trigger globals use the canonical
+`trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
+non-private Python-identifier name. `trigger.start.config.pythonSource` is the canonical optional
+setup source (`python` is a compatibility alias). Java puts defaults in the runtime scope unless
+inputs override them; the globals are returned by Trigger and become Playground defaults. `developer.python`
+and custom-code nodes execute their own persisted `run(scope)` source. Node source may return any
+JSON-serializable value; Java persists it as the current node output. Generated sources import their documented
 `ai_server` engine class and invoke it directly; wait nodes use `time.sleep`.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback

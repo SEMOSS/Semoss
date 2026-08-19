@@ -125,6 +125,7 @@ public final class AutomationConstants {
 	public static final String NODE_VECTOR_DELETE = "vector.delete";
 	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
 	public static final String NODE_APP_PIXEL = "app.pixel";
+	public static final String NODE_AGENT_RUN = "agent.run";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
@@ -144,6 +145,20 @@ public final class AutomationConstants {
 	public static final String CONFIG_FILE_NAMES = "fileNames";
 	public static final String CONFIG_SECONDS = "seconds";
 	public static final String CONFIG_PIXEL = "pixel";
+	public static final String CONFIG_GLOBALS = "globals";
+	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
+	public static final String CONFIG_DESCRIPTION = "description";
+	/** Canonical trigger Python field. */
+	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
+	/** Legacy trigger Python field accepted on read and migrated to {@link #CONFIG_PYTHON_SOURCE}. */
+	public static final String CONFIG_PYTHON = "python";
+	public static final String CONFIG_ROOM_ID = "roomId";
+	public static final String CONFIG_HARNESS_TYPE = "harnessType";
+	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
+	public static final String CONFIG_MAX_TURNS = "maxTurns";
+	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
+	public static final String CONFIG_WAIT = "wait";
+	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
 	public static final String CONFIG_TIMEOUT_SECONDS = "timeoutSeconds";
 	public static final String DEFAULT_STORAGE_PATH = "/";
@@ -187,6 +202,10 @@ public final class AutomationConstants {
 	public static final String DOC_TRIGGER_BINDINGS = "triggerBindings";
 	public static final String DOC_FORMAT_VERSION = "formatVersion";
 	public static final String DOC_NODE_SOURCES = "nodeSources";
+	/** Runtime defaults declared in the trigger Python source; returned but not persisted in the graph. */
+	public static final String DOC_GLOBALS = "globals";
+	/** Legacy graph field replaced by trigger-source globals. */
+	public static final String DOC_LEGACY_VARIABLES = "variables";
 
 	// -- Node/edge field names --------------------------------------------------------
 
@@ -242,6 +261,7 @@ public final class AutomationConstants {
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+	public static final String RESULT_GLOBALS = DOC_GLOBALS;
 	/** Human-readable result summary for an automation workflow run. */
 	public static final String RESULT_SUMMARY = "summary";
 

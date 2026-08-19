@@ -37,24 +37,6 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 /** Renders the default implementation for exactly one automation node. */
 public final class AutomationSourceRenderer {
 
-	private static final String RESOLVE_HELPER = """
-			import re
-
-			def resolve(value, scope):
-			    if not isinstance(value, str):
-			        return value
-
-			    def replace(match):
-			        key = match.group(1)
-			        if key.startswith("config."):
-			            config = scope.get("_automation_config", {})
-			            return config.get(key[7:], match.group(0))
-			        return scope.get(key, match.group(0))
-
-			    return re.sub(r"\\$\\{([^}]+)\\}", replace, value)
-
-			""";
-
 	private static final String LEGACY_DEFAULT_SOURCE = """
 			# Generated SEMOSS Automation node implementation.
 			# Java binds this script to one immutable run-snapshot node.
@@ -74,7 +56,7 @@ public final class AutomationSourceRenderer {
 	 */
 	public static String renderNode(Map<String, Object> node) {
 		if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-			throw new IllegalArgumentException("trigger.start is executed natively and has no Python source.");
+			return triggerSource();
 		}
 		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 		@SuppressWarnings("unchecked")
@@ -100,11 +82,21 @@ public final class AutomationSourceRenderer {
 			case AutomationConstants.NODE_VECTOR_ACTION -> vectorActionSource(config);
 			case AutomationConstants.NODE_FUNCTION_EXECUTE -> functionSource(config);
 			case AutomationConstants.NODE_APP_PIXEL -> appPixelSource(config);
+			case AutomationConstants.NODE_AGENT_RUN -> agentRunSource(config);
 			case AutomationConstants.NODE_CONTROL_WAIT -> waitSource(config);
 			case AutomationConstants.NODE_DEVELOPER_PYTHON -> developerSource();
 			default -> developerSource();
 		};
-		return RESOLVE_HELPER + source;
+		return source;
+	}
+
+	private static String triggerSource() {
+		return """
+				# Declare globals in trigger.start config.globals.
+				# Define optional setup here; return a map only for additional runtime values.
+				def run(scope):
+				    return {}
+				""";
 	}
 
 	private static String databaseQuerySource(Map<String, Object> config) {
@@ -354,6 +346,63 @@ public final class AutomationSourceRenderer {
 				""".formatted(value(config, "pixel"));
 	}
 
+	private static String agentRunSource(Map<String, Object> config) {
+		return """
+				# Start a durable SEMOSS agent run through the existing RunAgent reactor.
+				from semoss import Insight
+				import json
+
+				ROOM_ID = %s
+				COMMAND = %s
+				ENGINE_ID = %s
+				HARNESS_TYPE = %s
+				WORKSPACE_ID = %s
+				MAX_TURNS = %s
+				MAX_REFLECTIONS = %s
+				WAIT = %s
+				WAIT_TIMEOUT_MS = %s
+				PARAM_MAP = %s
+				AGENT_PARAMS = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def run(scope):
+				    arguments = [
+				        _pixel_value("roomId", resolve(ROOM_ID, scope)),
+				        _pixel_value("command", resolve(COMMAND, scope)),
+				    ]
+				    for name, value in (
+				        ("engine", ENGINE_ID),
+				        ("harnessType", HARNESS_TYPE),
+				        ("workspaceId", WORKSPACE_ID),
+				        ("maxTurns", MAX_TURNS),
+				        ("maxReflections", MAX_REFLECTIONS),
+				        ("wait", WAIT),
+				        ("waitTimeoutMs", WAIT_TIMEOUT_MS),
+				    ):
+				        if value is not None:
+				            arguments.append(_pixel_value(name, resolve(value, scope)))
+				    if PARAM_MAP is not None:
+				        arguments.append("paramValues=" + json.dumps(PARAM_MAP))
+				    if AGENT_PARAMS is not None:
+				        arguments.append("agentParams=" + json.dumps(AGENT_PARAMS))
+				    return Insight().run_pixel("RunAgent(" + ", ".join(arguments) + ");")
+				""".formatted(value(config, AutomationConstants.CONFIG_ROOM_ID),
+				value(config, AutomationConstants.CONFIG_COMMAND),
+				value(config, AutomationConstants.CONFIG_ENGINE_ID),
+				value(config, AutomationConstants.CONFIG_HARNESS_TYPE),
+				value(config, AutomationConstants.CONFIG_WORKSPACE_ID),
+				value(config, AutomationConstants.CONFIG_MAX_TURNS),
+				value(config, AutomationConstants.CONFIG_MAX_REFLECTIONS),
+				valueOrDefault(config, AutomationConstants.CONFIG_WAIT, true),
+				value(config, AutomationConstants.CONFIG_WAIT_TIMEOUT_MS),
+				agentMapValue(config.containsKey("paramMap")
+						? config.get("paramMap")
+						: config.get(AutomationConstants.CONFIG_PARAM_VALUES)),
+				agentMapValue(config.get("agentParams")));
+	}
+
 	private static String waitSource(Map<String, Object> config) {
 		return """
 				# Pause this automation node in Python.
@@ -386,6 +435,21 @@ public final class AutomationSourceRenderer {
 			return bool ? "True" : "False";
 		}
 		return AutomationRuntimeUtils.GSON.toJson(value);
+	}
+
+	private static String valueOrDefault(Map<String, Object> config, String key, Object defaultValue) {
+		Object value = config.getOrDefault(key, defaultValue);
+		if (value instanceof Boolean bool) {
+			return bool ? "True" : "False";
+		}
+		return AutomationRuntimeUtils.GSON.toJson(value);
+	}
+
+	private static String agentMapValue(Object value) {
+		if (value == null) {
+			return "None";
+		}
+		return "json.loads(" + AutomationRuntimeUtils.GSON.toJson(AutomationRuntimeUtils.GSON.toJson(value)) + ")";
 	}
 
 	static boolean isLegacyDefaultSource(String source) {

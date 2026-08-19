@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,6 +72,7 @@ public final class AutomationDefinitionValidator {
 			AutomationConstants.NODE_VECTOR_DELETE,
 			AutomationConstants.NODE_FUNCTION_EXECUTE,
 			AutomationConstants.NODE_APP_PIXEL,
+			AutomationConstants.NODE_AGENT_RUN,
 			AutomationConstants.NODE_CONTROL_WAIT,
 			AutomationConstants.NODE_DEVELOPER_PYTHON);
 
@@ -181,13 +181,17 @@ public final class AutomationDefinitionValidator {
 	}
 
 	private static void validateNodeConfig(String nodeId, String nodeType, Map<String, Object> config) {
-		if (AutomationConstants.NODE_START.equals(nodeType)
-				|| AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)) {
+		if (AutomationConstants.NODE_START.equals(nodeType)) {
+			validateTriggerConfig(nodeId, config);
+			return;
+		}
+		if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)) {
 			return;
 		}
 		if (requiresEngine(nodeType)) {
 			requireConfigString(nodeId, config, AutomationConstants.CONFIG_ENGINE_ID);
 		}
+
 		switch (nodeType) {
 			case AutomationConstants.NODE_DATABASE_QUERY,
 					AutomationConstants.NODE_DATABASE_INSERT,
@@ -208,10 +212,63 @@ public final class AutomationDefinitionValidator {
 					AutomationConstants.NODE_VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
 			case AutomationConstants.NODE_FUNCTION_EXECUTE -> requireConfigString(nodeId, config, "arguments");
 			case AutomationConstants.NODE_APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+			case AutomationConstants.NODE_AGENT_RUN -> {
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_ROOM_ID);
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
+			}
 			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);
 			default -> {
 				// All supported node types are covered above or require only an engine ID.
 			}
+		}
+	}
+
+	private static void validateTriggerConfig(String nodeId, Map<String, Object> config) {
+		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON_SOURCE);
+		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON);
+		Object canonical = config.get(AutomationConstants.CONFIG_PYTHON_SOURCE);
+		Object legacy = config.get(AutomationConstants.CONFIG_PYTHON);
+		if (canonical instanceof String canonicalSource && !canonicalSource.isBlank()
+				&& legacy instanceof String legacySource && !legacySource.isBlank()
+				&& !canonicalSource.equals(legacySource)) {
+			throw new IllegalArgumentException("Trigger node '" + nodeId
+					+ "' cannot provide different pythonSource and python values.");
+		}
+		if (!config.containsKey(AutomationConstants.CONFIG_GLOBALS)) {
+			return;
+		}
+		Object rawGlobals = config.get(AutomationConstants.CONFIG_GLOBALS);
+		if (!(rawGlobals instanceof List<?> globals)) {
+			throw new IllegalArgumentException("Trigger node '" + nodeId + "' config.globals must be an array.");
+		}
+		Set<String> names = new HashSet<>();
+		for (int index = 0; index < globals.size(); index++) {
+			Map<String, Object> global = requireMap(globals.get(index),
+					"Trigger node '" + nodeId + "' config.globals[" + index + "]");
+			String name = requireNonblankString(global.get("name"),
+					"Trigger node '" + nodeId + "' config.globals[" + index + "].name");
+			if (!name.matches("[A-Za-z][A-Za-z0-9_]*")) {
+				throw new IllegalArgumentException("Trigger global '" + name
+						+ "' must be a non-private Python identifier.");
+			}
+			if (!names.add(name)) {
+				throw new IllegalArgumentException("Trigger node '" + nodeId
+						+ "' has duplicate global name: " + name + ".");
+			}
+			if (!global.containsKey(AutomationConstants.CONFIG_DEFAULT_VALUE)) {
+				throw new IllegalArgumentException("Trigger global '" + name + "' must provide defaultValue.");
+			}
+			Object description = global.get(AutomationConstants.CONFIG_DESCRIPTION);
+			if (description != null && !(description instanceof String)) {
+				throw new IllegalArgumentException("Trigger global '" + name + "' description must be a string.");
+			}
+		}
+	}
+
+	private static void validateOptionalSource(String nodeId, Map<String, Object> config, String key) {
+		Object source = config.get(key);
+		if (source != null && !(source instanceof String)) {
+			throw new IllegalArgumentException("Trigger node '" + nodeId + "' config." + key + " must be a string.");
 		}
 	}
 

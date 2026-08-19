@@ -45,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -67,9 +66,6 @@ import prerna.reactor.automation.AutomationConstants;
 public final class AutomationRuntimeUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationRuntimeUtils.class);
-
-	/** Prefix for config-map lookups within a template, e.g. {@code ${config.API_KEY}}. */
-	private static final String CONFIG_VAR_PREFIX = "config.";
 
 	/** Reusable {@link TypeToken} type for {@code Map<String, Object>} deserialization. */
 	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
@@ -101,32 +97,6 @@ public final class AutomationRuntimeUtils {
 			.create();
 
 	private AutomationRuntimeUtils() {}
-
-	/**
-	 * Resolves {@code ${varName}} and {@code ${config.KEY}} placeholders in a template string
-	 * using {@link StringSubstitutor} (the platform's standard {@code ${...}} templating helper,
-	 * also used by {@code AbstractPythonModelEngine.fillVars}). Recursive substitution is
-	 * disabled so a resolved value is never itself re-scanned for placeholders, and unresolved
-	 * placeholders are left untouched rather than throwing.
-	 */
-	public static String resolve(String template, Map<String, String> scope, Map<String, String> configMap) {
-		if (template == null) return "";
-
-		Map<String, String> vars = new HashMap<>();
-		for (Map.Entry<String, String> e : configMap.entrySet()) {
-			vars.put(CONFIG_VAR_PREFIX + e.getKey(), e.getValue());
-		}
-		for (Map.Entry<String, String> e : scope.entrySet()) {
-			if (e.getValue() != null) {
-				vars.put(e.getKey(), e.getValue());
-			}
-		}
-
-		StringSubstitutor sub = new StringSubstitutor(vars);
-		sub.setEnableUndefinedVariableException(false);
-		sub.setDisableSubstitutionInValues(true);
-		return sub.replace(template);
-	}
 
 	/**
 	 * Returns the per-node timeout from the node definition, defaulting to
@@ -349,73 +319,6 @@ public final class AutomationRuntimeUtils {
 		if (s == null) return null;
 		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH
 				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
-	}
-
-	// -- Runtime input helpers -----------------------------------------------------
-
-	/**
-	 * Extracts caller-supplied input values from the Pixel MAP noun and overwrites the matching
-	 * config field on each node before execution. Nodes without a {@code playgroundFillable}
-	 * list or whose listed fields are absent from the node config are skipped with a warning.
-	 *
-	 * @param nodes     ordered node list from the automation document (mutated in place)
-	 * @param inputsMap raw MAP noun value from the {@code inputs} Pixel parameter, or {@code null}
-	 * @return the flattened {@code String → String} inputs map (empty when no inputs were passed)
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, String> applyRuntimeInputs(List<Map<String, Object>> nodes, Map<String, Object> inputsMap) {
-		Map<String, String> runtimeInputs = new HashMap<>();
-		if (inputsMap != null) {
-			for (Map.Entry<String, Object> entry : inputsMap.entrySet()) {
-				if (entry.getValue() != null) {
-					runtimeInputs.put(entry.getKey(), entry.getValue().toString());
-				}
-			}
-		}
-		if (!runtimeInputs.isEmpty()) {
-			for (Map<String, Object> node : nodes) {
-				List<String> fillable = (List<String>) node.get("playgroundFillable");
-				if (fillable == null || fillable.isEmpty()) continue;
-				String nodeLabel = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
-				Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
-				if (config == null) continue;
-				for (String fieldName : fillable) {
-					String paramName = buildRuntimeInputName(nodeLabel, fieldName);
-					String value = runtimeInputs.get(paramName);
-					if (value != null) {
-						if (config.containsKey(fieldName)) {
-							config.put(fieldName, value);
-						} else {
-							classLogger.warn("Runtime input '{}' targets field '{}' which does not exist in node '{}' config - skipping",
-									paramName, fieldName, nodeLabel);
-						}
-					}
-				}
-			}
-		}
-		return runtimeInputs;
-	}
-
-	/**
-	 * Builds a stable parameter name for a runtime-fillable node field.
-	 * Slugifies the node label (lowercase, non-alphanumeric chars -> underscore, collapsed)
-	 * and appends the field name. Falls back to {@code "input_" + fieldName} if label is blank.
-	 *
-	 * @param nodeLabel the node's display label (may be null or empty)
-	 * @param fieldName the config field name (e.g. "expression", "command")
-	 * @return a deterministic, URL-safe parameter name
-	 */
-	public static String buildRuntimeInputName(String nodeLabel, String fieldName) {
-		if (nodeLabel != null && !nodeLabel.trim().isEmpty()) {
-			String slug = nodeLabel.trim()
-					.toLowerCase()
-					.replaceAll("[^a-z0-9]+", "_")
-					.replaceAll("^_+|_+$", "");
-			if (!slug.isEmpty()) {
-				return slug + "_" + fieldName;
-			}
-		}
-		return "input_" + fieldName;
 	}
 
 	// -- Config value coercion -----------------------------------------------------

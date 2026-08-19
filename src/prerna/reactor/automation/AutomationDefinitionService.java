@@ -35,6 +35,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
+
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.AssetUtility;
 
@@ -42,10 +46,13 @@ import prerna.util.AssetUtility;
  * Persists and loads the canonical automation graph and its per-node Python implementations.
  *
  * <p>The graph remains canonical metadata. Absent developer source is replaced with deterministic
- * generated {@code run(scope)} source. Java owns graph control flow and invokes only one
+ * generated {@code run(scope)} source. Trigger code is stored in
+ * {@code trigger.start.config.pythonSource}; Java owns graph control flow and invokes one
  * persisted source file for each non-start node.
  */
 public final class AutomationDefinitionService {
+
+	private static final Gson PRETTY_JSON = new GsonBuilder().setPrettyPrinting().create();
 
 	private AutomationDefinitionService() {
 	}
@@ -69,7 +76,8 @@ public final class AutomationDefinitionService {
 				} else {
 					AutomationDefinitionValidator.ValidatedDefinition starter =
 							AutomationDefinitionValidator.parseAndValidate(emptyDefinition());
-					return new DefinitionFiles(emptyDefinition(), defaultNodeSources(starter));
+					return new DefinitionFiles(emptyDefinition(), withoutTriggerSources(defaultNodeSources(starter),
+							starter));
 				}
 			}
 			String definition = Files.readString(definitionFile, StandardCharsets.UTF_8);
@@ -77,15 +85,20 @@ public final class AutomationDefinitionService {
 					AutomationDefinitionValidator.parseAndValidate(definition);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
-				if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-					String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-					Path sourceFile = findNodeSourceFile(assetsFolder, portalsFolder, node);
-					sources.put(nodeId, Files.isRegularFile(sourceFile)
-							? Files.readString(sourceFile, StandardCharsets.UTF_8)
-							: AutomationSourceRenderer.renderNode(node));
-				}
+				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+				Path sourceFile = findNodeSourceFile(assetsFolder, portalsFolder, node);
+				String source = Files.isRegularFile(sourceFile)
+						? Files.readString(sourceFile, StandardCharsets.UTF_8)
+						: AutomationSourceRenderer.renderNode(node);
+				boolean generated = AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
+						&& !AutomationConstants.NODE_START.equals(
+								node.get(AutomationConstants.NODE_FIELD_TYPE));
+				sources.put(nodeId, generated ? AutomationSourceRenderer.renderNode(node) : source);
 			}
-			return new DefinitionFiles(definition, sources);
+			String normalized = normalizeGeneratedCodeModes(validated, sources, definition);
+			return new DefinitionFiles(normalized, withoutTriggerSources(sources,
+					AutomationDefinitionValidator.parseAndValidate(normalized)));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to read Python automation definition: " + e.getMessage(), e);
 		}
@@ -96,7 +109,8 @@ public final class AutomationDefinitionService {
 	 *
 	 * @param projectId project ID
 	 * @param definitionJson canonical graph JSON
-	 * @param nodeSources source by non-start node ID, or absent entries to render defaults
+	 * @param nodeSources source by non-start node ID; a trigger entry is accepted and migrated
+	 *        to {@code trigger.start.config.pythonSource} for compatibility
 	 * @return persisted graph and node sources
 	 */
 	public static DefinitionFiles save(String projectId, String definitionJson, Map<String, String> nodeSources) {
@@ -105,10 +119,11 @@ public final class AutomationDefinitionService {
 		Path assetsFolder = getAssetsFolder(projectId);
 		Path definitionFile = definitionPath(assetsFolder);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
+		String persistedDefinition = normalizeGeneratedCodeModes(definition, sourcesToPersist, definitionJson);
 
 		try {
 			Files.createDirectories(assetsFolder);
-			writeReplace(definitionFile, definitionJson);
+			writeReplace(definitionFile, prettyJson(persistedDefinition));
 			Path nodesFolder = nodesFolder(assetsFolder);
 			Files.createDirectories(nodesFolder);
 			for (Map<String, Object> node : definition.nodes()) {
@@ -120,7 +135,8 @@ public final class AutomationDefinitionService {
 			}
 			removeDeletedNodeSources(nodesFolder, definition);
 			Files.deleteIfExists(assetsFolder.resolve("automation-workflow.py"));
-			return new DefinitionFiles(definitionJson, sourcesToPersist);
+			return new DefinitionFiles(persistedDefinition, withoutTriggerSources(sourcesToPersist,
+					AutomationDefinitionValidator.parseAndValidate(persistedDefinition)));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to save Python automation definition: " + e.getMessage(), e);
 		}
@@ -187,20 +203,28 @@ public final class AutomationDefinitionService {
 		return validateAndCompleteNodeSources(definition, Map.of());
 	}
 
+	private static Map<String, String> withoutTriggerSources(Map<String, String> sources,
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		Map<String, String> result = new LinkedHashMap<>(sources);
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				result.remove((String) node.get(AutomationConstants.NODE_FIELD_ID));
+			}
+		}
+		return result;
+	}
+
 	private static Map<String, String> validateAndCompleteNodeSources(
 			AutomationDefinitionValidator.ValidatedDefinition definition, Map<String, String> nodeSources) {
 		Map<String, String> supplied = nodeSources == null ? Map.of() : nodeSources;
 		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
 		for (Map<String, Object> node : definition.nodes()) {
 			String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				nodesById.put(id, node);
-			}
+			nodesById.put(id, node);
 		}
 		for (Map.Entry<String, String> entry : supplied.entrySet()) {
 			if (!nodesById.containsKey(entry.getKey())) {
-				throw new IllegalArgumentException("Python source was supplied for an unknown or start node: "
-						+ entry.getKey());
+				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
 			if (entry.getValue() == null || entry.getValue().isBlank()) {
 				throw new IllegalArgumentException("Python source for node '" + entry.getKey() + "' must be nonblank.");
@@ -215,6 +239,84 @@ public final class AutomationDefinitionService {
 					: source);
 		}
 		return result;
+	}
+
+	/**
+	 * A generated source is viewable/editable in the inspector, where an actual
+	 * edit intentionally changes its mode to custom. Monaco can also emit its
+	 * initial value while hydrating, so recover the generated mode whenever the
+	 * persisted source remains byte-for-byte identical to its renderer output.
+	 */
+	private static String normalizeGeneratedCodeModes(
+			AutomationDefinitionValidator.ValidatedDefinition definition, Map<String, String> nodeSources,
+			String unchangedDefinition) {
+		boolean changed = false;
+		changed |= definition.definition().remove(AutomationConstants.DOC_NODE_SOURCES) != null;
+		changed |= definition.definition().remove(AutomationConstants.DOC_LEGACY_VARIABLES) != null;
+		changed |= definition.definition().remove(AutomationConstants.DOC_GLOBALS) != null;
+		for (Map<String, Object> node : definition.nodes()) {
+			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			if (AutomationConstants.NODE_START.equals(nodeType)) {
+				changed |= normalizeTriggerConfig(node, nodeSources);
+			}
+			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)
+					|| !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
+							node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+				if (!AutomationConstants.NODE_START.equals(nodeType)) {
+					continue;
+				}
+			}
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			boolean generated = AutomationSourceRenderer.renderNode(node).equals(
+					AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)));
+			if (AutomationConstants.NODE_START.equals(nodeType)) {
+				String codeMode = generated
+						? AutomationConstants.NODE_CODE_MODE_GENERATED
+						: AutomationConstants.NODE_CODE_MODE_CUSTOM;
+				if (!codeMode.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, codeMode);
+					changed = true;
+				}
+			} else if (generated) {
+				node.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
+				changed = true;
+			}
+		}
+		return changed
+				? AutomationRuntimeUtils.GSON.toJson(definition.definition())
+				: unchangedDefinition;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static boolean normalizeTriggerConfig(Map<String, Object> node, Map<String, String> nodeSources) {
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		Map<String, Object> config;
+		if (rawConfig instanceof Map<?, ?> map) {
+			config = new LinkedHashMap<>((Map<String, Object>) map);
+		} else {
+			config = new LinkedHashMap<>();
+		}
+		boolean changed = false;
+		Object legacy = config.remove(AutomationConstants.CONFIG_PYTHON);
+		if (legacy != null) {
+			changed = true;
+			if (!config.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)) {
+				config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, legacy);
+			}
+		}
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		String legacySource = nodeSources.get(nodeId);
+		if (!config.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)
+				&& legacySource != null
+				&& !AutomationSourceRenderer.renderNode(node).equals(legacySource)) {
+			config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, legacySource);
+			changed = true;
+		}
+		if (changed) {
+			node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
+			return true;
+		}
+		return false;
 	}
 
 	private static Path getAssetsFolder(String projectId) {
@@ -246,6 +348,10 @@ public final class AutomationDefinitionService {
 		} finally {
 			Files.deleteIfExists(temporary);
 		}
+	}
+
+	private static String prettyJson(String definition) {
+		return PRETTY_JSON.toJson(JsonParser.parseString(definition)) + System.lineSeparator();
 	}
 
 	private static Path nodeSourcePath(Path folder, Map<String, Object> node) {

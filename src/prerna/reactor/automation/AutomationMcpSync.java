@@ -50,6 +50,8 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -107,9 +109,26 @@ public final class AutomationMcpSync {
 	private static JSONObject triggerTool(String projectId, String definitionJson) {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
-		properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, new JSONObject()
+		JSONObject inputs = new JSONObject()
 				.put("type", "object")
-				.put("description", "Optional values for this automation's declared runtime inputs."));
+				.put("description", "Optional values overriding globals declared by trigger Python.");
+		JSONObject inputProperties = new JSONObject();
+		for (Map<String, Object> global : triggerGlobalDefinitions(projectId)) {
+			String name = (String) global.get("name");
+			Object defaultValue = global.get(AutomationConstants.CONFIG_DEFAULT_VALUE);
+			Object rawDescription = global.get(AutomationConstants.CONFIG_DESCRIPTION);
+			JSONObject property = new JSONObject()
+					.put("description", rawDescription instanceof String description && !description.isBlank()
+							? description
+							: "Override trigger global '" + name + "'.");
+			property.put("default", defaultValue != null ? defaultValue : JSONObject.NULL);
+			property.put("type", jsonType(defaultValue));
+			inputProperties.put(name, property);
+		}
+		if (!inputProperties.isEmpty()) {
+			inputs.put("properties", inputProperties);
+		}
+		properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, inputs);
 		JSONObject tool = tool("TriggerAutomation", "Trigger Automation",
 				description(definitionJson) + " Run this project's automation.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
@@ -130,15 +149,21 @@ public final class AutomationMcpSync {
 				+ "storage nodes require engineId and path; upload/download also require destination. "
 				+ "vector nodes require engineId and value; vector.search may include limit. "
 				+ "function.execute requires engineId and arguments. app.pixel requires pixel. "
+				+ "agent.run requires roomId and command; it supports engineId, harnessType, workspaceId, "
+				+ "maxTurns, maxReflections, wait, waitTimeoutMs, paramValues, and agentParams. "
 				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
 				+ "that no supported engine node can perform; it requires source defining run(scope). "
-				+ "Use ${prior_output} to reference an upstream output."));
+				+ "Use ${prior_output} to reference an upstream output. Field values are executable configuration, "
+				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
+				+ "or arguments."));
 		properties.put("label", stringProperty("Short user-facing action label."));
 		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's output."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
 		return tool("AddAutomationStep", "Add Automation Step",
-				"Add one validated action. Prefer an engine-backed node whenever it supports the task; use "
-						+ "developer.python only for an unavailable external integration.", properties,
+				"Add one validated action from the user's chat request. Prefer an engine-backed node whenever it "
+						+ "supports the task; use developer.python only for an unavailable external integration. "
+						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
+				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
 						.put("label").put("outputVar"));
 	}
@@ -162,7 +187,8 @@ public final class AutomationMcpSync {
 		properties.put("config", stringProperty("Complete replacement JSON configuration for the node."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
-				"Update configuration for one generated node and regenerate its managed Python source.", properties,
+				"Apply the user's requested change to one generated node's direct configuration and regenerate its "
+						+ "managed Python source. Preserve unaffected configuration fields.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId").put("config"));
 	}
 
@@ -207,6 +233,7 @@ public final class AutomationMcpSync {
 				.put(AutomationConstants.NODE_VECTOR_DELETE)
 				.put(AutomationConstants.NODE_FUNCTION_EXECUTE)
 				.put(AutomationConstants.NODE_APP_PIXEL)
+				.put(AutomationConstants.NODE_AGENT_RUN)
 				.put(AutomationConstants.NODE_CONTROL_WAIT)
 				.put(AutomationConstants.NODE_DEVELOPER_PYTHON);
 		return stringProperty("The typed action to add.").put("enum", values);
@@ -219,5 +246,32 @@ public final class AutomationMcpSync {
 		} catch (Exception e) {
 			return "Automation workflow.";
 		}
+	}
+
+	private static List<Map<String, Object>> triggerGlobalDefinitions(String projectId) {
+		try {
+			AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
+			return AutomationRuntime.triggerGlobalDefinitions(
+					AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources());
+		} catch (RuntimeException e) {
+			classLogger.warn("Unable to read trigger globals for automation project {}", projectId, e);
+			return List.of();
+		}
+	}
+
+	private static String jsonType(Object value) {
+		if (value instanceof Boolean) {
+			return "boolean";
+		}
+		if (value instanceof Number) {
+			return "number";
+		}
+		if (value instanceof java.util.List<?>) {
+			return "array";
+		}
+		if (value instanceof Map<?, ?>) {
+			return "object";
+		}
+		return "string";
 	}
 }
