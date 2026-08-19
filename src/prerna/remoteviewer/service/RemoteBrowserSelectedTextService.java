@@ -61,9 +61,9 @@ import prerna.remoteviewer.model.RemoteBrowserInputEvent;
  *
  * <p>
  * This service must be called on the owning remote-browser session thread. It
- * first attempts a precise DOM range between the drag endpoints, then falls
- * back to visible text-node rectangles when the endpoints are in whitespace or
- * otherwise cannot form a trustworthy range.
+ * first consumes the browser's native DOM selection when it matches the drag's
+ * final endpoint. It then attempts a precise DOM range between the viewport
+ * coordinates and finally falls back to visible text-node rectangles.
  */
 public final class RemoteBrowserSelectedTextService {
 
@@ -133,6 +133,37 @@ public final class RemoteBrowserSelectedTextService {
 			    return null;
 			  }
 
+			  function caretRect(node, offset) {
+			    if (!node) return null;
+			    try {
+			      const range = document.createRange();
+			      range.setStart(node, offset);
+			      range.collapse(true);
+			      const boxes = Array.from(range.getClientRects());
+			      return boxes[0] || range.getBoundingClientRect();
+			    } catch (e) {
+			      return null;
+			    }
+			  }
+
+			  function focusMatchesEndpoint(selection) {
+			    const endpoint = caretAt(args.endX, args.endY);
+			    if (!endpoint || !selection.focusNode) return false;
+			    if (endpoint.node === selection.focusNode &&
+			        Math.abs(endpoint.offset - selection.focusOffset) <= 3) return true;
+
+			    // A pointer released just outside a glyph can resolve to a nearby caret,
+			    // so allow a small visual gap around the browser selection's focus.
+			    const box = caretRect(selection.focusNode, selection.focusOffset);
+			    if (!box) return false;
+			    const horizontalTolerance = 48;
+			    const verticalTolerance = 96;
+			    return args.endX >= box.left - horizontalTolerance &&
+			      args.endX <= box.right + horizontalTolerance &&
+			      args.endY >= box.top - verticalTolerance &&
+			      args.endY <= box.bottom + verticalTolerance;
+			  }
+
 			  function safeHref(el) {
 			    const link = el && el.closest ? el.closest('a[href]') : null;
 			    if (!link) return '';
@@ -163,6 +194,40 @@ public final class RemoteBrowserSelectedTextService {
 			      heading: headingFor(el),
 			      href: safeHref(el)
 			    };
+			  }
+
+			  function nativeSelection() {
+			    try {
+			      const selection = window.getSelection();
+			      if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null;
+			      if (!isAllowed(selection.anchorNode) || !isAllowed(selection.focusNode)) return null;
+			      if (!focusMatchesEndpoint(selection)) return null;
+
+			      const ranges = [];
+			      const text = [];
+			      for (let index = 0; index < selection.rangeCount; index++) {
+			        const range = selection.getRangeAt(index);
+			        const content = normalize(range.toString());
+			        if (!content) continue;
+			        text.push(content);
+			        ranges.push(range);
+			      }
+			      const content = normalize(text.join('\\n'));
+			      if (!content || !ranges.length) return null;
+
+			      const boxes = ranges.flatMap(range =>
+			        Array.from(range.getClientRects()).filter(box => box.width > 0 && box.height > 0));
+			      const geometry = boxes.reduce((best, box) => !best || box.top < best.top ||
+			        (box.top === best.top && box.left < best.left) ? box : best, null);
+			      return metadata(ranges[0].startContainer, content, geometry);
+			    } catch (e) {
+			      return null;
+			    }
+			  }
+
+			  const native = nativeSelection();
+			  if (native) {
+			    return { method: 'dom-native-selection', fragments: [native], scannedTextNodes: 0 };
 			  }
 
 			  function exactRange() {
@@ -415,8 +480,13 @@ public final class RemoteBrowserSelectedTextService {
 		if (truncated) {
 			content = content.substring(0, MAX_CONTENT_CHARS - 3).stripTrailing() + "...";
 		}
-		String method = unique.size() == 1 && "dom-range".equals(unique.get(0).method()) ? "dom-range"
-				: "dom-rectangle";
+		String method = "dom-rectangle";
+		if (unique.size() == 1) {
+			String extractedMethod = unique.get(0).method();
+			if ("dom-native-selection".equals(extractedMethod) || "dom-range".equals(extractedMethod)) {
+				method = extractedMethod;
+			}
+		}
 
 		Map<String, Object> bounds = new LinkedHashMap<>();
 		bounds.put("startX", startX);
