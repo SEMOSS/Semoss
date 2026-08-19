@@ -51,10 +51,9 @@ public class SystemDefaultEngines {
 	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN,
-			Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE,
-			Constants.SKILL_FILE_UPLOADS, Constants.SKILL_MODEL, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
-			Constants.SKILL_VECTOR);
+	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
+			Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS,
+			Constants.SKILL_MODEL, Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
 
 	/**
 	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
@@ -72,8 +71,7 @@ public class SystemDefaultEngines {
 	 * agent.
 	 */
 	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
-			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP, Constants.MCP_APP_FILESYSTEM,
-			Constants.MCP_ROOM_FILESYSTEM);
+			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
 
