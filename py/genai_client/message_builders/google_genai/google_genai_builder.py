@@ -332,43 +332,35 @@ class GoogleGenAIMessageBuilder:
 
         return config, stream
 
-    def _supports_multimodal_function_response(self) -> bool:
-        """Multimodal function responses (FunctionResponsePart/Blob) require Gemini 3+."""
-        model_name = (self.model_settings.model_name or "").lower()
-        return "gemini-3" in model_name
-
     def _build_function_response_part(self, name: str, output: str, blocks) -> Part:
-        """Build a function_response Part.
-
-        For Gemini 3+ models, image/document blocks are embedded as nested
-        FunctionResponsePart entries inside the Part so the model can analyze
-        them visually. On older models the binary is silently dropped and only
-        the text description is sent.
-        """
+        """Build a function_response Part, embedding binary blocks as FunctionResponseBlob."""
         text_parts = [b["text"] for b in blocks if b["type"] == "text"] if blocks else None
         text = "\n".join(text_parts) if text_parts else ("See attached media." if blocks else output)
 
-        if blocks and self._supports_multimodal_function_response():
-            media_parts = []
-            for block in blocks:
-                if block["type"] in ("image", "document"):
-                    mime = block.get("mimeType", "image/png")
-                    ext = mime.split("/")[-1]
-                    media_parts.append(
-                        types.FunctionResponsePart(
-                            inline_data=types.FunctionResponseBlob(
-                                mime_type=mime,
-                                display_name=f"attachment.{ext}",
-                                data=base64.b64decode(block["data"]),
+        if blocks:
+            try:
+                media_parts = []
+                for block in blocks:
+                    if block["type"] in ("image", "document"):
+                        mime = block.get("mimeType", "image/png")
+                        ext = mime.split("/")[-1]
+                        media_parts.append(
+                            types.FunctionResponsePart(
+                                inline_data=types.FunctionResponseBlob(
+                                    mime_type=mime,
+                                    display_name=f"attachment.{ext}",
+                                    data=base64.b64decode(block["data"]),
+                                )
                             )
                         )
+                if media_parts:
+                    return Part.from_function_response(
+                        name=name,
+                        response={"result": text},
+                        parts=media_parts,
                     )
-            if media_parts:
-                return Part.from_function_response(
-                    name=name,
-                    response={"result": text},
-                    parts=media_parts,
-                )
+            except Exception:
+                pass
 
         return Part.from_function_response(name=name, response={"result": text})
 
