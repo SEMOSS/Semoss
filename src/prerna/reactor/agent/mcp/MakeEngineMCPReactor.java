@@ -278,7 +278,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		// Both the default set and the explicit-reactor path feed this array.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
 
-		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
+		String outputFileLoc = engineAssetsFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 
 		// The default tool set is a full rebuild; an explicit reactor list is a subset.
 		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
@@ -330,7 +330,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

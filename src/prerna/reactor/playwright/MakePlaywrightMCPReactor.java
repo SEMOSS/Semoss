@@ -130,7 +130,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		// Replace only tools owned by this generator. Hand-authored tools and tools
 		// written by other generators remain untouched.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
-		String outputFileLoc = projectAssetFolder + PlaywrightMCPToolBuilder.MCP_OUTPUT_REL;
+		String outputFileLoc = projectAssetFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 		JSONArray mergedTools = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray,
 				GENERATOR_ID, true);
 		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(mergedTools);
@@ -166,7 +166,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 		// Add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + PlaywrightMCPToolBuilder.MCP_OUTPUT_REL);
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
