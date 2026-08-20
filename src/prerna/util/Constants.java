@@ -1072,12 +1072,19 @@ public class Constants {
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
+	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FUNCTIONS = "functions";
 	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PAGINATION = "pagination";
+	public static final String SKILL_PERMISSIONS = "permissions";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_STORAGE = "storage";
+	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
 
 	// system (platform) mcp names
