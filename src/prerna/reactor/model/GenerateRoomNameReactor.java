@@ -77,7 +77,7 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
-		// fresh from the DB, not the cached instance, so nothing here fights over the live room's lock
+		// fresh from the DB, not cached - avoids the live room's lock
 		Room detachedRoom = ModelInferenceLogsUtils.getRoomById(roomId, userId);
 		if (detachedRoom == null) {
 			throw new IllegalStateException("Room not found");
@@ -107,8 +107,7 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("use_history", false);
-		// no UI is watching this call, only the final string matters - skip streaming
-		// entirely so there are no interim chunks to ever misroute
+		// only the final string matters here, so don't stream
 		paramMap.put("stream", false);
 
 		InputMessage inputMsg = InputMessage.builder(detachedRoom)
@@ -117,10 +116,8 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 				.withParamMap(paramMap)
 				.build();
 
-		// belt-and-suspenders for engines that don't honor stream=false: a chunk
-		// tagged with a jobId that matches a live RunAgent run gets forwarded straight
-		// into that run's response, so null the jobId out for this call. Restored right
-		// after - a canceled request looks up its PixelJobRunner by this same id.
+		// fallback for engines that ignore stream=false: a matching jobId would get this
+		// forwarded into that run's response. restore it after - cancellation needs it.
 		String callingJobId = ThreadStore.getJobId();
 		ResponseMessage response;
 		try {
@@ -143,9 +140,8 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		boolean persisted = ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, generatedName);
 		if (persisted) {
-			// also update the cached room if one's loaded, so a later persist() from
-			// the live turn doesn't resurrect the old name - skip getOrLoadRoom here,
-			// it'd acquire the room's mutation lock for no reason
+			// sync the cache too, or a later persist() from the live turn resurrects
+			// the old name - raw lookup, no need for getOrLoadRoom's lock
 			Room cached = user.getRoomHash().get(roomId);
 			if (cached != null) {
 				cached.setRoomName(generatedName);
