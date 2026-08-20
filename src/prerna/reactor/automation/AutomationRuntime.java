@@ -49,6 +49,8 @@ final class AutomationRuntime {
 
 	private static final Pattern GLOBAL_ASSIGNMENT = Pattern.compile(
 			"^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.+?)(?:\\s+#.*)?$");
+	private static final Pattern WHOLE_PLACEHOLDER_LITERAL = Pattern.compile(
+			"([\"'])\\$\\{([^}]+)}\\1");
 
 	private AutomationRuntime() {
 	}
@@ -125,6 +127,14 @@ final class AutomationRuntime {
 
 	static String buildNodeInvocationScript(String source, Map<String, String> scope,
 			Map<String, String> config) {
+		return buildNodeInvocationScript(source, scope, config, false);
+	}
+
+	static String buildNodeInvocationScript(String source, Map<String, String> scope,
+			Map<String, String> config, boolean resolveCustomSourcePlaceholders) {
+		String executableSource = resolveCustomSourcePlaceholders
+				? resolveWholePlaceholderLiterals(source)
+				: source;
 		return """
 				import base64 as _automation_b64
 				import json as _automation_json
@@ -160,7 +170,21 @@ final class AutomationRuntime {
 				""".formatted(
 						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
 						encode(AutomationRuntimeUtils.GSON.toJson(config != null ? config : Map.of())),
-						encode(source));
+						encode(executableSource));
+	}
+
+	private static String resolveWholePlaceholderLiterals(String source) {
+		if (source == null || source.isBlank()) {
+			return source;
+		}
+		Matcher matcher = WHOLE_PLACEHOLDER_LITERAL.matcher(source);
+		StringBuffer rewritten = new StringBuffer();
+		while (matcher.find()) {
+			String replacement = "resolve(\"${" + matcher.group(2) + "}\", scope)";
+			matcher.appendReplacement(rewritten, Matcher.quoteReplacement(replacement));
+		}
+		matcher.appendTail(rewritten);
+		return rewritten.toString();
 	}
 
 	/**

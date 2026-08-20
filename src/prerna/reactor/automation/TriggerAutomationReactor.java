@@ -231,8 +231,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		long startedMs = System.currentTimeMillis();
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
 		try {
+			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
+					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
-					AutomationRuntime.buildNodeInvocationScript(source, scope, config),
+					AutomationRuntime.buildNodeInvocationScript(source, scope, config,
+							resolveCustomSourcePlaceholders),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			return persistNativeNodeResult(runId, node, value, started, startedMs);

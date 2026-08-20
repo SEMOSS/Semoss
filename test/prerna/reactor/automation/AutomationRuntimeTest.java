@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +68,27 @@ class AutomationRuntimeTest {
 		assertTrue(script.contains("if not callable(_automation_run):"));
 		assertTrue(script.contains("Automation node source must define callable run(scope)."));
 		assertTrue(script.contains("\"__name__\": \"__automation_node__\""));
+	}
+
+	@Test
+	void resolvesWholePlaceholderLiteralsInCustomSource() {
+		String source = """
+				def run(scope):
+				    message = "${model_chat_3}"
+				    return {"message": message}
+				""";
+
+		String script = AutomationRuntime.buildNodeInvocationScript(source,
+				Map.of("model_chat_3", "resolved output"), Map.of(), true);
+
+		String rewritten = """
+				def run(scope):
+				    message = resolve("${model_chat_3}", scope)
+				    return {"message": message}
+				""";
+		String encodedRewritten = Base64.getUrlEncoder().encodeToString(
+				rewritten.getBytes(StandardCharsets.UTF_8));
+		assertTrue(script.contains(encodedRewritten));
 	}
 
 	@Test
