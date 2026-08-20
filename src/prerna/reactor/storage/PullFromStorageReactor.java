@@ -69,7 +69,7 @@ public class PullFromStorageReactor extends AbstractReactor {
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred downloading storage file to local");
+			throw new IllegalArgumentException("Error occurred downloading storage file to local. Detailed message = " + e.getMessage());
 		}
 	}
 

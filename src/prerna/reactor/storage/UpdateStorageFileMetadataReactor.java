@@ -78,7 +78,7 @@ public class UpdateStorageFileMetadataReactor extends AbstractReactor {
         	return new NounMetadata(true, PixelDataType.BOOLEAN);
         } catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred applying metadata");
+			throw new IllegalArgumentException("Error occurred applying metadata. Detailed message = " + e.getMessage());
         }
         
 	}
