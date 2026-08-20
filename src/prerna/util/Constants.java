@@ -1092,7 +1092,6 @@ public class Constants {
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
-	public static final String MCP_AUTOMATION = "automation-portal";
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 

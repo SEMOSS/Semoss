@@ -128,7 +128,6 @@ public final class SchedulerConstants {
 	public static final String VARCHAR_250 = "VARCHAR (250)";
 	public static final String VARCHAR_255 = "VARCHAR (255)";
 	public static final String VARCHAR_512 = "VARCHAR (512)";
-	public static final String VARCHAR_2000 = "VARCHAR (2000)";
 
 	public static final String INTEGER = "INTEGER";
 	public static final String BOOLEAN = "BOOLEAN";
