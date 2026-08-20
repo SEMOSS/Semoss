@@ -200,11 +200,13 @@ class OpenAIMessageBuilder:
                             )
                             content_parts = []
 
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = self._parse_tool_result_blocks(output)
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
                                 call_id=p.tool_result.id,
-                                output=p.tool_result.output,
+                                output=self._build_responses_tool_output(output, blocks),
                             )
                         )
 
@@ -264,11 +266,13 @@ class OpenAIMessageBuilder:
                     continue
 
                 if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                    output = message.content or "Tool executed successfully."
+                    blocks = self._parse_tool_result_blocks(output)
                     openai_messages.append(
                         OpenAIResponsesToolCallOutput(
                             type="function_call_output",
                             call_id=message.tool_call_id,
-                            output=message.content,
+                            output=self._build_responses_tool_output(output, blocks),
                         )
                     )
                     if is_last:
@@ -1032,6 +1036,41 @@ class OpenAIMessageBuilder:
                 return OpenAIRoles.ASSISTANT.value
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _parse_tool_result_blocks(self, output: str):
+        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        try:
+            parsed = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(parsed, list):
+            return None
+        for item in parsed:
+            if not isinstance(item, dict) or "type" not in item:
+                return None
+            if item["type"] not in ("text", "image", "document"):
+                return None
+        return parsed or None
+
+    def _build_responses_tool_output(self, output: str, blocks):
+        """Convert MCP blocks to Responses API tool content.
+        Images become input_image data-URIs; PDFs become input_file blocks."""
+        if blocks is None:
+            return output or "Tool executed successfully."
+        result = []
+        for b in blocks:
+            if b["type"] == "text":
+                result.append({"type": "input_text", "text": b["text"]})
+            elif b["type"] == "image":
+                mime = b.get("mimeType", "image/png")
+                result.append({"type": "input_image",
+                               "image_url": f"data:{mime};base64,{b['data']}"})
+            elif b["type"] == "document":
+                mime = b.get("mimeType", "application/pdf")
+                result.append({"type": "input_file",
+                               "filename": "document.pdf",
+                               "file_data": f"data:{mime};base64,{b['data']}"})
+        return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(
         self, content: str, type: Optional[str] = "input_text"
