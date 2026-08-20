@@ -110,13 +110,11 @@ public final class AutomationConstants {
 	public static final String NODE_MODEL_EMBEDDINGS = "model.embeddings";
 	public static final String NODE_MODEL_VISION = "model.vision";
 	public static final String NODE_MODEL_NER = "model.ner";
-	public static final String NODE_STORAGE_ACTION = "storage.action";
 	public static final String NODE_STORAGE_LIST = "storage.list";
 	public static final String NODE_STORAGE_READ = "storage.read";
 	public static final String NODE_STORAGE_UPLOAD = "storage.upload";
 	public static final String NODE_STORAGE_DOWNLOAD = "storage.download";
 	public static final String NODE_STORAGE_DELETE = "storage.delete";
-	public static final String NODE_VECTOR_ACTION = "vector.action";
 	public static final String NODE_VECTOR_SEARCH = "vector.search";
 	public static final String NODE_VECTOR_ADD = "vector.add";
 	public static final String NODE_VECTOR_DELETE = "vector.delete";

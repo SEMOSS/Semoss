@@ -75,11 +75,9 @@ public final class AutomationSourceRenderer {
 			case AutomationConstants.NODE_STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
 			case AutomationConstants.NODE_STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
 			case AutomationConstants.NODE_STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
-			case AutomationConstants.NODE_STORAGE_ACTION -> storageActionSource(config);
 			case AutomationConstants.NODE_VECTOR_SEARCH -> vectorSearchSource(config);
 			case AutomationConstants.NODE_VECTOR_ADD -> vectorAddSource(config);
 			case AutomationConstants.NODE_VECTOR_DELETE -> vectorDeleteSource(config);
-			case AutomationConstants.NODE_VECTOR_ACTION -> vectorActionSource(config);
 			case AutomationConstants.NODE_FUNCTION_EXECUTE -> functionSource(config);
 			case AutomationConstants.NODE_APP_PIXEL -> appPixelSource(config);
 			case AutomationConstants.NODE_AGENT_RUN -> agentRunSource(config);
@@ -260,63 +258,6 @@ public final class AutomationSourceRenderer {
 				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
 				    return vector.removeDocument(file_names=resolve(FILE_NAMES, scope).split(","))
 				""".formatted(value(config, "engineId"), value(config, "value"));
-	}
-
-	private static String storageActionSource(Map<String, Object> config) {
-		return """
-				# Access SEMOSS storage directly through the Python SDK.
-				from ai_server import StorageEngine
-
-				ENGINE_ID = %s
-				OPERATION = %s
-				STORAGE_PATH = %s
-				FILE_PATH = %s
-
-				def run(scope):
-				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
-				    operation = resolve(OPERATION, scope)
-				    storage_path = resolve(STORAGE_PATH, scope)
-				    file_path = resolve(FILE_PATH, scope)
-				    if operation == "list":
-				        return storage.list(storage_path)
-				    if operation == "read-base64":
-				        return storage.readBlobToMemory(storage_path)
-				    if operation == "upload":
-				        return storage.copyToStorage(storagePath=storage_path, localPath=file_path)
-				    if operation == "download":
-				        return storage.copyToLocal(storagePath=storage_path, localPath=file_path)
-				    if operation == "delete":
-				        return storage.deleteFromStorage(storage_path)
-				    raise ValueError(f"Unsupported storage operation: {operation}")
-				""".formatted(value(config, "engineId"), value(config, "operation"),
-				value(config, "path"), value(config, "destination"));
-	}
-
-	private static String vectorActionSource(Map<String, Object> config) {
-		return """
-				# Access a SEMOSS vector engine directly through the Python SDK.
-				from ai_server import VectorEngine
-
-				ENGINE_ID = %s
-				OPERATION = %s
-				VALUE = %s
-				LIMIT = %s
-
-				def run(scope):
-				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
-				    operation = resolve(OPERATION, scope)
-				    value = resolve(VALUE, scope)
-				    if operation == "search":
-				        return vector.nearestNeighbor(search_statement=value, limit=resolve(LIMIT, scope))
-				    if operation in ("add", "add-file"):
-				        return vector.addDocument(file_paths=value.split(","))
-				    if operation == "delete":
-				        return vector.removeDocument(file_names=value.split(","))
-				    if operation == "list":
-				        return vector.listDocuments()
-				    raise ValueError(f"Unsupported vector operation: {operation}")
-				""".formatted(value(config, "engineId"), value(config, "operation"),
-				value(config, "value"), value(config, "limit"));
 	}
 
 	private static String functionSource(Map<String, Object> config) {

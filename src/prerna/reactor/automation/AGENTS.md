@@ -54,9 +54,9 @@ Supported native-Python runtime types are:
 
 - `database.query`, `database.insert`, `database.update`
 - `model.chat`, `model.embeddings`, `model.vision`, `model.ner`
-- `storage.action`, `storage.list`, `storage.read`, `storage.upload`,
+- `storage.list`, `storage.read`, `storage.upload`,
   `storage.download`, `storage.delete`
-- `vector.action`, `vector.search`, `vector.add`, `vector.delete`
+- `vector.search`, `vector.add`, `vector.delete`
 - `function.execute`, `app.pixel`, `control.wait`
 - `agent.run`
 
