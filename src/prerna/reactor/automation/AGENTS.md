@@ -80,7 +80,6 @@ job when possible, and is checked before each node and during waits.
 | --- | --- |
 | `AutomationDatabaseUtility` / `AutomationOwlCreator` | Run records, node outputs, active-run locking, and stale-run recovery. |
 | `AutomationPythonRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
-| `AutomationRuntimeUtils` | JSON, scope construction, output transforms, previews, and runtime input injection. |
-| `PixelExecutionUtils` | Timeout-enforced Pixel execution with `ThreadStore` propagation. |
+| `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |
 
 Do not bypass the active-run database lock, run snapshot, or DB/in-memory cancellation signal.

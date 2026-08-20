@@ -157,7 +157,6 @@ public final class AutomationConstants {
 	public static final String CONFIG_WAIT = "wait";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
-	public static final String CONFIG_TIMEOUT_SECONDS = "timeoutSeconds";
 	public static final String DEFAULT_STORAGE_PATH = "/";
 	public static final String EMPTY_JSON_OBJECT = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
@@ -210,7 +209,6 @@ public final class AutomationConstants {
 	public static final String NODE_FIELD_TYPE = "type";
 	public static final String NODE_FIELD_LABEL = "label";
 	public static final String NODE_FIELD_CONFIG = "config";
-	public static final String NODE_FIELD_OUTPUT_TRANSFORM = "outputTransform";
 	public static final String NODE_FIELD_OUTPUT_VAR = "outputVar";
 	public static final String EDGE_FIELD_SOURCE = "source";
 	public static final String EDGE_FIELD_TARGET = "target";
@@ -223,20 +221,6 @@ public final class AutomationConstants {
 	public static final String NODE_CODE_MODE_GENERATED = "generated";
 	public static final String NODE_CODE_MODE_CUSTOM = "custom";
 	public static final String UNNAMED_NODE_LABEL = "unnamed";
-
-	// -- Output transform field names / modes ----------------------------------------
-
-	public static final String TRANSFORM_MODE = "mode";
-	public static final String TRANSFORM_COLUMN = "column";
-	public static final String TRANSFORM_PATH = "path";
-	public static final String TRANSFORM_MODE_RAW = "raw";
-	public static final String TRANSFORM_MODE_ROWS_AS_OBJECTS = "rows-as-objects";
-	public static final String TRANSFORM_MODE_FIRST_ROW = "first-row";
-	public static final String TRANSFORM_MODE_COLUMN = "column";
-	public static final String TRANSFORM_MODE_JSONPATH = "jsonpath";
-	public static final String DATASET_HEADERS = "headers";
-	public static final String DATASET_VALUES = "values";
-	public static final String DATASET_DATA = "data";
 
 	// -- Scope variable names ---------------------------------------------------------
 
@@ -260,7 +244,6 @@ public final class AutomationConstants {
 
 	public static final String AUTOMATION_INPUTS_KEY = "inputs";
 	public static final String AUTOMATION_TRIGGER_TYPE_KEY = "triggerType";
-	public static final int DEFAULT_TIMEOUT_SECONDS = 300;
 
 	// -- Data type constants (for table creation) ----------------------------------
 
