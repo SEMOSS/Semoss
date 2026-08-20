@@ -38,6 +38,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -77,6 +78,8 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
+		// only used for permission checks / model resolution - the actual ask()
+		// runs against a detached room below so it doesn't block on this one's lock
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 
 		// Fall back to the room's configured model if no engine was passed
@@ -95,6 +98,13 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
+		// fresh from the DB, not the cached instance, so it doesn't fight over the live room's lock
+		Room detachedRoom = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+		if (detachedRoom == null) {
+			throw new IllegalStateException("Room not found");
+		}
+		detachedRoom.setInsight(this.insight);
+
 		// Truncate to avoid sending a full essay to the model
 		String truncatedPrompt = prompt.length() > PROMPT_CHAR_LIMIT
 				? prompt.substring(0, PROMPT_CHAR_LIMIT)
@@ -103,14 +113,26 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("use_history", false);
 
-		InputMessage inputMsg = InputMessage.builder(room)
+		InputMessage inputMsg = InputMessage.builder(detachedRoom)
 				.withText(TITLE_INSTRUCTION + "\n\n" + truncatedPrompt)
 				.withModelType(modelEngine.getModelType())
 				.withParamMap(paramMap)
 				.build();
 
-		// appendToHistory=false: nothing gets written back to the room
-		ResponseMessage response = room.ask(inputMsg, modelEngine, null, false);
+		// if this thread's jobId matches a live RunAgent stream, these tokens get
+		// forwarded straight into that run's response (PyTranslator tags every chunk
+		// with the current jobId, and PixelJobManager forwards anything tagged with
+		// a registered run). Null it out so this call can't bleed into someone
+		// else's stream - same isolation AgentRoomNamer gets for free from a fresh Thread.
+		String callingJobId = ThreadStore.getJobId();
+		ResponseMessage response;
+		try {
+			ThreadStore.setJobId(null);
+			// appendToHistory=false: nothing gets written back to the room
+			response = detachedRoom.ask(inputMsg, modelEngine, null, false);
+		} finally {
+			ThreadStore.setJobId(callingJobId);
+		}
 
 		String raw = response.getContent();
 		if (raw == null || raw.trim().isEmpty()) {
@@ -123,6 +145,10 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 		}
 
 		ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, generatedName);
+
+		// sync the cached room's name too, so a later persist() from the live turn
+		// doesn't resurrect the old one
+		room.setRoomName(generatedName);
 
 		return new NounMetadata(generatedName, PixelDataType.CONST_STRING);
 	}
