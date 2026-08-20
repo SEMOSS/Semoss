@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -77,6 +78,15 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 
 	// optional additional keys
 	protected String ADDITIONAL_RCLONE_PARAMETERS = null;
+
+	/**
+	 * rclone exit codes that report a missing target - 3 is directory not found and
+	 * 4 is file not found. Tolerated on the read and delete operations, where an
+	 * absent path is an empty result or an already finished delete rather than a
+	 * failure. Every other non-zero exit means rclone gave up after its retries and
+	 * the operation did not happen.
+	 */
+	private static final Set<Integer> NOT_FOUND_EXIT_CODES = Set.of(3, 4);
 
 	/**
 	 * Init the general storage values
@@ -177,6 +187,11 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		String configPath = getConfigPath(rCloneConfig);
 		try {
 			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "config", "delete", rCloneConfig);
+		} catch (IOException e) {
+			// every caller runs this from a finally block, so throwing here would replace
+			// the failure they are already unwinding. the config file itself is removed
+			// below either way, which is the part that matters
+			classLogger.warn("Unable to remove the temporary rclone config", e);
 		} finally {
 			configPath = Utility.normalizePath(configPath);
 			new File(configPath).delete();
@@ -656,7 +671,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		commandList.add(configPath);
 		commandList.add("--fast-list");
 		String[] newCommand = commandList.toArray(new String[] {});
-		return runAnyProcess(newCommand);
+		// listing a path that is not there is an empty result, not an error
+		return runAnyProcess(NOT_FOUND_EXIT_CODES, newCommand);
 	}
 
 	/**
@@ -708,7 +724,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		commandList.add("--config");
 		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
-		return runAnyProcess(newCommand);
+		// removing something that is already gone is a finished delete, not a failure
+		return runAnyProcess(NOT_FOUND_EXIT_CODES, newCommand);
 	}
 
 	/**
@@ -727,7 +744,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		commandList.add("--config");
 		commandList.add(configPath);
 		String[] newCommand = commandList.toArray(new String[] {});
-		return runProcessListJsonOutput(newCommand);
+		// listing a path that is not there is an empty result, not an error
+		return runProcessListJsonOutput(NOT_FOUND_EXIT_CODES, newCommand);
 	}
 
 	/**
@@ -751,47 +769,83 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	/**
+	 * Run the command and return what it wrote to stdout.
 	 * 
 	 * @param command
 	 * @return
-	 * @throws IOException
+	 * @throws IOException          if rclone exited with a non-zero code
 	 * @throws InterruptedException
 	 */
 	protected static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
-		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
-		try {
-			Process p = null;
-			try {
-				ProcessBuilder pb = new ProcessBuilder(command);
-				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
-				pb.redirectOutput(Redirect.PIPE);
-				pb.redirectError(Redirect.PIPE);
-				p = pb.start();
-				p.waitFor();
-				List<String> results = streamOutput(p.getInputStream());
-				streamError(p.getErrorStream());
-				return results;
-			} finally {
-				if (p != null) {
-					p.destroyForcibly();
-				}
-			}
-		} finally {
-//			System.setSecurityManager(priorManager);
-		}
+		return runAnyProcess(Collections.emptySet(), command);
+	}
+
+	/**
+	 * Run the command and return what it wrote to stdout.
+	 * 
+	 * @param toleratedExitCodes non-zero rclone exit codes to accept instead of failing
+	 * @param command
+	 * @return
+	 * @throws IOException          if rclone exited with a code outside toleratedExitCodes
+	 * @throws InterruptedException
+	 */
+	protected static List<String> runAnyProcess(Set<Integer> toleratedExitCodes, String... command)
+			throws IOException, InterruptedException {
+		ProcessResult result = runProcess(command);
+		result.verify(toleratedExitCodes, command);
+		return result.getOutput();
 	}
 
 	/**
 	 * 
 	 * @param command
 	 * @return
-	 * @throws IOException
+	 * @throws IOException          if rclone exited with a non-zero code
 	 * @throws InterruptedException
 	 */
 	protected static Map<String, Object> runProcessJsonOutput(String... command)
 			throws IOException, InterruptedException {
+		ProcessResult result = runProcess(command);
+		result.verify(Collections.emptySet(), command);
+		return parseJsonOutput(result.getOutput());
+	}
+
+	/**
+	 * 
+	 * @param command
+	 * @return
+	 * @throws IOException          if rclone exited with a non-zero code
+	 * @throws InterruptedException
+	 */
+	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command)
+			throws IOException, InterruptedException {
+		return runProcessListJsonOutput(Collections.emptySet(), command);
+	}
+
+	/**
+	 * 
+	 * @param toleratedExitCodes non-zero rclone exit codes to accept instead of failing
+	 * @param command
+	 * @return
+	 * @throws IOException          if rclone exited with a code outside toleratedExitCodes
+	 * @throws InterruptedException
+	 */
+	protected static List<Map<String, Object>> runProcessListJsonOutput(Set<Integer> toleratedExitCodes,
+			String... command) throws IOException, InterruptedException {
+		ProcessResult result = runProcess(command);
+		result.verify(toleratedExitCodes, command);
+		return parseListJsonOutput(result.getOutput());
+	}
+
+	/**
+	 * Start the command, drain both of its pipes, and wait for it to finish.
+	 * 
+	 * @param command
+	 * @return the exit code together with everything written to stdout and stderr
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	private static ProcessResult runProcess(String... command) throws IOException, InterruptedException {
 		Process p = null;
 		try {
 			ProcessBuilder pb = new ProcessBuilder(command);
@@ -799,10 +853,19 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			pb.redirectOutput(Redirect.PIPE);
 			pb.redirectError(Redirect.PIPE);
 			p = pb.start();
-			p.waitFor();
-			Map<String, Object> results = streamJsonOutput(p.getInputStream());
-			streamError(p.getErrorStream());
-			return results;
+
+			// both pipes have to be drained while the process is still running - a child
+			// that fills the OS pipe buffer blocks on write, and waitFor() would then never
+			// return. stderr gets its own thread so neither stream can stall the other.
+			StreamDrainer errorDrainer = new StreamDrainer(p.getErrorStream(), true);
+			Thread errorThread = new Thread(errorDrainer, "rclone-stderr-" + p.pid());
+			errorThread.setDaemon(true);
+			errorThread.start();
+
+			List<String> output = streamOutput(p.getInputStream());
+			errorThread.join();
+
+			return new ProcessResult(p.waitFor(), output, errorDrainer.getLines());
 		} finally {
 			if (p != null) {
 				p.destroyForcibly();
@@ -811,30 +874,63 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	/**
+	 * Describe the rclone operation without exposing the rest of the command. The
+	 * argument list carries credentials on a config create, so it must never reach
+	 * a log line or an error message.
 	 * 
 	 * @param command
 	 * @return
-	 * @throws IOException
-	 * @throws InterruptedException
 	 */
-	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command)
-			throws IOException, InterruptedException {
-		Process p = null;
-		try {
-			ProcessBuilder pb = new ProcessBuilder(command);
-			pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
-			pb.redirectOutput(Redirect.PIPE);
-			pb.redirectError(Redirect.PIPE);
-			p = pb.start();
-			p.waitFor();
-			List<Map<String, Object>> results = streamListJsonOutput(p.getInputStream());
-			streamError(p.getErrorStream());
-			return results;
-		} finally {
-			if (p != null) {
-				p.destroyForcibly();
-			}
+	private static String describeCommand(String... command) {
+		if (command == null || command.length < 2) {
+			return "rclone";
 		}
+		// "config" takes a sub-command of its own, everything else is a single verb
+		if (isConfigCommand(command) && command.length > 2) {
+			return "rclone " + command[1] + " " + command[2];
+		}
+		return "rclone " + command[1];
+	}
+
+	/**
+	 * Whether the command is an rclone config call, which is the only one that
+	 * carries the storage credentials in its arguments.
+	 * 
+	 * @param command
+	 * @return
+	 */
+	private static boolean isConfigCommand(String... command) {
+		return command != null && command.length > 1 && "config".equals(command[1]);
+	}
+
+	/**
+	 * 
+	 * @param lines
+	 * @return
+	 */
+	protected static Map<String, Object> parseJsonOutput(List<String> lines) {
+		String json = String.join("", lines);
+		if (json.trim().isEmpty()) {
+			return Collections.emptyMap();
+		}
+		Map<String, Object> parsed = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
+		}.getType());
+		return parsed == null ? Collections.emptyMap() : parsed;
+	}
+
+	/**
+	 * 
+	 * @param lines
+	 * @return
+	 */
+	protected static List<Map<String, Object>> parseListJsonOutput(List<String> lines) {
+		String json = String.join("", lines);
+		if (json.trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<Map<String, Object>> parsed = GSON.fromJson(json, new TypeToken<List<Map<String, Object>>>() {
+		}.getType());
+		return parsed == null ? Collections.emptyList() : parsed;
 	}
 
 	/**
@@ -845,16 +941,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static List<String> streamOutput(InputStream stream) throws IOException {
 		return stream(stream, false);
-	}
-
-	/**
-	 * 
-	 * @param stream
-	 * @return
-	 * @throws IOException
-	 */
-	protected static List<String> streamError(InputStream stream) throws IOException {
-		return stream(stream, true);
 	}
 
 	/**
@@ -885,35 +971,81 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	}
 
 	/**
-	 * 
-	 * @param stream
-	 * @return
-	 * @throws IOException
+	 * Reads one of the process pipes on its own thread so the child can never block
+	 * writing into a full buffer.
 	 */
-	protected static Map<String, Object> streamJsonOutput(InputStream stream) throws IOException {
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-			StringBuilder builder = new StringBuilder();
-			reader.lines().forEach(line -> builder.append(line));
-			classLogger.info(builder.toString());
-			return GSON.fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {
-			}.getType());
+	private static class StreamDrainer implements Runnable {
+
+		private final InputStream stream;
+		private final boolean error;
+		private volatile List<String> lines = Collections.emptyList();
+
+		StreamDrainer(InputStream stream, boolean error) {
+			this.stream = stream;
+			this.error = error;
 		}
+
+		@Override
+		public void run() {
+			try {
+				this.lines = stream(this.stream, this.error);
+			} catch (IOException e) {
+				// losing the captured text must not fail the operation itself
+				classLogger.warn("Unable to read the rclone process {} stream", this.error ? "error" : "output", e);
+			}
+		}
+
+		List<String> getLines() {
+			return this.lines;
+		}
+
 	}
 
 	/**
-	 * 
-	 * @param stream
-	 * @return
-	 * @throws IOException
+	 * The outcome of a finished rclone invocation.
 	 */
-	protected static List<Map<String, Object>> streamListJsonOutput(InputStream stream) throws IOException {
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-			StringBuilder builder = new StringBuilder();
-			reader.lines().forEach(line -> builder.append(line));
-			classLogger.info(builder.toString());
-			return GSON.fromJson(builder.toString(), new TypeToken<List<Map<String, Object>>>() {
-			}.getType());
+	private static class ProcessResult {
+
+		// keep an error message to a sane size - stderr can run to thousands of lines
+		private static final int MAX_ERROR_LINES = 5;
+
+		private final int exitCode;
+		private final List<String> output;
+		private final List<String> error;
+
+		ProcessResult(int exitCode, List<String> output, List<String> error) {
+			this.exitCode = exitCode;
+			this.output = output;
+			this.error = error;
 		}
+
+		List<String> getOutput() {
+			return this.output;
+		}
+
+		/**
+		 * rclone only exits non-zero once it has given up retrying, so any code we do
+		 * not explicitly tolerate means the operation did not happen.
+		 * 
+		 * @param toleratedExitCodes
+		 * @param command
+		 * @throws IOException
+		 */
+		void verify(Set<Integer> toleratedExitCodes, String... command) throws IOException {
+			if (this.exitCode == 0 || toleratedExitCodes.contains(this.exitCode)) {
+				return;
+			}
+			StringBuilder message = new StringBuilder(describeCommand(command)).append(" failed with exit code ")
+					.append(this.exitCode);
+			// a failing config create can echo the credentials it was handed, and this
+			// message travels back to the caller. the full text stays in the log only
+			if (!this.error.isEmpty() && !isConfigCommand(command)) {
+				message.append(" - ").append(String.join("; ",
+						this.error.subList(0, Math.min(this.error.size(), MAX_ERROR_LINES))));
+			}
+			throw new IOException(message.toString());
+		}
+
 	}
 
 }
