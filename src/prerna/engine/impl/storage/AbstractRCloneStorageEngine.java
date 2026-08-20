@@ -798,32 +798,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 
 	/**
 	 * 
-	 * @param command
-	 * @return
-	 * @throws IOException          if rclone exited with a non-zero code
-	 * @throws InterruptedException
-	 */
-	protected static Map<String, Object> runProcessJsonOutput(String... command)
-			throws IOException, InterruptedException {
-		ProcessResult result = runProcess(command);
-		result.verify(Collections.emptySet(), command);
-		return parseJsonOutput(result.getOutput());
-	}
-
-	/**
-	 * 
-	 * @param command
-	 * @return
-	 * @throws IOException          if rclone exited with a non-zero code
-	 * @throws InterruptedException
-	 */
-	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command)
-			throws IOException, InterruptedException {
-		return runProcessListJsonOutput(Collections.emptySet(), command);
-	}
-
-	/**
-	 * 
 	 * @param toleratedExitCodes non-zero rclone exit codes to accept instead of failing
 	 * @param command
 	 * @return
@@ -901,21 +875,6 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	private static boolean isConfigCommand(String... command) {
 		return command != null && command.length > 1 && "config".equals(command[1]);
-	}
-
-	/**
-	 * 
-	 * @param lines
-	 * @return
-	 */
-	protected static Map<String, Object> parseJsonOutput(List<String> lines) {
-		String json = String.join("", lines);
-		if (json.trim().isEmpty()) {
-			return Collections.emptyMap();
-		}
-		Map<String, Object> parsed = GSON.fromJson(json, new TypeToken<Map<String, Object>>() {
-		}.getType());
-		return parsed == null ? Collections.emptyMap() : parsed;
 	}
 
 	/**
