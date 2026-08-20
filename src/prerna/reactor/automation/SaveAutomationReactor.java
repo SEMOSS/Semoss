@@ -28,27 +28,17 @@
 package prerna.reactor.automation;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 /**
  * Validates and saves an automation graph definition and its per-node Python sources.
@@ -58,7 +48,6 @@ import prerna.util.git.GitRepoUtils;
  */
 public class SaveAutomationReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SaveAutomationReactor.class);
 	private static final String NODE_SOURCES_KEY = AutomationConstants.DOC_NODE_SOURCES;
 
 	public SaveAutomationReactor() {
@@ -85,10 +74,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project does not exist or user does not have edit access.");
 		}
 
-		AutomationDefinitionService.DefinitionFiles files =
-				AutomationDefinitionService.save(projectId, definition, nodeSources);
-		AutomationMcpSync.sync(projectId, files.definition(), this.insight.getUser());
-		syncDefinitionAssets(projectId, this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles files = AutomationProjectUtils.saveDefinition(projectId,
+				definition, nodeSources, this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
@@ -96,38 +83,6 @@ public class SaveAutomationReactor extends AbstractReactor {
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
 				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	static void syncDefinitionAssets(String projectId, prerna.auth.User user) {
-		IProject project = Utility.getProject(projectId);
-		if (project != null) {
-			List<String> files = new ArrayList<>();
-			for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
-				files.add(path.toString());
-			}
-			java.nio.file.Path mcpFile = java.nio.file.Path.of(AssetUtility.getProjectAssetsFolder(projectId),
-					"mcp", "pixel_mcp.json");
-			if (java.nio.file.Files.isRegularFile(mcpFile)) {
-				files.add(mcpFile.toString());
-			}
-			String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-			try {
-				GitRepoUtils.addSpecificFiles(versionFolder, files);
-				GitRepoUtils.commitAddedFiles(versionFolder, "Update automation definition", user);
-			} catch (Exception e) {
-				classLogger.warn("Git commit failed for automation save", e);
-			}
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					ClusterUtil.pushProjectFolder(project, versionFolder);
-				} catch (Exception e) {
-					classLogger.warn("Cluster push failed for automation save", e);
-				}
-			}
-		} else {
-			classLogger.warn("Project {} not found in registry; skipping automation version sync", projectId);
-		}
-		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
 	}
 
 	private static String decodeRequired(String value, String error) {

@@ -91,10 +91,8 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 
 		Map<String, String> updatedSources = new LinkedHashMap<>(files.nodeSources());
 		updatedSources.put(nodeId, source);
-		AutomationDefinitionService.DefinitionFiles saved =
-				AutomationDefinitionService.save(projectId, files.definition(), updatedSources);
-		AutomationMcpSync.sync(projectId, saved.definition(), this.insight.getUser());
-		SaveAutomationReactor.syncDefinitionAssets(projectId, this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId,
+				files.definition(), updatedSources, this.insight.getUser());
 		return new NounMetadata(Map.of("nodeId", nodeId, "sourceHash", sha256(source)),
 				PixelDataType.MAP, PixelOperationType.OPERATION);
 	}

@@ -27,25 +27,19 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.git.GitRepoUtils;
 
 /**
  * Creates a new automation project and returns its ID.
@@ -99,9 +93,7 @@ public class CreateAutomationReactor extends AbstractReactor {
                 false, null, null, user, classLogger);
         String projectId = project.getProjectId();
         try {
-            AutomationDefinitionService.createStarter(projectId);
-            AutomationMcpSync.sync(projectId, AutomationDefinitionService.load(projectId).definition(), user);
-            syncStarterDefinition(project, projectId);
+            AutomationProjectUtils.createStarterDefinition(project, user);
         } catch (RuntimeException e) {
             classLogger.error("Failed to scaffold automation project '{}'", projectName, e);
             throw new IllegalStateException(
@@ -120,33 +112,6 @@ public class CreateAutomationReactor extends AbstractReactor {
                 + "Use GetAutomation and SaveAutomation to edit the workflow.");
 
         return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-    }
-
-    private void syncStarterDefinition(IProject project, String projectId) {
-        List<String> files = new ArrayList<>();
-        for (java.nio.file.Path path : AutomationDefinitionService.getArtifactPaths(projectId)) {
-            files.add(path.toString());
-        }
-        java.nio.file.Path mcpFile = java.nio.file.Path.of(AssetUtility.getProjectAssetsFolder(projectId),
-                "mcp", "pixel_mcp.json");
-        if (java.nio.file.Files.isRegularFile(mcpFile)) {
-            files.add(mcpFile.toString());
-        }
-        String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-        try {
-            GitRepoUtils.addSpecificFiles(versionFolder, files);
-            GitRepoUtils.commitAddedFiles(versionFolder, "Create automation definition", this.insight.getUser());
-        } catch (Exception e) {
-            classLogger.warn("Git commit failed for automation creation", e);
-        }
-        if (ClusterUtil.IS_CLUSTER) {
-            try {
-                ClusterUtil.pushProjectFolder(project, versionFolder);
-            } catch (Exception e) {
-                classLogger.warn("Cluster push failed for automation creation", e);
-            }
-        }
-        SecurityProjectUtils.updateProjectLastEditedDate(projectId);
     }
 
     @Override

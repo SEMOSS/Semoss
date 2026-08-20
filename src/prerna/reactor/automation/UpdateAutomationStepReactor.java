@@ -116,10 +116,8 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 
 		Map<String, String> sources = new LinkedHashMap<>(files.nodeSources());
 		sources.remove(nodeId);
-		AutomationDefinitionService.DefinitionFiles saved = AutomationDefinitionService.save(projectId,
-				AutomationRuntimeUtils.GSON.toJson(document), sources);
-		AutomationMcpSync.sync(projectId, saved.definition(), this.insight.getUser());
-		SaveAutomationReactor.syncDefinitionAssets(projectId, this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId,
+				AutomationRuntimeUtils.GSON.toJson(document), sources, this.insight.getUser());
 		return new NounMetadata(Map.of("node", updatedNode, "source", saved.nodeSources().get(nodeId)),
 				PixelDataType.MAP, PixelOperationType.OPERATION);
 	}

@@ -138,10 +138,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		if (customSource != null) {
 			nodeSources.put(nodeId, customSource);
 		}
-		AutomationDefinitionService.DefinitionFiles saved =
-				AutomationDefinitionService.save(projectId, json, nodeSources);
-		AutomationMcpSync.sync(projectId, saved.definition(), this.insight.getUser());
-		SaveAutomationReactor.syncDefinitionAssets(projectId, this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId, json,
+				nodeSources, this.insight.getUser());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("node", node);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, saved.nodeSources());
