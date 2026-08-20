@@ -16,7 +16,6 @@ in the authenticated user's Python insight.
 | `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
-| `GetAutomationConfig` / `SaveAutomationConfig` | `project` | Reads or saves masked project config entries used by runtime placeholder resolution. |
 
 ## MCP authoring
 
@@ -28,14 +27,12 @@ control-flow validation.
 
 ## Persisted files
 
-Workflow artifacts live at the project asset root. Automation config remains in
-the project portals directory because it uses the existing masked-config storage flow:
+Workflow artifacts live at the project asset root:
 
 | File | Purpose |
 | --- | --- |
 | `automation-workflow.json` | Canonical typed graph (`formatVersion: 2`). |
 | `automation-nodes/<label_slug>_<uuid-prefix>.py` | One persisted `run(scope)` source file per non-start node. |
-| `portals/automation-config.json` | Project config values; sensitive values are masked on reads. |
 
 `automation-workflow.py` is not used. `SaveAutomation` versions and synchronizes the graph and all current node-source files with the project. Legacy portal-based and Base64-named node files are read as a compatibility fallback and migrated on the next save.
 
