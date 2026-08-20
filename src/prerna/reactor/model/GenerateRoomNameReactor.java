@@ -34,7 +34,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -78,13 +77,16 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
 
-		// only used for permission checks / model resolution - the actual ask()
-		// runs against a detached room below so it doesn't block on this one's lock
-		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		// fresh from the DB, not the cached instance, so nothing here fights over the live room's lock
+		Room detachedRoom = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+		if (detachedRoom == null) {
+			throw new IllegalStateException("Room not found");
+		}
+		detachedRoom.setInsight(this.insight);
 
 		// Fall back to the room's configured model if no engine was passed
 		if (engineId == null || engineId.trim().isEmpty()) {
-			engineId = room.getModelId();
+			engineId = detachedRoom.getModelId();
 		}
 
 		if (engineId == null || engineId.trim().isEmpty()) {
@@ -98,13 +100,6 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
-		// fresh from the DB, not the cached instance, so it doesn't fight over the live room's lock
-		Room detachedRoom = ModelInferenceLogsUtils.getRoomById(roomId, userId);
-		if (detachedRoom == null) {
-			throw new IllegalStateException("Room not found");
-		}
-		detachedRoom.setInsight(this.insight);
-
 		// Truncate to avoid sending a full essay to the model
 		String truncatedPrompt = prompt.length() > PROMPT_CHAR_LIMIT
 				? prompt.substring(0, PROMPT_CHAR_LIMIT)
@@ -112,6 +107,9 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("use_history", false);
+		// no UI is watching this call, only the final string matters - skip streaming
+		// entirely so there are no interim chunks to ever misroute
+		paramMap.put("stream", false);
 
 		InputMessage inputMsg = InputMessage.builder(detachedRoom)
 				.withText(TITLE_INSTRUCTION + "\n\n" + truncatedPrompt)
@@ -119,11 +117,10 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 				.withParamMap(paramMap)
 				.build();
 
-		// if this thread's jobId matches a live RunAgent stream, these tokens get
-		// forwarded straight into that run's response (PyTranslator tags every chunk
-		// with the current jobId, and PixelJobManager forwards anything tagged with
-		// a registered run). Null it out so this call can't bleed into someone
-		// else's stream - same isolation AgentRoomNamer gets for free from a fresh Thread.
+		// belt-and-suspenders for engines that don't honor stream=false: a chunk
+		// tagged with a jobId that matches a live RunAgent run gets forwarded straight
+		// into that run's response, so null the jobId out for this call. Restored right
+		// after - a canceled request looks up its PixelJobRunner by this same id.
 		String callingJobId = ThreadStore.getJobId();
 		ResponseMessage response;
 		try {
@@ -144,11 +141,16 @@ public class GenerateRoomNameReactor extends AbstractReactor {
 			throw new IllegalStateException("Model returned an empty room name");
 		}
 
-		ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, generatedName);
-
-		// sync the cached room's name too, so a later persist() from the live turn
-		// doesn't resurrect the old one
-		room.setRoomName(generatedName);
+		boolean persisted = ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, generatedName);
+		if (persisted) {
+			// also update the cached room if one's loaded, so a later persist() from
+			// the live turn doesn't resurrect the old name - skip getOrLoadRoom here,
+			// it'd acquire the room's mutation lock for no reason
+			Room cached = user.getRoomHash().get(roomId);
+			if (cached != null) {
+				cached.setRoomName(generatedName);
+			}
+		}
 
 		return new NounMetadata(generatedName, PixelDataType.CONST_STRING);
 	}
