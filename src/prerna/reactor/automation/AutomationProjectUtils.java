@@ -38,8 +38,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
 import prerna.util.ProjectSyncUtility;
@@ -66,6 +68,7 @@ public final class AutomationProjectUtils {
 	 */
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
 			Map<String, String> nodeSources, User user) {
+		validateEngineReferences(definitionJson, user);
 		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
 		projectLock.lock();
 		try {
@@ -102,6 +105,68 @@ public final class AutomationProjectUtils {
 		} finally {
 			projectLock.unlock();
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void validateEngineReferences(String definitionJson, User user) {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+		for (Map<String, Object> node : definition.nodes()) {
+			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			IEngine.CATALOG_TYPE expectedType = expectedEngineType(nodeType);
+			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			if (expectedType == null || !(rawConfig instanceof Map<?, ?>)) {
+				continue;
+			}
+			Map<String, Object> config = (Map<String, Object>) rawConfig;
+			Object rawEngineId = config.get(AutomationConstants.CONFIG_ENGINE_ID);
+			if (!(rawEngineId instanceof String engineId) || engineId.isBlank()) {
+				continue;
+			}
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw invalidEngineReference(nodeId, engineId, expectedType);
+			}
+			IEngine.CATALOG_TYPE actualType;
+			try {
+				actualType = SecurityEngineUtils.getEngineType(engineId);
+			} catch (RuntimeException e) {
+				throw invalidEngineReference(nodeId, engineId, expectedType);
+			}
+			if (actualType != expectedType) {
+				throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a " + expectedType
+						+ " engine, but engineId '" + engineId + "' is a " + actualType + " engine.");
+			}
+		}
+	}
+
+	private static IEngine.CATALOG_TYPE expectedEngineType(String nodeType) {
+		if (nodeType == null) {
+			return null;
+		}
+		if (nodeType.startsWith("database.")) {
+			return IEngine.CATALOG_TYPE.DATABASE;
+		}
+		if (nodeType.startsWith("model.") || AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
+			return IEngine.CATALOG_TYPE.MODEL;
+		}
+		if (nodeType.startsWith("storage.")) {
+			return IEngine.CATALOG_TYPE.STORAGE;
+		}
+		if (nodeType.startsWith("vector.")) {
+			return IEngine.CATALOG_TYPE.VECTOR;
+		}
+		if (AutomationConstants.NODE_FUNCTION_EXECUTE.equals(nodeType)) {
+			return IEngine.CATALOG_TYPE.FUNCTION;
+		}
+		return null;
+	}
+
+	private static IllegalArgumentException invalidEngineReference(String nodeId, String engineId,
+			IEngine.CATALOG_TYPE expectedType) {
+		return new IllegalArgumentException("Automation node '" + nodeId + "' engineId '" + engineId
+				+ "' is not an accessible " + expectedType
+				+ " engine. Call MyEngines with engineTypes=['" + expectedType + "'] and use its engine_id value.");
 	}
 
 	private static void syncDefinitionAssets(String projectId, User user, String commitMessage) {

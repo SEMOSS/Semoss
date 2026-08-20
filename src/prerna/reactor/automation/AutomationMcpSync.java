@@ -59,10 +59,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.security.MyEnginesReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
@@ -83,6 +85,7 @@ public final class AutomationMcpSync {
 		}
 		try {
 			JSONArray generated = new JSONArray()
+					.put(myEnginesTool())
 					.put(triggerTool(projectId, definitionJson))
 					.put(addStepTool(projectId))
 					.put(updateStepTool(projectId))
@@ -104,6 +107,34 @@ public final class AutomationMcpSync {
 		} catch (Exception e) {
 			classLogger.warn("Unable to synchronize automation MCP tools for project {}", projectId, e);
 		}
+	}
+
+	private static JSONObject myEnginesTool() {
+		JSONObject tool = new MyEnginesReactor().asMcpTool();
+		JSONObject engineTypes = new JSONObject().put("type", "array");
+		engineTypes.put("items", new JSONObject().put("type", "string").put("enum", new JSONArray()
+				.put(IEngine.CATALOG_TYPE.DATABASE.name())
+				.put(IEngine.CATALOG_TYPE.MODEL.name())
+				.put(IEngine.CATALOG_TYPE.STORAGE.name())
+				.put(IEngine.CATALOG_TYPE.VECTOR.name())
+				.put(IEngine.CATALOG_TYPE.FUNCTION.name())));
+		engineTypes.put("description", "Optional engine catalog types. Filter to the node type being configured and "
+				+ "use the returned engine_id exactly; never invent or normalize an engine name.");
+
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.FILTER_WORD.getKey(), new JSONObject().put("type", "string")
+				.put("description", "Optional search text for an engine name or ID."));
+		properties.put(ReactorKeysEnum.ENGINE_TYPE.getKey(), engineTypes);
+		properties.put(ReactorKeysEnum.LIMIT.getKey(), new JSONObject().put("type", "integer")
+				.put("minimum", 1).put("description", "Optional maximum number of engines to return."));
+		properties.put(ReactorKeysEnum.OFFSET.getKey(), new JSONObject().put("type", "integer")
+				.put("minimum", 0).put("description", "Optional result offset."));
+
+		JSONObject inputSchema = tool.getJSONObject("inputSchema");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", new JSONArray());
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
 	}
 
 	private static JSONObject triggerTool(String projectId, String definitionJson) {
@@ -143,7 +174,9 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeType", nodeTypeProperty());
-		properties.put("config", stringProperty("JSON configuration. database.query, database.insert, and "
+		properties.put("config", stringProperty("JSON configuration. Before configuring any engine-backed node, call "
+				+ "MyEngines filtered to the required engine type and use the returned engine_id exactly. Never invent, "
+				+ "shorten, or normalize an engine name. database.query, database.insert, and "
 				+ "database.update require engineId and query. model.chat requires engineId and prompt; "
 				+ "optionally systemPrompt and paramValues. model.embeddings requires engineId and text. "
 				+ "storage nodes require engineId and path; upload/download also require destination. "
@@ -184,7 +217,8 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeId", stringProperty("Existing generated node ID."));
-		properties.put("config", stringProperty("Complete replacement JSON configuration for the node."));
+		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
+				+ "engine-backed node, call MyEngines and use the returned engine_id exactly."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
 				"Apply the user's requested change to one generated node's direct configuration and regenerate its "
