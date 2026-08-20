@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -61,6 +62,12 @@ import com.google.gson.reflect.TypeToken;
  * carries an "alias") or, for aggregators that host other vendors' models
  * (bedrock), a second level keyed by model provider. Mixing the two shapes
  * within one node is not supported.
+ * <p>
+ * A serving provider whose value is a string instead names another provider
+ * key, as in "azure": "openai" - a host that exposes another provider's tool
+ * surface unchanged does not have to duplicate its definitions. The alias is
+ * resolved before anything else, so the resolved key is what the direct-tools
+ * rule below compares the model provider against.
  * <p>
  * A tool definition may carry a "constraints" object whose "models" list
  * restricts the tool to specific model ids. The catalog is hand-maintained
@@ -102,7 +109,7 @@ public final class StaticBuiltinToolsCatalog {
 	 * constraints.
 	 *
 	 * @param servingProvider lowercase catalog key for who hosts the model
-	 *                        (openai, anthropic, google, bedrock, ...)
+	 *                        (openai, azure, anthropic, google, bedrock, ...)
 	 * @param modelProvider   lowercase catalog key for who made the model
 	 * @param modelId         provider model id used to evaluate per-tool model
 	 *                        constraints; null skips that filter
@@ -124,18 +131,18 @@ public final class StaticBuiltinToolsCatalog {
 		}
 
 		JsonObject catalog = loadCatalog(catalogFile);
-		JsonElement providerElement = catalog.get(serving);
-		if (providerElement == null || !providerElement.isJsonObject()) {
+		String resolvedServing = resolveProviderKey(catalog, serving);
+		if (resolvedServing == null) {
 			return tools;
 		}
-		JsonObject providerNode = providerElement.getAsJsonObject();
+		JsonObject providerNode = catalog.getAsJsonObject(resolvedServing);
 
 		JsonObject toolDefinitions;
 		if (isToolMap(providerNode)) {
 			// tools listed directly on the serving provider only apply to that
 			// provider's own models - an anthropic model served through vertex
 			// cannot use the google tools
-			if (!serving.equals(model)) {
+			if (!resolvedServing.equals(model)) {
 				return tools;
 			}
 			toolDefinitions = providerNode;
@@ -179,6 +186,33 @@ public final class StaticBuiltinToolsCatalog {
 		case "aws_bedrock", "amazon_bedrock" -> "bedrock";
 		default -> value;
 		};
+	}
+
+	/**
+	 * The catalog key that actually holds the serving provider's tools, following
+	 * any string-valued provider aliases along the way. Returns null when the
+	 * chain leaves the catalog - an unknown provider offers no tools - and when a
+	 * mis-edited file points the aliases in a circle.
+	 */
+	private static String resolveProviderKey(JsonObject catalog, String provider) {
+		String key = provider;
+		Set<String> visited = new LinkedHashSet<>();
+		while (visited.add(key)) {
+			JsonElement providerElement = catalog.get(key);
+			if (providerElement == null) {
+				return null;
+			}
+			if (providerElement.isJsonObject()) {
+				return key;
+			}
+			if (!providerElement.isJsonPrimitive() || !providerElement.getAsJsonPrimitive().isString()) {
+				return null;
+			}
+			key = providerElement.getAsString().trim().toLowerCase(Locale.ROOT);
+		}
+		classLogger.warn("The built-in tools catalog has a circular provider alias reached from '{}'",
+				Utility.cleanLogString(provider));
+		return null;
 	}
 
 	/**

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-18"
+    "last_modified_date": "2026-08-19"
   },
   "tools": [
     {
@@ -252,7 +252,7 @@
     {
       "name": "SaveInsightAssetsBase64",
       "title": "Save Insight Assets Base64",
-      "description": "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input.",
+      "description": "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input. Prefer SaveInsightAssets over this tool. Only use this when the content cannot be sent as plain text, such as binary files (images, pdfs, zips) or text that would be corrupted in transit.",
       "inputSchema": {
         "type": "object",
         "title": "SaveInsightAssetsBase64_Arguments",
@@ -289,7 +289,7 @@
     {
       "name": "SaveInsightAssets",
       "title": "Save Insight Assets",
-      "description": "Saves one or more files to the insight assets folder and commits them to the insight's git repository.",
+      "description": "Saves one or more files to the insight assets folder and commits them to the insight's git repository. This is the preferred tool for writing files and should be used for all text content. Only fall back to SaveInsightAssetsBase64 when the content cannot be sent as plain text, such as binary files.",
       "inputSchema": {
         "type": "object",
         "title": "SaveInsightAssets_Arguments",

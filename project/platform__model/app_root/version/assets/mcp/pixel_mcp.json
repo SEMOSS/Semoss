@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-18"
+    "last_modified_date": "2026-08-19"
   },
   "tools": [
     {
       "name": "list_model_skill_files",
       "title": "List Model Skill Files",
-      "description": "List the files in the platform 'model' skill, the platform's guidance for calling LLMs, embedding models, and other model engines from an app. Call this when the user asks about prompting an LLM, completions, chat history, system prompts, structured outputs, attaching a file of any type (image, pdf, word, spreadsheet, audio, video) to a prompt with the media argument, token usage, or choosing between the models they have access to, and when they name the LLM() or MyEngines() pixel commands. Call it before combining full_prompt with attachments - full_prompt drops the top-level media and url arguments, and media has to move inside the prompt as content parts. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for vector or RAG retrieval (see the vector skill) or guardrail engines.",
+      "description": "List the files in the platform 'model' skill, the platform's guidance for calling LLMs, embedding models, and other model engines from an app. Call this when the user asks about prompting an LLM, completions, chat history, system prompts, structured outputs, attaching a file of any type (image, pdf, word, spreadsheet, audio, video) to a prompt with the media argument, token usage, or choosing between the models they have access to, and when they name the LLM() or MyEngines() pixel commands. Call it before combining full_prompt with attachments - full_prompt drops the top-level media and url arguments, and media has to move inside the prompt as content parts. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Also covers the other model pixels: Embeddings and MultiModalEmbeddings (text/image/video to vectors), Vision, NER entity extraction and masking, GetContextWindow, GetUserModelUsage and quota restrictions, and the cheaper provider batch API (BatchLLM, GetModelBatchStatus, GetModelBatchResults, CancelModelBatch). Not for vector or RAG retrieval (see the vector skill) or guardrail engines.",
       "inputSchema": {
         "type": "object",
         "title": "list_model_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_model_skill_file",
       "title": "Read Model Skill File",
-      "description": "Read one file from the platform 'model' skill in full, for writing code that calls a model engine through runPixel. Pass filePath exactly as list_model_skill_files reports it; SKILL.md is the main guide and covers the LLM() usage pattern, conversational history with full_prompt (including which top-level arguments it drops and the content-part shapes it accepts for media), structured outputs, the media argument for attaching files of any type, the response shape, and listing available models with filtering and paging.",
+      "description": "Read one file from the platform 'model' skill in full, for writing code that calls a model engine through runPixel. Pass filePath exactly as list_model_skill_files reports it; SKILL.md is the main guide and covers the LLM() usage pattern, conversational history with full_prompt (including which top-level arguments it drops and the content-part shapes it accepts for media), structured outputs, the media argument for attaching files of any type, the response shape, and listing available models with filtering and paging. Also covers Embeddings/MultiModalEmbeddings, Vision, NER with maskEntities, GetContextWindow for history trimming, GetUserModelUsage token accounting and GetUserModelUsageRestrictions quota warnings, and the BatchLLM submit-then-poll batch flow for bulk workloads.",
       "inputSchema": {
         "type": "object",
         "title": "read_model_skill_file_Arguments",
