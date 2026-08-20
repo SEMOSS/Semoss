@@ -252,7 +252,7 @@
     {
       "name": "SaveInsightAssetsBase64",
       "title": "Save Insight Assets Base64",
-      "description": "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input.",
+      "description": "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input. Prefer SaveInsightAssets over this tool. Only use this when the content cannot be sent as plain text, such as binary files (images, pdfs, zips) or text that would be corrupted in transit.",
       "inputSchema": {
         "type": "object",
         "title": "SaveInsightAssetsBase64_Arguments",

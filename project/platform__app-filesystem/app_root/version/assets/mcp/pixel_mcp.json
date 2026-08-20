@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-18"
+    "last_modified_date": "2026-08-19"
   },
   "tools": [
     {
@@ -28,6 +28,42 @@
       },
       "_meta": {
         "SMSS_FUNCTION_NAME": "BrowseAppAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "CompileAppReactors",
+      "title": "Compile App Reactors",
+      "description": "Compile the custom java reactors within the projects assets folder and return the compiler output. Use this after creating or editing java source files in '/version/assets/java'.",
+      "inputSchema": {
+        "type": "object",
+        "title": "CompileAppReactors_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "release": {
+            "type": "boolean",
+            "title": "release",
+            "description": "Persist the compiled reactors to cloud storage so the change propagates to other containers. Set this to true.",
+            "enum": [
+              true
+            ],
+            "default": true
+          }
+        },
+        "required": [
+          "project",
+          "release"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CompileAppReactors",
         "SMSS_MCP_EXECUTION": "auto",
         "SMSS_MCP_UI": {
           "displayLocation": "sidebar"
@@ -322,6 +358,42 @@
       }
     },
     {
+      "name": "PublishProject",
+      "title": "Publish Project",
+      "description": "Publish the portal assets within the projects assets folder and return the public url for the project. This does not build or compile the assets, so only use it when '/version/assets/portals' already contains the finished runnable app.",
+      "inputSchema": {
+        "type": "object",
+        "title": "PublishProject_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "release": {
+            "type": "boolean",
+            "title": "release",
+            "description": "Release the published portal so it is available from the public project url. Set this to true.",
+            "enum": [
+              true
+            ],
+            "default": true
+          }
+        },
+        "required": [
+          "project",
+          "release"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "PublishProject",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
       "name": "RenameAppAsset",
       "title": "Rename App Asset",
       "description": "Rename a file or directory in the projects assets folder",
@@ -367,7 +439,7 @@
     {
       "name": "SaveAppAssetsBase64",
       "title": "Save App Assets Base64",
-      "description": "Save a single or multiple files in the projects assets folder. Content for each file is provided as base64 utf-8 encoded input.",
+      "description": "Save a single or multiple files in the projects assets folder. Content for each file is provided as base64 utf-8 encoded input. Prefer SaveAppAssets over this tool. Only use this when the content cannot be sent as plain text, such as binary files (images, pdfs, zips) or text that would be corrupted in transit.",
       "inputSchema": {
         "type": "object",
         "title": "SaveAppAssetsBase64_Arguments",
@@ -415,7 +487,7 @@
     {
       "name": "SaveAppAssets",
       "title": "Save App Assets",
-      "description": "Saves one or more files to the project's assets folder and commits them to the project's git repository.",
+      "description": "Saves one or more files to the project's assets folder and commits them to the project's git repository. This is the preferred tool for writing files and should be used for all text content. Only fall back to SaveAppAssetsBase64 when the content cannot be sent as plain text, such as binary files.",
       "inputSchema": {
         "type": "object",
         "title": "SaveAppAssets_Arguments",
