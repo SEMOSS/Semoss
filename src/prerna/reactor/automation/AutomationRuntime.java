@@ -122,16 +122,11 @@ final class AutomationRuntime {
 
 	/** Runs one node module with the workflow scope supplied by the Java scheduler. */
 	static String buildNodeInvocationScript(String source, Map<String, String> scope) {
-		return buildNodeInvocationScript(source, scope, Map.of());
+		return buildNodeInvocationScript(source, scope, false);
 	}
 
 	static String buildNodeInvocationScript(String source, Map<String, String> scope,
-			Map<String, String> config) {
-		return buildNodeInvocationScript(source, scope, config, false);
-	}
-
-	static String buildNodeInvocationScript(String source, Map<String, String> scope,
-			Map<String, String> config, boolean resolveCustomSourcePlaceholders) {
+			boolean resolveCustomSourcePlaceholders) {
 		String executableSource = resolveCustomSourcePlaceholders
 				? resolveWholePlaceholderLiterals(source)
 				: source;
@@ -141,19 +136,12 @@ final class AutomationRuntime {
 				import re as _automation_re
 				_automation_scope = _automation_json.loads(
 				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
-				_automation_config = _automation_json.loads(
-				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
-				_automation_scope["_automation_config"] = _automation_config
-
 				def resolve(value, scope):
 				    if not isinstance(value, str):
 				        return value
 
 				    def _automation_replace(match):
-				        key = match.group(1)
-				        if key.startswith("config."):
-				            return _automation_config.get(key[7:], match.group(0))
-				        return scope.get(key, match.group(0))
+				        return scope.get(match.group(1), match.group(0))
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
 
@@ -169,7 +157,6 @@ final class AutomationRuntime {
 				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
 				""".formatted(
 						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
-						encode(AutomationRuntimeUtils.GSON.toJson(config != null ? config : Map.of())),
 						encode(executableSource));
 	}
 

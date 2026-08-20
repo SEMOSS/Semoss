@@ -27,12 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation.utils;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,9 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonPrimitive;
@@ -55,7 +47,6 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
-import prerna.util.AssetUtility;
 import prerna.reactor.automation.AutomationConstants;
 
 /**
@@ -65,13 +56,8 @@ import prerna.reactor.automation.AutomationConstants;
  */
 public final class AutomationRuntimeUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(AutomationRuntimeUtils.class);
-
 	/** Reusable {@link TypeToken} type for {@code Map<String, Object>} deserialization. */
 	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
-
-	/** Reusable {@link TypeToken} type for {@code List<Map<String, Object>>} deserialization. */
-	private static final Type LIST_OBJ_MAP_TYPE = new TypeToken<List<Map<String, Object>>>() {}.getType();
 
 	/**
 	 * Shared Gson instance for the whole automation engine  - public so the
@@ -108,32 +94,6 @@ public final class AutomationRuntimeUtils {
 			return ((Number) timeout).intValue();
 		}
 		return AutomationConstants.DEFAULT_TIMEOUT_SECONDS;
-	}
-
-	/**
-	 * Loads {@code automation-config.json} for a project and returns key->value pairs.
-	 * Returns an empty map if the file does not exist or cannot be parsed.
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, String> loadConfig(String projectId) {
-		Map<String, String> map = new HashMap<>();
-		try {
-			String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-			File f = Paths.get(portalsFolder, AutomationConstants.AUTOMATION_CONFIG_FILE_NAME).toFile();
-			if (!f.exists()) return map;
-			String json = Files.readString(f.toPath(), StandardCharsets.UTF_8);
-			List<Map<String, Object>> entries = GSON.fromJson(json, LIST_OBJ_MAP_TYPE);
-			if (entries != null) {
-				for (Map<String, Object> entry : entries) {
-					String key = (String) entry.get(AutomationConstants.CONFIG_ENTRY_KEY);
-					String value = (String) entry.get(AutomationConstants.CONFIG_ENTRY_VALUE);
-					if (key != null && value != null) map.put(key, value);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.warn("Failed to load automation config for project {}", projectId, e);
-		}
-		return map;
 	}
 
 	/**

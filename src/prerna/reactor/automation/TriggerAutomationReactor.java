@@ -116,7 +116,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				}
 			}
 			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes,
-					files.nodeSources(), scope, AutomationRuntimeUtils.loadConfig(projectId));
+					files.nodeSources(), scope);
 			finishRun(runId);
 			return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
 					PixelOperationType.OPERATION);
@@ -137,8 +137,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
-			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope,
-			Map<String, String> config) {
+			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
@@ -154,7 +153,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
 											? AutomationSourceRenderer.renderNode(node)
 											: nodeSources.get(nodeId),
-							scope, config);
+							scope);
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				break;
 			}
@@ -217,7 +216,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, String> scope, Map<String, String> config) {
+			String source, Map<String, String> scope) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException("Automation node has no persisted Python source: "
 					+ node.get(AutomationConstants.NODE_FIELD_ID));
@@ -234,8 +233,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
 					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
-					AutomationRuntime.buildNodeInvocationScript(source, scope, config,
-							resolveCustomSourcePlaceholders),
+					AutomationRuntime.buildNodeInvocationScript(source, scope, resolveCustomSourcePlaceholders),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			return persistNativeNodeResult(runId, node, value, started, startedMs);

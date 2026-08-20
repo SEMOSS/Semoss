@@ -52,7 +52,7 @@ class AutomationRuntimeTest {
 		assertTrue(!script.contains("AutomationPythonNodeBridge"));
 		assertTrue(!script.contains("def run_current_node("));
 		assertTrue(script.contains("def resolve(value, scope):"));
-		assertTrue(script.contains("_automation_scope[\"_automation_config\"] = _automation_config"));
+		assertTrue(!script.contains("_automation_config"));
 		assertTrue(script.contains("_automation_module = {"));
 		assertTrue(script.contains("\"resolve\": resolve"));
 		assertTrue(script.contains("exec(_automation_b64.urlsafe_b64decode"));
@@ -79,7 +79,7 @@ class AutomationRuntimeTest {
 				""";
 
 		String script = AutomationRuntime.buildNodeInvocationScript(source,
-				Map.of("model_chat_3", "resolved output"), Map.of(), true);
+				Map.of("model_chat_3", "resolved output"), true);
 
 		String rewritten = """
 				def run(scope):

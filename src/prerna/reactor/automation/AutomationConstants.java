@@ -33,13 +33,10 @@ public final class AutomationConstants {
 
 	// -- File names ----------------------------------------------------------------
 
-	public static final String AUTOMATION_CONFIG_FILE_NAME = "automation-config.json";
 	/** Canonical graph document for typed-node Python automations. */
 	public static final String AUTOMATION_PYTHON_DEFINITION_FILE_NAME = "automation-workflow.json";
 	/** Directory containing one Python implementation for each non-start node. */
 	public static final String AUTOMATION_NODE_SOURCES_FOLDER_NAME = "automation-nodes";
-
-	public static final String SENSITIVE_MASK = "***";
 
 	// -- DB Table names ------------------------------------------------------------
 
@@ -226,12 +223,6 @@ public final class AutomationConstants {
 	public static final String NODE_CODE_MODE_GENERATED = "generated";
 	public static final String NODE_CODE_MODE_CUSTOM = "custom";
 	public static final String UNNAMED_NODE_LABEL = "unnamed";
-
-	// -- automation-config.json entry field names ------------------------------------
-
-	public static final String CONFIG_ENTRY_KEY = "key";
-	public static final String CONFIG_ENTRY_VALUE = "value";
-	public static final String CONFIG_ENTRY_SENSITIVE = "sensitive";
 
 	// -- Output transform field names / modes ----------------------------------------
 
