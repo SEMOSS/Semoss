@@ -86,10 +86,12 @@ public final class AutomationMcpSync {
 		try {
 			JSONArray generated = new JSONArray()
 					.put(myEnginesTool())
+					.put(getAutomationTool(projectId))
 					.put(triggerTool(projectId, definitionJson))
 					.put(addStepTool(projectId))
 					.put(updateStepTool(projectId))
-					.put(updateCustomStepTool(projectId));
+					.put(updateCustomStepTool(projectId))
+					.put(removeStepTool(projectId));
 			MCPUtility.stampGenerator(generated, GENERATOR_ID);
 
 			Path output = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "mcp", "pixel_mcp.json");
@@ -137,6 +139,17 @@ public final class AutomationMcpSync {
 		return tool;
 	}
 
+	private static JSONObject getAutomationTool(String projectId) {
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
+		return tool("GetAutomation", "Get Automation Definition",
+				"Read this project's current graph, node IDs, configuration, node sources, sourceHashes, globals, "
+						+ "and revision. "
+						+ "Always call this before deciding how to add, update, or remove a step. This tool only "
+						+ "inspects the automation; it does not run it.",
+				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
+	}
+
 	private static JSONObject triggerTool(String projectId, String definitionJson) {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
@@ -161,12 +174,14 @@ public final class AutomationMcpSync {
 		}
 		properties.put(AutomationConstants.AUTOMATION_INPUTS_KEY, inputs);
 		JSONObject tool = tool("TriggerAutomation", "Trigger Automation",
-				description(definitionJson) + " Run this project's automation.", properties,
+				description(definitionJson) + " Run this project only when the user explicitly asks to execute it. "
+						+ "Never use this tool to inspect or edit the automation; call GetAutomation instead.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
 		JSONObject ui = new JSONObject();
 		ui.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
 		ui.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1");
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_UI, ui);
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 		return tool;
 	}
 
@@ -193,7 +208,8 @@ public final class AutomationMcpSync {
 		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's output."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
 		return tool("AddAutomationStep", "Add Automation Step",
-				"Add one validated action from the user's chat request. Prefer an engine-backed node whenever it "
+				"Call GetAutomation first, then add one validated action from the user's chat request. "
+						+ "Prefer an engine-backed node whenever it "
 						+ "supports the task; use developer.python only for an unavailable external integration. "
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
@@ -206,9 +222,11 @@ public final class AutomationMcpSync {
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeId", stringProperty("Existing node with codeMode custom."));
 		properties.put("source", stringProperty("Complete Python source defining run(scope)."));
-		properties.put("expectedSourceHash", stringProperty("SHA-256 hash returned by the prior source read."));
+		properties.put("expectedSourceHash", stringProperty(
+				"Exact sourceHashes[nodeId] value returned by the latest GetAutomation call."));
 		return tool("UpdateAutomationCustomStep", "Update Custom Automation Step",
-				"Replace source for an explicitly custom node only when its current hash matches.", properties,
+				"Call GetAutomation first. Replace source for an explicitly custom node only when its current "
+						+ "hash matches.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId").put("source")
 						.put("expectedSourceHash"));
 	}
@@ -221,9 +239,23 @@ public final class AutomationMcpSync {
 				+ "engine-backed node, call MyEngines and use the returned engine_id exactly."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
-				"Apply the user's requested change to one generated node's direct configuration and regenerate its "
+				"Call GetAutomation first. Apply the user's requested change to one generated node's direct "
+						+ "configuration and regenerate its "
 						+ "managed Python source. Preserve unaffected configuration fields.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId").put("config"));
+	}
+
+	private static JSONObject removeStepTool(String projectId) {
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
+		properties.put("nodeId", stringProperty("Existing non-trigger node ID to remove."));
+		JSONObject tool = tool("RemoveAutomationStep", "Remove Automation Step",
+				"Call GetAutomation first. Remove one action only when the user requested its removal. "
+						+ "The operation rejects nodes whose "
+						+ "output is still referenced and reconnects an unambiguous sequential control path.",
+				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId"));
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		return tool;
 	}
 
 	private static JSONObject tool(String name, String title, String description, JSONObject properties,
