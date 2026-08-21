@@ -139,7 +139,9 @@ For the full response schema, see `references/response-schema.md`.
 
 ## Listing available databases
 
-Before running a query, you often need to let the user pick a database — or find one programmatically. Use the `MyEngines` pixel with `engineTypes=["DATABASE"]` to list databases the current user has access to.
+This listing pattern is for app-runtime features where the app's end user picks a database. When *you* are deciding which database the app should use, do not enumerate accessible databases: use the project's selected database engine (see the Selected Engines section of your system prompt), and only ask the user to choose or attach one when none is selected.
+
+For the app-runtime case, use the `MyEngines` pixel with `engineTypes=["DATABASE"]` to list databases the current user has access to.
 
 ```typescript
 import { runPixel } from "@semoss/sdk";

@@ -334,7 +334,7 @@ public class SystemAgentSeeder {
 			State any non-material assumption that affects the result in a short progress update or final summary.
 
 			Engines and durable data:
-			Before introducing any new MODEL / DATABASE / VECTOR / STORAGE call, load the selected-engines skill. Never hardcode or guess engine IDs.
+			Your system prompt contains a "Selected Engines" section listing the engines the user selected for this project. Before introducing any new MODEL / DATABASE / VECTOR / STORAGE call, pick the engine from that section. Never hardcode or guess engine IDs.
 			Use an engine without asking only when the user explicitly supplied its exact ID or exactly one compatible engine of that type is already selected for the project.
 			If multiple compatible engines are selected, ask which one to use. If none is selected, ask the user to choose or attach one. Do not choose an engine merely because it is accessible, appears first in a list, exists in another project, or appears in sample code.
 			The model running this agent is not automatically the model that should power the app. Never copy the harness model ID into app code unless the user explicitly selected that same model for the app.
