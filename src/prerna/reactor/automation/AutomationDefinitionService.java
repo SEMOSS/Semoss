@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +85,7 @@ public final class AutomationDefinitionService {
 			String definition = Files.readString(definitionFile, StandardCharsets.UTF_8);
 			AutomationDefinitionValidator.ValidatedDefinition validated =
 					AutomationDefinitionValidator.parseAndValidate(definition);
+			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -116,6 +119,7 @@ public final class AutomationDefinitionService {
 	public static DefinitionFiles save(String projectId, String definitionJson, Map<String, String> nodeSources) {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
 				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+		validateUniqueNodeSourceFileNames(definition);
 		Path assetsFolder = getAssetsFolder(projectId);
 		Path definitionFile = definitionPath(assetsFolder);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
@@ -187,6 +191,10 @@ public final class AutomationDefinitionService {
 		if (Files.isRegularFile(current)) {
 			return current;
 		}
+		Path assetsPriorReadable = priorReadableNodeSourcePath(assetsFolder, node);
+		if (Files.isRegularFile(assetsPriorReadable)) {
+			return assetsPriorReadable;
+		}
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Path assetsLegacy = legacyNodeSourcePath(assetsFolder, nodeId);
 		if (Files.isRegularFile(assetsLegacy)) {
@@ -195,6 +203,10 @@ public final class AutomationDefinitionService {
 		Path portalsCurrent = nodeSourcePath(portalsFolder, node);
 		if (Files.isRegularFile(portalsCurrent)) {
 			return portalsCurrent;
+		}
+		Path portalsPriorReadable = priorReadableNodeSourcePath(portalsFolder, node);
+		if (Files.isRegularFile(portalsPriorReadable)) {
+			return portalsPriorReadable;
 		}
 		return legacyNodeSourcePath(portalsFolder, nodeId);
 	}
@@ -368,7 +380,32 @@ public final class AutomationDefinitionService {
 		return nodesFolder.resolve(legacySafeNodeFileName(nodeId) + ".py").normalize();
 	}
 
+	private static Path priorReadableNodeSourcePath(Path folder, Map<String, Object> node) {
+		Path nodesFolder = nodesFolder(folder);
+		return nodesFolder.resolve(priorReadableNodeFileName(node) + ".py").normalize();
+	}
+
 	static String safeNodeFileName(Map<String, Object> node) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		if (nodeId == null || nodeId.isBlank()) {
+			throw new IllegalArgumentException("Automation node id must be nonblank for source persistence.");
+		}
+		String label = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		String slug = slugify(label);
+		if (slug.isBlank()) {
+			slug = slugify(type);
+		}
+		if (slug.isBlank()) {
+			slug = "automation_node";
+		}
+		if (slug.length() > 64) {
+			slug = slug.substring(0, 64);
+		}
+		return slug + "__" + stableNodeIdSuffix(nodeId);
+	}
+
+	private static String priorReadableNodeFileName(Map<String, Object> node) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		String label = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
 		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
@@ -385,6 +422,22 @@ public final class AutomationDefinitionService {
 		return slug + "_" + uuidPrefix;
 	}
 
+	private static String stableNodeIdSuffix(String nodeId) {
+		if (nodeId.matches(".*[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$")) {
+			return nodeId.substring(nodeId.length() - 36).toLowerCase(java.util.Locale.ROOT);
+		}
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(nodeId.getBytes(StandardCharsets.UTF_8));
+			StringBuilder result = new StringBuilder(digest.length * 2);
+			for (byte value : digest) {
+				result.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
+			}
+			return result.toString();
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException("SHA-256 is unavailable.", e);
+		}
+	}
+
 	private static String slugify(String value) {
 		if (value == null) {
 			return "";
@@ -397,6 +450,23 @@ public final class AutomationDefinitionService {
 	private static String legacySafeNodeFileName(String nodeId) {
 		return java.util.Base64.getUrlEncoder().withoutPadding()
 				.encodeToString(nodeId.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static void validateUniqueNodeSourceFileNames(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		Map<String, String> nodeIdsByFileName = new LinkedHashMap<>();
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				continue;
+			}
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			String fileName = safeNodeFileName(node) + ".py";
+			String existingNodeId = nodeIdsByFileName.putIfAbsent(fileName, nodeId);
+			if (existingNodeId != null && !existingNodeId.equals(nodeId)) {
+				throw new IllegalArgumentException("Automation nodes '" + existingNodeId + "' and '" + nodeId
+						+ "' resolve to the same source file: " + fileName + ".");
+			}
+		}
 	}
 
 	private static void removeDeletedNodeSources(Path nodesFolder,
