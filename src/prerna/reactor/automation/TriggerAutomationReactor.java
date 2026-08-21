@@ -47,6 +47,7 @@ import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -65,6 +66,8 @@ import prerna.util.EngineUtility;
 public class TriggerAutomationReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
+	private static final String AUTOMATION_STREAM_TYPE = "automation";
+	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
 
 	public TriggerAutomationReactor() {
 		this.keysToGet = new String[] {
@@ -87,9 +90,15 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 
 		if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
-			throw new IllegalArgumentException("Automation already has an active run: "
-					+ AutomationDatabaseUtility.getActiveRun(projectId)
-					+ ". Wait for it to complete or cancel it before starting a new run.");
+			// Startup cleanup may see a recently-heartbeating run and correctly leave it
+			// alone. Retry that cleanup on a later trigger so an orphaned lock does not
+			// remain forever after its heartbeat crosses the stale threshold.
+			AutomationDatabaseUtility.markStaleRunsInterrupted();
+			if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
+				throw new IllegalArgumentException("Automation already has an active run: "
+						+ AutomationDatabaseUtility.getClaimedActiveRun(projectId)
+						+ ". Wait for it to complete or cancel it before starting a new run.");
+			}
 		}
 
 		boolean runPersisted = false;
@@ -177,6 +186,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> declaredGlobals = AutomationRuntime.triggerGlobalDefaults(node);
 			for (Map.Entry<String, Object> entry : declaredGlobals.entrySet()) {
@@ -199,9 +209,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				globals.put(name, scope.get(name));
 			}
 			String output = AutomationRuntimeUtils.GSON.toJson(globals);
-			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, System.currentTimeMillis() - startedMs,
-					null, output, AutomationRuntimeUtils.generatePreview(output));
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview);
 			AutomationPythonRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
 			result.put(AutomationConstants.RESULT_GLOBALS, globals);
 			return result;
@@ -209,6 +221,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
 			throw e instanceof RuntimeException runtimeException
 					? runtimeException
 					: new RuntimeException(e);
@@ -229,6 +242,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
 					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
@@ -241,6 +255,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
 			throw e instanceof RuntimeException runtimeException
 					? runtimeException
 					: new RuntimeException(e);
@@ -251,17 +266,52 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			Timestamp started, long startedMs) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
-			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, System.currentTimeMillis() - startedMs,
+			long duration = System.currentTimeMillis() - startedMs;
+			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, "Run cancelled by user");
+			streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, null,
 					"Run cancelled by user");
 			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
 		}
 		String output = AutomationRuntimeUtils.GSON.toJson(value);
 		long duration = System.currentTimeMillis() - startedMs;
+		String preview = AutomationRuntimeUtils.generatePreview(output);
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
-				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output,
-				AutomationRuntimeUtils.generatePreview(output));
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
+	}
+
+	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
+			Long durationMs, String outputPreview, String errorMessage) {
+		String jobId = ThreadStore.getJobId();
+		if (jobId == null || jobId.isBlank()) {
+			return;
+		}
+		PixelJobManager jobManager = PixelJobManager.getManager();
+		if (jobManager.getJob(jobId) == null) {
+			return;
+		}
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("kind", AUTOMATION_NODE_STATUS_KIND);
+		data.put(AutomationConstants.RUN_ID, runId);
+		data.put(AutomationConstants.NODE_ID, node.get(AutomationConstants.NODE_FIELD_ID));
+		data.put(AutomationConstants.NODE_LABEL, node.get(AutomationConstants.NODE_FIELD_LABEL));
+		data.put(AutomationConstants.STATUS, status);
+		if (durationMs != null) {
+			data.put(AutomationConstants.DURATION_MS, durationMs);
+		}
+		if (outputPreview != null) {
+			data.put(AutomationConstants.OUTPUT_PREVIEW, outputPreview);
+		}
+		if (errorMessage != null) {
+			data.put(AutomationConstants.ERROR_MESSAGE, errorMessage);
+		}
+
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", AUTOMATION_STREAM_TYPE);
+		envelope.put("data", data);
+		jobManager.addStreamOut(jobId, envelope);
 	}
 
 	private static Map<String, Object> nodeResult(String nodeId, String status, String output, String error) {
