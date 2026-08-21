@@ -61,7 +61,7 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 			return new NounMetadata(storageList, PixelDataType.VECTOR);
 		} catch (Exception e) {
 			classLogger.error("Error listing storage path details for path {}", path, e);
-			throw new IllegalArgumentException("Error listing storage details at path " + path);
+			throw new IllegalArgumentException("Error listing storage details at path " + path + ". Detailed message = " + e.getMessage());
 		}
 	}
 

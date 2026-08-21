@@ -69,7 +69,7 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred delete file from storage");
+			throw new IllegalArgumentException("Error occurred delete file from storage. Detailed message = " + e.getMessage());
 		}
 	}
 

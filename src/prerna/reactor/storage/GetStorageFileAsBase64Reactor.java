@@ -126,7 +126,7 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 			throw new IllegalArgumentException("In-memory blob reading is not supported by this storage engine");
 		} catch (Exception e) {
 			classLogger.error("Failed to read storage file content as base64: {}", e.getMessage(), e);
-			throw new IllegalArgumentException("Error reading blob from storage: " + storagePath);
+			throw new IllegalArgumentException("Error reading blob from storage: " + storagePath + ". Detailed message = " + e.getMessage());
 		}
 	}
 
