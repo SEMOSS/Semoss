@@ -1066,6 +1066,59 @@ def generate_mcp(
     return mcp_json
 
 
+def smss_multimodal_response(blocks: list) -> dict:
+    """Wrap multimodal content blocks for SEMOSS model providers.
+
+    Returns a SEMOSSMultimodalToolResponse dict. Java resolves any image file
+    references to inline base64 before the message reaches the model — the
+    tool designer only needs to supply root-relative file paths.
+
+    Valid block types:
+        {"type": "text",  "text": "..."}
+        {"type": "image", "image": ["file.png", "doc.pdf"]}  # array of root-relative paths
+
+    Also accepts a pre-formed envelope dict:
+        {"SEMOSSMultimodalToolResponse": [...blocks...]}
+
+    Raises:
+        ValueError: if blocks are not valid.
+
+    Args:
+        blocks (list | dict): List of content block dicts, or a pre-formed
+            SEMOSSMultimodalToolResponse envelope dict.
+
+    Returns:
+        dict: SEMOSSMultimodalToolResponse envelope.
+    """
+    if isinstance(blocks, dict):
+        if "SEMOSSMultimodalToolResponse" not in blocks:
+            raise ValueError("dict input must have a 'SEMOSSMultimodalToolResponse' key")
+        blocks = blocks["SEMOSSMultimodalToolResponse"]
+    if not isinstance(blocks, list) or not blocks:
+        raise ValueError("blocks must be a non-empty list")
+    normalized = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            raise ValueError(f"each block must be a dict, got {type(block).__name__}")
+        btype = block.get("type")
+        if btype == "text":
+            if not isinstance(block.get("text"), str):
+                raise ValueError(f"text block missing string 'text': {block}")
+            normalized.append(block)
+        elif btype == "image":
+            images = block.get("image")
+            if images is None:
+                raise ValueError(f"image block missing 'image' key: {block}")
+            if isinstance(images, str):
+                images = [images]
+            elif not isinstance(images, list) or not all(isinstance(p, str) for p in images):
+                raise ValueError(f"image block 'image' must be a string or list of strings: {block}")
+            normalized.append({"type": "image", "image": images})
+        else:
+            raise ValueError(f"invalid block type {btype!r}: must be 'text' or 'image'")
+    return {"SEMOSSMultimodalToolResponse": normalized}
+
+
 @deprecated(
     reason="Use @mcp_metadata({'execution':'auto'|'ask'|'disabled'}) instead",
     version="5.1.0",

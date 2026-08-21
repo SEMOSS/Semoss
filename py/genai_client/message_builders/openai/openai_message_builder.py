@@ -1038,19 +1038,17 @@ class OpenAIMessageBuilder:
             raise ValueError(f"Unknown message type: {message_type}")
 
     def _parse_tool_result_blocks(self, output: str):
-        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        """Return blocks from a SEMOSSMultimodalToolResponse envelope, or None for plain text."""
         try:
             parsed = json.loads(output)
         except (json.JSONDecodeError, TypeError):
             return None
-        if not isinstance(parsed, list):
+        if not isinstance(parsed, dict):
             return None
-        for item in parsed:
-            if not isinstance(item, dict) or "type" not in item:
-                return None
-            if item["type"] not in ("text", "image", "document"):
-                return None
-        return parsed or None
+        blocks = parsed.get("SEMOSSMultimodalToolResponse")
+        if not isinstance(blocks, list) or not blocks:
+            return None
+        return blocks
 
     def _build_responses_tool_output(self, output: str, blocks):
         """Convert MCP blocks to Responses API tool content.
@@ -1062,10 +1060,14 @@ class OpenAIMessageBuilder:
             if b["type"] == "text":
                 result.append({"type": "input_text", "text": b["text"]})
             elif b["type"] == "image":
+                if "data" not in b:
+                    continue  # unresolved file ref — Java should have inlined this
                 mime = b.get("mimeType", "image/png")
                 result.append({"type": "input_image",
                                "image_url": f"data:{mime};base64,{b['data']}"})
             elif b["type"] == "document":
+                if "data" not in b:
+                    continue
                 mime = b.get("mimeType", "application/pdf")
                 result.append({"type": "input_file",
                                "filename": "document.pdf",

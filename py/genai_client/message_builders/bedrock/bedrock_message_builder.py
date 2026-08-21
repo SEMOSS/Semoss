@@ -528,19 +528,17 @@ class BedrockMessageBuilder:
         return BedrockToolUseContentBlock(toolUse=tool_use_data)
 
     def _parse_tool_result_blocks(self, output: str):
-        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        """Return blocks from a SEMOSSMultimodalToolResponse envelope, or None for plain text."""
         try:
             parsed = json.loads(output)
         except (json.JSONDecodeError, TypeError):
             return None
-        if not isinstance(parsed, list):
+        if not isinstance(parsed, dict):
             return None
-        for item in parsed:
-            if not isinstance(item, dict) or "type" not in item:
-                return None
-            if item["type"] not in ("text", "image", "document"):
-                return None
-        return parsed or None
+        blocks = parsed.get("SEMOSSMultimodalToolResponse")
+        if not isinstance(blocks, list) or not blocks:
+            return None
+        return blocks
 
     def _build_bedrock_tool_content(self, output: str, blocks) -> list:
         """Convert MCP content blocks to Bedrock tool result content array."""
@@ -551,10 +549,14 @@ class BedrockMessageBuilder:
             if b["type"] == "text":
                 result.append({"text": b["text"]})
             elif b["type"] == "image":
+                if "data" not in b:
+                    continue  # unresolved file ref — Java should have inlined this
                 fmt = b.get("mimeType", "image/png").split("/")[-1]
                 result.append({"image": {"format": fmt,
                                          "source": {"bytes": base64.b64decode(b["data"])}}})
             elif b["type"] == "document":
+                if "data" not in b:
+                    continue
                 fmt = b.get("mimeType", "application/pdf").split("/")[-1]
                 result.append({"document": {"format": fmt, "name": "document",
                                             "source": {"bytes": base64.b64decode(b["data"])}}})

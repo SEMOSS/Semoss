@@ -365,19 +365,17 @@ class GoogleGenAIMessageBuilder:
         return Part.from_function_response(name=name, response={"result": text})
 
     def _parse_tool_result_blocks(self, output: str):
-        """Return parsed MCP content blocks, or None if output is plain text/non-block JSON."""
+        """Return blocks from a SEMOSSMultimodalToolResponse envelope, or None for plain text."""
         try:
             parsed = json.loads(output)
         except (json.JSONDecodeError, TypeError):
             return None
-        if not isinstance(parsed, list):
+        if not isinstance(parsed, dict):
             return None
-        for item in parsed:
-            if not isinstance(item, dict) or "type" not in item:
-                return None
-            if item["type"] not in ("text", "image", "document"):
-                return None
-        return parsed or None
+        blocks = parsed.get("SEMOSSMultimodalToolResponse")
+        if not isinstance(blocks, list) or not blocks:
+            return None
+        return blocks
 
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""

@@ -195,7 +195,7 @@ public class MessageInputMedia {
 		return extension;
 	}
 
-	private static String guessMimeType(String localPath, String format) {
+	static String guessMimeType(String localPath, String format) {
 		try {
 			Path p = Paths.get(localPath);
 			Tika tika = new Tika();

@@ -29,9 +29,11 @@ package prerna.engine.impl.model.message;
 
 import java.lang.reflect.Type;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,7 @@ public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
 	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
+	private static final String SEMOSS_MULTIMODAL_KEY = "SEMOSSMultimodalToolResponse";
 	private static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
@@ -593,8 +596,103 @@ public class MessageUtils {
 				}
 			}
 		}
-		return GSON_FOR_PY.toJson(msgs);
+		// Resolve image path references in tool results temporarily — inline base64
+		// only for this model call. Originals are restored in the finally block so
+		// base64 is never persisted to DB or included in response payloads.
+		IdentityHashMap<ToolResultPart, String> originalOutputs = new IdentityHashMap<>();
+		try {
+			for (AbstractMessage msg : msgs) {
+				String roomFolderPath = msg.getRoomFolderPath();
+				if (roomFolderPath == null) {
+					continue;
+				}
+				for (MessagePart part : msg.getParts()) {
+					if (part instanceof ToolResultMessagePart) {
+						ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+						if (tr != null && tr.getOutput() != null) {
+							String resolved = resolveToolOutputImageRefs(tr.getOutput(), roomFolderPath);
+							if (!resolved.equals(tr.getOutput())) {
+								originalOutputs.put(tr, tr.getOutput());
+								tr.setOutput(resolved);
+							}
+						}
+					}
+				}
+			}
+			return GSON_FOR_PY.toJson(msgs);
+		} finally {
+			for (Map.Entry<ToolResultPart, String> entry : originalOutputs.entrySet()) {
+				entry.getKey().setOutput(entry.getValue());
+			}
+		}
 	}
+
+	/**
+	 * Detects a {@code SEMOSSMultimodalToolResponse} envelope in a tool output
+	 * string and expands any {@code {"type":"image","image":[...]}} image-reference
+	 * blocks into inline base64 {@code image} or {@code document} blocks — one
+	 * output block per path. Blocks of other types are passed through unchanged.
+	 * Returns the original string on any parse error or if the envelope is absent.
+	 */
+	private static String resolveToolOutputImageRefs(String output, String roomFolderPath) {
+		try {
+			JsonObject parsed = JsonParser.parseString(output).getAsJsonObject();
+			if (!parsed.has(SEMOSS_MULTIMODAL_KEY)) {
+				return output;
+			}
+			JsonArray blocks = parsed.getAsJsonArray(SEMOSS_MULTIMODAL_KEY);
+			JsonArray resolved = new JsonArray();
+			boolean anyResolved = false;
+
+			for (JsonElement el : blocks) {
+				JsonObject block = el.getAsJsonObject();
+				String type = block.has("type") ? block.get("type").getAsString() : null;
+				// File-reference block: {"type":"image","image":["file.png",...]}
+				// Distinguished from inline blocks (which carry "data", not "image")
+				if ("image".equals(type) && block.has("image") && !block.has("data")) {
+					JsonElement imageEl = block.get("image");
+					List<String> relPaths = new ArrayList<>();
+					if (imageEl.isJsonArray()) {
+						for (JsonElement pathEl : imageEl.getAsJsonArray()) {
+							relPaths.add(pathEl.getAsString());
+						}
+					} else if (imageEl.isJsonPrimitive()) {
+						relPaths.add(imageEl.getAsString());
+					}
+					for (String relPath : relPaths) {
+						String absPath = Paths.get(roomFolderPath, relPath).normalize().toString();
+						String format = MessageInputMedia.extractFormat(absPath);
+						String mime = MessageInputMedia.guessMimeType(absPath, format);
+						String b64 = MessageInputMedia.encodeFileToBase64(absPath);
+						if (!b64.isEmpty()) {
+							String blockType = mime.startsWith("image") ? "image" : "document";
+							JsonObject inlined = new JsonObject();
+							inlined.addProperty("type", blockType);
+							inlined.addProperty("data", b64);
+							inlined.addProperty("mimeType", mime);
+							resolved.add(inlined);
+							anyResolved = true;
+						}
+						// file unreadable — skip silently
+					}
+				} else {
+					resolved.add(block);
+				}
+			}
+
+			if (!anyResolved) {
+				return output;
+			}
+			JsonObject out = new JsonObject();
+			out.add(SEMOSS_MULTIMODAL_KEY, resolved);
+			return out.toString();
+
+		} catch (Exception e) {
+			// Not the expected format or parse error — pass through unchanged
+			return output;
+		}
+	}
+
 
 	/**
 	 * Returns a root-to-leaf message branch ending at {@code newMessage} (or the

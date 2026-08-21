@@ -582,11 +582,9 @@ class AnthropicMessageBuilder:
     ) -> Union[str, List[Dict[str, Any]]]:
         """Convert a tool output string into Anthropic tool-result content.
 
-        If *output* is a JSON array of MCP content blocks (each dict has a
-        ``type`` key of ``"text"``, ``"image"``, or ``"document"``), the blocks
-        are translated to Anthropic format.  Any other value — plain text, a
-        JSON object, an unrecognised block type — is returned as a string so
-        the existing single-string path is preserved.
+        Detects a SEMOSSMultimodalToolResponse envelope and translates the
+        blocks to Anthropic format. Plain text or unrecognised JSON is returned
+        as a string so the existing single-string path is preserved.
         """
         if not output:
             return "Tool executed successfully."
@@ -596,18 +594,23 @@ class AnthropicMessageBuilder:
         except (json.JSONDecodeError, TypeError):
             return output
 
-        if not isinstance(parsed, list):
+        if not isinstance(parsed, dict):
+            return output
+
+        raw_blocks = parsed.get("SEMOSSMultimodalToolResponse")
+        if not isinstance(raw_blocks, list) or not raw_blocks:
             return output
 
         blocks: List[Dict[str, Any]] = []
-        for item in parsed:
+        for item in raw_blocks:
             if not isinstance(item, dict) or "type" not in item:
-                return output  # not a content-block array — fall back
+                return output
             block_type = item["type"]
             if block_type == "text":
                 blocks.append({"type": "text", "text": item.get("text", "")})
             elif block_type == "image":
-                # MCP spec: {"type":"image","data":"<base64>","mimeType":"image/png"}
+                if "data" not in item:
+                    continue  # unresolved file ref — Java should have inlined this
                 mime = item.get("mimeType", "image/png")
                 if mime == "image/jpg":
                     mime = "image/jpeg"
@@ -617,11 +620,13 @@ class AnthropicMessageBuilder:
                         "source": {
                             "type": "base64",
                             "media_type": mime,
-                            "data": item.get("data", ""),
+                            "data": item["data"],
                         },
                     }
                 )
             elif block_type == "document":
+                if "data" not in item:
+                    continue
                 mime = item.get("mimeType", "application/pdf")
                 blocks.append(
                     {
@@ -629,7 +634,7 @@ class AnthropicMessageBuilder:
                         "source": {
                             "type": "base64",
                             "media_type": mime,
-                            "data": item.get("data", ""),
+                            "data": item["data"],
                         },
                     }
                 )
