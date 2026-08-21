@@ -79,11 +79,15 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		if (source.length() > MAX_SOURCE_LENGTH) {
 			throw new IllegalArgumentException("source exceeds the maximum length.");
 		}
+		String expectedHash = required(EXPECTED_SOURCE_HASH_KEY);
+		return AutomationProjectUtils.withLockedDefinition(projectId,
+				files -> updateSource(projectId, files, nodeId, source, expectedHash));
+	}
 
-		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
+	private NounMetadata updateSource(String projectId, AutomationDefinitionService.DefinitionFiles files,
+			String nodeId, String source, String expectedHash) {
 		validateCustomNode(files.definition(), nodeId);
 		String currentSource = files.nodeSources().get(nodeId);
-		String expectedHash = required(EXPECTED_SOURCE_HASH_KEY);
 		if (!sha256(currentSource).equals(expectedHash)) {
 			throw new IllegalArgumentException("Automation node source changed; refresh before updating it.");
 		}
@@ -92,7 +96,12 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		updatedSources.put(nodeId, source);
 		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId,
 				files.definition(), updatedSources, this.insight.getUser());
-		return new NounMetadata(Map.of("nodeId", nodeId, "sourceHash", sha256(source)),
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("nodeId", nodeId);
+		result.put("sourceHash", sha256(saved.nodeSources().get(nodeId)));
+		result.put(AutomationConstants.RESULT_REVISION,
+				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
+		return new NounMetadata(result,
 				PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
