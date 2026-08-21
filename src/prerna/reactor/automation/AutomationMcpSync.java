@@ -142,12 +142,14 @@ public final class AutomationMcpSync {
 	private static JSONObject getAutomationTool(String projectId) {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
-		return tool("GetAutomation", "Get Automation Definition",
+		JSONObject tool = tool("GetAutomation", "Get Automation Definition",
 				"Read this project's current graph, node IDs, configuration, node sources, sourceHashes, globals, "
 						+ "and revision. "
 						+ "Always call this before deciding how to add, update, or remove a step. This tool only "
 						+ "inspects the automation; it does not run it.",
 				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
 	}
 
 	private static JSONObject triggerTool(String projectId, String definitionJson) {
@@ -267,7 +269,7 @@ public final class AutomationMcpSync {
 		result.put("inputSchema", new JSONObject().put("type", "object")
 				.put("title", name + "_Arguments").put("properties", properties).put("required", required));
 		result.put("_meta", new JSONObject().put(MCPUtility.SMSS_FUNCTION_NAME, name)
-				.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue()));
+				.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue()));
 		return result;
 	}
 
