@@ -59,6 +59,8 @@ public class GetAutomationReactor extends AbstractReactor {
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		definition.put(AutomationConstants.RESULT_REVISION,
+				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
 				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);

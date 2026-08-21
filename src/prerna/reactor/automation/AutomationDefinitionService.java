@@ -36,6 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -105,6 +106,29 @@ public final class AutomationDefinitionService {
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to read Python automation definition: " + e.getMessage(), e);
 		}
+	}
+
+	/**
+	 * Calculates a deterministic revision for the complete persisted automation aggregate.
+	 *
+	 * <p>The graph is canonicalized by the definition validator and node sources are ordered by node
+	 * ID. Length-prefixing prevents different graph/source boundaries from producing the same input
+	 * before hashing.
+	 *
+	 * @param definitionJson graph document JSON
+	 * @param nodeSources source by non-start node ID
+	 * @return lowercase SHA-256 revision
+	 */
+	public static String calculateRevision(String definitionJson, Map<String, String> nodeSources) {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+		StringBuilder canonical = new StringBuilder();
+		appendRevisionValue(canonical, definition.snapshot());
+		for (Map.Entry<String, String> entry : new TreeMap<>(nodeSources).entrySet()) {
+			appendRevisionValue(canonical, entry.getKey());
+			appendRevisionValue(canonical, entry.getValue());
+		}
+		return sha256(canonical.toString());
 	}
 
 	/**
@@ -426,16 +450,24 @@ public final class AutomationDefinitionService {
 		if (nodeId.matches(".*[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$")) {
 			return nodeId.substring(nodeId.length() - 36).toLowerCase(java.util.Locale.ROOT);
 		}
+		return sha256(nodeId);
+	}
+
+	private static String sha256(String value) {
 		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256").digest(nodeId.getBytes(StandardCharsets.UTF_8));
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
 			StringBuilder result = new StringBuilder(digest.length * 2);
-			for (byte value : digest) {
-				result.append(String.format(java.util.Locale.ROOT, "%02x", value & 0xff));
+			for (byte digestByte : digest) {
+				result.append(String.format(java.util.Locale.ROOT, "%02x", digestByte & 0xff));
 			}
 			return result.toString();
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("SHA-256 is unavailable.", e);
 		}
+	}
+
+	private static void appendRevisionValue(StringBuilder target, String value) {
+		target.append(value.length()).append(':').append(value);
 	}
 
 	private static String slugify(String value) {

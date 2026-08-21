@@ -235,6 +235,8 @@ public final class AutomationConstants {
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	public static final String RESULT_GLOBALS = DOC_GLOBALS;
+	/** Aggregate optimistic-concurrency revision for the graph and all persisted node sources. */
+	public static final String RESULT_REVISION = "revision";
 	/** Human-readable result summary for an automation workflow run. */
 	public static final String RESULT_SUMMARY = "summary";
 
