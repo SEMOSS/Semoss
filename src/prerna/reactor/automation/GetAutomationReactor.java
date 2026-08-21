@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
@@ -59,6 +60,10 @@ public class GetAutomationReactor extends AbstractReactor {
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		Map<String, String> sourceHashes = new LinkedHashMap<>();
+		files.nodeSources().forEach((nodeId, source) -> sourceHashes.put(nodeId,
+				AutomationDefinitionService.calculateSourceHash(source)));
+		definition.put("sourceHashes", sourceHashes);
 		definition.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
@@ -68,7 +73,7 @@ public class GetAutomationReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the automation graph, nodeSources, and trigger Python global defaults for a project.";
+		return "Returns the automation graph, nodeSources, sourceHashes, revision, and trigger globals for a project.";
 	}
 
 	@Override

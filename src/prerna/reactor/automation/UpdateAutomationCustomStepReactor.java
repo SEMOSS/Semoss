@@ -43,9 +43,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -88,7 +85,7 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 			String nodeId, String source, String expectedHash) {
 		validateCustomNode(files.definition(), nodeId);
 		String currentSource = files.nodeSources().get(nodeId);
-		if (!sha256(currentSource).equals(expectedHash)) {
+		if (!AutomationDefinitionService.calculateSourceHash(currentSource).equals(expectedHash)) {
 			throw new IllegalArgumentException("Automation node source changed; refresh before updating it.");
 		}
 
@@ -98,7 +95,7 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 				files.definition(), updatedSources, this.insight.getUser());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("nodeId", nodeId);
-		result.put("sourceHash", sha256(saved.nodeSources().get(nodeId)));
+		result.put("sourceHash", AutomationDefinitionService.calculateSourceHash(saved.nodeSources().get(nodeId)));
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
 		return new NounMetadata(result,
@@ -138,20 +135,6 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 			}
 		}
 		throw new IllegalArgumentException("Automation does not contain node: " + nodeId);
-	}
-
-	private static String sha256(String value) {
-		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256")
-					.digest(value.getBytes(StandardCharsets.UTF_8));
-			StringBuilder result = new StringBuilder(digest.length * 2);
-			for (byte valueByte : digest) {
-				result.append(String.format("%02x", valueByte));
-			}
-			return result.toString();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("SHA-256 is unavailable.", e);
-		}
 	}
 
 	@Override

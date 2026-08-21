@@ -150,6 +150,19 @@ public final class AutomationDefinitionService {
 	}
 
 	/**
+	 * Calculates the source hash used by optimistic custom-node updates.
+	 *
+	 * @param source persisted node source
+	 * @return lowercase SHA-256 hash
+	 */
+	public static String calculateSourceHash(String source) {
+		if (source == null) {
+			throw new IllegalArgumentException("Automation node source must not be null.");
+		}
+		return sha256(source);
+	}
+
+	/**
 	 * Validates and replaces the automation definition artifacts.
 	 *
 	 * @param projectId project ID
