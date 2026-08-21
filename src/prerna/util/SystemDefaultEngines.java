@@ -63,7 +63,7 @@ public class SystemDefaultEngines {
 	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER, Constants.MCP_DATABASE_MAKER,
 			Constants.MCP_REACTOR_HELP, Constants.MCP_BROWSER_AUTOMATION, Constants.MCP_APP_FILESYSTEM,
-			Constants.MCP_ROOM_FILESYSTEM);
+			Constants.MCP_ROOM_FILESYSTEM, Constants.MCP_USER_INPUT);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
@@ -71,9 +71,15 @@ public class SystemDefaultEngines {
 	 * open a sidebar app and wait on a user) are not useful to a headless agent, so
 	 * they are cataloged and invokable without being attached to every system
 	 * agent.
+	 *
+	 * MCP_USER_INPUT is the one exception: its tool pauses the run and waits on
+	 * the user too, but system agents (currently just app-builder) are only ever
+	 * invoked interactively from the SemossWeb workbench/Agent47 chat surfaces,
+	 * never headlessly, so attaching it by default is safe today. Revisit this if
+	 * a system agent is ever driven headlessly (e.g. a scheduled run).
 	 */
 	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
-			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
+			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP, Constants.MCP_USER_INPUT);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
 
