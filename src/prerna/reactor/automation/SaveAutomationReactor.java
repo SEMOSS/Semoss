@@ -53,8 +53,9 @@ public class SaveAutomationReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.PROJECT.getKey(),
 				ReactorKeysEnum.JSON.getKey(),
-				NODE_SOURCES_KEY };
-		this.keyRequired = new int[] { 1, 1, 0 };
+				NODE_SOURCES_KEY,
+				AutomationConstants.EXPECTED_REVISION_KEY };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -72,11 +73,14 @@ public class SaveAutomationReactor extends AbstractReactor {
 				.getProjectId();
 
 		AutomationDefinitionService.DefinitionFiles files = AutomationProjectUtils.saveDefinition(projectId,
-				definition, nodeSources, this.insight.getUser());
+				definition, nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY),
+				this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
+		result.put(AutomationConstants.RESULT_REVISION,
+				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
 				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
@@ -132,6 +136,9 @@ public class SaveAutomationReactor extends AbstractReactor {
 		if (NODE_SOURCES_KEY.equals(key)) {
 			return "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
 					+ "The trigger source may declare non-private globals; omitted entries receive generated source.";
+		}
+		if (AutomationConstants.EXPECTED_REVISION_KEY.equals(key)) {
+			return "Optional revision returned by GetAutomation. The save is rejected if the automation changed.";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -244,6 +244,7 @@ public final class AutomationConstants {
 
 	public static final String AUTOMATION_INPUTS_KEY = "inputs";
 	public static final String AUTOMATION_TRIGGER_TYPE_KEY = "triggerType";
+	public static final String EXPECTED_REVISION_KEY = "expectedRevision";
 
 	// -- Data type constants (for table creation) ----------------------------------
 

@@ -112,10 +112,36 @@ public final class AutomationProjectUtils {
 	 */
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
 			Map<String, String> nodeSources, User user) {
-		validateEngineReferences(definitionJson, user);
+		return saveDefinition(projectId, definitionJson, nodeSources, null, user);
+	}
+
+	/**
+	 * Saves an automation definition when the currently persisted aggregate matches the caller's
+	 * expected revision. A null or blank revision preserves compatibility for callers that have not
+	 * adopted optimistic concurrency yet.
+	 *
+	 * @param projectId project ID
+	 * @param definitionJson canonical graph JSON
+	 * @param nodeSources source by non-start node ID
+	 * @param expectedRevision revision returned by the prior read, or null during migration
+	 * @param user user performing the save
+	 * @return persisted graph and node sources
+	 */
+	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
+			Map<String, String> nodeSources, String expectedRevision, User user) {
 		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
 		projectLock.lock();
 		try {
+			AutomationDefinitionService.DefinitionFiles current = AutomationDefinitionService.load(projectId);
+			if (expectedRevision != null && !expectedRevision.isBlank()) {
+				String currentRevision = AutomationDefinitionService.calculateRevision(
+						current.definition(), current.nodeSources());
+				if (!currentRevision.equals(expectedRevision)) {
+					throw new IllegalArgumentException(
+							"Automation changed since it was loaded. Refresh and reapply your changes.");
+				}
+			}
+			validateEngineReferences(definitionJson, user);
 			AutomationDefinitionService.DefinitionFiles files =
 					AutomationDefinitionService.save(projectId, definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
