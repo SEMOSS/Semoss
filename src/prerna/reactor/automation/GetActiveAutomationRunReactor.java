@@ -33,7 +33,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -79,14 +78,8 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 
 	private String getProjectId() {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access");
-		}
-		return projectId;
+		return AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(), projectId)
+				.getProjectId();
 	}
 
 	@Override

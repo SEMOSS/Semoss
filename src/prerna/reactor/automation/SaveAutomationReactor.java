@@ -32,7 +32,6 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -69,10 +68,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a project id.");
 		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have edit access.");
-		}
+		projectId = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(), projectId)
+				.getProjectId();
 
 		AutomationDefinitionService.DefinitionFiles files = AutomationProjectUtils.saveDefinition(projectId,
 				definition, nodeSources, this.insight.getUser());

@@ -34,7 +34,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -68,10 +67,8 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a project id");
 		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access");
-		}
+		projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(), projectId)
+				.getProjectId();
 
 		List<Map<String, Object>> runs = AutomationDatabaseUtility.getRunsForProject(projectId, limit);
 		if (runs == null) {

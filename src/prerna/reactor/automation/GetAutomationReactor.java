@@ -29,7 +29,6 @@ package prerna.reactor.automation;
 
 import java.util.Map;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -37,7 +36,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 /**
  * Returns an automation graph together with its persisted per-node Python sources.
@@ -54,17 +52,9 @@ public class GetAutomationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		if (projectId == null || projectId.isBlank()) {
-			throw new IllegalArgumentException("Must provide a project id.");
-		}
-
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access.");
-		}
-
-		IProject project = Utility.getProject(projectId);
+		IProject project = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(),
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+		String projectId = project.getProjectId();
 		if (project != null && project.requirePublish(true)) {
 			// requirePublish refreshes the project assets before the definition is read.
 		}

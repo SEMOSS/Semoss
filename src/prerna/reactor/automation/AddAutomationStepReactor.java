@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -147,12 +146,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private String editableProjectId() {
-		String projectId = required(ReactorKeysEnum.PROJECT.getKey());
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have edit access.");
-		}
-		return projectId;
+		return AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
+				required(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 	}
 
 	private String required(String key) {

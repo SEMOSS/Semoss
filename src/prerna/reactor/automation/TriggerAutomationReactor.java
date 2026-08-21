@@ -40,7 +40,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.om.ThreadStore;
@@ -431,15 +430,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private String getProjectId() {
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		if (projectId == null || projectId.isBlank()) {
-			throw new IllegalArgumentException("Must provide a project id.");
-		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have edit access.");
-		}
-		return projectId;
+		return AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 	}
 
 	private String getTriggerType() {

@@ -33,7 +33,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -79,11 +78,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide the run id to cancel");
 		}
 
-		// Auth check
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have edit access");
-		}
+		projectId = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(), projectId)
+				.getProjectId();
 
 		// Validate the run exists, belongs to this project, and is running. Scoping by
 		// PROJECT_ID prevents a user with edit access to their own project from cancelling

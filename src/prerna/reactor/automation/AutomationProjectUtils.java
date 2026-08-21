@@ -58,6 +58,50 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
+	 * Resolves a project ID or alias and requires view access to an automation project.
+	 *
+	 * @param user user requesting access
+	 * @param projectIdOrAlias project ID or alias
+	 * @return resolved automation project
+	 */
+	public static IProject getViewableAutomationProject(User user, String projectIdOrAlias) {
+		return getAutomationProject(user, projectIdOrAlias, false);
+	}
+
+	/**
+	 * Resolves a project ID or alias and requires edit access to an automation project.
+	 *
+	 * @param user user requesting access
+	 * @param projectIdOrAlias project ID or alias
+	 * @return resolved automation project
+	 */
+	public static IProject getEditableAutomationProject(User user, String projectIdOrAlias) {
+		return getAutomationProject(user, projectIdOrAlias, true);
+	}
+
+	private static IProject getAutomationProject(User user, String projectIdOrAlias, boolean requireEdit) {
+		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
+			throw new IllegalArgumentException("Must provide a project id.");
+		}
+
+		String projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
+		boolean hasAccess = requireEdit
+				? SecurityProjectUtils.userCanEditProject(user, projectId)
+				: SecurityProjectUtils.userCanViewProject(user, projectId);
+		if (!hasAccess) {
+			throw new IllegalArgumentException(requireEdit
+					? "Project does not exist or user does not have edit access."
+					: "Project does not exist or user does not have access.");
+		}
+
+		IProject project = Utility.getProject(projectId);
+		if (project == null || project.getProjectType() != IProject.PROJECT_TYPE.AUTOMATION) {
+			throw new IllegalArgumentException("Project is not an automation project: " + projectId);
+		}
+		return project;
+	}
+
+	/**
 	 * Saves an automation definition and synchronizes its derived project assets.
 	 *
 	 * @param projectId project ID
