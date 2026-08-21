@@ -74,8 +74,13 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 		String projectId = editableProjectId();
 		String nodeId = required(NODE_ID_KEY);
 		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
-		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
+		String label = this.keyValue.get(LABEL_KEY);
+		return AutomationProjectUtils.withLockedDefinition(projectId,
+				files -> updateStep(projectId, files, nodeId, config, label));
+	}
 
+	private NounMetadata updateStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
+			String nodeId, Map<String, Object> config, String label) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> document = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -102,7 +107,6 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 			Map<String, Object> mutable = (Map<String, Object>) node;
 			mutable.put(AutomationConstants.NODE_FIELD_CONFIG, config);
 			mutable.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
-			String label = this.keyValue.get(LABEL_KEY);
 			if (label != null && !label.isBlank()) {
 				mutable.put(AutomationConstants.NODE_FIELD_LABEL, label);
 			}
@@ -117,7 +121,12 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 		sources.remove(nodeId);
 		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId,
 				AutomationRuntimeUtils.GSON.toJson(document), sources, this.insight.getUser());
-		return new NounMetadata(Map.of("node", updatedNode, "source", saved.nodeSources().get(nodeId)),
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("node", updatedNode);
+		result.put("source", saved.nodeSources().get(nodeId));
+		result.put(AutomationConstants.RESULT_REVISION,
+				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
+		return new NounMetadata(result,
 				PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
