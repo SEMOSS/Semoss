@@ -55,8 +55,17 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
+
+		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
+		if (roomOptionsSearch != null) {
+			roomOptionsSearch = roomOptionsSearch.trim();
+			if (roomOptionsSearch.isEmpty()) {
+				roomOptionsSearch = null;
+			}
+		}
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (projectId == null) {
+		if (projectId == null && roomOptionsSearch == null) {
 			projectId = this.insight.getContextProjectId();
 		}
 		if (projectId == null) {
@@ -86,16 +95,9 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 			pinned = Boolean.parseBoolean(pinnedStr.trim());
 		}
 
-		// Optional free-text search against the OPTIONS JSON column.
-		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
-		if (roomOptionsSearch != null) {
-			roomOptionsSearch = roomOptionsSearch.trim();
-			if (roomOptionsSearch.isEmpty()) {
-				roomOptionsSearch = null;
-			}
-		}
 		boolean includeUnnamedRooms = getBoolean(INCLUDE_UNNAMED_ROOMS, false);
 		boolean includeChildRooms = getBoolean(INCLUDE_CHILD_ROOMS, false);
+
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
