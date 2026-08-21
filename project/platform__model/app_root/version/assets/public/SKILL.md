@@ -145,7 +145,9 @@ For the full response schema, see `references/response-schema.md`.
 
 ## Listing available models
 
-Before calling a model, you often need to let the user pick one, or find one programmatically. Use the `MyEngines` pixel with `engineTypes=["MODEL"]` to list models the current user has access to.
+This listing pattern is for app-runtime features where the app's end user picks a model. When *you* are deciding which model the app should call, do not enumerate accessible models: use the project's selected model engine (see the Selected Engines section of your system prompt), and only ask the user to choose or attach one when none is selected.
+
+For the app-runtime case, use the `MyEngines` pixel with `engineTypes=["MODEL"]` to list models the current user has access to.
 
 ```typescript
 import { runPixel } from "@semoss/sdk";
