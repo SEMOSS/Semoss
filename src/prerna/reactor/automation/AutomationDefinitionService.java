@@ -42,6 +42,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.AssetUtility;
 
@@ -56,6 +59,12 @@ import prerna.util.AssetUtility;
 public final class AutomationDefinitionService {
 
 	private static final Gson PRETTY_JSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final Logger classLogger = LogManager.getLogger(AutomationDefinitionService.class);
+	private static final String TRANSACTION_FOLDER = ".automation-save";
+	private static final String TRANSACTION_MARKER_FILE = "publishing";
+	private static final String TRANSACTION_STAGED_FOLDER = "staged";
+	private static final String TRANSACTION_BACKUP_FOLDER = "backup";
+	private static final String TRANSACTION_RECOVERY_FOLDER = "recovery";
 
 	private AutomationDefinitionService() {
 	}
@@ -70,12 +79,21 @@ public final class AutomationDefinitionService {
 	public static DefinitionFiles load(String projectId) {
 		Path assetsFolder = getAssetsFolder(projectId);
 		Path portalsFolder = getPortalsFolder(projectId);
-		Path definitionFile = definitionPath(assetsFolder);
-		Path legacyDefinitionFile = definitionPath(portalsFolder);
+		Path transaction = transactionFolder(assetsFolder);
+		Path readableAssetsFolder = Files.isRegularFile(transaction.resolve(TRANSACTION_MARKER_FILE))
+				&& Files.isRegularFile(definitionPath(transaction.resolve(TRANSACTION_BACKUP_FOLDER)))
+				? transaction.resolve(TRANSACTION_BACKUP_FOLDER)
+				: assetsFolder;
+		return loadFromFolders(readableAssetsFolder, portalsFolder);
+	}
+
+	private static DefinitionFiles loadFromFolders(Path primaryFolder, Path fallbackFolder) {
+		Path definitionFile = definitionPath(primaryFolder);
+		Path fallbackDefinitionFile = definitionPath(fallbackFolder);
 		try {
 			if (!Files.isRegularFile(definitionFile)) {
-				if (Files.isRegularFile(legacyDefinitionFile)) {
-					definitionFile = legacyDefinitionFile;
+				if (Files.isRegularFile(fallbackDefinitionFile)) {
+					definitionFile = fallbackDefinitionFile;
 				} else {
 					AutomationDefinitionValidator.ValidatedDefinition starter =
 							AutomationDefinitionValidator.parseAndValidate(emptyDefinition());
@@ -90,7 +108,7 @@ public final class AutomationDefinitionService {
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-				Path sourceFile = findNodeSourceFile(assetsFolder, portalsFolder, node);
+				Path sourceFile = findNodeSourceFile(primaryFolder, fallbackFolder, node);
 				String source = Files.isRegularFile(sourceFile)
 						? Files.readString(sourceFile, StandardCharsets.UTF_8)
 						: AutomationSourceRenderer.renderNode(node);
@@ -145,26 +163,47 @@ public final class AutomationDefinitionService {
 				AutomationDefinitionValidator.parseAndValidate(definitionJson);
 		validateUniqueNodeSourceFileNames(definition);
 		Path assetsFolder = getAssetsFolder(projectId);
-		Path definitionFile = definitionPath(assetsFolder);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
 		String persistedDefinition = normalizeGeneratedCodeModes(definition, sourcesToPersist, definitionJson);
+		DefinitionFiles candidate = new DefinitionFiles(persistedDefinition,
+				withoutTriggerSources(sourcesToPersist,
+						AutomationDefinitionValidator.parseAndValidate(persistedDefinition)));
 
 		try {
 			Files.createDirectories(assetsFolder);
-			writeReplace(definitionFile, prettyJson(persistedDefinition));
-			Path nodesFolder = nodesFolder(assetsFolder);
-			Files.createDirectories(nodesFolder);
-			for (Map<String, Object> node : definition.nodes()) {
-				if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-					continue;
+			recoverTransaction(assetsFolder);
+			DefinitionFiles current = load(projectId);
+			Path transaction = transactionFolder(assetsFolder);
+			Path stagedFolder = transaction.resolve(TRANSACTION_STAGED_FOLDER);
+			Path backupFolder = transaction.resolve(TRANSACTION_BACKUP_FOLDER);
+			writeAggregate(stagedFolder, candidate);
+			writeAggregate(backupFolder, current);
+			writeReplace(transaction.resolve(TRANSACTION_MARKER_FILE), "publishing" + System.lineSeparator());
+			try {
+				replaceAggregate(stagedFolder, assetsFolder);
+				Files.delete(transaction.resolve(TRANSACTION_MARKER_FILE));
+			} catch (IOException publicationFailure) {
+				try {
+					restoreBackup(transaction, assetsFolder);
+					deleteTree(transaction);
+				} catch (IOException recoveryFailure) {
+					publicationFailure.addSuppressed(recoveryFailure);
 				}
-				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-				writeReplace(nodeSourcePath(assetsFolder, node), sourcesToPersist.get(nodeId));
+				throw publicationFailure;
 			}
-			removeDeletedNodeSources(nodesFolder, definition);
-			Files.deleteIfExists(assetsFolder.resolve("automation-workflow.py"));
-			return new DefinitionFiles(persistedDefinition, withoutTriggerSources(sourcesToPersist,
-					AutomationDefinitionValidator.parseAndValidate(persistedDefinition)));
+			try {
+				Files.deleteIfExists(assetsFolder.resolve("automation-workflow.py"));
+			} catch (IOException cleanupFailure) {
+				classLogger.warn("Unable to remove the legacy automation workflow for project {}.",
+						projectId, cleanupFailure);
+			}
+			try {
+				deleteTree(transaction);
+			} catch (IOException cleanupFailure) {
+				classLogger.warn("Unable to clean completed automation save transaction for project {}.",
+						projectId, cleanupFailure);
+			}
+			return candidate;
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to save Python automation definition: " + e.getMessage(), e);
 		}
@@ -373,6 +412,86 @@ public final class AutomationDefinitionService {
 		return path;
 	}
 
+	private static Path transactionFolder(Path assetsFolder) {
+		return assetsFolder.resolve(TRANSACTION_FOLDER).normalize();
+	}
+
+	private static void recoverTransaction(Path assetsFolder) throws IOException {
+		Path transaction = transactionFolder(assetsFolder);
+		if (!Files.exists(transaction)) {
+			return;
+		}
+		if (Files.isRegularFile(transaction.resolve(TRANSACTION_MARKER_FILE))) {
+			restoreBackup(transaction, assetsFolder);
+		}
+		deleteTree(transaction);
+	}
+
+	private static void writeAggregate(Path folder, DefinitionFiles files) throws IOException {
+		AutomationDefinitionValidator.ValidatedDefinition definition =
+				AutomationDefinitionValidator.parseAndValidate(files.definition());
+		validateUniqueNodeSourceFileNames(definition);
+		Files.createDirectories(nodesFolder(folder));
+		writeReplace(definitionPath(folder), prettyJson(files.definition()));
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				continue;
+			}
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			writeReplace(nodeSourcePath(folder, node), files.nodeSources().get(nodeId));
+		}
+	}
+
+	private static void replaceAggregate(Path sourceFolder, Path assetsFolder) throws IOException {
+		deleteTree(nodesFolder(assetsFolder));
+		moveReplace(nodesFolder(sourceFolder), nodesFolder(assetsFolder));
+		moveReplace(definitionPath(sourceFolder), definitionPath(assetsFolder));
+	}
+
+	private static void restoreBackup(Path transaction, Path assetsFolder) throws IOException {
+		Path backupFolder = transaction.resolve(TRANSACTION_BACKUP_FOLDER);
+		if (!Files.isRegularFile(definitionPath(backupFolder))) {
+			throw new IOException("Automation save backup is unavailable.");
+		}
+		Path recoveryFolder = transaction.resolve(TRANSACTION_RECOVERY_FOLDER);
+		deleteTree(recoveryFolder);
+		copyTree(backupFolder, recoveryFolder);
+		replaceAggregate(recoveryFolder, assetsFolder);
+	}
+
+	private static void copyTree(Path source, Path target) throws IOException {
+		try (java.util.stream.Stream<Path> paths = Files.walk(source)) {
+			for (Path path : paths.toList()) {
+				Path destination = target.resolve(source.relativize(path));
+				if (Files.isDirectory(path)) {
+					Files.createDirectories(destination);
+				} else {
+					Files.copy(path, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+				}
+			}
+		}
+	}
+
+	private static void moveReplace(Path source, Path target) throws IOException {
+		try {
+			Files.move(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+					java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+		} catch (java.nio.file.AtomicMoveNotSupportedException e) {
+			Files.move(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	private static void deleteTree(Path folder) throws IOException {
+		if (!Files.exists(folder)) {
+			return;
+		}
+		try (java.util.stream.Stream<Path> paths = Files.walk(folder)) {
+			for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+				Files.deleteIfExists(path);
+			}
+		}
+	}
+
 	private static void writeReplace(Path target, String content) throws IOException {
 		Path temporary = Files.createTempFile(target.getParent(), target.getFileName().toString(), ".tmp");
 		try {
@@ -497,24 +616,6 @@ public final class AutomationDefinitionService {
 			if (existingNodeId != null && !existingNodeId.equals(nodeId)) {
 				throw new IllegalArgumentException("Automation nodes '" + existingNodeId + "' and '" + nodeId
 						+ "' resolve to the same source file: " + fileName + ".");
-			}
-		}
-	}
-
-	private static void removeDeletedNodeSources(Path nodesFolder,
-			AutomationDefinitionValidator.ValidatedDefinition definition) throws IOException {
-		java.util.Set<String> currentFiles = new java.util.HashSet<>();
-		for (Map<String, Object> node : definition.nodes()) {
-			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				currentFiles.add(safeNodeFileName(node) + ".py");
-			}
-		}
-		try (java.util.stream.Stream<Path> paths = Files.list(nodesFolder)) {
-			for (Path path : paths.filter(Files::isRegularFile).toList()) {
-				if (path.getFileName().toString().endsWith(".py")
-						&& !currentFiles.contains(path.getFileName().toString())) {
-					Files.delete(path);
-				}
 			}
 		}
 	}
