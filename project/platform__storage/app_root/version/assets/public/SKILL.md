@@ -147,4 +147,4 @@ const storages = pixelReturn[0].output as Array<{
 
 `MyEngines` supports the same `filterWord`, `onlyFavorites`, `sort`, `limit`, and `offset` arguments described in the database skill.
 
-Never hardcode or guess a storage engine ID. Use the project's selected storage engine (see the selected-engines skill); if none is selected, ask the user to choose or attach one.
+Never hardcode or guess a storage engine ID. Use the project's selected storage engine (see the Selected Engines section of your system prompt); if none is selected, ask the user to choose or attach one.
