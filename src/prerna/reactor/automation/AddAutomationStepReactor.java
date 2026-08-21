@@ -90,8 +90,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String afterNodeId = this.keyValue.get(AFTER_NODE_ID_KEY);
 		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
 		String customSource = customSource(nodeType, config);
+		return AutomationProjectUtils.withLockedDefinition(projectId,
+				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId, config, customSource));
+	}
 
-		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
+	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
+			String nodeType, String label, String outputVar, String afterNodeId, Map<String, Object> config,
+			String customSource) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -142,6 +147,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("node", node);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, saved.nodeSources());
+		result.put(AutomationConstants.RESULT_REVISION,
+				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

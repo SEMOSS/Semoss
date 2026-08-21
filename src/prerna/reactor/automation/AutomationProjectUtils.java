@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -113,6 +114,27 @@ public final class AutomationProjectUtils {
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
 			Map<String, String> nodeSources, User user) {
 		return saveDefinition(projectId, definitionJson, nodeSources, null, user);
+	}
+
+	/**
+	 * Loads and mutates one definition while holding the same project lock used by persistence.
+	 * Granular authoring tools use this boundary so concurrent operations cannot overwrite each
+	 * other's graph changes.
+	 *
+	 * @param projectId project ID
+	 * @param mutation operation based on the latest persisted aggregate
+	 * @param <T> mutation result type
+	 * @return mutation result
+	 */
+	public static <T> T withLockedDefinition(String projectId,
+			Function<AutomationDefinitionService.DefinitionFiles, T> mutation) {
+		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
+		projectLock.lock();
+		try {
+			return mutation.apply(AutomationDefinitionService.load(projectId));
+		} finally {
+			projectLock.unlock();
+		}
 	}
 
 	/**
