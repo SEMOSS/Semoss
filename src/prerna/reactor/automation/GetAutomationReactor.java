@@ -29,7 +29,6 @@ package prerna.reactor.automation;
 
 import java.util.Map;
 
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,16 +51,11 @@ public class GetAutomationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		IProject project = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(),
-				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
-		String projectId = project.getProjectId();
-		if (project != null && project.requirePublish(true)) {
-			// requirePublish refreshes the project assets before the definition is read.
-		}
+		String projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(),
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 
 		AutomationDefinitionService.DefinitionFiles files =
 				AutomationDefinitionService.load(projectId);
-		AutomationMcpSync.sync(projectId, files.definition(), this.insight.getUser());
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
