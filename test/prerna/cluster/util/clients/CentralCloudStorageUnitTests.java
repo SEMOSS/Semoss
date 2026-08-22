@@ -1295,7 +1295,7 @@ class CentralCloudStorageUnitTests {
 		@Test
 		void testListAllContainersByBucket_noReuseConfig() throws Exception {
 			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-			when(mockStorageEngine.list(anyString(), (String) isNull())).thenReturn(Arrays.asList("item1"));
+			when(mockStorageEngine.listWithConfig(anyString(), (String) isNull())).thenReturn(Arrays.asList("item1"));
 
 			Map<String, List<String>> result = instance.listAllContainersByBucket();
 
@@ -1308,14 +1308,14 @@ class CentralCloudStorageUnitTests {
 			assertTrue(result.containsKey(CentralCloudStorage.FUNCTION_BLOB));
 			assertTrue(result.containsKey(CentralCloudStorage.VENV_BLOB));
 			assertTrue(result.containsKey(CentralCloudStorage.PROJECT_BLOB));
-			verify(mockStorageEngine, times(7)).list(anyString(), (String) isNull());
+			verify(mockStorageEngine, times(7)).listWithConfig(anyString(), (String) isNull());
 		}
 
 		@Test
 		void testListAllContainersByBucket_withReuseConfig() throws Exception {
 			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
 			when(mockStorageEngine.createRCloneConfig()).thenReturn("rcloneConfig");
-			when(mockStorageEngine.list(anyString(), eq("rcloneConfig"))).thenReturn(Arrays.asList("f1", "f2"));
+			when(mockStorageEngine.listWithConfig(anyString(), eq("rcloneConfig"))).thenReturn(Arrays.asList("f1", "f2"));
 
 			Map<String, List<String>> result = instance.listAllContainersByBucket();
 
@@ -1323,7 +1323,7 @@ class CentralCloudStorageUnitTests {
 			for (List<String> files : result.values()) {
 				assertEquals(2, files.size());
 			}
-			verify(mockStorageEngine, times(7)).list(anyString(), eq("rcloneConfig"));
+			verify(mockStorageEngine, times(7)).listWithConfig(anyString(), eq("rcloneConfig"));
 			verify(mockStorageEngine).deleteRcloneConfig("rcloneConfig");
 		}
 
@@ -1492,8 +1492,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteEngine("eng1", IEngine.CATALOG_TYPE.DATABASE);
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("eng1"), (String) isNull());
-				verify(mockStorageEngine).deleteFolderFromStorage(
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorageWithConfig(contains("eng1"), (String) isNull());
+				verify(mockStorageEngine).deleteFolderFromStorageWithConfig(
 						argThat(s -> s.contains("eng1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)),
 						(String) isNull());
 			}
@@ -1512,7 +1512,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteEngine("eng1");
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), (String) isNull());
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorageWithConfig(anyString(), (String) isNull());
 			}
 		}
 
@@ -1525,8 +1525,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteProject("proj1");
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("proj1"), (String) isNull());
-				verify(mockStorageEngine).deleteFolderFromStorage(
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorageWithConfig(contains("proj1"), (String) isNull());
+				verify(mockStorageEngine).deleteFolderFromStorageWithConfig(
 						argThat(s -> s.contains("proj1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)),
 						(String) isNull());
 			}
@@ -1589,8 +1589,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushEngine("eng1");
 
-				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("MyEngine__eng1.smss")),
+				verify(mockStorageEngine).syncLocalToStorageWithConfig(anyString(), anyString(), (String) isNull(), any());
+				verify(mockStorageEngine).copyToStorageWithConfig(argThat(s -> s.contains("MyEngine__eng1.smss")),
 						argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)), (String) isNull(), any());
 				verify(mockEngine, never()).close();
 			}
@@ -1627,8 +1627,8 @@ class CentralCloudStorageUnitTests {
 
 				verify(mockDI).removeEngineProperty("eng1");
 				verify(mockEngine).close();
-				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), eq("cfg1"), any());
-				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("cfg1"), any());
+				verify(mockStorageEngine).syncLocalToStorageWithConfig(anyString(), anyString(), eq("cfg1"), any());
+				verify(mockStorageEngine).copyToStorageWithConfig(anyString(), anyString(), eq("cfg1"), any());
 				verify(mockStorageEngine).deleteRcloneConfig("cfg1");
 			}
 		}
@@ -1657,8 +1657,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1", IEngine.CATALOG_TYPE.DATABASE, false);
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
+				verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).copyToLocalWithConfig(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
 						eq(testDir.toString()), (String) isNull());
 				watcherMock.verify(() -> SMSSWebWatcher.catalogEngine(eq("MyEng__eng1.smss"), any()));
 			}
@@ -1695,8 +1695,8 @@ class CentralCloudStorageUnitTests {
 
 				verify(mockDI).removeEngineProperty("eng1");
 				verify(mockEngine).close();
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-				verify(mockStorageEngine).copyToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).copyToLocalWithConfig(anyString(), anyString(), (String) isNull());
 			}
 		}
 
@@ -1724,7 +1724,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1", null, false);
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(anyString(), any()));
 			}
 		}
@@ -1755,7 +1755,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1");
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
 			}
 		}
 
@@ -1900,7 +1900,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteEngine("eng1", IEngine.CATALOG_TYPE.STORAGE);
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), eq("rcfg"));
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorageWithConfig(anyString(), eq("rcfg"));
 			}
 		}
 
@@ -1967,8 +1967,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", "old.png", "new.png");
 
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")), (String) isNull());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(),
+				verify(mockStorageEngine).deleteFromStorageWithConfig(argThat(s -> s.contains("old.png")), (String) isNull());
+				verify(mockStorageEngine).copyToStorageWithConfig(argThat(s -> s.contains("new.png")), anyString(),
 						(String) isNull(), any());
 			}
 		}
@@ -1990,8 +1990,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", null, "new.png");
 
-				verify(mockStorageEngine, never()).deleteFromStorage(anyString(), (String) any());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(),
+				verify(mockStorageEngine, never()).deleteFromStorageWithConfig(anyString(), (String) any());
+				verify(mockStorageEngine).copyToStorageWithConfig(argThat(s -> s.contains("new.png")), anyString(),
 						(String) isNull(), any());
 			}
 		}
@@ -2010,8 +2010,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", "old.png", null);
 
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")), (String) isNull());
-				verify(mockStorageEngine, never()).copyToStorage(anyString(), anyString(), (String) any(), any());
+				verify(mockStorageEngine).deleteFromStorageWithConfig(argThat(s -> s.contains("old.png")), (String) isNull());
+				verify(mockStorageEngine, never()).copyToStorageWithConfig(anyString(), anyString(), (String) any(), any());
 			}
 		}
 
@@ -2032,8 +2032,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", "old.png", "new.png");
 
-				verify(mockStorageEngine).deleteFromStorage(anyString(), eq("rcfg"));
-				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("rcfg"), any());
+				verify(mockStorageEngine).deleteFromStorageWithConfig(anyString(), eq("rcfg"));
+				verify(mockStorageEngine).copyToStorageWithConfig(anyString(), anyString(), eq("rcfg"), any());
 				verify(mockStorageEngine).deleteRcloneConfig("rcfg");
 			}
 		}
@@ -2329,8 +2329,8 @@ class CentralCloudStorageUnitTests {
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(),
+					verify(mockStorageEngine).syncLocalToStorageWithConfig(anyString(), anyString(), (String) isNull(), any());
+					verify(mockStorageEngine).copyToStorageWithConfig(argThat(s -> s.contains(".smss")), anyString(),
 							(String) isNull(), any());
 				}
 			} finally {
@@ -2362,7 +2362,7 @@ class CentralCloudStorageUnitTests {
 
 					instance.pushProject("proj1");
 
-					verify(mockStorageEngine).syncLocalToStorage(argThat(s -> s.contains("AliasProj__proj1")),
+					verify(mockStorageEngine).syncLocalToStorageWithConfig(argThat(s -> s.contains("AliasProj__proj1")),
 							anyString(), (String) isNull(), any());
 				}
 			} finally {
@@ -2390,8 +2390,8 @@ class CentralCloudStorageUnitTests {
 
 					instance.pullProject("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).copyToLocalWithConfig(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
 							eq(testDir.toString()), (String) isNull());
 					watcherMock.verify(() -> ProjectWatcher.catalogProject(eq("P__proj1.smss"), any()));
 				}
@@ -2426,7 +2426,7 @@ class CentralCloudStorageUnitTests {
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2453,7 +2453,7 @@ class CentralCloudStorageUnitTests {
 
 					instance.pullProject("proj1");
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2545,7 +2545,7 @@ class CentralCloudStorageUnitTests {
 				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
 				ReentrantLock lock = new ReentrantLock();
 				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-				when(mockStorageEngine.list(anyString(), (String) isNull()))
+				when(mockStorageEngine.listWithConfig(anyString(), (String) isNull()))
 						.thenReturn(Arrays.asList("mydata.sqlite", "other.txt"));
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2564,9 +2564,9 @@ class CentralCloudStorageUnitTests {
 					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
 					// Should only pull .sqlite files, not other.txt
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.sqlite")), anyString(),
+					verify(mockStorageEngine).copyToLocalWithConfig(argThat(s -> s.contains("mydata.sqlite")), anyString(),
 							(String) isNull());
-					verify(mockStorageEngine, times(1)).copyToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine, times(1)).copyToLocalWithConfig(anyString(), anyString(), (String) isNull());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
@@ -2582,7 +2582,7 @@ class CentralCloudStorageUnitTests {
 				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
 				ReentrantLock lock = new ReentrantLock();
 				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-				when(mockStorageEngine.list(anyString(), (String) isNull()))
+				when(mockStorageEngine.listWithConfig(anyString(), (String) isNull()))
 						.thenReturn(Arrays.asList("mydata.mv.db", "other.txt"));
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2600,7 +2600,7 @@ class CentralCloudStorageUnitTests {
 
 					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.mv.db")), anyString(),
+					verify(mockStorageEngine).copyToLocalWithConfig(argThat(s -> s.contains("mydata.mv.db")), anyString(),
 							(String) isNull());
 				}
 			} finally {
@@ -2632,7 +2632,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushOwl("db1", null);
 
-				verify(mockStorageEngine).copyToStorage(eq(owlFile.toAbsolutePath().toString()), anyString(),
+				verify(mockStorageEngine).copyToStorageWithConfig(eq(owlFile.toAbsolutePath().toString()), anyString(),
 						(String) isNull(), any());
 			}
 		}
@@ -2670,8 +2670,8 @@ class CentralCloudStorageUnitTests {
 
 					instance.pullUserAsset("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-					verify(mockStorageEngine).copyToLocal(anyString(), eq(testDir.toString()), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).copyToLocalWithConfig(anyString(), eq(testDir.toString()), (String) isNull());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
@@ -2701,7 +2701,7 @@ class CentralCloudStorageUnitTests {
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), (String) isNull());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
@@ -2729,8 +2729,8 @@ class CentralCloudStorageUnitTests {
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(),
+					verify(mockStorageEngine).syncLocalToStorageWithConfig(anyString(), anyString(), (String) isNull(), any());
+					verify(mockStorageEngine).copyToStorageWithConfig(argThat(s -> s.contains(".smss")), anyString(),
 							(String) isNull(), any());
 				}
 			} finally {
@@ -2750,7 +2750,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteProject("proj1");
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), eq("rcfg"));
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorageWithConfig(anyString(), eq("rcfg"));
 			}
 		}
 
@@ -2968,10 +2968,10 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushOwl("db1", null);
 
-				verify(mockStorageEngine).copyToStorage(eq(owlFile.toAbsolutePath().toString()), anyString(), eq("cfg"),
+				verify(mockStorageEngine).copyToStorageWithConfig(eq(owlFile.toAbsolutePath().toString()), anyString(), eq("cfg"),
 						any());
 				// positions.json should also be pushed
-				verify(mockStorageEngine, times(2)).copyToStorage(anyString(), anyString(), eq("cfg"), any());
+				verify(mockStorageEngine, times(2)).copyToStorageWithConfig(anyString(), anyString(), eq("cfg"), any());
 				verify(mockStorageEngine).deleteRcloneConfig("cfg");
 			}
 		}
@@ -2998,8 +2998,8 @@ class CentralCloudStorageUnitTests {
 
 					instance.pushUserAsset("proj1");
 
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), eq("rcfg"), any());
-					verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("rcfg"), any());
+					verify(mockStorageEngine).syncLocalToStorageWithConfig(anyString(), anyString(), eq("rcfg"), any());
+					verify(mockStorageEngine).copyToStorageWithConfig(anyString(), anyString(), eq("rcfg"), any());
 					verify(mockStorageEngine).deleteRcloneConfig("rcfg");
 				}
 			} finally {
@@ -3031,8 +3031,8 @@ class CentralCloudStorageUnitTests {
 
 					instance.pullUserAsset("proj1", true);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), eq("rcfg"));
-					verify(mockStorageEngine).copyToLocal(anyString(), anyString(), eq("rcfg"));
+					verify(mockStorageEngine).syncStorageToLocalWithConfig(anyString(), anyString(), eq("rcfg"));
+					verify(mockStorageEngine).copyToLocalWithConfig(anyString(), anyString(), eq("rcfg"));
 					verify(mockStorageEngine).deleteRcloneConfig("rcfg");
 				}
 			} finally {

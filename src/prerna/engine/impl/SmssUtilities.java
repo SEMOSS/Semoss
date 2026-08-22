@@ -48,7 +48,9 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
-import prerna.engine.impl.storage.MinioStorageEngine;
+import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
+import prerna.engine.impl.storage.RCloneMinioStorageEngine;
+import prerna.engine.impl.storage.RCloneS3StorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
@@ -80,12 +82,23 @@ public class SmssUtilities {
 			AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
 			AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
 
-			// storage
-			S3StorageEngine.S3_SECRET_KEY.toUpperCase(), 
-			MinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
-			AzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
+			// storage - the keys the engines read today
+			S3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
+			S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 			AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
 
+			// storage - older key names. Still read by the RClone engines, and still
+			// accepted as a fallback by the engines that replaced them, so an smss out
+			// there can hold a secret under any of these
+			RCloneS3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
+			RCloneS3StorageEngine.S3_SECRET_KEY.toUpperCase(),
+			RCloneMinioStorageEngine.MINIO_ACCESS_KEY.toUpperCase(),
+			RCloneMinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
+			RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
+			RCloneAzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
+			S3StorageEngine.LEGACY_CEPH_ACCESS_KEY.toUpperCase(),
+			S3StorageEngine.LEGACY_CEPH_SECRET_KEY.toUpperCase(),
+ 
 			// TODO should create a constants for this
 			"SERVICE_ACCOUNT_CREDENTIALS"
 		);

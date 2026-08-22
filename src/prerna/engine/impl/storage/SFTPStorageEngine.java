@@ -259,16 +259,14 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException("Syncing a local folder to storage is not implemented for SFTP");
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException("Syncing storage down to a local folder is not implemented for SFTP");
 	}
 
 	@Override
@@ -310,7 +308,11 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		if (versionId != null && !versionId.trim().isEmpty()) {
+			throw new UnsupportedOperationException("Object versioning is not supported by SFTP");
+		}
+
 		SSHClient sshClient = null;
 		SFTPClient sftpClient = null;
 		try {
@@ -343,11 +345,6 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 				close(sftpClient, sshClient);
 			}
 		}
-	}
-
-	@Override
-	public void deleteFromStorage(String storagePath) throws Exception {
-		deleteFromStorage(storagePath, false);
 	}
 
 	@Override
@@ -448,55 +445,5 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 			}
 		}
 	}
-
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-
-//	public static void main(String[] args) throws Exception {
-//		/**
-//		 * 
-//		 	version: '3.1'
-//			services:
-//			    sftp:
-//			        image: atmoz/sftp
-//			        volumes:
-//			            - C:\Users\mahkhalil\Documents\sftp\mount:/home/foo/upload
-//			        ports:
-//			            - "2222:22"
-//			        command: foo:pass:1001
-//		 */
-//
-//		// these are not real/import access/secret - only for local docker
-//		Properties mockSmss = new Properties();
-//		mockSmss.put(Constants.HOSTNAME, "localhost");
-//		mockSmss.put(Constants.PORT, "2222");
-//		mockSmss.put(Constants.USERNAME, "foo");
-//		mockSmss.put(Constants.PASSWORD, "pass");
-//
-//		SFTPStorageEngine engine = new SFTPStorageEngine();
-//		engine.connect(mockSmss);
-//
-//		{
-//			List<String> list = engine.list("/");
-//			System.out.println(list);
-//		}
-//		{
-//			List<Map<String, Object>> list = engine.listDetails("/upload/");
-//			System.out.println(list);
-//		}
-//		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload/test1");
-//		}
-//		{
-//			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
-//		}
-//		{
-//			engine.deleteFromStorage("upload/test1/MooseAI Logo.png");
-//		}
-//		
-//		engine.disconnect();
-//	}
 
 }

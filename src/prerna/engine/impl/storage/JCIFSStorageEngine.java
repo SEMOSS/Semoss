@@ -28,6 +28,12 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +50,7 @@ import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbFile;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class JCIFSStorageEngine extends AbstractStorageEngine {
 
@@ -96,30 +104,16 @@ public class JCIFSStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
-		String normalizedPath = path == null ? "" : path.replace("\\", "/").trim();
-		if (!normalizedPath.isEmpty() && !normalizedPath.endsWith("/")) {
-			normalizedPath += "/";
-		}
-		SmbFile smbF = new SmbFile(this.pathPrefix + normalizedPath, this.auth);
+		String relativeBasePath = normalizeStoragePrefixPath(path);
+		SmbFile smbF = smbFile(relativeBasePath, true);
 		SmbFile[] children = smbF.listFiles();
 		if (children == null) {
 			return Collections.emptyList();
 		}
 
-		String relativeBasePath = normalizedPath;
-		while (relativeBasePath.startsWith("/")) {
-			relativeBasePath = relativeBasePath.substring(1);
-		}
-		while (relativeBasePath.endsWith("/")) {
-			relativeBasePath = relativeBasePath.substring(0, relativeBasePath.length() - 1);
-		}
-
 		List<Map<String, Object>> details = new ArrayList<>(children.length);
 		for (SmbFile child : children) {
-			String name = child.getName();
-			while (name.endsWith("/")) {
-				name = name.substring(0, name.length() - 1);
-			}
+			String name = trimTrailingSlash(child.getName());
 			if (name.isEmpty()) {
 				continue;
 			}
@@ -140,53 +134,289 @@ public class JCIFSStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException("Syncing a local folder to storage is not implemented for JCIFS");
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException("Syncing storage down to a local folder is not implemented for JCIFS");
 	}
 
 	@Override
 	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
-		// TODO Auto-generated method stub
+		if (metadata != null && !metadata.isEmpty()) {
+			// there is nowhere to put it - smb has no user metadata, only file attributes
+			classLogger.warn("SMB/CIFS has no user metadata, ignoring {} entries for: {}", metadata.size(),
+					storageFolderPath);
+		}
+
+		List<Path> localPaths = parseLocalPaths(localFilePath);
+		String storageFolder = normalizeStoragePrefixPath(storageFolderPath);
+		List<String> uploadedFiles = new ArrayList<>();
+
+		SmbFile destinationFolder = smbFile(storageFolder, true);
+		if (!destinationFolder.exists()) {
+			destinationFolder.mkdirs();
+		}
+
+		for (Path localPath : localPaths) {
+			if (!Files.exists(localPath)) {
+				throw new IllegalArgumentException("Local path does not exist: " + localPath);
+			}
+
+			if (Files.isDirectory(localPath)) {
+				List<Path> files;
+				try (Stream<Path> stream = Files.walk(localPath)) {
+					files = stream.filter(Files::isRegularFile).toList();
+				}
+				for (Path file : files) {
+					String relativePath = Utility.normalizePath(localPath.relativize(file).toString()).trim();
+					uploadedFiles.add(uploadFile(file, joinStoragePath(storageFolder, relativePath)));
+				}
+			} else {
+				String fileName = localPath.getFileName().toString().trim();
+				uploadedFiles.add(uploadFile(localPath, joinStoragePath(storageFolder, fileName)));
+			}
+		}
+
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded to: {}", storageFolderPath);
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+
+		// smb has no object versioning, so there is no version id to hand back
 		return null;
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
-		// TODO Auto-generated method stub
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		if (versionId != null && !versionId.trim().isEmpty()) {
+			throw new UnsupportedOperationException("Object versioning is not supported by SMB/CIFS");
+		}
 
-	}
+		Path localFolder = Paths.get(localFolderPath);
+		Files.createDirectories(localFolder);
 
-	@Override
-	public void deleteFromStorage(String storagePath) throws Exception {
-		// TODO Auto-generated method stub
+		List<String> downloadedFiles = new ArrayList<>();
+		for (String storagePath : parseStorageObjectPaths(storageFilePath)) {
+			SmbFile source = openExisting(storagePath);
+			if (!source.exists()) {
+				throw new IllegalArgumentException("Storage path does not exist: " + storagePath);
+			}
 
+			String name = trimTrailingSlash(source.getName());
+			if (source.isDirectory()) {
+				downloadDirectory(source, localFolder.resolve(name), downloadedFiles);
+			} else {
+				downloadFile(source, localFolder.resolve(name));
+				downloadedFiles.add(storagePath);
+			}
+		}
+
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded from: {}", storageFilePath);
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 	}
 
 	@Override
 	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
-		// TODO Auto-generated method stub
+		SmbFile target = openExisting(storagePath);
+		if (!target.exists()) {
+			classLogger.warn("Nothing to delete, path does not exist: {}", storagePath);
+			return;
+		}
 
+		if (!target.isDirectory()) {
+			target.delete();
+			classLogger.info("Deleted file: {}", storagePath);
+			return;
+		}
+
+		deleteChildren(target);
+		if (leaveFolderStructure) {
+			classLogger.info("Emptied folder but left the folder itself: {}", storagePath);
+		} else {
+			target.delete();
+			classLogger.info("Deleted folder: {}", storagePath);
+		}
 	}
 
 	@Override
 	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
-		// TODO Auto-generated method stub
+		SmbFile folder = smbFile(storageFolderPath, true);
+		if (!folder.exists()) {
+			classLogger.warn("Nothing to delete, folder does not exist: {}", storageFolderPath);
+			return;
+		}
+		if (!folder.isDirectory()) {
+			throw new IllegalArgumentException("Not a folder: " + storageFolderPath);
+		}
 
+		deleteChildren(folder);
+		folder.delete();
+		classLogger.info("Deleted folder: {}", storageFolderPath);
 	}
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
+		// jcifs 1.x pools its transports statically, so there is no per engine
+		// connection to release
 	}
 
+	/**
+	 * Builds the smb url for a storage path by joining it to the configured
+	 * PATH_PREFIX. The path is run through normalizeStoragePrefixPath so this
+	 * engine treats whitespace and leading/trailing slashes the same way the others
+	 * do.
+	 *
+	 * @param storagePath the caller supplied path, may be null or empty for the
+	 *                    root of the share
+	 * @param directory   true to add the trailing slash jcifs needs on directory
+	 *                    urls, without which listing and mkdirs misbehave
+	 * @return the full smb url
+	 */
+	private String smbUrl(String storagePath, boolean directory) {
+		String normalized = normalizeStoragePrefixPath(storagePath);
+
+		StringBuilder url = new StringBuilder(this.pathPrefix);
+		if (!normalized.isEmpty()) {
+			// do not rely on PATH_PREFIX ending in a slash, or the first path segment
+			// gets glued onto the share name
+			if (url.length() > 0 && url.charAt(url.length() - 1) != '/') {
+				url.append('/');
+			}
+			url.append(normalized);
+		}
+		if (directory && (url.length() == 0 || url.charAt(url.length() - 1) != '/')) {
+			url.append('/');
+		}
+		return url.toString();
+	}
+
+	private SmbFile smbFile(String storagePath, boolean directory) throws Exception {
+		return new SmbFile(smbUrl(storagePath, directory), this.auth);
+	}
+
+	/**
+	 * Opens a path without knowing up front whether it is a file or a directory.
+	 * Directories need the trailing slash, so if the plain url turns out to be one
+	 * it gets reopened with it.
+	 *
+	 * @param storagePath the path to open
+	 * @return the file, which may not exist
+	 * @throws Exception if the share cannot be reached
+	 */
+	private SmbFile openExisting(String storagePath) throws Exception {
+		SmbFile file = smbFile(storagePath, false);
+		if (file.exists() && file.isDirectory()) {
+			return smbFile(storagePath, true);
+		}
+		return file;
+	}
+
+	/**
+	 * Writes one local file to the share, creating parent directories as needed.
+	 *
+	 * @param localFile   the file to upload
+	 * @param storagePath where to write it
+	 * @return the storage path written, for logging
+	 * @throws Exception if the write fails
+	 */
+	private String uploadFile(Path localFile, String storagePath) throws Exception {
+		String parentPath = parentOf(storagePath);
+		if (!parentPath.isEmpty()) {
+			SmbFile parent = smbFile(parentPath, true);
+			if (!parent.exists()) {
+				parent.mkdirs();
+			}
+		}
+
+		SmbFile target = smbFile(storagePath, false);
+		try (InputStream input = Files.newInputStream(localFile); OutputStream output = target.getOutputStream()) {
+			input.transferTo(output);
+		}
+		// keep the local timestamp so a later sync can compare them
+		target.setLastModified(Files.getLastModifiedTime(localFile).toMillis());
+
+		classLogger.info("Uploaded file: {}", storagePath);
+		return storagePath;
+	}
+
+	private void downloadDirectory(SmbFile directory, Path localDirectory, List<String> downloadedFiles)
+			throws Exception {
+		Files.createDirectories(localDirectory);
+
+		SmbFile[] children = directory.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (SmbFile child : children) {
+			String name = trimTrailingSlash(child.getName());
+			if (name.isEmpty()) {
+				continue;
+			}
+			if (child.isDirectory()) {
+				downloadDirectory(child, localDirectory.resolve(name), downloadedFiles);
+			} else {
+				downloadFile(child, localDirectory.resolve(name));
+				downloadedFiles.add(child.getPath());
+			}
+		}
+	}
+
+	private void downloadFile(SmbFile source, Path destination) throws Exception {
+		Path parent = destination.getParent();
+		if (parent != null) {
+			Files.createDirectories(parent);
+		}
+
+		try (InputStream input = source.getInputStream()) {
+			Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
+		}
+		classLogger.info("Downloaded file: {}", destination);
+	}
+
+	/**
+	 * Empties a directory. jcifs delete() is documented to recurse, but doing it
+	 * here keeps the behavior explicit and the logging per file.
+	 *
+	 * @param directory the directory to empty, it is left in place
+	 * @throws Exception if a delete fails
+	 */
+	private void deleteChildren(SmbFile directory) throws Exception {
+		SmbFile[] children = directory.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (SmbFile child : children) {
+			if (child.isDirectory()) {
+				deleteChildren(child);
+			}
+			child.delete();
+			classLogger.info("Deleted: {}", child.getPath());
+		}
+	}
+
+	private String joinStoragePath(String storageFolder, String relativePath) {
+		return storageFolder.isEmpty() ? relativePath : storageFolder + "/" + relativePath;
+	}
+
+	private String parentOf(String storagePath) {
+		int lastSlash = storagePath.lastIndexOf('/');
+		return lastSlash < 0 ? "" : storagePath.substring(0, lastSlash);
+	}
+
+	private String trimTrailingSlash(String value) {
+		String trimmed = value == null ? "" : value;
+		while (trimmed.endsWith("/")) {
+			trimmed = trimmed.substring(0, trimmed.length() - 1);
+		}
+		return trimmed;
+	}
 }

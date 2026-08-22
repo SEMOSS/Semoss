@@ -27,158 +27,130 @@
  *******************************************************************************/
 package prerna.engine.impl.storage;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.sas.BlobContainerSasPermission;
-import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import com.azure.storage.blob.models.BlobContainerItem;
+import com.azure.storage.blob.models.BlobContainerItemProperties;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobItemProperties;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.ParallelTransferOptions;
+import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
-public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
+public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AzureBlobStorageEngine.class);
 
-	{
-		this.PROVIDER = "azureblob";
-	}
-
-	public static final String AZ_ACCOUNT_NAME = "AZ_ACCOUNT_NAME";
-	public static final String AZ_PRIMARY_KEY = "AZ_PRIMARY_KEY";
-	public static final String AZ_USE_MSI = "AZ_USE_MSI";
-
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
-	public static final String AZ_SAS_URL = "SAS_URL";
-	public static final String AZ_URI = "AZ_URI";
 
-	public static final String AZ_GENERATE_DYNAMIC_SAS = "AZ_GENERATE_DYNAMIC_SAS";
+	// block size and concurrency match rclone's azureblob defaults
+	// (--azureblob-chunk-size 4Mi, --azureblob-upload-concurrency 16). rclone has
+	//
+	// no equivalent of a single upload cutoff, so that stays at the Azure sdk's own
+	// default of 256Mi - meaning blocks only come into play for genuinely large
+	// files, and the concurrency below is not multiplied across a folder of small
+	// ones
+	private static final long UPLOAD_BLOCK_SIZE_BYTES = 4L * 1024 * 1024;
+	private static final long SINGLE_UPLOAD_SIZE_BYTES = 256L * 1024 * 1024;
+	private static final int UPLOAD_BLOCK_CONCURRENCY = 16;
 
-	private transient String accountName = null;
-	private transient String primaryKey = null;
-	private transient boolean useMsi = false;
-	private transient boolean keysProvided = false;
+	// older property names. The type used to be backed by a different
+	// implementation that authenticated with an account name plus key, so smss
+	// files already out there carry those instead of a connection string
+	private static final String LEGACY_AZ_ACCOUNT_NAME = "AZ_ACCOUNT_NAME";
+	private static final String LEGACY_AZ_PRIMARY_KEY = "AZ_PRIMARY_KEY";
+	private static final String LEGACY_AZ_USE_MSI = "AZ_USE_MSI";
+	private static final String LEGACY_AZ_SAS_URL = "SAS_URL";
 
-	private transient BlobServiceClient serviceClient = null;
 	private transient String connectionString = null;
-
-	private transient boolean generateDynamicSAS = true;
+	private transient BlobServiceClient blobServiceClient;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
-		this.accountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
-		this.primaryKey = smssProp.getProperty(AZ_PRIMARY_KEY);
-		// determine if keys provided or not
-		if (this.accountName != null && !this.accountName.isEmpty() && this.primaryKey != null
-				&& !primaryKey.isEmpty()) {
-			this.keysProvided = true;
-		} else {
-			this.keysProvided = false;
-		}
-		this.useMsi = Boolean.parseBoolean(smssProp.getProperty(AZ_USE_MSI, "false"));
+		migrateLegacyProperties(smssProp);
 
-		// default to using dynamic SAS
-		this.generateDynamicSAS = Boolean.parseBoolean(smssProp.getProperty(AZ_GENERATE_DYNAMIC_SAS, "false"));
-
-		if (this.generateDynamicSAS) {
-			this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
-			createServiceClient();
+		this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
+		if (this.connectionString == null || this.connectionString.isEmpty()) {
+			classLogger.error("Azure Blob connection string is missing, cannot initialize Azure Blob client.");
+			throw new IllegalStateException("Azure Blob connection string is required.");
 		}
+		createServiceClient();
 	}
 
 	/**
-	 * 
+	 * Builds a connection string out of the older account name and primary key when
+	 * no connection string was given, so an smss written for the previous
+	 * implementation keeps working.
+	 *
+	 * Only account name plus key can be carried over. Managed identity and SAS url
+	 * have no connection string equivalent, so those are called out in the log
+	 * rather than silently ignored.
+	 *
+	 * @param smssProp the properties being opened, updated in place
 	 */
+	protected void migrateLegacyProperties(Properties smssProp) {
+		String current = smssProp.getProperty(AZ_CONN_STRING);
+		if (current != null && !current.trim().isEmpty()) {
+			return;
+		}
+
+		String accountName = smssProp.getProperty(LEGACY_AZ_ACCOUNT_NAME);
+		String primaryKey = smssProp.getProperty(LEGACY_AZ_PRIMARY_KEY);
+		if (accountName != null && !accountName.trim().isEmpty() && primaryKey != null
+				&& !primaryKey.trim().isEmpty()) {
+			smssProp.put(AZ_CONN_STRING, "DefaultEndpointsProtocol=https;AccountName=" + accountName.trim()
+					+ ";AccountKey=" + primaryKey.trim() + ";EndpointSuffix=core.windows.net");
+			classLogger.warn(
+					"Azure Blob engine is still configured with {} and {}. Building a connection string from them for "
+							+ "now, but the smss should be updated to set {}.",
+					LEGACY_AZ_ACCOUNT_NAME, LEGACY_AZ_PRIMARY_KEY, AZ_CONN_STRING);
+			return;
+		}
+
+		if (smssProp.getProperty(LEGACY_AZ_USE_MSI) != null || smssProp.getProperty(LEGACY_AZ_SAS_URL) != null) {
+			classLogger.error("Azure Blob engine is configured with {} or {}, neither of which this engine supports. "
+					+ "Set {} instead.", LEGACY_AZ_USE_MSI, LEGACY_AZ_SAS_URL, AZ_CONN_STRING);
+		}
+	}
+
 	public void createServiceClient() {
-		this.serviceClient = new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
-	}
-
-	/**
-	 * 
-	 * @param containerName
-	 * @return
-	 */
-	public String getDynamicSAS(String containerName) {
-		String retString = null;
-		// Get container client
-		BlobContainerClient containerClient = serviceClient.getBlobContainerClient(containerName);
-
-		// Create container if it doesn't exist
-		containerClient.createIfNotExists();
-
-		// Generate SAS token
-		BlobServiceSasSignatureValues sasValues = getSASConstraints();
-		String sasToken = containerClient.generateSas(sasValues);
-
-		// Build the full URL with SAS token
-		retString = containerClient.getBlobContainerUrl() + "?" + sasToken;
-
-		return retString;
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private BlobServiceSasSignatureValues getSASConstraints() {
-		// set expiry time to current time + 5 minutes
-		OffsetDateTime expiryTime = OffsetDateTime.now().plusMinutes(5);
-
-		BlobContainerSasPermission permissions = new BlobContainerSasPermission().setListPermission(true)
-				.setWritePermission(true).setCreatePermission(true).setReadPermission(true).setDeletePermission(true)
-				.setAddPermission(true);
-
-		return new BlobServiceSasSignatureValues(expiryTime, permissions);
-	}
-
-	@Override
-	public String createRCloneConfig() throws IOException, InterruptedException {
-		if (this.generateDynamicSAS) {
-			classLogger.warn("Calling creation of rclone without passing in the container name to generate a SAS");
-			classLogger.warn("Calling creation of rclone without passing in the container name to generate a SAS");
-			classLogger.warn("Calling creation of rclone without passing in the container name to generate a SAS");
-		}
-		String rcloneConfig = Utility.getRandomString(10);
-		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "account", accountName,
-				"key", primaryKey);
-		return rcloneConfig;
-	}
-
-	public String createRCloneConfig(String containerName) throws IOException, InterruptedException {
-		String rcloneConfig = Utility.getRandomString(10);
-
-		if (this.generateDynamicSAS) {
-			String sasUrl = getDynamicSAS(containerName);
-			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
-		} else if (this.useMsi) {
-			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "use_msi", "true");
-		} else if (this.keysProvided) {
-			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "account", accountName,
-					"key", primaryKey);
-		} else {
-			runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "env_auth", "true");
-		}
-
-		return rcloneConfig;
-	}
-
-	@Override
-	public boolean canReuseRcloneConfig() {
-		return !this.generateDynamicSAS;
+		this.blobServiceClient = new BlobServiceClientBuilder().connectionString(this.connectionString).buildClient();
+		classLogger.info("Azure Blob Service client created successfully.");
 	}
 
 	@Override
@@ -186,392 +158,856 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 		return StorageTypeEnum.MICROSOFT_AZURE_BLOB_STORAGE;
 	}
 
-	/*
-	 * 
-	 * OVERRIDING THESE METHODS FROM BASE BECAUSE WE NEED TO FIGURE OUT THE
-	 * CONTAINER WHEN USING DYNAMIC SAS
-	 * 
-	 */
-
-	private String getContainerFromPath(String path) {
-		if (path.startsWith("/") || path.startsWith("\\")) {
-			path.substring(1);
-		}
-		File f = new File(path);
-		while (f.getParentFile() != null) {
-			f = f.getParentFile();
-		}
-		return f.getName();
-	}
-
-	/**
-	 * List the folders/files in the path
-	 */
 	@Override
-	public List<String> list(String path, String rCloneConfig) throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(path));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (path != null) {
-				path = path.replace("\\", "/");
-				if (!path.startsWith("/")) {
-					rClonePath += "/" + path;
-				} else {
-					rClonePath += path;
-				}
+	public List<String> list(String storagePath) throws BlobStorageException {
+		List<Map<String, Object>> details = listDetails(storagePath);
+		List<String> fileList = new ArrayList<>(details.size());
+		for (Map<String, Object> item : details) {
+			Object nameObj = item.get("Name");
+			if (nameObj == null) {
+				continue;
 			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-			List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
-			return results;
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
+			String name = nameObj.toString();
+			boolean isDir = Boolean.TRUE.equals(item.get("IsDir"));
+			fileList.add(isDir ? name + "/" : name);
 		}
-	}
-
-	/**
-	 * List the folders/files in the path
-	 */
-	@Override
-	public List<Map<String, Object>> listDetails(String path, String rCloneConfig)
-			throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(path));
-			delete = true;
-		}
-		try {
-			return super.listDetails(path, rCloneConfig);
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
-		}
+		return fileList;
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, String rCloneConfig,
-			Map<String, Object> metadata) throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storagePath));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (localPath == null || localPath.isEmpty()) {
-				throw new NullPointerException("Must define the local location of the file to push");
-			}
-			if (storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the storage folder to move to");
-			}
+	public List<Map<String, Object>> listDetails(String storagePath) throws BlobStorageException {
+		List<Map<String, Object>> detailsList = new ArrayList<>();
 
-			storagePath = storagePath.replace("\\", "/");
-			localPath = localPath.replace("\\", "/");
-
-			if (!storagePath.startsWith("/")) {
-				storagePath = "/" + storagePath;
-			}
-			rClonePath += storagePath;
-
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localPath.startsWith("\"")) {
-//				localPath = "\""+localPath+"\"";
-//			}
-
-			// Initialize metadata to an empty map if it is null
-			if (metadata == null) {
-				metadata = new HashMap<>();
-			}
-
-			List<String> values = new ArrayList<>(metadata.keySet().size() * 2 + 5);
-			values.add(RCLONE);
-			values.add("sync");
-			values.add(localPath);
-			values.add(rClonePath);
-			values.add("--metadata");
-
-			if (!metadata.isEmpty()) {
-				for (String key : metadata.keySet()) {
-					Object value = metadata.get(key);
-
-					values.add("--metadata-set");
-					// wrap around in quotes just in case ...
-					values.add("\"" + key + "\"=\"" + value + "\"");
-				}
-			}
-
-			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[] {}));
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
+		// a connection string points at an account, not a container, so the root of
+		// this engine is the account and the containers in it are its folders. Every
+		// path below the root carries its container as the first segment
+		if (normalizeStoragePrefixPath(storagePath).isEmpty()) {
+			return listContainers();
 		}
 
-	}
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
+		String prefix = blobDirectory.isEmpty() ? "" : blobDirectory + "/";
 
-	@Override
-	public void syncStorageToLocal(String storagePath, String localPath, String rCloneConfig)
-			throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storagePath));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (localPath == null || localPath.isEmpty()) {
-				throw new NullPointerException("Must define the local location of the file to push");
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		ListBlobsOptions listBlobsOptions = new ListBlobsOptions().setPrefix(prefix.isEmpty() ? null : prefix);
+		for (BlobItem blobItem : containerClient.listBlobsByHierarchy("/", listBlobsOptions, null)) {
+			String itemPath = blobItem.getName();
+			if (itemPath == null || itemPath.equals(prefix)) {
+				continue;
 			}
-			if (storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the storage folder to move to");
+			String name = prefix.isEmpty() ? itemPath : itemPath.substring(prefix.length());
+			if (name.endsWith("/")) {
+				name = name.substring(0, name.length() - 1);
 			}
-
-			storagePath = storagePath.replace("\\", "/");
-			localPath = localPath.replace("\\", "/");
-
-			if (!storagePath.startsWith("/")) {
-				storagePath = "/" + storagePath;
-			}
-			rClonePath += storagePath;
-
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localPath.startsWith("\"")) {
-//				localPath = "\""+localPath+"\"";
-//			}
-			runRcloneTransferProcess(rCloneConfig, RCLONE, "sync", rClonePath, localPath);
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
-		}
-	}
-
-	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, String rCloneConfig,
-			Map<String, Object> metadata) throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storageFolderPath));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (localFilePath == null || localFilePath.isEmpty()) {
-				throw new NullPointerException("Must define the local location of the file to push");
-			}
-			if (storageFolderPath == null || storageFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the storage folder to move to");
+			if (name.isEmpty() || name.contains("/")) {
+				continue;
 			}
 
-			storageFolderPath = storageFolderPath.replace("\\", "/");
-			localFilePath = localFilePath.replace("\\", "/");
+			boolean isDir = blobItem.isPrefix();
+			Map<String, Object> blobMap = new HashMap<>();
+			blobMap.put("Path", blobDirectory.isEmpty() ? "/" + name : "/" + blobDirectory + "/" + name);
+			blobMap.put("Name", name);
+			blobMap.put("IsDir", isDir);
 
-			if (!storageFolderPath.startsWith("/")) {
-				storageFolderPath = "/" + storageFolderPath;
-			}
-			rClonePath += storageFolderPath;
-
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localFilePath.startsWith("\"")) {
-//				localFilePath = "\""+localFilePath+"\"";
-//			}
-
-			// Initialize metadata to an empty map if it is null
-			if (metadata == null) {
-				metadata = new HashMap<>();
-			}
-
-			List<String> values = new ArrayList<>(metadata.keySet().size() * 2 + 5);
-			values.add(RCLONE);
-			values.add("copy");
-			values.add(localFilePath);
-			values.add(rClonePath);
-			values.add("--metadata");
-
-			if (!metadata.isEmpty()) {
-				for (String key : metadata.keySet()) {
-					Object value = metadata.get(key);
-
-					values.add("--metadata-set");
-					// wrap around in quotes just in case ...
-					values.add("\"" + key + "\"=\"" + value + "\"");
-				}
-			}
-
-			runRcloneTransferProcess(rCloneConfig, values.toArray(new String[] {}));
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
-		}
-	}
-
-	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath, String rCloneConfig)
-			throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storageFilePath));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (storageFilePath == null || storageFilePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to download");
-			}
-			if (localFolderPath == null || localFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the location of the local folder to move to");
-			}
-
-			storageFilePath = storageFilePath.replace("\\", "/");
-			localFolderPath = localFolderPath.replace("\\", "/");
-
-			if (!storageFilePath.startsWith("/")) {
-				storageFilePath = "/" + storageFilePath;
-			}
-			rClonePath += storageFilePath;
-
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!localFolderPath.startsWith("\"")) {
-//				localFolderPath = "\""+localFolderPath+"\"";
-//			}
-			runRcloneTransferProcess(rCloneConfig, RCLONE, "copy", rClonePath, localFolderPath);
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
-			}
-		}
-	}
-
-	@Override
-	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure, String rCloneConfig)
-			throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storagePath));
-			delete = true;
-		}
-		try {
-			String rClonePath = rCloneConfig + ":";
-			if (storagePath == null || storagePath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the file to delete");
-			}
-
-			storagePath = storagePath.replace("\\", "/");
-
-			if (!storagePath.startsWith("/")) {
-				storagePath = "/" + storagePath;
-			}
-			rClonePath += storagePath;
-
-			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-
-			if (leaveFolderStructure) {
-				// always do delete
-				runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
+			if (isDir) {
+				blobMap.put("Size", 0L);
+				blobMap.put("MimeType", "inode/directory");
+				blobMap.put("ModTime", null);
+				blobMap.put("Metadata", Collections.emptyMap());
 			} else {
-				// we can only do purge on a folder
-				// so need to check
-				List<String> results = runRcloneFastListProcess(rCloneConfig, RCLONE, "lsf", rClonePath);
-				if (results.size() == 1 && !results.get(0).endsWith("/")) {
-					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "delete", rClonePath);
+				BlobClient blobClient = containerClient.getBlobClient(itemPath);
+				BlobProperties properties = blobClient.getProperties();
+				Map<String, String> metadata = properties.getMetadata();
+				blobMap.put("Size", properties.getBlobSize());
+				blobMap.put("MimeType", properties.getContentType());
+				blobMap.put("ModTime",
+						properties.getLastModified() == null ? null : properties.getLastModified().toString());
+				blobMap.put("Metadata", (metadata == null || metadata.isEmpty()) ? Collections.emptyMap() : metadata);
+			}
+			detailsList.add(blobMap);
+		}
+		return detailsList;
+	}
+
+	@Override
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+			throws Exception {
+		// Extract container and blob directory
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = containerAndPath[1];
+
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		Path localFilePath = Paths.get(localPath);
+
+		List<String> uploadedFiles = new ArrayList<>();
+		List<String> skippedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		boolean found = false;
+
+		try {
+			if (!Files.exists(localFilePath)) {
+				throw new IllegalArgumentException("Invalid path: " + localPath);
+			}
+
+			Path localBasePath = Files.isDirectory(localFilePath) ? localFilePath : localFilePath.getParent();
+			// Remove empty directories locally
+			deleteEmptyDirectories(localFilePath);
+			// Delete extra blobs from azure storage
+			syncStorageDeletion(containerClient, blobDirectory, localBasePath);
+
+			// one listing up front instead of asking about each blob individually
+			Map<String, StoredObjectStat> alreadyStored = listStoredBlobs(containerClient, blobDirectory);
+
+			List<Path> localFiles;
+			try (Stream<Path> stream = Files.walk(localFilePath)) {
+				localFiles = stream.filter(Files::isRegularFile).toList();
+			}
+
+			List<Callable<TransferOutcome>> transfers = new ArrayList<>(localFiles.size());
+			for (Path file : localFiles) {
+				String blobName = buildBlobName(blobDirectory, file, localFilePath);
+				if (!needsUpload(file, alreadyStored.get(blobName))) {
+					classLogger.info("Skipping file (No changes detected): {}", blobName);
+					skippedFiles.add(blobName);
+					continue;
+				}
+				transfers.add(() -> {
+					try {
+						uploadBlob(containerClient, blobName, file, metadata);
+						return new TransferOutcome(blobName, null);
+					} catch (Exception e) {
+						classLogger.error("Failed to upload file: {}", file, e);
+						return new TransferOutcome(blobName, e);
+					}
+				});
+			}
+
+			for (TransferOutcome outcome : runTransfersInParallel(transfers)) {
+				if (outcome.failure() == null) {
+					uploadedFiles.add(outcome.fileKey());
 				} else {
-					runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
+					failedFiles.add(outcome.fileKey());
 				}
 			}
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+			found = true;
+		} catch (Exception e) {
+			classLogger.error("Sync operation failed. Rolling back failed uploads.", e);
+			rollbackUploads(containerClient, failedFiles);
+			throw e;
+		}
+
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded {} files to: {}", uploadedFiles.size(), storagePath);
+		}
+		if (!skippedFiles.isEmpty()) {
+			classLogger.info("Skipped {} unchanged files", skippedFiles.size());
+		}
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Failed to sync: {}", failedFiles);
+		}
+
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
+
+		return StorageSyncStatus.of(storagePath, uploadedFiles, skippedFiles, failedFiles);
+	}
+
+	@Override
+	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
+		// Extract container and blob directory
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
+		Path localDirectory = Paths.get(localPath);
+
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		Files.createDirectories(localDirectory); // Ensure local directory exists
+
+		Set<String> cloudFiles = new HashSet<>();
+		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
+		boolean found = false;
+
+		// once, not once per blob. This used to sit inside the loop below, where it
+		// listed the whole container again for every single blob
+		deleteEmptyBlobs(containerClient);
+
+		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
+		for (BlobItem blobItem : containerClient
+				.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory.isEmpty() ? null : blobDirectory), null)) {
+			String blobName = blobItem.getName();
+			// the listing already carries size and last modified, so there is no need to
+			// fetch each blob's properties separately
+			BlobItemProperties properties = blobItem.getProperties();
+
+			String relativePath = resolveRelativeStoragePath(blobName, blobDirectory);
+			if (relativePath == null) {
+				continue;
 			}
+
+			Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
+			cloudFiles.add(localFilePath.toString());
+			Files.createDirectories(localFilePath.getParent());
+
+			if (Files.isDirectory(localFilePath)) {
+				continue; // Skip directories
+			}
+			found = true;
+
+			boolean fileExists = Files.exists(localFilePath);
+			if (fileExists && properties != null && properties.getContentLength() != null
+					&& properties.getLastModified() != null) {
+				FileTime localModifiedTime = Files.getLastModifiedTime(localFilePath);
+				if (properties.getContentLength() == Files.size(localFilePath)
+						&& properties.getLastModified().toInstant().toEpochMilli() <= localModifiedTime.toMillis()) {
+					continue;
+				}
+			}
+
+			BlobClient blobClient = containerClient.getBlobClient(blobName);
+			transfers.add(() -> {
+				try {
+					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
+							"Syncing file to local: " + blobName);
+					classLogger.info(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
+					return new TransferOutcome(blobName, null);
+				} catch (Exception e) {
+					classLogger.error("Failed to sync file: {}", blobName, e);
+					// the rollback works off local paths, so report the relative one
+					return new TransferOutcome(relativePath, e);
+				}
+			});
+		}
+
+		for (TransferOutcome outcome : runTransfersInParallel(transfers)) {
+			if (outcome.failure() == null) {
+				downloadedFiles.add(outcome.fileKey());
+			} else {
+				failedFiles.add(outcome.fileKey());
+			}
+		}
+		// Delete local files not present in Azure
+		try (Stream<Path> stream = Files.walk(localDirectory)) {
+			stream.filter(Files::isRegularFile).filter(localFile -> !cloudFiles.contains(localFile.toString()))
+					.forEach(localFile -> {
+						try {
+							Files.delete(localFile);
+							classLogger.info("Deleted extra local file: {}", localFile);
+						} catch (IOException e) {
+							classLogger.error("Failed to delete extra file: {}", localFile, e);
+						}
+					});
+		}
+
+		// Delete Empty Directories Locally
+		deleteEmptyDirectories(localDirectory);
+
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to sync. Rolling back...");
+			rollbackDownloads(failedFiles, localDirectory);
+		}
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
+	}
+
+	@Override
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+			throws Exception {
+		// Extract container and blob directory
+		String[] containerAndPath = extractContainerAndPath(storageFolderPath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = containerAndPath[1];
+
+		List<String> uploadedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		boolean found = false;
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		List<Path> paths = parseLocalPaths(localFilePath);
+
+		// gather everything first so it can all go out together
+		Map<Path, String> filesToUpload = new LinkedHashMap<>();
+		for (Path filePath : paths) {
+			if (!Files.exists(filePath)) {
+				classLogger.error("File not found: {}", filePath);
+				failedFiles.add(filePath.toString());
+				continue;
+			}
+			// Delete empty directories before upload
+			deleteEmptyDirectories(filePath);
+
+			if (Files.isDirectory(filePath)) {
+				try (Stream<Path> stream = Files.walk(filePath)) {
+					for (Path file : stream.filter(Files::isRegularFile).toList()) {
+						filesToUpload.put(file, buildBlobName(blobDirectory, file, filePath));
+					}
+				}
+				found = true;
+			} else {
+				filesToUpload.put(filePath, buildBlobName(blobDirectory, filePath, filePath.getParent()));
+				found = true;
+			}
+		}
+
+		List<Callable<TransferOutcome>> transfers = new ArrayList<>(filesToUpload.size());
+		for (Map.Entry<Path, String> entry : filesToUpload.entrySet()) {
+			Path file = entry.getKey();
+			String blobName = entry.getValue();
+			transfers.add(() -> {
+				try {
+					uploadBlob(containerClient, blobName, file, metadata);
+					return new TransferOutcome(blobName, null);
+				} catch (Exception e) {
+					classLogger.error("Failed to upload file: {}", file, e);
+					return new TransferOutcome(blobName, e);
+				}
+			});
+		}
+
+		for (TransferOutcome outcome : runTransfersInParallel(transfers)) {
+			if (outcome.failure() == null) {
+				uploadedFiles.add(outcome.fileKey());
+			} else {
+				failedFiles.add(outcome.fileKey());
+			}
+		}
+		if (!failedFiles.isEmpty()) {
+			// once at the end, not inside the loop where it re-deleted the whole list
+			// on every failure
+			rollbackUploads(containerClient, failedFiles);
+		}
+		// Delete empty folder from azure storage (zero-byte blob)
+		deleteEmptyBlobs(containerClient);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFolderPath);
+		return null;
+	}
+
+	@Override
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		// TODO: account for versionId
+
+		// Extract container and blob directory
+		String[] containerAndPath = extractContainerAndPath(storageFilePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = containerAndPath[1];
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		Path localDirectory = Paths.get(localFolderPath);
+		List<String> paths = parseStorageObjectPaths(blobDirectory);
+		// Ensure local directory exists
+		Files.createDirectories(localDirectory);
+
+		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
+		boolean found = false;
+		// once, not once per blob. This used to sit inside the loop below, where it
+		// listed the whole container again for every single blob
+		deleteEmptyBlobs(containerClient);
+
+		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
+		for (String path : paths) {
+			String requestedPath = normalizeStoragePrefixPath(path);
+			Iterable<BlobItem> getBlobItems = requestedPath.isEmpty() ? containerClient.listBlobs()
+					: containerClient.listBlobs(new ListBlobsOptions().setPrefix(requestedPath), null);
+
+			for (BlobItem blobItem : getBlobItems) {
+				String blobName = blobItem.getName();
+				BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+				String relativePath = resolveRelativeStoragePath(blobName, requestedPath);
+				if (relativePath == null) {
+					continue;
+				}
+
+				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
+				// made here rather than inside the download so parallel tasks are not
+				// racing to create the same parent
+				Files.createDirectories(localFilePath.getParent());
+				found = true;
+
+				transfers.add(() -> {
+					try {
+						retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
+								"Downloading file: " + blobName);
+						classLogger.info("Downloaded file: {}", localFilePath);
+						return new TransferOutcome(blobName, null);
+					} catch (Exception e) {
+						classLogger.error("Failed to download: {}", blobName, e);
+						// the rollback works off local paths, so report the relative one
+						return new TransferOutcome(relativePath, e);
+					}
+				});
+			}
+		}
+
+		for (TransferOutcome outcome : runTransfersInParallel(transfers)) {
+			if (outcome.failure() == null) {
+				downloadedFiles.add(outcome.fileKey());
+			} else {
+				failedFiles.add(outcome.fileKey());
+			}
+		}
+
+		// Delete empty directories after download
+		deleteEmptyDirectories(localDirectory);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to download. Retrying...");
+			rollbackDownloads(failedFiles, localDirectory);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFilePath);
+
+	}
+
+	@Override
+	public void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception {
+		// Extract container and blob directory
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
+		if (blobDirectory.startsWith("/")) {
+			blobDirectory = blobDirectory.substring(1);
+		}
+
+		List<String> deletedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		// List all blobs for deletion
+		Iterable<BlobItem> blobItems = blobDirectory.isEmpty() ? containerClient.listBlobs()
+				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory), null);
+		boolean hasFilesToDelete = false;
+
+		for (BlobItem blobItem : blobItems) {
+			if (storagePath.isEmpty() || blobItem.getName().equals(storagePath)
+					|| blobItem.getName().startsWith(storagePath + "/")) {
+
+				hasFilesToDelete = true;
+				String blobName = blobItem.getName();
+				if (deleteBlob(containerClient, blobName)) {
+					deletedFiles.add(blobName);
+				} else {
+					failedFiles.add(blobName);
+				}
+			}
+		}
+		classLogger.info(
+				hasFilesToDelete ? "Deletion process completed for: {}" : "No files found to delete in path: {}",
+				storagePath);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
+
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to delete. Retrying...");
+			retryDelete(failedFiles, containerClient);
+		}
+		// Preserve folder structure if required
+		if (leaveFolderStructure && !deletedFiles.isEmpty()) {
+			preserveFolderStructure(containerClient, deletedFiles);
 		}
 	}
 
 	@Override
-	public void deleteFolderFromStorage(String storageFolderPath, String rCloneConfig)
-			throws IOException, InterruptedException {
-		boolean delete = false;
-		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
-			rCloneConfig = createRCloneConfig(getContainerFromPath(storageFolderPath));
-			delete = true;
+	public void deleteFolderFromStorage(String storageFolderPath) throws Exception {
+		String[] containerAndPath = extractContainerAndPath(storageFolderPath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
+
+		List<String> deletedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+
+		boolean folderExists = false;
+
+		classLogger.info(blobDirectory.isEmpty() ? "Blob directory is empty. Deleting all files in container: {}"
+				: "Deleting folder: {}", blobDirectory.isEmpty() ? containerName : blobDirectory);
+
+		// the trailing slash bounds the listing to this folder. A bare prefix of "dir"
+		// also returns "dirty/..." and this method deletes everything it lists. An
+		// empty path is still the whole container by design
+		String prefix = blobDirectory.isEmpty() ? "" : blobDirectory + "/";
+
+		Iterable<BlobItem> blobItems = prefix.isEmpty() ? containerClient.listBlobs()
+				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null);
+
+		for (BlobItem blobItem : blobItems) {
+			String blobName = blobItem.getName();
+
+			folderExists = true;
+			try {
+				retryOperation(() -> {
+					BlobClient blobClient = containerClient.getBlobClient(blobName);
+					if (blobClient.deleteIfExists()) {
+						classLogger.info("Deleted file: {}", blobName);
+						deletedFiles.add(blobName);
+					}
+				}, "Deleting file: " + blobName);
+			} catch (Exception e) {
+				failedFiles.add(blobName);
+				classLogger.error("Failed to delete file: {}", blobName, e);
+			}
 		}
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
+		if (!failedFiles.isEmpty()) {
+			classLogger.error("Some files failed to delete. Retrying...");
+			retryDelete(failedFiles, containerClient);
+		}
+		classLogger.info(folderExists ? "Successfully deleted folder: {}" : "No files found in directory: {}",
+				folderExists ? storageFolderPath : blobDirectory);
+	}
+
+	/**
+	 * Writes one local file to a blob, always. Whether it needed writing is decided
+	 * by the caller from a listing, not by asking the service about this one blob.
+	 *
+	 * Metadata rides along with the upload rather than being applied in a second
+	 * call, and larger files are split into blocks that go out concurrently.
+	 *
+	 * @param containerClient the container being written to
+	 * @param blobName        the blob to write
+	 * @param file            the local file
+	 * @param metadata        user metadata to attach, may be null
+	 * @return the blob name written, for logging
+	 */
+	private String uploadBlob(BlobContainerClient containerClient, String blobName, Path file,
+			Map<String, Object> metadata) {
+		BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+		ParallelTransferOptions transferOptions = new ParallelTransferOptions()
+				.setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES).setMaxSingleUploadSizeLong(SINGLE_UPLOAD_SIZE_BYTES)
+				.setMaxConcurrency(UPLOAD_BLOCK_CONCURRENCY);
+
+		BlobUploadFromFileOptions uploadOptions = new BlobUploadFromFileOptions(file.toString())
+				.setParallelTransferOptions(transferOptions);
+		Map<String, String> flatMetadata = flattenMetadata(metadata);
+		if (!flatMetadata.isEmpty()) {
+			// attaching it here saves the extra setMetadata round trip per file
+			uploadOptions.setMetadata(flatMetadata);
+		}
+
+		retryOperation(() -> {
+			blobClient.uploadFromFileWithResponse(uploadOptions, null, null);
+			classLogger.info("Uploaded file: {}", blobName);
+		}, "Uploading file: " + blobName);
+
+		return blobName;
+	}
+
+	/**
+	 * Builds the blob name for a local file under a blob directory.
+	 *
+	 * @param blobDirectory the folder inside the container, may be empty
+	 * @param file          the local file
+	 * @param basePath      the local folder the name is relative to
+	 * @return the blob name to write
+	 */
+	private String buildBlobName(String blobDirectory, Path file, Path basePath) {
+		String relativePath = Utility.normalizePath(basePath.relativize(file).toString()).trim();
+		return blobDirectory.isEmpty() ? relativePath : Utility.normalizePath(blobDirectory + "/" + relativePath);
+	}
+
+	/**
+	 * Snapshots what the container already holds under a prefix, so a sync can
+	 * compare in memory instead of asking about each blob individually.
+	 *
+	 * @param containerClient the container to list
+	 * @param blobDirectory   the folder inside it, may be empty for the whole
+	 *                        container
+	 * @return blob name to size and last modified
+	 */
+	private Map<String, StoredObjectStat> listStoredBlobs(BlobContainerClient containerClient, String blobDirectory) {
+		String normalizedDirectory = normalizeStoragePrefixPath(blobDirectory);
+		String prefix = normalizedDirectory.isEmpty() ? null : normalizedDirectory + "/";
+
+		Map<String, StoredObjectStat> stored = new HashMap<>();
 		try {
-			String rClonePath = rCloneConfig + ":";
-			if (storageFolderPath == null || storageFolderPath.isEmpty()) {
-				throw new NullPointerException("Must define the storage location of the folder to delete");
+			for (BlobItem blobItem : containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null)) {
+				BlobItemProperties properties = blobItem.getProperties();
+				if (properties == null || properties.getContentLength() == null
+						|| properties.getLastModified() == null) {
+					continue;
+				}
+				stored.put(blobItem.getName(), new StoredObjectStat(properties.getContentLength(),
+						properties.getLastModified().toInstant().toEpochMilli()));
 			}
+		} catch (BlobStorageException e) {
+			// losing the listing only costs the skip optimization, so upload everything
+			classLogger.warn("Unable to list {} before syncing, every file will be uploaded", blobDirectory, e);
+			return Collections.emptyMap();
+		}
+		return stored;
+	}
 
-			storageFolderPath = storageFolderPath.replace("\\", "/");
+	private boolean deleteBlob(BlobContainerClient containerClient, String blobName) {
+		try {
+			retryOperation(() -> {
+				BlobClient blobClient = containerClient.getBlobClient(blobName);
+				if (blobClient.deleteIfExists()) {
+					classLogger.info("Deleted file: {}", blobName);
+				}
+			}, "Deleting file: " + blobName);
+			return true;
+		} catch (Exception e) {
+			classLogger.error("Failed to delete file: {}", blobName, e);
+			return false;
+		}
+	}
 
-			if (!storageFolderPath.startsWith("/")) {
-				storageFolderPath = "/" + storageFolderPath;
-			}
-			rClonePath += storageFolderPath;
+	private void preserveFolderStructure(BlobContainerClient containerClient, List<String> deletedFiles) {
+		Set<String> folderPaths = deletedFiles.stream()
+				.map(file -> file.contains("/") ? file.substring(0, file.lastIndexOf("/") + 1) : "")
+				.filter(path -> !path.isEmpty()).collect(Collectors.toSet());
 
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
+		folderPaths.forEach(folderPath -> {
+			BlobClient folderBlobClient = containerClient.getBlobClient(folderPath);
+			folderBlobClient.upload(new ByteArrayInputStream(new byte[0]), 0, true);
+			classLogger.info("Preserved folder structure: {}", folderPath);
+		});
+	}
 
-			runRcloneDeleteFileProcess(rCloneConfig, RCLONE, "purge", rClonePath);
-		} finally {
-			if (delete && rCloneConfig != null) {
-				deleteRcloneConfig(rCloneConfig);
+	private void deleteEmptyBlobs(BlobContainerClient containerClient) {
+		for (BlobItem blobItem : containerClient.listBlobs()) {
+			BlobClient blobClient = containerClient.getBlobClient(blobItem.getName());
+			if (blobClient.getProperties().getBlobSize() == 0) {
+				blobClient.delete();
+				classLogger.info("Deleted empty blob folder: {}", blobItem.getName());
 			}
 		}
 	}
 
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
+	private void syncStorageDeletion(BlobContainerClient containerClient, String blobDirectory, Path localBasePath) {
+		PagedIterable<BlobItem> blobItems = containerClient.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory),
+				null);
+		for (BlobItem blobItem : blobItems) {
+			String blobName = blobItem.getName();
+			BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-//	public static void main(String[] args) throws Exception {
-//		// these are not real/import access/secret 
-//		Properties mockSmss = new Properties();
-//		mockSmss.put(AZ_CONN_STRING, "");
-//		mockSmss.put(AZ_ACCOUNT_NAME, "");
-//		mockSmss.put(AZ_PRIMARY_KEY, "");
-//		mockSmss.put(AZ_GENERATE_DYNAMIC_SAS, "true");
-//
-//		AzureBlobStorageEngine engine = new AzureBlobStorageEngine();
-//		engine.open(mockSmss);
-//		
-//		{
-//			List<String> list = engine.list("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
-//			System.out.println(list);
-//		}
-//		{
-//			List<Map<String, Object>> list = engine.listDetails("08e03a5f-9b8d-4f24-a3f7-ba6959f2c5c0/version");
-//			System.out.println(list);
-//		}
-//		engine.close();
-//	}
+			Path localFilePath = localBasePath
+					.resolve(blobName.replaceFirst(blobDirectory, "").replace("/", File.separator));
 
+			try {
+				BlobProperties properties = blobClient.getProperties();
+				long blobSize = properties.getBlobSize();
+
+				if (!Files.exists(localFilePath)) {
+					blobClient.delete();
+					classLogger.info("Deleted storage file not found in local: {}", blobName);
+				} else if (blobSize == 0) { // Check for empty blobs
+					blobClient.delete();
+					classLogger.info("Deleted empty folder placeholder: {}", blobName);
+				}
+			} catch (Exception e) {
+				classLogger.error("Failed to delete blob: {}", blobName, e);
+			}
+		}
+	}
+
+	private void deleteEmptyDirectories(Path rootPath) {
+		try (Stream<Path> stream = Files.walk(rootPath)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
+					.filter(Files::isDirectory).collect(Collectors.toList());
+
+			for (Path dir : directories) {
+				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
+					if (!entries.iterator().hasNext()) { // Directory is empty
+						Files.delete(dir);
+						classLogger.info("Deleted empty local folder: {}", dir);
+					}
+				} catch (IOException e) {
+					classLogger.error("Failed to delete empty folder: {}", dir, e);
+				}
+			}
+		} catch (IOException e) {
+			classLogger.error("Error while deleting empty directories", e);
+		}
+	}
+
+	private void retryOperation(Runnable operation, String actionDescription) {
+		int maxRetries = 3;
+		int baseDelay = 2000;
+
+		for (int attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				operation.run();
+				return;
+			} catch (Exception e) {
+				classLogger.error("Attempt {} failed for {}", attempt, actionDescription, e);
+				// If last attempt fails, throw an exception
+				if (attempt == maxRetries) {
+					classLogger.error("All retry attempts failed for: {}", actionDescription);
+					throw new RuntimeException(
+							"Operation failed after " + maxRetries + " retries: " + actionDescription, e);
+				}
+				try {
+					long sleepTime = baseDelay * (long) Math.pow(2, attempt - 1); // Exponential backoff
+					Thread.sleep(sleepTime);
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					throw new RuntimeException("Retry operation interrupted: " + actionDescription, ie);
+				}
+			}
+		}
+	}
+
+	private void rollbackUploads(BlobContainerClient containerClient, List<String> failedFiles) {
+		for (String blobName : failedFiles) {
+			try {
+				retryOperation(() -> {
+					BlobClient blobClient = containerClient.getBlobClient(blobName);
+					if (blobClient.exists()) {
+						blobClient.delete();
+						classLogger.info("Rolled back failed upload: {}", blobName);
+					}
+				}, "Rolling back failed upload: " + blobName);
+			} catch (Exception e) {
+				classLogger.error("Rollback failed for: {}", blobName, e);
+			}
+		}
+	}
+
+	private void rollbackDownloads(List<String> failedFiles, Path localDirectory) {
+		for (String file : failedFiles) {
+			Path localFile = localDirectory.resolve(file);
+
+			if (Files.isRegularFile(localFile)) { // Ensures it's not a directory or symbolic link
+				try {
+					Files.delete(localFile);
+					classLogger.info("Rolled back partially downloaded file: {}", file);
+				} catch (IOException e) {
+					classLogger.error("Failed to rollback file: {}", file, e);
+				}
+			} else {
+				classLogger.warn("Skipping rollback for non-regular file: {}", file);
+			}
+		}
+	}
+
+	private void retryDelete(List<String> failedFiles, BlobContainerClient containerClient) {
+		List<String> remainingFailedFiles = new ArrayList<>();
+
+		for (String blobName : failedFiles) {
+			try {
+				BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+				// Check if the blob exists before retrying delete
+				if (!blobClient.exists()) {
+					classLogger.info("Blob already deleted: {}", blobName);
+					continue;
+				}
+
+				retryOperation(() -> {
+					blobClient.delete();
+					classLogger.info("Retried and deleted file: {}", blobName);
+				}, "Retrying delete for file: " + blobName);
+
+			} catch (Exception e) {
+				remainingFailedFiles.add(blobName);
+				classLogger.error("Retry failed for file: {}", blobName, e);
+			}
+		}
+
+		if (!remainingFailedFiles.isEmpty()) {
+			classLogger.error("Some files still failed to delete after retries: {}", remainingFailedFiles);
+		} else {
+			classLogger.info("All files deleted successfully after retries.");
+		}
+	}
+
+	/**
+	 * Lists the containers in the account as directory entries, so browsing the
+	 * root of this engine shows what is available to descend into.
+	 *
+	 * Containers are the top level of an Azure account. They are reported the same
+	 * way a virtual folder inside a container is, so a caller walking the tree does
+	 * not need to treat the first level specially.
+	 *
+	 * @return one entry per container, all marked as directories
+	 */
+	private List<Map<String, Object>> listContainers() {
+		List<Map<String, Object>> detailsList = new ArrayList<>();
+		for (BlobContainerItem container : this.blobServiceClient.listBlobContainers()) {
+			String name = container.getName();
+			if (name == null || name.isEmpty()) {
+				continue;
+			}
+
+			BlobContainerItemProperties properties = container.getProperties();
+			Map<String, Object> containerMap = new HashMap<>();
+			containerMap.put("Path", "/" + name);
+			containerMap.put("Name", name);
+			containerMap.put("IsDir", true);
+			containerMap.put("Size", 0L);
+			containerMap.put("MimeType", "inode/directory");
+			containerMap.put("ModTime", properties == null || properties.getLastModified() == null ? null
+					: properties.getLastModified().toString());
+			// metadata hangs off the item itself, not off its properties
+			Map<String, String> metadata = container.getMetadata();
+			containerMap.put("Metadata", metadata == null || metadata.isEmpty() ? Collections.emptyMap() : metadata);
+			detailsList.add(containerMap);
+		}
+		return detailsList;
+	}
+
+	private String[] extractContainerAndPath(String storagePath) {
+		if (storagePath == null || storagePath.trim().isEmpty()) {
+			throw new IllegalArgumentException("Storage path cannot be null or empty.");
+		}
+
+		// Use the utility method for normalization
+		String normalizedPath = Utility.normalizePath(storagePath).trim();
+
+		// Remove leading slash if present
+		if (normalizedPath.startsWith("/")) {
+			normalizedPath = normalizedPath.substring(1);
+		}
+
+		if (normalizedPath.isEmpty()) {
+			// the account root is only meaningful for listing, where it enumerates the
+			// containers. Reading or writing needs one of them named
+			throw new IllegalArgumentException("Storage path '" + storagePath
+					+ "' does not name a container. Azure paths start with the container, for example "
+					+ "mycontainer/myfolder. List the root of this engine to see the containers available.");
+		}
+
+		// Find the first slash to separate container name and blob path
+		int slashIndex = normalizedPath.indexOf('/');
+		String containerName = (slashIndex == -1) ? normalizedPath : normalizedPath.substring(0, slashIndex);
+		String blobDirectory = (slashIndex == -1) ? "" : normalizedPath.substring(slashIndex + 1);
+
+		if (containerName.isEmpty()) {
+			throw new IllegalArgumentException("Container name is missing in storage path: " + storagePath);
+		}
+
+		if (blobDirectory.isEmpty()) {
+			classLogger.warn("Blob directory is empty for container: {}", containerName);
+		}
+
+		return new String[] { containerName, blobDirectory };
+	}
+
+	@Override
+	public void close() throws IOException {
+		// there is no disconnect logic
+	}
 }

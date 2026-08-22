@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
 
 /**
@@ -61,7 +60,7 @@ import prerna.engine.api.StorageTypeEnum;
  * All storage paths are resolved against {@code PATH_PREFIX} and are sandboxed
  * to prevent traversal outside that root.
  */
-public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine implements IStorageEngine {
+public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(DeveloperLocalFileSystemStorageEngine.class);
 
@@ -186,7 +185,7 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
 		List<Path> sources = parseLocalPaths(localPath);
 		Path destinationRoot = resolveStoragePath(storagePath);
@@ -200,6 +199,10 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 					: destinationRoot.resolve(source.getFileName().toString());
 			mirror(source, destination);
 		}
+
+		// mirror copies recursively without reporting names, and a failure throws, so
+		// reaching this point is success
+		return StorageSyncStatus.of(storagePath, null, null, null);
 	}
 
 	@Override
@@ -306,7 +309,8 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		// version id is not supported and ignored
 		Path source = resolveStoragePath(storageFilePath);
 		if (!Files.exists(source)) {
 			throw new IOException("Storage path does not exist: " + storageFilePath);

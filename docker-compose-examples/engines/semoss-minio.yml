@@ -1,0 +1,64 @@
+name: semoss-minio
+
+# MinIO - S3-compatible object store. Not a vector DB like most of this folder;
+# it connects to SEMOSS as a storage engine (STORAGE_TYPE MINIO, with S3_ENDPOINT
+# pointed here - see the README for the full settings).
+# Image: https://hub.docker.com/r/minio/minio
+#
+# Run:    docker compose -f semoss-minio.yml up -d
+# Stop:   docker compose -f semoss-minio.yml down       (add -v to wipe data)
+# Check:  curl http://localhost:9100/minio/health/live  (204 when ready)
+# UI:     http://localhost:9101                         (minioadmin / minioadmin)
+#
+# NOTE ON PORTS: the SEMOSS compose files that bundle MinIO publish it on host
+# 9000 (S3 API) and 9001 (console). This standalone copy uses host 9100 / 9101 so
+# both can run at once. The in-container ports stay 9000 / 9001, so
+# SEMOSS-in-Docker connects on 9000 by container name; only host access uses
+# 9100. Change the left side of "9100:9000" / "9101:9001" if those are taken.
+#
+# The 'semoss' bucket is created on startup by the one-shot createbucket service
+# below. MinIO does not need the bucket to exist up front for every operation,
+# but SEMOSS storage engines expect it, so it is made here.
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: semoss-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9100:9000"   # host 9100 -> container 9000 S3 API (avoids the bundled MinIO on 9000)
+      - "9101:9001"   # host 9101 -> container 9001 web console
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semoss-net
+
+  # one-shot: creates the 'semoss' bucket, then exits
+  createbucket:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: semoss-minio-createbucket
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set semoss http://semoss-minio:9000 minioadmin minioadmin &&
+      mc mb -p semoss/semoss
+      "
+    networks:
+      - semoss-net
+
+volumes:
+  minio-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

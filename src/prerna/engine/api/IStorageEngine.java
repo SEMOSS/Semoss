@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.impl.storage.StorageSyncStatus;
 import prerna.logging.IgnoreEngineLogging;
 
 public interface IStorageEngine extends IEngine {
@@ -64,8 +65,8 @@ public interface IStorageEngine extends IEngine {
 	List<Map<String, Object>> listDetails(String path) throws Exception;
 
 	/**
-	 * List all versions of a specific object in storage.
-	 * Only supported by engines with versioning enabled (S3, GCS).
+	 * List all versions of a specific object in storage. Only supported by engines
+	 * with versioning enabled.
 	 * 
 	 * @param storagePath the path to the object in storage
 	 * @return a list of version details (versionId, lastModified, size, isLatest)
@@ -76,13 +77,19 @@ public interface IStorageEngine extends IEngine {
 	}
 
 	/**
-	 * 
+	 * Mirrors a local folder up to storage, skipping files that are already there
+	 * unchanged.
+	 *
 	 * @param localPath
 	 * @param storagePath
 	 * @param metadata
+	 * @return the outcome, so a sync where some files failed can be told apart from
+	 *         one that fully worked. See StorageSyncStatus for how complete the
+	 *         file lists are per engine
 	 * @throws Exception
 	 */
-	void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata) throws Exception;
+	StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+			throws Exception;
 
 	/**
 	 * 
@@ -93,14 +100,14 @@ public interface IStorageEngine extends IEngine {
 	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
 
 	/**
-	 * Copy local files to a storage folder path.
-	 * Returns the version identifier if the underlying storage has versioning enabled,
-	 * or null if versioning is not supported/enabled.
+	 * Copy local files to a storage folder path. Returns the version identifier if
+	 * the underlying storage has versioning enabled, or null if versioning is not
+	 * supported/enabled.
 	 * 
 	 * @param localFilePath     the local file or folder path(s) to upload
 	 * @param storageFolderPath the destination path in storage
 	 * @param metadata          optional metadata to attach to the uploaded objects
-	 * @return the version identifier (S3 versionId or GCS generation), or null if not available
+	 * @return the version identifier or null if not available
 	 * @throws Exception if the upload fails
 	 */
 	String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
@@ -111,14 +118,31 @@ public interface IStorageEngine extends IEngine {
 	 * @param localFolderPath
 	 * @throws Exception
 	 */
-	void copyToLocal(String storageFilePath, String localFolderPath) throws Exception;
+	default void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+		copyToLocal(storageFilePath, localFolderPath, null);
+	}
 
 	/**
+	 * Copy a specific version of a file from storage to local.
 	 * 
-	 * @param storageFilePath
+	 * @param storageFilePath the path to the file in storage
+	 * @param localFolderPath the local folder to download to
+	 * @param versionId       the version identifier used by the storage system
+	 * @throws Exception if the operation is not supported or fails
+	 */
+	void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception;
+
+	/**
+	 * Deletes a file, or a folder and everything under it. Equivalent to
+	 * deleteFromStorage(storagePath, false): empty folders are allowed to disappear
+	 * rather than being kept as placeholders.
+	 *
+	 * @param storagePath object key or folder to delete
 	 * @throws Exception
 	 */
-	void deleteFromStorage(String storagePath) throws Exception;
+	default void deleteFromStorage(String storagePath) throws Exception {
+		deleteFromStorage(storagePath, false);
+	}
 
 	/**
 	 * 
@@ -145,28 +169,16 @@ public interface IStorageEngine extends IEngine {
 	default byte[] readBlobToMemory(String storagePath) throws Exception {
 		throw new UnsupportedOperationException("readBlobToMemory is not supported by this storage engine");
 	}
-	
-	
+
 	/**
 	 * Update the metadata for a specific blob/file.
 	 * 
 	 * @param storagePath the path to the file in storage
-	 * @param metadata the metadata to add to the blob/file
+	 * @param metadata    the metadata to add to the blob/file
 	 * @throws Exception if the operation is not supported or fails
 	 */
 	default void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
-		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine"); 
+		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine");
 	}
 
-	/**
-	 * Copy a specific version of a file from storage to local.
-	 * 
-	 * @param storageFilePath the path to the file in storage
-	 * @param localFolderPath the local folder to download to
-	 * @param versionId       the version identifier (S3 versionId or GCS generation number)
-	 * @throws Exception if the operation is not supported or fails
-	 */
-	default void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
-		copyToLocal(storageFilePath, localFolderPath);
-	}
 }

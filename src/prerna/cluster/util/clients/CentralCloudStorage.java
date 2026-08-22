@@ -55,11 +55,11 @@ import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
-import prerna.engine.impl.storage.AzureBlobStorageEngine;
-import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.LocalFileSystemStorageEngine;
-import prerna.engine.impl.storage.MinioStorageEngine;
-import prerna.engine.impl.storage.S3StorageEngine;
+import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
+import prerna.engine.impl.storage.RCloneGoogleCloudStorageEngine;
+import prerna.engine.impl.storage.RCloneMinioStorageEngine;
+import prerna.engine.impl.storage.RCloneS3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.AssetUtility;
@@ -169,17 +169,17 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		if (ClusterUtil.STORAGE_PROVIDER == null || ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")) {
 
-			centralStorageEngine = new AzureBlobStorageEngine();
-			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_ACCOUNT_NAME, clientProps,
+			centralStorageEngine = new RCloneAzureBlobStorageEngine();
+			propertiesMigratePut(props, RCloneAzureBlobStorageEngine.AZ_ACCOUNT_NAME, clientProps,
 					AbstractClientBuilder.AZ_NAME);
-			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_PRIMARY_KEY, clientProps,
+			propertiesMigratePut(props, RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY, clientProps,
 					AbstractClientBuilder.AZ_KEY);
-			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_CONN_STRING, clientProps,
+			propertiesMigratePut(props, RCloneAzureBlobStorageEngine.AZ_CONN_STRING, clientProps,
 					AbstractClientBuilder.AZ_CONN_STRING);
-			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_GENERATE_DYNAMIC_SAS, clientProps,
+			propertiesMigratePut(props, RCloneAzureBlobStorageEngine.AZ_GENERATE_DYNAMIC_SAS, clientProps,
 					AbstractClientBuilder.AZ_GENERATE_DYNAMIC_SAS);
-			propertiesMigratePut(props, AzureBlobStorageEngine.AZ_USE_MSI, clientProps,
-					AzureBlobStorageEngine.AZ_USE_MSI);
+			propertiesMigratePut(props, RCloneAzureBlobStorageEngine.AZ_USE_MSI, clientProps,
+					RCloneAzureBlobStorageEngine.AZ_USE_MSI);
 
 			// we have a different structure for AZ storage since it doesn't represent the
 			// blobs as folders
@@ -197,60 +197,60 @@ public final class CentralCloudStorage implements ICloudClient {
 		} else if (ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS")
 				|| ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("S3")) {
 
-			centralStorageEngine = new S3StorageEngine();
-			propertiesMigratePut(props, S3StorageEngine.S3_REGION_KEY, clientProps,
+			centralStorageEngine = new RCloneS3StorageEngine();
+			propertiesMigratePut(props, RCloneS3StorageEngine.S3_REGION_KEY, clientProps,
 					AbstractClientBuilder.S3_REGION_KEY);
-			propertiesMigratePut(props, S3StorageEngine.S3_BUCKET_KEY, clientProps,
+			propertiesMigratePut(props, RCloneS3StorageEngine.S3_BUCKET_KEY, clientProps,
 					AbstractClientBuilder.S3_BUCKET_KEY);
-			propertiesMigratePut(props, S3StorageEngine.S3_ACCESS_KEY, clientProps,
+			propertiesMigratePut(props, RCloneS3StorageEngine.S3_ACCESS_KEY, clientProps,
 					AbstractClientBuilder.S3_ACCESS_KEY);
-			propertiesMigratePut(props, S3StorageEngine.S3_SECRET_KEY, clientProps,
+			propertiesMigratePut(props, RCloneS3StorageEngine.S3_SECRET_KEY, clientProps,
 					AbstractClientBuilder.S3_SECRET_KEY);
 
 		} else if (ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")) {
 
-			centralStorageEngine = new MinioStorageEngine();
-			propertiesMigratePut(props, MinioStorageEngine.MINIO_REGION_KEY, clientProps,
+			centralStorageEngine = new RCloneMinioStorageEngine();
+			propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_REGION_KEY, clientProps,
 					AbstractClientBuilder.S3_REGION_KEY);
-			propertiesMigratePut(props, MinioStorageEngine.MINIO_BUCKET_KEY, clientProps,
+			propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_BUCKET_KEY, clientProps,
 					AbstractClientBuilder.S3_BUCKET_KEY);
-			propertiesMigratePut(props, MinioStorageEngine.MINIO_ACCESS_KEY, clientProps,
+			propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_ACCESS_KEY, clientProps,
 					AbstractClientBuilder.S3_ACCESS_KEY);
-			propertiesMigratePut(props, MinioStorageEngine.MINIO_SECRET_KEY, clientProps,
+			propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_SECRET_KEY, clientProps,
 					AbstractClientBuilder.S3_SECRET_KEY);
-			propertiesMigratePut(props, MinioStorageEngine.MINIO_ENDPOINT_KEY, clientProps,
+			propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY, clientProps,
 					AbstractClientBuilder.S3_ENDPOINT_KEY);
 
-			if (!props.containsKey(MinioStorageEngine.MINIO_REGION_KEY)) {
-				propertiesMigratePut(props, MinioStorageEngine.MINIO_REGION_KEY, clientProps,
-						MinioStorageEngine.MINIO_REGION_KEY);
+			if (!props.containsKey(RCloneMinioStorageEngine.MINIO_REGION_KEY)) {
+				propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_REGION_KEY, clientProps,
+						RCloneMinioStorageEngine.MINIO_REGION_KEY);
 			}
-			if (!props.containsKey(MinioStorageEngine.MINIO_BUCKET_KEY)) {
-				propertiesMigratePut(props, MinioStorageEngine.MINIO_BUCKET_KEY, clientProps,
-						MinioStorageEngine.MINIO_BUCKET_KEY);
+			if (!props.containsKey(RCloneMinioStorageEngine.MINIO_BUCKET_KEY)) {
+				propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_BUCKET_KEY, clientProps,
+						RCloneMinioStorageEngine.MINIO_BUCKET_KEY);
 			}
-			if (!props.containsKey(MinioStorageEngine.MINIO_ACCESS_KEY)) {
-				propertiesMigratePut(props, MinioStorageEngine.MINIO_ACCESS_KEY, clientProps,
-						MinioStorageEngine.MINIO_ACCESS_KEY);
+			if (!props.containsKey(RCloneMinioStorageEngine.MINIO_ACCESS_KEY)) {
+				propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_ACCESS_KEY, clientProps,
+						RCloneMinioStorageEngine.MINIO_ACCESS_KEY);
 			}
-			if (!props.containsKey(MinioStorageEngine.MINIO_SECRET_KEY)) {
-				propertiesMigratePut(props, MinioStorageEngine.MINIO_SECRET_KEY, clientProps,
-						MinioStorageEngine.MINIO_SECRET_KEY);
+			if (!props.containsKey(RCloneMinioStorageEngine.MINIO_SECRET_KEY)) {
+				propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_SECRET_KEY, clientProps,
+						RCloneMinioStorageEngine.MINIO_SECRET_KEY);
 			}
-			if (!props.containsKey(MinioStorageEngine.MINIO_ENDPOINT_KEY)) {
-				propertiesMigratePut(props, MinioStorageEngine.MINIO_ENDPOINT_KEY, clientProps,
-						MinioStorageEngine.MINIO_ENDPOINT_KEY);
+			if (!props.containsKey(RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY)) {
+				propertiesMigratePut(props, RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY, clientProps,
+						RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY);
 			}
 		} else if (ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GCS")
 				|| ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GCP")
 				|| ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GOOGLE")) {
 
-			centralStorageEngine = new GoogleCloudStorageEngine();
-			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_REGION, clientProps,
+			centralStorageEngine = new RCloneGoogleCloudStorageEngine();
+			propertiesMigratePut(props, RCloneGoogleCloudStorageEngine.GCS_REGION, clientProps,
 					AbstractClientBuilder.GCP_REGION_KEY);
-			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY, clientProps,
+			propertiesMigratePut(props, RCloneGoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY, clientProps,
 					AbstractClientBuilder.GCP_SERVICE_ACCOUNT_FILE_KEY);
-			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_BUCKET_KEY, clientProps,
+			propertiesMigratePut(props, RCloneGoogleCloudStorageEngine.GCS_BUCKET_KEY, clientProps,
 					AbstractClientBuilder.GCP_BUCKET_KEY);
 
 		} else if (ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("LOCAL_FILE_SYSTEM")) {
@@ -436,8 +436,9 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localEngineFolder, cloudEngineFolder, sharedRCloneConfig, null);
-			centralStorageEngine.copyToStorage(localSmssFilePath, cloudSmssFolder, sharedRCloneConfig, null);
+			centralStorageEngine.syncLocalToStorageWithConfig(localEngineFolder, cloudEngineFolder, sharedRCloneConfig,
+					null);
+			centralStorageEngine.copyToStorageWithConfig(localSmssFilePath, cloudSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the engine
@@ -543,7 +544,7 @@ public final class CentralCloudStorage implements ICloudClient {
 			// Pull the contents of the database folder before the smss
 			classLogger.info("Pulling engine from remote={} to target={}", Utility.cleanLogString(aliasAndEngineId),
 					Utility.cleanLogString(localEngineFolder));
-			centralStorageEngine.syncStorageToLocal(cloudEngineFolder, localEngineFolder, sharedRCloneConfig);
+			centralStorageEngine.syncStorageToLocalWithConfig(cloudEngineFolder, localEngineFolder, sharedRCloneConfig);
 			classLogger.debug("Done pulling from remote={} to target={}", Utility.cleanLogString(aliasAndEngineId),
 					Utility.cleanLogString(localEngineFolder));
 
@@ -551,7 +552,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			classLogger.info("Pulling smss from remote={} to target={}", Utility.cleanLogString(cloudEngineSmssFolder),
 					localEngineBaseFolder);
 			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			centralStorageEngine.copyToLocal(cloudEngineSmssFolder, localEngineBaseFolder, sharedRCloneConfig);
+			centralStorageEngine.copyToLocalWithConfig(cloudEngineSmssFolder, localEngineBaseFolder,
+					sharedRCloneConfig);
 			classLogger.debug("Done pulling from remote={} to target={}", Utility.cleanLogString(cloudEngineSmssFolder),
 					localEngineBaseFolder);
 
@@ -769,8 +771,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		String cloudEngineFolder = cloudContainerPrefix + engineId;
 		String cloudSmssFolder = cloudContainerPrefix + engineId + SMSS_POSTFIX;
 
-		centralStorageEngine.deleteFolderFromStorage(cloudEngineFolder, sharedRCloneConfig);
-		centralStorageEngine.deleteFolderFromStorage(cloudSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorageWithConfig(cloudEngineFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorageWithConfig(cloudSmssFolder, sharedRCloneConfig);
 
 		deleteEngineAndProjectImageById(engineType, engineId);
 	}
@@ -1052,7 +1054,7 @@ public final class CentralCloudStorage implements ICloudClient {
 
 			classLogger.info("Pulling database files for {} from remote={}", aliasAndDatabaseId, databaseId);
 			List<String> filesToPull = new ArrayList<>();
-			List<String> cloudFiles = centralStorageEngine.list(storageDatabaseFolder, sharedRCloneConfig);
+			List<String> cloudFiles = centralStorageEngine.listWithConfig(storageDatabaseFolder, sharedRCloneConfig);
 			for (String cloudF : cloudFiles) {
 				if (rdbmsType == RdbmsTypeEnum.SQLITE && cloudF.endsWith(".sqlite")) {
 					filesToPull.add(cloudF);
@@ -1062,8 +1064,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 
 			for (String fileToPull : filesToPull) {
-				centralStorageEngine.copyToLocal(storageDatabaseFolder + "/" + fileToPull, localDatabaseFolder,
-						sharedRCloneConfig);
+				centralStorageEngine.copyToLocalWithConfig(storageDatabaseFolder + "/" + fileToPull,
+						localDatabaseFolder, sharedRCloneConfig);
 			}
 		} finally {
 			try {
@@ -1115,10 +1117,10 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.copyToStorage(localOwlFile, storageDatabaseFolder, sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorageWithConfig(localOwlFile, storageDatabaseFolder, sharedRCloneConfig, null);
 			if (hasPositionFile) {
-				centralStorageEngine.copyToStorage(localOwlPositionFile, storageDatabaseFolder, sharedRCloneConfig,
-						null);
+				centralStorageEngine.copyToStorageWithConfig(localOwlPositionFile, storageDatabaseFolder,
+						sharedRCloneConfig, null);
 			}
 		} finally {
 			if (sharedRCloneConfig != null) {
@@ -1239,8 +1241,10 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localProjectFolder, storageProjectFolder, sharedRCloneConfig, null);
-			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig, null);
+			centralStorageEngine.syncLocalToStorageWithConfig(localProjectFolder, storageProjectFolder,
+					sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorageWithConfig(localSmssFilePath, storageSmssFolder, sharedRCloneConfig,
+					null);
 		} finally {
 			try {
 				// Re-open the project
@@ -1312,8 +1316,10 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncStorageToLocal(storageProjectFolder, localProjectFolder, sharedRCloneConfig);
-			centralStorageEngine.copyToLocal(storageSmssFolder, EngineUtility.PROJECT_FOLDER, sharedRCloneConfig);
+			centralStorageEngine.syncStorageToLocalWithConfig(storageProjectFolder, localProjectFolder,
+					sharedRCloneConfig);
+			centralStorageEngine.copyToLocalWithConfig(storageSmssFolder, EngineUtility.PROJECT_FOLDER,
+					sharedRCloneConfig);
 
 			// Catalog the project if it is new
 			if (!projectAlreadyLoaded) {
@@ -1393,8 +1399,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
-		centralStorageEngine.deleteFolderFromStorage(storageProjectFolder, sharedRCloneConfig);
-		centralStorageEngine.deleteFolderFromStorage(storageSmssFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorageWithConfig(storageProjectFolder, sharedRCloneConfig);
+		centralStorageEngine.deleteFolderFromStorageWithConfig(storageSmssFolder, sharedRCloneConfig);
 
 		deleteEngineAndProjectImageById(CATALOG_TYPE.PROJECT, projectId);
 	}
@@ -1679,7 +1685,7 @@ public final class CentralCloudStorage implements ICloudClient {
 				String storageOldFileToDelete = storageInsightFolder + "/" + oldImageFileName;
 				classLogger.info("Deleting old insight image from remote={}",
 						Utility.cleanLogString(storageOldFileToDelete));
-				centralStorageEngine.deleteFromStorage(storageOldFileToDelete, sharedRCloneConfig);
+				centralStorageEngine.deleteFromStorageWithConfig(storageOldFileToDelete, sharedRCloneConfig);
 				classLogger.debug("Done deleting old insight image from remote={}",
 						Utility.cleanLogString(storageOldFileToDelete));
 			} else {
@@ -1693,8 +1699,8 @@ public final class CentralCloudStorage implements ICloudClient {
 				classLogger.info("Pushing insight image from local={} to remote={}",
 						Utility.cleanLogString(localInsightImageFilePath),
 						Utility.cleanLogString(storageInsightFolder));
-				centralStorageEngine.copyToStorage(localInsightImageFilePath, storageInsightFolder, sharedRCloneConfig,
-						null);
+				centralStorageEngine.copyToStorageWithConfig(localInsightImageFilePath, storageInsightFolder,
+						sharedRCloneConfig, null);
 				classLogger.debug("Done pushing insight image from local={} to remote={}",
 						Utility.cleanLogString(localInsightImageFilePath),
 						Utility.cleanLogString(storageInsightFolder));
@@ -1762,7 +1768,7 @@ public final class CentralCloudStorage implements ICloudClient {
 				// Pull the contents of the project folder before the smss
 				classLogger.info("Pulling user asset from remote={} to target={}", storageUserAssetFolder,
 						localUserAndAssetFolder);
-				centralStorageEngine.syncStorageToLocal(storageUserAssetFolder, localUserAndAssetFolder,
+				centralStorageEngine.syncStorageToLocalWithConfig(storageUserAssetFolder, localUserAndAssetFolder,
 						sharedRCloneConfig);
 				classLogger.debug("Done pulling from remote={} to target={}", storageUserAssetFolder,
 						localUserAndAssetFolder);
@@ -1772,7 +1778,8 @@ public final class CentralCloudStorage implements ICloudClient {
 						EngineUtility.USER_FOLDER);
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER
 				// FOLDER
-				centralStorageEngine.copyToLocal(storageSmssFolder, EngineUtility.USER_FOLDER, sharedRCloneConfig);
+				centralStorageEngine.copyToLocalWithConfig(storageSmssFolder, EngineUtility.USER_FOLDER,
+						sharedRCloneConfig);
 				classLogger.debug("Done pulling from remote={} to target={}", storageSmssFolder,
 						EngineUtility.USER_FOLDER);
 			} finally {
@@ -1820,9 +1827,10 @@ public final class CentralCloudStorage implements ICloudClient {
 			if (centralStorageEngine.canReuseRcloneConfig()) {
 				sharedRCloneConfig = centralStorageEngine.createRCloneConfig();
 			}
-			centralStorageEngine.syncLocalToStorage(localUserAssetFolder, storageUserAssetFolder, sharedRCloneConfig,
+			centralStorageEngine.syncLocalToStorageWithConfig(localUserAssetFolder, storageUserAssetFolder,
+					sharedRCloneConfig, null);
+			centralStorageEngine.copyToStorageWithConfig(localSmssFilePath, storageSmssFolder, sharedRCloneConfig,
 					null);
-			centralStorageEngine.copyToStorage(localSmssFilePath, storageSmssFolder, sharedRCloneConfig, null);
 		} finally {
 			try {
 				// Re-open the project
@@ -1971,7 +1979,7 @@ public final class CentralCloudStorage implements ICloudClient {
 					VENV_BLOB, PROJECT_BLOB);
 
 			for (String b : buckets) {
-				List<String> cloudFiles = centralStorageEngine.list(b, sharedRCloneConfig);
+				List<String> cloudFiles = centralStorageEngine.listWithConfig(b, sharedRCloneConfig);
 				allBuckets.put(b, cloudFiles);
 			}
 		} finally {

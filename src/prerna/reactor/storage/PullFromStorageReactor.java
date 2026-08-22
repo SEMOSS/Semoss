@@ -40,21 +40,20 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 /**
  * Pull files from a storage path to a local path.
  *
- * Pixel usage: PullFromStorage(storage=["<id>"], storagePath=["<path>"], filePath=["<local>"], version=["<versionId>"]);
+ * Pixel usage: PullFromStorage(storage=["<id>"], storagePath=["<path>"],
+ * filePath=["<local>"], version=["<versionId>"]);
  *
- * Parameters:
- *   storage     (String, required) - The storage engine instance or id
- *   storagePath (String, required) - The storage path(s) to download from
- *   filePath    (String, required) - The local path to download files to
- *   space       (String, optional) - The project space context
- *   version     (String, optional) - The version ID to download a specific object version
+ * Parameters: storage (String, required) - The storage engine instance or id
+ * storagePath (String, required) - The storage path(s) to download from
+ * filePath (String, required) - The local path to download files to space
+ * (String, optional) - The project space context version (String, optional) -
+ * The version ID to download a specific object version
  *
  * Returns: BOOLEAN - true on success.
  */
@@ -64,8 +63,7 @@ public class PullFromStorageReactor extends AbstractReactor {
 
 	public PullFromStorageReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.VERSION.getKey() };
+				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.VERSION.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 1, 0 };
 	}
 
@@ -89,8 +87,10 @@ public class PullFromStorageReactor extends AbstractReactor {
 			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred downloading storage file to local");
+			classLogger.error("Failed to download storagePath={} version={} to local path={} from storage engine={}",
+					storagePath, (versionId == null || versionId.isEmpty()) ? "<latest>" : versionId, fileLocation,
+					storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error occurred downloading storage file to local", e);
 		}
 	}
 
@@ -133,7 +133,7 @@ public class PullFromStorageReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The local path to download files to";
 		} else if (key.equals(ReactorKeysEnum.VERSION.getKey())) {
-			return "Optional version ID to download a specific object version (S3 versionId or GCS generation)";
+			return "Optional version ID to download a specific object version (specific to the cloud storage provider)";
 		}
 		return super.getDescriptionForKey(key);
 	}
