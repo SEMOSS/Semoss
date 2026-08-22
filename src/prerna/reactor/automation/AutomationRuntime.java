@@ -49,9 +49,6 @@ final class AutomationRuntime {
 
 	private static final Pattern GLOBAL_ASSIGNMENT = Pattern.compile(
 			"^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.+?)(?:\\s+#.*)?$");
-	private static final Pattern WHOLE_PLACEHOLDER_LITERAL = Pattern.compile(
-			"([\"'])\\$\\{([^}]+)}\\1");
-
 	private AutomationRuntime() {
 	}
 
@@ -127,13 +124,13 @@ final class AutomationRuntime {
 
 	static String buildNodeInvocationScript(String source, Map<String, String> scope,
 			boolean resolveCustomSourcePlaceholders) {
-		String executableSource = resolveCustomSourcePlaceholders
-				? resolveWholePlaceholderLiterals(source)
-				: source;
 		return """
+				import ast as _automation_ast
 				import base64 as _automation_b64
+				import io as _automation_io
 				import json as _automation_json
 				import re as _automation_re
+				import tokenize as _automation_tokenize
 				_automation_scope = _automation_json.loads(
 				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
 				def resolve(value, scope):
@@ -145,11 +142,37 @@ final class AutomationRuntime {
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
 
+				def _automation_prepare_source(source):
+				    tokens = list(_automation_tokenize.generate_tokens(_automation_io.StringIO(source).readline))
+				    ignored = {_automation_tokenize.COMMENT, _automation_tokenize.NL}
+				    for index, token in enumerate(tokens):
+				        if token.type != _automation_tokenize.STRING:
+				            continue
+				        try:
+				            value = _automation_ast.literal_eval(token.string)
+				        except (SyntaxError, ValueError):
+				            continue
+				        if (not isinstance(value, str)
+				                or _automation_re.fullmatch(r"\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}", value) is None):
+				            continue
+				        previous = next((candidate for candidate in reversed(tokens[:index])
+				                if candidate.type not in ignored), None)
+				        following = next((candidate for candidate in tokens[index + 1:]
+				                if candidate.type not in ignored), None)
+				        if ((previous is not None and previous.type == _automation_tokenize.STRING)
+				                or (following is not None and following.type == _automation_tokenize.STRING)):
+				            continue
+				        tokens[index] = token._replace(string=f"resolve({token.string}, scope)")
+				    return _automation_tokenize.untokenize(tokens)
+
+				_automation_source = _automation_b64.urlsafe_b64decode("%s").decode("utf-8")
+				if %s:
+				    _automation_source = _automation_prepare_source(_automation_source)
 				_automation_module = {
 				    "__name__": "__automation_node__",
 				    "resolve": resolve,
 				}
-				exec(_automation_b64.urlsafe_b64decode("%s").decode("utf-8"), _automation_module)
+				exec(_automation_source, _automation_module)
 				_automation_run = _automation_module.get("run")
 				if not callable(_automation_run):
 				    raise ValueError("Automation node source must define callable run(scope).")
@@ -157,21 +180,8 @@ final class AutomationRuntime {
 				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
 				""".formatted(
 						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
-						encode(executableSource));
-	}
-
-	private static String resolveWholePlaceholderLiterals(String source) {
-		if (source == null || source.isBlank()) {
-			return source;
-		}
-		Matcher matcher = WHOLE_PLACEHOLDER_LITERAL.matcher(source);
-		StringBuffer rewritten = new StringBuffer();
-		while (matcher.find()) {
-			String replacement = "resolve(\"${" + matcher.group(2) + "}\", scope)";
-			matcher.appendReplacement(rewritten, Matcher.quoteReplacement(replacement));
-		}
-		matcher.appendTail(rewritten);
-		return rewritten.toString();
+						encode(source != null ? source : ""),
+						resolveCustomSourcePlaceholders ? "True" : "False");
 	}
 
 	/**
