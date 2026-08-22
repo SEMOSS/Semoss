@@ -142,11 +142,51 @@ final class AutomationRuntime {
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
 
+				def _automation_function_string_positions(source):
+				    tree = _automation_ast.parse(source)
+				    lines = source.splitlines()
+
+				    def position(node):
+				        if node.end_lineno is None or node.end_col_offset is None:
+				            return None
+				        start_line = lines[node.lineno - 1]
+				        end_line = lines[node.end_lineno - 1]
+				        start_col = len(start_line.encode("utf-8")[:node.col_offset].decode("utf-8"))
+				        end_col = len(end_line.encode("utf-8")[:node.end_col_offset].decode("utf-8"))
+				        return (node.lineno, start_col, node.end_lineno, end_col)
+
+				    docstrings = set()
+				    for owner in _automation_ast.walk(tree):
+				        body = getattr(owner, "body", None)
+				        if (not isinstance(body, list) or not body
+				                or not isinstance(body[0], _automation_ast.Expr)
+				                or not isinstance(body[0].value, _automation_ast.Constant)
+				                or not isinstance(body[0].value.value, str)):
+				            continue
+				        docstrings.add(position(body[0].value))
+
+				    eligible = set()
+				    function_types = (_automation_ast.FunctionDef, _automation_ast.AsyncFunctionDef)
+				    for function in _automation_ast.walk(tree):
+				        if not isinstance(function, function_types):
+				            continue
+				        arguments = function.args.posonlyargs + function.args.args + function.args.kwonlyargs
+				        if not any(argument.arg == "scope" for argument in arguments):
+				            continue
+				        for statement in function.body:
+				            for candidate in _automation_ast.walk(statement):
+				                if (isinstance(candidate, _automation_ast.Constant)
+				                        and isinstance(candidate.value, str)):
+				                    eligible.add(position(candidate))
+				    return eligible - docstrings
+
 				def _automation_prepare_source(source):
 				    tokens = list(_automation_tokenize.generate_tokens(_automation_io.StringIO(source).readline))
+				    eligible = _automation_function_string_positions(source)
 				    ignored = {_automation_tokenize.COMMENT, _automation_tokenize.NL}
 				    for index, token in enumerate(tokens):
-				        if token.type != _automation_tokenize.STRING:
+				        token_position = (token.start[0], token.start[1], token.end[0], token.end[1])
+				        if token.type != _automation_tokenize.STRING or token_position not in eligible:
 				            continue
 				        try:
 				            value = _automation_ast.literal_eval(token.string)
