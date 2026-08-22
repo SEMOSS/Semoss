@@ -57,7 +57,7 @@ runAgent(
     agentId?: string,       // the agent whose tools/config the run should use
     maxTurns?: number,      // cap on model round-trips before the run stops itself
     maxReflections?: number,
-    images?: string[],
+    media?: string[],       // file locations or base64 image/PDF data URIs; any file type the model accepts (image, pdf, document, spreadsheet, audio, video)
     urls?: string[],
   },
   insightId,

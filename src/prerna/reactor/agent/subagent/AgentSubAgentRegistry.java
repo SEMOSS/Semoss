@@ -504,18 +504,18 @@ public final class AgentSubAgentRegistry {
      * runtime prompt.
      *
      * <ul>
-     *   <li>An explicit per-spawn context always wins.</li>
-     *   <li>A named child with no override loads its own workspace system prompt.</li>
+     *   <li>A named child always loads its own workspace system prompt.</li>
+     *   <li>An anonymous child's explicit per-spawn context wins.</li>
      *   <li>An anonymous child with no override inherits the parent's clean authored system prompt.</li>
      * </ul>
      */
     private static String resolveChildAuthoredSystemPrompt(SpawnRequest req, boolean namedSpawn) {
+        if (namedSpawn) {
+            return null;
+        }
         String explicitContext = trimToNull(req.additionalContext);
         if (explicitContext != null) {
             return explicitContext;
-        }
-        if (namedSpawn) {
-            return null;
         }
         return trimToNull(req.parentAuthoredSystemPrompt);
     }

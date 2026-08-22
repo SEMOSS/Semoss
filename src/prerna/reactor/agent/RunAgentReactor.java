@@ -63,6 +63,12 @@ public class RunAgentReactor extends AbstractReactor {
     private static final String WAIT_KEY            = "wait";
     private static final String WAIT_TIMEOUT_MS_KEY = "waitTimeoutMs";
 
+    /**
+     * "media" is the canonical key; "image" predates it and stays as an alias.
+     * Matches LLMReactor/LLM2Reactor so callers can use one name everywhere.
+     */
+    private static final String MEDIA_KEY = ReactorKeysEnum.MEDIA.getKey() + "," + ReactorKeysEnum.IMAGE.getKey();
+
     public RunAgentReactor() {
         this.keysToGet = new String[] {
                 ReactorKeysEnum.ROOM_ID.getKey(),
@@ -76,7 +82,7 @@ public class RunAgentReactor extends AbstractReactor {
                 WAIT_TIMEOUT_MS_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
                 ReactorKeysEnum.AGENT_PARAMS.getKey(),
-                ReactorKeysEnum.IMAGE.getKey(),
+                MEDIA_KEY,
                 ReactorKeysEnum.URL.getKey(),
         };
         this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -112,8 +118,8 @@ public class RunAgentReactor extends AbstractReactor {
         long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
-        List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
-        List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
+        List<String> inputMedia = getListStringForAliasedKey(MEDIA_KEY);
+        List<String> inputMediaURLs = getListString(ReactorKeysEnum.URL.getKey());
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -122,16 +128,16 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} images={} urls={}",
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} media={} urls={}",
                 roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections, wait,
-                waitTimeoutMs, sizeOf(inputImages), sizeOf(inputImageURLs));
+                waitTimeoutMs, sizeOf(inputMedia), sizeOf(inputMediaURLs));
 
         try {
             // Resolve every explicit harness name before submission. This keeps a typo
             // from creating a durable run that later executes under the default harness.
             IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
-            validateMediaSupported(harness, inputImages, inputImageURLs);
-            List<String> copiedImages = stageMediaInputs(roomId, input, engineIdFallback, inputImages);
+            validateMediaSupported(harness, inputMedia, inputMediaURLs);
+            List<String> copiedMedia = stageMediaInputs(roomId, input, engineIdFallback, inputMedia);
             RunAgentRequest request = new RunAgentRequest(
                     roomId,
                     input,
@@ -142,8 +148,8 @@ public class RunAgentReactor extends AbstractReactor {
                     maxReflections,
                     paramMap,
                     agentParams,
-                    copiedImages,
-                    inputImageURLs,
+                    copiedMedia,
+                    inputMediaURLs,
                     this.insight);
             RunAgentResult handle = AgentRuntimeManager.get().run(request);
             Map<String, Object> output = handle.toMap();
@@ -171,9 +177,9 @@ public class RunAgentReactor extends AbstractReactor {
 
     // Helpers
 
-    private List<String> stageMediaInputs(String roomId, String input, String engineIdFallback, List<String> inputImages) {
-        if (inputImages == null || inputImages.isEmpty()) {
-            return inputImages;
+    private List<String> stageMediaInputs(String roomId, String input, String engineIdFallback, List<String> inputMedia) {
+        if (inputMedia == null || inputMedia.isEmpty()) {
+            return inputMedia;
         }
 
         IModelEngine modelEngine = null;
@@ -188,12 +194,12 @@ public class RunAgentReactor extends AbstractReactor {
 
         Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
                 : RoomUtils.getOrLoadRoom(roomId, insight);
-        return RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
+        return RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
     }
 
-    private void validateMediaSupported(IAgentHarness harness, List<String> inputImages,
-            List<String> inputImageURLs) {
-        if (sizeOf(inputImages) == 0 && sizeOf(inputImageURLs) == 0) {
+    private void validateMediaSupported(IAgentHarness harness, List<String> inputMedia,
+            List<String> inputMediaURLs) {
+        if (sizeOf(inputMedia) == 0 && sizeOf(inputMediaURLs) == 0) {
             return;
         }
         if (!harness.supportsMediaInput()) {
@@ -282,7 +288,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-        if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+        if (key.equals(ReactorKeysEnum.MEDIA.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
             return MCP_KEY_TYPE.ARRAY;
         }
         if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey()) || key.equals(ReactorKeysEnum.AGENT_PARAMS.getKey())) {
@@ -293,8 +299,10 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     protected String getDescriptionForKey(String key) {
-        if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-            return "Array of image file names already uploaded to the insight folder, or supported base64 image/PDF data URIs.";
+        if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
+            return "Array of media file names already uploaded to the insight folder (any file type the model accepts - "
+                    + "image, pdf, document, spreadsheet, audio, video), or base64 image/PDF data URIs. "
+                    + "'image' is accepted as a legacy alias for this key.";
         }
         if (key.equals(ReactorKeysEnum.URL.getKey())) {
             return "Array of image file URLs whose contents will be fetched when building the initial agent message.";
