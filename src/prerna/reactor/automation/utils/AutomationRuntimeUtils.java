@@ -64,6 +64,7 @@ public final class AutomationRuntimeUtils {
 	 */
 	public static final Gson GSON = new GsonBuilder()
 			.disableHtmlEscaping()
+			.serializeNulls()
 			.registerTypeHierarchyAdapter(ZoneId.class,
 					(JsonSerializer<ZoneId>) (src, t, ctx) -> new JsonPrimitive(src.getId()))
 			.registerTypeAdapter(ZonedDateTime.class,
@@ -78,10 +79,6 @@ public final class AutomationRuntimeUtils {
 					(JsonSerializer<Instant>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
 			.registerTypeHierarchyAdapter(Throwable.class,
 					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
-			.create();
-	private static final Gson NULL_PRESERVING_GSON = new GsonBuilder()
-			.disableHtmlEscaping()
-			.serializeNulls()
 			.create();
 
 	private AutomationRuntimeUtils() {}
@@ -109,7 +106,7 @@ public final class AutomationRuntimeUtils {
 
 	/** Serializes JSON-compatible runtime values without dropping explicit null map entries. */
 	public static String toRuntimeJson(Object value) {
-		return NULL_PRESERVING_GSON.toJson(value);
+		return GSON.toJson(value);
 	}
 
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */

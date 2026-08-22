@@ -138,7 +138,11 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    parameters = json.loads(resolve(PARAMETERS_JSON, scope) or "{}")
+				    parameters = resolve(PARAMETERS_JSON, scope)
+				    if isinstance(parameters, str):
+				        parameters = json.loads(parameters or "{}")
+				    elif parameters is None:
+				        parameters = {}
 				    return model.ask(command=resolve(PROMPT, scope), context=resolve(SYSTEM_PROMPT, scope), param_dict=parameters)
 				""".formatted(value(config, "engineId"), value(config, "prompt"),
 				value(config, "systemPrompt"), value(config, "paramValues"));
@@ -271,7 +275,12 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    function = FunctionEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return function.execute(parameterMap=json.loads(resolve(ARGUMENTS, scope)))
+				    arguments = resolve(ARGUMENTS, scope)
+				    if isinstance(arguments, str):
+				        arguments = json.loads(arguments or "{}")
+				    elif arguments is None:
+				        arguments = {}
+				    return function.execute(parameterMap=arguments)
 				""".formatted(value(config, "engineId"), value(config, "arguments"));
 	}
 
@@ -368,29 +377,29 @@ public final class AutomationSourceRenderer {
 	}
 
 	private static String value(Map<String, Object> config, String key) {
-		Object value = config.get(key);
+		return pythonValue(config.get(key));
+	}
+
+	private static String pythonValue(Object value) {
 		if (value == null) {
 			return "None";
 		}
 		if (value instanceof Boolean bool) {
 			return bool ? "True" : "False";
+		}
+		if (value instanceof Map<?, ?> || value instanceof Iterable<?>) {
+			String json = AutomationRuntimeUtils.toRuntimeJson(value);
+			return "__import__(\"json\").loads(" + AutomationRuntimeUtils.GSON.toJson(json) + ")";
 		}
 		return AutomationRuntimeUtils.GSON.toJson(value);
 	}
 
 	private static String valueOrDefault(Map<String, Object> config, String key, Object defaultValue) {
-		Object value = config.getOrDefault(key, defaultValue);
-		if (value instanceof Boolean bool) {
-			return bool ? "True" : "False";
-		}
-		return AutomationRuntimeUtils.GSON.toJson(value);
+		return pythonValue(config.getOrDefault(key, defaultValue));
 	}
 
 	private static String agentMapValue(Object value) {
-		if (value == null) {
-			return "None";
-		}
-		return "json.loads(" + AutomationRuntimeUtils.GSON.toJson(AutomationRuntimeUtils.GSON.toJson(value)) + ")";
+		return pythonValue(value);
 	}
 
 	static boolean isLegacyDefaultSource(String source) {
