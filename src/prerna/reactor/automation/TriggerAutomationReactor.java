@@ -87,6 +87,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
+		validateInputs(inputs);
 
 		if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
 			// Startup cleanup may see a recently-heartbeating run and correctly leave it
@@ -453,6 +454,18 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		return AutomationConstants.SYSTEM_USER_ID;
 	}
 
+	private static void validateInputs(Map<String, Object> inputs) {
+		if (inputs == null) {
+			return;
+		}
+		for (String key : inputs.keySet()) {
+			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(key)) {
+				throw new IllegalArgumentException("Automation input '" + key
+						+ "' is reserved for runtime metadata and cannot be overridden.");
+			}
+		}
+	}
+
 	private static String valueAsString(Object value) {
 		if (value == null) {
 			return "";
@@ -482,7 +495,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			return "The project ID or alias containing the automation workflow.";
 		}
 		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) {
-			return "Optional values overriding globals declared by trigger Python; other values remain available in scope.";
+			return "Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.";
 		}
 		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
 			return "Optional trigger source: MANUAL (default) or PLAYGROUND.";

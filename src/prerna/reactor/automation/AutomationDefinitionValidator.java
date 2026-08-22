@@ -149,6 +149,10 @@ public final class AutomationDefinitionValidator {
 				String outputVar = requireNonblankString(
 						node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
 						"graph.nodes[" + index + "].outputVar");
+				if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(outputVar)) {
+					throw new IllegalArgumentException("Node '" + nodeId + "' outputVar '" + outputVar
+							+ "' is reserved for automation runtime metadata.");
+				}
 				if (!outputVariables.add(outputVar)) {
 					throw new IllegalArgumentException(
 							"Python automation definition has duplicate outputVar: " + outputVar + ".");
@@ -248,6 +252,10 @@ public final class AutomationDefinitionValidator {
 			if (!name.matches("[A-Za-z][A-Za-z0-9_]*")) {
 				throw new IllegalArgumentException("Trigger global '" + name
 						+ "' must be a non-private Python identifier.");
+			}
+			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(name)) {
+				throw new IllegalArgumentException("Trigger global '" + name
+						+ "' is reserved for automation runtime metadata.");
 			}
 			if (!names.add(name)) {
 				throw new IllegalArgumentException("Trigger node '" + nodeId
