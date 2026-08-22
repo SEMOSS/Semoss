@@ -30,6 +30,8 @@ package prerna.reactor.project.fs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -48,10 +50,12 @@ import prerna.util.git.GitRepoUtils;
 
 public class CopyAppAssetReactor extends AbstractReactor {
 
+	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
+
 	public CopyAppAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), OVERRIDE };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -94,7 +98,8 @@ public class CopyAppAssetReactor extends AbstractReactor {
 			comment = "copy: Copying " + sourceFileName + " to " + destFileName;
 		}
 
-		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName);
+		boolean override = getBoolean(OVERRIDE, false);
+		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
 		// handle pushing to git and the cloud
 		List<String> toAdd = new ArrayList<>();
@@ -127,11 +132,28 @@ public class CopyAppAssetReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
 		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The destination path for the copy. This cannot be an existing file or directory and has the same character restrictions you would expect on a typical file system.";
+			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals(OVERRIDE)) {
+			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(OVERRIDE).put("default", false);
+		return properties;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(OVERRIDE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 }

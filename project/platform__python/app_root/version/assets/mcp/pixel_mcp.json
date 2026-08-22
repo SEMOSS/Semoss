@@ -6,7 +6,7 @@
     {
       "name": "list_python_skill_files",
       "title": "List Python Skill Files",
-      "description": "List the files in the SEMOSS 'python' skill, the platform's guidance for writing Python that runs inside the SEMOSS Python runtime: py/mcp_driver.py, helper modules, and anything invoked through the platform's Python bridge. Call this when the user asks what SEMOSS injects into Python (ROOT, the active insight context), what to import from ai_server / semoss / smssutil, how to expose a Python function as an MCP tool with the @mcp_metadata decorator, file I/O relative to ROOT, or how Python reaches Pixel via Insight().run_pixel(...). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for Java reactor authoring or frontend @semoss/sdk calls; for the Pixel commands themselves see the database, model, and vector skills.",
+      "description": "List the files in the platform 'python' skill, the platform's guidance for writing Python that runs inside the platform Python runtime: py/mcp_driver.py, helper modules, and anything invoked through the platform's Python bridge. Call this when the user asks how Python reads per-execution paths (ROOT, APP_ROOT, USER_ROOT through smss_get_runtime_var rather than a bare injected name), what to import from ai_server / semoss / smssutil, how to expose a Python function as an MCP tool with the @mcp_metadata decorator, file I/O relative to those paths, or how Python reaches Pixel via Insight().run_pixel(...). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for Java reactor authoring or frontend @semoss/sdk calls; for the Pixel commands themselves see the database, model, and vector skills.",
       "inputSchema": {
         "type": "object",
         "title": "list_python_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_python_skill_file",
       "title": "Read Python Skill File",
-      "description": "Read one file from the SEMOSS 'python' skill in full, for writing Python that runs in a SEMOSS app. Pass filePath exactly as list_python_skill_files reports it; SKILL.md is the main guide and covers the injected-versus-imported symbol table, reaching the platform through Insight().run_pixel(...), file I/O via ROOT, and exposing a Python function as an MCP tool.",
+      "description": "Read one file from the platform 'python' skill in full, for writing Python that runs in a platform app. Pass filePath exactly as list_python_skill_files reports it; SKILL.md is the main guide and covers the symbol table of what to import, reading runtime paths with smss_get_runtime_var, reaching the platform through Insight().run_pixel(...), file I/O via ROOT, and exposing a Python function as an MCP tool.",
       "inputSchema": {
         "type": "object",
         "title": "read_python_skill_file_Arguments",

@@ -57,6 +57,7 @@ public final class AgentConfig {
     private final String authoredPrompt;
     private final String agentAgentsMd;
     private final String workdirAgentsMd;
+    private final String selectedEnginesPrompt;
 
     // Model
     private final String modelId;
@@ -100,6 +101,7 @@ public final class AgentConfig {
         this.authoredPrompt  = b.authoredPrompt;
         this.agentAgentsMd   = b.agentAgentsMd;
         this.workdirAgentsMd = b.workdirAgentsMd;
+        this.selectedEnginesPrompt = b.selectedEnginesPrompt;
         this.modelId         = b.modelId;
         this.modelParams     = b.modelParams != null
                 ? Collections.unmodifiableMap(new HashMap<>(b.modelParams))
@@ -170,7 +172,18 @@ public final class AgentConfig {
     }
 
     /**
-     * Convenience: the three agent-side layers joined with blank-line separators.
+     * The "Selected Engines" block for the run's target project (the engines the
+     * user picked in the workbench Available Engines panel), resolved fresh from
+     * the project dependency store by
+     * {@link prerna.reactor.agent.config.AgentConfigLoader}. {@code null} when the
+     * run has no {@code project} param or resolution failed.
+     */
+    public String getSelectedEnginesPrompt() {
+        return selectedEnginesPrompt;
+    }
+
+    /**
+     * Convenience: the agent-side prompt layers joined with blank-line separators.
      * Returns an empty string (never {@code null}) when no layer is populated.
      */
     public String getComposedAgentPrompt() {
@@ -178,6 +191,7 @@ public final class AgentConfig {
         appendLayer(sb, agentAgentsMd);
         appendLayer(sb, workdirAgentsMd);
         appendLayer(sb, authoredPrompt);
+        appendLayer(sb, selectedEnginesPrompt);
         return sb.toString();
     }
 
@@ -302,6 +316,7 @@ public final class AgentConfig {
         private String authoredPrompt;
         private String agentAgentsMd;
         private String workdirAgentsMd;
+        private String selectedEnginesPrompt;
         private String modelId;
         private Map<String, Object> modelParams;
         private Map<String, Object> agentParams;
@@ -321,6 +336,7 @@ public final class AgentConfig {
         public Builder authoredPrompt(String v)      { this.authoredPrompt = v;      return this; }
         public Builder agentAgentsMd(String v)       { this.agentAgentsMd = v;       return this; }
         public Builder workdirAgentsMd(String v)     { this.workdirAgentsMd = v;     return this; }
+        public Builder selectedEnginesPrompt(String v) { this.selectedEnginesPrompt = v; return this; }
         public Builder modelId(String v)             { this.modelId = v;             return this; }
         public Builder modelParams(Map<String, Object> v) { this.modelParams = v;    return this; }
         public Builder agentParams(Map<String, Object> v) { this.agentParams = v;    return this; }

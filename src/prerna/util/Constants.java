@@ -499,6 +499,7 @@ public class Constants {
 	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
 	public static final String REASONING_CONFIG = "REASONING_CONFIG";
 	public static final String BENCHMARKS = "BENCHMARKS";
+	public static final String PRICING = "PRICING";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -1070,12 +1071,20 @@ public class Constants {
 
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
+	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
+	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FUNCTIONS = "functions";
 	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PAGINATION = "pagination";
+	public static final String SKILL_PERMISSIONS = "permissions";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_STORAGE = "storage";
+	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
 
 	// system (platform) mcp names
@@ -1083,6 +1092,8 @@ public class Constants {
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

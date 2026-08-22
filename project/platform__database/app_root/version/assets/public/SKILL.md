@@ -139,7 +139,9 @@ For the full response schema, see `references/response-schema.md`.
 
 ## Listing available databases
 
-Before running a query, you often need to let the user pick a database — or find one programmatically. Use the `MyEngines` pixel with `engineTypes=["DATABASE"]` to list databases the current user has access to.
+This listing pattern is for app-runtime features where the app's end user picks a database. When *you* are deciding which database the app should use, do not enumerate accessible databases: use the project's selected database engine (see the Selected Engines section of your system prompt), and only ask the user to choose or attach one when none is selected.
+
+For the app-runtime case, use the `MyEngines` pixel with `engineTypes=["DATABASE"]` to list databases the current user has access to.
 
 ```typescript
 import { runPixel } from "@semoss/sdk";
@@ -243,7 +245,7 @@ Full response shape returned from a `runPixel` call that wraps a `SqlQuery()` or
 ## pixelReturn[0] fields
 
 - `pixelId` — sequence ID of the command within the call.
-- `pixelExpression` — the parsed pixel string SEMOSS actually executed. Useful for debugging encoding issues.
+- `pixelExpression` — the parsed pixel string the platform actually executed. Useful for debugging encoding issues.
 - `isMeta` — internal flag; ignore for query responses.
 - `timeToRun` — execution time in milliseconds.
 - `operationType` — categorization of the pixel; `["OPERATION"]` for database queries.
@@ -253,7 +255,7 @@ Full response shape returned from a `runPixel` call that wraps a `SqlQuery()` or
 - `data.values` _(array of arrays)_ — rows returned by the query. Each row is a tuple whose cells align positionally with `data.headers`. **Use this as the primary payload.**
 - `data.headers` _(string[])_ — display column names. Aliased where the query aliased them.
 - `data.rawHeaders` _(string[])_ — raw underlying column names as reported by the engine (before any aliasing).
-- `headerInfo[]` — per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a SEMOSS transform rather than the underlying SQL.
+- `headerInfo[]` — per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a platform transform rather than the underlying SQL.
 - `sources[]` — `{ name, type }` identifying the engine(s) queried. `name` is the database engine ID; `type` is typically `"RAW_ENGINE_QUERY"`.
 - `numCollected` _(number)_ — number of rows actually returned, bounded by the `limit` argument.
 - `taskId` _(string | "null")_ — background-task ID when the query streamed; the literal string `"null"` for synchronous returns.

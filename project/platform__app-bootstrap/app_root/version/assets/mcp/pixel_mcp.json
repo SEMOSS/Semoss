@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "list_app_bootstrap_skill_files",
+      "title": "List App Bootstrap Skill Files",
+      "description": "List the files in the platform 'app-bootstrap' skill, the platform's guidance for standing up a platform app from scratch and getting its @semoss/sdk plumbing right, in any flavor - plain HTML with no build step, vanilla TypeScript, or React. Call this when the user is scaffolding a new app, asks how to use the SDK without React, or when the app's bootstrap is broken - a blank screen on load, a 'module is required' error, a 'No response' pixel failure, a login screen that never clears, pixels that work in isolation but fail against the project, or uploads that come back in the wrong shape. Also call it when the user names Insight, initialize, InsightProvider, useInsight, usePixel, runPixel, Env, the semoss-env tag, SetContext, waitForEmbedAuth, InsightWebSocket, or the client-to-portals layout. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Also covers controlling async jobs (the /api/engine/terminate cancel endpoint for Stop buttons, /api/engine/status, and /api/engine/error for a failed job's stderr) and rehydrating after a page reload via /api/session/insights plus GetCurrentInsightId/GetCurrentContextProjectId. Not for what a specific pixel returns - see the database, model, vector, room, agent-run, and file-uploads skills - and not for compiling or publishing (see build-and-publish).",
+      "inputSchema": {
+        "type": "object",
+        "title": "list_app_bootstrap_skill_files_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The app-bootstrap skill (app-bootstrap). Always this value.",
+            "enum": [
+              "app-bootstrap"
+            ],
+            "default": "app-bootstrap"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ListSkillFiles"
+      }
+    },
+    {
+      "name": "read_app_bootstrap_skill_file",
+      "title": "Read App Bootstrap Skill File",
+      "description": "Read one file from the platform 'app-bootstrap' skill in full, for wiring up an app's insight lifecycle and pixel plumbing. Pass filePath exactly as list_app_bootstrap_skill_files reports it. SKILL.md is the main guide and is framework-agnostic: how the base insight is created and bound to the project with SetContext, gating on isInitialized/isAuthorized/isReady, the runPixel envelope and error handling, Env and semoss-env for dev versus published builds, auth, uploads, streaming, websockets, embed auth, and a troubleshooting table. references/vanilla-app.md is a complete app with no framework (no-build HTML importing the SDK from the CDN, plus a bundled TypeScript setup). references/react-app.md is the React scaffold. references/api-surface.md lists every export and flags which ones need React. Also covers the form-encoded jobId endpoints for cancelling a running job and reading a failed job's error output, and the reload-rehydration flow (check /api/session/insights, reattach with initialize({insightId}) to keep frames, Python state, and uploads).",
+      "inputSchema": {
+        "type": "object",
+        "title": "read_app_bootstrap_skill_file_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The app-bootstrap skill (app-bootstrap). Always this value.",
+            "enum": [
+              "app-bootstrap"
+            ],
+            "default": "app-bootstrap"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Path of the file to read, relative to the skill folder, as reported by list_app_bootstrap_skill_files. Use 'SKILL.md' for the main guide, 'references/vanilla-app.md' for a no-framework app, 'references/react-app.md' for the React scaffold, or 'references/api-surface.md' for the export list.",
+            "default": "SKILL.md"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ReadSkillFile"
+      }
+    }
+  ]
+}
