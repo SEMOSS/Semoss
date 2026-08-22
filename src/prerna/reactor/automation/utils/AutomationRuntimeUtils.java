@@ -79,6 +79,10 @@ public final class AutomationRuntimeUtils {
 			.registerTypeHierarchyAdapter(Throwable.class,
 					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
 			.create();
+	private static final Gson NULL_PRESERVING_GSON = new GsonBuilder()
+			.disableHtmlEscaping()
+			.serializeNulls()
+			.create();
 
 	private AutomationRuntimeUtils() {}
 
@@ -93,14 +97,19 @@ public final class AutomationRuntimeUtils {
 	 *              to the user's configured timezone; falls back to UTC when {@code null} or
 	 *              when no zone has been set on the user
 	 */
-	public static Map<String, String> buildInitialScope(String runId, User user) {
-		Map<String, String> scope = new HashMap<>();
+	public static Map<String, Object> buildInitialScope(String runId, User user) {
+		Map<String, Object> scope = new HashMap<>();
 		ZoneId zone = (user != null && user.getZoneId() != null) ? user.getZoneId() : ZoneId.of("UTC");
 		ZonedDateTime now = ZonedDateTime.now(zone);
 		scope.put(AutomationConstants.SCOPE_DATE, now.format(DateTimeFormatter.ISO_LOCAL_DATE));
 		scope.put(AutomationConstants.SCOPE_TRIGGERED_AT, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 		if (runId != null && !runId.isBlank()) scope.put(AutomationConstants.SCOPE_RUN_ID, runId);
 		return scope;
+	}
+
+	/** Serializes JSON-compatible runtime values without dropping explicit null map entries. */
+	public static String toRuntimeJson(Object value) {
+		return NULL_PRESERVING_GSON.toJson(value);
 	}
 
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */

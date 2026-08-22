@@ -118,11 +118,11 @@ final class AutomationRuntime {
 	}
 
 	/** Runs one node module with the workflow scope supplied by the Java scheduler. */
-	static String buildNodeInvocationScript(String source, Map<String, String> scope) {
+	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
 		return buildNodeInvocationScript(source, scope, false);
 	}
 
-	static String buildNodeInvocationScript(String source, Map<String, String> scope,
+	static String buildNodeInvocationScript(String source, Map<String, Object> scope,
 			boolean resolveCustomSourcePlaceholders) {
 		return """
 				import ast as _automation_ast
@@ -137,8 +137,15 @@ final class AutomationRuntime {
 				    if not isinstance(value, str):
 				        return value
 
+				    exact = _automation_re.fullmatch(r"\\$\\{([^}]+)\\}", value)
+				    if exact:
+				        return scope.get(exact.group(1), value)
+
 				    def _automation_replace(match):
-				        return scope.get(match.group(1), match.group(0))
+				        replacement = scope.get(match.group(1), match.group(0))
+				        if isinstance(replacement, str):
+				            return replacement
+				        return _automation_json.dumps(replacement, ensure_ascii=False, separators=(",", ":"))
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
 
@@ -219,7 +226,7 @@ final class AutomationRuntime {
 				_automation_result = _automation_run(_automation_scope)
 				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
 				""".formatted(
-						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
+						encode(AutomationRuntimeUtils.toRuntimeJson(scope != null ? scope : Map.of())),
 						encode(source != null ? source : ""),
 						resolveCustomSourcePlaceholders ? "True" : "False");
 	}
@@ -229,7 +236,7 @@ final class AutomationRuntime {
 	 * JSON-compatible globals. A trigger may also return a map from {@code run(scope)}
 	 * to define computed globals.
 	 */
-	static String buildTriggerInvocationScript(String source, Map<String, String> scope) {
+	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
 		return """
 				import base64 as _automation_b64
 				import json as _automation_json
@@ -260,7 +267,7 @@ final class AutomationRuntime {
 				                pass
 				_automation_json.loads(_automation_json.dumps(_automation_globals))
 				""".formatted(
-						encode(AutomationRuntimeUtils.GSON.toJson(scope != null ? scope : Map.of())),
+						encode(AutomationRuntimeUtils.toRuntimeJson(scope != null ? scope : Map.of())),
 						encode(source != null ? source : ""));
 	}
 

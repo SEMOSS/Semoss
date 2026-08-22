@@ -118,10 +118,10 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			}
 			AutomationPythonRunRegistry.register(runId, translator, this.insight, ThreadStore.getJobId());
 
-			Map<String, String> scope = AutomationRuntimeUtils.buildInitialScope(runId, this.insight.getUser());
+			Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, this.insight.getUser());
 			if (inputs != null) {
 				for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-					scope.put(entry.getKey(), valueAsString(entry.getValue()));
+					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
 			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes,
@@ -146,7 +146,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
-			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, String> scope) {
+			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, Object> scope) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
@@ -170,10 +170,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				result.put(AutomationConstants.RESULT_GLOBALS,
 						nodeResult.getOrDefault(AutomationConstants.RESULT_GLOBALS, Map.of()));
 			}
-			Object output = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
 			String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
-			if (output != null && outputVar != null) {
-				scope.put(outputVar, output.toString());
+			if (!AutomationConstants.NODE_START.equals(type) && outputVar != null) {
+				scope.put(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
 			}
 		}
 		result.put("scope", scope);
@@ -181,7 +180,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeStartNode(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, String> scope) {
+			String source, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
@@ -190,7 +189,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		try {
 			Map<String, Object> declaredGlobals = AutomationRuntime.triggerGlobalDefaults(node);
 			for (Map.Entry<String, Object> entry : declaredGlobals.entrySet()) {
-				scope.putIfAbsent(entry.getKey(), valueAsString(entry.getValue()));
+				if (!scope.containsKey(entry.getKey())) {
+					scope.put(entry.getKey(), entry.getValue());
+				}
 			}
 			PyTranslator translator = this.insight.getPyTranslator();
 			if (translator == null) {
@@ -200,15 +201,17 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					AutomationRuntime.buildTriggerInvocationScript(source, scope),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
-			Map<String, String> sourceGlobals = normalizeScope(value);
-			for (Map.Entry<String, String> entry : sourceGlobals.entrySet()) {
-				scope.putIfAbsent(entry.getKey(), entry.getValue());
+			Map<String, Object> sourceGlobals = normalizeScope(value);
+			for (Map.Entry<String, Object> entry : sourceGlobals.entrySet()) {
+				if (!scope.containsKey(entry.getKey())) {
+					scope.put(entry.getKey(), entry.getValue());
+				}
 			}
-			Map<String, String> globals = new LinkedHashMap<>(sourceGlobals);
+			Map<String, Object> globals = new LinkedHashMap<>(sourceGlobals);
 			for (String name : declaredGlobals.keySet()) {
 				globals.put(name, scope.get(name));
 			}
-			String output = AutomationRuntimeUtils.GSON.toJson(globals);
+			String output = AutomationRuntimeUtils.toRuntimeJson(globals);
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview);
@@ -229,7 +232,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, String> scope) {
+			String source, Map<String, Object> scope) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException("Automation node has no persisted Python source: "
 					+ node.get(AutomationConstants.NODE_FIELD_ID));
@@ -272,14 +275,14 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					"Run cancelled by user");
 			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
 		}
-		String output = AutomationRuntimeUtils.GSON.toJson(value);
+		String output = AutomationRuntimeUtils.toRuntimeJson(value);
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
 				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
-		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
+		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
 	}
 
 	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
@@ -314,7 +317,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		jobManager.addStreamOut(jobId, envelope);
 	}
 
-	private static Map<String, Object> nodeResult(String nodeId, String status, String output, String error) {
+	private static Map<String, Object> nodeResult(String nodeId, String status, Object output, String error) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("nodeId", nodeId);
 		result.put(AutomationConstants.STATUS, status);
@@ -404,14 +407,14 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		return detail;
 	}
 
-	private static Map<String, String> normalizeScope(Object value) {
-		Map<String, String> scope = new LinkedHashMap<>();
+	private static Map<String, Object> normalizeScope(Object value) {
+		Map<String, Object> scope = new LinkedHashMap<>();
 		if (!(value instanceof Map<?, ?> map)) {
 			return scope;
 		}
 		for (Map.Entry<?, ?> entry : map.entrySet()) {
 			if (entry.getKey() instanceof String key) {
-				scope.put(key, valueAsString(entry.getValue()));
+				scope.put(key, entry.getValue());
 			}
 		}
 		return scope;
@@ -464,13 +467,6 @@ public class TriggerAutomationReactor extends AbstractReactor {
 						+ "' is reserved for runtime metadata and cannot be overridden.");
 			}
 		}
-	}
-
-	private static String valueAsString(Object value) {
-		if (value == null) {
-			return "";
-		}
-		return value instanceof String string ? string : AutomationRuntimeUtils.GSON.toJson(value);
 	}
 
 	private static String safeMessage(Exception error) {
