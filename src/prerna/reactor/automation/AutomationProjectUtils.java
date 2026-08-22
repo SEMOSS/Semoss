@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -53,6 +54,13 @@ import prerna.util.git.GitRepoUtils;
 public final class AutomationProjectUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationProjectUtils.class);
+	private static final Set<String> WRITE_ENGINE_NODE_TYPES = Set.of(
+			AutomationConstants.NODE_DATABASE_INSERT,
+			AutomationConstants.NODE_DATABASE_UPDATE,
+			AutomationConstants.NODE_STORAGE_UPLOAD,
+			AutomationConstants.NODE_STORAGE_DELETE,
+			AutomationConstants.NODE_VECTOR_ADD,
+			AutomationConstants.NODE_VECTOR_DELETE);
 
 	private AutomationProjectUtils() {
 		// utility class
@@ -228,6 +236,11 @@ public final class AutomationProjectUtils {
 			if (actualType != expectedType) {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a " + expectedType
 						+ " engine, but engineId '" + engineId + "' is a " + actualType + " engine.");
+			}
+			if (WRITE_ENGINE_NODE_TYPES.contains(nodeType)
+					&& !SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+				throw new IllegalArgumentException("Automation node '" + nodeId + "' of type '" + nodeType
+						+ "' requires edit access to engineId '" + engineId + "'.");
 			}
 		}
 	}
