@@ -99,8 +99,8 @@ public class S3StorageEngine extends AbstractStorageEngine {
 
 	public static final String S3_REGION_KEY = "S3_REGION";
 	public static final String S3_BUCKET_KEY = "S3_BUCKET";
-	public static final String S3_ACCESS_KEY = "S3_ACCESS";
-	public static final String S3_SECRET_KEY = "S3_SECRET";
+	public static final String S3_ACCESS_KEY = "S3_ACCESS_KEY";
+	public static final String S3_SECRET_KEY = "S3_SECRET_KEY";
 	public static final String S3_ENDPOINT_KEY = "S3_ENDPOINT";
 	public static final String S3_PATH_STYLE_ACCESS_KEY = "S3_PATH_STYLE_ACCESS";
 	public static final String S3_KMS_ID_KEY = "S3_KMS_ID";
@@ -171,20 +171,20 @@ public class S3StorageEngine extends AbstractStorageEngine {
 	}
 
 	/**
-	 * Carries the older property names forward onto the ones this engine reads.
+	 * Carries the MINIO_ property names forward onto the ones this engine reads.
 	 *
-	 * The S3 and MINIO storage types were both backed by a different implementation
-	 * that read its own property names, so smss files already out there use those.
-	 * Anything explicitly set under the current key wins; these are only a
-	 * fallback.
+	 * The MINIO storage type was backed by an implementation that read its own
+	 * property names, so smss files already out there use those. Anything
+	 * explicitly set under the current key wins; these are only a fallback.
+	 *
+	 * The S3 storage type needs no such fallback, since the keys here are the same
+	 * ones its previous implementation read.
 	 *
 	 * @param smssProp the properties being opened, updated in place
 	 */
 	protected void migrateLegacyProperties(Properties smssProp) {
-		migrateLegacyProperty(smssProp, S3_ACCESS_KEY, RCloneS3StorageEngine.S3_ACCESS_KEY,
-				RCloneMinioStorageEngine.MINIO_ACCESS_KEY);
-		migrateLegacyProperty(smssProp, S3_SECRET_KEY, RCloneS3StorageEngine.S3_SECRET_KEY,
-				RCloneMinioStorageEngine.MINIO_SECRET_KEY);
+		migrateLegacyProperty(smssProp, S3_ACCESS_KEY, RCloneMinioStorageEngine.MINIO_ACCESS_KEY);
+		migrateLegacyProperty(smssProp, S3_SECRET_KEY, RCloneMinioStorageEngine.MINIO_SECRET_KEY);
 		migrateLegacyProperty(smssProp, S3_REGION_KEY, RCloneMinioStorageEngine.MINIO_REGION_KEY);
 		migrateLegacyProperty(smssProp, S3_BUCKET_KEY, RCloneMinioStorageEngine.MINIO_BUCKET_KEY);
 		migrateLegacyProperty(smssProp, S3_ENDPOINT_KEY, RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY);

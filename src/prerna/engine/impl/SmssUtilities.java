@@ -51,7 +51,6 @@ import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
 import prerna.engine.impl.storage.RCloneMinioStorageEngine;
-import prerna.engine.impl.storage.RCloneS3StorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
@@ -88,13 +87,12 @@ public class SmssUtilities {
 			S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 			AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
 			AzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
-			GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(),
+			GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(), 
 
-			// storage - older key names. Still read by the RClone engines, and still
+			// storage - other key names. Still read by the RClone engines, and still
 			// accepted as a fallback by the engines that replaced them, so an smss out
 			// there can hold a secret under any of these
-			RCloneS3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
-			RCloneS3StorageEngine.S3_SECRET_KEY.toUpperCase(),
+			GoogleCloudStorageEngine.GCP_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(),
 			RCloneMinioStorageEngine.MINIO_ACCESS_KEY.toUpperCase(),
 			RCloneMinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(), 
 			RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),

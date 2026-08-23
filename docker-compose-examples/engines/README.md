@@ -189,8 +189,8 @@ STORAGE_TYPE            MINIO
 S3_ENDPOINT             http://semoss-minio:9000   (SEMOSS in Docker; use http://localhost:9100 if SEMOSS runs on host)
 S3_REGION               us-east-1
 S3_BUCKET               semoss
-S3_ACCESS               minioadmin
-S3_SECRET               minioadmin
+S3_ACCESS_KEY           minioadmin
+S3_SECRET_KEY           minioadmin
 S3_PATH_STYLE_ACCESS    <optional; defaults to true for MINIO, see below>
 S3_KMS_ID               <optional; leave unset for MinIO, it has no KMS>
 ```
