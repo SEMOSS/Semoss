@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -94,8 +93,6 @@ public final class AutomationMcpSync {
 					LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE)));
 			Files.writeString(output, document.toString(4), StandardCharsets.UTF_8);
 			MCPUtility.addMCPTag(project);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to synchronize automation MCP tools.", e);
 		} catch (Exception e) {
 			classLogger.warn("Unable to synchronize automation MCP tools for project {}", projectId, e);
 		}
