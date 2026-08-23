@@ -246,16 +246,19 @@ public final class CentralCloudStorage implements ICloudClient {
 				|| ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("GOOGLE")) {
 
 			centralStorageEngine = new GoogleCloudStorageEngine();
+			// every one of these answers to a GCS_ and a GCP_ name, with GCS_ winning
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY, clientProps,
-					AbstractClientBuilder.GCP_SERVICE_ACCOUNT_FILE_KEY);
+					GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_FILE_KEY,
+					GoogleCloudStorageEngine.GCP_SERVICE_ACCOUNT_FILE_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY, clientProps,
-					GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY);
+					GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY,
+					GoogleCloudStorageEngine.GCP_SERVICE_ACCOUNT_JSON_KEY);
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_BUCKET_KEY, clientProps,
-					AbstractClientBuilder.GCP_BUCKET_KEY);
-			// not one of the cloud client keys. When it is absent the engine reads it
-			// out of the service account credential
+					GoogleCloudStorageEngine.GCS_BUCKET_KEY, GoogleCloudStorageEngine.GCP_BUCKET_KEY);
+			// when this is absent the engine reads it out of the service account
+			// credential
 			propertiesMigratePut(props, GoogleCloudStorageEngine.GCS_PROJECT_ID, clientProps,
-					GoogleCloudStorageEngine.GCS_PROJECT_ID);
+					GoogleCloudStorageEngine.GCS_PROJECT_ID, GoogleCloudStorageEngine.GCP_PROJECT_ID);
 
 		} else if (ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("LOCAL_FILE_SYSTEM")) {
 
@@ -365,10 +368,24 @@ public final class CentralCloudStorage implements ICloudClient {
 		return new IOException(e);
 	}
 
+	/**
+	 * Copies the first of {@code lookupKeys} that resolves to a value onto
+	 * {@code propKey}. Several of these settings answer to more than one name, so
+	 * the order the keys are passed in is the order of preference.
+	 *
+	 * @param prop        the engine properties being assembled, updated in place
+	 * @param propKey     the key the engine reads
+	 * @param clientProps the resolver, checking RDF_Map then the environment
+	 * @param lookupKeys  the names to look the value up under, most preferred first
+	 */
 	private static void propertiesMigratePut(Properties prop, String propKey, AppCloudClientProperties clientProps,
-			String oldKey) {
-		if (clientProps.get(oldKey) != null) {
-			prop.put(propKey, clientProps.get(oldKey));
+			String... lookupKeys) {
+		for (String lookupKey : lookupKeys) {
+			String value = clientProps.get(lookupKey);
+			if (value != null) {
+				prop.put(propKey, value);
+				return;
+			}
 		}
 	}
 

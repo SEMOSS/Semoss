@@ -80,6 +80,14 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 	public static final String GCS_PROJECT_ID = "GCS_PROJECT_ID";
 
+	// GCP_ prefixed spelling of every key above, accepted as a fallback when the
+	// GCS_ one is not set. The central cloud storage client keys use this prefix,
+	// as do smss files written against it
+	public static final String GCP_SERVICE_ACCOUNT_FILE_KEY = "GCP_SERVICE_ACCOUNT_FILE";
+	public static final String GCP_SERVICE_ACCOUNT_JSON_KEY = "GCP_SERVICE_ACCOUNT_JSON";
+	public static final String GCP_BUCKET_KEY = "GCP_BUCKET";
+	public static final String GCP_PROJECT_ID = "GCP_PROJECT_ID";
+
 	// files at or under this go out in a single request, which costs one round trip
 	// and caps how much of a file is ever held in the heap. Larger files stream in
 	// chunks instead.
@@ -136,16 +144,26 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	/**
-	 * Fills in the project id when an older smss did not carry one.
+	 * Resolves the GCP_ prefixed spelling of each key onto the GCS_ one this engine
+	 * reads, then fills in the project id when the smss does not carry one.
 	 *
-	 * The previous implementation of this storage type did not need a project id,
-	 * so smss files already out there do not set it. The service account json holds
-	 * the project it belongs to, so it can be recovered rather than making every
-	 * catalog be edited by hand.
+	 * Both prefixes are in use - the central cloud storage client keys are GCP_,
+	 * the storage catalogs are GCS_ - so either is accepted for every key. The GCS_
+	 * one wins whenever it is set.
+	 *
+	 * An implementation of this storage type that did not need a project id came
+	 * first, so smss files already out there do not set one. The service account
+	 * json holds the project it belongs to, so it can be recovered rather than
+	 * making every catalog be edited by hand.
 	 *
 	 * @param smssProp the properties being opened, updated in place
 	 */
 	protected void migrateLegacyProperties(Properties smssProp) {
+		migrateLegacyProperty(smssProp, GCS_SERVICE_ACCOUNT_FILE_KEY, GCP_SERVICE_ACCOUNT_FILE_KEY);
+		migrateLegacyProperty(smssProp, GCS_SERVICE_ACCOUNT_JSON_KEY, GCP_SERVICE_ACCOUNT_JSON_KEY);
+		migrateLegacyProperty(smssProp, GCS_BUCKET_KEY, GCP_BUCKET_KEY);
+		migrateLegacyProperty(smssProp, GCS_PROJECT_ID, GCP_PROJECT_ID);
+
 		String projectId = smssProp.getProperty(GCS_PROJECT_ID);
 		if (projectId != null && !projectId.trim().isEmpty()) {
 			return;
