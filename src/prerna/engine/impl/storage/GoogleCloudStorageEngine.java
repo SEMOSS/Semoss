@@ -27,10 +27,11 @@
  *******************************************************************************/
 package prerna.engine.impl.storage;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -40,6 +41,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -74,6 +76,7 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCloudStorageEngine.class);
 
 	public static final String GCS_SERVICE_ACCOUNT_FILE_KEY = "GCS_SERVICE_ACCOUNT_FILE";
+	public static final String GCS_SERVICE_ACCOUNT_JSON_KEY = "GCS_SERVICE_ACCOUNT_JSON";
 	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 	public static final String GCS_PROJECT_ID = "GCS_PROJECT_ID";
 
@@ -89,6 +92,7 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	private static final int UPLOAD_CHUNK_SIZE_BYTES = 8 * 1024 * 1024;
 
 	private transient String GCP_SERVICE_ACCOUNT_FILE = null;
+	private transient String GCP_SERVICE_ACCOUNT_JSON = null;
 	private transient String BUCKET;
 	private transient String PROJECT_ID = null;
 	private transient Storage storage;
@@ -103,6 +107,7 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 		// Load properties
 		this.PROJECT_ID = smssProp.getProperty(GCS_PROJECT_ID);
 		this.GCP_SERVICE_ACCOUNT_FILE = smssProp.getProperty(GCS_SERVICE_ACCOUNT_FILE_KEY);
+		this.GCP_SERVICE_ACCOUNT_JSON = smssProp.getProperty(GCS_SERVICE_ACCOUNT_JSON_KEY);
 		this.BUCKET = smssProp.getProperty(GCS_BUCKET_KEY);
 		// Validate required properties
 		if (this.BUCKET == null || this.BUCKET.isEmpty()) {
@@ -111,8 +116,12 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 		if (this.PROJECT_ID == null || this.PROJECT_ID.isEmpty()) {
 			throw new IllegalArgumentException("Project ID is missing in properties.");
 		}
-		if (this.GCP_SERVICE_ACCOUNT_FILE == null || this.GCP_SERVICE_ACCOUNT_FILE.isEmpty()) {
-			throw new IllegalArgumentException("Service account file is missing in properties.");
+		boolean hasInlineJson = this.GCP_SERVICE_ACCOUNT_JSON != null
+				&& !this.GCP_SERVICE_ACCOUNT_JSON.trim().isEmpty();
+		boolean hasFile = this.GCP_SERVICE_ACCOUNT_FILE != null && !this.GCP_SERVICE_ACCOUNT_FILE.trim().isEmpty();
+		if (!hasInlineJson && !hasFile) {
+			throw new IllegalArgumentException("Set the service account credential with either "
+					+ GCS_SERVICE_ACCOUNT_JSON_KEY + " or " + GCS_SERVICE_ACCOUNT_FILE_KEY + ".");
 		}
 		// Create service client
 		createServiceClient();
@@ -142,31 +151,77 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 			return;
 		}
 
-		String serviceAccountFile = smssProp.getProperty(GCS_SERVICE_ACCOUNT_FILE_KEY);
-		if (serviceAccountFile == null || serviceAccountFile.trim().isEmpty()) {
-			// nothing to recover it from, open() reports the missing project id
-			return;
-		}
-
 		try {
-			String json = new String(Files.readAllBytes(Paths.get(Utility.normalizePath(serviceAccountFile.trim()))),
-					StandardCharsets.UTF_8);
+			String json = readServiceAccountJson(smssProp.getProperty(GCS_SERVICE_ACCOUNT_JSON_KEY),
+					smssProp.getProperty(GCS_SERVICE_ACCOUNT_FILE_KEY));
+			if (json == null) {
+				// nothing to recover it from, open() reports what is missing
+				return;
+			}
 			Map<?, ?> serviceAccount = GSON.fromJson(json, Map.class);
 			Object projectFromFile = serviceAccount == null ? null : serviceAccount.get("project_id");
 			if (projectFromFile != null && !projectFromFile.toString().trim().isEmpty()) {
 				smssProp.put(GCS_PROJECT_ID, projectFromFile.toString().trim());
-				classLogger.warn("{} was not set, using the project_id found in the service account file. "
+				classLogger.warn("{} was not set, using the project_id found in the service account credential. "
 						+ "The smss should be updated to set it explicitly.", GCS_PROJECT_ID);
 			}
 		} catch (Exception e) {
-			classLogger.error("Unable to read a project id out of the service account file: {}", serviceAccountFile, e);
+			classLogger.error("Unable to read a project id out of the service account credential", e);
 		}
 	}
 
+	/**
+	 * Reads the service account json, from wherever the smss keeps it.
+	 *
+	 * The credential can be given inline or as a path to the file Google hands out.
+	 * Inline wins when both are set.
+	 *
+	 * Inline is accepted either as base64 or as the json itself, because an smss is
+	 * a java properties file and the json does not survive it unaltered. A service
+	 * account's private_key holds \n sequences, and Properties turns each one into
+	 * a real newline while loading, which lands a raw line break inside a json
+	 * string and makes it unparseable. Base64 has no character properties files
+	 * treat specially, so it round trips. Raw json is still read for a hand written
+	 * smss where the backslashes were doubled.
+	 *
+	 * @param inlineValue     the inline credential, base64 or json, may be null
+	 * @param serviceFilePath path to the service account file, may be null
+	 * @return the json, or null when neither was set
+	 * @throws IOException if the file cannot be read
+	 */
+	private String readServiceAccountJson(String inlineValue, String serviceFilePath) throws IOException {
+		if (inlineValue != null && !inlineValue.trim().isEmpty()) {
+			String trimmed = inlineValue.trim();
+			if (trimmed.startsWith("{")) {
+				return trimmed;
+			}
+			try {
+				return new String(Base64.getDecoder().decode(trimmed), StandardCharsets.UTF_8);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(GCS_SERVICE_ACCOUNT_JSON_KEY
+						+ " is neither valid base64 nor json starting with '{'. Base64 encode the service account "
+						+ "file, since the json itself does not survive being stored in an smss.", e);
+			}
+		}
+
+		if (serviceFilePath != null && !serviceFilePath.trim().isEmpty()) {
+			return new String(Files.readAllBytes(Paths.get(Utility.normalizePath(serviceFilePath.trim()))),
+					StandardCharsets.UTF_8);
+		}
+
+		return null;
+	}
+
 	public void createServiceClient() throws FileNotFoundException, IOException {
-		this.storage = StorageOptions.newBuilder().setProjectId(this.PROJECT_ID)
-				.setCredentials(GoogleCredentials.fromStream(new FileInputStream(this.GCP_SERVICE_ACCOUNT_FILE)))
-				.build().getService();
+		String json = readServiceAccountJson(this.GCP_SERVICE_ACCOUNT_JSON, this.GCP_SERVICE_ACCOUNT_FILE);
+		if (json == null) {
+			throw new IllegalArgumentException("Set the service account credential with either "
+					+ GCS_SERVICE_ACCOUNT_JSON_KEY + " or " + GCS_SERVICE_ACCOUNT_FILE_KEY + ".");
+		}
+		try (InputStream credentialStream = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8))) {
+			this.storage = StorageOptions.newBuilder().setProjectId(this.PROJECT_ID)
+					.setCredentials(GoogleCredentials.fromStream(credentialStream)).build().getService();
+		}
 		classLogger.info("Google cloud storage Service client created successfully.");
 	}
 

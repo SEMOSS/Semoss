@@ -48,6 +48,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
+import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
 import prerna.engine.impl.storage.RCloneMinioStorageEngine;
 import prerna.engine.impl.storage.RCloneS3StorageEngine;
@@ -69,7 +70,7 @@ public class SmssUtilities {
 
 	// @formatter:off
 	public static final List<String> SENSITIVE_KEYWORDS = Arrays.asList(
-			// standard
+			// standard 
 			AbstractSqlQueryUtil.PASSWORD.toUpperCase(), 
 			AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
 			Constants.API_KEY,
@@ -86,6 +87,8 @@ public class SmssUtilities {
 			S3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
 			S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 			AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
+			AzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
+			GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(),
 
 			// storage - older key names. Still read by the RClone engines, and still
 			// accepted as a fallback by the engines that replaced them, so an smss out
