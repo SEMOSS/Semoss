@@ -40,6 +40,13 @@ import java.util.TreeMap;
 
 import com.google.gson.JsonParseException;
 
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.insert.Insert;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.update.Update;
+
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
@@ -113,6 +120,7 @@ public final class AutomationDefinitionValidator {
 
 		Map<String, String> nodeTypes = validateNodes(nodes);
 		validateEdges(edges, nodeTypes);
+		validateControlPath(edges, nodeTypes);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -174,6 +182,9 @@ public final class AutomationDefinitionValidator {
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)
 					&& !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
+			}
+			if (!AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
+				validateGeneratedSql(nodeId, nodeType, nodeConfig);
 			}
 		}
 		if (startCount != 1) {
@@ -321,6 +332,56 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
+	private static void validateGeneratedSql(String nodeId, String nodeType, Map<String, Object> config) {
+		if (!AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType)
+				&& !AutomationConstants.NODE_DATABASE_INSERT.equals(nodeType)
+				&& !AutomationConstants.NODE_DATABASE_UPDATE.equals(nodeType)) {
+			return;
+		}
+		String query = (String) config.get("query");
+		if (query.contains("${")) {
+			throw new IllegalArgumentException("Generated database node '" + nodeId
+					+ "' cannot use unresolved placeholders until bound SQL parameters are supported.");
+		}
+
+		List<Statement> statements;
+		try {
+			statements = CCJSqlParserUtil.parseStatements(query).getStatements();
+		} catch (JSQLParserException e) {
+			throw new IllegalArgumentException("Generated database node '" + nodeId
+					+ "' contains invalid SQL: " + e.getMessage(), e);
+		}
+		if (statements == null || statements.size() != 1) {
+			throw new IllegalArgumentException("Generated database node '" + nodeId
+					+ "' must contain exactly one SQL statement.");
+		}
+
+		Statement statement = statements.get(0);
+		if (AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType) && !(statement instanceof Select)) {
+			throw new IllegalArgumentException("Database query node '" + nodeId
+					+ "' must contain a SELECT or WITH statement.");
+		}
+		if (AutomationConstants.NODE_DATABASE_INSERT.equals(nodeType) && !(statement instanceof Insert)) {
+			throw new IllegalArgumentException("Database insert node '" + nodeId
+					+ "' must contain an INSERT statement.");
+		}
+		if (AutomationConstants.NODE_DATABASE_UPDATE.equals(nodeType)) {
+			if (!(statement instanceof Update update)) {
+				throw new IllegalArgumentException("Database update node '" + nodeId
+						+ "' must contain an UPDATE statement.");
+			}
+			Object allowFullTable = config.get("allowFullTable");
+			if (allowFullTable != null && !(allowFullTable instanceof Boolean)) {
+				throw new IllegalArgumentException("Database update node '" + nodeId
+						+ "' config.allowFullTable must be a boolean.");
+			}
+			if (update.getWhere() == null && !Boolean.TRUE.equals(allowFullTable)) {
+				throw new IllegalArgumentException("Database update node '" + nodeId
+						+ "' requires a WHERE clause unless config.allowFullTable is true.");
+			}
+		}
+	}
+
 	private static void validateEdges(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
 		Set<String> edgeIds = new HashSet<>();
 		for (int index = 0; index < edges.size(); index++) {
@@ -350,6 +411,41 @@ public final class AutomationDefinitionValidator {
 					"graph.edges[" + index + "].sourcePort");
 			requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_TARGET_PORT),
 					"graph.edges[" + index + "].targetPort");
+		}
+	}
+
+	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
+		String start = null;
+		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
+			if (AutomationConstants.NODE_START.equals(node.getValue())) {
+				start = node.getKey();
+				break;
+			}
+		}
+
+		Map<String, String> outgoing = new HashMap<>();
+		for (Map<String, Object> edge : edges) {
+			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				continue;
+			}
+			String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
+			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
+			if (outgoing.putIfAbsent(source, target) != null) {
+				throw new IllegalArgumentException("Automation supports only one outgoing control edge per node.");
+			}
+		}
+
+		Set<String> visited = new HashSet<>();
+		String current = start;
+		while (current != null) {
+			if (!visited.add(current)) {
+				throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
+			}
+			current = outgoing.get(current);
+		}
+		if (visited.size() != nodeTypes.size()) {
+			throw new IllegalArgumentException(
+					"Every automation node must be connected to trigger.start by control edges.");
 		}
 	}
 
