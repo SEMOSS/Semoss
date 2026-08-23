@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,6 +46,12 @@ final class AutomationPythonRunRegistry {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationPythonRunRegistry.class);
 	private static final ConcurrentHashMap<String, ActivePythonRun> RUNS = new ConcurrentHashMap<>();
+	private static final ScheduledExecutorService HEARTBEAT_SCHEDULER =
+			Executors.newSingleThreadScheduledExecutor(r -> {
+				Thread thread = new Thread(r, "automation-python-heartbeat");
+				thread.setDaemon(true);
+				return thread;
+			});
 
 	private AutomationPythonRunRegistry() {
 	}
@@ -54,7 +61,7 @@ final class AutomationPythonRunRegistry {
 		if (RUNS.putIfAbsent(runId, active) != null) {
 			throw new IllegalStateException("Python automation run is already registered: " + runId);
 		}
-		active.heartbeat.scheduleAtFixedRate(() -> {
+		active.heartbeat = HEARTBEAT_SCHEDULER.scheduleAtFixedRate(() -> {
 			try {
 				AutomationDatabaseUtility.touchHeartbeat(runId);
 			} catch (Exception e) {
@@ -66,14 +73,9 @@ final class AutomationPythonRunRegistry {
 
 	static void unregister(String runId) {
 		ActivePythonRun active = RUNS.remove(runId);
-		if (active != null) {
-			active.heartbeat.shutdownNow();
+		if (active != null && active.heartbeat != null) {
+			active.heartbeat.cancel(false);
 		}
-	}
-
-	static AtomicBoolean cancelFlag(String runId) {
-		ActivePythonRun active = RUNS.get(runId);
-		return active != null ? active.cancelled : new AtomicBoolean(AutomationDatabaseUtility.isCancelRequested(runId));
 	}
 
 	static boolean isCancellationRequested(String runId) {
@@ -110,11 +112,7 @@ final class AutomationPythonRunRegistry {
 		private final String jobId;
 		private final AtomicBoolean cancelled = new AtomicBoolean();
 		private final AtomicInteger completedNodes = new AtomicInteger();
-		private final ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor(r -> {
-			Thread thread = new Thread(r, "automation-python-heartbeat");
-			thread.setDaemon(true);
-			return thread;
-		});
+		private ScheduledFuture<?> heartbeat;
 
 		private ActivePythonRun(PyTranslator translator, String insightId, String jobId) {
 			this.translator = translator;

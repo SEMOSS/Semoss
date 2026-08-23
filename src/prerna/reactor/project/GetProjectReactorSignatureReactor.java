@@ -25,9 +25,6 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *******************************************************************************/
 package prerna.reactor.project;
 
 import java.util.ArrayList;
