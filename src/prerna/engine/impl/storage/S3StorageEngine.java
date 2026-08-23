@@ -115,23 +115,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 	// S3 will not accept more than this many parts for one object
 	private static final int MULTIPART_MAX_PARTS = 10000;
 
-	// older property names this engine still accepts. The types that used to be
-	// backed by a different implementation wrote these instead, and the smss files
-	// out there have not been rewritten
-	private static final String LEGACY_S3_ACCESS_KEY = "S3_ACCESS_KEY";
-	private static final String LEGACY_S3_SECRET_KEY = "S3_SECRET_KEY";
-	private static final String LEGACY_MINIO_ACCESS_KEY = "MINIO_ACCESS_KEY";
-	private static final String LEGACY_MINIO_SECRET_KEY = "MINIO_SECRET_KEY";
-	private static final String LEGACY_MINIO_REGION_KEY = "MINIO_REGION";
-	private static final String LEGACY_MINIO_BUCKET_KEY = "MINIO_BUCKET";
-	private static final String LEGACY_MINIO_ENDPOINT_KEY = "MINIO_ENDPOINT";
-	// public so the masking list can name them - the Ceph type no longer has an
-	// engine class of its own that owns these
-	public static final String LEGACY_CEPH_ACCESS_KEY = "CEPH_ACCESS_KEY";
-	public static final String LEGACY_CEPH_SECRET_KEY = "CEPH_SECRET_KEY";
-	private static final String LEGACY_CEPH_BUCKET_KEY = "CEPH_BUCKET";
-	private static final String LEGACY_CEPH_ENDPOINT_KEY = "CEPH_ENDPOINT";
-
 	private transient String accessKey;
 	private transient String secretKey;
 	private transient String region;
@@ -190,21 +173,21 @@ public class S3StorageEngine extends AbstractStorageEngine {
 	/**
 	 * Carries the older property names forward onto the ones this engine reads.
 	 *
-	 * The S3, MINIO and CEPH storage types were all backed by a different
-	 * implementation that read its own property names, so smss files already out
-	 * there use those. Anything explicitly set under the current key wins; these
-	 * are only a fallback.
+	 * The S3 and MINIO storage types were both backed by a different implementation
+	 * that read its own property names, so smss files already out there use those.
+	 * Anything explicitly set under the current key wins; these are only a
+	 * fallback.
 	 *
 	 * @param smssProp the properties being opened, updated in place
 	 */
 	protected void migrateLegacyProperties(Properties smssProp) {
-		migrateLegacyProperty(smssProp, S3_ACCESS_KEY, LEGACY_S3_ACCESS_KEY, LEGACY_MINIO_ACCESS_KEY,
-				LEGACY_CEPH_ACCESS_KEY);
-		migrateLegacyProperty(smssProp, S3_SECRET_KEY, LEGACY_S3_SECRET_KEY, LEGACY_MINIO_SECRET_KEY,
-				LEGACY_CEPH_SECRET_KEY);
-		migrateLegacyProperty(smssProp, S3_REGION_KEY, LEGACY_MINIO_REGION_KEY);
-		migrateLegacyProperty(smssProp, S3_BUCKET_KEY, LEGACY_MINIO_BUCKET_KEY, LEGACY_CEPH_BUCKET_KEY);
-		migrateLegacyProperty(smssProp, S3_ENDPOINT_KEY, LEGACY_MINIO_ENDPOINT_KEY, LEGACY_CEPH_ENDPOINT_KEY);
+		migrateLegacyProperty(smssProp, S3_ACCESS_KEY, RCloneS3StorageEngine.S3_ACCESS_KEY,
+				RCloneMinioStorageEngine.MINIO_ACCESS_KEY);
+		migrateLegacyProperty(smssProp, S3_SECRET_KEY, RCloneS3StorageEngine.S3_SECRET_KEY,
+				RCloneMinioStorageEngine.MINIO_SECRET_KEY);
+		migrateLegacyProperty(smssProp, S3_REGION_KEY, RCloneMinioStorageEngine.MINIO_REGION_KEY);
+		migrateLegacyProperty(smssProp, S3_BUCKET_KEY, RCloneMinioStorageEngine.MINIO_BUCKET_KEY);
+		migrateLegacyProperty(smssProp, S3_ENDPOINT_KEY, RCloneMinioStorageEngine.MINIO_ENDPOINT_KEY);
 	}
 
 	public void createServiceClient() {

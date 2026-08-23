@@ -96,12 +96,10 @@ public class SmssUtilities {
 			RCloneS3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
 			RCloneS3StorageEngine.S3_SECRET_KEY.toUpperCase(),
 			RCloneMinioStorageEngine.MINIO_ACCESS_KEY.toUpperCase(),
-			RCloneMinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(),
+			RCloneMinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(), 
 			RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
 			RCloneAzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
-			S3StorageEngine.LEGACY_CEPH_ACCESS_KEY.toUpperCase(),
-			S3StorageEngine.LEGACY_CEPH_SECRET_KEY.toUpperCase(),
- 
+
 			// TODO should create a constants for this
 			"SERVICE_ACCOUNT_CREDENTIALS"
 		);

@@ -53,7 +53,8 @@ public enum StorageTypeEnum {
 	
 	JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
 	LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
-	DEVELOPER_LOCAL_FILE_SYSTEM("DEVELOPER_LOCAL_FILE_SYSTEM", DeveloperLocalFileSystemStorageEngine.class.getName()),
+	@Deprecated
+	DEVELOPER_LOCAL_FILE_SYSTEM("DEVELOPER_LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
 	
 	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
 	@Deprecated

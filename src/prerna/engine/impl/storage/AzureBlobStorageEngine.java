@@ -93,10 +93,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	private static final long SINGLE_UPLOAD_SIZE_BYTES = 256L * 1024 * 1024;
 	private static final int UPLOAD_BLOCK_CONCURRENCY = 16;
 
-	// the account key. Paired with AZ_ACCOUNT_NAME it becomes a connection string,
-	// which is how smss files written for the previous implementation are read
-	private static final String LEGACY_AZ_PRIMARY_KEY = "AZ_PRIMARY_KEY";
-
 	private transient String connectionString = null;
 	private transient String accountName = null;
 	private transient String sasUrl = null;
@@ -147,7 +143,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		String legacyAccountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
-		String primaryKey = smssProp.getProperty(LEGACY_AZ_PRIMARY_KEY);
+		String primaryKey = smssProp.getProperty(RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY);
 		if (legacyAccountName != null && !legacyAccountName.trim().isEmpty() && primaryKey != null
 				&& !primaryKey.trim().isEmpty()) {
 			smssProp.put(AZ_CONN_STRING, "DefaultEndpointsProtocol=https;AccountName=" + legacyAccountName.trim()
@@ -155,7 +151,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			classLogger.warn(
 					"Azure Blob engine is still configured with {} and {}. Building a connection string from them for "
 							+ "now, but the smss should be updated to set {}.",
-					AZ_ACCOUNT_NAME, LEGACY_AZ_PRIMARY_KEY, AZ_CONN_STRING);
+					AZ_ACCOUNT_NAME, RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY, AZ_CONN_STRING);
 		}
 	}
 
@@ -257,6 +253,27 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	 */
 	private boolean isContainerScoped() {
 		return this.sasContainerName != null;
+	}
+
+	/**
+	 * Container client for a path being written to, creating the container when it
+	 * is not there yet.
+	 *
+	 * Writing is the only place this happens. A read or a delete against a missing
+	 * container is a caller mistake worth surfacing, but a write cannot land
+	 * without one, and callers that lay out a container per engine have no earlier
+	 * point to create it. This is also what the rclone azureblob backend does on
+	 * copy, so it keeps that behavior.
+	 *
+	 * @param containerName the container being written to
+	 * @return the client, with the container guaranteed to exist
+	 */
+	private BlobContainerClient writableContainerClient(String containerName) {
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		if (containerClient.createIfNotExists()) {
+			classLogger.info("Created container: {}", containerName);
+		}
+		return containerClient;
 	}
 
 	@Override
@@ -365,7 +382,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		String containerName = containerAndPath[0];
 		String blobDirectory = containerAndPath[1];
 
-		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		BlobContainerClient containerClient = writableContainerClient(containerName);
 		Path localFilePath = Paths.get(localPath);
 
 		List<String> uploadedFiles = new ArrayList<>();
@@ -554,7 +571,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		List<String> uploadedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
 		boolean found = false;
-		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		BlobContainerClient containerClient = writableContainerClient(containerName);
 		List<Path> paths = parseLocalPaths(localFilePath);
 
 		// gather everything first so it can all go out together
