@@ -48,6 +48,9 @@ import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.project.GetProjectAvailableReactorsReactor;
+import prerna.reactor.project.GetProjectReactorSignatureReactor;
+import prerna.reactor.project.MyProjectsReactor;
 import prerna.reactor.security.MyEnginesReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.AssetUtility;
@@ -70,6 +73,9 @@ public final class AutomationMcpSync {
 		try {
 			JSONArray generated = new JSONArray()
 					.put(myEnginesTool())
+					.put(myProjectsTool())
+					.put(projectReactorsTool())
+					.put(projectReactorSignatureTool())
 					.put(getAutomationTool(projectId))
 					.put(triggerTool(projectId, definitionJson))
 					.put(addStepTool(projectId))
@@ -119,6 +125,65 @@ public final class AutomationMcpSync {
 		JSONObject inputSchema = tool.getJSONObject("inputSchema");
 		inputSchema.put("properties", properties);
 		inputSchema.put("required", new JSONArray());
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
+	}
+
+	private static JSONObject myProjectsTool() {
+		JSONObject tool = new MyProjectsReactor().asMcpTool();
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.FILTER_WORD.getKey(), new JSONObject().put("type", "string")
+				.put("description", "Optional search text for an app or agent name or ID."));
+		properties.put(ReactorKeysEnum.PROJECT_TYPE.getKey(), new JSONObject().put("type", "array")
+				.put("items", new JSONObject().put("type", "string")
+						.put("enum", new JSONArray()
+								.put(IProject.PROJECT_TYPE.CODE.name())
+								.put(IProject.PROJECT_TYPE.BLOCKS.name())
+								.put(IProject.PROJECT_TYPE.WORKSPACE.name())))
+				.put("minItems", 1).put("maxItems", 2).put("uniqueItems", true)
+				.put("description", "Required catalog filter. Pass ['WORKSPACE'] for agents or "
+						+ "['CODE','BLOCKS'] for apps."));
+		properties.put(ReactorKeysEnum.LIMIT.getKey(), new JSONObject().put("type", "integer")
+				.put("minimum", 1).put("description", "Optional maximum number of accessible projects to return."));
+		properties.put(ReactorKeysEnum.OFFSET.getKey(), new JSONObject().put("type", "integer")
+				.put("minimum", 0).put("description", "Optional result offset."));
+
+		tool.put("title", "My Projects");
+		tool.put("description", "List apps or agents the current user can access. Call with "
+				+ "projectType=['WORKSPACE'] for agent.run or projectType=['CODE','BLOCKS'] for app.pixel. "
+				+ "Use a returned project_id exactly; never invent or normalize a project ID.");
+		JSONObject inputSchema = tool.getJSONObject("inputSchema");
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT_TYPE.getKey()));
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
+	}
+
+	private static JSONObject projectReactorsTool() {
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), stringProperty(
+				"Exact CODE or BLOCKS project_id returned by MyProjects."));
+		JSONObject tool = tool(new GetProjectAvailableReactorsReactor().asMcpTool().getString("name"),
+				"Get Project Available Reactors",
+				"List the exact custom reactor names available in an accessible app. Call this after MyProjects "
+						+ "and before authoring app.pixel; never guess a reactor name or its capitalization.",
+				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
+	}
+
+	private static JSONObject projectReactorSignatureTool() {
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.PROJECT.getKey(), stringProperty(
+				"Exact CODE or BLOCKS project_id returned by MyProjects."));
+		properties.put("reactor", stringProperty(
+				"Exact case-sensitive reactor name returned by GetProjectAvailableReactors."));
+		JSONObject tool = tool(new GetProjectReactorSignatureReactor().asMcpTool().getString("name"),
+				"Get Project Reactor Signature",
+				"Return the required parameters and executable template for one accessible app reactor. Call this "
+						+ "before authoring app.pixel and use its exact template with concrete values or valid upstream "
+						+ "placeholders.",
+				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("reactor"));
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		return tool;
 	}
@@ -182,13 +247,20 @@ public final class AutomationMcpSync {
 				+ "optionally systemPrompt and paramValues. model.embeddings requires engineId and text. "
 				+ "storage nodes require engineId and path; upload/download also require destination. "
 				+ "vector nodes require engineId and value; vector.search may include limit. "
-				+ "function.execute requires engineId and arguments. app.pixel requires pixel. "
+				+ "function.execute requires engineId and arguments. For app.pixel, call MyProjects with "
+				+ "projectType=['CODE','BLOCKS'], use its project_id exactly as appId, then call "
+				+ "GetProjectAvailableReactors and GetProjectReactorSignature; pixel must use the exact reactor "
+				+ "name and every required argument from the returned template. Do not put APP or LoadApp inside "
+				+ "pixel because appId owns the scoped app context. "
+				+ "Before configuring agent.run, call MyProjects with projectType=['WORKSPACE'] and use a returned "
+				+ "project_id exactly as workspaceId; also call MyEngines filtered to MODEL and use its engine_id. "
 				+ "agent.run requires workspaceId, engineId, and command; the runtime creates its room. It supports "
 				+ "harnessType, "
 				+ "maxTurns, maxReflections, waitTimeoutMs, paramValues, and agentParams; it always waits "
 				+ "for a durable terminal or input-required status before continuing. "
 				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
-				+ "that no supported engine node can perform; it requires source defining run(scope). "
+				+ "that no supported engine node can perform; it requires source defining run(scope). Never use "
+				+ "developer.python to invoke a SEMOSS agent or emulate agent.run. "
 				+ "Use ${prior_output} to reference an upstream output. Field values are executable configuration, "
 				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
 				+ "or arguments."));
@@ -198,7 +270,10 @@ public final class AutomationMcpSync {
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
 						+ "Prefer an engine-backed node whenever it "
-						+ "supports the task; use developer.python only for an unavailable external integration. "
+						+ "supports the task. App reactor work must use app.pixel with a MyProjects result and inspected "
+						+ "reactor signature. Agent work must use agent.run with a MyProjects result; never create a "
+						+ "Python agent client or workspace wrapper. Use developer.python only for an unavailable "
+						+ "external integration. "
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
@@ -224,7 +299,10 @@ public final class AutomationMcpSync {
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeId", stringProperty("Existing generated node ID."));
 		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
-				+ "engine-backed node, call MyEngines and use the returned engine_id exactly."));
+				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
+				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
+				+ "For app.pixel, use an appId from MyProjects projectType=['CODE','BLOCKS'] and a pixel template "
+				+ "from GetProjectReactorSignature."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
 				"Call GetAutomation first. Apply the user's requested change to one generated node's direct "

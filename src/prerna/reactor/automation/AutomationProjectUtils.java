@@ -229,6 +229,8 @@ public final class AutomationProjectUtils {
 			Map<String, Object> config = (Map<String, Object>) rawConfig;
 			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
 				validateAgentWorkspaceReference(node, config, user);
+			} else if (AutomationConstants.NODE_APP_PIXEL.equals(nodeType)) {
+				validateAppProjectReference(node, config, user);
 			}
 
 			IEngine.CATALOG_TYPE expectedType = expectedEngineType(nodeType);
@@ -293,6 +295,33 @@ public final class AutomationProjectUtils {
 		return new IllegalArgumentException("Automation node '" + nodeId + "' workspaceId '" + workspaceId
 				+ "' is not an active accessible WORKSPACE agent. Call MyProjects with "
 				+ "projectType=['WORKSPACE'] and use its project_id value.");
+	}
+
+	private static void validateAppProjectReference(Map<String, Object> node,
+			Map<String, Object> config, User user) {
+		Object rawAppId = config.get(AutomationConstants.CONFIG_APP_ID);
+		if (rawAppId == null || rawAppId instanceof String appId && appId.isBlank()) {
+			return;
+		}
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		if (!(rawAppId instanceof String appId)) {
+			throw invalidAppReference(nodeId, String.valueOf(rawAppId));
+		}
+		appId = appId.trim();
+		if (!SecurityProjectUtils.userCanViewProject(user, appId)) {
+			throw invalidAppReference(nodeId, appId);
+		}
+		String projectType = SecurityProjectUtils.getProjectTypeForId(appId);
+		if (!(IProject.PROJECT_TYPE.CODE.name().equals(projectType)
+						|| IProject.PROJECT_TYPE.BLOCKS.name().equals(projectType))) {
+			throw invalidAppReference(nodeId, appId);
+		}
+	}
+
+	private static IllegalArgumentException invalidAppReference(String nodeId, String appId) {
+		return new IllegalArgumentException("Automation node '" + nodeId + "' appId '" + appId
+				+ "' is not an accessible CODE or BLOCKS app. Call MyProjects with "
+				+ "projectType=['CODE','BLOCKS'] and use its project_id value.");
 	}
 
 	private static IEngine.CATALOG_TYPE expectedEngineType(String nodeType) {

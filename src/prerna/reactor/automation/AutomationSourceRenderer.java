@@ -294,14 +294,20 @@ public final class AutomationSourceRenderer {
 
 	private static String appPixelSource(Map<String, Object> config) {
 		return """
-				# Run the application Pixel directly in this authenticated Python insight.
+				# Load an optional application context, then run its Pixel.
 				from semoss import Insight
+				import json
 
+				APP_ID = %s
 				PIXEL = %s
 
 				def run(scope):
-				    return Insight().run_pixel(resolve(PIXEL, scope))
-				""".formatted(value(config, "pixel"));
+				    app_id = resolve(APP_ID, scope)
+				    pixel = resolve(PIXEL, scope)
+				    if app_id:
+				        pixel = "LoadApp(project=" + json.dumps(app_id) + "); " + pixel
+				    return Insight().run_pixel(pixel, raw=False)
+				""".formatted(value(config, AutomationConstants.CONFIG_APP_ID), value(config, "pixel"));
 	}
 
 	private static String agentRunSource(Map<String, Object> config) {
