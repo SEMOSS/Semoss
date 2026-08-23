@@ -375,6 +375,53 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
+	public List<Map<String, Object>> listVersions(String storagePath) throws Exception {
+		List<Map<String, Object>> versions = new ArrayList<>();
+
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobName = normalizeStoragePrefixPath(containerAndPath[1]);
+		// versions belong to one blob, so a container or a folder is not something
+		// this can answer for
+		if (blobName.isEmpty()) {
+			throw new IllegalArgumentException("Storage path '" + storagePath + "' does not name a blob. Versions "
+					+ "belong to a single blob, for example mycontainer/myfolder/myfile.txt");
+		}
+
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		ListBlobsOptions listBlobsOptions = new ListBlobsOptions()
+				.setDetails(new BlobListDetails().setRetrieveVersions(true)).setPrefix(blobName);
+
+		for (BlobItem blobItem : containerClient.listBlobs(listBlobsOptions, null)) {
+			// a prefix listing also returns the siblings that merely start with the
+			// same characters, so "file.txt" would drag in "file.txt.bak"
+			if (!blobName.equals(blobItem.getName())) {
+				continue;
+			}
+
+			BlobItemProperties properties = blobItem.getProperties();
+			Map<String, Object> versionInfo = new LinkedHashMap<>();
+			versionInfo.put("versionId", blobItem.getVersionId());
+			versionInfo.put("lastModified", properties == null || properties.getLastModified() == null ? null
+					: properties.getLastModified().toString());
+			versionInfo.put("size", properties == null ? null : properties.getContentLength());
+			// Azure sets this on the current version only and leaves it off the older
+			// ones, so anything other than an explicit true is not the current one
+			versionInfo.put("isLatest", Boolean.TRUE.equals(blobItem.isCurrentVersion()));
+			versionInfo.put("key", blobItem.getName());
+			versions.add(versionInfo);
+		}
+
+		// an account without versioning turned on returns the blob itself and no flag,
+		// and that single blob is the current one
+		if (versions.size() == 1) {
+			versions.get(0).put("isLatest", true);
+		}
+
+		return versions;
+	}
+
+	@Override
 	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
 		// Extract container and blob directory
@@ -639,8 +686,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
-		// TODO: account for versionId
-
 		// Extract container and blob directory
 		String[] containerAndPath = extractContainerAndPath(storageFilePath);
 		String containerName = containerAndPath[0];
@@ -648,6 +693,23 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		Path localDirectory = Paths.get(localFolderPath);
 		List<String> paths = parseStorageObjectPaths(blobDirectory);
+		if (paths.isEmpty()) {
+			// a path that names only a container is a request for everything in it,
+			// which is the shape the central cloud storage containers use. The parse
+			// drops the empty string, so put it back rather than list nothing at all
+			paths = Collections.singletonList("");
+		}
+
+		String requestedVersionId = versionId == null ? null : versionId.trim();
+		boolean hasVersionId = requestedVersionId != null && !requestedVersionId.isEmpty();
+		// a version id names one version of one blob, so there is nothing sensible to
+		// do with it across a folder of them. Rejecting it is better than quietly
+		// handing back the current version of everything under the path
+		if (hasVersionId && (paths.size() != 1 || normalizeStoragePrefixPath(paths.get(0)).isEmpty())) {
+			throw new IllegalArgumentException("A version id only applies to a single blob. Name the blob in the "
+					+ "path, for example mycontainer/myfolder/myfile.txt");
+		}
+
 		// Ensure local directory exists
 		Files.createDirectories(localDirectory);
 
@@ -672,6 +734,12 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 					continue;
 				}
 
+				// the listing only carries current versions, so an older one is reached
+				// by asking this blob for that version rather than by finding it here
+				boolean useVersion = hasVersionId && blobName.equals(requestedPath);
+				BlobClient sourceClient = useVersion ? blobClient.getVersionClient(requestedVersionId) : blobClient;
+				String transferLabel = useVersion ? blobName + " version " + requestedVersionId : blobName;
+
 				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 				// made here rather than inside the download so parallel tasks are not
 				// racing to create the same parent
@@ -680,9 +748,9 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 				transfers.add(() -> {
 					try {
-						retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
-								"Downloading file: " + blobName);
-						classLogger.info("Downloaded file: {}", localFilePath);
+						retryOperation(() -> sourceClient.downloadToFile(localFilePath.toString(), true),
+								"Downloading file: " + transferLabel);
+						classLogger.info("Downloaded file: {} -> {}", transferLabel, localFilePath);
 						return new TransferOutcome(blobName, null);
 					} catch (Exception e) {
 						classLogger.error("Failed to download: {}", blobName, e);
