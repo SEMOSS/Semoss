@@ -967,127 +967,141 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
-						List Paths
-						```
-						Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
-						```
+							List Paths
+							```
+							Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
+							```
 
-						Example Output
+							Example Output
 
-						`output` is a flat array of the paths found under `storagePath`.
+							`output` is a flat array of the paths found under `storagePath`.
+
+							```json
+							{
+							    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+							    "pixelReturn": [
+							        {
+							            "pixelId": "0",
+							            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePath ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
+							            "isMeta": false,
+							            "timeToRun": 62,
+							            "output": [
+							                "report.pdf",
+							                "images/",
+							                "notes.txt"
+							            ],
+							            "operationType": ["OPERATION"]
+							        }
+							    ]
+							}
+							```
+
+							List Path Details<br/>
+							Returns one object per file/folder with common keys:<br/>
+							`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.<br/>
+							`Metadata` is a key-value map (empty map when none exists).
+							```
+							Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
+							```
+
+							Example Output
+
+							`output` is an array with one object per file/folder. `Size` is in bytes, `ModTime` is null for folders, and `Metadata` is an empty map when none exists.
+
+							```json
+							{
+							    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+							    "pixelReturn": [
+							        {
+							            "pixelId": "0",
+							            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePathDetails ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
+							            "isMeta": false,
+							            "timeToRun": 74,
+							            "output": [
+							                {
+							                    "Path": "/your/storage/path/report.pdf",
+							                    "Name": "report.pdf",
+							                    "Size": 20841,
+							                    "MimeType": "application/pdf",
+							                    "ModTime": "2026-06-14T18:03:11Z",
+							                    "IsDir": false,
+							                    "Metadata": {"author": "jsmith"}
+							                },
+							                {
+							                    "Path": "/your/storage/path/images",
+							                    "Name": "images",
+							                    "Size": 0,
+							                    "MimeType": "inode/directory",
+							                    "ModTime": null,
+							                    "IsDir": true,
+							                    "Metadata": {}
+							                }
+							            ],
+							            "operationType": ["OPERATION"]
+							        }
+							    ]
+							}
+							```
+
+							Download from Storage
+							```
+							Storage(storage = "<engineid>") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');
+							```
+
+							Upload to Storage
+							```
+							Storage(storage = "<engineid>") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
+							```
+
+							Sync Storage to Local
+							```
+							Storage(storage = "<engineid>") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');
+							```
+
+							Sync Local to Storage
+							```
+							Storage(storage = "<engineid>") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
+							```
+
+							Delete from Storage
+							```
+							Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
+							```
+
+							Example Output (transfer + delete operations)
+
+							`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+
+						`SyncLocalToStorage` instead returns the outcome of the sync, so a run where only some files made it can be told apart from a clean one:
 
 						```json
 						{
-						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
-						    "pixelReturn": [
-						        {
-						            "pixelId": "0",
-						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePath ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
-						            "isMeta": false,
-						            "timeToRun": 62,
-						            "output": [
-						                "report.pdf",
-						                "images/",
-						                "notes.txt"
-						            ],
-						            "operationType": ["OPERATION"]
-						        }
-						    ]
+						    "storagePath": "your/storage/path",
+						    "status": "SUCCESS",
+						    "uploadedFiles": ["your/storage/path/a.csv"],
+						    "skippedFiles": ["your/storage/path/b.csv"],
+						    "failedFiles": []
 						}
 						```
 
-						List Path Details<br/>
-						Returns one object per file/folder with common keys:<br/>
-						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.<br/>
-						`Metadata` is a key-value map (empty map when none exists).
-						```
-						Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
-						```
+						`status` is `SUCCESS` when nothing failed, `PARTIAL` when some files made it and others did not, and `FAILED` when none did. `skippedFiles` are files already in storage and unchanged, so they were not rewritten. Engines that hand the whole transfer off in a single call cannot name individual files and report `SUCCESS` with empty lists, so an empty `uploadedFiles` means "not reported", not "nothing uploaded".
 
-						Example Output
-
-						`output` is an array with one object per file/folder. `Size` is in bytes, `ModTime` is null for folders, and `Metadata` is an empty map when none exists.
-
-						```json
-						{
-						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
-						    "pixelReturn": [
-						        {
-						            "pixelId": "0",
-						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | ListStoragePathDetails ( storagePath = [ \\"/your/storage/path\\" ] ) ;",
-						            "isMeta": false,
-						            "timeToRun": 74,
-						            "output": [
-						                {
-						                    "Path": "/your/storage/path/report.pdf",
-						                    "Name": "report.pdf",
-						                    "Size": 20841,
-						                    "MimeType": "application/pdf",
-						                    "ModTime": "2026-06-14T18:03:11Z",
-						                    "IsDir": false,
-						                    "Metadata": {"author": "jsmith"}
-						                },
-						                {
-						                    "Path": "/your/storage/path/images",
-						                    "Name": "images",
-						                    "Size": 0,
-						                    "MimeType": "inode/directory",
-						                    "ModTime": null,
-						                    "IsDir": true,
-						                    "Metadata": {}
-						                }
-						            ],
-						            "operationType": ["OPERATION"]
-						        }
-						    ]
-						}
-						```
-
-						Download from Storage
-						```
-						Storage(storage = "<engineid>") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');
-						```
-
-						Upload to Storage
-						```
-						Storage(storage = "<engineid>") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
-						```
-
-						Sync Storage to Local
-						```
-						Storage(storage = "<engineid>") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');
-						```
-
-						Sync Local to Storage
-						```
-						Storage(storage = "<engineid>") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
-						```
-
-						Delete from Storage
-						```
-						Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
-						```
-
-						Example Output (transfer + delete operations)
-
-						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, `SyncLocalToStorage`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
-
-						```json
-						{
-						    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
-						    "pixelReturn": [
-						        {
-						            "pixelId": "0",
-						            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | PushToStorage ( storagePath = [ \\"/your/storage/path\\" ] , filePath = [ \\"/your/local/path\\" ] ) ;",
-						            "isMeta": false,
-						            "timeToRun": 318,
-						            "output": true,
-						            "operationType": ["OPERATION"]
-						        }
-						    ]
-						}
-						```
-						""",
+							```json
+							{
+							    "insightID": "019f2a23-f376-7586-b6e6-3992356a5117",
+							    "pixelReturn": [
+							        {
+							            "pixelId": "0",
+							            "pixelExpression": "Storage ( storage = [ \\"<engineid>\\" ] ) | PushToStorage ( storagePath = [ \\"/your/storage/path\\" ] , filePath = [ \\"/your/local/path\\" ] ) ;",
+							            "isMeta": false,
+							            "timeToRun": 318,
+							            "output": true,
+							            "operationType": ["OPERATION"]
+							        }
+							    ]
+							}
+							```
+							""",
 				engineId);
 
 		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
