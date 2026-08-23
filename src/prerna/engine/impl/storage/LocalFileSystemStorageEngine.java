@@ -30,18 +30,21 @@ package prerna.engine.impl.storage;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -169,8 +172,8 @@ public class LocalFileSystemStorageEngine extends AbstractStorageEngine {
 
 	private Map<String, Object> toDetailMap(Path entry) throws IOException {
 		Map<String, Object> details = new HashMap<>();
-		boolean isDir = Files.isDirectory(entry);
 		BasicFileAttributes attrs = Files.readAttributes(entry, BasicFileAttributes.class);
+		boolean isDir = attrs.isDirectory();
 
 		String relative = this.pathPrefixRoot.relativize(entry).toString().replace("\\", "/");
 
@@ -230,7 +233,7 @@ public class LocalFileSystemStorageEngine extends AbstractStorageEngine {
 	 * when size / lastModifiedTime differ; files present in destination but absent
 	 * from source are removed.
 	 */
-	private void mirror(Path source, Path destination) throws IOException {
+	private void mirror(Path source, Path destination) throws Exception {
 		if (Files.isRegularFile(source)) {
 			// When destination is an existing directory, the actual target file is
 			// <destination>/<source-filename>. Use a new local so the parameter stays
@@ -243,52 +246,98 @@ public class LocalFileSystemStorageEngine extends AbstractStorageEngine {
 		}
 
 		Files.createDirectories(destination);
-		try (Stream<Path> walk = Files.walk(source)) {
-			walk.forEach(srcEntry -> {
-				try {
-					Path rel = source.relativize(srcEntry);
-					Path dstEntry = destination.resolve(rel.toString());
-					if (Files.isDirectory(srcEntry)) {
-						Files.createDirectories(dstEntry);
-					} else {
-						copyIfChanged(srcEntry, dstEntry);
-					}
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
 
-		try (Stream<Path> walk = Files.walk(destination)) {
-			List<Path> extras = new ArrayList<>();
-			walk.forEach(dstEntry -> {
-				if (dstEntry.equals(destination)) {
-					return;
+		// walkFileTree hands the visitor the attributes it already read, so nothing
+		// has to be stat'ed again to know whether it is a directory or whether it
+		// changed.
+		//
+		// Every relative path seen here is remembered so the pass below can decide
+		// what is stale from memory instead of stat'ing the source again once per
+		// destination entry.
+		//
+		// Directories are created as they are walked, so every parent exists before
+		// any copy starts. The copies themselves are collected and run together
+		// afterwards.
+		Set<String> sourceRelatives = new HashSet<>();
+		List<Callable<Void>> copies = new ArrayList<>();
+		Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+				String relative = source.relativize(dir).toString();
+				if (!relative.isEmpty()) {
+					sourceRelatives.add(relative);
 				}
-				Path rel = destination.relativize(dstEntry);
-				Path srcEntry = source.resolve(rel.toString());
-				if (!Files.exists(srcEntry)) {
-					extras.add(dstEntry);
-				}
-			});
-			extras.sort(Comparator.comparingInt(p -> -p.getNameCount()));
-			for (Path extra : extras) {
-				Files.deleteIfExists(extra);
+				Files.createDirectories(destination.resolve(relative));
+				return FileVisitResult.CONTINUE;
 			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+				String relative = source.relativize(file).toString();
+				sourceRelatives.add(relative);
+				copies.add(() -> {
+					copyIfChanged(file, destination.resolve(relative), attrs);
+					return null;
+				});
+				return FileVisitResult.CONTINUE;
+			}
+		});
+		runTransfersInParallel(copies);
+
+		List<Path> extras = new ArrayList<>();
+		Files.walkFileTree(destination, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+				if (!dir.equals(destination) && !sourceRelatives.contains(destination.relativize(dir).toString())) {
+					extras.add(dir);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+				if (!sourceRelatives.contains(destination.relativize(file).toString())) {
+					extras.add(file);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+		});
+		// deepest first, so a directory is empty by the time it is removed
+		extras.sort(Comparator.comparingInt(p -> -p.getNameCount()));
+		for (Path extra : extras) {
+			Files.deleteIfExists(extra);
 		}
 	}
 
 	private void copyIfChanged(Path source, Path destination) throws IOException {
-		if (Files.exists(destination)) {
-			long srcSize = Files.size(source);
-			long dstSize = Files.size(destination);
-			FileTime srcMod = Files.getLastModifiedTime(source);
-			FileTime dstMod = Files.getLastModifiedTime(destination);
-			if (srcSize == dstSize && srcMod.equals(dstMod)) {
+		copyIfChanged(source, destination, Files.readAttributes(source, BasicFileAttributes.class));
+	}
+
+	/**
+	 * Copies one file unless the destination already matches it.
+	 *
+	 * The source attributes are passed in because the caller walking a tree already
+	 * has them, so an unchanged file costs a single stat of the destination and
+	 * nothing else.
+	 *
+	 * @param source      the file to copy
+	 * @param destination where it goes
+	 * @param sourceAttrs attributes of source, already read
+	 * @throws IOException if the copy fails
+	 */
+	private void copyIfChanged(Path source, Path destination, BasicFileAttributes sourceAttrs) throws IOException {
+		try {
+			BasicFileAttributes destinationAttrs = Files.readAttributes(destination, BasicFileAttributes.class);
+			if (sourceAttrs.size() == destinationAttrs.size()
+					&& sourceAttrs.lastModifiedTime().equals(destinationAttrs.lastModifiedTime())) {
 				return;
 			}
-		} else {
-			Files.createDirectories(destination.getParent());
+		} catch (NoSuchFileException e) {
+			// not there yet, so it needs writing and its parent may not exist either
+			Path parent = destination.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
+			}
 		}
 		Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
 	}
@@ -332,25 +381,30 @@ public class LocalFileSystemStorageEngine extends AbstractStorageEngine {
 		}
 	}
 
-	private void copyDirectory(Path source, Path destination) throws IOException {
+	private void copyDirectory(Path source, Path destination) throws Exception {
 		Files.createDirectories(destination);
-		try (Stream<Path> walk = Files.walk(source)) {
-			walk.forEach(srcEntry -> {
-				try {
-					Path rel = source.relativize(srcEntry);
-					Path dstEntry = destination.resolve(rel.toString());
-					if (Files.isDirectory(srcEntry)) {
-						Files.createDirectories(dstEntry);
-					} else {
-						Files.createDirectories(dstEntry.getParent());
-						Files.copy(srcEntry, dstEntry, StandardCopyOption.REPLACE_EXISTING,
-								StandardCopyOption.COPY_ATTRIBUTES);
-					}
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
+		// walkFileTree hands the visitor the attributes it already read, so nothing
+		// has to be stat'ed again to know whether it is a directory. Directories are
+		// made during the walk so every parent exists before the copies run
+		List<Callable<Void>> copies = new ArrayList<>();
+		Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+				Files.createDirectories(destination.resolve(source.relativize(dir).toString()));
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+				Path target = destination.resolve(source.relativize(file).toString());
+				copies.add(() -> {
+					Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+					return null;
+				});
+				return FileVisitResult.CONTINUE;
+			}
+		});
+		runTransfersInParallel(copies);
 	}
 
 	@Override
