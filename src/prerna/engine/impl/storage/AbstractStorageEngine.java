@@ -208,11 +208,55 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 	 * @throws IOException if the local file cannot be read
 	 */
 	protected boolean needsUpload(Path localFile, StoredObjectStat stored) throws IOException {
+		return needsUpload(localFile, stored, 0L);
+	}
+
+	/**
+	 * Same comparison, but ignoring modified time differences smaller than the
+	 * given tolerance.
+	 *
+	 * Some protocols keep a coarser timestamp than the local file system does. SFTP
+	 * for instance reports whole seconds, so a file written at .750 comes back as
+	 * .000 and looks older than the local copy on every pass, which would re-upload
+	 * an unchanged folder forever. The tolerance is the storage side's resolution.
+	 *
+	 * @param localFile       the file about to be uploaded
+	 * @param stored          what storage holds for that key, or null when it holds
+	 *                        nothing
+	 * @param toleranceMillis how much newer the local file has to be before it
+	 *                        counts as changed
+	 * @return true when the file is missing from storage, a different size, or
+	 *         newer locally by more than the tolerance
+	 * @throws IOException if the local file cannot be read
+	 */
+	protected boolean needsUpload(Path localFile, StoredObjectStat stored, long toleranceMillis) throws IOException {
 		if (stored == null) {
 			return true;
 		}
 		return Files.size(localFile) != stored.size()
-				|| Files.getLastModifiedTime(localFile).toMillis() > stored.lastModifiedMillis();
+				|| Files.getLastModifiedTime(localFile).toMillis() > stored.lastModifiedMillis() + toleranceMillis;
+	}
+
+	/**
+	 * Whether a stored object is one of the placeholders written to keep an emptied
+	 * folder visible, as opposed to a file the user actually uploaded.
+	 *
+	 * These stores have no real directories - a folder exists only because some key
+	 * is prefixed with it. To keep a folder around after its contents are deleted,
+	 * preserveFolderStructure writes a zero byte object whose key ends in a slash.
+	 * That trailing slash is the whole difference between a placeholder and a
+	 * legitimately empty file: normalizeStoragePrefixPath strips trailing slashes
+	 * off anything a user asks to write, so a real upload can never produce one.
+	 *
+	 * Size alone is not enough. Treating every zero byte object as a placeholder
+	 * silently deletes the user's own empty files on the next upload.
+	 *
+	 * @param objectKey the full key of the stored object
+	 * @param size      its size in bytes
+	 * @return true when the object is a folder placeholder and safe to clean up
+	 */
+	protected boolean isFolderPlaceholder(String objectKey, long size) {
+		return size == 0 && objectKey != null && objectKey.endsWith("/");
 	}
 
 	/**

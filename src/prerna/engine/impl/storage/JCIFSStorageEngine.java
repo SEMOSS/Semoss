@@ -136,12 +136,144 @@ public class JCIFSStorageEngine extends AbstractStorageEngine {
 	@Override
 	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
-		throw new UnsupportedOperationException("Syncing a local folder to storage is not implemented for JCIFS");
+		if (metadata != null && !metadata.isEmpty()) {
+			// there is nowhere to put it - smb has no user metadata, only file attributes
+			classLogger.warn("SMB/CIFS has no user metadata, ignoring {} entries for: {}", metadata.size(),
+					storagePath);
+		}
+
+		Path localFolder = Paths.get(localPath);
+		if (!Files.isDirectory(localFolder)) {
+			throw new IllegalArgumentException("Local path is not a directory: " + localPath);
+		}
+		String storageFolder = normalizeStoragePrefixPath(storagePath);
+
+		// one listing of what is already there, so the comparison below is local
+		Map<String, StoredObjectStat> stored = listStoredFiles(storageFolder);
+
+		List<Path> localFiles;
+		try (Stream<Path> stream = Files.walk(localFolder)) {
+			localFiles = stream.filter(Files::isRegularFile).toList();
+		}
+
+		List<String> uploadedFiles = new ArrayList<>();
+		List<String> skippedFiles = new ArrayList<>();
+		List<String> failedFiles = new ArrayList<>();
+		for (Path localFile : localFiles) {
+			String relativePath = Utility.normalizePath(localFolder.relativize(localFile).toString()).trim()
+					.replace('\\', '/');
+			String targetPath = joinStoragePath(storageFolder, relativePath);
+			try {
+				if (!needsUpload(localFile, stored.get(relativePath))) {
+					skippedFiles.add(targetPath);
+					continue;
+				}
+				uploadFile(localFile, targetPath);
+				uploadedFiles.add(targetPath);
+			} catch (Exception e) {
+				// one bad file should not abandon the rest of the folder
+				classLogger.error("Failed to upload {} to {}", localFile, targetPath, e);
+				failedFiles.add(targetPath);
+			}
+		}
+
+		classLogger.info("Sync of {} to {} uploaded {}, skipped {}, failed {}", localPath, storagePath,
+				uploadedFiles.size(), skippedFiles.size(), failedFiles.size());
+		return StorageSyncStatus.of(storageFolder, uploadedFiles, skippedFiles, failedFiles);
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-		throw new UnsupportedOperationException("Syncing storage down to a local folder is not implemented for JCIFS");
+		String storageFolder = normalizeStoragePrefixPath(storagePath);
+		SmbFile source = smbFile(storageFolder, true);
+		if (!source.exists()) {
+			throw new IllegalArgumentException("Storage path does not exist: " + storagePath);
+		}
+
+		Path localFolder = Paths.get(localPath);
+		Files.createDirectories(localFolder);
+
+		List<String> downloadedFiles = new ArrayList<>();
+		// unlike the upload side this pulls everything down, matching how the other
+		// engines behave when the local copy is treated as disposable
+		downloadDirectoryContents(source, localFolder, downloadedFiles);
+
+		classLogger.info("Sync of {} to {} downloaded {} files", storagePath, localPath, downloadedFiles.size());
+	}
+
+	/**
+	 * Walks the share below the given folder and records the size and modified time
+	 * of every file, keyed by its path relative to that folder.
+	 *
+	 * smb has no bulk listing, so this is one round trip per directory. Doing it
+	 * once up front is still far cheaper than stat'ing each file again while
+	 * uploading.
+	 *
+	 * @param storageFolder the already normalized folder to walk
+	 * @return relative path to what is stored, empty when the folder is not there
+	 * @throws Exception if the share cannot be reached
+	 */
+	private Map<String, StoredObjectStat> listStoredFiles(String storageFolder) throws Exception {
+		Map<String, StoredObjectStat> stored = new HashMap<>();
+		SmbFile folder = smbFile(storageFolder, true);
+		if (!folder.exists()) {
+			return stored;
+		}
+		collectStoredFiles(folder, "", stored);
+		return stored;
+	}
+
+	private void collectStoredFiles(SmbFile directory, String relativePrefix, Map<String, StoredObjectStat> stored)
+			throws Exception {
+		SmbFile[] children = directory.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (SmbFile child : children) {
+			String name = trimTrailingSlash(child.getName());
+			if (name.isEmpty()) {
+				continue;
+			}
+			String relativePath = relativePrefix.isEmpty() ? name : relativePrefix + "/" + name;
+			if (child.isDirectory()) {
+				collectStoredFiles(child, relativePath, stored);
+			} else {
+				stored.put(relativePath, new StoredObjectStat(child.length(), child.getLastModified()));
+			}
+		}
+	}
+
+	/**
+	 * Copies the contents of a remote directory into a local one. Unlike
+	 * {@link #downloadDirectory(SmbFile, Path, List)} the remote directory's own
+	 * name is not added to the local path, since a sync fills the target folder
+	 * rather than nesting inside it.
+	 *
+	 * @param directory       the remote directory to read
+	 * @param localDirectory  where its contents land
+	 * @param downloadedFiles collects what was written, for logging
+	 * @throws Exception if a read or write fails
+	 */
+	private void downloadDirectoryContents(SmbFile directory, Path localDirectory, List<String> downloadedFiles)
+			throws Exception {
+		Files.createDirectories(localDirectory);
+
+		SmbFile[] children = directory.listFiles();
+		if (children == null) {
+			return;
+		}
+		for (SmbFile child : children) {
+			String name = trimTrailingSlash(child.getName());
+			if (name.isEmpty()) {
+				continue;
+			}
+			if (child.isDirectory()) {
+				downloadDirectoryContents(child, localDirectory.resolve(name), downloadedFiles);
+			} else {
+				downloadFile(child, localDirectory.resolve(name));
+				downloadedFiles.add(child.getPath());
+			}
+		}
 	}
 
 	@Override

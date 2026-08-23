@@ -522,10 +522,11 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 					if (generation != null) {
 						lastVersionId.set(generation);
 					}
-					return new TransferOutcome(file.toString(), null);
+					// the blob name, not the local path - rollbackUploads deletes by name
+					return new TransferOutcome(blobName, null);
 				} catch (Exception e) {
 					classLogger.error("Failed to upload file: {}", file, e);
-					return new TransferOutcome(file.toString(), e);
+					return new TransferOutcome(blobName, e);
 				}
 			});
 		}
@@ -952,22 +953,33 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void syncStorageDeletion(Storage storage, String blobDirectory, Path localBasePath) {
-		Page<Blob> blobs = storage.list(this.BUCKET, Storage.BlobListOption.prefix(blobDirectory));
+		// normalize the same way uploadBlob does, otherwise we list a prefix that does
+		// not match the blobs we write
+		String normalizedDirectory = normalizeStoragePrefixPath(blobDirectory);
+		// the trailing slash bounds the listing to this folder. A bare prefix of "dir"
+		// also returns "dirty/..." and none of those resolve to a local file, so every
+		// one of them would look stale and get deleted
+		String prefix = normalizedDirectory.isEmpty() ? "" : normalizedDirectory + "/";
+
+		Page<Blob> blobs = storage.list(this.BUCKET, Storage.BlobListOption.prefix(prefix));
 
 		for (Blob blob : blobs.iterateAll()) {
 			String blobName = blob.getName();
-			Path localFilePath = localBasePath
-					.resolve(blobName.replaceFirst(blobDirectory, "").replace("/", File.separator));
+			// safe because listing by prefix only returns names that start with it
+			String relativePath = blobName.substring(prefix.length());
+			if (relativePath.isEmpty()) {
+				// the zero byte placeholder for the folder itself, not a file
+				continue;
+			}
+			Path localFilePath = localBasePath.resolve(relativePath.replace("/", File.separator)).normalize();
 
 			try {
-				long blobSize = blob.getSize();
-
+				// nothing local to match it, so it is stale. Size is deliberately not
+				// part of this - an empty file the user uploaded is still a file, and
+				// a placeholder has no local counterpart anyway
 				if (!Files.exists(localFilePath)) {
 					storage.delete(blob.getBlobId());
 					classLogger.info("Deleted storage file not found in local: {}", blobName);
-				} else if (blobSize == 0) { // Check for empty blobs
-					storage.delete(blob.getBlobId());
-					classLogger.info("Deleted empty folder placeholder: {}", blobName);
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to delete blob: {}", blobName, e);
@@ -993,12 +1005,17 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyBlobs(String storageFolderPath) {
-		Page<Blob> blobs = storage.list(this.BUCKET, Storage.BlobListOption.prefix(storageFolderPath));
+		// normalize and bound to this folder. A bare prefix of "dir" would also match
+		// "dirty/..." and clean up placeholders outside the folder we just wrote to
+		String normalizedPrefix = normalizeStoragePrefixPath(storageFolderPath);
+		String prefix = normalizedPrefix.isEmpty() ? "" : normalizedPrefix + "/";
+
+		Page<Blob> blobs = storage.list(this.BUCKET, Storage.BlobListOption.prefix(prefix));
 
 		for (Blob blob : blobs.iterateAll()) {
-			if (blob.getSize() == 0) { // Check if the blob is empty (zero-byte file)
+			if (isFolderPlaceholder(blob.getName(), blob.getSize())) {
 				storage.delete(blob.getBlobId());
-				classLogger.info("Deleted empty blob folder: {}", blob.getName());
+				classLogger.info("Deleted folder placeholder: {}", blob.getName());
 			}
 		}
 	}

@@ -76,10 +76,13 @@ public class ListStorageVersionsReactor extends AbstractReactor {
 			List<Map<String, Object>> versions = storage.listVersions(storagePath);
 			return new NounMetadata(versions, PixelDataType.VECTOR);
 		} catch (UnsupportedOperationException e) {
-			throw new IllegalArgumentException("This storage engine does not support version listing");
+			classLogger.warn("Storage engine={} does not keep versions, asked for storagePath={}",
+					storage.getEngineId(), storagePath);
+			throw new IllegalArgumentException("This storage engine does not support version listing", e);
 		} catch (Exception e) {
-			classLogger.error("Error listing versions for path: {}", storagePath, e);
-			throw new IllegalArgumentException("Error listing storage versions at path: " + storagePath);
+			classLogger.error("Failed to list versions of storagePath={} on storage engine={}", storagePath,
+					storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error listing storage versions at path: " + storagePath, e);
 		}
 	}
 

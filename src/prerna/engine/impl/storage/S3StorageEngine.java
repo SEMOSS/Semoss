@@ -61,6 +61,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
@@ -82,6 +83,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectVersionsResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.ObjectVersion;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
@@ -138,6 +140,8 @@ public class S3StorageEngine extends AbstractStorageEngine {
 	// Use full ARN or the Key ID. Must match the S3 bucket's AWS Region.
 	private transient String kmsId;
 	protected boolean pathStyleAccess = false;
+	// false means fall back to the sdk's default credential chain
+	private boolean keysProvided = false;
 
 	private transient S3Client client = null;
 
@@ -161,12 +165,19 @@ public class S3StorageEngine extends AbstractStorageEngine {
 			this.kmsId = this.kmsId.trim();
 		}
 
-		if (this.accessKey == null || this.accessKey.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in an access key");
+		// keys are optional. With neither one set the sdk's default credential chain
+		// takes over, which is how an instance profile, IRSA or plain environment
+		// variables are picked up. One without the other is a misconfiguration though,
+		// since it would silently fall through to the chain and look like a permissions
+		// problem
+		boolean hasAccessKey = this.accessKey != null && !this.accessKey.isEmpty();
+		boolean hasSecretKey = this.secretKey != null && !this.secretKey.isEmpty();
+		if (hasAccessKey != hasSecretKey) {
+			throw new IllegalArgumentException(
+					"Pass in both an access key and a secret key, or neither to use the environment's credentials");
 		}
-		if (this.secretKey == null || this.secretKey.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in a secret key");
-		}
+		this.keysProvided = hasAccessKey;
+
 		if (this.region == null || this.region.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in a region");
 		}
@@ -198,8 +209,16 @@ public class S3StorageEngine extends AbstractStorageEngine {
 
 	public void createServiceClient() {
 		software.amazon.awssdk.services.s3.S3ClientBuilder builder = S3Client.builder();
-		builder.region(Region.of(this.region)).credentialsProvider(
-				StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
+		builder.region(Region.of(this.region));
+		if (this.keysProvided) {
+			builder.credentialsProvider(
+					StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)));
+		} else {
+			// instance profile, IRSA, container credentials, environment variables, the
+			// shared credentials file - whatever the environment provides
+			builder.credentialsProvider(DefaultCredentialsProvider.builder().build());
+			classLogger.info("No access key configured, using the default credential chain");
+		}
 
 		if (this.endpoint != null && !this.endpoint.isEmpty()) {
 			try {
@@ -252,53 +271,71 @@ public class S3StorageEngine extends AbstractStorageEngine {
 				requestBuilder.prefix(prefix);
 			}
 			ListObjectsV2Iterable listObjectsV2Response = this.client.listObjectsV2Paginator(requestBuilder.build());
-			for (CommonPrefix commonPrefix : listObjectsV2Response.commonPrefixes()) {
-				String dirPath = commonPrefix.prefix();
-				if (dirPath == null || dirPath.equals(prefix)) {
-					continue;
+			// commonPrefixes() and contents() each re-walk the pages, so pull both off
+			// of a single pass instead of listing the whole prefix twice
+			List<S3Object> fileObjects = new ArrayList<>();
+			for (ListObjectsV2Response page : listObjectsV2Response) {
+				for (CommonPrefix commonPrefix : page.commonPrefixes()) {
+					String dirPath = commonPrefix.prefix();
+					if (dirPath == null || dirPath.equals(prefix)) {
+						continue;
+					}
+					String dirName = prefix.isEmpty() ? dirPath : dirPath.substring(prefix.length());
+					if (dirName.endsWith("/")) {
+						dirName = dirName.substring(0, dirName.length() - 1);
+					}
+					if (dirName.isEmpty() || dirName.contains("/")) {
+						continue;
+					}
+					Map<String, Object> objectInfo = new HashMap<>();
+					objectInfo.put("Path", path.isEmpty() ? "/" + dirName : "/" + path + "/" + dirName);
+					objectInfo.put("Name", dirName);
+					objectInfo.put("Size", 0L);
+					objectInfo.put("MimeType", "inode/directory");
+					objectInfo.put("ModTime", null);
+					objectInfo.put("IsDir", true);
+					objectInfo.put("Metadata", Collections.emptyMap());
+					objectDetails.add(objectInfo);
 				}
-				String dirName = prefix.isEmpty() ? dirPath : dirPath.substring(prefix.length());
-				if (dirName.endsWith("/")) {
-					dirName = dirName.substring(0, dirName.length() - 1);
+
+				for (S3Object object : page.contents()) {
+					String key = object.key();
+					if (key == null || key.equals(prefix)) {
+						continue;
+					}
+					String fileName = prefix.isEmpty() ? key : key.substring(prefix.length());
+					if (fileName.isEmpty() || fileName.contains("/")) {
+						continue;
+					}
+					fileObjects.add(object);
 				}
-				if (dirName.isEmpty() || dirName.contains("/")) {
-					continue;
-				}
-				Map<String, Object> objectInfo = new HashMap<>();
-				objectInfo.put("Path", path.isEmpty() ? "/" + dirName : "/" + path + "/" + dirName);
-				objectInfo.put("Name", dirName);
-				objectInfo.put("Size", 0L);
-				objectInfo.put("MimeType", "inode/directory");
-				objectInfo.put("ModTime", null);
-				objectInfo.put("IsDir", true);
-				objectInfo.put("Metadata", Collections.emptyMap());
-				objectDetails.add(objectInfo);
 			}
 
-			for (S3Object object : listObjectsV2Response.contents()) {
-				String key = object.key();
-				if (key == null || key.equals(prefix)) {
-					continue;
-				}
-				String fileName = prefix.isEmpty() ? key : key.substring(prefix.length());
-				if (fileName.isEmpty() || fileName.contains("/")) {
-					continue;
-				}
-				Map<String, Object> objectInfo = new HashMap<>();
-				// Fetch object metadata
-				HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(key).build();
-				HeadObjectResponse headResponse = this.client.headObject(headRequest);
-				Map<String, String> metadata = headResponse.metadata();
+			// every file needs its own head request for the metadata, so run them
+			// against the same bounded pool the transfers use rather than one at a time
+			final String filePrefix = prefix;
+			final String parentPath = path;
+			List<Callable<Map<String, Object>>> headCalls = new ArrayList<>(fileObjects.size());
+			for (S3Object object : fileObjects) {
+				headCalls.add(() -> {
+					String key = object.key();
+					String fileName = filePrefix.isEmpty() ? key : key.substring(filePrefix.length());
+					HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(key).build();
+					HeadObjectResponse headResponse = this.client.headObject(headRequest);
+					Map<String, String> metadata = headResponse.metadata();
 
-				objectInfo.put("Path", path.isEmpty() ? "/" + fileName : "/" + path + "/" + fileName);
-				objectInfo.put("Name", fileName);
-				objectInfo.put("Size", object.size());
-				objectInfo.put("MimeType", headResponse.contentType());
-				objectInfo.put("ModTime", object.lastModified() == null ? null : object.lastModified().toString());
-				objectInfo.put("IsDir", false);
-				objectInfo.put("Metadata", (metadata != null) ? metadata : Collections.emptyMap());
-				objectDetails.add(objectInfo);
+					Map<String, Object> objectInfo = new HashMap<>();
+					objectInfo.put("Path", parentPath.isEmpty() ? "/" + fileName : "/" + parentPath + "/" + fileName);
+					objectInfo.put("Name", fileName);
+					objectInfo.put("Size", object.size());
+					objectInfo.put("MimeType", headResponse.contentType());
+					objectInfo.put("ModTime", object.lastModified() == null ? null : object.lastModified().toString());
+					objectInfo.put("IsDir", false);
+					objectInfo.put("Metadata", (metadata != null) ? metadata : Collections.emptyMap());
+					return objectInfo;
+				});
 			}
+			objectDetails.addAll(runTransfersInParallel(headCalls));
 
 		} catch (S3Exception e) {
 			classLogger.error("Failed to list S3 storage details for bucket='{}' path='{}'.", this.bucket, path, e);
@@ -586,10 +623,11 @@ public class S3StorageEngine extends AbstractStorageEngine {
 					if (versionId != null) {
 						lastVersionId.set(versionId);
 					}
-					return new TransferOutcome(file.toString(), null);
+					// the object key, not the local path - rollbackUploads deletes by key
+					return new TransferOutcome(fileKey, null);
 				} catch (Exception e) {
 					classLogger.error("Failed to upload file: {}", file, e);
-					return new TransferOutcome(file.toString(), e);
+					return new TransferOutcome(fileKey, e);
 				}
 			});
 		}
@@ -959,11 +997,11 @@ public class S3StorageEngine extends AbstractStorageEngine {
 		ListObjectsV2Iterable response = this.client.listObjectsV2Paginator(request);
 		SdkIterable<S3Object> contents = response.contents();
 		for (S3Object s3Object : contents) {
-			if (s3Object.size() == 0) {
+			if (isFolderPlaceholder(s3Object.key(), s3Object.size())) {
 				DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket)
 						.key(s3Object.key()).build();
 				this.client.deleteObject(deleteRequest);
-				classLogger.info("Deleted empty blob from S3: {}", s3Object.key());
+				classLogger.info("Deleted folder placeholder from S3: {}", s3Object.key());
 			}
 		}
 	}

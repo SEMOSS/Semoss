@@ -30,6 +30,8 @@ package prerna.engine.impl.storage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,7 +54,7 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.azure.core.http.rest.PagedIterable;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
@@ -61,7 +63,7 @@ import com.azure.storage.blob.models.BlobContainerItem;
 import com.azure.storage.blob.models.BlobContainerItemProperties;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobItemProperties;
-import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.models.ParallelTransferOptions;
@@ -75,6 +77,10 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	private static final Logger classLogger = LogManager.getLogger(AzureBlobStorageEngine.class);
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
+	// alternatives to a connection string, for accounts that do not hand one out
+	public static final String AZ_ACCOUNT_NAME = "AZ_ACCOUNT_NAME";
+	public static final String AZ_SAS_URL = "SAS_URL";
+	public static final String AZ_USE_MSI = "AZ_USE_MSI";
 
 	// block size and concurrency match rclone's azureblob defaults
 	// (--azureblob-chunk-size 4Mi, --azureblob-upload-concurrency 16). rclone has
@@ -87,16 +93,19 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	private static final long SINGLE_UPLOAD_SIZE_BYTES = 256L * 1024 * 1024;
 	private static final int UPLOAD_BLOCK_CONCURRENCY = 16;
 
-	// older property names. The type used to be backed by a different
-	// implementation that authenticated with an account name plus key, so smss
-	// files already out there carry those instead of a connection string
-	private static final String LEGACY_AZ_ACCOUNT_NAME = "AZ_ACCOUNT_NAME";
+	// the account key. Paired with AZ_ACCOUNT_NAME it becomes a connection string,
+	// which is how smss files written for the previous implementation are read
 	private static final String LEGACY_AZ_PRIMARY_KEY = "AZ_PRIMARY_KEY";
-	private static final String LEGACY_AZ_USE_MSI = "AZ_USE_MSI";
-	private static final String LEGACY_AZ_SAS_URL = "SAS_URL";
 
 	private transient String connectionString = null;
+	private transient String accountName = null;
+	private transient String sasUrl = null;
+	private transient boolean useMsi = false;
 	private transient BlobServiceClient blobServiceClient;
+
+	// set only when the SAS url names a container, which pins this engine to that
+	// one container instead of the whole account. See parseSasUrl
+	private String sasContainerName = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -105,9 +114,17 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		migrateLegacyProperties(smssProp);
 
 		this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
-		if (this.connectionString == null || this.connectionString.isEmpty()) {
-			classLogger.error("Azure Blob connection string is missing, cannot initialize Azure Blob client.");
-			throw new IllegalStateException("Azure Blob connection string is required.");
+		this.accountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
+		this.sasUrl = smssProp.getProperty(AZ_SAS_URL);
+		this.useMsi = Boolean.parseBoolean(smssProp.getProperty(AZ_USE_MSI, "false"));
+
+		boolean hasConnectionString = this.connectionString != null && !this.connectionString.trim().isEmpty();
+		boolean hasSasUrl = this.sasUrl != null && !this.sasUrl.trim().isEmpty();
+		boolean hasAccountName = this.accountName != null && !this.accountName.trim().isEmpty();
+		if (!hasConnectionString && !hasSasUrl && !(this.useMsi && hasAccountName)) {
+			classLogger.error("Azure Blob engine has no usable credentials, cannot initialize the client.");
+			throw new IllegalStateException("Set one of " + AZ_CONN_STRING + ", " + AZ_SAS_URL + ", or " + AZ_USE_MSI
+					+ " with " + AZ_ACCOUNT_NAME + ".");
 		}
 		createServiceClient();
 	}
@@ -117,9 +134,9 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 	 * no connection string was given, so an smss written for the previous
 	 * implementation keeps working.
 	 *
-	 * Only account name plus key can be carried over. Managed identity and SAS url
-	 * have no connection string equivalent, so those are called out in the log
-	 * rather than silently ignored.
+	 * Account name plus key is the only pair that has to be converted. Managed
+	 * identity and SAS url are read directly by createServiceClient, so they need
+	 * nothing here.
 	 *
 	 * @param smssProp the properties being opened, updated in place
 	 */
@@ -129,28 +146,117 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			return;
 		}
 
-		String accountName = smssProp.getProperty(LEGACY_AZ_ACCOUNT_NAME);
+		String legacyAccountName = smssProp.getProperty(AZ_ACCOUNT_NAME);
 		String primaryKey = smssProp.getProperty(LEGACY_AZ_PRIMARY_KEY);
-		if (accountName != null && !accountName.trim().isEmpty() && primaryKey != null
+		if (legacyAccountName != null && !legacyAccountName.trim().isEmpty() && primaryKey != null
 				&& !primaryKey.trim().isEmpty()) {
-			smssProp.put(AZ_CONN_STRING, "DefaultEndpointsProtocol=https;AccountName=" + accountName.trim()
+			smssProp.put(AZ_CONN_STRING, "DefaultEndpointsProtocol=https;AccountName=" + legacyAccountName.trim()
 					+ ";AccountKey=" + primaryKey.trim() + ";EndpointSuffix=core.windows.net");
 			classLogger.warn(
 					"Azure Blob engine is still configured with {} and {}. Building a connection string from them for "
 							+ "now, but the smss should be updated to set {}.",
-					LEGACY_AZ_ACCOUNT_NAME, LEGACY_AZ_PRIMARY_KEY, AZ_CONN_STRING);
-			return;
-		}
-
-		if (smssProp.getProperty(LEGACY_AZ_USE_MSI) != null || smssProp.getProperty(LEGACY_AZ_SAS_URL) != null) {
-			classLogger.error("Azure Blob engine is configured with {} or {}, neither of which this engine supports. "
-					+ "Set {} instead.", LEGACY_AZ_USE_MSI, LEGACY_AZ_SAS_URL, AZ_CONN_STRING);
+					AZ_ACCOUNT_NAME, LEGACY_AZ_PRIMARY_KEY, AZ_CONN_STRING);
 		}
 	}
 
+	/**
+	 * Builds the service client from whichever credential the smss supplies.
+	 *
+	 * A connection string wins when present since it is the most specific. A SAS
+	 * url carries its own signature, so it needs no separate credential. Managed
+	 * identity needs the account name to know which endpoint to talk to, because
+	 * unlike the other two it contains no address.
+	 */
 	public void createServiceClient() {
-		this.blobServiceClient = new BlobServiceClientBuilder().connectionString(this.connectionString).buildClient();
+		BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
+
+		if (this.connectionString != null && !this.connectionString.trim().isEmpty()) {
+			builder.connectionString(this.connectionString);
+			classLogger.info("Azure Blob client using a connection string.");
+		} else if (this.sasUrl != null && !this.sasUrl.trim().isEmpty()) {
+			parseSasUrl(builder);
+		} else {
+			builder.endpoint("https://" + this.accountName.trim() + ".blob.core.windows.net")
+					.credential(new DefaultAzureCredentialBuilder().build());
+			classLogger.info("Azure Blob client using managed identity for account: {}", this.accountName);
+		}
+
+		this.blobServiceClient = builder.buildClient();
 		classLogger.info("Azure Blob Service client created successfully.");
+	}
+
+	/**
+	 * Points the builder at the account the SAS url belongs to and works out
+	 * whether that SAS covers the whole account or a single container.
+	 *
+	 * The url path is what says which. An account level SAS is issued against the
+	 * account itself and has no path
+	 * (<code>https://acct.blob.core.windows.net/?sv=...&amp;ss=b&amp;srt=sco&amp;sig=...</code>),
+	 * so the account stays the root of this engine and the first segment of every
+	 * path is the container, the same as a connection string. A service SAS is
+	 * issued against one container and names it in the path
+	 * (<code>https://acct.blob.core.windows.net/mycontainer?sv=...&amp;sr=c&amp;sig=...</code>).
+	 * That container becomes the root: listing "/" shows what is inside it rather
+	 * than the containers in the account, which the token could not read anyway,
+	 * and paths are relative to it rather than repeating its name.
+	 *
+	 * The endpoint handed to the builder is always the bare account, never the
+	 * container. A service client built on a container url would glue the container
+	 * name on twice as soon as it made a container client.
+	 *
+	 * @param builder the builder being configured
+	 */
+	private void parseSasUrl(BlobServiceClientBuilder builder) {
+		String trimmedUrl = this.sasUrl.trim();
+		URI uri;
+		try {
+			uri = new URI(trimmedUrl);
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException(AZ_SAS_URL + " is not a valid url", e);
+		}
+
+		String token = uri.getRawQuery();
+		if (token == null || token.isEmpty()) {
+			throw new IllegalArgumentException(
+					AZ_SAS_URL + " has no token on it. Expected something like " + "https://<account>.blob.core."
+							+ "windows.net/<container>?sv=...&sig=..., copied whole including the query string.");
+		}
+
+		String path = uri.getPath() == null ? "" : uri.getPath();
+		while (path.startsWith("/")) {
+			path = path.substring(1);
+		}
+		while (path.endsWith("/")) {
+			path = path.substring(0, path.length() - 1);
+		}
+		if (!path.isEmpty()) {
+			// a blob level SAS carries container/blob, so only the first segment is
+			// the container
+			int slashIndex = path.indexOf('/');
+			this.sasContainerName = slashIndex < 0 ? path : path.substring(0, slashIndex);
+		}
+
+		try {
+			builder.endpoint(new URI(uri.getScheme(), uri.getAuthority(), null, null, null).toString());
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("Could not read the account out of " + AZ_SAS_URL, e);
+		}
+		builder.sasToken(token);
+
+		if (this.sasContainerName == null) {
+			classLogger.info("Azure Blob client using an account level SAS url, the root lists containers.");
+		} else {
+			classLogger.info("Azure Blob client using a SAS url scoped to container: {}. The root of this engine is "
+					+ "that container.", this.sasContainerName);
+		}
+	}
+
+	/**
+	 * @return true when the credential only reaches one container, so that
+	 *         container is the root of this engine rather than the account
+	 */
+	private boolean isContainerScoped() {
+		return this.sasContainerName != null;
 	}
 
 	@Override
@@ -180,18 +286,39 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 		// a connection string points at an account, not a container, so the root of
 		// this engine is the account and the containers in it are its folders. Every
-		// path below the root carries its container as the first segment
-		if (normalizeStoragePrefixPath(storagePath).isEmpty()) {
-			return listContainers();
+		// path below the root carries its container as the first segment. A SAS url
+		// scoped to one container is the exception - there the root is that container,
+		// and listing containers is not something the token is allowed to do
+		if (normalizeStoragePrefixPath(storagePath).isEmpty() && !isContainerScoped()) {
+			try {
+				return listContainers();
+			} catch (BlobStorageException e) {
+				if (e.getStatusCode() == 403) {
+					// an account SAS still has to have been issued with the service
+					// resource type and the list permission to do this
+					throw new IllegalArgumentException("This engine's credential is not allowed to list the containers "
+							+ "in the account. Name a container in the path, for example mycontainer/myfolder, or "
+							+ "reissue the SAS with the service resource type and list permission.", e);
+				}
+				throw e;
+			}
 		}
 
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
 		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
 		String prefix = blobDirectory.isEmpty() ? "" : blobDirectory + "/";
+		// what the caller asked for, which is what the paths handed back have to be
+		// relative to. On an account scoped engine this still carries the container,
+		// and dropping it would hand back paths that cannot be listed again
+		String requestedPath = normalizeStoragePrefixPath(storagePath);
 
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
-		ListBlobsOptions listBlobsOptions = new ListBlobsOptions().setPrefix(prefix.isEmpty() ? null : prefix);
+		// ask for the metadata up front. Otherwise every file needs its own
+		// getProperties call just to fill in this listing
+		ListBlobsOptions listBlobsOptions = new ListBlobsOptions()
+				.setDetails(new BlobListDetails().setRetrieveMetadata(true))
+				.setPrefix(prefix.isEmpty() ? null : prefix);
 		for (BlobItem blobItem : containerClient.listBlobsByHierarchy("/", listBlobsOptions, null)) {
 			String itemPath = blobItem.getName();
 			if (itemPath == null || itemPath.equals(prefix)) {
@@ -205,9 +332,9 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 				continue;
 			}
 
-			boolean isDir = blobItem.isPrefix();
+			boolean isDir = Boolean.TRUE.equals(blobItem.isPrefix());
 			Map<String, Object> blobMap = new HashMap<>();
-			blobMap.put("Path", blobDirectory.isEmpty() ? "/" + name : "/" + blobDirectory + "/" + name);
+			blobMap.put("Path", requestedPath.isEmpty() ? "/" + name : "/" + requestedPath + "/" + name);
 			blobMap.put("Name", name);
 			blobMap.put("IsDir", isDir);
 
@@ -217,13 +344,12 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 				blobMap.put("ModTime", null);
 				blobMap.put("Metadata", Collections.emptyMap());
 			} else {
-				BlobClient blobClient = containerClient.getBlobClient(itemPath);
-				BlobProperties properties = blobClient.getProperties();
-				Map<String, String> metadata = properties.getMetadata();
-				blobMap.put("Size", properties.getBlobSize());
-				blobMap.put("MimeType", properties.getContentType());
-				blobMap.put("ModTime",
-						properties.getLastModified() == null ? null : properties.getLastModified().toString());
+				BlobItemProperties properties = blobItem.getProperties();
+				Map<String, String> metadata = blobItem.getMetadata();
+				blobMap.put("Size", properties == null ? 0L : properties.getContentLength());
+				blobMap.put("MimeType", properties == null ? null : properties.getContentType());
+				blobMap.put("ModTime", properties == null || properties.getLastModified() == null ? null
+						: properties.getLastModified().toString());
 				blobMap.put("Metadata", (metadata == null || metadata.isEmpty()) ? Collections.emptyMap() : metadata);
 			}
 			detailsList.add(blobMap);
@@ -333,7 +459,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 		// once, not once per blob. This used to sit inside the loop below, where it
 		// listed the whole container again for every single blob
-		deleteEmptyBlobs(containerClient);
+		deleteEmptyBlobs(containerClient, blobDirectory);
 
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (BlobItem blobItem : containerClient
@@ -483,7 +609,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			rollbackUploads(containerClient, failedFiles);
 		}
 		// Delete empty folder from azure storage (zero-byte blob)
-		deleteEmptyBlobs(containerClient);
+		deleteEmptyBlobs(containerClient, blobDirectory);
 		if (uploadedFiles.isEmpty()) {
 			classLogger.info("No files were uploaded.");
 		} else {
@@ -512,7 +638,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 		// once, not once per blob. This used to sit inside the loop below, where it
 		// listed the whole container again for every single blob
-		deleteEmptyBlobs(containerClient);
+		deleteEmptyBlobs(containerClient, blobDirectory);
 
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (String path : paths) {
@@ -593,8 +719,10 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		boolean hasFilesToDelete = false;
 
 		for (BlobItem blobItem : blobItems) {
-			if (storagePath.isEmpty() || blobItem.getName().equals(storagePath)
-					|| blobItem.getName().startsWith(storagePath + "/")) {
+			// compare against blobDirectory, not storagePath - storagePath still carries
+			// the container name, which blob names never do, so nothing would match
+			if (blobDirectory.isEmpty() || blobItem.getName().equals(blobDirectory)
+					|| blobItem.getName().startsWith(blobDirectory + "/")) {
 
 				hasFilesToDelete = true;
 				String blobName = blobItem.getName();
@@ -786,36 +914,61 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		});
 	}
 
-	private void deleteEmptyBlobs(BlobContainerClient containerClient) {
-		for (BlobItem blobItem : containerClient.listBlobs()) {
-			BlobClient blobClient = containerClient.getBlobClient(blobItem.getName());
-			if (blobClient.getProperties().getBlobSize() == 0) {
-				blobClient.delete();
-				classLogger.info("Deleted empty blob folder: {}", blobItem.getName());
+	/**
+	 * Cleans up the zero byte placeholders under a folder.
+	 *
+	 * @param containerClient the container being worked in
+	 * @param storagePath     the folder to bound the cleanup to, empty for the
+	 *                        whole container
+	 */
+	private void deleteEmptyBlobs(BlobContainerClient containerClient, String storagePath) {
+		// bound to this folder. Listing the whole container cleaned up placeholders
+		// belonging to folders this call never touched, and a bare prefix of "dir"
+		// would also match "dirty/..."
+		String normalizedPrefix = normalizeStoragePrefixPath(storagePath);
+		String prefix = normalizedPrefix.isEmpty() ? "" : normalizedPrefix + "/";
+
+		Iterable<BlobItem> blobItems = prefix.isEmpty() ? containerClient.listBlobs()
+				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null);
+		for (BlobItem blobItem : blobItems) {
+			// the size is already on the listing, no need for a getProperties round trip
+			// per blob
+			Long contentLength = blobItem.getProperties() == null ? null : blobItem.getProperties().getContentLength();
+			if (contentLength != null && isFolderPlaceholder(blobItem.getName(), contentLength)) {
+				containerClient.getBlobClient(blobItem.getName()).delete();
+				classLogger.info("Deleted folder placeholder: {}", blobItem.getName());
 			}
 		}
 	}
 
 	private void syncStorageDeletion(BlobContainerClient containerClient, String blobDirectory, Path localBasePath) {
-		PagedIterable<BlobItem> blobItems = containerClient.listBlobs(new ListBlobsOptions().setPrefix(blobDirectory),
-				null);
+		// normalize the same way uploadBlob does, otherwise we list a prefix that does
+		// not match the blobs we write
+		String normalizedDirectory = normalizeStoragePrefixPath(blobDirectory);
+		// the trailing slash bounds the listing to this folder. A bare prefix of "dir"
+		// also returns "dirty/..." and none of those resolve to a local file, so every
+		// one of them would look stale and get deleted
+		String prefix = normalizedDirectory.isEmpty() ? "" : normalizedDirectory + "/";
+
+		Iterable<BlobItem> blobItems = prefix.isEmpty() ? containerClient.listBlobs()
+				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(prefix), null);
 		for (BlobItem blobItem : blobItems) {
 			String blobName = blobItem.getName();
-			BlobClient blobClient = containerClient.getBlobClient(blobName);
-
-			Path localFilePath = localBasePath
-					.resolve(blobName.replaceFirst(blobDirectory, "").replace("/", File.separator));
+			// safe because listing by prefix only returns names that start with it
+			String relativePath = blobName.substring(prefix.length());
+			if (relativePath.isEmpty()) {
+				// the zero byte placeholder for the folder itself, not a file
+				continue;
+			}
+			Path localFilePath = localBasePath.resolve(relativePath.replace("/", File.separator)).normalize();
 
 			try {
-				BlobProperties properties = blobClient.getProperties();
-				long blobSize = properties.getBlobSize();
-
+				// nothing local to match it, so it is stale. Size is deliberately not
+				// part of this - an empty file the user uploaded is still a file, and
+				// a placeholder has no local counterpart anyway
 				if (!Files.exists(localFilePath)) {
-					blobClient.delete();
+					containerClient.getBlobClient(blobName).delete();
 					classLogger.info("Deleted storage file not found in local: {}", blobName);
-				} else if (blobSize == 0) { // Check for empty blobs
-					blobClient.delete();
-					classLogger.info("Deleted empty folder placeholder: {}", blobName);
 				}
 			} catch (Exception e) {
 				classLogger.error("Failed to delete blob: {}", blobName, e);
@@ -971,6 +1124,11 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 	private String[] extractContainerAndPath(String storagePath) {
 		if (storagePath == null || storagePath.trim().isEmpty()) {
+			if (isContainerScoped()) {
+				// the root of a container scoped engine is the container itself, which
+				// is a perfectly good thing to name
+				return new String[] { this.sasContainerName, "" };
+			}
 			throw new IllegalArgumentException("Storage path cannot be null or empty.");
 		}
 
@@ -980,6 +1138,12 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		// Remove leading slash if present
 		if (normalizedPath.startsWith("/")) {
 			normalizedPath = normalizedPath.substring(1);
+		}
+
+		if (isContainerScoped()) {
+			// the container is fixed by the credential, so the path never carries it -
+			// everything the caller passes is a blob path inside that container
+			return new String[] { this.sasContainerName, normalizedPath };
 		}
 
 		if (normalizedPath.isEmpty()) {
