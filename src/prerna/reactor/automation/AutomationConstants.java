@@ -225,8 +225,10 @@ public final class AutomationConstants {
 	public static final String SCOPE_DATE = "date";
 	public static final String SCOPE_TRIGGERED_AT = "triggered_at";
 	public static final String SCOPE_RUN_ID = "run_id";
+	/** Internal per-node room supplied only to conversational generated sources. */
+	public static final String SCOPE_ROOM_ID = "_automation_room_id";
 	public static final java.util.Set<String> RESERVED_SCOPE_KEYS = java.util.Set.of(
-			SCOPE_DATE, SCOPE_TRIGGERED_AT, SCOPE_RUN_ID);
+			SCOPE_DATE, SCOPE_TRIGGERED_AT, SCOPE_RUN_ID, SCOPE_ROOM_ID);
 	public static final String TEST_RUN_ID = "test";
 	public static final String SYSTEM_USER_ID = "system";
 

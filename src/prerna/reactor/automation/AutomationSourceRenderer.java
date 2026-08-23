@@ -135,6 +135,7 @@ public final class AutomationSourceRenderer {
 				PROMPT = %s
 				SYSTEM_PROMPT = %s
 				PARAMETERS_JSON = %s
+				ROOM_ID = "${_automation_room_id}"
 
 				def run(scope):
 				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
@@ -143,7 +144,12 @@ public final class AutomationSourceRenderer {
 				        parameters = json.loads(parameters or "{}")
 				    elif parameters is None:
 				        parameters = {}
-				    return model.ask(command=resolve(PROMPT, scope), context=resolve(SYSTEM_PROMPT, scope), param_dict=parameters)
+				    return model.ask(
+				        command=resolve(PROMPT, scope),
+				        context=resolve(SYSTEM_PROMPT, scope),
+				        param_dict=parameters,
+				        room_id=resolve(ROOM_ID, scope),
+				    )
 				""".formatted(value(config, "engineId"), value(config, "prompt"),
 				value(config, "systemPrompt"), value(config, "paramValues"));
 	}
@@ -170,10 +176,15 @@ public final class AutomationSourceRenderer {
 				ENGINE_ID = %s
 				PROMPT = %s
 				IMAGE = %s
+				ROOM_ID = "${_automation_room_id}"
 
 				def run(scope):
 				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return model.ask(command=resolve(PROMPT, scope), image=[resolve(IMAGE, scope)])
+				    return model.ask(
+				        command=resolve(PROMPT, scope),
+				        image=[resolve(IMAGE, scope)],
+				        room_id=resolve(ROOM_ID, scope),
+				    )
 				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "image"));
 	}
 

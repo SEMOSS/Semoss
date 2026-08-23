@@ -88,6 +88,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 		validateInputs(inputs);
+		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
 
 		if (!initializeRun(runId, projectId, definition, runNodes)) {
 			// Startup cleanup may see a recently-heartbeating run and correctly leave it
@@ -115,7 +116,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				}
 			}
 			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes,
-					files.nodeSources(), scope);
+					files.nodeSources(), scope, traceRoomIds);
 			finishRun(runId);
 			return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
 					PixelOperationType.OPERATION);
@@ -139,7 +140,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
-			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, Object> scope) {
+			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, Object> scope,
+			Map<String, String> traceRoomIds) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
@@ -153,9 +155,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					: executeNodeSource(projectId, runId, node,
 							AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
 									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
-											? AutomationSourceRenderer.renderNode(node)
-											: nodeSources.get(nodeId),
-							scope);
+										? AutomationSourceRenderer.renderNode(node)
+										: nodeSources.get(nodeId),
+						scope, traceRoomIds.get(nodeId));
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				break;
 			}
@@ -225,7 +227,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, Object> scope) {
+			String source, Map<String, Object> scope, String traceRoomId) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException("Automation node has no persisted Python source: "
 					+ node.get(AutomationConstants.NODE_FIELD_ID));
@@ -242,8 +244,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		try {
 			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
 					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+			Map<String, Object> nodeScope = scope;
+			if (traceRoomId != null) {
+				nodeScope = new LinkedHashMap<>(scope);
+				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
+			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
-					AutomationRuntime.buildNodeInvocationScript(source, scope, resolveCustomSourcePlaceholders),
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, resolveCustomSourcePlaceholders),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			return persistNativeNodeResult(runId, node, value, started, startedMs);
@@ -256,6 +263,18 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					? runtimeException
 					: new RuntimeException(e);
 		}
+	}
+
+	private static Map<String, String> allocateTraceRoomIds(List<Map<String, Object>> runNodes) {
+		Map<String, String> roomIds = new LinkedHashMap<>();
+		for (Map<String, Object> node : runNodes) {
+			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			if (AutomationConstants.NODE_MODEL_CHAT.equals(type)
+					|| AutomationConstants.NODE_MODEL_VISION.equals(type)) {
+				roomIds.put((String) node.get(AutomationConstants.NODE_FIELD_ID), UUID.randomUUID().toString());
+			}
+		}
+		return roomIds;
 	}
 
 	private Map<String, Object> persistNativeNodeResult(String runId, Map<String, Object> node, Object value,
