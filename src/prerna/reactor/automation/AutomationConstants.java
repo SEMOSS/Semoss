@@ -78,6 +78,9 @@ public final class AutomationConstants {
 	public static final String OUTPUT_VAR = "OUTPUT_VAR";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
+	public static final String ROOM_ID = "ROOM_ID";
+	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
+	public static final String AGENT_RUN_ID = "AGENT_RUN_ID";
 
 	// -- Run statuses --------------------------------------------------------------
 
@@ -238,6 +241,10 @@ public final class AutomationConstants {
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+	public static final String RESULT_TRACE = "trace";
+	public static final String TRACE_ROOM_ID = "roomId";
+	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";
+	public static final String TRACE_AGENT_RUN_ID = "agentRunId";
 	public static final String RESULT_GLOBALS = DOC_GLOBALS;
 	/** Aggregate optimistic-concurrency revision for the graph and all persisted node sources. */
 	public static final String RESULT_REVISION = "revision";
@@ -269,6 +276,9 @@ public final class AutomationConstants {
 	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
 	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
 	public static final String IDX_ANO_RUN = "IDX_ANO_RUN";
+	public static final String IDX_ANO_ROOM = "IDX_ANO_ROOM";
+	public static final String IDX_ANO_MODEL_MSG = "IDX_ANO_MODEL_MSG";
+	public static final String IDX_ANO_AGENT_RUN = "IDX_ANO_AGENT_RUN";
 
 	// -- Defaults ------------------------------------------------------------------
 

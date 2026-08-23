@@ -132,6 +132,7 @@ import org.javatuples.Pair;
 
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.reactor.automation.AutomationConstants;
 
 public class SchedulerOwlCreator extends AbstractOwlCreator {
 
@@ -275,6 +276,48 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(EXEC_ID, VARCHAR_200),
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUNS, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.PROJECT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.AUTOMATION_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.DEFINITION_VERSION, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.DEFINITION_HASH, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.DEFINITION_SNAPSHOT, CLOB),
+				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.TRIGGER_TYPE, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.FAILED_NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB),
+				Pair.with(AutomationConstants.LAST_HEARTBEAT, TIMESTAMP),
+				Pair.with(AutomationConstants.TOTAL_NODES, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.COMPLETED_NODES, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN),
+				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_LABEL, AutomationConstants.VARCHAR_500),
+				Pair.with(AutomationConstants.EXECUTION_ORDER, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.DURATION_MS, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.OUTPUT_VAR, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB),
+				Pair.with(AutomationConstants.OUTPUT_PREVIEW, AutomationConstants.VARCHAR_2000),
+				Pair.with(AutomationConstants.ROOM_ID, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.MODEL_MESSAGE_ID, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.AGENT_RUN_ID, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN, Arrays.asList(
+				Pair.with(AutomationConstants.PROJECT_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.CLAIMED_AT, TIMESTAMP)));
 		// @formatter:on
 	}
 
@@ -308,6 +351,15 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				QRTZ_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_NAME);
 		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS,
 				QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
+
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS,
+				AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN,
+				AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 	}
 
 }

@@ -90,12 +90,12 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		validateInputs(inputs);
 		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
 
-		if (!initializeRun(runId, projectId, definition, runNodes)) {
+		if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds)) {
 			// Startup cleanup may see a recently-heartbeating run and correctly leave it
 			// alone. Retry that cleanup on a later trigger so an orphaned lock does not
 			// remain forever after its heartbeat crosses the stale threshold.
 			AutomationDatabaseUtility.markStaleRunsInterrupted();
-			if (!initializeRun(runId, projectId, definition, runNodes)) {
+			if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds)) {
 				throw new IllegalArgumentException("Automation already has an active run: "
 						+ AutomationDatabaseUtility.getClaimedActiveRun(projectId)
 						+ ". Wait for it to complete or cancel it before starting a new run.");
@@ -133,10 +133,10 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	private boolean initializeRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,
-			List<Map<String, Object>> runNodes) {
+			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds) {
 		return AutomationDatabaseUtility.claimAndInitializeRun(runId, projectId,
 				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes);
+				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes, traceRoomIds);
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
@@ -209,7 +209,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			String output = AutomationRuntimeUtils.toRuntimeJson(globals);
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
+					null, output, preview, null, null);
 			AutomationPythonRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
@@ -253,7 +254,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, resolveCustomSourcePlaceholders),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
-			return persistNativeNodeResult(runId, node, value, started, startedMs);
+			return persistNativeNodeResult(runId, node, value, started, startedMs, traceRoomId);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -269,8 +270,10 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Map<String, String> roomIds = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			if (AutomationConstants.NODE_MODEL_CHAT.equals(type)
-					|| AutomationConstants.NODE_MODEL_VISION.equals(type)) {
+			if (AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+					node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
+					&& (AutomationConstants.NODE_MODEL_CHAT.equals(type)
+					|| AutomationConstants.NODE_MODEL_VISION.equals(type))) {
 				roomIds.put((String) node.get(AutomationConstants.NODE_FIELD_ID), UUID.randomUUID().toString());
 			}
 		}
@@ -278,7 +281,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> persistNativeNodeResult(String runId, Map<String, Object> node, Object value,
-			Timestamp started, long startedMs) {
+			Timestamp started, long startedMs, String traceRoomId) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			long duration = System.currentTimeMillis() - startedMs;
@@ -290,11 +293,50 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		String output = AutomationRuntimeUtils.toRuntimeJson(value);
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
+		String modelMessageId = extractModelMessageId(node, value, traceRoomId);
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
-				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview);
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
+				modelMessageId, null);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
+	}
+
+	private static String extractModelMessageId(Map<String, Object> node, Object value, String expectedRoomId) {
+		if (expectedRoomId == null) {
+			return null;
+		}
+		Object response = value;
+		if (value instanceof List<?> values && !values.isEmpty()) {
+			response = values.get(0);
+		}
+		if (!(response instanceof Map<?, ?> responseMap)) {
+			throw missingModelTrace(node);
+		}
+		String returnedRoomId = stringValue(responseMap.get(AutomationConstants.TRACE_ROOM_ID));
+		String messageId = stringValue(responseMap.get("messageId"));
+		if (!expectedRoomId.equals(returnedRoomId)) {
+			throw new IllegalStateException("Automation model node '"
+					+ node.get(AutomationConstants.NODE_FIELD_ID)
+					+ "' returned a different roomId than the room assigned to this run.");
+		}
+		if (messageId == null) {
+			throw missingModelTrace(node);
+		}
+		return messageId;
+	}
+
+	private static IllegalStateException missingModelTrace(Map<String, Object> node) {
+		return new IllegalStateException("Automation model node '"
+				+ node.get(AutomationConstants.NODE_FIELD_ID)
+				+ "' did not return the required roomId and messageId trace metadata.");
+	}
+
+	private static String stringValue(Object value) {
+		if (value == null || value.toString().isBlank()) {
+			return null;
+		}
+		return value.toString();
 	}
 
 	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,

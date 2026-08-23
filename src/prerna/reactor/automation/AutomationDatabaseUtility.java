@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
+import static prerna.reactor.automation.AutomationConstants.AGENT_RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
 import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
 import static prerna.reactor.automation.AutomationConstants.RESULT_SUMMARY_COL;
@@ -45,11 +46,15 @@ import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
 import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
 import static prerna.reactor.automation.AutomationConstants.FAILED_NODE_ID;
 import static prerna.reactor.automation.AutomationConstants.IDX_ANO_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_AGENT_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_MODEL_MSG;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_ROOM;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
 import static prerna.reactor.automation.AutomationConstants.INTEGER;
 import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
+import static prerna.reactor.automation.AutomationConstants.MODEL_MESSAGE_ID;
 import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_ID;
 import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_LABEL;
 import static prerna.reactor.automation.AutomationConstants.NODE_ID;
@@ -68,6 +73,7 @@ import static prerna.reactor.automation.AutomationConstants.PK_AUTO_ACTIVE_RUN;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
 import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
 import static prerna.reactor.automation.AutomationConstants.RUN_ID;
+import static prerna.reactor.automation.AutomationConstants.ROOM_ID;
 import static prerna.reactor.automation.AutomationConstants.STALE_HEARTBEAT_THRESHOLD_MINUTES;
 import static prerna.reactor.automation.AutomationConstants.STARTED_AT;
 import static prerna.reactor.automation.AutomationConstants.STATUS;
@@ -96,6 +102,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -175,12 +182,13 @@ public final class AutomationDatabaseUtility {
 	// AUTOMATION_NODE_OUTPUTS
 	private static final String INSERT_NODE_OUTPUT = """
 			INSERT INTO AUTOMATION_NODE_OUTPUTS \
-			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS) \
-			VALUES (?, ?, ?, ?, ?)""";
+			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID) \
+			VALUES (?, ?, ?, ?, ?, ?)""";
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ? \
+			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_FAILED = """
@@ -196,28 +204,17 @@ public final class AutomationDatabaseUtility {
 	// -- Initialization ------------------------------------------------------------
 
 	/**
-	 * Creates automation tables in the scheduler DB if they don't exist, and
-	 * registers them in the OWL. Called at platform startup after the scheduler
-	 * DB is loaded. Safe to call on every startup (uses IF NOT EXISTS / metadata
-	 * checks).
+	 * Creates and migrates the physical automation tables in the scheduler DB.
+	 * The scheduler's authoritative OWL schema is owned by
+	 * {@link prerna.reactor.scheduler.SchedulerOwlCreator}. Called at platform
+	 * startup after the scheduler DB and its OWL are initialized. Safe to call on
+	 * every startup (uses IF NOT EXISTS / metadata checks).
 	 */
 	public static void initialize() {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
 			classLogger.warn("Scheduler DB not available - automation tables will not be created");
 			return;
-		}
-
-		// Register the automation OWL schema in the scheduler DB if any tables or
-		// columns are missing. This keeps the OWL declaration entirely within this
-		// package rather than depending on SchedulerOwlCreator.
-		AutomationOwlCreator owlCreator = new AutomationOwlCreator();
-		if (owlCreator.needsRemake(schedulerDb)) {
-			try {
-				owlCreator.remakeOwl(schedulerDb);
-			} catch (Exception e) {
-				classLogger.error("Failed to update automation OWL schema in scheduler DB", e);
-			}
 		}
 
 		Connection conn = null;
@@ -355,7 +352,8 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static boolean claimAndInitializeRun(String runId, String projectId, String automationId,
 			int definitionVersion, String definitionHash, String definitionSnapshot,
-			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes) {
+			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes,
+			Map<String, String> traceRoomIds) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
 			throw new IllegalStateException(
@@ -393,7 +391,7 @@ public final class AutomationDatabaseUtility {
 			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
 					definitionVersion, definitionHash, definitionSnapshot, triggerType,
 					orderedNodes.size(), createdBy, now);
-			insertAllNodeOutputs(conn, runId, orderedNodes);
+			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
 			conn.commit();
 			return true;
 		} catch (Exception e) {
@@ -429,7 +427,7 @@ public final class AutomationDatabaseUtility {
 	}
 
 	private static void insertAllNodeOutputs(Connection conn, String runId,
-			List<Map<String, Object>> orderedNodes) throws SQLException {
+			List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds) throws SQLException {
 		try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
 			for (int i = 0; i < orderedNodes.size(); i++) {
 				Map<String, Object> node = orderedNodes.get(i);
@@ -439,6 +437,9 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
 				ps.setInt(index++, i);
 				ps.setString(index++, NODE_STATUS_PENDING);
+				setNullableString(ps, index++, traceRoomIds == null
+						? null
+						: traceRoomIds.get((String) node.get(NODE_FIELD_ID)));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -811,7 +812,8 @@ public final class AutomationDatabaseUtility {
 	 * Updates a node output after successful execution.
 	 */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt,
-			long durationMs, String outputVar, String outputValue, String outputPreview) {
+			long durationMs, String outputVar, String outputValue, String outputPreview,
+			String modelMessageId, String agentRunId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the successful automation node result");
 
 		Connection conn = null;
@@ -829,6 +831,8 @@ public final class AutomationDatabaseUtility {
 				// Handle CLOB for potentially large output values
 				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
 				ps.setString(index++, outputPreview);
+				setNullableString(ps, index++, modelMessageId);
+				setNullableString(ps, index++, agentRunId);
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
 				requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
@@ -898,6 +902,9 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR, OUTPUT_VAR));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ROOM_ID, ROOM_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + MODEL_MESSAGE_ID, MODEL_MESSAGE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, AGENT_RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
@@ -918,7 +925,7 @@ public final class AutomationDatabaseUtility {
 	 * {@link prerna.reactor.automation.TriggerAutomationReactor} return to callers.
 	 *
 	 * <p>Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
-	 * (falls back from outputValue when blank), outputValue, and errorMessage.
+	 * (falls back from outputValue when blank), outputValue, errorMessage, and an optional trace map.
 	 *
 	 * @param nodeOutputs ordered rows from {@link #getNodeOutputsForRun(String)}
 	 * @return mutable list of node result maps (empty when {@code nodeOutputs} is null)
@@ -941,6 +948,16 @@ public final class AutomationDatabaseUtility {
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
 			nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+			Map<String, Object> trace = new LinkedHashMap<>();
+			putIfPresent(trace, AutomationConstants.TRACE_ROOM_ID,
+					output.get(AutomationConstants.ROOM_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_MODEL_MESSAGE_ID,
+					output.get(AutomationConstants.MODEL_MESSAGE_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_AGENT_RUN_ID,
+					output.get(AutomationConstants.AGENT_RUN_ID));
+			if (!trace.isEmpty()) {
+				nodeResult.put(AutomationConstants.RESULT_TRACE, trace);
+			}
 			nodeResults.add(nodeResult);
 		}
 		return nodeResults;
@@ -1005,30 +1022,34 @@ public final class AutomationDatabaseUtility {
 
 		String tableName = TABLE_AUTOMATION_NODE_OUTPUTS;
 
-		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
-			return;
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS,
+					STARTED_AT, COMPLETED_AT, DURATION_MS, OUTPUT_VAR,
+					OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, MODEL_MESSAGE_ID, AGENT_RUN_ID, ERROR_MESSAGE };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50,
+					dateTimeType, dateTimeType, BIGINT, VARCHAR_255,
+					clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, clobType };
+			String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
+					null, null, null, null,
+					null, null, null, null, null, null };
+
+			String sql;
+			if (allowIfExists) {
+				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+			} else {
+				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			}
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
 		}
 
-		String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS,
-				STARTED_AT, COMPLETED_AT, DURATION_MS, OUTPUT_VAR,
-				OUTPUT_VALUE, OUTPUT_PREVIEW, ERROR_MESSAGE };
-		String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50,
-				dateTimeType, dateTimeType, BIGINT, VARCHAR_255,
-				clobType, VARCHAR_2000, clobType };
-		String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
-				null, null, null, null,
-				null, null, null };
-
-		String sql;
-		if (allowIfExists) {
-			sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-		} else {
-			sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-		}
-		classLogger.info("Creating table {}: {}", tableName, sql);
-		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.execute();
-		}
+		// Additive trace migration for existing installations.
+		addColumnIfNotExists(conn, queryUtil, tableName, ROOM_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, MODEL_MESSAGE_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, AGENT_RUN_ID, VARCHAR_50);
 
 		// Composite primary key
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_NODE_OUT,
@@ -1037,6 +1058,18 @@ public final class AutomationDatabaseUtility {
 		// Indexes
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_RUN, tableName,
 				new String[]{ RUN_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_ROOM, tableName,
+				new String[]{ ROOM_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_MODEL_MSG, tableName,
+				new String[]{ MODEL_MESSAGE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_AGENT_RUN, tableName,
+				new String[]{ AGENT_RUN_ID });
+	}
+
+	private static void putIfPresent(Map<String, Object> target, String key, Object value) {
+		if (value != null && !value.toString().isBlank()) {
+			target.put(key, value);
+		}
 	}
 
 	/**

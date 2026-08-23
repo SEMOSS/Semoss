@@ -78,7 +78,8 @@ job when possible, and is checked before each node and during waits.
 
 | Class | Purpose |
 | --- | --- |
-| `AutomationDatabaseUtility` / `AutomationOwlCreator` | Run records, node outputs, active-run locking, and stale-run recovery. |
+| `AutomationDatabaseUtility` | Physical run records, node outputs, active-run locking, and stale-run recovery in the scheduler DB. |
+| `SchedulerOwlCreator` | Authoritative OWL schema for both scheduler-owned and automation-owned tables in that DB. |
 | `AutomationPythonRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
 | `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |
 
