@@ -309,11 +309,11 @@ public final class AutomationSourceRenderer {
 
 	private static String agentRunSource(Map<String, Object> config) {
 		return """
-				# Start a durable SEMOSS agent run through the existing RunAgent reactor.
+				# Start a durable SEMOSS agent run in the room assigned by the automation runtime.
 				from semoss import Insight
 				import json
 
-				ROOM_ID = %s
+				ROOM_ID = "${_automation_room_id}"
 				COMMAND = %s
 				ENGINE_ID = %s
 				HARNESS_TYPE = %s
@@ -345,12 +345,17 @@ public final class AutomationSourceRenderer {
 				        if value is not None:
 				            arguments.append(_pixel_value(name, resolve(value, scope)))
 				    if PARAM_MAP is not None:
-				        arguments.append("paramValues=" + json.dumps(PARAM_MAP))
+				        arguments.append("paramValues=" + json.dumps(resolve(PARAM_MAP, scope)))
 				    if AGENT_PARAMS is not None:
-				        arguments.append("agentParams=" + json.dumps(AGENT_PARAMS))
-				    return Insight().run_pixel("RunAgent(" + ", ".join(arguments) + ");")
-				""".formatted(value(config, AutomationConstants.CONFIG_ROOM_ID),
-				value(config, AutomationConstants.CONFIG_COMMAND),
+				        arguments.append("agentParams=" + json.dumps(resolve(AGENT_PARAMS, scope)))
+				    result = Insight().run_pixel(
+				        "RunAgent(" + ", ".join(arguments) + ");",
+				        raw=False,
+				    )
+				    if isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict):
+				        return result[0]
+				    return result
+				""".formatted(value(config, AutomationConstants.CONFIG_COMMAND),
 				value(config, AutomationConstants.CONFIG_ENGINE_ID),
 				value(config, AutomationConstants.CONFIG_HARNESS_TYPE),
 				value(config, AutomationConstants.CONFIG_WORKSPACE_ID),

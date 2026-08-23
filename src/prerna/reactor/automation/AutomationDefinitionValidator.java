@@ -215,8 +215,13 @@ public final class AutomationDefinitionValidator {
 			case AutomationConstants.NODE_FUNCTION_EXECUTE -> requireConfigString(nodeId, config, "arguments");
 			case AutomationConstants.NODE_APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
 			case AutomationConstants.NODE_AGENT_RUN -> {
-				requireConfigString(nodeId, config, AutomationConstants.CONFIG_ROOM_ID);
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
+				Object wait = config.get(AutomationConstants.CONFIG_WAIT);
+				if (wait != null && !Boolean.TRUE.equals(wait)) {
+					throw new IllegalArgumentException("Automation agent node '" + nodeId
+							+ "' must wait for its durable agent run to finish.");
+				}
 			}
 			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);
 			default -> {

@@ -44,6 +44,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
 import prerna.util.ProjectSyncUtility;
@@ -171,7 +172,8 @@ public final class AutomationProjectUtils {
 							"Automation changed since it was loaded. Refresh and reapply your changes.");
 				}
 			}
-			validateEngineReferences(definitionJson, user);
+			validateDefinitionReferences(
+					AutomationDefinitionValidator.parseAndValidate(definitionJson), user);
 			AutomationDefinitionService.DefinitionFiles files =
 					AutomationDefinitionService.save(projectId, definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
@@ -207,20 +209,39 @@ public final class AutomationProjectUtils {
 		}
 	}
 
+	/**
+	 * Validates every catalog reference in an already parsed definition against the current user.
+	 * Called on save and again immediately before execution because access and active state can
+	 * change after an automation is authored.
+	 *
+	 * @param definition validated automation definition
+	 * @param user current user
+	 */
 	@SuppressWarnings("unchecked")
-	private static void validateEngineReferences(String definitionJson, User user) {
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+	public static void validateDefinitionReferences(
+			AutomationDefinitionValidator.ValidatedDefinition definition, User user) {
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			IEngine.CATALOG_TYPE expectedType = expectedEngineType(nodeType);
 			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			if (expectedType == null || !(rawConfig instanceof Map<?, ?>)) {
+			if (!(rawConfig instanceof Map<?, ?>)) {
 				continue;
 			}
 			Map<String, Object> config = (Map<String, Object>) rawConfig;
+			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
+				validateAgentWorkspaceReference(node, config, user);
+			}
+
+			IEngine.CATALOG_TYPE expectedType = expectedEngineType(nodeType);
+			if (expectedType == null) {
+				continue;
+			}
 			Object rawEngineId = config.get(AutomationConstants.CONFIG_ENGINE_ID);
 			if (!(rawEngineId instanceof String engineId) || engineId.isBlank()) {
+				if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
+					String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+					throw new IllegalArgumentException("Automation agent node '" + nodeId
+							+ "' requires an execution model. Select an accessible MODEL engine before saving or running.");
+				}
 				continue;
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -243,6 +264,35 @@ public final class AutomationProjectUtils {
 						+ "' requires edit access to engineId '" + engineId + "'.");
 			}
 		}
+	}
+
+	private static void validateAgentWorkspaceReference(Map<String, Object> node,
+			Map<String, Object> config, User user) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Object rawWorkspaceId = config.get(AutomationConstants.CONFIG_WORKSPACE_ID);
+		if (!(rawWorkspaceId instanceof String workspaceId) || workspaceId.isBlank()) {
+			throw invalidAgentReference(nodeId, String.valueOf(rawWorkspaceId));
+		}
+		workspaceId = workspaceId.trim();
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)
+				|| !IProject.PROJECT_TYPE.WORKSPACE.name().equals(
+						SecurityProjectUtils.getProjectTypeForId(workspaceId))) {
+			throw invalidAgentReference(nodeId, workspaceId);
+		}
+		Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (workspace == null) {
+			throw invalidAgentReference(nodeId, workspaceId);
+		}
+		if (!Boolean.TRUE.equals(workspace.get("is_active"))) {
+			throw new IllegalArgumentException("Automation node '" + nodeId
+					+ "' references disabled agent workspaceId '" + workspaceId + "'.");
+		}
+	}
+
+	private static IllegalArgumentException invalidAgentReference(String nodeId, String workspaceId) {
+		return new IllegalArgumentException("Automation node '" + nodeId + "' workspaceId '" + workspaceId
+				+ "' is not an active accessible WORKSPACE agent. Call MyProjects with "
+				+ "projectType=['WORKSPACE'] and use its project_id value.");
 	}
 
 	private static IEngine.CATALOG_TYPE expectedEngineType(String nodeType) {

@@ -195,6 +195,11 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
 
+	private static final String UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
+			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			AGENT_RUN_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
+
 	private static final String UPDATE_NODE_STATUS =
 			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ? WHERE RUN_ID = ? AND NODE_ID = ?";
 
@@ -879,6 +884,47 @@ public final class AutomationDatabaseUtility {
 			classLogger.error("Failed to update node failed for run '{}', node '{}'",
 					runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the failed automation node result.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Persists a failed durable agent result without discarding the run reference or terminal
+	 * output. This keeps Agent Activity reachable from failed, cancelled, timed-out, and
+	 * input-required automation nodes.
+	 */
+	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt,
+			long durationMs, String outputVar, String outputValue, String outputPreview,
+			String agentRunId, String errorMessage) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation agent result");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT)) {
+				int index = 1;
+				ps.setString(index++, NODE_STATUS_FAILED);
+				ps.setTimestamp(index++, startedAt);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setLong(index++, durationMs);
+				ps.setString(index++, outputVar);
+				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
+				ps.setString(index++, outputPreview);
+				setNullableString(ps, index++, agentRunId);
+				setNullableString(ps, index++, errorMessage);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the failed agent node result", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to update agent node failure for run '{}', node '{}'", runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the failed automation agent result.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}

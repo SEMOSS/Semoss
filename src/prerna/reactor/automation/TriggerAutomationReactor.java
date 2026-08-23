@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -84,6 +85,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
 		AutomationDefinitionValidator.ValidatedDefinition definition =
 				AutomationDefinitionValidator.parseAndValidate(files.definition());
+		AutomationProjectUtils.validateDefinitionReferences(definition, this.insight.getUser());
 		List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
@@ -243,6 +245,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
+			prepareGeneratedAgentRoom(node, traceRoomId);
 			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
 					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 			Map<String, Object> nodeScope = scope;
@@ -266,6 +269,22 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private void prepareGeneratedAgentRoom(Map<String, Object> node, String roomId) {
+		if (roomId == null
+				|| !AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
+				|| !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			return;
+		}
+		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
+				? (Map<String, Object>) map
+				: Map.of();
+		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null,
+				workspaceId == null ? null : workspaceId.trim(), null, null, null, null);
+	}
+
 	private static Map<String, String> allocateTraceRoomIds(List<Map<String, Object>> runNodes) {
 		Map<String, String> roomIds = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
@@ -273,7 +292,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			if (AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
 					node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
 					&& (AutomationConstants.NODE_MODEL_CHAT.equals(type)
-					|| AutomationConstants.NODE_MODEL_VISION.equals(type))) {
+					|| AutomationConstants.NODE_MODEL_VISION.equals(type)
+					|| AutomationConstants.NODE_AGENT_RUN.equals(type))) {
 				roomIds.put((String) node.get(AutomationConstants.NODE_FIELD_ID), UUID.randomUUID().toString());
 			}
 		}
@@ -290,20 +310,111 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					"Run cancelled by user");
 			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
 		}
-		String output = AutomationRuntimeUtils.toRuntimeJson(value);
+		Object persistedValue = value;
+		String agentRunId = null;
+		String agentFailure = null;
+		boolean generatedAgentNode = AutomationConstants.NODE_AGENT_RUN.equals(
+				node.get(AutomationConstants.NODE_FIELD_TYPE))
+				&& AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+						node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+		if (generatedAgentNode) {
+			Map<String, Object> agentResult = normalizeAgentResult(node, value, traceRoomId);
+			persistedValue = agentResult;
+			agentRunId = stringValue(agentResult.get("runId"));
+			agentFailure = agentFailureMessage(agentResult, agentRunId);
+		}
+		String output = AutomationRuntimeUtils.toRuntimeJson(persistedValue);
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
-		String modelMessageId = extractModelMessageId(node, value, traceRoomId);
+		String modelMessageId = generatedAgentNode
+				? null
+				: extractModelMessageId(node, persistedValue, traceRoomId);
+		if (agentFailure != null) {
+			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
+					agentRunId, agentFailure);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure);
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
+		}
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
 				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
-				modelMessageId, null);
+				modelMessageId, agentRunId);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
-		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
+		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> normalizeAgentResult(Map<String, Object> node, Object value,
+			String expectedRoomId) {
+		Object response = value;
+		if (response instanceof List<?> values && values.size() == 1) {
+			response = values.get(0);
+		}
+		if (!(response instanceof Map<?, ?> responseMap)) {
+			throw missingAgentTrace(node);
+		}
+		Map<String, Object> normalized = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : responseMap.entrySet()) {
+			if (entry.getKey() instanceof String key) {
+				normalized.put(key, entry.getValue());
+			}
+		}
+
+		String returnedRunId = stringValue(normalized.get("runId"));
+		String returnedRoomId = stringValue(normalized.get(AutomationConstants.TRACE_ROOM_ID));
+		if (returnedRunId == null || expectedRoomId == null || !expectedRoomId.equals(returnedRoomId)) {
+			throw missingAgentTrace(node);
+		}
+
+		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
+				? (Map<String, Object>) map
+				: Map.of();
+		String expectedWorkspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		if (expectedWorkspaceId != null) {
+			expectedWorkspaceId = expectedWorkspaceId.trim();
+		}
+		String returnedWorkspaceId = stringValue(normalized.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		if (returnedWorkspaceId != null && !returnedWorkspaceId.equals(expectedWorkspaceId)) {
+			throw new IllegalStateException("Automation agent node '"
+					+ node.get(AutomationConstants.NODE_FIELD_ID)
+					+ "' returned a different workspaceId than the configured agent.");
+		}
+		normalized.put(AutomationConstants.CONFIG_WORKSPACE_ID, expectedWorkspaceId);
+		return normalized;
+	}
+
+	private static String agentFailureMessage(Map<String, Object> result, String runId) {
+		String status = stringValue(result.get("status"));
+		if (Boolean.TRUE.equals(result.get("waitTimedOut"))) {
+			return "Agent run '" + runId + "' did not complete before the wait timeout.";
+		}
+		if (status == null) {
+			return "Agent run '" + runId + "' returned no durable status.";
+		}
+		return switch (status.toUpperCase()) {
+			case "COMPLETED" -> null;
+			case "INPUT_REQUIRED" -> "Agent run '" + runId
+					+ "' requires user input before the automation can continue.";
+			case "FAILED" -> {
+				String error = stringValue(result.get("errorMessage"));
+				yield error != null ? error : "Agent run '" + runId + "' failed.";
+			}
+			case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
+			default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
+		};
+	}
+
+	private static IllegalStateException missingAgentTrace(Map<String, Object> node) {
+		return new IllegalStateException("Automation agent node '"
+				+ node.get(AutomationConstants.NODE_FIELD_ID)
+				+ "' did not return matching runId and roomId trace metadata.");
 	}
 
 	private static String extractModelMessageId(Map<String, Object> node, Object value, String expectedRoomId) {
-		if (expectedRoomId == null) {
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		if (expectedRoomId == null || !(AutomationConstants.NODE_MODEL_CHAT.equals(type)
+				|| AutomationConstants.NODE_MODEL_VISION.equals(type))) {
 			return null;
 		}
 		Object response = value;
