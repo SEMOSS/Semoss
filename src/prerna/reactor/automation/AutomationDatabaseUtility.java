@@ -87,6 +87,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
@@ -379,12 +380,13 @@ public final class AutomationDatabaseUtility {
 				try {
 					ps.executeUpdate();
 				} catch (SQLException e) {
-					rollback(conn, e);
-					// Preserve the existing claim contract: callers treat a rejected claim as
-					// another active run and may perform stale-run cleanup before retrying.
-					classLogger.debug("Could not claim active-run slot for project {} (likely already active): {}",
-							projectId, e.getMessage());
-					return false;
+					if (isConstraintViolation(e)) {
+						rollback(conn, e);
+						classLogger.debug("Active-run slot is already claimed for project {}: {}",
+								projectId, e.getMessage());
+						return false;
+					}
+					throw e;
 				}
 			}
 
@@ -448,9 +450,8 @@ public final class AutomationDatabaseUtility {
 	 * Must be called on every terminal run status (SUCCESS/FAILED/CANCELLED/INTERRUPTED),
 	 * including the stale-run sweep in {@link #markStaleRunsInterrupted()}.
 	 */
-	public static boolean releaseActiveRun(String projectId, String runId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+	public static void releaseActiveRun(String projectId, String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("release the active automation run");
 
 		Connection conn = null;
 		try {
@@ -463,11 +464,11 @@ public final class AutomationDatabaseUtility {
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
 		} catch (SQLException e) {
+			rollback(conn, e);
 			classLogger.error("Failed to release active-run slot for project {}, run {}",
 					projectId, runId, e);
-			return false;
+			throw new IllegalStateException("Unable to release the active automation run.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -504,9 +505,8 @@ public final class AutomationDatabaseUtility {
 	 * {@code TriggerAutomationReactor.CANCELLATION_FLAGS} map (a same-pod-only fast path), this is
 	 * visible to whichever pod is actually executing the run via {@link #isCancelRequested(String)}.
 	 */
-	public static boolean setCancelRequested(String runId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+	public static void setCancelRequested(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation cancellation request");
 
 		Connection conn = null;
 		try {
@@ -514,15 +514,15 @@ public final class AutomationDatabaseUtility {
 			try (PreparedStatement ps = conn.prepareStatement(SET_CANCEL_REQUESTED)) {
 				ps.setBoolean(1, true);
 				ps.setString(2, runId);
-				ps.executeUpdate();
+				requireSingleRow(ps.executeUpdate(), "set the cancellation flag", runId, null);
 			}
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to set cancel-requested flag for run '{}'", runId, e);
-			return false;
+			throw new IllegalStateException("Unable to persist the automation cancellation request.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -558,10 +558,9 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Updates the status of an automation run (on completion or failure).
 	 */
-	public static boolean updateRunStatus(String runId, String status,
+	public static void updateRunStatus(String runId, String status,
 			String failedNodeId, String errorMessage) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the terminal automation status");
 
 		Connection conn = null;
 		try {
@@ -573,15 +572,15 @@ public final class AutomationDatabaseUtility {
 				setNullableString(ps, index++, failedNodeId);
 				setNullableString(ps, index++, errorMessage);
 				ps.setString(index++, runId);
-				ps.executeUpdate();
+				requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
 			}
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to update run status for '{}'", runId, e);
-			return false;
+			throw new IllegalStateException("Unable to persist the terminal automation status.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -752,9 +751,8 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Marks a node as RUNNING (before pixel execution starts).
 	 */
-	public static boolean markNodeRunning(String runId, String nodeId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+	public static void markNodeRunning(String runId, String nodeId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("mark the automation node as running");
 
 		Connection conn = null;
 		try {
@@ -765,17 +763,17 @@ public final class AutomationDatabaseUtility {
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
-				ps.executeUpdate();
+				requireSingleRow(ps.executeUpdate(), "mark the node as running", runId, nodeId);
 			}
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to mark node running for run '{}', node '{}'",
 					runId, nodeId, e);
-			return false;
+			throw new IllegalStateException("Unable to mark the automation node as running.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -784,9 +782,8 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Marks all nodes that did not start because the run reached a terminal state as skipped.
 	 */
-	public static boolean skipPendingNodes(String runId, String reason) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+	public static void skipPendingNodes(String runId, String reason) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist skipped automation nodes");
 
 		Connection conn = null;
 		try {
@@ -801,10 +798,10 @@ public final class AutomationDatabaseUtility {
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
 		} catch (SQLException e) {
+			rollback(conn, e);
 			classLogger.error("Failed to skip pending nodes for run '{}'", runId, e);
-			return false;
+			throw new IllegalStateException("Unable to persist skipped automation nodes.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -813,10 +810,9 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Updates a node output after successful execution.
 	 */
-	public static boolean updateNodeSuccess(String runId, String nodeId, Timestamp startedAt,
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt,
 			long durationMs, String outputVar, String outputValue, String outputPreview) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the successful automation node result");
 
 		Connection conn = null;
 		try {
@@ -835,16 +831,16 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, outputPreview);
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
-				ps.executeUpdate();
+				requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
 			}
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
 		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to update node success for run '{}', node '{}'",
 					runId, nodeId, e);
-			return false;
+			throw new IllegalStateException("Unable to persist the successful automation node result.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -853,10 +849,9 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Updates a node output after failed execution.
 	 */
-	public static boolean updateNodeFailed(String runId, String nodeId, Timestamp startedAt,
+	public static void updateNodeFailed(String runId, String nodeId, Timestamp startedAt,
 			long durationMs, String errorMessage) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation node result");
 
 		Connection conn = null;
 		try {
@@ -870,16 +865,16 @@ public final class AutomationDatabaseUtility {
 				setNullableString(ps, index++, errorMessage);
 				ps.setString(index++, runId);
 				ps.setString(index++, nodeId);
-				ps.executeUpdate();
+				requireSingleRow(ps.executeUpdate(), "persist the failed node result", runId, nodeId);
 			}
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
-			return true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to update node failed for run '{}', node '{}'",
 					runId, nodeId, e);
-			return false;
+			throw new IllegalStateException("Unable to persist the failed automation node result.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -1090,6 +1085,14 @@ public final class AutomationDatabaseUtility {
 		}
 	}
 
+	private static IRDBMSEngine requireSchedulerDb(String operation) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			throw new IllegalStateException("Scheduler DB is not available; unable to " + operation + ".");
+		}
+		return schedulerDb;
+	}
+
 	private static void closeConnection(IRDBMSEngine engine, Connection conn) {
 		ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
 	}
@@ -1099,11 +1102,35 @@ public final class AutomationDatabaseUtility {
 			return;
 		}
 		try {
-			conn.rollback();
+			if (!conn.getAutoCommit()) {
+				conn.rollback();
+			}
 		} catch (SQLException rollbackError) {
 			cause.addSuppressed(rollbackError);
 			classLogger.error("Failed to roll back automation database transaction", rollbackError);
 		}
+	}
+
+	private static boolean isConstraintViolation(SQLException exception) {
+		for (SQLException current = exception; current != null; current = current.getNextException()) {
+			if (current instanceof SQLIntegrityConstraintViolationException) {
+				return true;
+			}
+			String sqlState = current.getSQLState();
+			if (sqlState != null && sqlState.startsWith("23")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static void requireSingleRow(int updatedRows, String operation, String runId, String nodeId) {
+		if (updatedRows == 1) {
+			return;
+		}
+		String nodeContext = nodeId == null ? "" : ", node '" + nodeId + "'";
+		throw new IllegalStateException("Unable to " + operation + " for run '" + runId + "'"
+				+ nodeContext + ": expected one row but updated " + updatedRows + ".");
 	}
 
 	private static void restoreAutoCommit(Connection conn, boolean originalAutoCommit) {
