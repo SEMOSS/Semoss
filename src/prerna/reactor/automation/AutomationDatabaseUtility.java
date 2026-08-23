@@ -343,50 +343,103 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Atomically claims the "active run" slot for a project. Backed by a single-row-per-project
-	 * marker table ({@code AUTOMATION_ACTIVE_RUN}, PK on {@code PROJECT_ID}) in the shared scheduler
-	 * DB, so this is correct across every pod in a cluster - not just within one JVM. Unlike
-	 * {@link #getActiveRun(String)} (a plain SELECT), this is a single atomic INSERT: a PK
-	 * violation means another run is already active for that project, closing the check-then-insert
-	 * race where two concurrent triggers for the same project could otherwise both start a run and
-	 * double up any node with side effects (e.g. a database-update node running twice).
+	 * Claims the project's active-run slot and creates its complete initial history. The claim,
+	 * run record, and all pending node-output rows are committed as one transaction, so callers
+	 * cannot observe an active run without its run and node records.
 	 *
-	 * <p>If the scheduler DB is unavailable, fails open (returns true) to match the existing
-	 * degraded-mode behavior of the rest of this class (e.g. {@link #insertRun}, which silently
-	 * no-ops when the scheduler DB can't be reached) rather than introduce a new failure mode.
-	 *
-	 * @return true if the slot was claimed (caller may proceed), false if another run already
-	 *         holds it for this project
+	 * @return {@code true} when the run was initialized; {@code false} when the active-run insert
+	 *         was rejected (normally because another run holds the project)
+	 * @throws IllegalStateException when the scheduler database is unavailable or history cannot be
+	 *                               initialized
 	 */
-	public static boolean claimActiveRun(String projectId, String runId) {
+	public static boolean claimAndInitializeRun(String runId, String projectId, String automationId,
+			int definitionVersion, String definitionHash, String definitionSnapshot,
+			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
-			classLogger.warn("Scheduler DB not available - cannot enforce single-active-run guard for project {}", projectId);
-			return true;
+			throw new IllegalStateException(
+					"Scheduler DB is not available; automation run history cannot be initialized.");
 		}
 
 		Connection conn = null;
+		boolean originalAutoCommit = false;
 		try {
 			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			Timestamp now = toTimestamp(Instant.now());
+
 			try (PreparedStatement ps = conn.prepareStatement(CLAIM_ACTIVE_RUN)) {
 				int index = 1;
 				ps.setString(index++, projectId);
 				ps.setString(index++, runId);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.executeUpdate();
+				ps.setTimestamp(index++, now);
+				try {
+					ps.executeUpdate();
+				} catch (SQLException e) {
+					rollback(conn, e);
+					// Preserve the existing claim contract: callers treat a rejected claim as
+					// another active run and may perform stale-run cleanup before retrying.
+					classLogger.debug("Could not claim active-run slot for project {} (likely already active): {}",
+							projectId, e.getMessage());
+					return false;
+				}
 			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+
+			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
+					definitionVersion, definitionHash, definitionSnapshot, triggerType,
+					orderedNodes.size(), createdBy, now);
+			insertAllNodeOutputs(conn, runId, orderedNodes);
+			conn.commit();
 			return true;
-		} catch (SQLException e) {
-			// Constraint violation (another run already holds this project's slot) is the
-			// expected/common case here, not an error - log at debug, not error.
-			classLogger.debug("Could not claim active-run slot for project {} (likely already active): {}",
-					projectId, e.getMessage());
-			return false;
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to initialize automation run '{}' for project '{}'", runId, projectId, e);
+			throw new IllegalStateException("Unable to initialize automation run history.", e);
 		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
 			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	private static void insertRun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			String projectId, String automationId, int definitionVersion, String definitionHash,
+			String definitionSnapshot, String triggerType, int totalNodes, String createdBy,
+			Timestamp now) throws SQLException, UnsupportedEncodingException {
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
+			int index = 1;
+			ps.setString(index++, runId);
+			ps.setString(index++, projectId);
+			ps.setString(index++, automationId);
+			ps.setInt(index++, definitionVersion);
+			ps.setString(index++, definitionHash);
+			queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
+			ps.setString(index++, STATUS_RUNNING);
+			ps.setString(index++, triggerType);
+			ps.setTimestamp(index++, now);
+			ps.setTimestamp(index++, now);
+			ps.setInt(index++, totalNodes);
+			ps.setString(index++, createdBy);
+			ps.executeUpdate();
+		}
+	}
+
+	private static void insertAllNodeOutputs(Connection conn, String runId,
+			List<Map<String, Object>> orderedNodes) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
+			for (int i = 0; i < orderedNodes.size(); i++) {
+				Map<String, Object> node = orderedNodes.get(i);
+				int index = 1;
+				ps.setString(index++, runId);
+				ps.setString(index++, (String) node.get(NODE_FIELD_ID));
+				ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
+				ps.setInt(index++, i);
+				ps.setString(index++, NODE_STATUS_PENDING);
+				ps.addBatch();
+			}
+			ps.executeBatch();
 		}
 	}
 
@@ -422,9 +475,8 @@ public final class AutomationDatabaseUtility {
 
 	/**
 	 * Returns the active run ID for a project directly from the {@code AUTOMATION_ACTIVE_RUN} lock
-	 * table. Unlike {@link #getActiveRun(String)}, this is populated at {@link #claimActiveRun} time
-	 * — before {@code AUTOMATION_RUNS} is written — so callers polling for a newly started run will
-	 * see it sooner.
+	 * table. It is populated by {@link #claimAndInitializeRun} in the same transaction as
+	 * {@code AUTOMATION_RUNS} and the pending node-output rows.
 	 *
 	 * @return the run ID, or {@code null} if no run is currently active for the project
 	 */
@@ -501,50 +553,6 @@ public final class AutomationDatabaseUtility {
 			return (Boolean) flag;
 		}
 		return flag != null && Boolean.parseBoolean(flag.toString());
-	}
-
-	/**
-	 * Inserts a new automation run record.
-	 */
-	public static boolean insertRun(String runId, String projectId, String automationId,
-			int definitionVersion, String definitionHash, String definitionSnapshot,
-			String triggerType, int totalNodes, String createdBy) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-			Timestamp now = toTimestamp(Instant.now());
-
-			try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
-				int index = 1;
-				ps.setString(index++, runId);
-				ps.setString(index++, projectId);
-				ps.setString(index++, automationId);
-				ps.setInt(index++, definitionVersion);
-				ps.setString(index++, definitionHash);
-				queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
-				ps.setString(index++, STATUS_RUNNING);
-				ps.setString(index++, triggerType);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index++, now);
-				ps.setInt(index++, totalNodes);
-				ps.setString(index++, createdBy);
-				ps.executeUpdate();
-			}
-
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return true;
-		} catch (SQLException | UnsupportedEncodingException e) {
-			classLogger.error("Failed to insert automation run '{}'", runId, e);
-			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
 	}
 
 	/**
@@ -740,41 +748,6 @@ public final class AutomationDatabaseUtility {
 	}
 
 	// -- AUTOMATION_NODE_OUTPUTS CRUD ------------------------------------------------
-
-	/**
-	 * Batch-inserts all node outputs for a run (all PENDING).
-	 */
-	public static boolean insertAllNodeOutputs(String runId, List<Map<String, Object>> orderedNodes) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return false;
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
-				for (int i = 0; i < orderedNodes.size(); i++) {
-					Map<String, Object> node = orderedNodes.get(i);
-					int index = 1;
-					ps.setString(index++, runId);
-					ps.setString(index++, (String) node.get(NODE_FIELD_ID));
-					ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
-					ps.setInt(index++, i);
-					ps.setString(index++, NODE_STATUS_PENDING);
-					ps.addBatch();
-				}
-				ps.executeBatch();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return true;
-		} catch (SQLException e) {
-			classLogger.error("Failed to batch-insert node outputs for run '{}'", runId, e);
-			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
-	}
 
 	/**
 	 * Marks a node as RUNNING (before pixel execution starts).
@@ -1074,7 +1047,7 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Creates the AUTOMATION_ACTIVE_RUN marker table - a single row per project, keyed on
 	 * PROJECT_ID, used to atomically enforce "at most one active run per project" cluster-wide.
-	 * See {@link #claimActiveRun(String, String)} / {@link #releaseActiveRun(String, String)}.
+	 * See {@link #claimAndInitializeRun} / {@link #releaseActiveRun(String, String)}.
 	 */
 	private static void createAutomationActiveRunTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
@@ -1100,7 +1073,7 @@ public final class AutomationDatabaseUtility {
 			ps.execute();
 		}
 
-		// Primary key on PROJECT_ID alone (not RUN_ID) is what makes claimActiveRun atomic:
+		// Primary key on PROJECT_ID alone (not RUN_ID) makes the run claim atomic:
 		// a second INSERT for the same project - from any pod - violates this constraint.
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_ACTIVE_RUN,
 				new String[]{ PROJECT_ID });
@@ -1119,6 +1092,29 @@ public final class AutomationDatabaseUtility {
 
 	private static void closeConnection(IRDBMSEngine engine, Connection conn) {
 		ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
+	}
+
+	private static void rollback(Connection conn, Exception cause) {
+		if (conn == null) {
+			return;
+		}
+		try {
+			conn.rollback();
+		} catch (SQLException rollbackError) {
+			cause.addSuppressed(rollbackError);
+			classLogger.error("Failed to roll back automation database transaction", rollbackError);
+		}
+	}
+
+	private static void restoreAutoCommit(Connection conn, boolean originalAutoCommit) {
+		if (conn == null || !originalAutoCommit) {
+			return;
+		}
+		try {
+			conn.setAutoCommit(true);
+		} catch (SQLException e) {
+			classLogger.warn("Failed to restore scheduler database autocommit before closing connection", e);
+		}
 	}
 
 	/**

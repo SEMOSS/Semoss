@@ -89,29 +89,19 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 		validateInputs(inputs);
 
-		if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
+		if (!initializeRun(runId, projectId, definition, runNodes)) {
 			// Startup cleanup may see a recently-heartbeating run and correctly leave it
 			// alone. Retry that cleanup on a later trigger so an orphaned lock does not
 			// remain forever after its heartbeat crosses the stale threshold.
 			AutomationDatabaseUtility.markStaleRunsInterrupted();
-			if (!AutomationDatabaseUtility.claimActiveRun(projectId, runId)) {
+			if (!initializeRun(runId, projectId, definition, runNodes)) {
 				throw new IllegalArgumentException("Automation already has an active run: "
 						+ AutomationDatabaseUtility.getClaimedActiveRun(projectId)
 						+ ". Wait for it to complete or cancel it before starting a new run.");
 			}
 		}
 
-		boolean runPersisted = false;
 		try {
-			if (!AutomationDatabaseUtility.insertRun(runId, projectId, AutomationConstants.DEFAULT_AUTOMATION_ID,
-					AutomationConstants.PYTHON_DOC_CURRENT_VERSION, definition.hash(), definition.snapshot(),
-					getTriggerType(), runNodes.size(), getUserId())) {
-				throw new IllegalStateException("Unable to create automation run history.");
-			}
-			if (!AutomationDatabaseUtility.insertAllNodeOutputs(runId, runNodes)) {
-				throw new IllegalStateException("Unable to create automation node history.");
-			}
-			runPersisted = true;
 			PyTranslator translator = this.insight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
@@ -131,18 +121,21 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Python automation run failed for project {}, run {}", projectId, runId, e);
-			if (runPersisted) {
-				finishFailedRun(runId, e);
-				return new NounMetadata(buildResult(runId, projectId, Map.of("error", safeMessage(e))),
-						PixelDataType.MAP, PixelOperationType.OPERATION);
-			}
-			throw e instanceof RuntimeException runtimeException
-					? runtimeException
-					: new RuntimeException(e);
+			finishFailedRun(runId, e);
+			return new NounMetadata(buildResult(runId, projectId, Map.of("error", safeMessage(e))),
+					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} finally {
 			AutomationPythonRunRegistry.unregister(runId);
 			AutomationDatabaseUtility.releaseActiveRun(projectId, runId);
 		}
+	}
+
+	private boolean initializeRun(String runId, String projectId,
+			AutomationDefinitionValidator.ValidatedDefinition definition,
+			List<Map<String, Object>> runNodes) {
+		return AutomationDatabaseUtility.claimAndInitializeRun(runId, projectId,
+				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
+				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes);
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,

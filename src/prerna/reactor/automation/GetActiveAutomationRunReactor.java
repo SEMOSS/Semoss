@@ -42,8 +42,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Returns the currently active run ID for a project by reading the
  * {@code AUTOMATION_ACTIVE_RUN} lock table directly. This table is populated by
- * {@link AutomationDatabaseUtility#claimActiveRun} <em>before</em>
- * {@code AUTOMATION_RUNS} is written, so the FE can discover the run ID while
+ * {@link AutomationDatabaseUtility#claimAndInitializeRun} in the same transaction as the run and
+ * pending-node history, so the FE can discover the run ID while
  * {@link TriggerAutomationReactor} is still executing synchronously on a virtual
  * thread.
  *
