@@ -131,6 +131,10 @@ final class AutomationRuntime {
 				_automation_scope = _automation_json.loads(
 				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
 				def resolve(value, scope):
+				    if isinstance(value, dict):
+				        return {key: resolve(item, scope) for key, item in value.items()}
+				    if isinstance(value, list):
+				        return [resolve(item, scope) for item in value]
 				    if not isinstance(value, str):
 				        return value
 
@@ -145,6 +149,13 @@ final class AutomationRuntime {
 				        return _automation_json.dumps(replacement, ensure_ascii=False, separators=(",", ":"))
 
 				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
+
+				def resolve_config(value, scope):
+				    if isinstance(value, str):
+				        value = _automation_json.loads(value or "{}")
+				    elif value is None:
+				        value = {}
+				    return resolve(value, scope)
 
 				def _automation_function_string_positions(source):
 				    tree = _automation_ast.parse(source)
@@ -215,6 +226,7 @@ final class AutomationRuntime {
 				_automation_module = {
 				    "__name__": "__automation_node__",
 				    "resolve": resolve,
+				    "resolve_config": resolve_config,
 				}
 				exec(_automation_source, _automation_module)
 				_automation_run = _automation_module.get("run")

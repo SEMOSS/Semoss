@@ -126,7 +126,6 @@ public final class AutomationSourceRenderer {
 		return """
 				# Call a SEMOSS model directly through the Python SDK.
 				from ai_server import ModelEngine
-				import json
 
 				ENGINE_ID = %s
 				PROMPT = %s
@@ -136,11 +135,7 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    parameters = resolve(PARAMETERS_JSON, scope)
-				    if isinstance(parameters, str):
-				        parameters = json.loads(parameters or "{}")
-				    elif parameters is None:
-				        parameters = {}
+				    parameters = resolve_config(PARAMETERS_JSON, scope)
 				    return model.ask(
 				        command=resolve(PROMPT, scope),
 				        context=resolve(SYSTEM_PROMPT, scope),
@@ -297,18 +292,13 @@ public final class AutomationSourceRenderer {
 		return """
 				# Execute a SEMOSS function engine directly through the Python SDK.
 				from ai_server import FunctionEngine
-				import json
 
 				ENGINE_ID = %s
 				ARGUMENTS = %s
 
 				def run(scope):
 				    function = FunctionEngine(engine_id=resolve(ENGINE_ID, scope))
-				    arguments = resolve(ARGUMENTS, scope)
-				    if isinstance(arguments, str):
-				        arguments = json.loads(arguments or "{}")
-				    elif arguments is None:
-				        arguments = {}
+				    arguments = resolve_config(ARGUMENTS, scope)
 				    return function.execute(parameterMap=arguments)
 				""".formatted(value(config, "engineId"), value(config, "arguments"));
 	}
@@ -369,9 +359,9 @@ public final class AutomationSourceRenderer {
 				        if value is not None:
 				            arguments.append(_pixel_value(name, resolve(value, scope)))
 				    if PARAM_MAP is not None:
-				        arguments.append("paramValues=" + json.dumps(resolve(PARAM_MAP, scope)))
+				        arguments.append("paramValues=" + json.dumps(resolve_config(PARAM_MAP, scope)))
 				    if AGENT_PARAMS is not None:
-				        arguments.append("agentParams=" + json.dumps(resolve(AGENT_PARAMS, scope)))
+				        arguments.append("agentParams=" + json.dumps(resolve_config(AGENT_PARAMS, scope)))
 				    result = Insight().run_pixel(
 				        "RunAgent(" + ", ".join(arguments) + ");",
 				        raw=False,

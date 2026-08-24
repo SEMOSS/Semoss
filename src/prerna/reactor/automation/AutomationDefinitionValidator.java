@@ -210,7 +210,10 @@ public final class AutomationDefinitionValidator {
 			case AutomationConstants.NODE_DATABASE_QUERY,
 					AutomationConstants.NODE_DATABASE_INSERT,
 					AutomationConstants.NODE_DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
-			case AutomationConstants.NODE_MODEL_CHAT -> requireConfigString(nodeId, config, "prompt");
+			case AutomationConstants.NODE_MODEL_CHAT -> {
+				requireConfigString(nodeId, config, "prompt");
+				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+			}
 			case AutomationConstants.NODE_MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
 			case AutomationConstants.NODE_MODEL_NER -> {
 				requireConfigString(nodeId, config, "text");
@@ -230,11 +233,15 @@ public final class AutomationDefinitionValidator {
 			case AutomationConstants.NODE_VECTOR_SEARCH,
 					AutomationConstants.NODE_VECTOR_ADD,
 					AutomationConstants.NODE_VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
-			case AutomationConstants.NODE_FUNCTION_EXECUTE -> requireConfigString(nodeId, config, "arguments");
+			case AutomationConstants.NODE_FUNCTION_EXECUTE ->
+				requireConfigObject(nodeId, config, "arguments");
 			case AutomationConstants.NODE_APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
 			case AutomationConstants.NODE_AGENT_RUN -> {
 				requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
+				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+				validateOptionalConfigObject(nodeId, config, "paramMap");
+				validateOptionalConfigObject(nodeId, config, "agentParams");
 				Object wait = config.get(AutomationConstants.CONFIG_WAIT);
 				if (wait != null && !Boolean.TRUE.equals(wait)) {
 					throw new IllegalArgumentException("Automation agent node '" + nodeId
@@ -337,6 +344,32 @@ public final class AutomationDefinitionValidator {
 			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
 					+ " must be a nonblank string.");
 		}
+	}
+
+	private static void validateOptionalConfigObject(String nodeId, Map<String, Object> config, String key) {
+		if (!config.containsKey(key) || config.get(key) == null) {
+			return;
+		}
+		requireConfigObject(nodeId, config, key);
+	}
+
+	private static void requireConfigObject(String nodeId, Map<String, Object> config, String key) {
+		Object value = config.get(key);
+		if (value instanceof Map<?, ?>) {
+			return;
+		}
+		if (value instanceof String string && !string.isBlank()) {
+			try {
+				Object parsed = AutomationRuntimeUtils.GSON.fromJson(string, Object.class);
+				if (parsed instanceof Map<?, ?>) {
+					return;
+				}
+			} catch (JsonParseException ignored) {
+				// Report the shared validation error below.
+			}
+		}
+		throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
+				+ " must be a JSON object or a nonblank string containing a JSON object.");
 	}
 
 	private static void requireConfigStringListOrPlaceholder(String nodeId,
