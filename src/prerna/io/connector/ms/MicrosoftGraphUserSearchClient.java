@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.graph;
+package prerna.io.connector.ms;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -40,13 +40,23 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.io.connector.IAccessTokenFiller;
-import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
 
-public class MSGraphAPICall {
+/**
+ * Searches Microsoft Graph for users, optionally scoped to a group.
+ *
+ * <p>
+ * Callers pass a delegated user token when they have one and fall back to the
+ * application credentials configured in the social properties otherwise, which
+ * is what {@code ms_graphapi_application_credentials} selects. A delegated
+ * token that has expired is refreshed through the provider's token filler, and
+ * a call that fails on an expired token is retried once.
+ * </p>
+ */
+public class MicrosoftGraphUserSearchClient {
 
-	private static final Logger classLogger = LogManager.getLogger(MSGraphAPICall.class);
+	private static final Logger classLogger = LogManager.getLogger(MicrosoftGraphUserSearchClient.class);
 
 	private static AccessToken systemAccessToken = null;
 	private static long systemAccessTokenExpirationTime = 0;
