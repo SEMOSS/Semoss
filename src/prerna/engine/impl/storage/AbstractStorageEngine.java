@@ -28,11 +28,13 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -235,6 +239,75 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 		}
 		return Files.size(localFile) != stored.size()
 				|| Files.getLastModifiedTime(localFile).toMillis() > stored.lastModifiedMillis() + toleranceMillis;
+	}
+
+	/**
+	 * Whether a stored object still has to be downloaded over the local copy.
+	 *
+	 * A local file that is at least as new as the stored object is left where it
+	 * is. That skips the copy that is already identical, which is what rclone copy
+	 * does by default, and it also leaves alone a local file holding work that
+	 * storage has not seen yet. A room folder pulled part way through a turn is why
+	 * the second half matters - overwriting there drops the live session state.
+	 *
+	 * @param localFile                the file the download would write
+	 * @param storedLastModifiedMillis when the stored object last changed, or null
+	 *                                 when storage did not report it
+	 * @return true when the download should go ahead
+	 */
+	/**
+	 * Removes every empty directory under a local path, the deepest ones first.
+	 *
+	 * This is a local file system operation and touches nothing in storage. These
+	 * stores have no real directories, so a folder that only ever held files which
+	 * are now gone leaves an empty directory behind on the local side with nothing
+	 * in storage to correspond to it.
+	 *
+	 * Deepest first matters: emptying a child makes its parent empty, and the
+	 * parent is visited afterwards, so a whole emptied branch collapses in one
+	 * pass. That includes rootPath itself once everything beneath it has gone.
+	 *
+	 * A directory that cannot be removed is logged and skipped rather than failing
+	 * the transfer it is tidying up after.
+	 *
+	 * @param rootPath the local folder to clean out
+	 */
+	protected void deleteLocalEmptyDirectories(Path rootPath) {
+		try (Stream<Path> stream = Files.walk(rootPath)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
+					.filter(Files::isDirectory).collect(Collectors.toList());
+
+			for (Path dir : directories) {
+				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
+					if (!entries.iterator().hasNext()) { // Directory is empty
+						Files.delete(dir);
+						classLogger.info("Deleted empty local folder: {}", dir);
+					}
+				} catch (IOException e) {
+					classLogger.error("Failed to delete empty folder: {}", dir, e);
+				}
+			}
+		} catch (IOException e) {
+			classLogger.error("Error while deleting empty directories", e);
+		}
+	}
+
+	protected boolean needsDownload(Path localFile, Long storedLastModifiedMillis) {
+		if (!Files.exists(localFile)) {
+			return true;
+		}
+		if (storedLastModifiedMillis == null) {
+			// nothing to compare against, so fetch it rather than keep a copy that
+			// might be stale
+			return true;
+		}
+
+		try {
+			return storedLastModifiedMillis > Files.getLastModifiedTime(localFile).toMillis();
+		} catch (IOException e) {
+			classLogger.warn("Unable to read the timestamp of {}, downloading it again", localFile, e);
+			return true;
+		}
 	}
 
 	/**
