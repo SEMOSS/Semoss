@@ -217,9 +217,12 @@ public final class AutomationDefinitionValidator {
 				requireConfigString(nodeId, config, "image");
 			}
 			case AutomationConstants.NODE_STORAGE_READ,
-					AutomationConstants.NODE_STORAGE_UPLOAD,
-					AutomationConstants.NODE_STORAGE_DOWNLOAD,
 					AutomationConstants.NODE_STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
+			case AutomationConstants.NODE_STORAGE_UPLOAD,
+					AutomationConstants.NODE_STORAGE_DOWNLOAD -> {
+				requireConfigString(nodeId, config, "path");
+				requireConfigString(nodeId, config, "destination");
+			}
 			case AutomationConstants.NODE_VECTOR_SEARCH,
 					AutomationConstants.NODE_VECTOR_ADD,
 					AutomationConstants.NODE_VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
