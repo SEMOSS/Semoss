@@ -68,7 +68,7 @@ public final class AutomationSourceRenderer {
 			case AutomationConstants.NODE_MODEL_VISION -> modelVisionSource(config);
 			case AutomationConstants.NODE_MODEL_NER -> modelNerSource(config);
 			case AutomationConstants.NODE_STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
-			case AutomationConstants.NODE_STORAGE_READ -> storageSource(config, "readBlobToMemory", "STORAGE_PATH");
+			case AutomationConstants.NODE_STORAGE_READ -> storageReadSource(config);
 			case AutomationConstants.NODE_STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
 			case AutomationConstants.NODE_STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
 			case AutomationConstants.NODE_STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
@@ -212,6 +212,27 @@ public final class AutomationSourceRenderer {
 				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
 				    return storage.%s(resolve(%s, scope))
 				""".formatted(value(config, "engineId"), value(config, "path"), method, argument);
+	}
+
+	private static String storageReadSource(Map<String, Object> config) {
+		return """
+				# Read storage content through the existing SEMOSS reactor; the Python SDK has no read method.
+				from semoss import Insight
+				import json
+
+				ENGINE_ID = %s
+				STORAGE_PATH = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def run(scope):
+				    pixel = "GetStorageFileAsBase64(" + ", ".join([
+				        _pixel_value("storage", resolve(ENGINE_ID, scope)),
+				        _pixel_value("storagePath", resolve(STORAGE_PATH, scope)),
+				    ]) + ");"
+				    return Insight().run_pixel(pixel, raw=False)
+				""".formatted(value(config, "engineId"), value(config, "path"));
 	}
 
 	private static String storageTransferSource(Map<String, Object> config, String method) {

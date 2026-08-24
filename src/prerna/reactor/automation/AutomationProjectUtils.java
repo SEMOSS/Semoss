@@ -55,9 +55,10 @@ import prerna.util.git.GitRepoUtils;
 public final class AutomationProjectUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationProjectUtils.class);
-	private static final Set<String> WRITE_ENGINE_NODE_TYPES = Set.of(
+	private static final Set<String> EDIT_ENGINE_NODE_TYPES = Set.of(
 			AutomationConstants.NODE_DATABASE_INSERT,
 			AutomationConstants.NODE_DATABASE_UPDATE,
+			AutomationConstants.NODE_STORAGE_READ,
 			AutomationConstants.NODE_STORAGE_UPLOAD,
 			AutomationConstants.NODE_STORAGE_DELETE,
 			AutomationConstants.NODE_VECTOR_ADD,
@@ -260,7 +261,7 @@ public final class AutomationProjectUtils {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a " + expectedType
 						+ " engine, but engineId '" + engineId + "' is a " + actualType + " engine.");
 			}
-			if (WRITE_ENGINE_NODE_TYPES.contains(nodeType)
+			if (EDIT_ENGINE_NODE_TYPES.contains(nodeType)
 					&& !SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' of type '" + nodeType
 						+ "' requires edit access to engineId '" + engineId + "'.");
