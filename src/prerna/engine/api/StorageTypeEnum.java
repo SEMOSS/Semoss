@@ -29,10 +29,10 @@ package prerna.engine.api;
 
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
 import prerna.engine.impl.storage.CephStorageEngine;
-import prerna.engine.impl.storage.DeveloperLocalFileSystemStorageEngine;
 import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.engine.impl.storage.JCIFSStorageEngine;
 import prerna.engine.impl.storage.LocalFileSystemStorageEngine;
+import prerna.engine.impl.storage.MicrosoftTeamsStorageEngine;
 import prerna.engine.impl.storage.MinioStorageEngine;
 import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
 import prerna.engine.impl.storage.RCloneGoogleCloudStorageEngine;
@@ -40,28 +40,29 @@ import prerna.engine.impl.storage.RCloneMinioStorageEngine;
 import prerna.engine.impl.storage.RCloneS3StorageEngine;
 import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.engine.impl.storage.SFTPStorageEngine;
+import prerna.engine.impl.storage.SharePointStorageEngine;
 
 public enum StorageTypeEnum {
 
 	// @formatter:off
 	CEPH("CEPH", CephStorageEngine.class.getName()),
 	
-
 	GOOGLE_CLOUD_STORAGE("GOOGLE_CLOUD_STORAGE", GoogleCloudStorageEngine.class.getName()),
 	@Deprecated
 	GOOGLE_CLOUD_NATIVE_STORAGE("GOOGLE_CLOUD_NATIVE_STORAGE", GoogleCloudStorageEngine.class.getName()),
 	
 	JCIFS("JCIFS", JCIFSStorageEngine.class.getName()),
 	LOCAL_FILE_SYSTEM("LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
-	@Deprecated
-	DEVELOPER_LOCAL_FILE_SYSTEM("DEVELOPER_LOCAL_FILE_SYSTEM", LocalFileSystemStorageEngine.class.getName()),
 	
 	MICROSOFT_AZURE_BLOB_STORAGE("MICROSOFT_AZURE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
 	@Deprecated
 	MICROSOFT_AZURE_NATIVE_BLOB_STORAGE("MICROSOFT_AZURE_NATIVE_BLOB_STORAGE", AzureBlobStorageEngine.class.getName()),
-	
+
+	MICROSOFT_TEAMS("MICROSOFT_TEAMS", MicrosoftTeamsStorageEngine.class.getName()),
+
 	MINIO("MINIO", MinioStorageEngine.class.getName()),
 	SFTP("SFTP", SFTPStorageEngine.class.getName()),
+	SHAREPOINT("SHAREPOINT", SharePointStorageEngine.class.getName()),
 	SMB_CIFS("SMB_CIFS", JCIFSStorageEngine.class.getName()),
 	
 	// all now default to native s3
