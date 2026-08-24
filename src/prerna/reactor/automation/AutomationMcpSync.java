@@ -242,6 +242,7 @@ public final class AutomationMcpSync {
 				+ "shorten, or normalize an engine name. database.query, database.insert, and "
 				+ "database.update require engineId and query. model.chat requires engineId and prompt; "
 				+ "optionally systemPrompt and paramValues. model.embeddings requires engineId and text. "
+				+ "model.ner requires engineId, text, and entities as a non-empty JSON array of strings. "
 				+ "storage nodes require engineId and path; upload/download also require destination. "
 				+ "vector nodes require engineId and value; vector.search may include limit. "
 				+ "function.execute requires engineId and arguments. For app.pixel, call MyProjects with "

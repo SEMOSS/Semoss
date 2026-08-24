@@ -210,8 +210,11 @@ public final class AutomationDefinitionValidator {
 					AutomationConstants.NODE_DATABASE_INSERT,
 					AutomationConstants.NODE_DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
 			case AutomationConstants.NODE_MODEL_CHAT -> requireConfigString(nodeId, config, "prompt");
-			case AutomationConstants.NODE_MODEL_EMBEDDINGS,
-					AutomationConstants.NODE_MODEL_NER -> requireConfigString(nodeId, config, "text");
+			case AutomationConstants.NODE_MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
+			case AutomationConstants.NODE_MODEL_NER -> {
+				requireConfigString(nodeId, config, "text");
+				requireConfigStringListOrPlaceholder(nodeId, config, "entities");
+			}
 			case AutomationConstants.NODE_MODEL_VISION -> {
 				requireConfigString(nodeId, config, "prompt");
 				requireConfigString(nodeId, config, "image");
@@ -333,6 +336,21 @@ public final class AutomationDefinitionValidator {
 			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
 					+ " must be a nonblank string.");
 		}
+	}
+
+	private static void requireConfigStringListOrPlaceholder(String nodeId,
+			Map<String, Object> config, String key) {
+		Object value = config.get(key);
+		if (value instanceof String placeholder
+				&& placeholder.matches("\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}")) {
+			return;
+		}
+		if (value instanceof List<?> values && !values.isEmpty()
+				&& values.stream().allMatch(item -> item instanceof String string && !string.isBlank())) {
+			return;
+		}
+		throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
+				+ " must be a non-empty array of nonblank strings or an exact ${upstream_list} reference.");
 	}
 
 	private static void validateGeneratedSql(String nodeId, String nodeType, Map<String, Object> config) {
