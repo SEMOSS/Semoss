@@ -177,7 +177,8 @@ public final class AutomationDatabaseUtility {
 
 	private static final String MARK_STALE_INTERRUPTED = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
-			ERROR_MESSAGE = ? WHERE RUN_ID = ?""";
+			ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ? \
+			AND (LAST_HEARTBEAT IS NULL OR LAST_HEARTBEAT <= ?)""";
 
 	// AUTOMATION_NODE_OUTPUTS
 	private static final String INSERT_NODE_OUTPUT = """
@@ -297,15 +298,16 @@ public final class AutomationDatabaseUtility {
 					ps.setTimestamp(index++, now);
 					ps.setString(index++, "Server restarted during execution");
 					ps.setString(index++, runId);
+					ps.setString(index++, STATUS_RUNNING);
+					ps.setTimestamp(index++, threshold);
 					int updated = ps.executeUpdate();
 					if (updated > 0) {
+						releaseActiveRun(conn, projectId, runId);
 						classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
+					} else {
+						classLogger.debug("Automation run {} changed while stale recovery was in progress; "
+								+ "leaving its status and active-run claim unchanged", runId);
 					}
-				}
-				// Release the active-run slot so the project can be re-triggered - otherwise a
-				// crashed run would permanently block that project from ever running again.
-				if (projectId != null) {
-					releaseActiveRun(projectId, runId);
 				}
 			}
 			if (!conn.getAutoCommit()) {
@@ -462,11 +464,7 @@ public final class AutomationDatabaseUtility {
 		Connection conn = null;
 		try {
 			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(RELEASE_ACTIVE_RUN)) {
-				ps.setString(1, projectId);
-				ps.setString(2, runId);
-				ps.executeUpdate();
-			}
+			releaseActiveRun(conn, projectId, runId);
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -477,6 +475,14 @@ public final class AutomationDatabaseUtility {
 			throw new IllegalStateException("Unable to release the active automation run.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	private static void releaseActiveRun(Connection conn, String projectId, String runId) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(RELEASE_ACTIVE_RUN)) {
+			ps.setString(1, projectId);
+			ps.setString(2, runId);
+			ps.executeUpdate();
 		}
 	}
 
