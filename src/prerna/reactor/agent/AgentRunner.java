@@ -39,7 +39,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -55,6 +58,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -184,6 +188,7 @@ public final class AgentRunner {
 			IModelEngine modelEngine = null;
 			String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
 			if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+				validateSelectedModel(insight, runtimeModelId);
 				modelEngine = Utility.getModel(runtimeModelId);
 				if (modelEngine == null) {
 					throw new IllegalArgumentException(
@@ -209,6 +214,7 @@ public final class AgentRunner {
 						+ "workspace/agent config (CONFIG_JSON).");
 			}
 			logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
+			validateSelectedModel(insight, modelId);
 
 			if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
 				modelEngine = Utility.getModel(modelId);
@@ -317,6 +323,21 @@ public final class AgentRunner {
 			return result;
 		} finally {
 			ACTIVE_ROOMS.remove(roomId);
+		}
+	}
+
+	private static void validateSelectedModel(Insight insight, String modelId) {
+		if (insight == null || insight.getUser() == null || modelId == null
+				|| !SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId)
+				|| SecurityEngineUtils.getEngineType(modelId) != IEngine.CATALOG_TYPE.MODEL) {
+			throw new IllegalArgumentException("Model engine was not found or is not accessible");
+		}
+
+		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(modelId);
+		Object capabilityValue = metadata == null ? null : metadata.get(Constants.MODEL_CAPABILITY);
+		String capability = capabilityValue == null ? null : String.valueOf(capabilityValue).trim();
+		if (capability != null && !capability.isEmpty() && !"TEXT_GENERATION".equalsIgnoreCase(capability)) {
+			throw new IllegalArgumentException("Model engine was not found or is not accessible");
 		}
 	}
 

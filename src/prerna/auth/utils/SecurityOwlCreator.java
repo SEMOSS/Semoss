@@ -46,8 +46,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 	static {
 		relationshipsRequired.add(
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
-		relationshipsRequired.add(
-				new String[] { "ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID" });
+		relationshipsRequired.add(new String[] { "ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID" });
 	}
 
 	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
@@ -108,7 +107,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("RELEASEDATE", VARCHAR_255),
 				Pair.with("SUPPORTEDPARAMETERS", CLOB_DATATYPE_NAME),
 				Pair.with("REASONINGCONFIG", CLOB_DATATYPE_NAME),
-				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME)));
+				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME),
+				Pair.with("PRICING", CLOB_DATATYPE_NAME)));
 
 		addTable("ENGINEPERMISSION", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
@@ -131,6 +131,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("PROJECTDISPLAYNAME", VARCHAR_255),
 				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DISCOVERABLE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_TEMPLATE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("COST", VARCHAR_255),
 				Pair.with("CATALOGNAME", VARCHAR_255),

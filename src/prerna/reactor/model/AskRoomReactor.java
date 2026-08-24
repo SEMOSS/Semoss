@@ -63,8 +63,8 @@ public class AskRoomReactor extends AbstractReactor {
 	public AskRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), RESPONSE_PARTS_KEY, HIDDEN_MESSAGE_KEY };
+				ReactorKeysEnum.MEDIA.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+				RESPONSE_PARTS_KEY, HIDDEN_MESSAGE_KEY };
 		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0, 0 };
 	}
 
@@ -90,8 +90,8 @@ public class AskRoomReactor extends AbstractReactor {
 			paramMap = new HashMap<>();
 		}
 
-		List<String> inputImages = getListString(ReactorKeysEnum.IMAGE.getKey());
-		List<String> inputImageURLs = getListString(ReactorKeysEnum.URL.getKey());
+		List<String> inputMedia = getListString(ReactorKeysEnum.MEDIA.getKey());
+		List<String> inputMediaURLs = getListString(ReactorKeysEnum.URL.getKey());
 
 		@SuppressWarnings("unchecked")
 		List<Map<String, Object>> responseParts = getList(RESPONSE_PARTS_KEY);
@@ -105,10 +105,10 @@ public class AskRoomReactor extends AbstractReactor {
 			room.setProjectId(projectIdOverride);
 		}
 		String givenSystemPrompt = room.getSystemPromptForModel();
-		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedMedia = RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
 
 		InputMessage inputMessage = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
-				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
+				.withMediaInputs(copiedMedia, room).withMediaUrls(inputMediaURLs).withText(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		List<AbstractMessage> extraMessages = new ArrayList<>();
@@ -162,7 +162,7 @@ public class AskRoomReactor extends AbstractReactor {
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
+		if (key.equals(ReactorKeysEnum.MEDIA.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())
 				|| RESPONSE_PARTS_KEY.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
@@ -184,8 +184,9 @@ public class AskRoomReactor extends AbstractReactor {
 			return "The system prompt to use for the LLM call";
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
-		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
+		} else if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
+			return "This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
+					+ "Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports.";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return """
 					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.

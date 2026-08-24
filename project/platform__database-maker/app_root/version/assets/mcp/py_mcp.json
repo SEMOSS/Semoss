@@ -1,62 +1,29 @@
 {
   "_meta": {
-    "last_modified_date": "2026-04-01",
-    "file_last_modified_date": "2026-04-01",
-    "source_file": "/opt/semosshome/project/Database Maker__394404bf-02e5-44b2-bc7c-e93d9b698f58/app_root/version/assets/py/mcp_driver.py"
+    "last_modified_date": "2026-08-10",
+    "file_last_modified_date": "2026-08-10"
   },
   "tools": [
     {
-      "name": "add_to_context",
-      "title": "Add To Context",
-      "description": "Pass-through function to prepare context strings for the orchestrator.\n\nArgs:\n    context (str): The context string (usually a JSON schema representation).\n    \nReturns:\n    str: The same context string, ready to be acted upon by the MCP tool.",
-      "inputSchema": {
-        "properties": {
-          "context": {
-            "title": "Context",
-            "description": "The context string (usually a JSON schema representation).",
-            "type": "string"
-          }
-        },
-        "required": [
-          "context"
-        ],
-        "title": "Add To Context Arguments",
-        "type": "object"
-      },
-      "_meta": {
-        "generated_on": "2026-04-01",
-        "SMSS_MCP_EXECUTION": "ask",
-        "SMSS_MCP_UI": {},
-        "SMSS_FUNCTION_NAME": "add_to_context"
-      },
-      "_type": "python"
-    },
-    {
       "name": "run_query",
       "title": "Run Query",
-      "description": "Executes a SQL query against a specified database engine.\n\nArgs:\n    database_id (str): The unique identifier (GUID) of the target database.\n    query (str): The SQL query string to execute.\n\nReturns:\n    dict: The result set of the query execution.",
+      "description": "Executes one SQL query against a database and returns plain JSON with headers, rows, and row_count. Raises a tool error when the query cannot be executed.",
       "inputSchema": {
+        "type": "object",
         "properties": {
           "database_id": {
-            "title": "Database Id",
-            "description": "The unique identifier (GUID) of the target database.",
-            "type": "string"
+            "type": "string",
+            "description": "Unique database engine identifier."
           },
           "query": {
-            "title": "Query",
-            "description": "The SQL query string to execute.",
-            "type": "string"
+            "type": "string",
+            "description": "SQL query to execute."
           }
         },
-        "required": [
-          "database_id",
-          "query"
-        ],
-        "title": "Run Query Arguments",
-        "type": "object"
+        "required": ["database_id", "query"]
       },
       "_meta": {
-        "generated_on": "2026-04-01",
+        "generated_on": "2026-08-10",
         "SMSS_MCP_EXECUTION": "ask",
         "SMSS_MCP_UI": {},
         "SMSS_FUNCTION_NAME": "run_query"
@@ -64,57 +31,25 @@
       "_type": "python"
     },
     {
-      "name": "split_sql_script",
-      "title": "Split Sql Script",
-      "description": "Splits a SQL script into statements while ignoring semicolons inside strings or comments.\n\nArgs:\n    script (str): Raw SQL script content.\n\nReturns:\n    list[str]: Ordered executable SQL statements.",
-      "inputSchema": {
-        "properties": {
-          "script": {
-            "title": "Script",
-            "description": "Raw SQL script content.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "script"
-        ],
-        "title": "Split Sql Script Arguments",
-        "type": "object"
-      },
-      "_meta": {
-        "generated_on": "2026-04-01",
-        "SMSS_MCP_EXECUTION": "ask",
-        "SMSS_MCP_UI": {},
-        "SMSS_FUNCTION_NAME": "split_sql_script"
-      },
-      "_type": "python"
-    },
-    {
       "name": "run_script",
       "title": "Run Script",
-      "description": "Executes a prepared SQL script statement-by-statement against a target database.\n\nArgs:\n    database_id (str): The unique identifier (GUID) of the target database.\n    script (str): The SQL script to run.\n\nReturns:\n    str: Base64 encoded JSON payload summarizing execution results.",
+      "description": "Executes a SQL script statement-by-statement and returns plain JSON execution details. Stops and raises a tool error on the first failed statement; earlier statements may already be committed.",
       "inputSchema": {
+        "type": "object",
         "properties": {
           "database_id": {
-            "title": "Database Id",
-            "description": "The unique identifier (GUID) of the target database.",
-            "type": "string"
+            "type": "string",
+            "description": "Unique database engine identifier."
           },
           "script": {
-            "title": "Script",
-            "description": "The SQL script to run.",
-            "type": "string"
+            "type": "string",
+            "description": "SQL statements to execute."
           }
         },
-        "required": [
-          "database_id",
-          "script"
-        ],
-        "title": "Run Script Arguments",
-        "type": "object"
+        "required": ["database_id", "script"]
       },
       "_meta": {
-        "generated_on": "2026-04-01",
+        "generated_on": "2026-08-10",
         "SMSS_MCP_EXECUTION": "ask",
         "SMSS_MCP_UI": {},
         "SMSS_FUNCTION_NAME": "run_script"
@@ -122,75 +57,26 @@
       "_type": "python"
     },
     {
-      "name": "create_new_db_script",
-      "title": "Create New Db Script",
-      "description": "Creates a database by mirroring the portal bootstrap flow that uploads a sample CSV,\ndiscovers the created engine id, and removes the temporary bootstrap table.\n\nArgs:\n    database_name (str): Name of the database to create.\n    project_id (str, optional): Project/app id used for the asset-space upload.\n    sample_asset_path (str, optional): Asset path to the bootstrap CSV file.\n    temp_table_name (str, optional): Temporary table name to create and then remove.\n\nReturns:\n    str: Base64 encoded JSON payload describing the create result.",
-      "inputSchema": {
-        "properties": {
-          "database_name": {
-            "title": "Database Name",
-            "description": "Name of the database to create.",
-            "type": "string"
-          },
-          "project_id": {
-            "title": "Project Id",
-            "description": "Project/app id used for the asset-space upload.",
-            "type": "string"
-          },
-          "sample_asset_path": {
-            "title": "Sample Asset Path",
-            "description": "Asset path to the bootstrap CSV file.",
-            "type": "string"
-          },
-          "temp_table_name": {
-            "title": "Temp Table Name",
-            "description": "Temporary table name to create and then remove.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "database_name",
-          "project_id",
-          "sample_asset_path",
-          "temp_table_name"
-        ],
-        "title": "Create New Db Script Arguments",
-        "type": "object"
-      },
-      "_meta": {
-        "generated_on": "2026-04-01",
-        "SMSS_MCP_EXECUTION": "ask",
-        "SMSS_MCP_UI": {},
-        "SMSS_FUNCTION_NAME": "create_new_db_script"
-      },
-      "_type": "python"
-    },
-    {
       "name": "get_schema",
       "title": "Get Schema",
-      "description": "Retrieves and simplifies the schema for a given database ID.\n\nThis function fetches the complex metamodel from the SEMOSS engine,\nsimplifies it into a flat list of tables and columns (optimized for LLM context),\nand persists this simplified schema to 'schema/schema.json' in the app assets.\n\nArgs:\n    database_id (str): The unique identifier of the database to inspect.\n\nReturns:\n    str: A Base64 encoded JSON string representing the simplified schema.",
+      "description": "Returns a simplified database schema as plain JSON. When playground=true, also saves the schema under insight assets and returns the asset path.",
       "inputSchema": {
+        "type": "object",
         "properties": {
           "database_id": {
-            "title": "Database Id",
-            "description": "The unique identifier of the database to inspect.",
-            "type": "string"
+            "type": "string",
+            "description": "Unique database engine identifier."
           },
           "playground": {
-            "title": "Playground",
-            "description": "No docstring present or unable to parse docstring from function",
-            "type": "string"
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to persist a copy under the current insight's assets."
           }
         },
-        "required": [
-          "database_id",
-          "playground"
-        ],
-        "title": "Get Schema Arguments",
-        "type": "object"
+        "required": ["database_id"]
       },
       "_meta": {
-        "generated_on": "2026-04-01",
+        "generated_on": "2026-08-10",
         "SMSS_MCP_EXECUTION": "ask",
         "SMSS_MCP_UI": {},
         "SMSS_FUNCTION_NAME": "get_schema"
@@ -200,23 +86,19 @@
     {
       "name": "search_database",
       "title": "Search Database",
-      "description": "Searches for databases matching the search term by name.\n\nArgs:\n    search_term (str): The name or partial name to search for.\n\nReturns:\n    str: Base64 encoded JSON list of matching databases.",
+      "description": "Lists accessible databases whose name contains the search term. Returns plain JSON records with database_id, database_name, database_display_name, database_subtype, and date_created.",
       "inputSchema": {
+        "type": "object",
         "properties": {
           "search_term": {
-            "title": "Search Term",
-            "description": "The name or partial name to search for.",
-            "type": "string"
+            "type": "string",
+            "description": "Case-insensitive partial database-name match. Pass an empty string to list all databases."
           }
         },
-        "required": [
-          "search_term"
-        ],
-        "title": "Search Database Arguments",
-        "type": "object"
+        "required": ["search_term"]
       },
       "_meta": {
-        "generated_on": "2026-04-01",
+        "generated_on": "2026-08-10",
         "SMSS_MCP_EXECUTION": "ask",
         "SMSS_MCP_UI": {},
         "SMSS_FUNCTION_NAME": "search_database"
@@ -225,30 +107,20 @@
     },
     {
       "name": "create_new_db",
-      "title": "Create New Db",
-      "description": "Creates a new database given this database name.\n\nThe main work is done by the user this cannot be a non-ui or auto complete. \n\nArgs:\n    database_name (str): Name of the databse to be created.\n    user_intent (str): The intent of the user or the requirement from the user based on which the database needs to be created\n\nReturns:\n    str: Success message as string .",
+      "title": "Create New Database",
+      "description": "Idempotently creates one H2 database with the exact requested name. Returns status=exists when one exact match already exists. Fails without creating when multiple exact matches exist, and reports do_not_retry when a creation side effect cannot be verified unambiguously.",
       "inputSchema": {
+        "type": "object",
         "properties": {
           "database_name": {
-            "title": "Database Name",
-            "description": "Name of the databse to be created.",
-            "type": "string"
-          },
-          "user_intent": {
-            "title": "User Intent",
-            "description": "The intent of the user or the requirement from the user based on which the database needs to be created",
-            "type": "string"
+            "type": "string",
+            "description": "Exact name for the database."
           }
         },
-        "required": [
-          "database_name",
-          "user_intent"
-        ],
-        "title": "Create New Db Arguments",
-        "type": "object"
+        "required": ["database_name"]
       },
       "_meta": {
-        "generated_on": "2026-04-01",
+        "generated_on": "2026-08-10",
         "SMSS_MCP_EXECUTION": "ask",
         "SMSS_MCP_UI": {},
         "SMSS_FUNCTION_NAME": "create_new_db"

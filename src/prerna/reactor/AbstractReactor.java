@@ -138,10 +138,6 @@ public abstract class AbstractReactor implements IReactor {
 
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Methods for merging up the noun store across reactors
 	 */
@@ -509,10 +505,6 @@ public abstract class AbstractReactor implements IReactor {
 		return this.originalSignature;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Utility methods
 	 */
@@ -685,7 +677,86 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * 
+	 * Resolves the engine/project id a reactor should operate on: the id the caller
+	 * passed in, else the insight's app context - its context project, else its own
+	 * project.
+	 *
+	 * <p>
+	 * This is the standard precedence for reactors whose {@code project}/
+	 * {@code engine} key is optional. The context project is what a pixel run under
+	 * an app context (and so every project-scoped MCP tool call) already carries,
+	 * so those callers do not have to repeat the id they are already scoped to.
+	 *
+	 * <p>
+	 * Named for engine rather than project because the caller-supplied id may be
+	 * any catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
+	 * {@code SMSS_PROJECT_ID} - while the two context fallbacks are always project
+	 * ids, which are themselves engine ids ({@code IProject extends IEngine}).
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	protected String resolveContextEngineId(String engineId) {
+		return resolveContextEngineId(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor (tool/decision handlers, for
+	 * example), so the precedence lives in one place.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, never null
+	 * @throws IllegalArgumentException when no id was passed and no app context is
+	 *                                  set
+	 */
+	public static String resolveContextEngineId(String engineId, Insight insight) {
+		String resolved = resolveContextEngineIdOrNull(engineId, insight);
+		if (resolved == null) {
+			throw new IllegalArgumentException("Must provide the project id or set the app context");
+		}
+		return resolved;
+	}
+
+	/**
+	 * {@link #resolveContextEngineId(String)} for reactors that can carry on
+	 * without a project rather than fail: same precedence, but returns null instead
+	 * of throwing when nothing resolves.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	protected String resolveContextEngineIdOrNull(String engineId) {
+		return resolveContextEngineIdOrNull(engineId, this.insight);
+	}
+
+	/**
+	 * {@link #resolveContextEngineIdOrNull(String)} for callers that hold an
+	 * {@link Insight} but are not themselves a reactor.
+	 *
+	 * @param engineId the caller-supplied id, may be null/blank
+	 * @param insight  the insight whose context is consulted, may be null
+	 * @return the resolved, trimmed id, or null when there is none
+	 */
+	public static String resolveContextEngineIdOrNull(String engineId, Insight insight) {
+		if (isBlank(engineId) && insight != null) {
+			engineId = insight.getContextProjectId();
+		}
+		if (isBlank(engineId) && insight != null) {
+			engineId = insight.getProjectId();
+		}
+		return isBlank(engineId) ? null : engineId.trim();
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
+	/**
+	 *
 	 * @param engine
 	 * @param engineId
 	 * @param user
@@ -710,10 +781,6 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods to quickly retrieve inputs in the noun store
@@ -804,10 +871,6 @@ public abstract class AbstractReactor implements IReactor {
 			throwLoginError(details);
 		}
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * MCP
@@ -959,10 +1022,6 @@ public abstract class AbstractReactor implements IReactor {
 		return MCP_KEY_TYPE.STRING;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////
-
 	/*
 	 * Throwing common errors
 	 */
@@ -1018,8 +1077,6 @@ public abstract class AbstractReactor implements IReactor {
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-
-	/////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Methods in interface that are not really used at the moment...
@@ -1238,6 +1295,37 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		if (this.curRow != null && curRowIndex >= 0 && this.curRow.size() > curRowIndex) {
 			return this.curRow.get(curRowIndex);
+		}
+		return null;
+	}
+
+	/**
+	 * Get the first value of a given type from a keyed GenRowStruct entry, falling
+	 * back to the first value of that type in curRow.
+	 *
+	 * Unlike the index based overloads, this picks by type rather than by position,
+	 * so it is for nouns that were passed without a key and cannot be identified by
+	 * where they sit in curRow. The keyed entry wins when it holds a value of the
+	 * type; curRow is only consulted when it does not.
+	 *
+	 * @param key  The key to retrieve from noun store.
+	 * @param type The noun type to look for in both the keyed entry and curRow.
+	 * @return The first matching value, or null when neither source has one of this
+	 *         type.
+	 */
+	protected Object getValueOfTypeFromKeyOrCurRow(String key, PixelDataType type) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			List<Object> valuesOfType = grs.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		if (this.curRow != null) {
+			List<Object> valuesOfType = this.curRow.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
 		}
 		return null;
 	}
@@ -1765,6 +1853,33 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get every string value supplied for an aliased key definition, e.g.
+	 * "media,image". {@link #organizeKeys()} resolves aliases only into
+	 * {@link #keyValue}, and only for the first value of a key, so a multi-valued
+	 * key has to be read off the noun store directly - which means the alias
+	 * resolution has to be repeated here. Values from every alias are combined, so
+	 * supplying more than one accepted name is additive rather than one silently
+	 * winning.
+	 *
+	 * @param keyDefinition A key definition, optionally comma-separated aliases.
+	 * @return Every value supplied under any of the aliases; empty when none were
+	 *         supplied.
+	 */
+	protected List<String> getListStringForAliasedKey(String keyDefinition) {
+		List<String> values = new ArrayList<>();
+		if (keyDefinition == null) {
+			return values;
+		}
+		for (String alias : keyDefinition.split(",")) {
+			GenRowStruct grs = getGenRowStruct(alias.trim());
+			if (grs != null && !grs.isEmpty()) {
+				values.addAll(grs.getAllStrValues());
+			}
+		}
+		return values;
+	}
+
+	/**
 	 * Get a list of strings from the noun store by index.
 	 * 
 	 * @param index The index of the key to retrieve from the noun store.
@@ -2047,6 +2162,21 @@ public abstract class AbstractReactor implements IReactor {
 	protected Map getMap(int index, Map defaultValue) {
 		Map value = getMap(index);
 		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a map by key, falling back to the first map in curRow.
+	 *
+	 * The fallback is by type rather than by curRow index, since a map noun passed
+	 * without a key has no fixed position.
+	 *
+	 * @param key The key to retrieve from noun store.
+	 * @return The map value, or null if neither the key nor curRow holds one.
+	 */
+	@SuppressWarnings("unchecked")
+	protected Map<String, Object> getMapFromKeyOrCurRow(String key) {
+		Object value = getValueOfTypeFromKeyOrCurRow(key, PixelDataType.MAP);
+		return value instanceof Map ? (Map<String, Object>) value : null;
 	}
 
 	/**

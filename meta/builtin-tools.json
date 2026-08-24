@@ -1,0 +1,433 @@
+{
+  "openai": {
+    "web_search": {
+      "alias": "web_search",
+      "display_name": "Web Search",
+      "params": [
+        {
+          "alias": "search_content_types",
+          "display_name": "Search Content Types",
+          "type": "optional",
+          "input": "list",
+          "options": ["text", "image"],
+          "default": ["text"],
+          "show_in_ui": true
+        },
+        {
+          "alias": "search_context_size",
+          "display_name": "Search Context Size",
+          "type": "optional",
+          "input": "string",
+          "options": ["low", "medium", "high"],
+          "default": "medium",
+          "show_in_ui": true
+        },
+        {
+          "alias": "filters",
+          "display_name": "Domain Filters",
+          "type": "optional",
+          "input": "map",
+          "options": [],
+          "default": {},
+          "show_in_ui": true
+        },
+        {
+          "alias": "external_web_access",
+          "display_name": "Allow External Web Access",
+          "type": "optional",
+          "input": "boolean",
+          "options": [],
+          "default": true,
+          "show_in_ui": true
+        }
+      ],
+      "description": "This tool searches the web for relevant results to use in a response. Domain filters are nested under filters.allowed_domains and filters.blocked_domains, each capped at 100 domains."
+    },
+    "image_generation": {
+      "alias": "image_generation",
+      "display_name": "Image Generation",
+      "description": "A tool that generates images using the GPT image models.",
+      "params": [
+        {
+          "alias": "action",
+          "display_name": "Action",
+          "type": "optional",
+          "input": "string",
+          "options": ["generate", "edit", "auto"],
+          "default": "auto",
+          "show_in_ui": true
+        },
+        {
+          "alias": "background",
+          "display_name": "Background",
+          "type": "optional",
+          "input": "string",
+          "options": ["transparent", "opaque", "auto"],
+          "default": "auto",
+          "show_in_ui": true
+        },
+        {
+          "alias": "model",
+          "display_name": "Model",
+          "type": "optional",
+          "input": "string",
+          "options": [
+            "gpt-image-1",
+            "gpt-image-1-mini",
+            "gpt-image-1.5",
+            "gpt-image-2"
+          ],
+          "default": "gpt-image-2",
+          "show_in_ui": true
+        },
+        {
+          "alias": "size",
+          "display_name": "Size",
+          "type": "optional",
+          "input": "string",
+          "options": ["1024x1024", "1024x1536", "1536x1024", "auto"],
+          "default": "auto",
+          "show_in_ui": true
+        },
+        {
+          "alias": "quality",
+          "display_name": "Quality",
+          "type": "optional",
+          "input": "string",
+          "options": ["high", "medium", "low", "auto"],
+          "default": "auto",
+          "show_in_ui": true
+        },
+        {
+          "alias": "output_format",
+          "display_name": "Output Format",
+          "type": "optional",
+          "input": "string",
+          "options": ["png", "jpeg", "webp"],
+          "default": "png",
+          "show_in_ui": true
+        }
+      ]
+    }
+  },
+  "azure": "openai",
+  "anthropic": {
+    "web_search": {
+      "alias": "web_search_20260318",
+      "display_name": "Web Search",
+      "params": [
+        {
+          "alias": "name",
+          "display_name": "Name",
+          "type": "required",
+          "input": "string",
+          "options": ["web_search"],
+          "default": "web_search",
+          "show_in_ui": false
+        },
+        {
+          "alias": "type",
+          "display_name": "Type",
+          "type": "required",
+          "input": "string",
+          "options": ["web_search_20260318"],
+          "default": "web_search_20260318",
+          "show_in_ui": false
+        },
+        {
+          "alias": "max_uses",
+          "display_name": "Maximum Uses",
+          "type": "optional",
+          "input": "number",
+          "options": [],
+          "default": 5,
+          "show_in_ui": true
+        },
+        {
+          "alias": "allowed_domains",
+          "display_name": "Allowed Domains",
+          "type": "optional",
+          "input": "list",
+          "options": [],
+          "default": [],
+          "show_in_ui": true
+        },
+        {
+          "alias": "blocked_domains",
+          "display_name": "Blocked Domains",
+          "type": "optional",
+          "input": "list",
+          "options": [],
+          "default": [],
+          "show_in_ui": true
+        },
+        {
+          "alias": "allowed_callers",
+          "display_name": "Allowed Callers",
+          "type": "optional",
+          "input": "list",
+          "options": ["direct", "code_execution_20260120"],
+          "default": ["code_execution_20260120"],
+          "show_in_ui": true
+        },
+        {
+          "alias": "response_inclusion",
+          "display_name": "Response Inclusion",
+          "type": "optional",
+          "input": "string",
+          "options": ["full", "excluded"],
+          "default": "full",
+          "show_in_ui": true
+        }
+      ],
+      "description": "This tool searches the web for relevant results to use in a response. Never set both allowed domains and blocked domains. If you set both, the tool will not work. On this tool version allowed_callers defaults to code_execution_20260120, which runs the search inside code execution so results are filtered before they reach the context window. Models that do not support programmatic tool calling require allowed_callers to be set to direct, otherwise the request fails with a 400."
+    },
+    "web_fetch": {
+      "alias": "web_fetch_20260318",
+      "display_name": "Web Fetch",
+      "params": [
+        {
+          "alias": "name",
+          "display_name": "Name",
+          "type": "required",
+          "input": "string",
+          "options": ["web_fetch"],
+          "default": "web_fetch",
+          "show_in_ui": false
+        },
+        {
+          "alias": "type",
+          "display_name": "Type",
+          "type": "required",
+          "input": "string",
+          "options": ["web_fetch_20260318"],
+          "default": "web_fetch_20260318",
+          "show_in_ui": false
+        },
+        {
+          "alias": "max_uses",
+          "display_name": "Maximum Uses",
+          "type": "optional",
+          "input": "number",
+          "options": [],
+          "default": 5,
+          "show_in_ui": true
+        },
+        {
+          "alias": "allowed_domains",
+          "display_name": "Allowed Domains",
+          "type": "optional",
+          "input": "list",
+          "options": [],
+          "default": [],
+          "show_in_ui": true
+        },
+        {
+          "alias": "blocked_domains",
+          "display_name": "Blocked Domains",
+          "type": "optional",
+          "input": "list",
+          "options": [],
+          "default": [],
+          "show_in_ui": true
+        },
+        {
+          "alias": "citations",
+          "display_name": "Citations",
+          "type": "optional",
+          "input": "map",
+          "options": [],
+          "default": {
+            "enabled": false
+          },
+          "show_in_ui": true
+        },
+        {
+          "alias": "max_content_tokens",
+          "display_name": "Maximum Content Tokens",
+          "type": "optional",
+          "input": "number",
+          "options": [],
+          "default": 100000,
+          "show_in_ui": true
+        },
+        {
+          "alias": "use_cache",
+          "display_name": "Use Cache",
+          "type": "optional",
+          "input": "boolean",
+          "options": [],
+          "default": true,
+          "show_in_ui": true
+        },
+        {
+          "alias": "allowed_callers",
+          "display_name": "Allowed Callers",
+          "type": "optional",
+          "input": "list",
+          "options": ["direct", "code_execution_20260120"],
+          "default": ["code_execution_20260120"],
+          "show_in_ui": true
+        },
+        {
+          "alias": "response_inclusion",
+          "display_name": "Response Inclusion",
+          "type": "optional",
+          "input": "string",
+          "options": ["full", "excluded"],
+          "default": "full",
+          "show_in_ui": true
+        }
+      ],
+      "description": "This tool fetches full content from specific web pages and PDF documents. It uses dynamic filtering to keep only relevant content before it reaches the context window. Never set both allowed domains and blocked domains. If you set both, the tool will not work. Claude can only fetch URLs that already appeared in the conversation, so this tool cannot browse from a bare prompt. Models that do not support programmatic tool calling require allowed_callers to be set to direct."
+    }
+  },
+  "google": {
+    "google": {
+      "web_search": {
+        "alias": "google_search",
+        "display_name": "Web Search",
+        "params": [
+          {
+            "alias": "google_search",
+            "display_name": "Google Search",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool searches the web with Google Search to ground responses in current information and provide citations to verifiable sources."
+      },
+      "google_maps": {
+        "alias": "google_maps",
+        "display_name": "Google Maps",
+        "params": [
+          {
+            "alias": "google_maps",
+            "display_name": "Google Maps",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool grounds location-aware responses in current Google Maps data and provides citations to Google Maps sources. Optional user coordinates must be supplied separately through toolConfig.retrievalConfig.latLng. The tool currently supports English-language prompts and responses."
+      },
+      "web_fetch": {
+        "alias": "url_context",
+        "display_name": "URL Context",
+        "params": [
+          {
+            "alias": "url_context",
+            "display_name": "URL Context",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool retrieves content from specific public URLs to provide additional context for a response. It supports up to 20 URLs per request and can process supported text, image, and PDF content."
+      },
+      "code_execution": {
+        "alias": "code_execution",
+        "display_name": "Code Execution",
+        "params": [
+          {
+            "alias": "code_execution",
+            "display_name": "Code Execution",
+            "type": "required",
+            "input": "map",
+            "options": [],
+            "default": {},
+            "show_in_ui": false
+          }
+        ],
+        "description": "This tool lets the model write and run Python in a sandbox managed by Google, iterating on the code until it succeeds, and returns the generated code alongside its output."
+      }
+    },
+    "anthropic": {
+      "web_search": {
+        "alias": "web_search_20250305",
+        "display_name": "Web Search",
+        "params": [
+          {
+            "alias": "name",
+            "display_name": "Name",
+            "type": "required",
+            "input": "string",
+            "options": ["web_search"],
+            "default": "web_search",
+            "show_in_ui": false
+          },
+          {
+            "alias": "type",
+            "display_name": "Type",
+            "type": "required",
+            "input": "string",
+            "options": ["web_search_20250305"],
+            "default": "web_search_20250305",
+            "show_in_ui": false
+          },
+          {
+            "alias": "max_uses",
+            "display_name": "Maximum Uses",
+            "type": "optional",
+            "input": "number",
+            "options": [],
+            "default": 5,
+            "show_in_ui": true
+          },
+          {
+            "alias": "allowed_domains",
+            "display_name": "Allowed Domains",
+            "type": "optional",
+            "input": "list",
+            "options": [],
+            "default": [],
+            "show_in_ui": true
+          },
+          {
+            "alias": "blocked_domains",
+            "display_name": "Blocked Domains",
+            "type": "optional",
+            "input": "list",
+            "options": [],
+            "default": [],
+            "show_in_ui": true
+          }
+        ],
+        "description": "This tool searches the web for relevant results to use in a response. Google Cloud serves only this basic tool version for Claude models - dynamic filtering, web fetch, and code execution are not available on Vertex AI. Never set both allowed domains and blocked domains; a request with both fails with a 400."
+      }
+    }
+  },
+  "bedrock": {
+    "openai": {
+      "web_search": {
+        "alias": "web_search",
+        "display_name": "Web Search",
+        "params": [
+          {
+            "alias": "external_web_access",
+            "display_name": "Allow External Web Access",
+            "type": "optional",
+            "input": "boolean",
+            "options": [],
+            "default": false,
+            "show_in_ui": true
+          }
+        ],
+        "constraints": {
+          "api": "responses",
+          "models": ["openai.gpt-5.4", "openai.gpt-5.5", "openai.gpt-5.6"],
+          "regions": ["us-east-1", "us-east-2", "us-west-2"]
+        },
+        "description": "This tool searches the web for relevant results to use in a response. Search and fetch are hosted by AWS and served from the Amazon Bedrock web index and cache, so request data stays inside the AWS boundary. Only available on the OpenAI-compatible Responses API at the bedrock-mantle endpoint. Only external_web_access is documented as configurable here; the other OpenAI web search params are unverified on this endpoint. Allowing external web access requires the bedrock-websearch:ExternalWebAccess IAM permission, which AmazonBedrockFullAccess does not grant, so this defaults to false rather than to the API default of true; leaving it on without that permission returns a 403 on the authorization check and the model answers from the index alone."
+      }
+    },
+    "anthropic": {}
+  }
+}

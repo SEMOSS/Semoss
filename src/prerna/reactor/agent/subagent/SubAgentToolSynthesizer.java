@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.reactor.agent.config.SubAgentSpec;
+import prerna.reactor.agent.mcp.MCPUtility;
 
 /**
  * Turns {@link SubAgentSpec} entries + built-in subagent control tools
@@ -129,9 +130,8 @@ public final class SubAgentToolSynthesizer {
     private static Map<String, Object> buildNamedTool(SubAgentSpec spec) {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(
-                "Task / instructions for the " + spec.getAlias() + " subagent."));
-        properties.put("context", schemaString(
-                "Optional override system prompt for this subagent invocation."));
+                "Task, instructions, and all task-specific context or data for the "
+                        + spec.getAlias() + " subagent. The named subagent always uses its configured system prompt."));
         properties.put("inherit_parent_workdir", schemaBool(
                 "When true, the subagent operates on YOUR room folder (shared filesystem -- any "
                         + "WriteFile/EditFile calls land in YOUR room). Stream + history stay isolated. "
@@ -157,6 +157,8 @@ public final class SubAgentToolSynthesizer {
         meta.put("subagent_alias", spec.getAlias());
         meta.put("subagent_workspace_id", spec.getWorkspaceId());
         meta.put("SMSS_TOOL_KIND", "semoss_subagent_named");
+        // Must be explicit or MCPUtility.getValidMcpExecution defaults it to "ask".
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         tool.put("_meta", meta);
 
         return tool;
@@ -190,6 +192,8 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("SMSS_TOOL_KIND", "semoss_subagent_spawn");
+        // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         tool.put("_meta", meta);
         return tool;
     }
@@ -227,6 +231,8 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("SMSS_TOOL_KIND", "semoss_subagent_check");
+        // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         tool.put("_meta", meta);
         return tool;
     }
@@ -269,6 +275,8 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("SMSS_TOOL_KIND", "semoss_subagent_wait");
+        // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         tool.put("_meta", meta);
         return tool;
     }

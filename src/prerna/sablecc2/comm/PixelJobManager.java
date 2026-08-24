@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.om.Insight;
+import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.sablecc2.PixelRunner;
 
 public final class PixelJobManager {
@@ -217,6 +218,10 @@ public final class PixelJobManager {
 	 * @param stream
 	 */
 	public void addStreamOut(String jobId, Map<String, Object> stream) {
+		if (AgentRunStreamService.get().isRegistered(jobId)) {
+			AgentRunStreamService.get().acceptEnvelope(jobId, stream);
+			return;
+		}
 		JobOutputHolder<Map<String, Object>> holder = jobStreamMap.computeIfAbsent(jobId, k -> new JobOutputHolder<>());
 		holder.lock.lock();
 		try {

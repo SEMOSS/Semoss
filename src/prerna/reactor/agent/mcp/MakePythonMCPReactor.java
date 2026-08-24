@@ -62,16 +62,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the engine/project id or set the app context");
-		}
+		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
 
 		// get engine
 		IEngine engine = null;
@@ -158,7 +149,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		if (!mcpFolder.exists()) {
 			mcpFolder.mkdir();
 		}
-		String outputFileLoc = engineAssetsFolder + "/mcp/py_mcp.json";
+		String outputFileLoc = engineAssetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 		mcpPyFileLoc = mcpPyFileLoc.replace("\\", "/");
 		outputFileLoc = outputFileLoc.replace("\\", "/");
 //		String script = null;
@@ -193,7 +184,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		}
 
 		// add file to git
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/py_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PY_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

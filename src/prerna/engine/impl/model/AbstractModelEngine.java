@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -78,6 +79,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
+	public static final String BUILT_IN_TOOLS = "built_in_tools";
+	public static final String MAX_TOKENS = "max_tokens";
+	public static final String THINKING = "thinking";
+	public static final String EFFORT = "effort";
+	public static final String TEMPERATURE = "temperature";
+	public static final String THINKING_BUDGET = "thinking_budget";
 
 	// the init script loading tells us the provider we are using
 	// but we also want to know what the model brand actually is
@@ -86,6 +93,45 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected boolean keepConversationHistory = false;
 	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
+
+	/**
+	 * The engine's saved built-in tool selection from MODELMETADATA - a JSON
+	 * object keyed by tool name. The security database is its only source of
+	 * truth (the value is deliberately kept out of the smss), and it rides
+	 * along on ask calls as the built_in_tools param unless the caller
+	 * supplies their own.
+	 */
+	protected Object builtinTools = null;
+
+	/**
+	 * The max output tokens to request when the caller does not name one -
+	 * the smss value when defined, otherwise the MODELMETADATA row's
+	 * maxOutputTokens. Null when neither names one, in which case the python
+	 * clients fall back to the model's own output cap.
+	 */
+	protected Long maxTokens = null;
+
+	/**
+	 * Whether the model is capable of thinking/reasoning per the MODELMETADATA
+	 * row. Null when the table does not say either way - only an explicit
+	 * false blocks a caller from requesting thinking.
+	 */
+	protected Boolean reasoning = null;
+
+	/**
+	 * The model's reasoning config from MODELMETADATA - the catalog object
+	 * holding default_enabled, default_effort, mandatory and supported_efforts.
+	 * Null when the table does not define one, in which case caller-supplied
+	 * efforts are passed through unchecked.
+	 */
+	protected Map<String, Object> reasoningConfig = null;
+
+	/**
+	 * Whether the model accepts a temperature per the MODELMETADATA row. Null
+	 * when the table does not say either way - only an explicit false makes us
+	 * drop a caller supplied temperature.
+	 */
+	protected Boolean temperatureSupported = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -101,6 +147,29 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		this.contextWindow = contextWindowStr != null && !contextWindowStr.trim().isEmpty()
 				? Integer.parseInt(contextWindowStr.trim())
 				: 0;
+		this.maxTokens = resolveMaxTokens();
+	}
+
+	/**
+	 * The effective max output tokens after the metadata merge: the smss file
+	 * wins under either key casing, then the metadata backfill placed under
+	 * the lowercase param key. A value that does not parse reads as unset
+	 * rather than failing engine open.
+	 */
+	private Long resolveMaxTokens() {
+		String value = this.smssProp.getProperty(Constants.MAX_TOKENS);
+		if (value == null || value.trim().isEmpty()) {
+			value = this.smssProp.getProperty(MAX_TOKENS);
+		}
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return Long.parseLong(value.trim());
+		} catch (NumberFormatException e) {
+			classLogger.warn("Model {} has an invalid max tokens value '{}' - ignoring it", this.engineId, value);
+			return null;
+		}
 	}
 
 	/**
@@ -128,6 +197,19 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		fillIfMissing("context_window", metadata.get("contextWindow"));
 		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
+		this.builtinTools = metadata.get("builtinTools");
+
+		if (metadata.get("reasoning") instanceof Boolean) {
+			this.reasoning = (Boolean) metadata.get("reasoning");
+		}
+		if (metadata.get("temperature") instanceof Boolean) {
+			this.temperatureSupported = (Boolean) metadata.get("temperature");
+		}
+		if (metadata.get("reasoningConfig") instanceof Map) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
+			this.reasoningConfig = config.isEmpty() ? null : config;
+		}
 	}
 
 	/**
@@ -143,6 +225,150 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			return;
 		}
 		this.smssProp.put(smssKey, String.valueOf(metadataValue));
+	}
+
+	/**
+	 * Resolve the thinking params for an ask call against the model's
+	 * reasoning metadata. Caller-supplied values win, but a caller cannot turn
+	 * thinking on when the metadata marks reasoning false, and a named effort
+	 * must sit inside the config's supported_efforts list. When the caller
+	 * says nothing, the config's defaults (default_enabled/mandatory and
+	 * default_effort) ride along instead. Without a reasoning config the
+	 * caller's effort is passed through unchecked.
+	 *
+	 * @return the parameters map, created when metadata defaults need a home
+	 */
+	protected Map<String, Object> applyReasoningParameters(Map<String, Object> parameters) {
+		boolean callerSetThinking = parameters != null && parameters.containsKey(THINKING);
+		boolean callerSetEffort = parameters != null
+				&& (parameters.containsKey(EFFORT) || parameters.containsKey(THINKING_BUDGET));
+
+		boolean thinkingOn;
+		if (callerSetThinking) {
+			thinkingOn = isThinkingRequested(parameters.get(THINKING));
+			if (thinkingOn && Boolean.FALSE.equals(this.reasoning)) {
+				throw new IllegalArgumentException(
+						"Thinking was requested but this model does not support thinking/reasoning");
+			}
+		} else {
+			thinkingOn = this.reasoningConfig != null && !Boolean.FALSE.equals(this.reasoning)
+					&& (Boolean.TRUE.equals(this.reasoningConfig.get("default_enabled"))
+							|| Boolean.TRUE.equals(this.reasoningConfig.get("mandatory")));
+		}
+
+		if (!thinkingOn) {
+			return parameters;
+		}
+
+		if (callerSetEffort && this.reasoningConfig != null) {
+			validateEffortAllowed(parameters.get(EFFORT));
+		}
+
+		if (parameters == null) {
+			parameters = new HashMap<>();
+		}
+		if (!callerSetThinking) {
+			parameters.put(THINKING, Boolean.TRUE);
+		}
+		if (!callerSetEffort) {
+			String defaultEffort = getDefaultEffort();
+			if (defaultEffort != null) {
+				parameters.put(EFFORT, defaultEffort);
+			}
+		}
+		return parameters;
+	}
+
+	/**
+	 * Drop a caller supplied temperature when the MODELMETADATA row marks the
+	 * model as not accepting one - the reasoning models in particular reject the
+	 * param outright, and callers (including our own reactors that hardcode a
+	 * temperature) should not have to know which model is behind the engine. A
+	 * null or true metadata value leaves the parameters untouched.
+	 *
+	 * @return the same parameters map, minus the temperature when unsupported
+	 */
+	protected Map<String, Object> applyTemperatureParameter(Map<String, Object> parameters) {
+		if (parameters == null || parameters.isEmpty() || !Boolean.FALSE.equals(this.temperatureSupported)) {
+			return parameters;
+		}
+
+		Iterator<Map.Entry<String, Object>> entries = parameters.entrySet().iterator();
+		while (entries.hasNext()) {
+			Map.Entry<String, Object> entry = entries.next();
+			if (entry.getKey() != null && TEMPERATURE.equalsIgnoreCase(entry.getKey().trim())) {
+				entries.remove();
+				classLogger.info("Dropping the temperature param for model {} - the model metadata says it is not supported",
+						Utility.cleanLogString(this.engineId));
+			}
+		}
+		return parameters;
+	}
+
+	/**
+	 * Whether a caller-supplied thinking param asks for thinking to be on -
+	 * either a truthy flag (mirroring the python string_to_bool values) or an
+	 * anthropic style config map whose type is enabled/adaptive.
+	 */
+	private static boolean isThinkingRequested(Object thinkingParam) {
+		if (thinkingParam == null) {
+			return false;
+		}
+		if (thinkingParam instanceof Map) {
+			Object type = ((Map<?, ?>) thinkingParam).get("type");
+			return "enabled".equals(type) || "adaptive".equals(type);
+		}
+		if (thinkingParam instanceof Boolean) {
+			return (Boolean) thinkingParam;
+		}
+		if (thinkingParam instanceof Number) {
+			return ((Number) thinkingParam).intValue() != 0;
+		}
+		String value = thinkingParam.toString().trim().toLowerCase();
+		return value.equals("true") || value.equals("t") || value.equals("yes") || value.equals("y")
+				|| value.equals("1");
+	}
+
+	/**
+	 * A caller-named effort must be one of the config's supported_efforts when
+	 * the config defines that list. Numeric token budgets are left for the
+	 * python side to bucket onto the effort ladder.
+	 */
+	private void validateEffortAllowed(Object effortParam) {
+		if (effortParam == null || effortParam instanceof Number) {
+			// only a thinking_budget or a raw budget - nothing to check
+			return;
+		}
+		Object supported = this.reasoningConfig.get("supported_efforts");
+		if (!(supported instanceof List) || ((List<?>) supported).isEmpty()) {
+			return;
+		}
+		String effort = effortParam.toString().trim();
+		if (effort.isEmpty() || effort.matches("-?\\d+")) {
+			return;
+		}
+		for (Object allowed : (List<?>) supported) {
+			if (allowed != null && effort.equalsIgnoreCase(allowed.toString().trim())) {
+				return;
+			}
+		}
+		throw new IllegalArgumentException("Effort '" + effort
+				+ "' is not supported for this model. Supported efforts: " + supported);
+	}
+
+	/**
+	 * The config's default_effort as a canonical lowercase string, or null
+	 * when the config does not name one.
+	 */
+	private String getDefaultEffort() {
+		if (this.reasoningConfig == null) {
+			return null;
+		}
+		Object value = this.reasoningConfig.get("default_effort");
+		if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+			return null;
+		}
+		return ((String) value).trim().toLowerCase();
 	}
 
 	/**
@@ -274,7 +500,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 						/*messageId*/ inputMessage.getMessageId(),
 						/*transactionId*/askModelResponse.getMessageId(),
-						/*messageMethod*/"ask",
+						/*messageMethod*/inferenceLogMessageMethod("ask"),
 						/*engine*/this,
 						/*insightId*/room.getInsight().getInsightId(),
 						/*projectContextId*/room.getInsight().getContextProjectId(),
@@ -347,6 +573,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 	}
 
+	/**
+	 * messageMethod recorded on inference log rows written by this engine.
+	 * Delegating engines (e.g. the model router) override this to tag their
+	 * rows, so ask-history queries and usage aggregations can separate the
+	 * delegating row from the actual model call.
+	 */
+	protected String inferenceLogMessageMethod(String method) {
+		return method;
+	}
+
 	@Override
 	@Deprecated
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
@@ -387,7 +623,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/messageId,
 					/*transactionId*/messageId,
-					/*messageMethod*/"embeddings",
+					/*messageMethod*/inferenceLogMessageMethod("embeddings"),
 					/*engine*/this,
 					/*insightId*/insight.getInsightId(),
 					/*projectContextId*/insight.getContextProjectId(),

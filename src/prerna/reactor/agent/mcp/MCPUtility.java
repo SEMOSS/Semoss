@@ -66,6 +66,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -152,6 +153,12 @@ public final class MCPUtility {
 	 */
 	public static final String ROOM_MCP_TYPE = "ROOM";
 
+	// Pixel tool definition path relative to an asset folder.
+	public static final String PIXEL_MCP_RELATIVE_PATH = "/mcp/pixel_mcp.json";
+
+	// Python tool definitions, relative to an assets folder.
+	public static final String PY_MCP_RELATIVE_PATH = "/mcp/py_mcp.json";
+
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
 
@@ -161,9 +168,10 @@ public final class MCPUtility {
 	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
 
 	// Regex pattern for "a" + UUID + "_"
-	// UUID format: 8-4-4-4-12 hexadecimal digits
-	private static final Pattern UUID_PREFIX_PATTERN = Pattern
-			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
+	// UUID format: 8-4-4-4-12 hexadecimal digits. Separators may be "-" (legacy
+	// names persisted before LLM-name sanitization) or "_" (sanitized names).
+	private static final Pattern UUID_PREFIX_PATTERN = Pattern.compile(
+			"^a([0-9a-fA-F]{8})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{12})_");
 
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
@@ -577,10 +585,18 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 * Returns the first 8 hex characters of the engineId (using a UUID string -
+	 * dashes removed; unless platform project/engine which usually do not).
 	 */
 	public static String computeShortEngineId(String engineId) {
-		return engineId.replace("-", "").substring(0, 8);
+		String retId = engineId;
+		if (retId.contains("-")) {
+			retId = retId.replace("-", "");
+		}
+		if (retId.length() > 8) {
+			retId = retId.substring(0, 8);
+		}
+		return retId;
 	}
 
 	/**
@@ -635,26 +651,41 @@ public final class MCPUtility {
 	 * skip truncation.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, maxLength, false);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name, truncating to maxLength. When
+	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_] (see
+	 * {@link #requiresLLMNameSanitization}); other providers keep the raw engine id
+	 * so existing LLM-facing names are unchanged.
+	 */
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength,
+			boolean sanitizeForLLM) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
 
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		String idForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(engineId) : engineId;
+		String shortIdForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(computeShortEngineId(engineId))
+				: computeShortEngineId(engineId);
 
 		if (maxLength == Integer.MAX_VALUE) {
 			// No length limit: use the full UUID prefix (preserves existing behavior)
+			String fullPrefix = "a" + idForPrefix + "_";
 			for (int i = 0; i < toolsArray.length(); i++) {
 				JSONObject toolMap = toolsArray.getJSONObject(i);
 				String currentName = toolMap.getString("name");
-				toolMap.put("name", "a" + engineId + "_" + currentName);
+				toolMap.put("name", fullPrefix + currentName);
 			}
 			return jsonToolsMap;
 		}
 
 		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
 		// fall back to short 8-hex prefix and truncate if still needed.
-		String fullPrefix = "a" + engineId + "_";
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String fullPrefix = "a" + idForPrefix + "_";
+		String shortPrefix = "a" + shortIdForPrefix + "_";
 
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
@@ -677,13 +708,40 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * LLM-facing tool names must stay within [a-zA-Z0-9_]. Amazon Nova (Bedrock)
+	 * deterministically fails with "Model produced invalid sequence as part of
+	 * ToolUse" whenever a tool name contains a hyphen (e.g. from a hyphenated
+	 * engine id), and underscores are accepted by every provider. Only the
+	 * SEMOSS-injected prefix is sanitized; the author's tool name is appended
+	 * untouched.
+	 */
+	public static String sanitizeEngineIdForLLMName(String engineId) {
+		return engineId == null ? null : engineId.replaceAll("[^a-zA-Z0-9_]", "_");
+	}
+
+	/**
+	 * Whether LLM-facing tool names must be sanitized for the given model engine.
+	 * Only Bedrock engines opt in: Amazon Nova is the model family that rejects
+	 * hyphenated tool names, and scoping the rename here keeps every other
+	 * provider's tool names byte-identical to their historical form.
+	 */
+	public static boolean requiresLLMNameSanitization(IModelEngine modelEngine) {
+		return modelEngine != null && ModelTypeEnum.BEDROCK == modelEngine.getModelType();
+	}
+
+	/**
 	 * Strips the engine ID prefix from a tool function name. Tries the short prefix
-	 * (a{8hex}_) first, then falls back to the legacy full-UUID prefix.
+	 * (a{8hex}_) first, then the sanitized full prefix, then falls back to the
+	 * legacy raw full prefix (names persisted before LLM-name sanitization).
 	 */
 	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String shortPrefix = "a" + sanitizeEngineIdForLLMName(computeShortEngineId(engineId)) + "_";
 		if (functionName.startsWith(shortPrefix)) {
 			return functionName.substring(shortPrefix.length());
+		}
+		String sanitizedFullPrefix = "a" + sanitizeEngineIdForLLMName(engineId) + "_";
+		if (functionName.startsWith(sanitizedFullPrefix)) {
+			return functionName.substring(sanitizedFullPrefix.length());
 		}
 		String fullPrefix = "a" + engineId + "_";
 		if (functionName.startsWith(fullPrefix)) {
@@ -703,9 +761,10 @@ public final class MCPUtility {
 
 		Matcher matcher = UUID_PREFIX_PATTERN.matcher(input);
 		if (matcher.find()) {
-			String prefix = matcher.group();
-			// remove the "a" and the "_" after the project id
-			prefix = prefix.substring(1, prefix.length() - 1);
+			// rebuild the canonical hyphenated UUID regardless of which separator
+			// ("-" legacy, "_" sanitized) appeared in the LLM-facing name
+			String prefix = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3) + "-" + matcher.group(4)
+					+ "-" + matcher.group(5);
 			String remaining = input.substring(matcher.end());
 			return new String[] { prefix, remaining };
 		}
@@ -973,7 +1032,7 @@ public final class MCPUtility {
 	public static JSONObject findPythonToolWithCellId(IEngine engine, String cellId) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
 		for (int i = 0; i < existingTools.length(); i++) {
@@ -1003,7 +1062,7 @@ public final class MCPUtility {
 	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
 		if (!mcpJson.has("tools")) {
@@ -1394,6 +1453,20 @@ public final class MCPUtility {
 
 		IMCP mcp = MCPFactory.build(engine);
 		return mcp.callTool(toolName, paramMap, insight);
+	}
+
+	/**
+	 * Typed adapter for agent callers. The established direct execution path and
+	 * its exception behavior remain unchanged.
+	 */
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName, Map<String, Object> paramMap,
+			Insight insight) {
+		try {
+			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
+		} catch (RuntimeException e) {
+			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			return ToolExecutionResult.error(message, message);
+		}
 	}
 
 	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers

@@ -31,7 +31,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
-	// @formatter:off
+	// @formatter:off 
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
@@ -181,7 +181,8 @@ public enum ReactorKeysEnum {
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
-	MESSAGE("message", 											"Message to display for logging"),	
+	MEDIA("media", 												"The location of a media file of any type (image, pdf, document, spreadsheet, audio, video) or a base64 data uri of one."),
+	MESSAGE("message", 											"Message to display for logging"),
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
 	METADATA("metadata", 										"Additional metadata"),
@@ -207,6 +208,7 @@ public enum ReactorKeysEnum {
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
 	OFFSET("offset", 											"Offset to add for the query results"),
 	ONLY_FAVORITES("onlyFavorites", 							"Get engines/insights which are favorited by the user"),
+	ONLY_TEMPLATES("onlyTemplates", 							"Get projects which are enabled as templates"),
 	OPERATOR("operator", 										"The operator to use for identifying this filter such as > , < = != etc. "),
 	OPERATORU("operatoru", 										"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 											"Map of option values"),

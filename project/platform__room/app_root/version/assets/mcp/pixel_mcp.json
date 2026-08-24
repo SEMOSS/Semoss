@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "list_room_skill_files",
+      "title": "List Room Skill Files",
+      "description": "List the files in the platform 'room' skill, the platform's guidance for working with playground rooms, the persistent named conversations that carry chat history, a selected model, a system prompt, and MCP tool configuration. Call this when the user asks about creating/listing/renaming/pinning/deleting rooms, reading or updating room options (model, system prompt, temperature, attached MCPs), reading chat history, or binding an insight to a room, and when they name CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, or GetPlaygroundMessages. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Also covers rich chat turns with AskRoom (full message objects with ids and threading), closing a client-side tool loop with AddToolExecution, suggested follow-up questions, compacting long histories, and auto-naming rooms with GenerateRoomName. Not for plain LLM completions (see the model skill), document ingestion (see the vector skill), or an autonomous multi-turn agent loop (see the agent-run skill).",
+      "inputSchema": {
+        "type": "object",
+        "title": "list_room_skill_files_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The room skill (room). Always this value.",
+            "enum": [
+              "room"
+            ],
+            "default": "room"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ListSkillFiles"
+      }
+    },
+    {
+      "name": "read_room_skill_file",
+      "title": "Read Room Skill File",
+      "description": "Read one file from the platform 'room' skill in full, for writing code that manages playground rooms or threads messages through one. Pass filePath exactly as list_room_skill_files reports it; SKILL.md is the main guide and covers the create-then-ask flow, why SetRoomForInsight must run once per session before LLM turns, the full room lifecycle, reading and updating room options, and pulling message history. Also covers AskRoom rich turns ({inputMessage, responseMessage} with messageId/parentMessageId for threading and regenerate), the AddToolExecution loop for browser-executed tools (submit every pending TOOL_CALL result to receive the model's follow-up), GenerateFollowUpQuestions chips, CompactRoomMessages (TOOL_PRUNE vs lossy SUMMARY), and GenerateRoomName.",
+      "inputSchema": {
+        "type": "object",
+        "title": "read_room_skill_file_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The room skill (room). Always this value.",
+            "enum": [
+              "room"
+            ],
+            "default": "room"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Path of the file to read, relative to the skill folder, as reported by list_room_skill_files. Use 'SKILL.md' for the main guide.",
+            "default": "SKILL.md"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_FUNCTION_NAME": "ReadSkillFile"
+      }
+    }
+  ]
+}

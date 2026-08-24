@@ -54,8 +54,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
-				MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
+				USE_DEFAULT_AGENT_TOOLS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -154,6 +155,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
 					dependencyList, workspaceResources, skillIds);
 			stageIntUpdate(budgetUpdates, MAX_TURNS, "max_turns", 1);
+			stageIntUpdate(budgetUpdates, MAX_REFLECTIONS, "max_reflections", 0);
+			stageIntUpdate(budgetUpdates, MAX_SECONDS, "max_seconds", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENT_DEPTH, "max_subagent_depth", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENTS_PER_RUN, "max_subagents_per_run", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SPAWNS_PER_TURN, "max_spawns_per_turn", 0);
@@ -175,6 +178,15 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// clears it (falling back to room MODEL_ID / options at run time).
 		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
 		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
+		boolean useDefaultToolsProvided = getGenRowStruct(USE_DEFAULT_AGENT_TOOLS) != null;
+		Boolean useDefaultTools = null;
+		if (useDefaultToolsProvided) {
+			String raw = this.keyValue.get(USE_DEFAULT_AGENT_TOOLS);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(USE_DEFAULT_AGENT_TOOLS + " must be true or false");
+			}
+			useDefaultTools = Boolean.valueOf(raw);
+		}
 
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
@@ -193,7 +205,7 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
-					subagentUpdates, hooksProvided, hookUpdates);
+					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
