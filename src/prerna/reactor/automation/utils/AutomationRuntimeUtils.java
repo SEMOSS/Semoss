@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.automation.utils;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,8 +37,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -109,10 +115,65 @@ public final class AutomationRuntimeUtils {
 		return GSON.toJson(value);
 	}
 
+	/**
+	 * Validates container depth before serialization, then limits the encoded UTF-8 payload.
+	 * Runtime values originate as JSON, so repeated container identity has no defined meaning and
+	 * is rejected with cycles before Gson can recurse indefinitely.
+	 */
+	public static String toBoundedRuntimeJson(Object value, int maxBytes, String valueName) {
+		validateRuntimeDepth(value, valueName);
+		String json = toRuntimeJson(value);
+		int byteCount = json.getBytes(StandardCharsets.UTF_8).length;
+		if (byteCount > maxBytes) {
+			throw new IllegalArgumentException(valueName + " exceeds the maximum of " + maxBytes
+					+ " UTF-8 bytes.");
+		}
+		return json;
+	}
+
+	private static void validateRuntimeDepth(Object value, String valueName) {
+		ArrayDeque<RuntimeValueDepth> pending = new ArrayDeque<>();
+		Set<Object> visitedContainers = Collections.newSetFromMap(new IdentityHashMap<>());
+		pending.push(new RuntimeValueDepth(value, 0));
+		while (!pending.isEmpty()) {
+			RuntimeValueDepth current = pending.pop();
+			Object currentValue = current.value();
+			if (!(currentValue instanceof Map<?, ?>)
+					&& !(currentValue instanceof Iterable<?>)
+					&& (currentValue == null || !currentValue.getClass().isArray())) {
+				continue;
+			}
+			if (current.depth() >= AutomationConstants.RUNTIME_JSON_MAX_DEPTH) {
+				throw new IllegalArgumentException(valueName + " exceeds the maximum JSON depth of "
+						+ AutomationConstants.RUNTIME_JSON_MAX_DEPTH + ".");
+			}
+			if (!visitedContainers.add(currentValue)) {
+				throw new IllegalArgumentException(valueName
+						+ " contains a repeated or cyclic JSON container.");
+			}
+			int childDepth = current.depth() + 1;
+			if (currentValue instanceof Map<?, ?> map) {
+				for (Object child : map.values()) {
+					pending.push(new RuntimeValueDepth(child, childDepth));
+				}
+			} else if (currentValue instanceof Iterable<?> iterable) {
+				for (Object child : iterable) {
+					pending.push(new RuntimeValueDepth(child, childDepth));
+				}
+			} else {
+				for (int index = 0; index < Array.getLength(currentValue); index++) {
+					pending.push(new RuntimeValueDepth(Array.get(currentValue, index), childDepth));
+				}
+			}
+		}
+	}
+
 	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
 	public static String generatePreview(String s) {
 		if (s == null) return null;
 		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH
 				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
 	}
+
+	private record RuntimeValueDepth(Object value, int depth) {}
 }

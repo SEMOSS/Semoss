@@ -77,7 +77,7 @@ class AutomationScope(dict[str, Any]):
         return self.resolve(value)
 
 
-def execute_node(encoded_scope: str, encoded_source: str) -> Any:
+def execute_node(encoded_scope: str, encoded_source: str, max_output_bytes: int) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
     scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
@@ -88,10 +88,12 @@ def execute_node(encoded_scope: str, encoded_source: str) -> Any:
     run = module.get("run")
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
-    return _json_result(run(scope))
+    return _json_result(run(scope), max_output_bytes)
 
 
-def execute_trigger(encoded_scope: str, encoded_source: str) -> dict[str, Any]:
+def execute_trigger(
+    encoded_scope: str, encoded_source: str, max_output_bytes: int
+) -> dict[str, Any]:
     """Execute trigger setup and return only public JSON-compatible globals."""
     scope = _decode_scope(encoded_scope)
     module: dict[str, Any] = {"__name__": "__automation_trigger__"}
@@ -115,7 +117,7 @@ def execute_trigger(encoded_scope: str, encoded_source: str) -> dict[str, Any]:
             ):
                 globals_result[name] = value
 
-    return _json_result(globals_result)
+    return _json_result(globals_result, max_output_bytes)
 
 
 def _decode(value: str) -> str:
@@ -137,10 +139,17 @@ def _is_json_compatible(value: Any) -> bool:
         return False
 
 
-def _json_result(value: Any) -> Any:
+def _json_result(value: Any, max_bytes: int) -> Any:
     try:
-        return json.loads(json.dumps(value))
-    except (TypeError, ValueError) as error:
+        serialized = json.dumps(value, allow_nan=False)
+    except (TypeError, ValueError, RecursionError) as error:
         raise ValueError(
             "Automation node run(scope) must return a JSON-serializable value."
         ) from error
+    byte_count = len(serialized.encode("utf-8"))
+    if byte_count > max_bytes:
+        raise ValueError(
+            "Automation node run(scope) result exceeds the maximum of "
+            f"{max_bytes} UTF-8 bytes."
+        )
+    return json.loads(serialized)

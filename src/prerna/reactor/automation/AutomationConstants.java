@@ -188,6 +188,10 @@ public final class AutomationConstants {
 	public static final int WAIT_MAX_SECONDS = 3600;
 	public static final int WAIT_DEFAULT_SECONDS = 1;
 	public static final int WAIT_CANCEL_CHECK_INTERVAL_SECONDS = 5;
+	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
+	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
+	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
+	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
 
 	// -- Document field names -------------------------------------------------------
 

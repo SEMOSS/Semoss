@@ -144,12 +144,15 @@ final class AutomationRuntime {
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s")
+				_automation_runtime.%s("%s", "%s", %d)
 				""".formatted(
 						AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
 						function,
-						encode(AutomationRuntimeUtils.toRuntimeJson(scope != null ? scope : Map.of())),
-						encode(source != null ? source : ""));
+						encode(AutomationRuntimeUtils.toBoundedRuntimeJson(
+								scope != null ? scope : Map.of(), AutomationConstants.RUN_SCOPE_MAX_BYTES,
+								"Automation run scope")),
+						encode(source != null ? source : ""),
+						AutomationConstants.NODE_OUTPUT_MAX_BYTES);
 	}
 
 	/**

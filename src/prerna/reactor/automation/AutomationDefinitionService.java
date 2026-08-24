@@ -314,19 +314,30 @@ public final class AutomationDefinitionService {
 			if (!nodesById.containsKey(entry.getKey())) {
 				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
-			if (entry.getValue() == null || entry.getValue().isBlank()) {
-				throw new IllegalArgumentException("Python source for node '" + entry.getKey() + "' must be nonblank.");
-			}
+			validateNodeSource(entry.getKey(), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
 			String source = supplied.get(entry.getKey());
-			result.put(entry.getKey(), source == null
+			String completedSource = source == null
 					|| AutomationSourceRenderer.isLegacyDefaultSource(source)
 					? AutomationSourceRenderer.renderNode(entry.getValue())
-					: source);
+					: source;
+			validateNodeSource(entry.getKey(), completedSource);
+			result.put(entry.getKey(), completedSource);
 		}
 		return result;
+	}
+
+	private static void validateNodeSource(String nodeId, String source) {
+		if (source == null || source.isBlank()) {
+			throw new IllegalArgumentException("Python source for node '" + nodeId + "' must be nonblank.");
+		}
+		int sourceBytes = source.getBytes(StandardCharsets.UTF_8).length;
+		if (sourceBytes > AutomationConstants.NODE_SOURCE_MAX_BYTES) {
+			throw new IllegalArgumentException("Python source for node '" + nodeId + "' exceeds the maximum of "
+					+ AutomationConstants.NODE_SOURCE_MAX_BYTES + " UTF-8 bytes.");
+		}
 	}
 
 	/**

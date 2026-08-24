@@ -207,7 +207,10 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			for (String name : declaredGlobals.keySet()) {
 				globals.put(name, scope.get(name));
 			}
-			String output = AutomationRuntimeUtils.toRuntimeJson(globals);
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(globals,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
+			AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
+					"Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
@@ -254,7 +257,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
-			return persistNativeNodeResult(runId, node, value, started, startedMs, traceRoomId);
+			return persistNativeNodeResult(runId, node, value, started, startedMs, traceRoomId, scope);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -298,7 +301,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> persistNativeNodeResult(String runId, Map<String, Object> node, Object value,
-			Timestamp started, long startedMs, String traceRoomId) {
+			Timestamp started, long startedMs, String traceRoomId, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			long duration = System.currentTimeMillis() - startedMs;
@@ -320,7 +323,14 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			agentRunId = stringValue(agentResult.get("runId"));
 			agentFailure = agentFailureMessage(agentResult, agentRunId);
 		}
-		String output = AutomationRuntimeUtils.toRuntimeJson(persistedValue);
+		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
+				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
+		if (agentFailure == null) {
+			Map<String, Object> prospectiveScope = new LinkedHashMap<>(scope);
+			prospectiveScope.put((String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
+		}
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
 		String modelMessageId = generatedAgentNode

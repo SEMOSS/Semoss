@@ -40,7 +40,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /** Updates source only for an explicitly custom node after an optimistic-lock check. */
 public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 
-	private static final int MAX_SOURCE_LENGTH = 100_000;
 	private static final String NODE_ID_KEY = "nodeId";
 	private static final String SOURCE_KEY = "source";
 	private static final String EXPECTED_SOURCE_HASH_KEY = "expectedSourceHash";
@@ -57,9 +56,6 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		String projectId = editableProjectId();
 		String nodeId = required(NODE_ID_KEY);
 		String source = required(SOURCE_KEY);
-		if (source.length() > MAX_SOURCE_LENGTH) {
-			throw new IllegalArgumentException("source exceeds the maximum length.");
-		}
 		String expectedHash = required(EXPECTED_SOURCE_HASH_KEY);
 		return AutomationProjectUtils.withLockedDefinition(projectId,
 				files -> updateSource(projectId, files, nodeId, source, expectedHash));
