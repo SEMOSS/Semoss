@@ -42,49 +42,65 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class UpdateStorageFileMetadataReactor extends AbstractReactor {
+/**
+ * List all versions of a specific object in a versioned storage engine.
+ * 
+ * <p>
+ * Pixel usage:
+ * 
+ * <pre>
+ * ListStorageVersions(storage=["engineId"], storagePath=["path/to/file.pdf"]);
+ * </pre>
+ * 
+ * <p>
+ * Returns a list of version details including versionId, lastModified, size,
+ * and isLatest. Only supported by storage engines with versioning enabled (AWS
+ * S3, GCS).
+ */
+public class ListStorageVersionsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(UpdateStorageFileMetadataReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ListStorageVersionsReactor.class);
 
-	public UpdateStorageFileMetadataReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
-				ReactorKeysEnum.METADATA.getKey(), };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	public ListStorageVersionsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		IStorageEngine storage = getStorage();
-
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
-			throw new IllegalArgumentException("User does not have permission to access this storage engine");
-		}
-
 		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-		if (storagePath == null || storagePath.isEmpty()) {
-			throw new IllegalArgumentException("Storage path is required");
-		}
-
-		Map<String, Object> metadata = getMapFromKeyOrCurRow(ReactorKeysEnum.METADATA.getKey());
 
 		try {
-			storage.updateBlobMetadata(storagePath, metadata);
-			return new NounMetadata(true, PixelDataType.BOOLEAN);
+			List<Map<String, Object>> versions = storage.listVersions(storagePath);
+			return new NounMetadata(versions, PixelDataType.VECTOR);
+		} catch (UnsupportedOperationException e) {
+			classLogger.warn("Storage engine={} does not keep versions, asked for storagePath={}",
+					storage.getEngineId(), storagePath);
+			throw new IllegalArgumentException("This storage engine does not support version listing", e);
 		} catch (Exception e) {
-			classLogger.error("Failed to apply metadata to storagePath={} on storage engine={}", storagePath,
+			classLogger.error("Failed to list versions of storagePath={} on storage engine={}", storagePath,
 					storage.getEngineId(), e);
-			throw new IllegalArgumentException("Error occurred applying metadata", e);
+			throw new IllegalArgumentException("Error listing storage versions at path: " + storagePath, e);
 		}
 	}
 
 	private IStorageEngine getStorage() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
 		if (grs != null && !grs.isEmpty()) {
+			IStorageEngine storage = null;
 			if (grs.get(0) instanceof String) {
-				return Utility.getStorage((String) grs.get(0));
+				String storageId = (String) grs.get(0);
+				if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), storageId)) {
+					throw new IllegalArgumentException(
+							"Storage " + storageId + " does not exist or user does not have access to storage");
+				}
+				storage = Utility.getStorage(storageId);
+			} else {
+				storage = (IStorageEngine) grs.get(0);
 			}
-			return (IStorageEngine) grs.get(0);
+			return storage;
 		}
 
 		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
@@ -93,24 +109,5 @@ public class UpdateStorageFileMetadataReactor extends AbstractReactor {
 		}
 
 		throw new NullPointerException("No storage engine defined");
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Sets the metadata on a file already in storage. This replaces the metadata on the file "
-				+ "rather than merging into it, so pass every key the file should end up with.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The path of the file in storage to set the metadata on";
-		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
-			return "The metadata to set on the file, as a map. Values are stored as strings, and engines "
-					+ "with nowhere to keep user metadata ignore it";
-		}
-		return super.getDescriptionForKey(key);
 	}
 }
