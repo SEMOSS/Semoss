@@ -154,7 +154,8 @@ public final class AutomationDatabaseUtility {
 
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
-			FAILED_NODE_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ?""";
+			FAILED_NODE_ID = ?, ERROR_MESSAGE = ? \
+			WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS = ?""";
 
 	private static final String UPDATE_RUN_SUMMARY =
 			"UPDATE AUTOMATION_RUNS SET RESULT_SUMMARY = ? WHERE RUN_ID = ?";
@@ -275,8 +276,13 @@ public final class AutomationDatabaseUtility {
 		Timestamp now = toTimestamp(Instant.now());
 
 		Connection conn = null;
+		boolean originalAutoCommit = false;
 		try {
 			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
 			for (Map<String, Object> row : results) {
 				String runId = (String) row.get(RUN_ID);
 				String projectId = (String) row.get(PROJECT_ID);
@@ -310,12 +316,12 @@ public final class AutomationDatabaseUtility {
 					}
 				}
 			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			conn.commit();
 		} catch (Exception e) {
+			rollback(conn, e);
 			classLogger.error("Failed to mark stale automation runs", e);
 		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
 			closeConnection(schedulerDb, conn);
 		}
 	}
@@ -453,31 +459,6 @@ public final class AutomationDatabaseUtility {
 		}
 	}
 
-	/**
-	 * Releases the "active run" slot for a project, allowing a new run to be claimed.
-	 * Must be called on every terminal run status (SUCCESS/FAILED/CANCELLED/INTERRUPTED),
-	 * including the stale-run sweep in {@link #markStaleRunsInterrupted()}.
-	 */
-	public static void releaseActiveRun(String projectId, String runId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("release the active automation run");
-
-		Connection conn = null;
-		try {
-			conn = schedulerDb.getConnection();
-			releaseActiveRun(conn, projectId, runId);
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} catch (SQLException e) {
-			rollback(conn, e);
-			classLogger.error("Failed to release active-run slot for project {}, run {}",
-					projectId, runId, e);
-			throw new IllegalStateException("Unable to release the active automation run.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
-		}
-	}
-
 	private static void releaseActiveRun(Connection conn, String projectId, String runId) throws SQLException {
 		try (PreparedStatement ps = conn.prepareStatement(RELEASE_ACTIVE_RUN)) {
 			ps.setString(1, projectId);
@@ -568,15 +549,22 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Updates the status of an automation run (on completion or failure).
+	 * Persists a terminal run status and releases the project's active-run claim in one
+	 * transaction. Keeping these writes together prevents a completed run from leaving a
+	 * durable claim that blocks every later trigger.
 	 */
-	public static void updateRunStatus(String runId, String status,
+	public static void completeRun(String runId, String projectId, String status,
 			String failedNodeId, String errorMessage) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the terminal automation status");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("complete the automation run");
 
 		Connection conn = null;
+		boolean originalAutoCommit = false;
 		try {
 			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
 			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_STATUS)) {
 				int index = 1;
 				ps.setString(index++, status);
@@ -584,23 +572,25 @@ public final class AutomationDatabaseUtility {
 				setNullableString(ps, index++, failedNodeId);
 				setNullableString(ps, index++, errorMessage);
 				ps.setString(index++, runId);
+				ps.setString(index++, projectId);
+				ps.setString(index++, STATUS_RUNNING);
 				requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
 			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			releaseActiveRun(conn, projectId, runId);
+			conn.commit();
 		} catch (Exception e) {
 			rollback(conn, e);
-			classLogger.error("Failed to update run status for '{}'", runId, e);
-			throw new IllegalStateException("Unable to persist the terminal automation status.", e);
+			classLogger.error("Failed to complete run '{}' for project '{}'", runId, projectId, e);
+			throw new IllegalStateException("Unable to persist the completed automation run.", e);
 		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
 			closeConnection(schedulerDb, conn);
 		}
 	}
 
 	/**
 	 * Persists the human-readable outcome summary for a completed run.
-	 * Called after the run finishes, separately from {@link #updateRunStatus} because the
+	 * Called after the run finishes, separately from {@link #completeRun} because the
 	 * summary is built by the caller ({@code TriggerAutomationReactor}) after the engine returns.
 	 */
 	public static boolean updateRunSummary(String runId, String resultSummary) {
@@ -1127,30 +1117,29 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Creates the AUTOMATION_ACTIVE_RUN marker table - a single row per project, keyed on
 	 * PROJECT_ID, used to atomically enforce "at most one active run per project" cluster-wide.
-	 * See {@link #claimAndInitializeRun} / {@link #releaseActiveRun(String, String)}.
+	 * See {@link #claimAndInitializeRun} / {@link #completeRun}.
 	 */
 	private static void createAutomationActiveRunTable(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
 
 		String tableName = TABLE_AUTOMATION_ACTIVE_RUN;
 
-		if (!allowIfExists && queryUtil.tableExists(conn, tableName, database, schema)) {
-			return;
-		}
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { PROJECT_ID, RUN_ID, CLAIMED_AT };
+			String[] types = { VARCHAR_255, VARCHAR_255, dateTimeType };
+			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL };
 
-		String[] colNames = { PROJECT_ID, RUN_ID, CLAIMED_AT };
-		String[] types = { VARCHAR_255, VARCHAR_255, dateTimeType };
-		String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL };
-
-		String sql;
-		if (allowIfExists) {
-			sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-		} else {
-			sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-		}
-		classLogger.info("Creating table {}: {}", tableName, sql);
-		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.execute();
+			String sql;
+			if (allowIfExists) {
+				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+			} else {
+				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			}
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
 		}
 
 		// Primary key on PROJECT_ID alone (not RUN_ID) makes the run claim atomic:
@@ -1272,6 +1261,9 @@ public final class AutomationDatabaseUtility {
 	private static void addPrimaryKeyIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
 			String tableName, String database, String schema, String pkName, String[] columns) {
 		try {
+			if (queryUtil.tableConstraintExists(conn, pkName, tableName, database, schema)) {
+				return;
+			}
 			if (queryUtil.allowIfExistsAddConstraint()) {
 				String colList = String.join(", ", columns);
 				String sql = "ALTER TABLE " + tableName + " ADD CONSTRAINT IF NOT EXISTS " +
@@ -1280,7 +1272,6 @@ public final class AutomationDatabaseUtility {
 					ps.execute();
 				}
 			} else {
-				// Try to add and swallow the error if it already exists
 				String colList = String.join(", ", columns);
 				String sql = "ALTER TABLE " + tableName + " ADD CONSTRAINT " +
 						pkName + " PRIMARY KEY (" + colList + ")";

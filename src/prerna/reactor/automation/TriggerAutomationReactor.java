@@ -104,6 +104,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			}
 		}
 
+		Map<String, Object> result;
 		try {
 			PyTranslator translator = this.insight.getPyTranslator();
 			if (translator == null) {
@@ -117,20 +118,18 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
-			Map<String, Object> result = executeInControlOrder(projectId, runId, runNodes,
+			result = executeInControlOrder(projectId, runId, runNodes,
 					files.nodeSources(), scope, traceRoomIds);
-			finishRun(runId);
-			return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
-					PixelOperationType.OPERATION);
+			finishRun(runId, projectId);
 		} catch (Exception e) {
 			classLogger.error("Python automation run failed for project {}, run {}", projectId, runId, e);
-			finishFailedRun(runId, e);
-			return new NounMetadata(buildResult(runId, projectId, Map.of("error", safeMessage(e))),
-					PixelDataType.MAP, PixelOperationType.OPERATION);
+			finishFailedRun(runId, projectId, e);
+			result = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationPythonRunRegistry.unregister(runId);
-			AutomationDatabaseUtility.releaseActiveRun(projectId, runId);
 		}
+		return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
+				PixelOperationType.OPERATION);
 	}
 
 	private boolean initializeRun(String runId, String projectId,
@@ -495,11 +494,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		return result;
 	}
 
-	private void finishRun(String runId) {
+	private void finishRun(String runId, String projectId) {
 		List<Map<String, Object>> outputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			AutomationDatabaseUtility.skipPendingNodes(runId, "Run cancelled by user");
-			AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_CANCELLED, null,
+			AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, null,
 					"Run cancelled by user");
 			return;
 		}
@@ -510,7 +509,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		if (failed != null) {
 			String nodeId = (String) failed.get(AutomationConstants.NODE_ID);
 			AutomationDatabaseUtility.skipPendingNodes(runId, "Skipped because an earlier node failed");
-			AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_FAILED, nodeId,
+			AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, nodeId,
 					(String) failed.get(AutomationConstants.ERROR_MESSAGE));
 			return;
 		}
@@ -523,7 +522,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			String nodeId = (String) incomplete.get(AutomationConstants.NODE_ID);
 			String message = "Python source did not return a structured result for node " + nodeId + ".";
 			AutomationDatabaseUtility.skipPendingNodes(runId, message);
-			AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_FAILED, nodeId, message);
+			AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, nodeId, message);
 			return;
 		}
 
@@ -531,13 +530,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				.filter(output -> AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS)))
 				.count();
 		AutomationDatabaseUtility.updateHeartbeat(runId, completed);
-		AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_SUCCESS, null, null);
+		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_SUCCESS, null, null);
 	}
 
-	private void finishFailedRun(String runId, Exception error) {
+	private void finishFailedRun(String runId, String projectId, Exception error) {
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			AutomationDatabaseUtility.skipPendingNodes(runId, "Run cancelled by user");
-			AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_CANCELLED, null,
+			AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, null,
 					"Run cancelled by user");
 			return;
 		}
@@ -546,7 +545,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				.map(output -> (String) output.get(AutomationConstants.NODE_ID))
 				.findFirst().orElse(null);
 		AutomationDatabaseUtility.skipPendingNodes(runId, "Python runtime failed before this node executed");
-		AutomationDatabaseUtility.updateRunStatus(runId, AutomationConstants.STATUS_FAILED, failedNodeId,
+		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, failedNodeId,
 				safeMessage(error));
 	}
 
