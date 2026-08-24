@@ -28,6 +28,8 @@
 package prerna.reactor.automation;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -40,6 +42,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /** Java-side graph ordering and one-node Python invocation support. */
 final class AutomationRuntime {
@@ -116,128 +120,7 @@ final class AutomationRuntime {
 
 	/** Runs one node module with the workflow scope supplied by the Java scheduler. */
 	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
-		return buildNodeInvocationScript(source, scope, false);
-	}
-
-	static String buildNodeInvocationScript(String source, Map<String, Object> scope,
-			boolean resolveCustomSourcePlaceholders) {
-		return """
-				import ast as _automation_ast
-				import base64 as _automation_b64
-				import io as _automation_io
-				import json as _automation_json
-				import re as _automation_re
-				import tokenize as _automation_tokenize
-				_automation_scope = _automation_json.loads(
-				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
-				def resolve(value, scope):
-				    if isinstance(value, dict):
-				        return {key: resolve(item, scope) for key, item in value.items()}
-				    if isinstance(value, list):
-				        return [resolve(item, scope) for item in value]
-				    if not isinstance(value, str):
-				        return value
-
-				    exact = _automation_re.fullmatch(r"\\$\\{([^}]+)\\}", value)
-				    if exact:
-				        return scope.get(exact.group(1), value)
-
-				    def _automation_replace(match):
-				        replacement = scope.get(match.group(1), match.group(0))
-				        if isinstance(replacement, str):
-				            return replacement
-				        return _automation_json.dumps(replacement, ensure_ascii=False, separators=(",", ":"))
-
-				    return _automation_re.sub(r"\\$\\{([^}]+)\\}", _automation_replace, value)
-
-				def resolve_config(value, scope):
-				    if isinstance(value, str):
-				        value = _automation_json.loads(value or "{}")
-				    elif value is None:
-				        value = {}
-				    return resolve(value, scope)
-
-				def _automation_function_string_positions(source):
-				    tree = _automation_ast.parse(source)
-				    lines = source.splitlines()
-
-				    def position(node):
-				        if node.end_lineno is None or node.end_col_offset is None:
-				            return None
-				        start_line = lines[node.lineno - 1]
-				        end_line = lines[node.end_lineno - 1]
-				        start_col = len(start_line.encode("utf-8")[:node.col_offset].decode("utf-8"))
-				        end_col = len(end_line.encode("utf-8")[:node.end_col_offset].decode("utf-8"))
-				        return (node.lineno, start_col, node.end_lineno, end_col)
-
-				    docstrings = set()
-				    for owner in _automation_ast.walk(tree):
-				        body = getattr(owner, "body", None)
-				        if (not isinstance(body, list) or not body
-				                or not isinstance(body[0], _automation_ast.Expr)
-				                or not isinstance(body[0].value, _automation_ast.Constant)
-				                or not isinstance(body[0].value.value, str)):
-				            continue
-				        docstrings.add(position(body[0].value))
-
-				    eligible = set()
-				    function_types = (_automation_ast.FunctionDef, _automation_ast.AsyncFunctionDef)
-				    for function in _automation_ast.walk(tree):
-				        if not isinstance(function, function_types):
-				            continue
-				        arguments = function.args.posonlyargs + function.args.args + function.args.kwonlyargs
-				        if not any(argument.arg == "scope" for argument in arguments):
-				            continue
-				        for statement in function.body:
-				            for candidate in _automation_ast.walk(statement):
-				                if (isinstance(candidate, _automation_ast.Constant)
-				                        and isinstance(candidate.value, str)):
-				                    eligible.add(position(candidate))
-				    return eligible - docstrings
-
-				def _automation_prepare_source(source):
-				    tokens = list(_automation_tokenize.generate_tokens(_automation_io.StringIO(source).readline))
-				    eligible = _automation_function_string_positions(source)
-				    ignored = {_automation_tokenize.COMMENT, _automation_tokenize.NL}
-				    for index, token in enumerate(tokens):
-				        token_position = (token.start[0], token.start[1], token.end[0], token.end[1])
-				        if token.type != _automation_tokenize.STRING or token_position not in eligible:
-				            continue
-				        try:
-				            value = _automation_ast.literal_eval(token.string)
-				        except (SyntaxError, ValueError):
-				            continue
-				        if (not isinstance(value, str)
-				                or _automation_re.fullmatch(r"\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}", value) is None):
-				            continue
-				        previous = next((candidate for candidate in reversed(tokens[:index])
-				                if candidate.type not in ignored), None)
-				        following = next((candidate for candidate in tokens[index + 1:]
-				                if candidate.type not in ignored), None)
-				        if ((previous is not None and previous.type == _automation_tokenize.STRING)
-				                or (following is not None and following.type == _automation_tokenize.STRING)):
-				            continue
-				        tokens[index] = token._replace(string=f"resolve({token.string}, scope)")
-				    return _automation_tokenize.untokenize(tokens)
-
-				_automation_source = _automation_b64.urlsafe_b64decode("%s").decode("utf-8")
-				if %s:
-				    _automation_source = _automation_prepare_source(_automation_source)
-				_automation_module = {
-				    "__name__": "__automation_node__",
-				    "resolve": resolve,
-				    "resolve_config": resolve_config,
-				}
-				exec(_automation_source, _automation_module)
-				_automation_run = _automation_module.get("run")
-				if not callable(_automation_run):
-				    raise ValueError("Automation node source must define callable run(scope).")
-				_automation_result = _automation_run(_automation_scope)
-				_automation_json.loads(_automation_json.dumps(_automation_result, default=str))
-				""".formatted(
-						encode(AutomationRuntimeUtils.toRuntimeJson(scope != null ? scope : Map.of())),
-						encode(source != null ? source : ""),
-						resolveCustomSourcePlaceholders ? "True" : "False");
+		return buildPythonInvocation("execute_node", source, scope);
 	}
 
 	/**
@@ -246,36 +129,25 @@ final class AutomationRuntime {
 	 * to define computed globals.
 	 */
 	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return """
-				import base64 as _automation_b64
-				import json as _automation_json
+		return buildPythonInvocation("execute_trigger", source, scope);
+	}
 
-				_automation_scope = _automation_json.loads(
-				    _automation_b64.urlsafe_b64decode("%s").decode("utf-8"))
-				_automation_module = {}
-				exec(_automation_b64.urlsafe_b64decode("%s").decode("utf-8"), _automation_module)
-				_automation_run = _automation_module.get("run")
-				_automation_result = _automation_run(_automation_scope) if callable(_automation_run) else None
-				_automation_globals = {}
-				for _automation_name, _automation_value in _automation_module.items():
-				    if _automation_name.startswith("_") or callable(_automation_value):
-				        continue
-				    try:
-				        _automation_json.dumps(_automation_value)
-				        _automation_globals[_automation_name] = _automation_value
-				    except (TypeError, ValueError):
-				        pass
-				if isinstance(_automation_result, dict):
-				    for _automation_name, _automation_value in _automation_result.items():
-				        if (isinstance(_automation_name, str)
-				                and not _automation_name.startswith("_")):
-				            try:
-				                _automation_json.dumps(_automation_value)
-				                _automation_globals[_automation_name] = _automation_value
-				            except (TypeError, ValueError):
-				                pass
-				_automation_json.loads(_automation_json.dumps(_automation_globals))
+	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope) {
+		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER,
+				"semoss_automation_runtime.py").toAbsolutePath().normalize();
+		if (!Files.isRegularFile(runtimePath)) {
+			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
+		}
+		return """
+				import importlib.util as _automation_importlib
+				_automation_spec = _automation_importlib.spec_from_file_location(
+				    "_semoss_automation_runtime", %s)
+				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
+				_automation_spec.loader.exec_module(_automation_runtime)
+				_automation_runtime.%s("%s", "%s")
 				""".formatted(
+						AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
+						function,
 						encode(AutomationRuntimeUtils.toRuntimeJson(scope != null ? scope : Map.of())),
 						encode(source != null ? source : ""));
 	}

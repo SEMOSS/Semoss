@@ -68,6 +68,10 @@ inputs override them; the globals are returned by Trigger and become Playground 
 and custom-code nodes execute their own persisted `run(scope)` source. Node source may return any
 JSON-serializable value; Java persists it as the current node output. Generated sources import their documented
 `ai_server` engine class and invoke it directly; wait nodes use `time.sleep`.
+Each node receives a read-only, run-local `scope` mapping containing trigger inputs, globals, runtime metadata, and prior
+outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
+generated-node configuration fields and are not rewritten inside custom source. Return a value so Java can store it
+under the node's `outputVar`.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine

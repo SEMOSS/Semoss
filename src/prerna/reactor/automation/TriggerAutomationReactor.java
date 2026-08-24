@@ -245,15 +245,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			prepareGeneratedAgentRoom(node, traceRoomId);
-			boolean resolveCustomSourcePlaceholders = AutomationConstants.NODE_CODE_MODE_CUSTOM
-					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 			Map<String, Object> nodeScope = scope;
 			if (traceRoomId != null) {
 				nodeScope = new LinkedHashMap<>(scope);
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
-					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, resolveCustomSourcePlaceholders),
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			return persistNativeNodeResult(runId, node, value, started, startedMs, traceRoomId);

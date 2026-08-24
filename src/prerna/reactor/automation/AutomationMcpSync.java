@@ -180,7 +180,7 @@ public final class AutomationMcpSync {
 				"Return the required parameters and executable template for one accessible app reactor. Call this "
 						+ "before authoring app.pixel and use its exact template with concrete values. Generated app.pixel "
 						+ "does not accept ${...} placeholders; use developer.python with Insight().run_pixel(...) only "
-						+ "when runtime values require a dynamic Pixel expression.",
+						+ "when runtime values require a dynamic Pixel expression, reading those values from scope.",
 				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("reactor"));
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		return tool;
@@ -267,7 +267,9 @@ public final class AutomationMcpSync {
 				+ "typed values. "
 				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
 				+ "that no supported engine node can perform or for dynamic Pixel that generated app.pixel rejects; "
-				+ "it requires config.source defining run(scope). Never use "
+				+ "it requires config.source defining run(scope). scope is a read-only, run-local mapping of trigger inputs, globals, "
+				+ "metadata, and prior outputs keyed by outputVar. Custom Python reads it directly, for example "
+				+ "scope['prior_output']; ${...} is not resolved in custom source. Never use "
 				+ "developer.python to invoke a SEMOSS agent or emulate agent.run. "
 				+ "Use ${prior_output} to reference an upstream output only in supported configuration fields; "
 				+ "generated database queries and app.pixel expressions reject placeholders. Field values are executable configuration, "
@@ -284,7 +286,8 @@ public final class AutomationMcpSync {
 						+ "source using Insight().run_pixel(...). Agent work must use agent.run with a MyProjects result; "
 						+ "never create a "
 						+ "Python agent client or workspace wrapper. Use developer.python only for an unavailable "
-						+ "external integration or an explicitly dynamic Pixel expression. "
+						+ "external integration or an explicitly dynamic Pixel expression. Custom Python must read "
+						+ "upstream values directly from its scope argument; ${...} is not an upstream reference there. "
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
@@ -295,12 +298,14 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeId", stringProperty("Existing node with codeMode custom."));
-		properties.put("source", stringProperty("Complete Python source defining run(scope)."));
+		properties.put("source", stringProperty("Complete Python source defining run(scope). Read upstream values "
+				+ "from scope, for example scope['prior_output']; ${...} is not resolved in custom source."));
 		properties.put("expectedSourceHash", stringProperty(
 				"Exact sourceHashes[nodeId] value returned by the latest GetAutomation call."));
 		return tool("UpdateAutomationCustomStep", "Update Custom Automation Step",
 				"Call GetAutomation first. Replace source for an explicitly custom node only when its current "
-						+ "hash matches.", properties,
+						+ "hash matches. Custom source must read upstream values directly from scope; ${...} is not "
+						+ "resolved there.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId").put("source")
 						.put("expectedSourceHash"));
 	}

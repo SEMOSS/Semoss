@@ -103,8 +103,8 @@ public final class AutomationSourceRenderer {
 				QUERY = %s
 
 				def run(scope):
-				    database = DatabaseEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return database.execQuery(query=resolve(QUERY, scope), return_pandas=False)
+				    database = DatabaseEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return database.execQuery(query=scope.resolve(QUERY), return_pandas=False)
 				""".formatted(value(config, "engineId"), value(config, "query"));
 	}
 
@@ -117,8 +117,8 @@ public final class AutomationSourceRenderer {
 				QUERY = %s
 
 				def run(scope):
-				    database = DatabaseEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return database.%s(query=resolve(QUERY, scope))
+				    database = DatabaseEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return database.%s(query=scope.resolve(QUERY))
 				""".formatted(value(config, "engineId"), value(config, "query"), method);
 	}
 
@@ -134,13 +134,13 @@ public final class AutomationSourceRenderer {
 				ROOM_ID = "${_automation_room_id}"
 
 				def run(scope):
-				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    parameters = resolve_config(PARAMETERS_JSON, scope)
+				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
+				    parameters = scope.resolve_config(PARAMETERS_JSON)
 				    return model.ask(
-				        command=resolve(PROMPT, scope),
-				        context=resolve(SYSTEM_PROMPT, scope),
+				        command=scope.resolve(PROMPT),
+				        context=scope.resolve(SYSTEM_PROMPT),
 				        param_dict=parameters,
-				        room_id=resolve(ROOM_ID, scope),
+				        room_id=scope.resolve(ROOM_ID),
 				    )
 				""".formatted(value(config, "engineId"), value(config, "prompt"),
 				value(config, "systemPrompt"), value(config, "paramValues"));
@@ -155,8 +155,8 @@ public final class AutomationSourceRenderer {
 				VALUES = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return model.embeddings(strings_to_embed=resolve(VALUES, scope))
+				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return model.embeddings(strings_to_embed=scope.resolve(VALUES))
 				""".formatted(value(config, "engineId"), value(config, "text"));
 	}
 
@@ -171,11 +171,11 @@ public final class AutomationSourceRenderer {
 				ROOM_ID = "${_automation_room_id}"
 
 				def run(scope):
-				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
+				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
 				    return model.ask(
-				        command=resolve(PROMPT, scope),
-				        image=[resolve(IMAGE, scope)],
-				        room_id=resolve(ROOM_ID, scope),
+				        command=scope.resolve(PROMPT),
+				        image=[scope.resolve(IMAGE)],
+				        room_id=scope.resolve(ROOM_ID),
 				    )
 				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "image"));
 	}
@@ -190,8 +190,8 @@ public final class AutomationSourceRenderer {
 				ENTITIES = %s
 
 				def run(scope):
-				    model = ModelEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return model.ner(text=resolve(TEXT, scope), entities=resolve(ENTITIES, scope))
+				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return model.ner(text=scope.resolve(TEXT), entities=scope.resolve(ENTITIES))
 				""".formatted(value(config, "engineId"), value(config, "text"), value(config, "entities"));
 	}
 
@@ -204,8 +204,8 @@ public final class AutomationSourceRenderer {
 				STORAGE_PATH = %s
 
 				def run(scope):
-				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return storage.%s(resolve(%s, scope))
+				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return storage.%s(scope.resolve(%s))
 				""".formatted(value(config, "engineId"), value(config, "path"), method, argument);
 	}
 
@@ -223,8 +223,8 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    pixel = "GetStorageFileAsBase64(" + ", ".join([
-				        _pixel_value("storage", resolve(ENGINE_ID, scope)),
-				        _pixel_value("storagePath", resolve(STORAGE_PATH, scope)),
+				        _pixel_value("storage", scope.resolve(ENGINE_ID)),
+				        _pixel_value("storagePath", scope.resolve(STORAGE_PATH)),
 				    ]) + ");"
 				    return Insight().run_pixel(pixel, raw=False)
 				""".formatted(value(config, "engineId"), value(config, "path"));
@@ -240,8 +240,8 @@ public final class AutomationSourceRenderer {
 				FILE_PATH = %s
 
 				def run(scope):
-				    storage = StorageEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return storage.%s(storagePath=resolve(STORAGE_PATH, scope), localPath=resolve(FILE_PATH, scope))
+				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return storage.%s(storagePath=scope.resolve(STORAGE_PATH), localPath=scope.resolve(FILE_PATH))
 				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"), method);
 	}
 
@@ -255,8 +255,8 @@ public final class AutomationSourceRenderer {
 				LIMIT = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return vector.nearestNeighbor(search_statement=resolve(QUERY, scope), limit=resolve(LIMIT, scope))
+				    vector = VectorEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return vector.nearestNeighbor(search_statement=scope.resolve(QUERY), limit=scope.resolve(LIMIT))
 				""".formatted(value(config, "engineId"), value(config, "value"), value(config, "limit"));
 	}
 
@@ -269,8 +269,8 @@ public final class AutomationSourceRenderer {
 				FILE_PATHS = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return vector.addDocument(file_paths=resolve(FILE_PATHS, scope).split(","))
+				    vector = VectorEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return vector.addDocument(file_paths=scope.resolve(FILE_PATHS).split(","))
 				""".formatted(value(config, "engineId"), value(config, "value"));
 	}
 
@@ -283,8 +283,8 @@ public final class AutomationSourceRenderer {
 				FILE_NAMES = %s
 
 				def run(scope):
-				    vector = VectorEngine(engine_id=resolve(ENGINE_ID, scope))
-				    return vector.removeDocument(file_names=resolve(FILE_NAMES, scope).split(","))
+				    vector = VectorEngine(engine_id=scope.resolve(ENGINE_ID))
+				    return vector.removeDocument(file_names=scope.resolve(FILE_NAMES).split(","))
 				""".formatted(value(config, "engineId"), value(config, "value"));
 	}
 
@@ -297,8 +297,8 @@ public final class AutomationSourceRenderer {
 				ARGUMENTS = %s
 
 				def run(scope):
-				    function = FunctionEngine(engine_id=resolve(ENGINE_ID, scope))
-				    arguments = resolve_config(ARGUMENTS, scope)
+				    function = FunctionEngine(engine_id=scope.resolve(ENGINE_ID))
+				    arguments = scope.resolve_config(ARGUMENTS)
 				    return function.execute(parameterMap=arguments)
 				""".formatted(value(config, "engineId"), value(config, "arguments"));
 	}
@@ -313,7 +313,7 @@ public final class AutomationSourceRenderer {
 				PIXEL = %s
 
 				def run(scope):
-				    app_id = resolve(APP_ID, scope)
+				    app_id = scope.resolve(APP_ID)
 				    pixel = PIXEL
 				    if app_id:
 				        pixel = "LoadApp(project=" + json.dumps(app_id) + "); " + pixel
@@ -344,8 +344,8 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    arguments = [
-				        _pixel_value("roomId", resolve(ROOM_ID, scope)),
-				        _pixel_value("command", resolve(COMMAND, scope)),
+				        _pixel_value("roomId", scope.resolve(ROOM_ID)),
+				        _pixel_value("command", scope.resolve(COMMAND)),
 				    ]
 				    for name, value in (
 				        ("engine", ENGINE_ID),
@@ -357,11 +357,11 @@ public final class AutomationSourceRenderer {
 				        ("waitTimeoutMs", WAIT_TIMEOUT_MS),
 				    ):
 				        if value is not None:
-				            arguments.append(_pixel_value(name, resolve(value, scope)))
+				            arguments.append(_pixel_value(name, scope.resolve(value)))
 				    if PARAM_MAP is not None:
-				        arguments.append("paramValues=" + json.dumps(resolve_config(PARAM_MAP, scope)))
+				        arguments.append("paramValues=" + json.dumps(scope.resolve_config(PARAM_MAP)))
 				    if AGENT_PARAMS is not None:
-				        arguments.append("agentParams=" + json.dumps(resolve_config(AGENT_PARAMS, scope)))
+				        arguments.append("agentParams=" + json.dumps(scope.resolve_config(AGENT_PARAMS)))
 				    result = Insight().run_pixel(
 				        "RunAgent(" + ", ".join(arguments) + ");",
 				        raw=False,
@@ -391,7 +391,7 @@ public final class AutomationSourceRenderer {
 				SECONDS = %s
 
 				def run(scope):
-				    seconds = float(resolve(SECONDS, scope))
+				    seconds = float(scope.resolve(SECONDS))
 				    time.sleep(seconds)
 				    return {"waitedSeconds": seconds}
 				""".formatted(value(config, "durationSeconds"));
@@ -400,7 +400,9 @@ public final class AutomationSourceRenderer {
 	private static String developerSource() {
 		return """
 				# Write arbitrary Python for this automation node here.
-				# Return a JSON-shaped value to persist it as this node's output.
+				# scope is a read-only, run-local mapping: inputs, globals, metadata, and prior outputs by outputVar.
+				# Read required values with scope["outputVar"] and optional values with scope.get("outputVar").
+				# Return a JSON-shaped value to pass data to the next node.
 				def run(scope):
 				    return {}
 				""";
