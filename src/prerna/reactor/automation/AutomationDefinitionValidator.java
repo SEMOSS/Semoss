@@ -185,6 +185,7 @@ public final class AutomationDefinitionValidator {
 			}
 			if (!AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				validateGeneratedSql(nodeId, nodeType, nodeConfig);
+				validateGeneratedAppPixel(nodeId, nodeType, nodeConfig);
 			}
 		}
 		if (startCount != 1) {
@@ -400,6 +401,19 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Database update node '" + nodeId
 						+ "' requires a WHERE clause unless config.allowFullTable is true.");
 			}
+		}
+	}
+
+	private static void validateGeneratedAppPixel(String nodeId, String nodeType,
+			Map<String, Object> config) {
+		if (!AutomationConstants.NODE_APP_PIXEL.equals(nodeType)) {
+			return;
+		}
+		String pixel = (String) config.get(AutomationConstants.CONFIG_PIXEL);
+		if (pixel.contains("${")) {
+			throw new IllegalArgumentException("Generated app.pixel node '" + nodeId
+					+ "' cannot use ${...} placeholders in config.pixel. Use concrete Pixel values or a "
+					+ "developer.python node with Insight().run_pixel(...) for dynamic Pixel.");
 		}
 	}
 

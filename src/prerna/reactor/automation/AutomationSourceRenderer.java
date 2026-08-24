@@ -315,7 +315,7 @@ public final class AutomationSourceRenderer {
 
 	private static String appPixelSource(Map<String, Object> config) {
 		return """
-				# Load an optional application context, then run its Pixel.
+				# Load an optional application context, then run the validated static Pixel.
 				from semoss import Insight
 				import json
 
@@ -324,7 +324,7 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    app_id = resolve(APP_ID, scope)
-				    pixel = resolve(PIXEL, scope)
+				    pixel = PIXEL
 				    if app_id:
 				        pixel = "LoadApp(project=" + json.dumps(app_id) + "); " + pixel
 				    return Insight().run_pixel(pixel, raw=False)

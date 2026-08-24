@@ -178,8 +178,9 @@ public final class AutomationMcpSync {
 		JSONObject tool = tool(new GetProjectReactorSignatureReactor().asMcpTool().getString("name"),
 				"Get Project Reactor Signature",
 				"Return the required parameters and executable template for one accessible app reactor. Call this "
-						+ "before authoring app.pixel and use its exact template with concrete values or valid upstream "
-						+ "placeholders.",
+						+ "before authoring app.pixel and use its exact template with concrete values. Generated app.pixel "
+						+ "does not accept ${...} placeholders; use developer.python with Insight().run_pixel(...) only "
+						+ "when runtime values require a dynamic Pixel expression.",
 				properties, new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("reactor"));
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		return tool;
@@ -248,8 +249,10 @@ public final class AutomationMcpSync {
 				+ "function.execute requires engineId and arguments. For app.pixel, call MyProjects with "
 				+ "projectType=['CODE','BLOCKS'], use its project_id exactly as appId, then call "
 				+ "GetProjectAvailableReactors and GetProjectReactorSignature; pixel must use the exact reactor "
-				+ "name and every required argument from the returned template. Do not put APP or LoadApp inside "
-				+ "pixel because appId owns the scoped app context. "
+				+ "name and every required argument from the returned template, with concrete values only. "
+				+ "Generated app.pixel rejects ${...} placeholders. Do not put APP or LoadApp inside pixel because "
+				+ "appId owns the scoped app context. Use developer.python with Insight().run_pixel(...) only when "
+				+ "runtime values require a dynamic Pixel expression. "
 				+ "Before configuring agent.run, call MyProjects with projectType=['WORKSPACE'] and use a returned "
 				+ "project_id exactly as workspaceId; also call MyEngines filtered to MODEL and use its engine_id. "
 				+ "agent.run requires workspaceId, engineId, and command; the runtime creates its room. It supports "
@@ -257,9 +260,11 @@ public final class AutomationMcpSync {
 				+ "maxTurns, maxReflections, waitTimeoutMs, paramValues, and agentParams; it always waits "
 				+ "for a durable terminal or input-required status before continuing. "
 				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
-				+ "that no supported engine node can perform; it requires source defining run(scope). Never use "
+				+ "that no supported engine node can perform or for dynamic Pixel that generated app.pixel rejects; "
+				+ "it requires source defining run(scope). Never use "
 				+ "developer.python to invoke a SEMOSS agent or emulate agent.run. "
-				+ "Use ${prior_output} to reference an upstream output. Field values are executable configuration, "
+				+ "Use ${prior_output} to reference an upstream output only in supported configuration fields; "
+				+ "generated database queries and app.pixel expressions reject placeholders. Field values are executable configuration, "
 				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
 				+ "or arguments."));
 		properties.put("label", stringProperty("Short user-facing action label."));
@@ -268,10 +273,12 @@ public final class AutomationMcpSync {
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
 						+ "Prefer an engine-backed node whenever it "
-						+ "supports the task. App reactor work must use app.pixel with a MyProjects result and inspected "
-						+ "reactor signature. Agent work must use agent.run with a MyProjects result; never create a "
+						+ "supports the task. App reactor work with concrete arguments must use app.pixel with a MyProjects "
+						+ "result and inspected reactor signature. Dynamic Pixel values require explicit developer.python "
+						+ "source using Insight().run_pixel(...). Agent work must use agent.run with a MyProjects result; "
+						+ "never create a "
 						+ "Python agent client or workspace wrapper. Use developer.python only for an unavailable "
-						+ "external integration. "
+						+ "external integration or an explicitly dynamic Pixel expression. "
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
@@ -300,7 +307,7 @@ public final class AutomationMcpSync {
 				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
 				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
 				+ "For app.pixel, use an appId from MyProjects projectType=['CODE','BLOCKS'] and a pixel template "
-				+ "from GetProjectReactorSignature."));
+				+ "from GetProjectReactorSignature with concrete values; ${...} placeholders are rejected."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
 				"Call GetAutomation first. Apply the user's requested change to one generated node's direct "
