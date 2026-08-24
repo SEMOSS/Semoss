@@ -31,9 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -49,7 +46,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class ListAutomationRunsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ListAutomationRunsReactor.class);
+	private static final int MAXIMUM_LIMIT = 100;
 
 	public ListAutomationRunsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey() };
@@ -58,14 +55,16 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
-		int limit = parseLimit(limitStr);
+		String projectId = getString(ReactorKeysEnum.PROJECT.getKey());
+		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), AutomationConstants.DEFAULT_LIST_RUNS_LIMIT);
 
-		if (projectId == null || projectId.isEmpty()) {
+		if (projectId == null || projectId.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id");
 		}
+		if (limit <= 0) {
+			throw new IllegalArgumentException("Limit must be greater than 0");
+		}
+		limit = Math.min(limit, MAXIMUM_LIMIT);
 
 		projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(), projectId)
 				.getProjectId();
@@ -78,17 +77,17 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
-	private int parseLimit(String limitStr) {
-		if (limitStr == null || limitStr.isEmpty()) return AutomationConstants.DEFAULT_LIST_RUNS_LIMIT;
-		try {
-			return Integer.parseInt(limitStr.trim());
-		} catch (NumberFormatException e) {
-			return AutomationConstants.DEFAULT_LIST_RUNS_LIMIT;
-		}
-	}
-
 	@Override
 	public String getReactorDescription() {
 		return "Lists automation run history for a project, newest first.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
+			return "Optional maximum number of runs to return. Must be positive and is capped at "
+					+ MAXIMUM_LIMIT + ".";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }
