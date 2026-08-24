@@ -53,7 +53,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -171,9 +170,10 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 			ClusterUtil.pushEngine(storageId);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create storage engine name={} id={}, cleaning up what was written",
+					storageName, storageId, e);
 			UploadUtilities.cleanUpCreateNewError(storage, storageId, tempSmss, smssFile, specificEngineFolder);
-			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage());
+			throw new IllegalArgumentException("Failed to create storage engine. Error: " + e.getMessage(), e);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
