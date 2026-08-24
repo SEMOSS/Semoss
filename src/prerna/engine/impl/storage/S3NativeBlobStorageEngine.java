@@ -28,9 +28,9 @@
 package prerna.engine.impl.storage;
 
 @Deprecated
-public class GoogleCloudNativeBlobStorageEngine extends GoogleCloudStorageEngine {
+public class S3NativeBlobStorageEngine extends S3StorageEngine {
 
 	/**
-	 * Switch to GoogleCloudStorageEngine
+	 * Switch to S3StorageEngine
 	 */
 }
