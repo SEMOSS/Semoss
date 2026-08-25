@@ -32,14 +32,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -276,6 +274,45 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		return containerClient;
 	}
 
+	/**
+	 * The client for a container being copied out of, or null when there is no such
+	 * container.
+	 *
+	 * Reading something that has never been written is a normal state rather than a
+	 * mistake. A room folder is pulled before anything has ever been pushed for it,
+	 * and a first pull of a project or engine is the same. On the other providers
+	 * that already answers as an empty listing, because they keep one bucket that
+	 * always exists and a folder is only a key prefix. Azure lays out a container
+	 * per thing, so the same situation arrives as a 404 and has to be turned back
+	 * into "nothing here yet".
+	 *
+	 * Deletes still go through the plain client, where naming a container that is
+	 * not there is worth surfacing.
+	 *
+	 * @param containerName the container being read
+	 * @return the client, or null when the container does not exist
+	 */
+	private BlobContainerClient readableContainerClient(String containerName) {
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		if (isContainerScoped()) {
+			// the credential is pinned to this one container, so it is there, and
+			// asking after it is not necessarily something the token may do
+			return containerClient;
+		}
+
+		try {
+			if (!containerClient.exists()) {
+				classLogger.info("Container {} does not exist yet, so there is nothing to copy from it", containerName);
+				return null;
+			}
+		} catch (BlobStorageException e) {
+			// not being allowed to ask is not the same as the container being absent,
+			// so carry on and let the read itself report whatever is actually wrong
+			classLogger.warn("Unable to check whether container {} exists, continuing with the read", containerName, e);
+		}
+		return containerClient;
+	}
+
 	@Override
 	public StorageTypeEnum getStorageType() {
 		return StorageTypeEnum.MICROSOFT_AZURE_BLOB_STORAGE;
@@ -443,8 +480,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			}
 
 			Path localBasePath = Files.isDirectory(localFilePath) ? localFilePath : localFilePath.getParent();
-			// Remove empty directories locally
-			deleteEmptyDirectories(localFilePath);
 			// Delete extra blobs from azure storage
 			syncStorageDeletion(containerClient, blobDirectory, localBasePath);
 
@@ -514,16 +549,16 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
 		Path localDirectory = Paths.get(localPath);
 
-		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		BlobContainerClient containerClient = readableContainerClient(containerName);
 		Files.createDirectories(localDirectory); // Ensure local directory exists
+		if (containerClient == null) {
+			classLogger.info("No files found to sync for: {}", storagePath);
+			return;
+		}
 
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
-
-		// once, not once per blob. This used to sit inside the loop below, where it
-		// listed the whole container again for every single blob
-		deleteEmptyBlobs(containerClient, blobDirectory);
 
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (BlobItem blobItem : containerClient
@@ -593,7 +628,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Delete Empty Directories Locally
-		deleteEmptyDirectories(localDirectory);
+		deleteLocalEmptyDirectories(localDirectory);
 
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
@@ -629,9 +664,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 				failedFiles.add(filePath.toString());
 				continue;
 			}
-			// Delete empty directories before upload
-			deleteEmptyDirectories(filePath);
-
 			if (Files.isDirectory(filePath)) {
 				try (Stream<Path> stream = Files.walk(filePath)) {
 					for (Path file : stream.filter(Files::isRegularFile).toList()) {
@@ -690,7 +722,7 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 		String[] containerAndPath = extractContainerAndPath(storageFilePath);
 		String containerName = containerAndPath[0];
 		String blobDirectory = containerAndPath[1];
-		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		BlobContainerClient containerClient = readableContainerClient(containerName);
 		Path localDirectory = Paths.get(localFolderPath);
 		List<String> paths = parseStorageObjectPaths(blobDirectory);
 		if (paths.isEmpty()) {
@@ -712,12 +744,13 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 
 		// Ensure local directory exists
 		Files.createDirectories(localDirectory);
+		if (containerClient == null) {
+			classLogger.info("No files found to copy for: {}", storageFilePath);
+			return;
+		}
 
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
-		// once, not once per blob. This used to sit inside the loop below, where it
-		// listed the whole container again for every single blob
-		deleteEmptyBlobs(containerClient, blobDirectory);
 
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (String path : paths) {
@@ -741,10 +774,21 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 				String transferLabel = useVersion ? blobName + " version " + requestedVersionId : blobName;
 
 				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
+				found = true;
+
+				// a named version is always fetched, since the local timestamp says
+				// nothing about which version is sitting there
+				BlobItemProperties properties = blobItem.getProperties();
+				Long storedLastModified = properties == null || properties.getLastModified() == null ? null
+						: properties.getLastModified().toInstant().toEpochMilli();
+				if (!useVersion && !needsDownload(localFilePath, storedLastModified)) {
+					classLogger.info("Skipping file (No changes detected): {}", blobName);
+					continue;
+				}
+
 				// made here rather than inside the download so parallel tasks are not
 				// racing to create the same parent
 				Files.createDirectories(localFilePath.getParent());
-				found = true;
 
 				transfers.add(() -> {
 					try {
@@ -769,8 +813,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			}
 		}
 
-		// Delete empty directories after download
-		deleteEmptyDirectories(localDirectory);
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
 		} else {
@@ -1058,26 +1100,6 @@ public class AzureBlobStorageEngine extends AbstractStorageEngine {
 			} catch (Exception e) {
 				classLogger.error("Failed to delete blob: {}", blobName, e);
 			}
-		}
-	}
-
-	private void deleteEmptyDirectories(Path rootPath) {
-		try (Stream<Path> stream = Files.walk(rootPath)) {
-			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
-					.filter(Files::isDirectory).collect(Collectors.toList());
-
-			for (Path dir : directories) {
-				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
-					if (!entries.iterator().hasNext()) { // Directory is empty
-						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: {}", dir);
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: {}", dir, e);
-				}
-			}
-		} catch (IOException e) {
-			classLogger.error("Error while deleting empty directories", e);
 		}
 	}
 

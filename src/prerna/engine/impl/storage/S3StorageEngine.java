@@ -33,7 +33,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,7 +41,6 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -366,9 +364,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 			}
 			Path localBasePath = Files.isDirectory(localFilePath) ? localFilePath : localFilePath.getParent();
 
-			// Remove empty directories locally
-			deleteEmptyDirectories(localFilePath);
-
 			// Delete extra directory from AWS s3 storage
 			syncStorageDeletion(storagePath, localBasePath);
 
@@ -469,9 +464,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 		String requestedPath = normalizeStoragePrefixPath(storagePath);
 
-		// Delete zero-byte objects from S3
-		deleteEmptyBlobsFromS3(requestedPath);
-
 		ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(requestedPath).build();
 		ListObjectsV2Iterable response = this.client.listObjectsV2Paginator(request);
 		SdkIterable<S3Object> contents = response.contents();
@@ -546,7 +538,7 @@ public class S3StorageEngine extends AbstractStorageEngine {
 					});
 		}
 		// Delete empty local directories
-		deleteEmptyDirectories(localDirectory);
+		deleteLocalEmptyDirectories(localDirectory);
 
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
@@ -580,8 +572,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 				failedFiles.add(path.toString());
 				continue;
 			}
-
-			deleteEmptyDirectories(path);
 
 			if (Files.isDirectory(path)) {
 				try (Stream<Path> stream = Files.walk(path)) {
@@ -655,9 +645,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 		for (String s3FolderPath : paths) {
 			String requestedPath = normalizeStoragePrefixPath(s3FolderPath);
 
-			// Delete empty folder blobs
-			deleteEmptyBlobsFromS3(requestedPath);
-
 			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(requestedPath)
 					.build();
 			ListObjectsV2Iterable response = this.client.listObjectsV2Paginator(request);
@@ -676,10 +663,20 @@ public class S3StorageEngine extends AbstractStorageEngine {
 				}
 
 				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
+				found = true;
+
+				// a named version is always fetched, since the local timestamp says
+				// nothing about which version is sitting there
+				boolean useVersion = versionId != null && !versionId.trim().isEmpty();
+				if (!useVersion && !needsDownload(localFilePath,
+						s3Object.lastModified() == null ? null : s3Object.lastModified().toEpochMilli())) {
+					classLogger.info("Skipping file (No changes detected): {}", key);
+					continue;
+				}
+
 				// made here rather than inside the download so parallel tasks are not
 				// racing to create the same parent
 				Files.createDirectories(localFilePath.getParent());
-				found = true;
 
 				transfers.add(() -> {
 					try {
@@ -712,9 +709,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 			}
 		}
 
-		// delete empty local folders
-		deleteEmptyDirectories(localDirectory);
-
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
 		} else {
@@ -728,11 +722,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 
 		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
 				storageFilePath);
-	}
-
-	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
-		copyToLocal(storageFilePath, localFolderPath, null);
 	}
 
 	@Override
@@ -891,26 +880,6 @@ public class S3StorageEngine extends AbstractStorageEngine {
 			}
 		} catch (S3Exception e) {
 			classLogger.error("Error while deleting stale objects from S3", e);
-		}
-	}
-
-	private void deleteEmptyDirectories(Path path) {
-		try (Stream<Path> stream = Files.walk(path)) {
-			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
-					.filter(Files::isDirectory).collect(Collectors.toList());
-
-			for (Path dir : directories) {
-				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
-					if (!entries.iterator().hasNext()) { // Directory is empty
-						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: {}", dir);
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: {}", dir, e);
-				}
-			}
-		} catch (IOException e) {
-			classLogger.error("Error while deleting empty directories", e);
 		}
 	}
 
