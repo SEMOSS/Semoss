@@ -342,8 +342,9 @@ final class HarnessToolExecutor {
 		}
 		Object metaObj = tc.toolCall.get("_meta");
 		Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
-		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, tc.toolParams, meta,
-				status);
+		Object title = tc.toolCall.get("title");
+		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName,
+				title != null ? title.toString() : null, tc.toolParams, meta, status);
 		String boundedOutput = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
 		if (boundedOutput != null && !boundedOutput.isBlank()) {
 			item.put("output", boundedOutput);
