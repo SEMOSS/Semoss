@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,7 +42,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -402,8 +400,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 
 		try {
-			// Remove empty directories locally
-			deleteEmptyDirectories(localFilePath);
 			// Delete extra blobs from the bucket
 			syncStorageDeletion(storage, storagePath, localBasePath);
 
@@ -472,8 +468,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
 		String requestedPath = normalizeStoragePrefixPath(storagePath);
-		// Delete empty blobs from GCS
-		deleteEmptyBlobs(requestedPath);
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(requestedPath)).iterateAll()) {
 			String relativePath = resolveRelativeStoragePath(blob.getName(), requestedPath);
@@ -537,7 +531,7 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 					});
 		}
 		// Delete Empty Directories Locally
-		deleteEmptyDirectories(localDirectory);
+		deleteLocalEmptyDirectories(localDirectory);
 
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
@@ -568,9 +562,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 				failedFiles.add(filePath.toString());
 				continue;
 			}
-
-			// Delete empty directories before upload
-			deleteEmptyDirectories(filePath);
 
 			if (Files.isDirectory(filePath)) {
 				try (Stream<Path> stream = Files.walk(filePath)) {
@@ -631,19 +622,39 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
-		List<String> paths = parseStorageObjectPaths(storageFilePath);
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
 		Path localDirectory = Paths.get(localFolderPath);
 		// Ensure local directory exists
 		Files.createDirectories(localDirectory);
 
+		String requestedVersionId = versionId == null ? "" : versionId.trim();
+		if (!requestedVersionId.isEmpty()) {
+			// a generation names one version of one object, so this is a single file
+			// fetch rather than a walk of everything under the path
+			String key = normalizeStoragePrefixPath(storageFilePath);
+			String fileName = key.contains("/") ? key.substring(key.lastIndexOf("/") + 1) : key;
+			Path localFilePath = localDirectory.resolve(fileName);
+
+			BlobId blobId = BlobId.of(this.BUCKET, key, Long.parseLong(requestedVersionId));
+			Blob blob = storage.get(blobId);
+			if (blob == null) {
+				throw new IllegalArgumentException(
+						"Object not found in GCS: " + key + " with generation=" + requestedVersionId);
+			}
+
+			// always fetched, since the local timestamp says nothing about which
+			// generation is sitting there
+			downloadFile(blob, localFilePath);
+			classLogger.info("Downloaded versioned file: {} (generation={})", localFilePath, requestedVersionId);
+			return;
+		}
+
+		List<String> paths = parseStorageObjectPaths(storageFilePath);
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
 		List<Callable<TransferOutcome>> transfers = new ArrayList<>();
 		for (String path : paths) {
 			String requestedPath = normalizeStoragePrefixPath(path);
-			// Delete empty blobs (zero-byte files)
-			deleteEmptyBlobs(requestedPath);
 
 			// Fetch all files matching the given prefix
 			for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(requestedPath)).iterateAll()) {
@@ -653,10 +664,17 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 					continue;
 				}
 				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
+				found = true;
+
+				if (!needsDownload(localFilePath, blob.getUpdateTimeOffsetDateTime() == null ? null
+						: blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli())) {
+					classLogger.info("Skipping file (No changes detected): {}", blobName);
+					continue;
+				}
+
 				// made here rather than inside the download so parallel tasks are not
 				// racing to create the same parent
 				Files.createDirectories(localFilePath.getParent());
-				found = true;
 
 				transfers.add(() -> {
 					try {
@@ -680,9 +698,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 			}
 		}
 
-		// Delete empty directories after download
-		deleteEmptyDirectories(localDirectory);
-
 		if (downloadedFiles.isEmpty()) {
 			classLogger.info("No files were downloaded.");
 		} else {
@@ -696,29 +711,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 
 		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
 				storageFilePath);
-	}
-
-	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
-		if (versionId != null && !versionId.isEmpty()) {
-			String key = normalizeStoragePrefixPath(storageFilePath);
-			Path localDirectory = Paths.get(localFolderPath);
-			Files.createDirectories(localDirectory);
-
-			String fileName = key.contains("/") ? key.substring(key.lastIndexOf("/") + 1) : key;
-			Path localFilePath = localDirectory.resolve(fileName);
-
-			BlobId blobId = BlobId.of(this.BUCKET, key, Long.parseLong(versionId));
-			Blob blob = storage.get(blobId);
-			if (blob == null) {
-				throw new IllegalArgumentException("Object not found in GCS: " + key + " with generation=" + versionId);
-			}
-
-			downloadFile(blob, localFilePath);
-			classLogger.info("Downloaded versioned file: {} (generation={})", localFilePath, versionId);
-		} else {
-			copyToLocal(storageFilePath, localFolderPath);
-		}
 	}
 
 	@Override
@@ -1002,26 +994,6 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 					throw new RuntimeException("Retry operation interrupted: " + actionDescription, ie);
 				}
 			}
-		}
-	}
-
-	private void deleteEmptyDirectories(Path rootPath) {
-		try (Stream<Path> stream = Files.walk(rootPath)) {
-			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
-					.filter(Files::isDirectory).collect(Collectors.toList());
-
-			for (Path dir : directories) {
-				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
-					if (!entries.iterator().hasNext()) { // Directory is empty
-						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: {}", dir);
-					}
-				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: {}", dir, e);
-				}
-			}
-		} catch (IOException e) {
-			classLogger.error("Error while deleting empty directories", e);
 		}
 	}
 
