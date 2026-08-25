@@ -205,7 +205,9 @@ Keep the prompt explicit about citing `Source` and `Part`/`Divider` so the model
 
 ## Listing available vector engines
 
-Before querying, you often need to let the user pick a vector database — or find one programmatically. Use `MyEngines` with `engineTypes=["VECTOR"]`.
+This listing pattern is for app-runtime features where the app's end user picks a vector database. When *you* are deciding which vector engine the app should use, do not enumerate accessible engines: use the project's selected vector engine (see the Selected Engines section of your system prompt), and only ask the user to choose or attach one when none is selected.
+
+For the app-runtime case, use `MyEngines` with `engineTypes=["VECTOR"]`.
 
 ```typescript
 import { runPixel } from "@semoss/sdk";

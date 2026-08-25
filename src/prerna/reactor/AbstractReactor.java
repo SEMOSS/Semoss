@@ -1300,6 +1300,37 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get the first value of a given type from a keyed GenRowStruct entry, falling
+	 * back to the first value of that type in curRow.
+	 *
+	 * Unlike the index based overloads, this picks by type rather than by position,
+	 * so it is for nouns that were passed without a key and cannot be identified by
+	 * where they sit in curRow. The keyed entry wins when it holds a value of the
+	 * type; curRow is only consulted when it does not.
+	 *
+	 * @param key  The key to retrieve from noun store.
+	 * @param type The noun type to look for in both the keyed entry and curRow.
+	 * @return The first matching value, or null when neither source has one of this
+	 *         type.
+	 */
+	protected Object getValueOfTypeFromKeyOrCurRow(String key, PixelDataType type) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			List<Object> valuesOfType = grs.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		if (this.curRow != null) {
+			List<Object> valuesOfType = this.curRow.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Get the first value from a keyed GenRowStruct entry by key index, falling
 	 * back to a value in curRow at the provided index.
 	 * 
@@ -2131,6 +2162,21 @@ public abstract class AbstractReactor implements IReactor {
 	protected Map getMap(int index, Map defaultValue) {
 		Map value = getMap(index);
 		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a map by key, falling back to the first map in curRow.
+	 *
+	 * The fallback is by type rather than by curRow index, since a map noun passed
+	 * without a key has no fixed position.
+	 *
+	 * @param key The key to retrieve from noun store.
+	 * @return The map value, or null if neither the key nor curRow holds one.
+	 */
+	@SuppressWarnings("unchecked")
+	protected Map<String, Object> getMapFromKeyOrCurRow(String key) {
+		Object value = getValueOfTypeFromKeyOrCurRow(key, PixelDataType.MAP);
+		return value instanceof Map ? (Map<String, Object>) value : null;
 	}
 
 	/**
