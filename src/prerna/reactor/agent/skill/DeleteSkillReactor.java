@@ -90,7 +90,7 @@ public class DeleteSkillReactor extends AbstractReactor {
 			throw new IllegalArgumentException("skillId is required");
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+		if (AbstractSecurityUtils.adminOnlySkillDelete()) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
