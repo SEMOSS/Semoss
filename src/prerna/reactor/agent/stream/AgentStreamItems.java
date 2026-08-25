@@ -85,10 +85,26 @@ public final class AgentStreamItems {
 
 	public static Map<String, Object> toolItem(String toolCallId, String name, Map<String, Object> arguments,
 			Map<String, Object> metadata, String status) {
+		return toolItem(toolCallId, name, null, arguments, metadata, status);
+	}
+
+	/**
+	 * @param title the human-readable display name for the tool, when already
+	 *              resolved by the caller (e.g. via
+	 *              {@code MCPUtility#updateToolResponseWithProjectMeta}). {@code
+	 *              name} remains the raw, possibly engine-id-prefixed, LLM-facing
+	 *              name used for execution; {@code title} is display-only and
+	 *              omitted when blank.
+	 */
+	public static Map<String, Object> toolItem(String toolCallId, String name, String title,
+			Map<String, Object> arguments, Map<String, Object> metadata, String status) {
 		Map<String, Object> item = new LinkedHashMap<>();
 		item.put("id", toolCallId);
 		item.put("kind", KIND_TOOL);
 		item.put("name", name);
+		if (title != null && !title.isBlank()) {
+			item.put("title", title);
+		}
 		item.put("arguments", arguments == null ? new LinkedHashMap<>() : arguments);
 		if (metadata != null && !metadata.isEmpty()) {
 			item.put("metadata", metadata);
