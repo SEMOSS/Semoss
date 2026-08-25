@@ -168,7 +168,7 @@ public final class ProjectHelper {
 			AbstractReactor.throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
 
