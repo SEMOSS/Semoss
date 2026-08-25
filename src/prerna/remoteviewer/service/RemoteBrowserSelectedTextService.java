@@ -53,6 +53,7 @@ import com.microsoft.playwright.options.BoundingBox;
 
 import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.StepsEnvelope;
+import prerna.remoteviewer.model.RemoteBrowserContextLimits;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 
 /**
@@ -67,12 +68,90 @@ import prerna.remoteviewer.model.RemoteBrowserInputEvent;
  */
 public final class RemoteBrowserSelectedTextService {
 
-	static final int MAX_CONTENT_CHARS = 8_000;
-	/** Full-page captures are larger than drag selections, but remain bounded so a
-	 * page cannot create an unbounded MCP response. */
-	static final int MAX_FULL_PAGE_CONTENT_CHARS = 100_000;
+	private static final int DEFAULT_SELECTED_CONTENT_CHARS = 100_000;
+	private static final int DEFAULT_FULL_PAGE_CONTENT_CHARS = 100_000;
+	private static final int DEFAULT_MAX_CAPTURED_CONTEXTS = 10;
+	private static final int DEFAULT_RETURN_CONTEXT_CHARS = 24_000;
+	private static final int DEFAULT_MAX_RETURN_CONTEXT_CHARS = 100_000;
+	/** Any configured ceiling below this is treated as a misconfiguration. */
+	private static final int MIN_CONFIGURABLE_CHARS = 1_000;
+
+	/** Capture ceilings bound what a single page can transport into an MCP response. */
+	static final int MAX_CONTENT_CHARS = boundedChars("REMOTE_BROWSER_SELECTED_CONTEXT_MAX_CHARS",
+			DEFAULT_SELECTED_CONTENT_CHARS);
+	static final int MAX_FULL_PAGE_CONTENT_CHARS = boundedChars("REMOTE_BROWSER_FULL_PAGE_CONTEXT_MAX_CHARS",
+			DEFAULT_FULL_PAGE_CONTENT_CHARS);
+	private static final int MAX_CAPTURED_CONTEXTS = boundedCount("REMOTE_BROWSER_MAX_CAPTURED_CONTEXTS",
+			DEFAULT_MAX_CAPTURED_CONTEXTS);
+	private static final int MAX_RETURN_CONTEXT_CHARS = boundedChars("REMOTE_BROWSER_MAX_RETURN_CONTEXT_CHARS",
+			DEFAULT_MAX_RETURN_CONTEXT_CHARS);
+	private static final int DEFAULT_RETURN_BUDGET_CHARS = Math
+			.min(boundedChars("REMOTE_BROWSER_DEFAULT_RETURN_CONTEXT_CHARS", DEFAULT_RETURN_CONTEXT_CHARS),
+					MAX_RETURN_CONTEXT_CHARS);
+
 	private static final int MAX_SOURCES = 20;
 	private static final int MAX_FULL_PAGE_SCROLLS = 80;
+
+	/**
+	 * @return the authoritative capture and return policy for browser contexts.
+	 */
+	public static RemoteBrowserContextLimits contextLimits() {
+		return new RemoteBrowserContextLimits(MAX_CONTENT_CHARS, MAX_FULL_PAGE_CONTENT_CHARS, MAX_CAPTURED_CONTEXTS,
+				DEFAULT_RETURN_BUDGET_CHARS, MAX_RETURN_CONTEXT_CHARS);
+	}
+
+	private static int boundedChars(String key, int def) {
+		int value = configuredInt(key, def);
+		return value < MIN_CONFIGURABLE_CHARS ? def : value;
+	}
+
+	private static int boundedCount(String key, int def) {
+		int value = configuredInt(key, def);
+		return value < 1 ? def : value;
+	}
+
+	private static int configuredInt(String key, int def) {
+		String raw = System.getProperty(key);
+		if (raw == null || raw.isBlank()) {
+			raw = System.getenv(key);
+		}
+		if (raw == null || raw.isBlank()) {
+			return def;
+		}
+		try {
+			return Integer.parseInt(raw.trim());
+		} catch (NumberFormatException e) {
+			return def;
+		}
+	}
+
+	/**
+	 * Truncates to the capture ceiling while remembering exactly how much source
+	 * text was retained so the user is never silently shortened.
+	 */
+	private static CaptureResult limitContent(String content, int limitChars) {
+		int originalLength = content.length();
+		if (originalLength <= limitChars) {
+			return new CaptureResult(content, originalLength, originalLength, false);
+		}
+		String retained = content.substring(0, limitChars - 3).stripTrailing();
+		return new CaptureResult(retained + "...", originalLength, retained.length(), true);
+	}
+
+	private static void putCaptureStats(Map<String, Object> stats, CaptureResult result, int limitChars) {
+		stats.put("characterCount", result.content().length());
+		stats.put("originalCharacterCount", result.originalLength());
+		stats.put("includedCharacterCount", result.includedLength());
+		stats.put("omittedCharacterCount", result.originalLength() - result.includedLength());
+		stats.put("limitChars", limitChars);
+		stats.put("truncated", result.truncated());
+		if (result.truncated()) {
+			stats.put("truncationReason", "capture-character-limit");
+		}
+	}
+
+	private record CaptureResult(String content, int originalLength, int includedLength, boolean truncated) {
+	}
 
 	private static final String JS_EXTRACT_SELECTED_TEXT = """
 			(args) => {
@@ -476,10 +555,8 @@ public final class RemoteBrowserSelectedTextService {
 			throw new IllegalArgumentException("No visible DOM text was found in the selected area");
 		}
 
-		boolean truncated = content.length() > MAX_CONTENT_CHARS;
-		if (truncated) {
-			content = content.substring(0, MAX_CONTENT_CHARS - 3).stripTrailing() + "...";
-		}
+		CaptureResult captured = limitContent(content, MAX_CONTENT_CHARS);
+		content = captured.content();
 		String method = "dom-rectangle";
 		if (unique.size() == 1) {
 			String extractedMethod = unique.get(0).method();
@@ -510,10 +587,9 @@ public final class RemoteBrowserSelectedTextService {
 		context.put("text", renderForModel(context));
 
 		Map<String, Object> stats = new LinkedHashMap<>();
-		stats.put("characterCount", content.length());
+		putCaptureStats(stats, captured, MAX_CONTENT_CHARS);
 		stats.put("fragmentCount", unique.size());
 		stats.put("scannedTextNodes", scannedTextNodes);
-		stats.put("truncated", truncated);
 		context.put("stats", stats);
 		return context;
 	}
@@ -540,10 +616,8 @@ public final class RemoteBrowserSelectedTextService {
 			throw new IllegalArgumentException("No visible DOM text was found on the page");
 		}
 
-		boolean truncated = extracted.length() > MAX_FULL_PAGE_CONTENT_CHARS;
-		String content = truncated
-				? extracted.substring(0, MAX_FULL_PAGE_CONTENT_CHARS - 3).stripTrailing() + "..."
-				: extracted;
+		CaptureResult captured = limitContent(extracted, MAX_FULL_PAGE_CONTENT_CHARS);
+		String content = captured.content();
 		String url = sanitizeUrl(page.url());
 		String title = safeTitle(page);
 		int scrollHeight = Math.max(session.getViewportHeight(), numberValue(result.get("scrollHeight")));
@@ -577,10 +651,9 @@ public final class RemoteBrowserSelectedTextService {
 		context.put("text", renderForModel(context));
 
 		Map<String, Object> stats = new LinkedHashMap<>();
-		stats.put("characterCount", content.length());
+		putCaptureStats(stats, captured, MAX_FULL_PAGE_CONTENT_CHARS);
 		stats.put("fragmentCount", 1);
 		stats.put("scannedTextNodes", numberValue(result.get("scannedTextNodes")));
-		stats.put("truncated", truncated);
 		stats.put("scrollCount", numberValue(result.get("scrollCount")));
 		stats.put("scrollHeight", scrollHeight);
 		stats.put("viewportHeight", viewportHeight);
