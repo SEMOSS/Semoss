@@ -228,7 +228,7 @@ public final class AutomationMcpSync {
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()));
 		JSONObject ui = new JSONObject();
 		ui.put(MCPUtility.UI_DISPLAY_LOCATION, MCPDisplayOption.SIDEBAR.getValue());
-		ui.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1");
+		ui.put(MCPUtility.UI_RESOURCE_URI, "system://automation-workspace/?readOnly=1&mode=trigger");
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_UI, ui);
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 		return tool;
