@@ -6,7 +6,7 @@
     {
       "name": "list_database_skill_files",
       "title": "List Database Skill Files",
-      "description": "List the files in the SEMOSS 'database' skill, the platform's guidance for querying relational and graph databases from an app. Call this when the user asks about SQL, SELECT/INSERT/UPDATE/DELETE, table or schema structure, connecting to a database, or listing the databases they have access to, and when they name SqlQuery, SqlQueryBase64, GetDatabaseTableStructure, or MyEngines(engineTypes=[\"DATABASE\"]). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for LLM calls (see the model skill) or vector/semantic search (see the vector skill).",
+      "description": "List the files in the platform 'database' skill, the platform's guidance for querying relational and graph databases from an app. Call this when the user asks about SQL, SELECT/INSERT/UPDATE/DELETE, table or schema structure, connecting to a database, or listing the databases they have access to, and when they name SqlQuery, SqlQueryBase64, GetDatabaseTableStructure, or MyEngines(engineTypes=[\"DATABASE\"]). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for LLM calls (see the model skill) or vector/semantic search (see the vector skill).",
       "inputSchema": {
         "type": "object",
         "title": "list_database_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_database_skill_file",
       "title": "Read Database Skill File",
-      "description": "Read one file from the SEMOSS 'database' skill in full, for writing code that queries a platform database through runPixel. Pass filePath exactly as list_database_skill_files reports it; SKILL.md is the main guide and covers when to use SqlQuery versus SqlQueryBase64 (dynamic SQL, quotes, Unicode, newlines), inserts/updates/deletes, reading table structure, the response shape, and listing databases with filtering and paging.",
+      "description": "Read one file from the platform 'database' skill in full, for writing code that queries a platform database through runPixel. Pass filePath exactly as list_database_skill_files reports it; SKILL.md is the main guide and covers when to use SqlQuery versus SqlQueryBase64 (dynamic SQL, quotes, Unicode, newlines), inserts/updates/deletes, reading table structure, the response shape, and listing databases with filtering and paging.",
       "inputSchema": {
         "type": "object",
         "title": "read_database_skill_file_Arguments",

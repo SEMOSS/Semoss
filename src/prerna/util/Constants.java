@@ -595,6 +595,16 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
+	public static final String ADMIN_ONLY_WORKSPACE_ADD = "ADMIN_ONLY_WORKSPACE_ADD";
+	public static final String ADMIN_ONLY_WORKSPACE_DELETE = "ADMIN_ONLY_WORKSPACE_DELETE";
+	public static final String ADMIN_ONLY_WORKSPACE_ADD_ACCESS = "ADMIN_ONLY_WORKSPACE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_WORKSPACE_SET_PUBLIC = "ADMIN_ONLY_WORKSPACE_SET_PUBLIC";
+	public static final String ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE = "ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE";
+	public static final String ADMIN_ONLY_SKILL_ADD = "ADMIN_ONLY_SKILL_ADD";
+	public static final String ADMIN_ONLY_SKILL_DELETE = "ADMIN_ONLY_SKILL_DELETE";
+	public static final String ADMIN_ONLY_SKILL_ADD_ACCESS = "ADMIN_ONLY_SKILL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_SKILL_SET_PUBLIC = "ADMIN_ONLY_SKILL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_SKILL_SET_DISCOVERABLE = "ADMIN_ONLY_SKILL_SET_DISCOVERABLE";
 
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
@@ -1071,12 +1081,20 @@ public class Constants {
 
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
+	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
+	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FUNCTIONS = "functions";
 	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PAGINATION = "pagination";
+	public static final String SKILL_PERMISSIONS = "permissions";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_STORAGE = "storage";
+	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
 
 	// system (platform) mcp names
@@ -1084,6 +1102,8 @@ public class Constants {
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-12"
+    "last_modified_date": "2026-08-18"
   },
   "tools": [
     {
       "name": "list_file_uploads_skill_files",
       "title": "List File Uploads Skill Files",
-      "description": "List the files in the SEMOSS 'file-uploads' skill, the platform's guidance for attaching files to an LLM prompt and uploading files into an insight workspace. Call this when the user asks about file or image attachments, drag-and-drop or paste-to-upload, multipart uploads, sending a PDF or screenshot to a model, or the uploadInsight helper and the /api/uploadFile/baseUpload endpoint. Covers the two-step pattern (upload the bytes, then reference the returned fileLocation as a MEDIA part), the multipart field name, why Content-Type must not be set by hand, extension filtering, and retry handling. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for the LLM call itself (see the model skill).",
+      "description": "List the files in the platform 'file-uploads' skill, the platform's guidance for attaching files to an LLM prompt and uploading files into an insight workspace. Call this when the user asks about file attachments of any type (image, pdf, word, spreadsheet, csv, audio, video), drag-and-drop or paste-to-upload, multipart uploads, or the uploadInsight helper and the /api/uploadFile/baseUpload endpoint. Call it before wiring an attachment into a pixel call: there are two forms and picking the wrong one fails silently - LLM() takes a top-level media argument, while the room/playground chat path takes a parts array with MEDIA parts. Covers the two-step upload pattern, the multipart field name, why Content-Type must not be set by hand, extension filtering, and retry handling. Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for the LLM call itself (see the model skill).",
       "inputSchema": {
         "type": "object",
         "title": "list_file_uploads_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_file_uploads_skill_file",
       "title": "Read File Uploads Skill File",
-      "description": "Read one file from the SEMOSS 'file-uploads' skill in full, for writing code that uploads files and attaches them to a model call. Pass filePath exactly as list_file_uploads_skill_files reports it; SKILL.md is the main guide and covers the upload request and its response shape, building the TEXT and MEDIA parts array, filtering by extension, error and retry handling, and where the reference implementation lives in the semoss-ui repo.",
+      "description": "Read one file from the platform 'file-uploads' skill in full, for writing code that uploads files and attaches them to a model call. Pass filePath exactly as list_file_uploads_skill_files reports it; SKILL.md is the main guide and covers the upload request and its response shape, then both ways to reference the result - the top-level media argument for LLM() and the TEXT/MEDIA parts array for the room path - plus which one each pixel actually reads, filtering by extension, error and retry handling, and where the reference implementation lives.",
       "inputSchema": {
         "type": "object",
         "title": "read_file_uploads_skill_file_Arguments",

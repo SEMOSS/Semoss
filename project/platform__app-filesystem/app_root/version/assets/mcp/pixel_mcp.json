@@ -1,0 +1,606 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "BrowseAppAssets",
+      "title": "Browse App Assets",
+      "description": "List the files and directories from a relative filePath input from within the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "BrowseAppAssets_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to list contents from. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "BrowseAppAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "CompileAppReactors",
+      "title": "Compile App Reactors",
+      "description": "Compile the custom java reactors within the projects assets folder and return the compiler output. Use this after creating or editing java source files in '/version/assets/java'.",
+      "inputSchema": {
+        "type": "object",
+        "title": "CompileAppReactors_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "release": {
+            "type": "boolean",
+            "title": "release",
+            "description": "Persist the compiled reactors to cloud storage so the change propagates to other containers. Set this to true.",
+            "enum": [
+              true
+            ],
+            "default": true
+          }
+        },
+        "required": [
+          "project",
+          "release"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CompileAppReactors",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "CopyAppAsset",
+      "title": "Copy App Asset",
+      "description": "Copy (clone) a file or directory in the project/app assets folder to a new path",
+      "inputSchema": {
+        "type": "object",
+        "title": "CopyAppAsset_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "newValue": {
+            "type": "string",
+            "title": "newValue",
+            "description": "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system."
+          },
+          "override": {
+            "type": "boolean",
+            "title": "override",
+            "description": "Whether to delete an existing file or directory at the destination before copying. Defaults to false.",
+            "default": false
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while saving the files within the git repository for the project"
+          }
+        },
+        "required": [
+          "project",
+          "filePath",
+          "newValue"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CopyAppAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "CopyAppAssetsToInsight",
+      "title": "Copy App Assets To Insight",
+      "description": "Copy a single or multiple files from the projects assets folder to the current insight",
+      "inputSchema": {
+        "type": "object",
+        "title": "CopyAppAssetsToInsight_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CopyAppAssetsToInsight",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "DeleteAppAssets",
+      "title": "Delete App Assets",
+      "description": "Delete a single or multiple files in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "DeleteAppAssets_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to delete. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value. If no value is passed, all files in '/version/assets/' will be deleted."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while removing the files within the git repository for the project"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DeleteAppAssets",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "DownloadAppAsset",
+      "title": "Download App Asset",
+      "description": "Download a file or directory from within the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "DownloadAppAsset_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to a file or directory. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DownloadAppAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "GetAppAssetsBase64",
+      "title": "Get App Assets Base64",
+      "description": "Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "GetAppAssetsBase64_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Name of the file to get the contents as a base64 encoded string. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetAppAssetsBase64",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "GetAppAssets",
+      "title": "Get App Assets",
+      "description": "Retrieve the contents of a file in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "GetAppAssets_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to get the contents. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetAppAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "NewAppAssetsDirectory",
+      "title": "New App Assets Directory",
+      "description": "Create a new empty directory in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "NewAppAssetsDirectory_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while creating and saving the new file within the git repository for the project"
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "NewAppAssetsDirectory",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "NewAppAssetsFile",
+      "title": "New App Assets File",
+      "description": "Create a new empty file in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "NewAppAssetsFile_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to create. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while creating and saving the new file within the git repository for the project"
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "NewAppAssetsFile",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "PublishProject",
+      "title": "Publish Project",
+      "description": "Publish the portal assets within the projects assets folder and return the public url for the project. This does not build or compile the assets, so only use it when '/version/assets/portals' already contains the finished runnable app.",
+      "inputSchema": {
+        "type": "object",
+        "title": "PublishProject_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "release": {
+            "type": "boolean",
+            "title": "release",
+            "description": "Release the published portal so it is available from the public project url. Set this to true.",
+            "enum": [
+              true
+            ],
+            "default": true
+          }
+        },
+        "required": [
+          "project",
+          "release"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "PublishProject",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "RenameAppAsset",
+      "title": "Rename App Asset",
+      "description": "Rename a file or directory in the projects assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "RenameAppAsset_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "newValue": {
+            "type": "string",
+            "title": "newValue",
+            "description": "The new name for the file or directory. This cannot be a name for an existing file or directory and has the same character restrictions you would expect on a typical file system."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while saving the files within the git repository for the project"
+          }
+        },
+        "required": [
+          "project",
+          "filePath",
+          "newValue"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "RenameAppAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SaveAppAssetsBase64",
+      "title": "Save App Assets Base64",
+      "description": "Save a single or multiple files in the projects assets folder. Content for each file is provided as base64 utf-8 encoded input. Prefer SaveAppAssets over this tool. Only use this when the content cannot be sent as plain text, such as binary files (images, pdfs, zips) or text that would be corrupted in transit.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SaveAppAssetsBase64_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "content": {
+            "type": "string",
+            "title": "content",
+            "description": "Contents of the file(s) to save. Content is base64 utf-8 string."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while saving the files within the git repository for the project"
+          },
+          "decode": {
+            "type": "string",
+            "title": "decode",
+            "description": "Boolean to decode the base64 utf-8 content string before writing to the file. Default is true"
+          }
+        },
+        "required": [
+          "project",
+          "filePath",
+          "content"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveAppAssetsBase64",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SaveAppAssets",
+      "title": "Save App Assets",
+      "description": "Saves one or more files to the project's assets folder and commits them to the project's git repository. This is the preferred tool for writing files and should be used for all text content. Only fall back to SaveAppAssetsBase64 when the content cannot be sent as plain text, such as binary files.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SaveAppAssets_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value."
+          },
+          "content": {
+            "type": "string",
+            "title": "content",
+            "description": "Contents of the file(s) to save."
+          },
+          "comment": {
+            "type": "string",
+            "title": "comment",
+            "description": "Comment to add while saving the files within the git repository for the project"
+          }
+        },
+        "required": [
+          "project",
+          "filePath",
+          "content"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveAppAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SearchAppAssets",
+      "title": "Search App Assets",
+      "description": "Recursively search files and directories within the project's assets folder, filtered by search term and optional searching flags.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SearchAppAssets_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to search files from. This relative path should assume the file path till project's app_root folder and relative path should start onwards"
+          },
+          "search": {
+            "type": "string",
+            "title": "search",
+            "description": "The search term used to filter file and directory names"
+          },
+          "options": {
+            "type": "string",
+            "title": "options",
+            "description": "A list of zero or more search flags to modify matching behavior. Valid values are 'case' for case-sensitive matching, 'word' for whole-word matching, and 'regex' to treat the search term as a Java regular expression. If omitted, the search is case-insensitive."
+          }
+        },
+        "required": [
+          "project",
+          "filePath",
+          "search"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SearchAppAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "UnzipAppAssetFile",
+      "title": "Unzip App Asset File",
+      "description": "Unzips a zip file located in the projects assets folder and commits the extracted files to git",
+      "inputSchema": {
+        "type": "object",
+        "title": "UnzipAppAssetFile_Arguments",
+        "properties": {
+          "project": {
+            "type": "string",
+            "title": "project",
+            "description": "The unique id for the project/app"
+          },
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path of the zip file within the project's assets folder to extract"
+          }
+        },
+        "required": [
+          "project",
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "UnzipAppAssetFile",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    }
+  ]
+}

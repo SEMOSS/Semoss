@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.stream;
 
 import java.util.LinkedHashMap;
@@ -58,10 +85,26 @@ public final class AgentStreamItems {
 
 	public static Map<String, Object> toolItem(String toolCallId, String name, Map<String, Object> arguments,
 			Map<String, Object> metadata, String status) {
+		return toolItem(toolCallId, name, null, arguments, metadata, status);
+	}
+
+	/**
+	 * @param title the human-readable display name for the tool, when already
+	 *              resolved by the caller (e.g. via
+	 *              {@code MCPUtility#updateToolResponseWithProjectMeta}). {@code
+	 *              name} remains the raw, possibly engine-id-prefixed, LLM-facing
+	 *              name used for execution; {@code title} is display-only and
+	 *              omitted when blank.
+	 */
+	public static Map<String, Object> toolItem(String toolCallId, String name, String title,
+			Map<String, Object> arguments, Map<String, Object> metadata, String status) {
 		Map<String, Object> item = new LinkedHashMap<>();
 		item.put("id", toolCallId);
 		item.put("kind", KIND_TOOL);
 		item.put("name", name);
+		if (title != null && !title.isBlank()) {
+			item.put("title", title);
+		}
 		item.put("arguments", arguments == null ? new LinkedHashMap<>() : arguments);
 		if (metadata != null && !metadata.isEmpty()) {
 			item.put("metadata", metadata);

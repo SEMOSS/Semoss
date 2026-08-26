@@ -1,11 +1,11 @@
 ---
 name: room
-description: Use when writing code in an app that creates, lists, renames, pins, or deletes playground rooms, reads/updates room options (model, system prompt, MCPs, temperature), or reads chat history from a room. Covers CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, and GetPlaygroundMessages via @semoss/sdk's runPixel. Do not use for LLM completions (see model), document/vector ingestion (see vector), or an autonomous multi-turn agent loop (see agent-run).
+description: Use when writing code in an app that creates, lists, renames, pins, or deletes playground rooms, reads/updates room options (model, system prompt, MCPs, temperature), reads chat history, sends rich chat turns with message ids and threading, closes a client-side tool loop, or polishes chat UX with suggested follow-ups, history compaction, or auto-naming. Covers CreatePlaygroundRoom, GetPlaygroundRooms, GetWorkspaceRooms, RenameRoom, PinRoom, RemoveUserRoom, SetRoomForInsight, GetRoomOptions, UpdateRoomOptions, GetPlaygroundMessages, AskRoom, AddToolExecution, GenerateFollowUpQuestions, CompactRoomMessages, and GenerateRoomName via @semoss/sdk's runPixel. Do not use for LLM completions (see model), document/vector ingestion (see vector), or an autonomous multi-turn agent loop (see agent-run).
 ---
 
 # Room
 
-A **room** is a persistent, named conversation on the SEMOSS platform — it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
+A **room** is a persistent, named conversation on the platform — it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
 
 > **Bind the insight to the room before asking.** Pass `SetRoomForInsight(roomId=...)` once per session — typically alongside your first `GetPlaygroundMessages` / `GetRoomOptions` call — so subsequent `LLM(...)` turns in this insight thread into the room's history.
 
@@ -156,7 +156,51 @@ For a simple conversational message, call `LLM(...)` with the room's `roomId`:
 LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["${prompt}"]);
 ```
 
-The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, images). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
+The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, attaching media with `media=`). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
+
+### Rich chat turns — `AskRoom`
+
+`LLM()` returns only the response text. `AskRoom` is the room-aware turn that returns **full message objects** — ids, parts, threading — so a chat UI does not have to re-fetch history after every turn:
+
+```
+AskRoom(engine="${MODEL_ID}", roomId="${roomId}", command=["<encode>${prompt}</encode>"]);
+```
+
+Output is `{ inputMessage, responseMessage, extraMessages? }` — each a `PixelMessage` in the same shape `GetPlaygroundMessages` returns (with `messageId`, `parentMessageId`, `parts[]` including `TOOL_CALL`s). Optional arguments: `parentMessageId` (thread the turn under a specific message — this is how branching/regenerate works), `media`/`url` (attachments, same as `LLM`), `hiddenMessage=[true]` (record without displaying), `responseParts`, `paramValues`.
+
+Append `inputMessage` and `responseMessage` straight into local chat state instead of re-running `GetPlaygroundMessages`.
+
+### Close a client-side tool loop — `AddToolExecution`
+
+When a response's `parts[]` contains `TOOL_CALL`s the app executes itself (browser-side tools), feed each result back with `AddToolExecution`; when the last pending tool result arrives, the output IS the model's follow-up response:
+
+```
+AddToolExecution(engine="${MODEL_ID}", roomId="${roomId}", toolId="${toolCall.id}", toolName="${toolCall.name}", toolExecutionResponse=["<encode>${resultJson}</encode>"], toolParameterValues=[${JSON.stringify(executedParams)}], mcpToolStatus=["success"]);
+```
+
+- Call once per pending `TOOL_CALL`. Until every tool from the previous response has a result, the pixel returns a "more tool responses needed" string instead of the model reply — keep submitting.
+- `mcpToolStatus` accepts `success` / `error` / `cancelled` — report failures honestly so the model can react.
+- For tools executed inside an embedded MCP app rather than by your own code, the app-bootstrap skill's `runMCPTool`/`sendMCPResponseToPlayground` flow applies instead.
+
+## Chat UX helpers
+
+```
+GenerateFollowUpQuestions(engine="${MODEL_ID}", roomId="${roomId}", limit=[3]);
+```
+
+Returns `{ suggestions: string[] }` — render as tappable chips after each response (empty when the room cannot take a new input, e.g. tools are pending).
+
+```
+CompactRoomMessages(roomId=["${roomId}"], parentMessageId=["${lastMessageId}"], compactionTypes=["TOOL_PRUNE"]);
+```
+
+Shrinks a long room's history to stay under the model's context window. `TOOL_PRUNE` strips old tool arguments/results (lossless for conversation text); `SUMMARY` replaces older turns with a model-written summary (**lossy** — do not use when exact history matters). Omit `compactionTypes` to let the platform pick. Pair the decision with `GetContextWindow` from the model skill.
+
+```
+GenerateRoomName(roomId=["${roomId}"], prompt=["<encode>${firstUserMessage}</encode>"]);
+```
+
+One-off model call that names the room **and persists the name** — call it after the first user turn in a "New chat" flow instead of leaving rooms untitled.
 
 ## Response shape
 
@@ -174,6 +218,11 @@ All room pixels follow the standard `runPixel` envelope; the room-specific paylo
 | `GetRoomOptions`       | `{ OPTIONS?: { instructions, mcp, tokenLength, temperature, workspace?, predefinedPrompts } }` |
 | `UpdateRoomOptions`    | success boolean                                                               |
 | `GetPlaygroundMessages`| `PixelMessage[]` (see "Read history" above)                                   |
+| `AskRoom`              | `{ inputMessage, responseMessage, extraMessages? }` (PixelMessage objects)    |
+| `AddToolExecution`     | model follow-up response, or a "more tool responses needed" string            |
+| `GenerateFollowUpQuestions` | `{ suggestions: string[] }`                                              |
+| `CompactRoomMessages`  | compaction result summary                                                     |
+| `GenerateRoomName`     | the generated name (persisted)                                                |
 
 For the full `runPixel` envelope fields (`insightID`, `pixelReturn[].pixelExpression`, `timeToRun`, etc.), see the response-schema section of the `model` or `database` skill.
 

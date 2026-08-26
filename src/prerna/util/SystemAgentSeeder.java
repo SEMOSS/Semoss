@@ -28,9 +28,12 @@
 package prerna.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -55,22 +58,23 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * in a database rather than on disk. This class provisions those rows.
  *
  * <p>
- * {@link #seed(String)} is idempotent and self-healing: it is safe to run on
- * every boot. It creates the {@code WORKSPACE} row once, back-fills any missing
- * resource rows on subsequent boots, and always rewrites both {@code CONFIG_JSON}
- * (the runtime source read by {@code AgentConfigLoader}) and the legacy
- * NAME/DESCRIPTION/SYSTEM_PROMPT columns (the display source surfaced to the
- * Agent UI by GetWorkspace/ListWorkspaces) so a drifted mirror on either side is
- * repaired. Hand-edits to a system agent's prompt are therefore intentionally
- * clobbered on the next boot. If the ModelInferenceLogsDatabase feature is
- * disabled it no-ops (the project itself still catalogs).
+ * {@link #seed(String)} is idempotent and self-healing in both directions: it
+ * is safe to run on every boot. It creates the {@code WORKSPACE} row once,
+ * back-fills any missing resource rows on subsequent boots, prunes resource
+ * rows that are no longer in the seeded set, and always rewrites both
+ * {@code CONFIG_JSON} (the runtime source read by {@code AgentConfigLoader})
+ * and the legacy NAME/DESCRIPTION/SYSTEM_PROMPT columns (the display source
+ * surfaced to the Agent UI by GetWorkspace/ListWorkspaces) so a drifted mirror
+ * on either side is repaired. Hand-edits to a system agent's prompt are
+ * therefore intentionally clobbered on the next boot. If the
+ * ModelInferenceLogsDatabase feature is disabled it no-ops (the project itself
+ * still catalogs).
  *
  * <p>
  * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
  * they stay in sync with the platform lists automatically:
  * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemMCPs()} (database-maker,
- * node-builder, reactor-help)</li>
+ * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}</li>
  * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
  */
@@ -144,6 +148,7 @@ public class SystemAgentSeeder {
 								res.get("resource_id"), res.get("resource_type"), res.get("resource_subtype"));
 					}
 				}
+				pruneStaleResources(agentId, tools, skills);
 			}
 
 			ModelInferenceLogsUtils.updateWorkspaceCoreFields(agentId, displayName(agentId), description(agentId),
@@ -151,6 +156,58 @@ public class SystemAgentSeeder {
 			ModelInferenceLogsUtils.updateWorkspaceConfigJson(agentId, buildConfigJson(agentId, tools, skills));
 		} catch (Exception e) {
 			classLogger.error("Failed to seed system agent workspace '{}'", agentId, e);
+		}
+	}
+
+	/**
+	 * Drop WORKSPACE_RESOURCE rows no longer in the desired set, so removing an
+	 * entry from {@link SystemDefaultEngines} takes effect on an already-seeded
+	 * install.
+	 *
+	 * <p>
+	 * Only the two resource types this seeder creates are considered (PROJECT for
+	 * tools, SKILL for skills), leaving PROMPT and any other type untouched. System
+	 * agents are immutable, so every row of those types is seeder-owned.
+	 *
+	 * @param agentId the platform agent id whose workspace is being reconciled
+	 * @param tools   the desired tool project ids
+	 * @param skills  the desired skill project ids
+	 */
+	private static void pruneStaleResources(String agentId, List<String> tools, List<String> skills) {
+		Map<String, Set<String>> desiredByType = new HashMap<>();
+		desiredByType.put(CATALOG_TYPE.PROJECT.name(), new HashSet<>(tools));
+		desiredByType.put(SKILL_RESOURCE_TYPE, new HashSet<>(skills));
+
+		for (Map.Entry<String, Set<String>> entry : desiredByType.entrySet()) {
+			String resourceType = entry.getKey();
+			Set<String> desired = entry.getValue();
+			try {
+				List<Map<String, Object>> existing = ModelInferenceLogsUtils.getWorkspaceResourcesByType(agentId,
+						Arrays.asList(resourceType));
+				if (existing == null) {
+					continue;
+				}
+				for (Map<String, Object> row : existing) {
+					Object rawId = row.get("resource_id");
+					if (rawId == null) {
+						continue;
+					}
+					String resourceId = rawId.toString();
+					if (desired.contains(resourceId)) {
+						continue;
+					}
+					int removed = ModelInferenceLogsUtils.deleteWorkspaceResource(agentId, resourceId, resourceType);
+					if (removed > 0) {
+						classLogger.info(
+								"Pruned stale {} resource '{}' from system agent workspace '{}'; it is no longer in the seeded set.",
+								resourceType, resourceId, agentId);
+					}
+				}
+			} catch (Exception e) {
+				// never block boot over reconciliation
+				classLogger.warn("Failed to prune stale {} resources for system agent '{}': {}", resourceType, agentId,
+						e.getMessage());
+			}
 		}
 	}
 
@@ -177,7 +234,7 @@ public class SystemAgentSeeder {
 
 	private static String description(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
-			return "System agent for building SEMOSS apps.";
+			return "System agent for building platform apps.";
 		}
 		return "";
 	}
@@ -257,7 +314,7 @@ public class SystemAgentSeeder {
 	 * last content line so no trailing newline is appended.
 	 */
 	private static final String APP_BUILDER_SYSTEM_PROMPT = """
-			You are a SEMOSS App Building agent.
+			You are an App Building agent for this platform.
 
 			Start every task by calling ListSkills to see which skill packages are available. Load each relevant skill with LoadSkill before doing the work. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, and other recurring tasks. Do not guess parameters or output schemas.
 
@@ -277,7 +334,7 @@ public class SystemAgentSeeder {
 			State any non-material assumption that affects the result in a short progress update or final summary.
 
 			Engines and durable data:
-			Before introducing any new MODEL / DATABASE / VECTOR / STORAGE call, load the selected-engines skill. Never hardcode or guess engine IDs.
+			Your system prompt contains a "Selected Engines" section listing the engines the user selected for this project. Before introducing any new MODEL / DATABASE / VECTOR / STORAGE call, pick the engine from that section. Never hardcode or guess engine IDs.
 			Use an engine without asking only when the user explicitly supplied its exact ID or exactly one compatible engine of that type is already selected for the project.
 			If multiple compatible engines are selected, ask which one to use. If none is selected, ask the user to choose or attach one. Do not choose an engine merely because it is accessible, appears first in a list, exists in another project, or appears in sample code.
 			The model running this agent is not automatically the model that should power the app. Never copy the harness model ID into app code unless the user explicitly selected that same model for the app.

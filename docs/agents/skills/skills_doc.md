@@ -3,8 +3,8 @@
 A skill is a **Project of type `SKILL`**. There is no separate skill registry: the securitydb
 `PROJECT` table is the catalog (with a `PROJECTMETA` row `tag = SKILL` as a secondary marker),
 and the skill's content lives in the project's assets folder. This includes the built-in
-**platform skills** (`database`, `model`, `python`, `vector`, `room`, `file-uploads`,
-`build-and-publish`), which ship as `project/platform__<id>` project folders and
+**platform skills** (`agent-run`, `app-bootstrap`, `build-and-publish`, `database`, `file-uploads`,
+`model`, `python`, `room`, `vector`), which ship as `project/platform__<id>` project folders and
 are loaded at startup as global projects - their project id IS the old slug (e.g. `database`).
 
 Two ways to see skills, answering different questions:
