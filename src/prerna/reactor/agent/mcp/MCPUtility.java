@@ -965,7 +965,7 @@ public final class MCPUtility {
 	/**
 	 * Converts camelCase, PascalCase, or snake_case strings to title case with
 	 * spaces Useful for pretty version of name -> title in MCP Tool schema
-	 * 
+	 *
 	 * @param input
 	 * @return
 	 */
