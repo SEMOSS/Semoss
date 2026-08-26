@@ -766,6 +766,9 @@ public class Room implements Serializable {
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
 		Set<String> allIds = new HashSet<>();
 		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			if (MessageUtils.isServerToolCall(tc)) {
+				continue;
+			}
 			allIds.add(String.valueOf(tc.get("id")));
 		}
 		if (allIds.isEmpty()) {

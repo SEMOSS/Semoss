@@ -929,6 +929,32 @@ public class MessageUtils {
 	}
 
 	/**
+	 * Returns {@code true} when the tool call map represents a provider-executed
+	 * built-in tool (e.g. OpenAI {@code web_search_call} items or Anthropic
+	 * {@code server_tool_use} blocks). The python model clients flag these with
+	 * {@code server_tool: true} on the tool_call entry; the provider has already
+	 * run the tool and its output travels as a sibling TOOL_RESULT part, so the
+	 * platform must never dispatch these locally nor wait on a tool result for
+	 * their call ids.
+	 *
+	 * @param toolCall raw tool call map from a {@link ToolCallMessagePart}
+	 * @return whether the call was executed server-side by the model provider
+	 */
+	public static boolean isServerToolCall(Map<String, Object> toolCall) {
+		if (toolCall == null) {
+			return false;
+		}
+		Object flag = toolCall.get("server_tool");
+		if (flag == null) {
+			flag = toolCall.get("serverTool");
+		}
+		if (flag instanceof Boolean) {
+			return (Boolean) flag;
+		}
+		return flag != null && Boolean.parseBoolean(flag.toString());
+	}
+
+	/**
 	 * Converts OpenAI-style tool definitions to MCP-compatible tool definitions.
 	 * Built-in non-function tools are passed through unchanged.
 	 *
