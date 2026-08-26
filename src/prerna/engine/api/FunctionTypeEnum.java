@@ -32,6 +32,8 @@ import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
+import prerna.engine.impl.function.BingSearchFunctionEngine;
+import prerna.engine.impl.function.BraveSearchFunctionEngine;
 import prerna.engine.impl.function.GoogleOCRCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.GoogleOCRFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
@@ -47,6 +49,8 @@ public enum FunctionTypeEnum {
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
 
+	BING_SEARCH("BING_SEARCH", BingSearchFunctionEngine.class.getName()),
+	BRAVE_SEARCH("BRAVE_SEARCH", BraveSearchFunctionEngine.class.getName()),
 	SERVICE_NOW("SERVICE_NOW", ServiceNowFunctionEngine.class.getName()),
 
 	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
@@ -65,7 +69,7 @@ public enum FunctionTypeEnum {
 			GoogleOCRCustomEmbeddingsFunctionEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS",
-			LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),;
+			LocalPythonCustomEmbeddingsFunctionEngine.class.getName());
 
 	private String functionName;
 	private String functionClass;

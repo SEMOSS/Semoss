@@ -46,6 +46,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -229,6 +230,15 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 		meta.put(MCPUtility.SMSS_FUNCTION_NAME, tool.getString("name"));
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, engineRoomTool.execution.getValue());
 		tool.put("_meta", meta);
+
+		// a function engine already describes its own name, purpose, and parameters,
+		// so present the executor as that function rather than as a tool taking an
+		// opaque map. this runs after the meta is stamped so SMSS_FUNCTION_NAME
+		// keeps pointing at the reactor being run
+		if (engineRoomTool == EngineRoomTool.EXECUTE_FUNCTION_ENGINE && engine instanceof IFunctionEngine) {
+			MCPFunctionEngineUtility.applyFunctionEngineDefinition(tool, (IFunctionEngine) engine);
+		}
+
 		return tool;
 	}
 
@@ -258,4 +268,5 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
 		return meta;
 	}
+
 }
