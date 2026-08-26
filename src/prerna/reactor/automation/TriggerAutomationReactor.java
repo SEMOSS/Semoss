@@ -310,7 +310,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					"Run cancelled by user");
 			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
 		}
-		Object persistedValue = value;
+		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
+		Object persistedValue = generatedResult.value();
+		Object traceMetadata = generatedResult.metadata();
 		String agentRunId = null;
 		String agentFailure = null;
 		boolean generatedAgentNode = AutomationConstants.NODE_AGENT_RUN.equals(
@@ -318,10 +320,12 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				&& AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
 						node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 		if (generatedAgentNode) {
-			Map<String, Object> agentResult = normalizeAgentResult(node, value, traceRoomId);
-			persistedValue = agentResult;
+			Map<String, Object> agentResult = normalizeAgentResult(node, traceMetadata, traceRoomId);
 			agentRunId = stringValue(agentResult.get("runId"));
 			agentFailure = agentFailureMessage(agentResult, agentRunId);
+			if (agentFailure == null && stringValue(persistedValue) == null) {
+				agentFailure = "Agent run '" + agentRunId + "' completed without final output.";
+			}
 		}
 		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
 				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
@@ -335,7 +339,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		String preview = AutomationRuntimeUtils.generatePreview(output);
 		String modelMessageId = generatedAgentNode
 				? null
-				: extractModelMessageId(node, persistedValue, traceRoomId);
+				: extractModelMessageId(node, traceMetadata, traceRoomId);
 		if (agentFailure != null) {
 			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
 					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
@@ -349,6 +353,30 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
+	}
+
+	private static GeneratedNodeResult splitGeneratedNodeResult(Map<String, Object> node, Object value) {
+		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+		boolean internalResultType = AutomationConstants.NODE_MODEL_CHAT.equals(type)
+				|| AutomationConstants.NODE_MODEL_VISION.equals(type)
+				|| AutomationConstants.NODE_AGENT_RUN.equals(type);
+		if (!internalResultType || !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+				node.get(AutomationConstants.NODE_FIELD_CODE_MODE)) || !(value instanceof Map<?, ?> map)) {
+			return new GeneratedNodeResult(value, value);
+		}
+		boolean hasValue = map.containsKey(AutomationConstants.INTERNAL_RESULT_VALUE);
+		boolean hasMetadata = map.containsKey(AutomationConstants.INTERNAL_RESULT_METADATA);
+		if (!hasValue && !hasMetadata) {
+			return new GeneratedNodeResult(value, value);
+		}
+		if (!hasValue || !hasMetadata) {
+			throw new IllegalStateException("Generated automation node returned an incomplete internal result.");
+		}
+		return new GeneratedNodeResult(map.get(AutomationConstants.INTERNAL_RESULT_VALUE),
+				map.get(AutomationConstants.INTERNAL_RESULT_METADATA));
+	}
+
+	private record GeneratedNodeResult(Object value, Object metadata) {
 	}
 
 	@SuppressWarnings("unchecked")

@@ -261,6 +261,9 @@ public final class AutomationMcpSync {
 				+ "harnessType, "
 				+ "maxTurns, maxReflections, waitTimeoutMs, paramValues, and agentParams; it always waits "
 				+ "for a durable terminal or input-required status before continuing. "
+				+ "Generated model.chat and model.vision outputs are response content strings; model.embeddings "
+				+ "outputs the response vectors; model.ner outputs the response result map; agent.run outputs "
+				+ "finalText. Room, message, and agent-run identifiers are retained separately in run trace. "
 				+ "Within accepted configuration objects, ${...} placeholders resolve recursively in object values "
 				+ "and array items; object keys remain literal. A JSON-string configuration must contain a valid JSON "
 				+ "object with placeholders kept as quoted string values. Prefer native JSON shapes when preserving "
@@ -276,7 +279,8 @@ public final class AutomationMcpSync {
 				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
 				+ "or arguments."));
 		properties.put("label", stringProperty("Short user-facing action label."));
-		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's output."));
+		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's business output. "
+				+ "Do not add a custom extraction node for generated model or agent transport metadata."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
@@ -317,6 +321,8 @@ public final class AutomationMcpSync {
 		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
 				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
 				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
+				+ "Generated model nodes expose their response business value and agent.run exposes finalText; "
+				+ "do not configure downstream nodes to parse their transport envelopes. "
 				+ "For app.pixel, use an appId from MyProjects projectType=['CODE','BLOCKS'] and a pixel template "
 				+ "from GetProjectReactorSignature with concrete values; ${...} placeholders are rejected. "
 				+ "Within accepted configuration objects, placeholders resolve recursively in object values and "

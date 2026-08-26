@@ -246,6 +246,10 @@ public final class AutomationConstants {
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	public static final String RESULT_TRACE = "trace";
+	/** Internal generated-node envelope value; removed before history/scope persistence. */
+	public static final String INTERNAL_RESULT_VALUE = "__automation_value__";
+	/** Internal generated-node trace/control metadata; removed before history/scope persistence. */
+	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";
 	public static final String TRACE_AGENT_RUN_ID = "agentRunId";

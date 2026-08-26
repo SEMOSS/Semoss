@@ -132,18 +132,37 @@ public final class AutomationSourceRenderer {
 				SYSTEM_PROMPT = %s
 				PARAMETERS_JSON = %s
 				ROOM_ID = "${_automation_room_id}"
+				RESULT_VALUE_KEY = %s
+				RESULT_METADATA_KEY = %s
+
+				def _automation_model_result(result):
+				    if not isinstance(result, list) or len(result) != 1 or not isinstance(result[0], dict):
+				        raise ValueError("SEMOSS model did not return the expected response object.")
+				    response = result[0]
+				    if "response" not in response:
+				        raise ValueError("SEMOSS model response is missing content.")
+				    return {
+				        RESULT_VALUE_KEY: response["response"],
+				        RESULT_METADATA_KEY: {
+				            "roomId": response.get("roomId"),
+				            "messageId": response.get("messageId"),
+				        },
+				    }
 
 				def run(scope):
 				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
 				    parameters = scope.resolve_config(PARAMETERS_JSON)
-				    return model.ask(
+				    result = model.ask(
 				        command=scope.resolve(PROMPT),
 				        context=scope.resolve(SYSTEM_PROMPT),
 				        param_dict=parameters,
 				        room_id=scope.resolve(ROOM_ID),
 				    )
+				    return _automation_model_result(result)
 				""".formatted(value(config, "engineId"), value(config, "prompt"),
-				value(config, "systemPrompt"), value(config, "paramValues"));
+				value(config, "systemPrompt"), value(config, "paramValues"),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
 	private static String modelEmbeddingsSource(Map<String, Object> config) {
@@ -154,9 +173,18 @@ public final class AutomationSourceRenderer {
 				ENGINE_ID = %s
 				VALUES = %s
 
+				def _automation_model_response(result):
+				    if not isinstance(result, list) or len(result) != 1 or not isinstance(result[0], dict):
+				        raise ValueError("SEMOSS model did not return the expected embeddings object.")
+				    response = result[0]
+				    if "response" not in response:
+				        raise ValueError("SEMOSS embeddings response is missing its vector payload.")
+				    return response["response"]
+
 				def run(scope):
 				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
-				    return model.embeddings(strings_to_embed=scope.resolve(VALUES))
+				    result = model.embeddings(strings_to_embed=scope.resolve(VALUES))
+				    return _automation_model_response(result)
 				""".formatted(value(config, "engineId"), value(config, "text"));
 	}
 
@@ -169,15 +197,34 @@ public final class AutomationSourceRenderer {
 				PROMPT = %s
 				IMAGE = %s
 				ROOM_ID = "${_automation_room_id}"
+				RESULT_VALUE_KEY = %s
+				RESULT_METADATA_KEY = %s
+
+				def _automation_model_result(result):
+				    if not isinstance(result, list) or len(result) != 1 or not isinstance(result[0], dict):
+				        raise ValueError("SEMOSS model did not return the expected response object.")
+				    response = result[0]
+				    if "response" not in response:
+				        raise ValueError("SEMOSS model response is missing content.")
+				    return {
+				        RESULT_VALUE_KEY: response["response"],
+				        RESULT_METADATA_KEY: {
+				            "roomId": response.get("roomId"),
+				            "messageId": response.get("messageId"),
+				        },
+				    }
 
 				def run(scope):
 				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
-				    return model.ask(
+				    result = model.ask(
 				        command=scope.resolve(PROMPT),
 				        image=[scope.resolve(IMAGE)],
 				        room_id=scope.resolve(ROOM_ID),
 				    )
-				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "image"));
+				    return _automation_model_result(result)
+				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "image"),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
 	private static String modelNerSource(Map<String, Object> config) {
@@ -189,9 +236,18 @@ public final class AutomationSourceRenderer {
 				TEXT = %s
 				ENTITIES = %s
 
+				def _automation_model_response(result):
+				    if not isinstance(result, dict) or "response" not in result:
+				        raise ValueError("SEMOSS NER model did not return the expected response object.")
+				    response = result["response"]
+				    if isinstance(response, dict) and str(response.get("status", "")).lower() == "error":
+				        raise ValueError(str(response.get("message") or "SEMOSS NER model execution failed."))
+				    return response
+
 				def run(scope):
 				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
-				    return model.ner(text=scope.resolve(TEXT), entities=scope.resolve(ENTITIES))
+				    result = model.ner(text=scope.resolve(TEXT), entities=scope.resolve(ENTITIES))
+				    return _automation_model_response(result)
 				""".formatted(value(config, "engineId"), value(config, "text"), value(config, "entities"));
 	}
 
@@ -338,9 +394,31 @@ public final class AutomationSourceRenderer {
 				WAIT_TIMEOUT_MS = %s
 				PARAM_MAP = %s
 				AGENT_PARAMS = %s
+				RESULT_VALUE_KEY = %s
+				RESULT_METADATA_KEY = %s
 
 				def _pixel_value(name, value):
 				    return name + "=[" + json.dumps(value) + "]"
+
+				def _automation_agent_result(result):
+				    if isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict):
+				        result = result[0]
+				    if not isinstance(result, dict):
+				        raise ValueError("SEMOSS agent did not return the expected durable run object.")
+				    return {
+				        RESULT_VALUE_KEY: result.get("finalText"),
+				        RESULT_METADATA_KEY: {
+				            key: result.get(key)
+				            for key in (
+				                "runId",
+				                "roomId",
+				                "workspaceId",
+				                "status",
+				                "waitTimedOut",
+				                "errorMessage",
+				            )
+				        },
+				    }
 
 				def run(scope):
 				    arguments = [
@@ -366,9 +444,7 @@ public final class AutomationSourceRenderer {
 				        "RunAgent(" + ", ".join(arguments) + ");",
 				        raw=False,
 				    )
-				    if isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict):
-				        return result[0]
-				    return result
+				    return _automation_agent_result(result)
 				""".formatted(value(config, AutomationConstants.CONFIG_COMMAND),
 				value(config, AutomationConstants.CONFIG_ENGINE_ID),
 				value(config, AutomationConstants.CONFIG_HARNESS_TYPE),
@@ -380,7 +456,9 @@ public final class AutomationSourceRenderer {
 				agentMapValue(config.containsKey("paramMap")
 						? config.get("paramMap")
 						: config.get(AutomationConstants.CONFIG_PARAM_VALUES)),
-				agentMapValue(config.get("agentParams")));
+				agentMapValue(config.get("agentParams")),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
+				pythonValue(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
 	private static String waitSource(Map<String, Object> config) {
