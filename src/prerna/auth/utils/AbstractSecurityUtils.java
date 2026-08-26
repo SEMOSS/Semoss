@@ -669,6 +669,15 @@ public abstract class AbstractSecurityUtils {
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
 	}
 
+	/**
+	 * Databases without a native boolean type (e.g. SQL Server BIT) reject the
+	 * FALSE keyword literal, so pick the literal based on the dialect
+	 */
+	static String getIsTemplateFalseBackfillSql(AbstractSqlQueryUtil queryUtil) {
+		String falseLiteral = queryUtil.allowBooleanDataType() ? "FALSE" : "0";
+		return "UPDATE PROJECT SET IS_TEMPLATE = " + falseLiteral + " WHERE IS_TEMPLATE IS NULL";
+	}
+
 	public static void initialize() throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String database = securityDb.getDatabase();
@@ -1103,7 +1112,7 @@ public abstract class AbstractSecurityUtils {
 				// backfill display name from canonical name for existing rows
 				securityDb.insertData(
 						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
-				securityDb.insertData("UPDATE PROJECT SET IS_TEMPLATE = FALSE WHERE IS_TEMPLATE IS NULL");
+				securityDb.insertData(getIsTemplateFalseBackfillSql(queryUtil));
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");
