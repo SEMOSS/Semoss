@@ -30,8 +30,6 @@ package prerna.engine.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 class ModelCapabilityEnumUnitTests {
@@ -43,10 +41,12 @@ class ModelCapabilityEnumUnitTests {
 	}
 
 	@Test
-	void exposesMetadataNamesInEnumOrder() {
-		assertEquals(List.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION", "EMBEDDING",
-				"TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION"),
-				List.copyOf(ModelCapabilityEnum.names()));
+	void parsesCommonAliases() {
+		assertEquals(ModelCapabilityEnum.TEXT_GENERATION, ModelCapabilityEnum.fromName("chat"));
+		assertEquals(ModelCapabilityEnum.TEXT_GENERATION, ModelCapabilityEnum.fromName("LLM"));
+		assertEquals(ModelCapabilityEnum.EMBEDDING, ModelCapabilityEnum.fromName("embeddings"));
+		assertEquals(ModelCapabilityEnum.SPEECH_SYNTHESIS, ModelCapabilityEnum.fromName("text-to-speech"));
+		assertEquals(ModelCapabilityEnum.TRANSCRIPTION, ModelCapabilityEnum.fromName("stt"));
 	}
 
 	@Test

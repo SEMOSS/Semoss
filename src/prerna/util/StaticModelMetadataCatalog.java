@@ -320,7 +320,7 @@ public final class StaticModelMetadataCatalog {
 	}
 
 	private static boolean containsModality(List<String> modalities, ModelModalityEnum modality) {
-		return modalities.stream().anyMatch(modalityName -> modality.getCatalogName().equalsIgnoreCase(modalityName));
+		return modalities.contains(modality.getCatalogName());
 	}
 
 	/**

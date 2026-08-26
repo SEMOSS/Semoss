@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +46,7 @@ import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MediaMessagePart;
+import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -55,7 +57,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void rejectsImageWhenModelOnlyAllowsTextInput() {
-		TestModelEngine engine = new TestModelEngine(Set.of(ModelModalityEnum.TEXT.name()));
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
 		InputMessage message = newMessage();
 		message.addPart(new TextMessagePart("describe this"));
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
@@ -70,7 +72,7 @@ class AbstractModelEngineInputModalityUnitTests {
 	@Test
 	void acceptsImageWhenModelAllowsImageInput() {
 		TestModelEngine engine = new TestModelEngine(
-				Set.of(ModelModalityEnum.TEXT.name(), ModelModalityEnum.IMAGE.name()));
+				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
 		message.addPart(new TextMessagePart("describe this"));
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
@@ -81,7 +83,7 @@ class AbstractModelEngineInputModalityUnitTests {
 	@Test
 	void rejectsPdfWhenModelDoesNotAllowPdfInput() {
 		TestModelEngine engine = new TestModelEngine(
-				Set.of(ModelModalityEnum.TEXT.name(), ModelModalityEnum.IMAGE.name()));
+				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
 		message.addPart(new MediaMessagePart(pdfMedia()));
 
@@ -89,6 +91,57 @@ class AbstractModelEngineInputModalityUnitTests {
 				() -> engine.validateInputModalities(List.of(), message));
 
 		assertTrue(exception.getMessage().contains("does not allow PDF input"));
+	}
+
+	@Test
+	void classifiesPdfUrlsAsPdfInput() {
+		TestModelEngine engine = new TestModelEngine(
+				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/report.pdf")));
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> engine.validateInputModalities(List.of(), message));
+
+		assertTrue(exception.getMessage().contains("does not allow PDF input"));
+	}
+
+	@Test
+	void allowsMediaWhoseModalityCannotBeDetermined() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/stream")));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void allowsTextPartsForModelsWithoutTextInputModality() {
+		// audio-only input models still receive the required text command and
+		// platform-injected system prompts; TEXT is never a basis for rejection
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.AUDIO));
+		InputMessage message = newMessage();
+		message.addPart(new TextMessagePart("transcribe this"));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void skipsModelOutputMessagesInHistory() {
+		// a TTS model's own audio response in history is output, not caller input
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
+		InputMessage root = newMessage();
+		root.addPart(new TextMessagePart("say hello"));
+		InputMessage audioResponse = newMessage();
+		audioResponse.setIo(MessageIO.OUTPUT);
+		audioResponse.setParentMessageId(root.getMessageId());
+		audioResponse.addPart(new MediaMessagePart(audioMedia()));
+		InputMessage followUp = newMessage();
+		followUp.setParentMessageId(audioResponse.getMessageId());
+		followUp.addPart(new TextMessagePart("say it again"));
+
+		assertDoesNotThrow(
+				() -> engine.validateInputModalities(List.of(root, audioResponse), followUp));
 	}
 
 	@Test
@@ -102,7 +155,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void ignoresUnsupportedPartsOnConversationBranchesNotSentToModel() {
-		TestModelEngine engine = new TestModelEngine(Set.of(ModelModalityEnum.TEXT.name()));
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
 		InputMessage root = newMessage();
 		root.addPart(new TextMessagePart("root"));
 		InputMessage imageBranch = newMessage();
@@ -116,6 +169,38 @@ class AbstractModelEngineInputModalityUnitTests {
 				() -> engine.validateInputModalities(List.of(root, imageBranch), textBranch));
 	}
 
+	@Test
+	void validatesEveryMessageOfAFullOutboundList() {
+		// full-prompt payloads serialize the whole list, so validation must not
+		// stop at the branch of the last (often parentless) message
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
+		InputMessage imageTurn = newMessage();
+		imageTurn.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
+		InputMessage textTurn = newMessage();
+		textTurn.addPart(new TextMessagePart("just text"));
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> engine.validateInputModalities(List.of(imageTurn, textTurn)));
+
+		assertTrue(exception.getMessage().contains("does not allow IMAGE input"));
+	}
+
+	@Test
+	void branchValidationWithoutNewMessageCoversOnlyTheCurrentTailBranch() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
+		InputMessage root = newMessage();
+		root.addPart(new TextMessagePart("root"));
+		InputMessage imageBranch = newMessage();
+		imageBranch.setParentMessageId(root.getMessageId());
+		imageBranch.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
+		InputMessage textBranch = newMessage();
+		textBranch.setParentMessageId(root.getMessageId());
+		textBranch.addPart(new TextMessagePart("continue here"));
+
+		assertDoesNotThrow(
+				() -> engine.validateInputModalities(List.of(root, imageBranch, textBranch), null));
+	}
+
 	private static InputMessage newMessage() {
 		Room room = new Room();
 		room.setId("test-room");
@@ -126,9 +211,13 @@ class AbstractModelEngineInputModalityUnitTests {
 		return new Gson().fromJson("{\"mimeType\":\"application/pdf\"}", MessageInputMedia.class);
 	}
 
+	private static MessageInputMedia audioMedia() {
+		return new Gson().fromJson("{\"mimeType\":\"audio/mp3\"}", MessageInputMedia.class);
+	}
+
 	private static class TestModelEngine extends AbstractModelEngine {
 
-		private TestModelEngine(Set<String> inputModalities) {
+		private TestModelEngine(Set<ModelModalityEnum> inputModalities) {
 			this.inputModalities = inputModalities;
 			setEngineName("test-model");
 		}

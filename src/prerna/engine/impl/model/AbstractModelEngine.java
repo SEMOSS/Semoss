@@ -28,10 +28,13 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -51,9 +54,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MediaMessagePart;
+import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessagePart;
-import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
@@ -142,10 +145,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected Boolean temperatureSupported = null;
 
 	/**
-	 * Input modalities configured in MODELMETADATA. Null means the metadata does
-	 * not restrict request content.
+	 * Input modalities configured in MODELMETADATA, overridable per engine by an
+	 * INPUT_MODALITIES smss property (an explicitly blank smss value disables
+	 * enforcement). Null means request content is not restricted.
 	 */
-	protected Set<String> inputModalities = null;
+	protected Set<ModelModalityEnum> inputModalities = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -154,6 +158,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// backfill runtime settings from the MODELMETADATA table into the working
 		// smss properties - a value defined in the smss file always wins
 		fillModelSettingsFromMetadata();
+		applySmssInputModalitiesOverride();
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
@@ -227,14 +232,40 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 	}
 
-	private static Set<String> toModalitySet(Object value) {
+	/**
+	 * The smss file wins over the MODELMETADATA row for input modalities, same
+	 * as the other metadata-backed settings. An INPUT_MODALITIES property that
+	 * is present but blank disables enforcement entirely - the per-engine
+	 * escape hatch when stored metadata is wrong.
+	 */
+	private void applySmssInputModalitiesOverride() {
+		String smssModalities = this.smssProp.getProperty(Constants.INPUT_MODALITIES);
+		if (smssModalities == null) {
+			return;
+		}
+		this.inputModalities = smssModalities.isBlank() ? null
+				: toModalitySet(Arrays.asList(smssModalities.split(",")));
+	}
+
+	/**
+	 * Normalize a stored modality list. Unrecognized values are logged and
+	 * skipped rather than thrown - a dirty metadata row must not stop the
+	 * engine from opening (strict validation happens at the write path).
+	 */
+	private Set<ModelModalityEnum> toModalitySet(Object value) {
 		if (!(value instanceof Collection<?>)) {
 			return null;
 		}
-		Set<String> modalities = new LinkedHashSet<>();
+		Set<ModelModalityEnum> modalities = EnumSet.noneOf(ModelModalityEnum.class);
 		for (Object modality : (Collection<?>) value) {
-			if (modality != null && !modality.toString().isBlank()) {
-				modalities.add(ModelModalityEnum.fromName(modality.toString()).name());
+			if (modality == null || modality.toString().isBlank()) {
+				continue;
+			}
+			try {
+				modalities.add(ModelModalityEnum.fromName(modality.toString()));
+			} catch (IllegalArgumentException e) {
+				classLogger.warn("Model {} has an unrecognized input modality '{}' - ignoring it", this.engineId,
+						modality);
 			}
 		}
 		return modalities.isEmpty() ? null : modalities;
@@ -449,9 +480,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
 					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
 					RoomMessageStore.refreshFromLatestProjection(room, userId);
+					// the provider payload is the full merged list; validate it
+					// before mutating the room so a rejected request does not
+					// leave never-sent messages in the cached room history
+					List<AbstractMessage> outbound = new ArrayList<>(room.getMessages());
+					outbound.addAll(messageList);
+					validateInputModalities(outbound);
 					room.getMessages().addAll(messageList);
 					messageList = room.getMessages();
 				} else {
+					validateInputModalities(messageList);
 					room.setMessages(messageList);
 				}
 				String messageJson = RoomMessageStore.providerMessageHistory(room, messageList);
@@ -495,7 +533,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				question = MessageUtils.toJsonArray(room.getMessages());
 			}
 
-			validateInputModalities(room.getMessages(), inputMessage);
+			if (fullPrompt == null) {
+				// incremental ask: the provider payload is the branch ending at
+				// inputMessage (the fullPrompt path validated its list above)
+				validateInputModalities(room.getMessages(), inputMessage);
+			}
 
 			ZonedDateTime inputTime = ZonedDateTime.now();
 			AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
@@ -603,65 +645,123 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 	}
 
+	/**
+	 * Enforce the configured input modalities on the exact outbound message
+	 * list. The rules, chosen so enforcement never rejects content the model is
+	 * not actually asked to accept:
+	 * <ul>
+	 * <li>Only INPUT-direction messages are checked - the model's own responses
+	 * in history are its output, not caller input.</li>
+	 * <li>Only MEDIA parts are checked - a text command is required on every
+	 * ask and system prompts are platform-injected, so TEXT is never a basis
+	 * for rejection.</li>
+	 * <li>Media whose modality cannot be determined (no MIME type, opaque URL)
+	 * passes - enforcement fails open on unknowns; strict typing belongs to the
+	 * metadata write path.</li>
+	 * </ul>
+	 */
+	@Override
+	public void validateInputModalities(List<AbstractMessage> outboundMessages) {
+		if (this.inputModalities == null || outboundMessages == null) {
+			return;
+		}
+		for (AbstractMessage message : outboundMessages) {
+			validateInputModalities(message);
+		}
+	}
+
+	/**
+	 * Branch-scoped variant for the incremental ask path: validates the
+	 * root-to-leaf branch ending at {@code inputMessage} (or at the current
+	 * tail when null), matching the payload the provider history builders
+	 * serialize.
+	 */
 	void validateInputModalities(List<AbstractMessage> messages, AbstractMessage inputMessage) {
 		if (this.inputModalities == null) {
 			return;
 		}
 		List<AbstractMessage> requestMessages = messages == null ? List.of() : messages;
-		if (inputMessage != null) {
-			requestMessages = MessageUtils.getMessageBranchWithNewMessage(requestMessages, inputMessage);
+		AbstractMessage leaf = inputMessage;
+		if (leaf == null) {
+			if (requestMessages.isEmpty()) {
+				return;
+			}
+			leaf = requestMessages.get(requestMessages.size() - 1);
 		}
-		for (AbstractMessage message : requestMessages) {
-			validateInputModalities(message);
+		validateInputModalities(messageBranch(requestMessages, leaf));
+	}
+
+	/**
+	 * Lightweight root-to-leaf parent walk. Unlike the payload builders this
+	 * only needs to read part types, so it skips their tool-pruning deep
+	 * copies. Broken parent links end the walk; cycles are guarded.
+	 */
+	private static List<AbstractMessage> messageBranch(List<AbstractMessage> messages, AbstractMessage leaf) {
+		Map<String, AbstractMessage> messagesById = new HashMap<>();
+		for (AbstractMessage message : messages) {
+			if (message != null && message.getMessageId() != null) {
+				messagesById.put(message.getMessageId(), message);
+			}
 		}
+		List<AbstractMessage> branch = new ArrayList<>();
+		Set<String> visited = new HashSet<>();
+		AbstractMessage current = leaf;
+		while (current != null) {
+			String messageId = current.getMessageId();
+			if (messageId != null && !visited.add(messageId)) {
+				break;
+			}
+			branch.add(current);
+			String parentMessageId = current.getParentMessageId();
+			current = parentMessageId == null ? null : messagesById.get(parentMessageId);
+		}
+		return branch;
 	}
 
 	private void validateInputModalities(AbstractMessage message) {
-		if (message == null) {
+		if (message == null || message.getIo() == MessageIO.OUTPUT) {
 			return;
 		}
-		for (MessagePart part : message.getParts()) {
-			String modality = modalityFor(part);
-			if (modality != null && !this.inputModalities.contains(modality)) {
-				String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
-				throw new IllegalArgumentException("Model " + model + " does not allow " + modality
-						+ " input. Configured input modalities: " + this.inputModalities);
+		List<MessagePart> parts = message.getParts();
+		if (parts == null) {
+			return;
+		}
+		for (MessagePart part : parts) {
+			ModelModalityEnum modality = modalityFor(part);
+			if (modality != null) {
+				requireInputModalityAllowed(modality);
 			}
 		}
 	}
 
-	private static String modalityFor(MessagePart part) {
+	/**
+	 * Throw when the given modality is not in the configured input modalities.
+	 * No-op when the engine does not restrict input.
+	 */
+	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
+		if (this.inputModalities == null || this.inputModalities.contains(modality)) {
+			return;
+		}
+		String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
+		throw new IllegalArgumentException("Model " + model + " does not allow " + modality.name()
+				+ " input. Configured input modalities: " + this.inputModalities);
+	}
+
+	private static ModelModalityEnum modalityFor(MessagePart part) {
 		if (part == null) {
 			return null;
 		}
+		// exhaustive on purpose: a new part type must decide here whether it
+		// carries a validatable modality
 		return switch (part.getType()) {
-		case TEXT, SYSTEM -> ModelModalityEnum.TEXT.name();
-		case MEDIA -> part instanceof MediaMessagePart ? modalityFor((MediaMessagePart) part)
-				: ModelModalityEnum.FILE.name();
-		default -> null;
+		case MEDIA -> modalityFor((MediaMessagePart) part);
+		case TEXT, SYSTEM, TOOL_CALL, TOOL_RESULT, THINKING, UNKNOWN -> null;
 		};
 	}
 
-	private static String modalityFor(MediaMessagePart part) {
+	private static ModelModalityEnum modalityFor(MediaMessagePart part) {
 		MessageInputMedia media = part.getMediaInfo();
-		String mimeType = media == null ? null : media.getMimeType();
-		if (mimeType == null || mimeType.isBlank()) {
-			// URL media currently represents image input and does not carry a MIME type.
-			return ModelModalityEnum.IMAGE.name();
-		}
-
-		String[] mimeParts = mimeType.split("/", 2);
-		String mimeFamily = mimeParts[0].trim();
-		if (ModelModalityEnum.IMAGE.getCatalogName().equalsIgnoreCase(mimeFamily)
-				|| ModelModalityEnum.AUDIO.getCatalogName().equalsIgnoreCase(mimeFamily)
-				|| ModelModalityEnum.VIDEO.getCatalogName().equalsIgnoreCase(mimeFamily)) {
-			return ModelModalityEnum.fromName(mimeFamily).name();
-		}
-		if (mimeParts.length == 2
-				&& ModelModalityEnum.PDF.getCatalogName().equalsIgnoreCase(mimeParts[1].trim())) {
-			return ModelModalityEnum.PDF.name();
-		}
-		return ModelModalityEnum.FILE.name();
+		return media == null ? null : ModelModalityEnum.fromMimeType(media.resolveMimeType());
 	}
 
 	/**

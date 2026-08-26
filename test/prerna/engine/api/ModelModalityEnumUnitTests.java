@@ -28,9 +28,8 @@
 package prerna.engine.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -44,13 +43,31 @@ class ModelModalityEnumUnitTests {
 	}
 
 	@Test
-	void exposesMetadataNamesInEnumOrder() {
-		assertEquals(List.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR", "FILE", "PDF"),
-				List.copyOf(ModelModalityEnum.names()));
+	void rejectsUnknownNames() {
+		assertThrows(IllegalArgumentException.class, () -> ModelModalityEnum.fromName("spreadsheet"));
 	}
 
 	@Test
-	void rejectsUnknownNames() {
-		assertThrows(IllegalArgumentException.class, () -> ModelModalityEnum.fromName("spreadsheet"));
+	void classifiesMimeTypes() {
+		assertEquals(ModelModalityEnum.IMAGE, ModelModalityEnum.fromMimeType("image/png"));
+		assertEquals(ModelModalityEnum.AUDIO, ModelModalityEnum.fromMimeType("audio/mpeg"));
+		assertEquals(ModelModalityEnum.VIDEO, ModelModalityEnum.fromMimeType("video/mp4"));
+		assertEquals(ModelModalityEnum.PDF, ModelModalityEnum.fromMimeType("application/pdf"));
+		assertEquals(ModelModalityEnum.TEXT, ModelModalityEnum.fromMimeType("text/plain"));
+		assertEquals(ModelModalityEnum.FILE, ModelModalityEnum.fromMimeType("application/msword"));
+	}
+
+	@Test
+	void toleratesMimeParametersCasingAndWhitespace() {
+		assertEquals(ModelModalityEnum.PDF, ModelModalityEnum.fromMimeType("application/pdf; name=report.pdf"));
+		assertEquals(ModelModalityEnum.IMAGE, ModelModalityEnum.fromMimeType(" IMAGE/JPEG "));
+	}
+
+	@Test
+	void unknownMimeTypesClassifyAsNull() {
+		assertNull(ModelModalityEnum.fromMimeType(null));
+		assertNull(ModelModalityEnum.fromMimeType("  "));
+		assertNull(ModelModalityEnum.fromMimeType("application/octet-stream"));
+		assertNull(ModelModalityEnum.fromMimeType("not a mime type"));
 	}
 }

@@ -742,14 +742,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			details.put(Constants.MODEL_CAPABILITY, null);
 			return;
 		}
-		capability = capability.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
-		capability = switch (capability) {
-		case "CHAT", "LLM" -> ModelCapabilityEnum.TEXT_GENERATION.name();
-		case "EMBEDDINGS" -> ModelCapabilityEnum.EMBEDDING.name();
-		case "TTS", "TEXT_TO_SPEECH" -> ModelCapabilityEnum.SPEECH_SYNTHESIS.name();
-		case "STT", "SPEECH_TO_TEXT" -> ModelCapabilityEnum.TRANSCRIPTION.name();
-		default -> capability;
-		};
+		// fromName owns the normalization and the CHAT/LLM/TTS/STT aliases
 		details.put(Constants.MODEL_CAPABILITY, ModelCapabilityEnum.fromName(capability).name());
 	}
 

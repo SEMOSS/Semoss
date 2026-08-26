@@ -59,7 +59,6 @@ import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -335,7 +334,7 @@ public final class AgentRunner {
 		}
 
 		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(modelId);
-		Object capabilityValue = metadata == null ? null : metadata.get(Constants.MODEL_CAPABILITY);
+		Object capabilityValue = metadata == null ? null : metadata.get("capability");
 		String capability = capabilityValue == null ? null : String.valueOf(capabilityValue).trim();
 		if (capability != null && !capability.isEmpty()
 				&& !ModelCapabilityEnum.TEXT_GENERATION.name().equalsIgnoreCase(capability)) {

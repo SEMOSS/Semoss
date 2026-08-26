@@ -27,11 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * Capabilities supported by model metadata.
@@ -40,18 +36,12 @@ public enum ModelCapabilityEnum {
 	TEXT_GENERATION, IMAGE_GENERATION, VIDEO_GENERATION, EMBEDDING, TRANSCRIPTION, SPEECH_SYNTHESIS, RERANKING,
 	MODERATION;
 
-	private static final Set<String> NAMES;
-
-	static {
-		Set<String> names = new LinkedHashSet<>();
-		Arrays.stream(values()).map(ModelCapabilityEnum::name).forEach(names::add);
-		NAMES = Collections.unmodifiableSet(names);
-	}
-
 	/**
-	 * Parse a capability name case-insensitively.
+	 * Parse a capability name case-insensitively, accepting the common aliases
+	 * (CHAT/LLM, EMBEDDINGS, TTS/TEXT_TO_SPEECH, STT/SPEECH_TO_TEXT) so every
+	 * entry point resolves the same input to the same capability.
 	 *
-	 * @param value capability name
+	 * @param value capability name or alias
 	 * @return the matching capability
 	 * @throws IllegalArgumentException when the value is null, blank, or unknown
 	 */
@@ -60,17 +50,17 @@ public enum ModelCapabilityEnum {
 			throw new IllegalArgumentException("Unsupported model capability " + value);
 		}
 		String normalizedValue = value.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+		normalizedValue = switch (normalizedValue) {
+		case "CHAT", "LLM" -> TEXT_GENERATION.name();
+		case "EMBEDDINGS" -> EMBEDDING.name();
+		case "TTS", "TEXT_TO_SPEECH" -> SPEECH_SYNTHESIS.name();
+		case "STT", "SPEECH_TO_TEXT" -> TRANSCRIPTION.name();
+		default -> normalizedValue;
+		};
 		try {
 			return valueOf(normalizedValue);
 		} catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException("Unsupported model capability " + normalizedValue, e);
 		}
-	}
-
-	/**
-	 * @return the names accepted in model metadata
-	 */
-	public static Set<String> names() {
-		return NAMES;
 	}
 }

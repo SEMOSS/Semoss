@@ -27,11 +27,9 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Locale;
-import java.util.Set;
+
+import org.apache.tika.mime.MediaType;
 
 /**
  * Content modalities supported by model metadata and message validation.
@@ -40,14 +38,6 @@ import java.util.Set;
  */
 public enum ModelModalityEnum {
 	TEXT, IMAGE, AUDIO, VIDEO, VECTOR, FILE, PDF;
-
-	private static final Set<String> NAMES;
-
-	static {
-		Set<String> names = new LinkedHashSet<>();
-		Arrays.stream(values()).map(ModelModalityEnum::name).forEach(names::add);
-		NAMES = Collections.unmodifiableSet(names);
-	}
 
 	/**
 	 * Parse a metadata or catalog modality name case-insensitively.
@@ -69,10 +59,44 @@ public enum ModelModalityEnum {
 	}
 
 	/**
-	 * @return the upper-case names accepted in model metadata
+	 * Classify a MIME type into the modality it represents. Parameters, casing
+	 * and surrounding whitespace are tolerated (Tika base-type parsing). Returns
+	 * null when the type is missing, unparseable, or too generic to classify
+	 * (application/octet-stream) - callers treat unknown as unrestricted so a
+	 * failed detection never rejects a request.
+	 *
+	 * @param mimeType a MIME type such as image/png or application/pdf
+	 * @return the matching modality, or null when it cannot be determined
 	 */
-	public static Set<String> names() {
-		return NAMES;
+	public static ModelModalityEnum fromMimeType(String mimeType) {
+		if (mimeType == null || mimeType.isBlank()) {
+			return null;
+		}
+		MediaType mediaType = MediaType.parse(mimeType.trim().toLowerCase(Locale.ROOT));
+		if (mediaType == null) {
+			return null;
+		}
+		String family = mediaType.getType();
+		String subtype = mediaType.getSubtype();
+		if ("image".equals(family)) {
+			return IMAGE;
+		}
+		if ("audio".equals(family)) {
+			return AUDIO;
+		}
+		if ("video".equals(family)) {
+			return VIDEO;
+		}
+		if ("pdf".equals(subtype) || "x-pdf".equals(subtype)) {
+			return PDF;
+		}
+		if ("text".equals(family)) {
+			return TEXT;
+		}
+		if ("octet-stream".equals(subtype)) {
+			return null;
+		}
+		return FILE;
 	}
 
 	/**
