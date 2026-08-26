@@ -301,9 +301,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * Replace a conneciton url to a file based db (H2, SQLite) with
 	 * "@BaseFolder@/db/@ENGINE@"
 	 * <p>
-	 * In {@link RDBMSNativeEngine#open(Properties) method we call
-	 * {@link #fillFileParameterizedConnectionUrl(String, String, String)} to turn
-	 * back into a useable conneciton url
+	 * In {@link RDBMSNativeEngine#open(Properties) method we call {@link
+	 * #fillFileParameterizedConnectionUrl(String, String, String)} to turn back
+	 * into a useable conneciton url
 	 * </p>
 	 * 
 	 * @param connectionUrl

@@ -583,8 +583,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
 			Object metaObj = toolCall.get("_meta");
 			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
-			AgentRunStreamService.get().publishToolStarted(runId, AgentStreamItems.toolItem(tc.toolCallId,
-					tc.rawToolName, tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+			Object title = toolCall.get("title");
+			AgentRunStreamService.get().publishToolStarted(runId,
+					AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, title != null ? title.toString() : null,
+							tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
 		}
 	}
 
@@ -704,13 +706,26 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 			action.put("toolArgs", argsObj);
 			// The enriched _meta (set by Room.updateToolResponseMeta)
-			action.put("toolMeta", toolCall.get("_meta"));
-			// Derive UI info from SMSS_MCP_UI
 			Map<String, Object> meta = null;
 			Object metaObj = toolCall.get("_meta");
 			if (metaObj instanceof Map) {
-				meta = (Map<String, Object>) metaObj;
+				meta = new HashMap<>((Map<String, Object>) metaObj);
 			}
+			// updateToolResponseMeta already resolved a display-friendly title
+			// onto toolCall; carry it in _meta so the FE (which only ever sees
+			// toolName/toolMeta for a pending action, never toolCall itself) can
+			// display it instead of the raw, engine-id-prefixed tool name.
+			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
+						: toolCall.get("original_name");
+				if (resolvedTitle != null) {
+					if (meta == null) {
+						meta = new HashMap<>();
+					}
+					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+				}
+			}
+			action.put("toolMeta", meta);
 			Map<String, Object> uiMeta = null;
 			if (meta != null) {
 				Object uiObj = meta.get(MCPUtility.SMSS_MCP_UI);

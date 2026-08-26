@@ -341,16 +341,42 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		Map<String, Map<String, Object>> existingByEngine = getModelMetadata(targets);
 		List<Map<String, Object>> results = new ArrayList<>();
 		for (String engineId : targets) {
-			results.add(syncModelMetadataFromCatalog(engineId, existingByEngine.get(engineId), force, dryRun));
+			results.add(syncModelMetadataFromCatalog(engineId, existingByEngine.get(engineId), null, force, dryRun));
 		}
 		return results;
 	}
 
+	/**
+	 * Force-apply the static catalog onto a single engine's metadata, optionally
+	 * associating it with a different catalog entry first. This backs the "reset
+	 * to defaults" and "match to a catalog entry" actions on the model settings
+	 * screen: every property the catalog defines for the entry replaces what is
+	 * stored, while properties the catalog cannot speak to - the serving
+	 * provider, built-in tools, and description - are left as they are.
+	 *
+	 * @param engineId   the model engine to apply the catalog to
+	 * @param catalogKey the exact catalog key to associate (persisted as
+	 *                   CATALOGMODELKEY) and apply; null applies the entry already
+	 *                   associated with the engine, falling back to its model id
+	 * @param dryRun     report what would change without writing
+	 * @return one result map holding engineId, modelId, catalogModelKey, status,
+	 *         and the list of fields that changed
+	 */
+	public static Map<String, Object> applyCatalogMetadata(String engineId, String catalogKey, boolean dryRun) {
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("Engine id cannot be empty");
+		}
+		engineId = engineId.trim();
+		return syncModelMetadataFromCatalog(engineId, getModelMetadata(engineId), nullableString(catalogKey), true,
+				dryRun);
+	}
+
 	private static Map<String, Object> syncModelMetadataFromCatalog(String engineId, Map<String, Object> existingRow,
-			boolean force, boolean dryRun) {
+			String catalogKeyOverride, boolean force, boolean dryRun) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("engineId", engineId);
-		result.put("changedFields", new ArrayList<String>());
+		List<String> changedFields = new ArrayList<>();
+		result.put("changedFields", changedFields);
 
 		Map<String, Object> merged = toDetails(existingRow);
 		// an engine with no row yet, or one saved before MODELID was populated, still
@@ -365,6 +391,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		result.put("modelId", modelId);
 
 		String catalogModelKey = nullableString(merged.get(Constants.CATALOG_MODEL_KEY));
+		if (catalogKeyOverride != null && !catalogKeyOverride.equals(catalogModelKey)) {
+			merged.put(Constants.CATALOG_MODEL_KEY, catalogKeyOverride);
+			catalogModelKey = catalogKeyOverride;
+			changedFields.add(Constants.CATALOG_MODEL_KEY);
+		}
 		result.put("catalogModelKey", catalogModelKey);
 		String lookupId = catalogModelKey != null ? catalogModelKey : modelId;
 		if (lookupId == null) {
@@ -381,12 +412,12 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			return result;
 		}
 		defaults.remove(Constants.DESCR);
-		if (defaults.isEmpty()) {
+
+		if (defaults.isEmpty() && changedFields.isEmpty()) {
 			result.put("status", "NO_CATALOG_ENTRY");
 			return result;
 		}
 
-		List<String> changedFields = new ArrayList<>();
 		for (Map.Entry<String, Object> entry : defaults.entrySet()) {
 			String key = entry.getKey();
 			Object current = merged.get(key);
@@ -398,7 +429,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		result.put("changedFields", changedFields);
 		if (changedFields.isEmpty()) {
 			result.put("status", "NO_CHANGE");
 			return result;
@@ -967,12 +997,23 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
 	}
 
+	/**
+	 * Whole numbers parse as longs rather than gson's default doubles, matching
+	 * how the catalog serializes them. With the default policy a stored
+	 * benchmark score of 85 read back as 85.0, so every catalog comparison
+	 * flagged BENCHMARKS as changed and every settings save rewrote the column
+	 * with the drifted value.
+	 */
 	private static List<?> parseStoredJsonArray(String json) {
-		return json == null ? null : GSON.fromJson(json, List.class);
+		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
 	}
 
+	/**
+	 * Same long-or-double policy as {@link #parseStoredJsonArray(String)}, for
+	 * the integer limits a reasoning config can carry.
+	 */
 	private static Map<?, ?> parseStoredJsonObject(String json) {
-		return json == null ? null : GSON.fromJson(json, Map.class);
+		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
 	}
 
 	private static Map<String, Object> readModelMetadata(ResultSet rs) throws SQLException {

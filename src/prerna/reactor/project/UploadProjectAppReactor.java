@@ -123,17 +123,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-		}
-
-		if (global && (AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
-			SemossPixelException exception = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("User can upload an app but cannot make the app public"));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String randomTempUnzipFolderPath = this.insight.getInsightFolder() + DIR_SEPARATOR + randomIdAsDir;
@@ -144,6 +133,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		List<String> fileList = new ArrayList<>();
 		String smssFileLoc = null;
 		File smssFile = null;
+		Properties projectProperties = null;
 		// unzip files to temp project folder
 		boolean error = false;
 		try {
@@ -174,6 +164,21 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			if (smssFileLoc == null) {
 				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
 			}
+
+			projectProperties = Utility.loadProperties(smssFileLoc);
+			String projectTypeString = projectProperties.getProperty(Constants.PROJECT_ENUM_TYPE);
+			IProject.PROJECT_TYPE projectType = projectTypeString == null ? IProject.PROJECT_TYPE.INSIGHTS
+					: IProject.PROJECT_TYPE.valueOf(projectTypeString.trim());
+			if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
+			}
+			if (global && AbstractSecurityUtils.adminOnlyProjectSetPublic(projectType)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage("User can upload an app but cannot make the app public"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		} catch (SemossPixelException e) {
 			error = true;
 			throw e;
@@ -200,7 +205,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		boolean projectAddedToDIHelper = false;
 		try {
 			logger.info(step + ") Reading smss");
-			Properties prop = Utility.loadProperties(smssFileLoc);
+			Properties prop = projectProperties;
 			projectId = prop.getProperty(Constants.PROJECT);
 			projectName = Utility.normalizePath(prop.getProperty(Constants.PROJECT_ALIAS));
 
@@ -406,7 +411,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param fileToDelete
 	 */
 	private void cleanUpFolders(File... fileToDelete) {

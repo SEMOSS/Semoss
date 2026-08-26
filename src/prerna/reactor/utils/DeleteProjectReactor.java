@@ -74,7 +74,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+					if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 

@@ -97,7 +97,7 @@ const { pixelReturn } = await runPixel(
 
 Same for `["GUARDRAIL"]`. `MyEngines` supports `filterWord`, `sort`, `limit`, `offset` as described in the database skill.
 
-Never hardcode or guess an engine ID. Use the project's selected engines (see the selected-engines skill); if none fits, ask the user to choose or attach one.
+Never hardcode or guess an engine ID. Use the project's selected engines (see the Selected Engines section of your system prompt); if none fits, ask the user to choose or attach one.
 
 ## Self-documenting fallback: GetEngineUsage
 
