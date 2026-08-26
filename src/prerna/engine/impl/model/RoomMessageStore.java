@@ -81,7 +81,6 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		validateForPersistence(room, messages);
 		warmRedisProjection(room, projection);
 		return messages;
 	}
@@ -126,7 +125,6 @@ public final class RoomMessageStore {
 			}
 			List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 			List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-			validateForPersistence(room, messages);
 			room.setMessages(messages);
 			room.setMessagesJson(projection);
 			return true;
