@@ -30,11 +30,9 @@ package prerna.engine.impl.model.message;
 import java.lang.reflect.Type;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +65,6 @@ public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
 	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
-	private static final String SEMOSS_MULTIMODAL_KEY = "SEMOSSMultimodalToolResponse";
 	private static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
@@ -597,35 +594,42 @@ public class MessageUtils {
 				}
 			}
 		}
-		// Resolve image path references in tool results temporarily - inline base64
-		// only for this model call. Originals are restored in the finally block so
-		// base64 is never persisted to DB or included in response payloads.
-		IdentityHashMap<ToolResultPart, String> originalOutputs = new IdentityHashMap<>();
-		try {
-			for (AbstractMessage msg : msgs) {
-				String roomFolderPath = msg.getRoomFolderPath();
-				if (roomFolderPath == null) {
+		JsonArray serializedMessages = GSON_FOR_PY.toJsonTree(msgs).getAsJsonArray();
+		for (int messageIndex = 0; messageIndex < msgs.size(); messageIndex++) {
+			AbstractMessage message = msgs.get(messageIndex);
+			String roomFolderPath = message == null ? null : message.getRoomFolderPath();
+			if (roomFolderPath == null || !serializedMessages.get(messageIndex).isJsonObject()) {
+				continue;
+			}
+
+			JsonObject serializedMessage = serializedMessages.get(messageIndex).getAsJsonObject();
+			JsonElement partsElement = serializedMessage.get("parts");
+			if (partsElement == null || !partsElement.isJsonArray()) {
+				continue;
+			}
+			for (JsonElement partElement : partsElement.getAsJsonArray()) {
+				if (!partElement.isJsonObject()) {
 					continue;
 				}
-				for (MessagePart part : msg.getParts()) {
-					if (part instanceof ToolResultMessagePart) {
-						ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
-						if (tr != null && tr.getOutput() != null) {
-							String resolved = resolveToolOutputImageRefs(tr.getOutput(), roomFolderPath);
-							if (!resolved.equals(tr.getOutput())) {
-								originalOutputs.put(tr, tr.getOutput());
-								tr.setOutput(resolved);
-							}
-						}
-					}
+				JsonObject part = partElement.getAsJsonObject();
+				JsonElement toolResultElement = part.get("toolResult");
+				if (toolResultElement == null || !toolResultElement.isJsonObject()) {
+					continue;
+				}
+				JsonObject toolResult = toolResultElement.getAsJsonObject();
+				JsonElement outputElement = toolResult.get("output");
+				if (outputElement == null || !outputElement.isJsonPrimitive()
+						|| !outputElement.getAsJsonPrimitive().isString()) {
+					continue;
+				}
+				String output = outputElement.getAsString();
+				String resolved = resolveToolOutputImageRefs(output, roomFolderPath);
+				if (!resolved.equals(output)) {
+					toolResult.addProperty("output", resolved);
 				}
 			}
-			return GSON_FOR_PY.toJson(msgs);
-		} finally {
-			for (Map.Entry<ToolResultPart, String> entry : originalOutputs.entrySet()) {
-				entry.getKey().setOutput(entry.getValue());
-			}
 		}
+		return GSON_FOR_PY.toJson(serializedMessages);
 	}
 
 	/**
@@ -638,15 +642,21 @@ public class MessageUtils {
 	private static String resolveToolOutputImageRefs(String output, String roomFolderPath) {
 		try {
 			JsonObject parsed = JsonParser.parseString(output).getAsJsonObject();
-			if (!parsed.has(SEMOSS_MULTIMODAL_KEY)) {
+			if (!parsed.has(MCPUtility.SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY)) {
 				return output;
 			}
-			JsonArray blocks = parsed.getAsJsonArray(SEMOSS_MULTIMODAL_KEY);
+			JsonElement blocksElement = parsed.get(MCPUtility.SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY);
+			if (!blocksElement.isJsonArray() || blocksElement.getAsJsonArray().isEmpty()) {
+				return output;
+			}
+			JsonArray blocks = blocksElement.getAsJsonArray();
 			JsonArray resolved = new JsonArray();
 			boolean anyResolved = false;
-			Path roomDir = Paths.get(roomFolderPath).normalize();
 
 			for (JsonElement el : blocks) {
+				if (!el.isJsonObject()) {
+					return output;
+				}
 				JsonObject block = el.getAsJsonObject();
 				String type = block.has("type") ? block.get("type").getAsString() : null;
 				if ("image".equals(type) && block.has("image") && !block.has("data")) {
@@ -654,31 +664,35 @@ public class MessageUtils {
 					List<String> relPaths = new ArrayList<>();
 					if (imageEl.isJsonArray()) {
 						for (JsonElement pathEl : imageEl.getAsJsonArray()) {
+							if (!pathEl.isJsonPrimitive() || !pathEl.getAsJsonPrimitive().isString()) {
+								return output;
+							}
 							relPaths.add(pathEl.getAsString());
 						}
-					} else if (imageEl.isJsonPrimitive()) {
+					} else if (imageEl.isJsonPrimitive() && imageEl.getAsJsonPrimitive().isString()) {
 						relPaths.add(imageEl.getAsString());
+					} else {
+						return output;
+					}
+					if (relPaths.isEmpty()) {
+						return output;
 					}
 					for (String relPath : relPaths) {
-						Path resolvedPath = roomDir.resolve(relPath).normalize();
-						if (!resolvedPath.startsWith(roomDir)) {
-							classLogger.warn("Skipping tool result media reference outside the room folder: " + relPath);
-							continue;
-						}
+						Path resolvedPath = MCPUtility.resolveContainedMcpFile(roomFolderPath, relPath);
 						String absPath = resolvedPath.toString();
 						String format = MessageInputMedia.extractFormat(absPath);
 						String mime = MessageInputMedia.guessMimeType(absPath, format);
 						String b64 = MessageInputMedia.encodeFileToBase64(absPath);
-						if (!b64.isEmpty()) {
-							String blockType = mime.startsWith("image") ? "image" : "document";
-							JsonObject inlined = new JsonObject();
-							inlined.addProperty("type", blockType);
-							inlined.addProperty("data", b64);
-							inlined.addProperty("mimeType", mime);
-							resolved.add(inlined);
-							anyResolved = true;
+						if (b64.isEmpty()) {
+							return output;
 						}
-						// file unreadable - skip silently
+						String blockType = mime.startsWith("image/") ? "image" : "document";
+						JsonObject inlined = new JsonObject();
+						inlined.addProperty("type", blockType);
+						inlined.addProperty("data", b64);
+						inlined.addProperty("mimeType", mime);
+						resolved.add(inlined);
+						anyResolved = true;
 					}
 				} else {
 					resolved.add(block);
@@ -689,7 +703,7 @@ public class MessageUtils {
 				return output;
 			}
 			JsonObject out = new JsonObject();
-			out.add(SEMOSS_MULTIMODAL_KEY, resolved);
+			out.add(MCPUtility.SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY, resolved);
 			return out.toString();
 
 		} catch (Exception e) {
