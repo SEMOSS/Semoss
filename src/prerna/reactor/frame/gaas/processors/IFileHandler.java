@@ -29,47 +29,13 @@ package prerna.reactor.frame.gaas.processors;
 
 import java.io.File;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 
-public abstract class AbstractFileProcessor implements IFileProcessor {
+public interface IFileHandler {
+	
+  boolean supportsFile(File file);
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractFileProcessor.class);
-
-	protected String filePath = null;
-	protected VectorDatabaseCSVWriter writer = null;
-
-	public AbstractFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
-	}
-
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	protected String getSource(String filePath) {
-		File file = new File(filePath);
-		return file.getName();
-	}
-
-	/**
-	 * 
-	 * @param file
-	 * @param writer
-	 * @return
-	 */
-	public static IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
-		// pick up the files and convert them to CSV
-		classLogger.info("Processing file : " + file.getName());
-
-		FileHandlerChain handlerChain = FileHandlerChain.getCoreHandlerChain();
-
-		return handlerChain.getFileProcessor(file, writer);
-
-	}
-
+  int handleProcessing(File file, VectorDatabaseCSVWriter writer) throws Exception;
+  
+  IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer);
 }
