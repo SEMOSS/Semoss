@@ -33,6 +33,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 
 
@@ -201,7 +202,7 @@ class OpenAIMessageBuilder:
                             content_parts = []
 
                         output = p.tool_result.output or "Tool executed successfully."
-                        blocks = self._parse_tool_result_blocks(output)
+                        blocks = parse_multimodal_tool_response(output)
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
@@ -267,7 +268,7 @@ class OpenAIMessageBuilder:
 
                 if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
                     output = message.content or "Tool executed successfully."
-                    blocks = self._parse_tool_result_blocks(output)
+                    blocks = parse_multimodal_tool_response(output)
                     openai_messages.append(
                         OpenAIResponsesToolCallOutput(
                             type="function_call_output",
@@ -1037,41 +1038,26 @@ class OpenAIMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {message_type}")
 
-    def _parse_tool_result_blocks(self, output: str):
-        """Return blocks from a SEMOSSMultimodalToolResponse envelope, or None for plain text."""
-        try:
-            parsed = json.loads(output)
-        except (json.JSONDecodeError, TypeError):
-            return None
-        if not isinstance(parsed, dict):
-            return None
-        blocks = parsed.get("SEMOSSMultimodalToolResponse")
-        if not isinstance(blocks, list) or not blocks:
-            return None
-        return blocks
-
     def _build_responses_tool_output(self, output: str, blocks):
-        """Convert MCP blocks to Responses API tool content.
-        Images become input_image data-URIs; PDFs become input_file blocks."""
+        """Convert SEMOSS multimodal blocks to Responses API tool content.
+        Images become input_image data-URIs; documents become input_file blocks."""
         if blocks is None:
             return output or "Tool executed successfully."
         result = []
         for b in blocks:
-            if b["type"] == "text":
-                result.append({"type": "input_text", "text": b["text"]})
-            elif b["type"] == "image":
-                if "data" not in b:
-                    continue  # unresolved file ref — Java should have inlined this
-                mime = b.get("mimeType", "image/png")
+            if b.type == "text":
+                result.append({"type": "input_text", "text": b.text})
+            elif not b.data:
+                continue  # unresolved file ref - Java should have inlined this
+            elif b.type == "image":
+                mime = b.mime_type or "image/png"
                 result.append({"type": "input_image",
-                               "image_url": f"data:{mime};base64,{b['data']}"})
-            elif b["type"] == "document":
-                if "data" not in b:
-                    continue
-                mime = b.get("mimeType", "application/pdf")
+                               "image_url": f"data:{mime};base64,{b.data}"})
+            else:
+                mime = b.mime_type or "application/pdf"
                 result.append({"type": "input_file",
                                "filename": "document.pdf",
-                               "file_data": f"data:{mime};base64,{b['data']}"})
+                               "file_data": f"data:{mime};base64,{b.data}"})
         return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(

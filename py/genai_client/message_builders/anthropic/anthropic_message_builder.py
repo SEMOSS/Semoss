@@ -24,6 +24,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 from ...utils import string_to_bool
 from ..semoss_base.builtin_tools import (
@@ -579,69 +580,65 @@ class AnthropicMessageBuilder:
 
     def _parse_tool_result_content(
         self, output: Optional[str]
-    ) -> Union[str, List[Dict[str, Any]]]:
+    ) -> Union[
+        str,
+        List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ],
+    ]:
         """Convert a tool output string into Anthropic tool-result content.
 
         Detects a SEMOSSMultimodalToolResponse envelope and translates the
-        blocks to Anthropic format. Plain text or unrecognised JSON is returned
-        as a string so the existing single-string path is preserved.
+        blocks to Anthropic content parts. Plain text, or anything that fails
+        envelope validation, is returned as a string so the existing
+        single-string path is preserved.
         """
         if not output:
             return "Tool executed successfully."
 
-        try:
-            parsed = json.loads(output)
-        except (json.JSONDecodeError, TypeError):
+        blocks = parse_multimodal_tool_response(output)
+        if blocks is None:
             return output
 
-        if not isinstance(parsed, dict):
-            return output
-
-        raw_blocks = parsed.get("SEMOSSMultimodalToolResponse")
-        if not isinstance(raw_blocks, list) or not raw_blocks:
-            return output
-
-        blocks: List[Dict[str, Any]] = []
-        for item in raw_blocks:
-            if not isinstance(item, dict) or "type" not in item:
-                return output
-            block_type = item["type"]
-            if block_type == "text":
-                blocks.append({"type": "text", "text": item.get("text", "")})
-            elif block_type == "image":
-                if "data" not in item:
-                    continue  # unresolved file ref — Java should have inlined this
-                mime = item.get("mimeType", "image/png")
+        parts: List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ] = []
+        for block in blocks:
+            if block.type == "text":
+                parts.append(AnthropicTextContentPart(text=block.text))
+            elif not block.data:
+                # unresolved file ref - Java should have inlined this; skip
+                continue
+            elif block.type == "image":
+                mime = block.mime_type or "image/png"
                 if mime == "image/jpg":
                     mime = "image/jpeg"
-                blocks.append(
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": mime,
-                            "data": item["data"],
-                        },
-                    }
-                )
-            elif block_type == "document":
-                if "data" not in item:
-                    continue
-                mime = item.get("mimeType", "application/pdf")
-                blocks.append(
-                    {
-                        "type": "document",
-                        "source": {
-                            "type": "base64",
-                            "media_type": mime,
-                            "data": item["data"],
-                        },
-                    }
+                parts.append(
+                    AnthropicImageContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=mime, data=block.data
+                        )
+                    )
                 )
             else:
-                return output  # unknown block type — fall back to raw string
+                parts.append(
+                    AnthropicDocumentContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=block.mime_type or "application/pdf",
+                            data=block.data,
+                        )
+                    )
+                )
 
-        return blocks if blocks else output
+        return parts if parts else output
 
     def _build_text_content_part(self, content: str) -> AnthropicTextContentPart:
         """Build Anthropic text content part"""

@@ -8,6 +8,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 
 # from google.genai.types import (
@@ -73,7 +74,7 @@ class GoogleGenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         output = p.tool_result.output or "Tool executed successfully."
-                        blocks = self._parse_tool_result_blocks(output)
+                        blocks = parse_multimodal_tool_response(output)
                         parts.append(
                             self._build_function_response_part(
                                 name=tool_id_to_name.get(
@@ -180,7 +181,7 @@ class GoogleGenAIMessageBuilder:
 
                         if tool_name and message.content:
                             output = message.content
-                            blocks = self._parse_tool_result_blocks(output)
+                            blocks = parse_multimodal_tool_response(output)
                             pending_tool_responses.append(
                                 self._build_function_response_part(
                                     name=tool_name,
@@ -334,48 +335,40 @@ class GoogleGenAIMessageBuilder:
 
     def _build_function_response_part(self, name: str, output: str, blocks) -> Part:
         """Build a function_response Part, embedding binary blocks as FunctionResponseBlob."""
-        text_parts = [b["text"] for b in blocks if b["type"] == "text"] if blocks else None
-        text = "\n".join(text_parts) if text_parts else ("See attached media." if blocks else output)
+        if blocks is None:
+            return Part.from_function_response(name=name, response={"result": output})
 
-        if blocks:
-            try:
-                media_parts = []
-                for block in blocks:
-                    if block["type"] in ("image", "document"):
-                        mime = block.get("mimeType", "image/png")
-                        ext = mime.split("/")[-1]
-                        media_parts.append(
-                            types.FunctionResponsePart(
-                                inline_data=types.FunctionResponseBlob(
-                                    mime_type=mime,
-                                    display_name=f"attachment.{ext}",
-                                    data=base64.b64decode(block["data"]),
-                                )
+        text_parts = [b.text for b in blocks if b.type == "text"]
+        text = "\n".join(text_parts) if text_parts else "See attached media."
+
+        try:
+            media_parts = []
+            for block in blocks:
+                if block.type in ("image", "document") and block.data:
+                    try:
+                        data_bytes = base64.b64decode(block.data)
+                    except (ValueError, TypeError):
+                        continue  # malformed base64 - skip this block
+                    mime = block.mime_type or "image/png"
+                    media_parts.append(
+                        types.FunctionResponsePart(
+                            inline_data=types.FunctionResponseBlob(
+                                mime_type=mime,
+                                display_name=f"attachment.{mime.split('/')[-1]}",
+                                data=data_bytes,
                             )
                         )
-                if media_parts:
-                    return Part.from_function_response(
-                        name=name,
-                        response={"result": text},
-                        parts=media_parts,
                     )
-            except Exception:
-                pass
+            if media_parts:
+                return Part.from_function_response(
+                    name=name,
+                    response={"result": text},
+                    parts=media_parts,
+                )
+        except (TypeError, AttributeError, ValueError):
+            pass
 
         return Part.from_function_response(name=name, response={"result": text})
-
-    def _parse_tool_result_blocks(self, output: str):
-        """Return blocks from a SEMOSSMultimodalToolResponse envelope, or None for plain text."""
-        try:
-            parsed = json.loads(output)
-        except (json.JSONDecodeError, TypeError):
-            return None
-        if not isinstance(parsed, dict):
-            return None
-        blocks = parsed.get("SEMOSSMultimodalToolResponse")
-        if not isinstance(blocks, list) or not blocks:
-            return None
-        return blocks
 
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""

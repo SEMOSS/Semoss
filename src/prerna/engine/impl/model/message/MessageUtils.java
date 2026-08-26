@@ -29,6 +29,7 @@ package prerna.engine.impl.model.message;
 
 import java.lang.reflect.Type;
 import java.net.Socket;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -596,7 +597,7 @@ public class MessageUtils {
 				}
 			}
 		}
-		// Resolve image path references in tool results temporarily — inline base64
+		// Resolve image path references in tool results temporarily - inline base64
 		// only for this model call. Originals are restored in the finally block so
 		// base64 is never persisted to DB or included in response payloads.
 		IdentityHashMap<ToolResultPart, String> originalOutputs = new IdentityHashMap<>();
@@ -630,7 +631,7 @@ public class MessageUtils {
 	/**
 	 * Detects a {@code SEMOSSMultimodalToolResponse} envelope in a tool output
 	 * string and expands any {@code {"type":"image","image":[...]}} image-reference
-	 * blocks into inline base64 {@code image} or {@code document} blocks — one
+	 * blocks into inline base64 {@code image} or {@code document} blocks - one
 	 * output block per path. Blocks of other types are passed through unchanged.
 	 * Returns the original string on any parse error or if the envelope is absent.
 	 */
@@ -643,12 +644,11 @@ public class MessageUtils {
 			JsonArray blocks = parsed.getAsJsonArray(SEMOSS_MULTIMODAL_KEY);
 			JsonArray resolved = new JsonArray();
 			boolean anyResolved = false;
+			Path roomDir = Paths.get(roomFolderPath).normalize();
 
 			for (JsonElement el : blocks) {
 				JsonObject block = el.getAsJsonObject();
 				String type = block.has("type") ? block.get("type").getAsString() : null;
-				// File-reference block: {"type":"image","image":["file.png",...]}
-				// Distinguished from inline blocks (which carry "data", not "image")
 				if ("image".equals(type) && block.has("image") && !block.has("data")) {
 					JsonElement imageEl = block.get("image");
 					List<String> relPaths = new ArrayList<>();
@@ -660,7 +660,12 @@ public class MessageUtils {
 						relPaths.add(imageEl.getAsString());
 					}
 					for (String relPath : relPaths) {
-						String absPath = Paths.get(roomFolderPath, relPath).normalize().toString();
+						Path resolvedPath = roomDir.resolve(relPath).normalize();
+						if (!resolvedPath.startsWith(roomDir)) {
+							classLogger.warn("Skipping tool result media reference outside the room folder: " + relPath);
+							continue;
+						}
+						String absPath = resolvedPath.toString();
 						String format = MessageInputMedia.extractFormat(absPath);
 						String mime = MessageInputMedia.guessMimeType(absPath, format);
 						String b64 = MessageInputMedia.encodeFileToBase64(absPath);
@@ -673,7 +678,7 @@ public class MessageUtils {
 							resolved.add(inlined);
 							anyResolved = true;
 						}
-						// file unreadable — skip silently
+						// file unreadable - skip silently
 					}
 				} else {
 					resolved.add(block);
@@ -688,11 +693,10 @@ public class MessageUtils {
 			return out.toString();
 
 		} catch (Exception e) {
-			// Not the expected format or parse error — pass through unchanged
+			// Not the expected format or parse error - pass through unchanged
 			return output;
 		}
 	}
-
 
 	/**
 	 * Returns a root-to-leaf message branch ending at {@code newMessage} (or the
