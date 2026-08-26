@@ -1005,12 +1005,23 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		return LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
 	}
 
+	/**
+	 * Whole numbers parse as longs rather than gson's default doubles, matching
+	 * how the catalog serializes them. With the default policy a stored
+	 * benchmark score of 85 read back as 85.0, so every catalog comparison
+	 * flagged BENCHMARKS as changed and every settings save rewrote the column
+	 * with the drifted value.
+	 */
 	private static List<?> parseStoredJsonArray(String json) {
-		return json == null ? null : GSON.fromJson(json, List.class);
+		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
 	}
 
+	/**
+	 * Same long-or-double policy as {@link #parseStoredJsonArray(String)}, for
+	 * the integer limits a reasoning config can carry.
+	 */
 	private static Map<?, ?> parseStoredJsonObject(String json) {
-		return json == null ? null : GSON.fromJson(json, Map.class);
+		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
 	}
 
 	private static Map<String, Object> readModelMetadata(ResultSet rs) throws SQLException {
