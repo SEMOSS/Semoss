@@ -105,6 +105,17 @@ public final class StaticModelMetadataCatalog {
 			.comparingDouble((Map<String, Object> match) -> ((Number) match.get(MATCH_SCORE)).doubleValue()).reversed()
 			.thenComparing(match -> String.valueOf(match.get(MATCH_KEY)), String.CASE_INSENSITIVE_ORDER);
 
+	/**
+	 * Token limits below this are the catalog's 0/1 "unknown" placeholders, not
+	 * real values, and must not become form defaults.
+	 */
+	private static final long MINIMUM_REAL_TOKEN_LIMIT = 2;
+
+	private static final Comparator<Map<String, Object>> IMPORTABLE_MODEL_ORDER = Comparator
+			.comparing((Map<String, Object> entry) -> String.valueOf(entry.getOrDefault("releaseDate", "")),
+					Comparator.reverseOrder())
+			.thenComparing(entry -> String.valueOf(entry.get("modelId")), String.CASE_INSENSITIVE_ORDER);
+
 	private static volatile MetadataCache metadataCache;
 
 	private StaticModelMetadataCatalog() {
@@ -387,6 +398,85 @@ public final class StaticModelMetadataCatalog {
 		List<String> catalogKeys = new ArrayList<>(loadMetadata(metadataFile).keySet());
 		catalogKeys.sort(String.CASE_INSENSITIVE_ORDER);
 		return catalogKeys;
+	}
+
+	/**
+	 * The catalog models importable through each of the requested serving
+	 * providers, keyed by the normalized provider key the caller asked for (see
+	 * {@link StaticBuiltinToolsCatalog#normalizeProviderKey(String)}). A model is
+	 * listed under a provider when the catalog's pricing object names that
+	 * provider as a serving host - the pricing entry's inner key is the exact
+	 * model id that host serves, which is what an import form needs to submit.
+	 * <p>
+	 * Only text-output models are returned; image/video/embedding entries are
+	 * curated by hand where they are supported at all. Token limits are dropped
+	 * when the catalog holds a 0/1 placeholder rather than a real value. Entries
+	 * are sorted newest release first. Hosts with no catalog models map to an
+	 * empty list so the caller can tell "no models" from "unknown host".
+	 */
+	public static Map<String, List<Map<String, Object>>> listImportableModels(Path metadataFile,
+			Set<String> normalizedHosts) {
+		Map<String, List<Map<String, Object>>> modelsByHost = new LinkedHashMap<>();
+		if (normalizedHosts == null || normalizedHosts.isEmpty()) {
+			return modelsByHost;
+		}
+		for (String host : normalizedHosts) {
+			modelsByHost.put(host, new ArrayList<>());
+		}
+		if (!Files.isRegularFile(metadataFile)) {
+			return modelsByHost;
+		}
+
+		JsonObject allMetadata = loadMetadata(metadataFile);
+		for (Map.Entry<String, JsonElement> catalogEntry : allMetadata.entrySet()) {
+			if (!catalogEntry.getValue().isJsonObject()) {
+				continue;
+			}
+			JsonObject model = catalogEntry.getValue().getAsJsonObject();
+			JsonObject modalities = getObject(model, "modalities");
+			List<String> outputModalities = getStringList(modalities, "output");
+			if (!outputModalities.contains("text")) {
+				continue;
+			}
+			JsonObject pricing = getObject(model, "pricing");
+			if (pricing == null) {
+				continue;
+			}
+			for (String servingKey : pricing.keySet()) {
+				String normalized = StaticBuiltinToolsCatalog.normalizeProviderKey(servingKey);
+				List<Map<String, Object>> hostModels = normalized == null ? null : modelsByHost.get(normalized);
+				if (hostModels == null) {
+					continue;
+				}
+				JsonObject ratesByModelId = getObject(pricing, servingKey);
+				if (ratesByModelId == null) {
+					continue;
+				}
+				for (String servingModelId : ratesByModelId.keySet()) {
+					Map<String, Object> entry = new LinkedHashMap<>();
+					entry.put("key", catalogEntry.getKey());
+					entry.put("modelId", servingModelId);
+					putString(entry, "name", model, "name");
+					putString(entry, "description", model, "description");
+					putString(entry, "family", model, "family");
+					putString(entry, "provider", model, "provider");
+					putString(entry, "releaseDate", model, "release_date");
+					JsonObject limit = getObject(model, "limit");
+					putLong(entry, "contextLimit", limit, "context", MINIMUM_REAL_TOKEN_LIMIT);
+					putLong(entry, "outputLimit", limit, "output", MINIMUM_REAL_TOKEN_LIMIT);
+					entry.put("inputModalities", getStringList(modalities, "input"));
+					entry.put("outputModalities", outputModalities);
+					putBoolean(entry, "reasoning", model, "reasoning");
+					putBoolean(entry, "toolCall", model, "tool_call");
+					hostModels.add(entry);
+				}
+			}
+		}
+
+		for (List<Map<String, Object>> hostModels : modelsByHost.values()) {
+			hostModels.sort(IMPORTABLE_MODEL_ORDER);
+		}
+		return modelsByHost;
 	}
 
 	/**
