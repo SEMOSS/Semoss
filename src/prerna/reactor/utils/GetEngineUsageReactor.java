@@ -1070,7 +1070,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Example Output (transfer + delete operations)
 
-						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, `SyncLocalToStorage`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+
+						`SyncLocalToStorage` instead returns the outcome of the sync, so a run where only some files made it can be told apart from a clean one:
+
+						```json
+						{
+						    "storagePath": "your/storage/path",
+						    "status": "SUCCESS",
+						    "uploadedFiles": ["your/storage/path/a.csv"],
+						    "skippedFiles": ["your/storage/path/b.csv"],
+						    "failedFiles": []
+						}
+						```
+
+						`status` is `SUCCESS` when nothing failed, `PARTIAL` when some files made it and others did not, and `FAILED` when none did. `skippedFiles` are files already in storage and unchanged, so they were not rewritten. Engines that hand the whole transfer off in a single call cannot name individual files and report `SUCCESS` with empty lists, so an empty `uploadedFiles` means "not reported", not "nothing uploaded".
 
 						```json
 						{

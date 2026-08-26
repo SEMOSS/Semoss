@@ -3217,6 +3217,46 @@ public final class Utility {
 		return Boolean.parseBoolean(boolString);
 	}
 
+	public static boolean getApplicationAdminOnlyWorkspaceAdd() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_ADD));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceDelete() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_DELETE));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceAddAccess() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_ADD_ACCESS));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceSetPublic() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_SET_PUBLIC));
+	}
+
+	public static boolean getApplicationAdminOnlyWorkspaceSetDiscoverable() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE));
+	}
+
+	public static boolean getApplicationAdminOnlySkillAdd() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_ADD));
+	}
+
+	public static boolean getApplicationAdminOnlySkillDelete() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_DELETE));
+	}
+
+	public static boolean getApplicationAdminOnlySkillAddAccess() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_ADD_ACCESS));
+	}
+
+	public static boolean getApplicationAdminOnlySkillSetPublic() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_SET_PUBLIC));
+	}
+
+	public static boolean getApplicationAdminOnlySkillSetDiscoverable() {
+		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.ADMIN_ONLY_SKILL_SET_DISCOVERABLE));
+	}
+
 	/**
 	 * Determine if for this instance only the admin can share insight
 	 * 
