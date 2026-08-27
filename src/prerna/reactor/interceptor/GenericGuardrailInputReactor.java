@@ -37,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -52,6 +53,7 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 
 	// default guardrail input param whose mapped argument gets overwritten when masking
 	private static final String DEFAULT_MASK_TARGET_PARAM = "prompt";
+	private static final String DEFAULT_TOOL_CONTINUATION_ARG = "arg2";
 
 	public GenericGuardrailInputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
@@ -70,6 +72,16 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
+		}
+
+		// Some mounts (e.g. prompt-injection classifiers tuned on user-typed text) should
+		// only ever see real user turns - askRoom is reused for tool-result continuations,
+		// so skip this mount entirely when the guarded argument is carrying a tool result.
+		if (Boolean.TRUE.equals(helper.getConfigParameter("skipOnToolContinuation", Boolean.class))
+				&& isToolContinuation(helper)) {
+			Map<String, Object> processedArguments = helper.getArgumentsMap();
+			processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, createSkippedInterimResult());
+			return new NounMetadata(processedArguments, PixelDataType.MAP);
 		}
 
 		// Get the input mapping for the guardrail engine
@@ -243,6 +255,29 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
 		}
 
+		return resultMap;
+	}
+
+	/**
+	 * True when the argument named by {@code toolContinuationArg} (default
+	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) is a message carrying a tool result rather
+	 * than a real user turn.
+	 */
+	private boolean isToolContinuation(ReactorInputHelper helper) {
+		String argName = helper.getConfigParameter("toolContinuationArg", String.class);
+		if (argName == null || argName.isEmpty()) {
+			argName = DEFAULT_TOOL_CONTINUATION_ARG;
+		}
+		Object argValue = helper.getMethodArgument(argName);
+		return argValue instanceof AbstractMessage && ((AbstractMessage) argValue).hasToolResultPart();
+	}
+
+	private Map<String, Object> createSkippedInterimResult() {
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put(PipelineReactorUtils.INTERCEPTOR, this.getClass().getName());
+		resultMap.put(PipelineReactorUtils.PASS, true);
+		resultMap.put(PipelineReactorUtils.PASS_DETAILS, "Skipped: tool-result continuation, not a user prompt");
+		resultMap.put(PipelineReactorUtils.MASKED, false);
 		return resultMap;
 	}
 }
