@@ -13,6 +13,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMessagePartType,
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
+    parse_multimodal_tool_response,
 )
 from .bedrock_models import (
     BedrockMessage,
@@ -85,9 +86,11 @@ class BedrockMessageBuilder:
                         content_blocks.append(tool_use_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = parse_multimodal_tool_response(output)
                         tool_result_data = {
                             "toolUseId": p.tool_result.id,
-                            "content": [{"text": p.tool_result.output}],
+                            "content": self._build_bedrock_tool_content(output, blocks),
                         }
                         tool_result_part = BedrockToolResultContentBlock(
                             toolResult=tool_result_data
@@ -525,13 +528,41 @@ class BedrockMessageBuilder:
 
         return BedrockToolUseContentBlock(toolUse=tool_use_data)
 
+    def _build_bedrock_tool_content(self, output: str, blocks) -> list:
+        """Convert SEMOSS multimodal blocks to Bedrock tool result content array."""
+        if blocks is None:
+            return [{"text": output or "Tool executed successfully."}]
+        result = []
+        for b in blocks:
+            if b.type == "text":
+                result.append({"text": b.text})
+            elif not b.data:
+                continue  # unresolved file ref - Java should have inlined this
+            else:
+                try:
+                    data_bytes = base64.b64decode(b.data)
+                except (ValueError, TypeError):
+                    continue  # malformed base64 - skip this block
+                if b.type == "image":
+                    fmt = (b.mime_type or "image/png").split("/")[-1]
+                    if fmt == "jpg":
+                        fmt = "jpeg"
+                    result.append({"image": {"format": fmt,
+                                             "source": {"bytes": data_bytes}}})
+                else:
+                    fmt = (b.mime_type or "application/pdf").split("/")[-1]
+                    result.append({"document": {"format": fmt, "name": "document",
+                                                "source": {"bytes": data_bytes}}})
+        return result or [{"text": output or "Tool executed successfully."}]
+
     def _build_tool_result_block(
         self, tool_use_id: str, tool_name: str, result_content: str
     ) -> BedrockToolResultContentBlock:
         """Build a tool result content block."""
+        blocks = parse_multimodal_tool_response(result_content)
         tool_result_data = {
             "toolUseId": tool_use_id,
-            "content": [{"text": result_content}],
+            "content": self._build_bedrock_tool_content(result_content, blocks),
         }
 
         return BedrockToolResultContentBlock(toolResult=tool_result_data)

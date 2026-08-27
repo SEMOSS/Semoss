@@ -25,34 +25,32 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.interceptor;
+package prerna.engine.api;
 
-/**
- * A utility class to hold the constant keys for the keyValue map passed to
- * pipeline reactors.
- */
-public final class PipelineReactorUtils {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-	public static final String INPUT_REACTOR_NAME = "inputReactorName";
-	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String IS_SUCCESS = "isSuccess";
+import org.junit.jupiter.api.Test;
 
-	// public static final String REACTOR_SPAN_ID = "reactorSpanId";
-	public static final String METHOD_NAME = "methodName";
-	public static final String ARGUMENTS = "arguments";
-	public static final String RESULT = "result";
-	public static final String INTERIM_RESULT = "interim_result";
-	public static final String CONFIG = "config";
-	public static final String TARGET_PARAM = "target_param";
-	public static final String INTERCEPTOR = "interceptor";
-	public static final String PASS = "pass";
-	public static final String PASS_DETAILS = "passDetails";
-	public static final String MASKED = "masked";
-	public static final String SHORT_CIRCUIT_RESPONSE = "shortCircuitResponse";
-	public static final String CLOSE_ROOM = "closeRoom";
-	public static final String BLOCK_ERROR_MESSAGE = "blockErrorMessage";
+class ModelCapabilityEnumUnitTests {
 
-	private PipelineReactorUtils() {
-		// private constructor to prevent instantiation
+	@Test
+	void parsesCapabilityNames() {
+		assertEquals(ModelCapabilityEnum.TEXT_GENERATION, ModelCapabilityEnum.fromName("text-generation"));
+		assertEquals(ModelCapabilityEnum.EMBEDDING, ModelCapabilityEnum.fromName("EMBEDDING"));
+	}
+
+	@Test
+	void parsesCommonAliases() {
+		assertEquals(ModelCapabilityEnum.TEXT_GENERATION, ModelCapabilityEnum.fromName("chat"));
+		assertEquals(ModelCapabilityEnum.TEXT_GENERATION, ModelCapabilityEnum.fromName("LLM"));
+		assertEquals(ModelCapabilityEnum.EMBEDDING, ModelCapabilityEnum.fromName("embeddings"));
+		assertEquals(ModelCapabilityEnum.SPEECH_SYNTHESIS, ModelCapabilityEnum.fromName("text-to-speech"));
+		assertEquals(ModelCapabilityEnum.TRANSCRIPTION, ModelCapabilityEnum.fromName("stt"));
+	}
+
+	@Test
+	void rejectsUnknownNames() {
+		assertThrows(IllegalArgumentException.class, () -> ModelCapabilityEnum.fromName("chat_model"));
 	}
 }

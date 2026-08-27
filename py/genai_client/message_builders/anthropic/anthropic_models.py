@@ -64,14 +64,18 @@ class AnthropicToolUseContentPart(BaseModel):
 class AnthropicToolResultContentPart(BaseModel):
     type: str = "tool_result"
     tool_use_id: str
-    content: str
+    content: Union[
+        str,
+        List[
+            Union[
+                "AnthropicTextContentPart",
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ],
+    ]
 
 
-# Result block for Anthropic server-side tools (web_search,
-# code_execution, ...). Lives inside the assistant turn (unlike the regular
-# tool_result block, which only belongs in user turns). The `type` is
-# provider-specific (e.g. "web_search_tool_result") and the content is a
-# structured list of result entries rather than an opaque string.
 class AnthropicServerToolResultContentPart(BaseModel):
     type: str
     tool_use_id: str
@@ -91,14 +95,25 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheTTL(StringEnum):
+    FIVE_MINUTES = "5m"
+    ONE_HOUR = "1h"
+
+
 class AnthropicCacheControl(BaseModel):
     type: str = "ephemeral"
+    # Omitted entirely for the 5m default so the request matches what Anthropic
+    # expects when no explicit lifetime is requested.
+    ttl: Optional[AnthropicCacheTTL] = None
 
 
 class AnthropicTextContentPart(BaseModel):
     type: str = "text"
     text: str
     cache_control: Optional[AnthropicCacheControl] = None
+
+
+AnthropicToolResultContentPart.model_rebuild()
 
 
 class AnthropicMessage(BaseModel):

@@ -24,6 +24,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 from ...utils import string_to_bool
 from ..semoss_base.builtin_tools import (
@@ -159,7 +160,9 @@ class AnthropicMessageBuilder:
                         else:
                             tool_result_part = AnthropicToolResultContentPart(
                                 tool_use_id=p.tool_result.id,
-                                content=p.tool_result.output,
+                                content=self._parse_tool_result_content(
+                                    p.tool_result.output
+                                ),
                             )
                             content_parts.append(tool_result_part)
 
@@ -574,6 +577,68 @@ class AnthropicMessageBuilder:
             return AnthropicRoles.ASSISTANT
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _parse_tool_result_content(
+        self, output: Optional[str]
+    ) -> Union[
+        str,
+        List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ],
+    ]:
+        """Convert a tool output string into Anthropic tool-result content.
+
+        Detects a SEMOSSMultimodalToolResponse envelope and translates the
+        blocks to Anthropic content parts. Plain text, or anything that fails
+        envelope validation, is returned as a string so the existing
+        single-string path is preserved.
+        """
+        if not output:
+            return "Tool executed successfully."
+
+        blocks = parse_multimodal_tool_response(output)
+        if blocks is None:
+            return output
+
+        parts: List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ] = []
+        for block in blocks:
+            if block.type == "text":
+                parts.append(AnthropicTextContentPart(text=block.text))
+            elif not block.data:
+                # unresolved file ref - Java should have inlined this; skip
+                continue
+            elif block.type == "image":
+                mime = block.mime_type or "image/png"
+                if mime == "image/jpg":
+                    mime = "image/jpeg"
+                parts.append(
+                    AnthropicImageContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=mime, data=block.data
+                        )
+                    )
+                )
+            else:
+                parts.append(
+                    AnthropicDocumentContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=block.mime_type or "application/pdf",
+                            data=block.data,
+                        )
+                    )
+                )
+
+        return parts if parts else output
 
     def _build_text_content_part(self, content: str) -> AnthropicTextContentPart:
         """Build Anthropic text content part"""

@@ -166,7 +166,11 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		// Call the guardrail engine's execute method
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
-		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams, output, this.getClass().getName());
+		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
+		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
+
+		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams, output, this.getClass().getName(),
+				closeRoomOnBlock, blockErrorMessage);
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
@@ -190,13 +194,19 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams,
-			GuardrailNounMetadata output, String interceptorName) {
+			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, String blockErrorMessage) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
 		resultMap.put(FULL_DETAILS_KEY, output.getFullDetails());
 		resultMap.put("guardrailEngineParams", guardrailEngineParams);
 		resultMap.put(PipelineReactorUtils.PASS, output.isPass());
+		if (Boolean.TRUE.equals(closeRoomOnBlock) && !output.isPass()) {
+			resultMap.put(PipelineReactorUtils.CLOSE_ROOM, true);
+		}
+		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
+			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
+		}
 		return resultMap;
 	}
 }
