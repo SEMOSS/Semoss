@@ -41,7 +41,7 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 
 	public GetUserModelUsageRestrictionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
@@ -54,11 +54,16 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
+		Map<String, Object> userRestrictionMap;
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Model " + engineId + " does not exist or user does not have access to this model");
+			}
+			userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(user, engineId);
+		} else {
+			userRestrictionMap = ModelUsageRestrictionUtility.getUserLevelRestriction(user);
 		}
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(user, engineId);
 
 		return new NounMetadata(userRestrictionMap, PixelDataType.MAP);
 	}
