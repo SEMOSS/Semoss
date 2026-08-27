@@ -169,8 +169,16 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
 
+		// When configured to respond (rather than block), hand the guardrail's own
+		// message back as the result in place of the real model response.
+		String cannedResponse = null;
+		Boolean respondWithGuardrailMessage = helper.getConfigParameter("respondWithGuardrailMessage", Boolean.class);
+		if (Boolean.TRUE.equals(respondWithGuardrailMessage) && !output.isPass()) {
+			cannedResponse = output.getReturnPrompt();
+		}
+
 		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams, output, this.getClass().getName(),
-				closeRoomOnBlock, blockErrorMessage);
+				closeRoomOnBlock, blockErrorMessage, cannedResponse);
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
@@ -194,7 +202,8 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams,
-			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, String blockErrorMessage) {
+			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, String blockErrorMessage,
+			String cannedResponse) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
@@ -206,6 +215,9 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		}
 		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
+		}
+		if (cannedResponse != null) {
+			resultMap.put(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE, cannedResponse);
 		}
 		return resultMap;
 	}

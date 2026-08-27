@@ -442,7 +442,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
-					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
+					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
+							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
 
 					String request = null;
 					String response = null;
@@ -456,6 +458,17 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
+
+					if (cannedResponse != null) {
+						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
+							closeRoomIfRequested(resultMap, args);
+							throw new SemossPixelException(blockMessageOrDefault(resultMap,
+									"Unable to process this request due to content policy (guardrail output exception)"));
+						}
+						classLogger.warn("Guardrail {} short-circuited the model call with a canned response",
+								reactor.getClass().getSimpleName());
+						return new AskStringModelEngineResponse(cannedResponse, 0, 0);
+					}
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
