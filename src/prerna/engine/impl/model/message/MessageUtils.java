@@ -64,6 +64,7 @@ import prerna.util.gson.SemossDateAdapter;
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
+
 	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
 	private static final String HIDDEN_MESSAGE_ACK = "Understood - I'll wait for your next instruction.";
 
@@ -167,8 +168,8 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Appends a hidden user note and platform acknowledgement to a room. The
-	 * caller is responsible for holding the room mutation lock and persisting.
+	 * Appends a hidden user note and platform acknowledgement to a room. The caller
+	 * is responsible for holding the room mutation lock and persisting.
 	 *
 	 * @param room           target room
 	 * @param modelEngine    model associated with the hidden input
@@ -222,62 +223,6 @@ public class MessageUtils {
 		} catch (Exception e) {
 			return argsRaw;
 		}
-	}
-
-	/**
-	 * API compatibility: add legacy flat fields into a map built from a message
-	 * JSON. This keeps FE consumers working while storage stays on parts-based
-	 * schema.
-	 *
-	 * @param msg    input message source
-	 * @param target output map to enrich (created when null)
-	 * @return enriched map containing legacy input fields
-	 */
-	@Deprecated
-	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
-		if (target == null) {
-			target = new LinkedHashMap<>();
-		}
-		if (msg == null) {
-			return target;
-		}
-		if (msg.getMessageType() != null) {
-			target.put("type", msg.getMessageType().name());
-		}
-		String inputPrompt = msg.getInputPrompt();
-		if (inputPrompt != null) {
-			target.put("inputPrompt", inputPrompt);
-		}
-		String inputUIPrompt = msg.getInputUIPrompt();
-		if (inputUIPrompt != null) {
-			target.put("inputUIPrompt", inputUIPrompt);
-		}
-		String systemPrompt = msg.getSystemPrompt();
-		if (systemPrompt != null && !systemPrompt.isEmpty()) {
-			target.put("systemPrompt", systemPrompt);
-		}
-		String toolCallId = msg.getToolCallId();
-		if (toolCallId != null) {
-			target.put("tool_call_id", toolCallId);
-		}
-		String toolName = msg.getToolName();
-		if (toolName != null) {
-			target.put("tool_name", toolName);
-		}
-		String toolStatus = msg.getToolStatus();
-		if (toolStatus != null) {
-			target.put("tool_status", toolStatus);
-		}
-		Map<String, Object> toolParams = msg.getToolParameterValues();
-		if (toolParams != null) {
-			target.put("tool_parameter_values", toolParams);
-		}
-		List<MessageInputMedia> mediaInputs = msg.getMediaInfos();
-		if (mediaInputs == null) {
-			mediaInputs = new ArrayList<>();
-		}
-		target.put("mediaInputs", mediaInputs);
-		return target;
 	}
 
 	/**
@@ -425,19 +370,6 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Deserializes a JSON array of messages.
-	 *
-	 * @param jsonArrayString message-array JSON
-	 * @param room            room context used during post-load normalization
-	 * @return ordered list of deserialized messages
-	 */
-	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
-		List<AbstractMessage> result = fromJsonArrayPreservingToolState(jsonArrayString, room);
-		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
-		return sanitizeOrphanToolCalls(result, room);
-	}
-
-	/**
 	 * Deserializes a JSON array of messages without trimming unresolved tool-call
 	 * state. Use this for room projection storage/hydration where a tool batch may
 	 * be partially persisted while parallel tool executions are still completing.
@@ -462,21 +394,25 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
-	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
-	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a
+	 * matching TOOL_RESULT. Providers reject unpaired tool_use, so this rewinds
+	 * in-memory to the last clean turn boundary. Pure read-side; persisted JSON is
+	 * untouched until the next normal turn rewrites it.
 	 */
 	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
 		if (messages == null || messages.size() < 2) {
 			return messages != null ? messages : new ArrayList<>();
 		}
-		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
+		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and
+		// the full set of TOOL_RESULT ids
 		List<int[]> toolCallSlots = new ArrayList<>();
 		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
 		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
 		for (int i = 0; i < messages.size(); i++) {
 			AbstractMessage m = messages.get(i);
-			if (m == null) continue;
+			if (m == null) {
+				continue;
+			}
 			for (MessagePart part : m.getParts()) {
 				if (part instanceof ToolCallMessagePart tcp) {
 					Map<String, Object> tc = tcp.getToolCall();
@@ -491,11 +427,15 @@ public class MessageUtils {
 				} else if (part instanceof ToolResultMessagePart trp) {
 					ToolResultPart tr = trp.getToolResult();
 					String id = tr != null ? tr.getToolCallId() : null;
-					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+					if (id != null && !id.isBlank()) {
+						resultIdsSeen.add(id);
+					}
 				}
 			}
 		}
-		if (toolCallSlots.isEmpty()) return messages;
+		if (toolCallSlots.isEmpty()) {
+			return messages;
+		}
 
 		// pass 2: first slot with any unanswered id is the truncation point
 		int truncateAt = -1;
@@ -504,7 +444,9 @@ public class MessageUtils {
 			List<String> unmatched = null;
 			for (String id : toolCallIdsPerSlot.get(s)) {
 				if (!resultIdsSeen.contains(id)) {
-					if (unmatched == null) unmatched = new ArrayList<>();
+					if (unmatched == null) {
+						unmatched = new ArrayList<>();
+					}
 					unmatched.add(id);
 				}
 			}
@@ -514,10 +456,13 @@ public class MessageUtils {
 				break;
 			}
 		}
-		if (truncateAt < 0) return messages;
+		if (truncateAt < 0) {
+			return messages;
+		}
 
 		String roomId = room != null ? room.getId() : "<unknown>";
-		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
+		classLogger.warn(
+				"sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
 				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
 		return new ArrayList<>(messages.subList(0, truncateAt));
 	}
@@ -552,18 +497,6 @@ public class MessageUtils {
 	 */
 	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
-	}
-
-	/**
-	 * Builds the branch history ending in {@code newMessage} and serializes it for
-	 * model execution payloads.
-	 *
-	 * @param messages   full room message list
-	 * @param newMessage new leaf message to append as branch tail
-	 * @return branch JSON including image data
-	 */
-	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
-		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
 
 	/**
@@ -1148,15 +1081,15 @@ public class MessageUtils {
 		if (toolChoiceInput instanceof String) {
 			String val = ((String) toolChoiceInput).trim().toLowerCase();
 			switch (val) {
-				case "auto":
-					return makeToolChoice(ToolChoiceType.AUTO, null);
-				case "none":
-					return makeToolChoice(ToolChoiceType.NONE, null);
-				case "required":
-					return makeToolChoice(ToolChoiceType.REQUIRED, null);
-				default:
-					// "any" or unknown: treat as auto
-					return makeToolChoice(ToolChoiceType.AUTO, null);
+			case "auto":
+				return makeToolChoice(ToolChoiceType.AUTO, null);
+			case "none":
+				return makeToolChoice(ToolChoiceType.NONE, null);
+			case "required":
+				return makeToolChoice(ToolChoiceType.REQUIRED, null);
+			default:
+				// "any" or unknown: treat as auto
+				return makeToolChoice(ToolChoiceType.AUTO, null);
 			}
 		}
 
@@ -1170,28 +1103,28 @@ public class MessageUtils {
 			if (typeObj instanceof String) {
 				String type = ((String) typeObj).toLowerCase();
 				switch (type) {
-					case "auto":
-					case "any": // map OpenAI "any" to MCP/AUTO
-						return makeToolChoice(ToolChoiceType.AUTO, null);
-					case "none":
-						return makeToolChoice(ToolChoiceType.NONE, null);
-					case "required":
-						return makeToolChoice(ToolChoiceType.REQUIRED, null);
-					case "forced":
-						// (assume correct MCP style)
-						Object nameF = obj.get("name");
-						return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
-					case "function":
-						// OpenAI style object: {"type":"function", "name":"..."}
-						Object forcedName = obj.get("name");
-						if (forcedName instanceof String) {
-							return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
-						}
-						// Don't handle allowed_tools for now, skip
-						break;
-					default:
-						// Fallback
-						return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "auto":
+				case "any": // map OpenAI "any" to MCP/AUTO
+					return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "none":
+					return makeToolChoice(ToolChoiceType.NONE, null);
+				case "required":
+					return makeToolChoice(ToolChoiceType.REQUIRED, null);
+				case "forced":
+					// (assume correct MCP style)
+					Object nameF = obj.get("name");
+					return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+				case "function":
+					// OpenAI style object: {"type":"function", "name":"..."}
+					Object forcedName = obj.get("name");
+					if (forcedName instanceof String) {
+						return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+					}
+					// Don't handle allowed_tools for now, skip
+					break;
+				default:
+					// Fallback
+					return makeToolChoice(ToolChoiceType.AUTO, null);
 				}
 			}
 		}
@@ -1261,13 +1194,6 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Supported tool-choice strategy values.
-	 */
-	public enum ToolChoiceType {
-		FORCED, AUTO, REQUIRED, NONE
-	}
-
-	/**
 	 * Creates an MCP tool-choice payload.
 	 *
 	 * @param type tool-choice strategy
@@ -1281,41 +1207,6 @@ public class MessageUtils {
 			toolChoice.put("name", name);
 		}
 		return toolChoice;
-	}
-
-	/**
-	 * API compatibility: add legacy flat fields into a map built from a response
-	 * JSON.
-	 *
-	 * @param msg    response message source
-	 * @param target output map to enrich (created when null)
-	 * @return enriched map containing legacy response fields
-	 */
-	@Deprecated
-	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
-		if (target == null) {
-			target = new LinkedHashMap<>();
-		}
-		if (msg == null) {
-			return target;
-		}
-		if (msg.getMessageType() != null) {
-			target.put("type", msg.getMessageType().name());
-		}
-		String content = msg.getContent();
-		if (content != null) {
-			target.put("content", content);
-		}
-		String thinking = msg.getThinking();
-		if (thinking != null) {
-			target.put("thinking", thinking);
-		}
-		List<Map<String, Object>> toolResponses = msg.getToolResponses();
-		if (toolResponses == null) {
-			toolResponses = new ArrayList<>();
-		}
-		target.put("tool_responses", toolResponses);
-		return target;
 	}
 
 }

@@ -38,13 +38,12 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.Tika;
-import org.apache.tika.mime.MediaType;
 
 import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.util.MimeTypeUtility;
 
 public class MessageInputMedia {
 
@@ -196,29 +195,7 @@ public class MessageInputMedia {
 	}
 
 	public static String guessMimeType(String localPath, String format) {
-		try {
-			Path p = Paths.get(localPath);
-			Tika tika = new Tika();
-			String detectedType = tika.detect(p);
-			MediaType mediaType = MediaType.parse(detectedType);
-			if (mediaType != null) {
-				MediaType baseType = mediaType.getBaseType();
-				return baseType.toString();
-			}
-		} catch (IOException ignore) {
-		}
-
-		// fall back if tika cannot predict
-		if ("jpg".equals(format) || "jpeg".equals(format)) {
-			return "image/jpeg";
-		}
-		if ("png".equals(format)) {
-			return "image/png";
-		}
-		if ("gif".equals(format)) {
-			return "image/gif";
-		}
-		return "application/octet-stream";
+		return MimeTypeUtility.guessMimeType(localPath, format);
 	}
 
 	public static String encodeFileToBase64(String fullFilePath) {

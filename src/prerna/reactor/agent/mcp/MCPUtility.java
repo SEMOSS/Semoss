@@ -166,110 +166,6 @@ public final class MCPUtility {
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
 
-	/**
-	 * Creates a text content part for {@link #response(Map[])}.
-	 *
-	 * @param text response text
-	 * @return immutable text content part
-	 */
-	public static Map<String, Object> textPart(String text) {
-		if (text == null || text.isBlank()) {
-			throw new IllegalArgumentException("MCP response text must not be blank");
-		}
-		return Map.of("type", "text", "text", text);
-	}
-
-	/**
-	 * Creates an image content part containing paths relative to the active room.
-	 * The files are resolved and validated when the message is serialized for model
-	 * execution.
-	 *
-	 * @param roomRelativePaths one or more image paths beneath the active room
-	 * @return immutable image content part
-	 */
-	public static Map<String, Object> imagePart(String... roomRelativePaths) {
-		if (roomRelativePaths == null || roomRelativePaths.length == 0) {
-			throw new IllegalArgumentException("MCP response image paths must not be empty");
-		}
-
-		List<String> paths = new ArrayList<>(roomRelativePaths.length);
-		for (String path : roomRelativePaths) {
-			if (path == null || path.isBlank()) {
-				throw new IllegalArgumentException("MCP response image paths must not be blank");
-			}
-			if (Path.of(path).isAbsolute()) {
-				throw new IllegalArgumentException("MCP response image paths must be relative to the active room");
-			}
-			paths.add(path);
-		}
-
-		return Map.of("type", "image", "image", List.copyOf(paths));
-	}
-
-	/**
-	 * Creates an ordered multimodal result for a Pixel reactor exposed as an MCP
-	 * tool.
-	 *
-	 * @param parts ordered text and image parts
-	 * @return immutable {@code SEMOSSMultimodalToolResponse} envelope
-	 */
-	@SafeVarargs
-	public static Map<String, Object> response(Map<String, Object>... parts) {
-		if (parts == null || parts.length == 0) {
-			throw new IllegalArgumentException("MCP response must contain at least one part");
-		}
-
-		List<Map<String, Object>> orderedParts = new ArrayList<>(parts.length);
-		for (Map<String, Object> part : parts) {
-			if (part == null) {
-				throw new IllegalArgumentException("MCP response parts must not be null");
-			}
-			orderedParts.add(Map.copyOf(part));
-		}
-
-		return Map.of(SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY, List.copyOf(orderedParts));
-	}
-
-	/**
-	 * Resolves a tool-produced relative file reference beneath its execution root.
-	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
-	 *
-	 * @param rootFolderPath execution root supplied to the MCP tool
-	 * @param relativePath   tool-produced path relative to the execution root
-	 * @return canonical path to an existing regular file beneath the root
-	 * @throws IOException              when either path cannot be resolved
-	 * @throws IllegalArgumentException when the input is blank, absolute, outside
-	 *                                  the root, or not a regular file
-	 */
-	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
-		if (rootFolderPath == null || rootFolderPath.isBlank()) {
-			throw new IllegalArgumentException("MCP execution root must not be blank");
-		}
-		if (relativePath == null || relativePath.isBlank()) {
-			throw new IllegalArgumentException("MCP file reference must not be blank");
-		}
-
-		Path reference = Path.of(relativePath);
-		if (reference.isAbsolute()) {
-			throw new IllegalArgumentException("MCP file reference must be relative");
-		}
-
-		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
-		Path candidate = canonicalRoot.resolve(reference).normalize();
-		if (!candidate.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference is outside its execution root");
-		}
-
-		Path canonicalFile = candidate.toRealPath();
-		if (!canonicalFile.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
-		}
-		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
-			throw new IllegalArgumentException("MCP file reference is not a regular file");
-		}
-		return canonicalFile;
-	}
-
 	@Deprecated
 	public static final String LEGACY_PY_FILE_NAME = "smss_driver.py";
 	@Deprecated
@@ -337,6 +233,46 @@ public final class MCPUtility {
 			}
 			return null;
 		}
+	}
+
+	/**
+	 * Resolves a tool-produced relative file reference beneath its execution root.
+	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
+	 *
+	 * @param rootFolderPath execution root supplied to the MCP tool
+	 * @param relativePath   tool-produced path relative to the execution root
+	 * @return canonical path to an existing regular file beneath the root
+	 * @throws IOException              when either path cannot be resolved
+	 * @throws IllegalArgumentException when the input is blank, absolute, outside
+	 *                                  the root, or not a regular file
+	 */
+	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
+		if (rootFolderPath == null || rootFolderPath.isBlank()) {
+			throw new IllegalArgumentException("MCP execution root must not be blank");
+		}
+		if (relativePath == null || relativePath.isBlank()) {
+			throw new IllegalArgumentException("MCP file reference must not be blank");
+		}
+
+		Path reference = Path.of(relativePath);
+		if (reference.isAbsolute()) {
+			throw new IllegalArgumentException("MCP file reference must be relative");
+		}
+
+		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
+		Path candidate = canonicalRoot.resolve(reference).normalize();
+		if (!candidate.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference is outside its execution root");
+		}
+
+		Path canonicalFile = candidate.toRealPath();
+		if (!canonicalFile.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
+		}
+		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
+			throw new IllegalArgumentException("MCP file reference is not a regular file");
+		}
+		return canonicalFile;
 	}
 
 	/**
