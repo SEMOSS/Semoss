@@ -170,8 +170,7 @@ public class MessageInputMedia {
 		if (fragmentStart >= 0) {
 			url = url.substring(0, fragmentStart);
 		}
-		String detected = new Tika().detect(url);
-		return detected == null || "application/octet-stream".equals(detected) ? null : detected;
+		return MimeTypeUtility.detectMimeTypeFromName(url);
 	}
 
 	public String getSourceUrl() {
