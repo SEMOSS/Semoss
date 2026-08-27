@@ -46,6 +46,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -117,6 +118,9 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
+		if (project.getProjectType() == IProject.PROJECT_TYPE.AUTOMATION) {
+			SchedulerDatabaseUtility.removeJobsForProject(projectId);
+		}
 		// skill-projects carry WORKSPACE_RESOURCE__ refs + CONFIG_JSON.skills[]
 		// mirrors in modellogs; scrub those before tearing down the project itself
 		if (project.getProjectType() == IProject.PROJECT_TYPE.SKILL) {

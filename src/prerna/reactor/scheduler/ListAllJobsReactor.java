@@ -31,6 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -71,6 +74,12 @@ public class ListAllJobsReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String userId = this.keyValue.get(this.keysToGet[1]);
 		List<String> jobTags = getJobTags();
+		User user = this.insight.getUser();
+		if (projectId != null && !SecurityAdminUtils.userIsAdmin(user)
+				&& !SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have permission to view its scheduled jobs");
+		}
 
 		if (projectId == null && userId == null) {
 			// TODO: check if admin if not admin throw permissions error

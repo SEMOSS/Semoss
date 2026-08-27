@@ -143,6 +143,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -151,6 +152,7 @@ import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.impl.matchers.GroupMatcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -228,6 +230,8 @@ public class SchedulerDatabaseUtility {
 			WHERE JOB_ID = ? AND JOB_GROUP = ?""";
 	private static final String DELETE_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
 	private static final String EXISTS_JOB_RECIPES_QUERY = "SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
+	private static final String SELECT_PROJECT_JOB_IDS_QUERY = "SELECT JOB_ID FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
+	private static final String DELETE_PROJECT_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
 	private static final String SELECT_TRIGGER_ON_LOAD_QUERY = "SELECT * FROM SMSS_JOB_RECIPES WHERE TRIGGER_ON_LOAD=?";
 
 	// SMSS_JOB_TAGS CRUD
@@ -757,6 +761,90 @@ public class SchedulerDatabaseUtility {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Removes every future Quartz job and stored recipe owned by a project job
+	 * group. Scheduler audit rows remain available for operational history.
+	 *
+	 * @param projectId project id used as the Quartz job group
+	 * @throws IllegalStateException when Quartz or scheduler-database cleanup fails
+	 */
+	public static void removeJobsForProject(String projectId) {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Project id is required to remove scheduled jobs");
+		}
+
+		String jobGroup = projectId.trim();
+		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+		try {
+			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.jobGroupEquals(jobGroup));
+			if (!jobKeys.isEmpty() && !scheduler.deleteJobs(new ArrayList<>(jobKeys))) {
+				throw new IllegalStateException("Quartz did not remove every scheduled job for project " + jobGroup);
+			}
+		} catch (SchedulerException e) {
+			classLogger.error("Failed to remove Quartz jobs for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduled jobs for project " + jobGroup, e);
+		}
+
+		removeProjectJobRecords(jobGroup);
+	}
+
+	private static void removeProjectJobRecords(String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		boolean originalAutoCommit = true;
+		try {
+			originalAutoCommit = conn.getAutoCommit();
+			conn.setAutoCommit(false);
+
+			List<String> jobIds = new ArrayList<>();
+			try (PreparedStatement select = conn.prepareStatement(SELECT_PROJECT_JOB_IDS_QUERY)) {
+				select.setString(1, jobGroup);
+				try (ResultSet result = select.executeQuery()) {
+					while (result.next()) {
+						jobIds.add(result.getString(1));
+					}
+				}
+			}
+
+			if (!jobIds.isEmpty()) {
+				try (PreparedStatement deleteTags = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
+					for (String jobId : jobIds) {
+						deleteTags.setString(1, jobId);
+						deleteTags.addBatch();
+					}
+					deleteTags.executeBatch();
+				}
+			}
+
+			try (PreparedStatement deleteRecipes = conn.prepareStatement(DELETE_PROJECT_JOB_RECIPES_QUERY)) {
+				deleteRecipes.setString(1, jobGroup);
+				deleteRecipes.executeUpdate();
+			}
+			conn.commit();
+		} catch (SQLException e) {
+			try {
+				conn.rollback();
+			} catch (SQLException rollbackError) {
+				e.addSuppressed(rollbackError);
+			}
+			classLogger.error("Failed to remove scheduler records for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduler records for project " + jobGroup, e);
+		} finally {
+			try {
+				conn.setAutoCommit(originalAutoCommit);
+			} catch (SQLException e) {
+				classLogger.error("Failed to restore scheduler connection auto-commit: {}", e.getMessage(), e);
+			}
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+				}
+			}
+		}
 	}
 
 	/**
