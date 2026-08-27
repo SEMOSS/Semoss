@@ -3,7 +3,8 @@ def requestUserInput(title: str = None, questions: list = None) -> str:
     Ask the user structured clarifying questions.
     Args:
         title (str): Optional heading shown above the questions.
-        questions (list): 1-3 structured questions to render for the user.
+        questions (list): Structured questions to render for the user. Every
+            question may be skipped.
     Returns:
         str: This tool is answered directly by the user in the chat UI (a
         "respond" decision on the paused run) and should never actually

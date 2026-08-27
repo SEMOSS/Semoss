@@ -30,9 +30,11 @@ package prerna.reactor.agent.runtime;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -90,6 +92,9 @@ final class HarnessToolExecutor {
 
 	private static final Gson GSON = new Gson();
 	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
+	private static final String TOOL_KIND_KEY = "SMSS_TOOL_KIND";
+	private static final String USER_INPUT_TOOL_KIND = "platform_user_input";
+	private static final String TOOL_VALIDATION_ERROR_KEY = "_semossToolValidationError";
 
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
@@ -121,24 +126,41 @@ final class HarnessToolExecutor {
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
-		List<Map<String, Object>> askToolCalls = getAskToolCalls(toolCalls);
-		if (!askToolCalls.isEmpty()) {
-			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
-			for (Map<String, Object> toolCall : toolCalls) {
-				if (!isAskTool(toolCall)) {
-					autoToolCalls.add(toolCall);
-				}
+		List<Map<String, Object>> askToolCalls = new ArrayList<>();
+		List<Map<String, Object>> autoToolCalls = new ArrayList<>();
+		boolean rejectedAskTool = false;
+		for (Map<String, Object> toolCall : toolCalls) {
+			if (!isAskTool(toolCall)) {
+				autoToolCalls.add(toolCall);
+				continue;
 			}
-			if (!autoToolCalls.isEmpty()) {
-				logger.info("HarnessToolExecutor: executing {} non-ask tool(s) before pausing for {} ask tool(s) iter={} room={}",
-						autoToolCalls.size(), askToolCalls.size(), state.getIterations(), room.getId());
-				executeToolCalls(autoToolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+
+			String validationError = validateUserInputQuestionIds(toolCall);
+			if (validationError == null) {
+				askToolCalls.add(toolCall);
+				continue;
 			}
-			throw new AgentInputRequiredException(parentMsgId, askToolCalls);
+
+			Map<String, Object> rejectedToolCall = new HashMap<>(toolCall);
+			rejectedToolCall.put(TOOL_VALIDATION_ERROR_KEY, validationError);
+			autoToolCalls.add(rejectedToolCall);
+			rejectedAskTool = true;
 		}
 
-		nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
-				spawnsRemainingInBatch);
+		if (!askToolCalls.isEmpty() || rejectedAskTool) {
+			if (!autoToolCalls.isEmpty()) {
+				logger.info("HarnessToolExecutor: resolving {} executable/rejected tool(s) before pausing for {} ask tool(s) iter={} room={}",
+						autoToolCalls.size(), askToolCalls.size(), state.getIterations(), room.getId());
+				nextModelResp = executeToolCalls(autoToolCalls, state, paramMap, parentMsgId, ctx, jobId,
+						spawnsRemainingInBatch);
+			}
+			if (!askToolCalls.isEmpty()) {
+				throw new AgentInputRequiredException(parentMsgId, askToolCalls);
+			}
+		} else {
+			nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
+					spawnsRemainingInBatch);
+		}
 
 		if (nextModelResp == null) {
 			return null;
@@ -274,25 +296,6 @@ final class HarnessToolExecutor {
 		return new ToolExecResult(record, modelResp);
 	}
 
-	/**
-	 * Return only the tool calls in the batch with
-	 * {@code SMSS_MCP_EXECUTION=ask}.
-	 * The enriched {@code _meta} is attached by
-	 * {@code Room.updateToolResponseMeta()} before this method is called.
-	 */
-	private static List<Map<String, Object>> getAskToolCalls(List<Map<String, Object>> toolCalls) {
-		List<Map<String, Object>> askToolCalls = new ArrayList<>();
-		if (toolCalls == null || toolCalls.isEmpty()) {
-			return askToolCalls;
-		}
-		for (Map<String, Object> toolCall : toolCalls) {
-			if (isAskTool(toolCall)) {
-				askToolCalls.add(toolCall);
-			}
-		}
-		return askToolCalls;
-	}
-
 	@SuppressWarnings("unchecked")
 	private static boolean isAskTool(Map<String, Object> toolCall) {
 		if (toolCall == null) {
@@ -305,6 +308,49 @@ final class HarnessToolExecutor {
 		Map<String, Object> meta = (Map<String, Object>) metaObj;
 		Object execValue = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
 		return "ask".equalsIgnoreCase(String.valueOf(execValue));
+	}
+
+	/**
+	 * Validate that a platform user-input request can safely key every submitted
+	 * answer by question id.
+	 *
+	 * @param toolCall enriched tool call received from the model
+	 * @return a model-facing validation error, or {@code null} when valid or not a
+	 *         platform user-input tool
+	 */
+	@SuppressWarnings("unchecked")
+	static String validateUserInputQuestionIds(Map<String, Object> toolCall) {
+		if (toolCall == null || !(toolCall.get("_meta") instanceof Map)) {
+			return null;
+		}
+		Map<String, Object> meta = (Map<String, Object>) toolCall.get("_meta");
+		if (!USER_INPUT_TOOL_KIND.equals(String.valueOf(meta.get(TOOL_KIND_KEY)))) {
+			return null;
+		}
+
+		Object questionsValue = new ParsedToolCall(toolCall).toolParams.get("questions");
+		if (!(questionsValue instanceof List)) {
+			return null;
+		}
+
+		Set<String> ids = new HashSet<>();
+		List<?> questions = (List<?>) questionsValue;
+		for (int index = 0; index < questions.size(); index++) {
+			Object questionValue = questions.get(index);
+			if (!(questionValue instanceof Map)) {
+				continue;
+			}
+			Object idValue = ((Map<?, ?>) questionValue).get("id");
+			if (!(idValue instanceof String) || ((String) idValue).trim().isEmpty()) {
+				continue;
+			}
+			String id = ((String) idValue).trim();
+			if (!ids.add(id)) {
+				return "Tool input validation error: RequestUserInput question IDs must be unique; duplicate ID '"
+						+ id + "' at questions[" + index + "]. Use a unique ID for every question and call the tool again.";
+			}
+		}
+		return null;
 	}
 
 	private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,
@@ -400,6 +446,10 @@ final class HarnessToolExecutor {
 
 	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
 			AtomicInteger spawnsRemainingInBatch) {
+		Object validationError = tc.toolCall.get(TOOL_VALIDATION_ERROR_KEY);
+		if (validationError != null) {
+			return new ToolExecOutcome(String.valueOf(validationError), false);
+		}
 
 		// 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing

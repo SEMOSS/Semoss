@@ -7,7 +7,7 @@
         {
             "name": "RequestUserInput",
             "title": "Request User Input",
-            "description": "Pause and ask the user one to three structured questions. Call this tool alone. Use concise choices and mark at most one option as recommended.",
+            "description": "Pause and ask the user structured questions. Call this tool alone. Use concise choices and mark at most one option as recommended. Every question may be skipped.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -17,7 +17,6 @@
                     "questions": {
                         "type": "array",
                         "minItems": 1,
-                        "maxItems": 3,
                         "items": {
                             "type": "object",
                             "properties": {
@@ -39,7 +38,6 @@
                                 "options": {
                                     "type": "array",
                                     "minItems": 2,
-                                    "maxItems": 5,
                                     "items": {
                                         "type": "object",
                                         "properties": {
@@ -63,10 +61,6 @@
                                     }
                                 },
                                 "allowOther": {
-                                    "type": "boolean",
-                                    "default": true
-                                },
-                                "required": {
                                     "type": "boolean",
                                     "default": true
                                 }
