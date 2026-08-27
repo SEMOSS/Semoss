@@ -1513,7 +1513,6 @@ public final class MCPUtility {
 		}
 	}
 
-	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
 	private static void checkEngineAccess(IEngine engine, User user) {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");
