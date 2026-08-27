@@ -27,10 +27,14 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.concurrent.CompletableFuture;
+
 import prerna.engine.impl.model.Room;
+import prerna.om.ThreadStore;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.run.AgentRoomNamer;
 import prerna.reactor.model.AskRoomReactor;
+import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.theme.PlaygroundThemeUtils;
 
 public class AskPlaygroundReactor extends AskRoomReactor {
@@ -46,8 +50,17 @@ public class AskPlaygroundReactor extends AskRoomReactor {
 	}
 
 	@Override
-	protected void beforeRoomAsk(Room room, String question, String engineId) {
-		AgentRoomNamer.nameRoomAsync(room.getId(), question, engineId, room.getUserId(), this.insight);
+	protected CompletableFuture<String> beforeRoomAsk(Room room, String question, String engineId) {
+		String jobId = ThreadStore.getJobId();
+		String defaultName = question == null ? null : question.substring(0, Math.min(question.length(), 100));
+		CompletableFuture<String> roomNameFuture = AgentRoomNamer.nameRoomAsync(room.getId(), question, engineId,
+				room.getUserId(), this.insight);
+		roomNameFuture.thenAccept(roomName -> {
+			if (roomName != null && !roomName.equals(defaultName)) {
+				JobStreamEnvelopes.roomName(jobId, roomName);
+			}
+		});
+		return roomNameFuture;
 	}
 
 	@Override
