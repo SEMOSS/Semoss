@@ -691,7 +691,6 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
