@@ -60,6 +60,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.ModelCapabilityEnum;
+import prerna.engine.api.ModelModalityEnum;
 
 /**
  * Read-only view over the curated model catalog stored in meta/model.json.
@@ -303,27 +305,33 @@ public final class StaticModelMetadataCatalog {
 		if (outputModalities.isEmpty()) {
 			return null;
 		}
-		if (outputModalities.contains("video")) {
-			return "VIDEO_GENERATION";
+		if (containsModality(outputModalities, ModelModalityEnum.VIDEO)) {
+			return ModelCapabilityEnum.VIDEO_GENERATION.name();
 		}
-		if (outputModalities.contains("image")) {
-			return "IMAGE_GENERATION";
+		if (containsModality(outputModalities, ModelModalityEnum.IMAGE)) {
+			return ModelCapabilityEnum.IMAGE_GENERATION.name();
 		}
-		if (outputModalities.contains("audio")) {
-			return inputModalities.contains("text") ? "SPEECH_SYNTHESIS" : "TRANSCRIPTION";
+		if (containsModality(outputModalities, ModelModalityEnum.AUDIO)) {
+			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? ModelCapabilityEnum.SPEECH_SYNTHESIS.name()
+					: ModelCapabilityEnum.TRANSCRIPTION.name();
 		}
-		if (outputModalities.contains("vector")) {
-			return "EMBEDDING";
+		if (containsModality(outputModalities, ModelModalityEnum.VECTOR)) {
+			return ModelCapabilityEnum.EMBEDDING.name();
 		}
-		if (outputModalities.contains("text")) {
-			if (!inputModalities.contains("text") && inputModalities.contains("audio")) {
-				return "TRANSCRIPTION";
+		if (containsModality(outputModalities, ModelModalityEnum.TEXT)) {
+			if (!containsModality(inputModalities, ModelModalityEnum.TEXT)
+					&& containsModality(inputModalities, ModelModalityEnum.AUDIO)) {
+				return ModelCapabilityEnum.TRANSCRIPTION.name();
 			}
-			if (inputModalities.contains("text") && !placeholderOutputLimit) {
-				return "TEXT_GENERATION";
+			if (containsModality(inputModalities, ModelModalityEnum.TEXT) && !placeholderOutputLimit) {
+				return ModelCapabilityEnum.TEXT_GENERATION.name();
 			}
 		}
 		return null;
+	}
+
+	private static boolean containsModality(List<String> modalities, ModelModalityEnum modality) {
+		return modalities.contains(modality.getCatalogName());
 	}
 
 	/**

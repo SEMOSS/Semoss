@@ -60,6 +60,8 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.ModelCapabilityEnum;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -80,10 +82,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-	private static final Set<String> CAPABILITIES = Set.of("TEXT_GENERATION", "IMAGE_GENERATION", "VIDEO_GENERATION",
-			"EMBEDDING", "TRANSCRIPTION", "SPEECH_SYNTHESIS", "RERANKING", "MODERATION");
-	private static final Set<String> MODALITIES = Set.of("TEXT", "IMAGE", "AUDIO", "VIDEO", "VECTOR", "FILE",
-			"PDF");
 	private static final Set<String> EDITABLE_METADATA_KEYS = Set.of(Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
@@ -744,18 +742,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			details.put(Constants.MODEL_CAPABILITY, null);
 			return;
 		}
-		capability = capability.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
-		capability = switch (capability) {
-		case "CHAT", "LLM" -> "TEXT_GENERATION";
-		case "EMBEDDINGS" -> "EMBEDDING";
-		case "TTS", "TEXT_TO_SPEECH" -> "SPEECH_SYNTHESIS";
-		case "STT", "SPEECH_TO_TEXT" -> "TRANSCRIPTION";
-		default -> capability;
-		};
-		if (!CAPABILITIES.contains(capability)) {
-			throw new IllegalArgumentException("Unsupported model capability " + capability);
-		}
-		details.put(Constants.MODEL_CAPABILITY, capability);
+		// fromName owns the normalization and the CHAT/LLM/TTS/STT aliases
+		details.put(Constants.MODEL_CAPABILITY, ModelCapabilityEnum.fromName(capability).name());
 	}
 
 	private static void normalizeListProperty(Map<String, Object> details, String key, boolean modality) {
@@ -770,10 +758,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				continue;
 			}
 			if (modality) {
-				value = value.toUpperCase(Locale.ROOT);
-				if (!MODALITIES.contains(value)) {
-					throw new IllegalArgumentException("Unsupported modality " + value);
-				}
+				value = ModelModalityEnum.fromName(value).name();
 			} else {
 				value = value.toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
 				if (!LOWER_SNAKE_CASE_PATTERN.matcher(value).matches()) {
