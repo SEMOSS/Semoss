@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.servicenow;
 
 import java.io.IOException;
@@ -14,6 +41,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -203,9 +231,11 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 		}
 
 		// all of the table query settings are optional defaults that the caller can
-		// override on a per execute basis
-		this.defaultTable = getProperty(smssProp, DEFAULT_TABLE_KEY, this.defaultTable);
-		this.tableApiPath = getProperty(smssProp, TABLE_API_PATH_KEY, this.tableApiPath);
+		// override on a per execute basis. the UI writes a blank line for every
+		// field left empty, so an unset key arrives as "" rather than absent
+		// - defaultIfEmpty covers both
+		this.defaultTable = StringUtils.defaultIfEmpty(smssProp.getProperty(DEFAULT_TABLE_KEY), this.defaultTable);
+		this.tableApiPath = StringUtils.defaultIfEmpty(smssProp.getProperty(TABLE_API_PATH_KEY), this.tableApiPath);
 		// the path is concatenated between the endpoint and the table name, so
 		// normalize both ends to exactly one slash
 		if (!this.tableApiPath.startsWith("/")) {
@@ -214,10 +244,11 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 		if (!this.tableApiPath.endsWith("/")) {
 			this.tableApiPath = this.tableApiPath + "/";
 		}
-		this.limit = getProperty(smssProp, LIMIT_KEY, this.limit);
-		this.fields = getProperty(smssProp, FIELDS_KEY, this.fields);
-		this.displayValue = getProperty(smssProp, DISPLAY_VALUE_KEY, this.displayValue);
-		this.excludeReferenceLink = getProperty(smssProp, EXCLUDE_REFERENCE_LINK_KEY, this.excludeReferenceLink);
+		this.limit = StringUtils.defaultIfEmpty(smssProp.getProperty(LIMIT_KEY), this.limit);
+		this.fields = StringUtils.defaultIfEmpty(smssProp.getProperty(FIELDS_KEY), this.fields);
+		this.displayValue = StringUtils.defaultIfEmpty(smssProp.getProperty(DISPLAY_VALUE_KEY), this.displayValue);
+		this.excludeReferenceLink = StringUtils.defaultIfEmpty(smssProp.getProperty(EXCLUDE_REFERENCE_LINK_KEY),
+				this.excludeReferenceLink);
 
 		// the SMSS does not have to spell out the function metadata since we know
 		// what execute supports. anything defined in the SMSS wins
@@ -277,37 +308,6 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 			}
 			this.requiredParameters = defaultRequiredParameters;
 		}
-	}
-
-	/**
-	 * Build the trailing sentence that tells a caller what value is used when they
-	 * leave a parameter out.
-	 *
-	 * @param defaultValue the default this engine was opened with
-	 * @return the sentence to append, or an empty string when there is no default
-	 */
-	private static String defaultText(String defaultValue) {
-		if (defaultValue == null || defaultValue.isEmpty()) {
-			return "";
-		}
-		return " Defaults to " + defaultValue + ".";
-	}
-
-	/**
-	 * Pull a property off the SMSS, falling back to a default when the key is
-	 * missing or empty.
-	 *
-	 * @param smssProp     the engine SMSS properties
-	 * @param key          the SMSS key to read
-	 * @param defaultValue value to use when the key is not set
-	 * @return the property value or the default
-	 */
-	private static String getProperty(Properties smssProp, String key, String defaultValue) {
-		String value = smssProp.getProperty(key);
-		if (value == null || value.isEmpty()) {
-			return defaultValue;
-		}
-		return value;
 	}
 
 	/**
@@ -497,18 +497,7 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 		}
 		Insight executingInsight = (Insight) parameterValues.remove(Constants.INSIGHT);
 
-		// validate all the required keys are set
-		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
-			Set<String> missingPs = new HashSet<>();
-			for (String requiredP : this.requiredParameters) {
-				if (!parameterValues.containsKey(requiredP)) {
-					missingPs.add(requiredP);
-				}
-			}
-			if (!missingPs.isEmpty()) {
-				throw new IllegalArgumentException("Must define required keys = " + missingPs);
-			}
-		}
+		validateRequiredParameters(parameterValues);
 
 		String runTimeTable = getParameterValue(parameterValues, TABLE_PARAM, this.defaultTable);
 		if (runTimeTable == null) {
@@ -686,27 +675,6 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 	private static boolean isUnauthorized(Exception e) {
 		String message = e.getMessage();
 		return message != null && message.contains("returned HTTP 401");
-	}
-
-	/**
-	 * Pull a parameter as a trimmed string, falling back to a default when it is
-	 * missing or blank.
-	 *
-	 * @param parameterValues the runtime parameters for this call
-	 * @param key             the parameter to read
-	 * @param defaultValue    value to use when the parameter is not set
-	 * @return the parameter value as a string or the default
-	 */
-	private static String getParameterValue(Map<String, Object> parameterValues, String key, String defaultValue) {
-		Object value = parameterValues.get(key);
-		if (value == null) {
-			return defaultValue;
-		}
-		String stringValue = value.toString().trim();
-		if (stringValue.isEmpty()) {
-			return defaultValue;
-		}
-		return stringValue;
 	}
 
 	@Override

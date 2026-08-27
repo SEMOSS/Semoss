@@ -654,7 +654,50 @@ public final class FileSystemUtil {
 			return "{}";
 		}
 
+		if (normalizedPath.endsWith(".ipynb")) {
+			return """
+					{
+					  "nbformat": 4,
+					  "nbformat_minor": 5,
+					  "metadata": {
+					    "kernelspec": {
+					      "display_name": "Python 3",
+					      "language": "python",
+					      "name": "python3"
+					    },
+					    "language_info": {
+					      "name": "python"
+					    }
+					  },
+					  "cells": [
+					    {
+					      "id": "%s",
+					      "cell_type": "markdown",
+					      "metadata": {},
+					      "source": [
+					        "# New Notebook"
+					      ]
+					    }
+					  ]
+					}""".formatted(newNotebookCellId());
+		}
+
 		return "new file";
+	}
+
+	/**
+	 * Id for the cell in a newly created notebook.
+	 *
+	 * nbformat 4.5 onward wants an id on every cell, unique within the notebook,
+	 * matching [a-zA-Z0-9-_] and no longer than 64 characters. A fixed value would
+	 * give every notebook the same one, which Jupyter tolerates but which makes
+	 * cells indistinguishable once notebooks are merged or diffed.
+	 *
+	 * @return a random id built from characters the format allows
+	 */
+	private static String newNotebookCellId() {
+		// getRandomString prefixes an "a" and adds this many more characters
+		return Utility.getRandomString(8);
 	}
 
 	/**

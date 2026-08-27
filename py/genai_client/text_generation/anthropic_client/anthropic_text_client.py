@@ -14,7 +14,10 @@ if TYPE_CHECKING:
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
-from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
+from ...message_builders.anthropic.anthropic_models import (
+    AnthropicCacheTTL,
+    AnthropicRequestConfig,
+)
 from ...constants import (
     AskModelEngineResponse2,
     TEMPLATE,
@@ -51,6 +54,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
         prompt_caching: Optional[Union[str, bool]] = True,
+        cache_ttl: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(
@@ -70,6 +74,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if isinstance(prompt_caching, str)
             else prompt_caching
         )
+        self.cache_ttl = self._normalize_cache_ttl(cache_ttl)
         self.beta_feature_name = kwargs.pop("beta_feature_name", None)
         if self.use_beta_header and not self.beta_feature_name:
             raise ValueError(
@@ -133,6 +138,38 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
+
+    @staticmethod
+    def _normalize_cache_ttl(cache_ttl: Optional[str]) -> Optional[str]:
+        """
+        Resolve the cache_ttl the engine was initialized with to one of the
+        values Anthropic accepts on cache_control.
+
+        Returns None for an unset value, which leaves the ttl field off the
+        request entirely and gets Anthropic's 5 minute default.
+        """
+        if cache_ttl is None:
+            return None
+        ttl = str(cache_ttl).strip().lower()
+        if not ttl:
+            return None
+        if ttl not in AnthropicCacheTTL.values():
+            raise ValueError(
+                f"cache_ttl '{cache_ttl}' is not supported. Valid values are: "
+                + ", ".join(AnthropicCacheTTL.values())
+            )
+        return ttl
+
+    def _cache_control(self) -> Dict[str, Any]:
+        """
+        Build the cache_control payload applied at every breakpoint. The ttl key
+        is only included when one was explicitly requested so requests that rely
+        on the default lifetime keep their existing shape.
+        """
+        cache_control: Dict[str, Any] = {"type": "ephemeral"}
+        if self.cache_ttl:
+            cache_control["ttl"] = self.cache_ttl
+        return cache_control
 
     @staticmethod
     def _get_bedrock_guardrail_headers(
@@ -221,8 +258,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             }
         return None
 
-    @staticmethod
-    def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
+    def _apply_cache_to_tools(self, request_config: "AnthropicRequestConfig") -> None:
         """
         Add cache_control to the last tool definition. Tools are evaluated
         first in Anthropic's cache breakpoint order (tools -> system -> messages),
@@ -231,10 +267,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         tools = request_config.tools
         if not tools:
             return
-        tools[-1]["cache_control"] = {"type": "ephemeral"}
+        tools[-1]["cache_control"] = self._cache_control()
 
-    @staticmethod
-    def _apply_cache_to_system(request_config: "AnthropicRequestConfig") -> None:
+    def _apply_cache_to_system(self, request_config: "AnthropicRequestConfig") -> None:
         """
         Convert the system prompt to list form and attach cache_control to its
         last text block. This caches the system prompt on the first call so
@@ -248,20 +283,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return
         if isinstance(system, str):
             request_config.system = [
-                {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
+                {
+                    "type": "text",
+                    "text": system,
+                    "cache_control": self._cache_control(),
+                }
             ]
         elif isinstance(system, list):
             # Already a list - attach to the last text block.
             for block in reversed(system):
                 if isinstance(block, dict) and block.get("type") == "text":
-                    block["cache_control"] = {"type": "ephemeral"}
+                    block["cache_control"] = self._cache_control()
                     break
 
     # Block types that Anthropic supports cache_control on.
     _CACHEABLE_BLOCK_TYPES = {"text", "tool_result", "image", "document"}
 
-    @staticmethod
-    def _apply_cache_to_last_block(messages: List[Dict[str, Any]]) -> None:
+    def _apply_cache_to_last_block(self, messages: List[Dict[str, Any]]) -> None:
         """
         Add cache_control to the last cacheable block of the last message. This
         replicates Anthropic's automatic caching behaviour for providers
@@ -283,7 +321,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 {
                     "type": "text",
                     "text": content,
-                    "cache_control": {"type": "ephemeral"},
+                    "cache_control": self._cache_control(),
                 }
             ]
         elif isinstance(content, list):
@@ -292,7 +330,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     isinstance(block, dict)
                     and block.get("type") in AnthropicTextClient._CACHEABLE_BLOCK_TYPES
                 ):
-                    block["cache_control"] = {"type": "ephemeral"}
+                    block["cache_control"] = self._cache_control()
                     break
 
     def ask_call(
@@ -342,7 +380,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.prompt_caching:
                 if self.provider in ("anthropic", "azure"):
-                    request_config.cache_control = {"type": "ephemeral"}
+                    request_config.cache_control = self._cache_control()
                 elif self.provider in ("bedrock", "google"):
                     self._apply_cache_to_tools(request_config)
                     self._apply_cache_to_system(request_config)
@@ -417,7 +455,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
-                    f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                    f"[prompt_caching] ttl={self.cache_ttl or '5m'} "
+                    f"cache_read_tokens={cache_read_tokens} "
                     f"cache_creation_tokens={cache_creation_tokens}",
                     flush=True,
                 )
@@ -864,7 +903,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
             print(
-                f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                f"[prompt_caching] ttl={self.cache_ttl or '5m'} "
+                f"cache_read_tokens={cache_read_tokens} "
                 f"cache_creation_tokens={cache_creation_tokens}",
                 flush=True,
             )

@@ -38,13 +38,12 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.Tika;
-import org.apache.tika.mime.MediaType;
 
 import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.util.MimeTypeUtility;
 
 public class MessageInputMedia {
 
@@ -135,6 +134,46 @@ public class MessageInputMedia {
 		return mimeType;
 	}
 
+	/**
+	 * Best-effort MIME type for this media: the recorded mimeType when present
+	 * (file media detected via Tika at construction), otherwise the type a data
+	 * URI declares, otherwise a name-based guess from the source URL's path.
+	 * Returns null when the type cannot be determined - URL media has no
+	 * recorded type and an extensionless URL cannot be classified.
+	 */
+	public String resolveMimeType() {
+		if (mimeType != null && !mimeType.isBlank()) {
+			return mimeType;
+		}
+		String url = sourceUrl == null ? null : sourceUrl.trim();
+		if (url == null || url.isEmpty()) {
+			return null;
+		}
+		if (url.regionMatches(true, 0, "data:", 0, 5)) {
+			int end = url.length();
+			int comma = url.indexOf(',');
+			if (comma >= 0) {
+				end = comma;
+			}
+			int semicolon = url.indexOf(';');
+			if (semicolon >= 0 && semicolon < end) {
+				end = semicolon;
+			}
+			String declared = end > 5 ? url.substring(5, end).trim() : "";
+			return declared.isEmpty() ? null : declared;
+		}
+		int queryStart = url.indexOf('?');
+		if (queryStart >= 0) {
+			url = url.substring(0, queryStart);
+		}
+		int fragmentStart = url.indexOf('#');
+		if (fragmentStart >= 0) {
+			url = url.substring(0, fragmentStart);
+		}
+		String detected = new Tika().detect(url);
+		return detected == null || "application/octet-stream".equals(detected) ? null : detected;
+	}
+
 	public String getSourceUrl() {
 		return sourceUrl;
 	}
@@ -195,30 +234,8 @@ public class MessageInputMedia {
 		return extension;
 	}
 
-	private static String guessMimeType(String localPath, String format) {
-		try {
-			Path p = Paths.get(localPath);
-			Tika tika = new Tika();
-			String detectedType = tika.detect(p);
-			MediaType mediaType = MediaType.parse(detectedType);
-			if (mediaType != null) {
-				MediaType baseType = mediaType.getBaseType();
-				return baseType.toString();
-			}
-		} catch (IOException ignore) {
-		}
-
-		// fall back if tika cannot predict
-		if ("jpg".equals(format) || "jpeg".equals(format)) {
-			return "image/jpeg";
-		}
-		if ("png".equals(format)) {
-			return "image/png";
-		}
-		if ("gif".equals(format)) {
-			return "image/gif";
-		}
-		return "application/octet-stream";
+	public static String guessMimeType(String localPath, String format) {
+		return MimeTypeUtility.guessMimeType(localPath, format);
 	}
 
 	public static String encodeFileToBase64(String fullFilePath) {

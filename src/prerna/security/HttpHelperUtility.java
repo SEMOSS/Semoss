@@ -566,6 +566,54 @@ public final class HttpHelperUtility {
 	}
 
 	/**
+	 * Executes an HTTP PUT request with a byte-array payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyBytes    request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String putRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+
+			HttpPut httpPut = new HttpPut(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+					httpPut.addHeader(entry.getKey(), entry.getValue());
+				}
+			}
+			if (bodyBytes != null && bodyBytes.length > 0) {
+				httpPut.setEntity(new ByteArrayEntity(bodyBytes, contentType));
+			}
+
+			return httpClient.execute(httpPut, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PUT request with byte[] payload to URL: {}", url, e);
+			throw buildConnectionException("PUT", url, e);
+		}
+	}
+
+	/**
 	 * Executes an HTTP PUT request with a URL-encoded form body.
 	 *
 	 * @param url          target URL

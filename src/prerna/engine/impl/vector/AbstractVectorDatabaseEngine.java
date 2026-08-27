@@ -427,10 +427,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error("Failed to process document: '{}'", destinationFile.getName(), e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
-							0, 0);
-					failedStatus.setError(buildEmbeddingError(errorMessage, e));
-					fileStatusList.add(failedStatus);
+					fileStatusList.add(new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0,
+							buildEmbeddingError(errorMessage, e)));
 					extractedFile.delete(); // delete the csv if it was created
 					destinationFile.delete(); // delete the input file e.g pdf
 				}
@@ -543,30 +541,33 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 				List<FileEmbeddingStatus> resultList = addEmbeddings(vectorCsvTable, insight, parameters);
 				for (FileEmbeddingStatus status : resultList) {
-					if (status == null || status.getError() != null) {
+					// a record cannot be mutated in place, so a status that needs an error
+					// message is replaced by a copy carrying it
+					if (status == null || status.error() != null) {
+						fileStatusList.add(status);
 						continue;
 					}
-					String statusValue = status.getStatus();
+					String statusValue = status.status();
 					if (statusValue != null
 							&& ("FAILED".equalsIgnoreCase(statusValue) || "PARTIAL".equalsIgnoreCase(statusValue))) {
-						String errorMessage = "Embedding failed for " + status.getFileName();
+						String errorMessage = "Embedding failed for " + status.fileName();
 						if ("PARTIAL".equalsIgnoreCase(statusValue)) {
-							errorMessage = "Embedding partially failed for " + status.getFileName();
+							errorMessage = "Embedding partially failed for " + status.fileName();
 						}
-						status.setError(buildEmbeddingError(errorMessage, null));
+						fileStatusList.add(status.withError(buildEmbeddingError(errorMessage, null)));
+					} else {
+						fileStatusList.add(status);
 					}
 				}
-				fileStatusList.addAll(resultList);
 			} catch (Exception e) {
 				classLogger.error("Failed to add embeddings from CSV file: '{}'", vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
-				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage = errorMessage + ": " + e.getMessage();
 				}
-				failedStatus.setError(buildEmbeddingError(errorMessage, e));
-				fileStatusList.add(failedStatus);
+				fileStatusList.add(new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0,
+						buildEmbeddingError(errorMessage, e)));
 			}
 		}
 		return fileStatusList;
