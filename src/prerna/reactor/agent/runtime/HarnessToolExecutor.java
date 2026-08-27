@@ -52,6 +52,7 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
@@ -89,7 +90,7 @@ final class HarnessToolExecutor {
 	private static final String TOOL_STATUS_ERROR = "error";
 
 	private static final Gson GSON = new Gson();
-	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
+	static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
 
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
@@ -109,7 +110,21 @@ final class HarnessToolExecutor {
 
 		Room room = ctx.getRoom();
 		String parentMsgId = toolResponse.getMessageId();
-		List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> allToolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> toolCalls = new ArrayList<>();
+		for (Map<String, Object> toolCall : allToolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			toolCalls.add(toolCall);
+		}
+		if (toolCalls.size() < allToolCalls.size()) {
+			logger.info("HarnessToolExecutor: skipping {} provider-executed server tool call(s) iter={} room={}",
+					allToolCalls.size() - toolCalls.size(), state.getIterations(), room.getId());
+		}
+		if (toolCalls.isEmpty()) {
+			return toolResponse;
+		}
 		String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 

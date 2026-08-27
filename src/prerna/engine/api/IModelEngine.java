@@ -108,6 +108,21 @@ public interface IModelEngine extends IEngine {
 			Map<String, Object> parameters);
 
 	/**
+	 * Validate that the given outbound messages only carry media this model's
+	 * configured input modalities allow. Callers building a provider payload
+	 * outside the askRoom flow (batch submission, routing) invoke this with the
+	 * exact message list they are about to serialize.
+	 *
+	 * This is a no-op by default. Engines backed by MODELMETADATA input
+	 * modalities throw IllegalArgumentException when a message carries media of
+	 * a disallowed modality.
+	 *
+	 * @param outboundMessages the messages about to be sent to the provider
+	 */
+	default void validateInputModalities(List<AbstractMessage> outboundMessages) {
+	}
+
+	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in
 	 * the {@code stringsToEmbed} will be returned as its own vector.
 	 * 

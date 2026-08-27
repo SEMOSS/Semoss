@@ -46,6 +46,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
@@ -63,6 +64,7 @@ import prerna.util.Utility;
  * Optional SMSS keys:
  * <ul>
  *   <li>{@code SYSTEM_PROMPT} — override the default classification instruction</li>
+ *   <li>{@code BLOCKED_MESSAGE} — override the default message returned when UNSAFE</li>
  * </ul>
  */
 public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
@@ -70,8 +72,10 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 	private static final Logger classLogger = LogManager.getLogger(AggressiveSelfHarmGuardrailEngine.class);
 
 	public static final String MODEL_ENGINE_ID_KEY = "MODEL_ENGINE_ID";
+	public static final String SYSTEM_PROMPT_KEY = "SYSTEM_PROMPT";
+	public static final String BLOCKED_MESSAGE_KEY = "BLOCKED_MESSAGE";
 
-	private static final String SYSTEM_PROMPT =
+	private static final String DEFAULT_SYSTEM_PROMPT =
 			"You are a content safety classifier. Your sole task is to detect whether a user message "
 			+ "expresses first-person intent to harm themselves or others, suicidal ideation, or aggressive threats.\n\n"
 			+ "Respond with ONLY one word:\n"
@@ -82,7 +86,13 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 			+ "third-party reports, or general medical questions\n\n"
 			+ "Do not explain your reasoning. Output only SAFE or UNSAFE.";
 
+	private static final String DEFAULT_BLOCKED_MESSAGE =
+			"I'm sorry, I'm not able to help with that. If you or someone you know is in crisis, "
+			+ "please call or text 988 to reach the Suicide & Crisis Lifeline, or call 911 for immediate emergency assistance.";
+
 	private String modelEngineId;
+	private String systemPrompt;
+	private String blockedMessage;
 
 	public AggressiveSelfHarmGuardrailEngine() {
 		this.keysToGet = new String[] { "prompt" };
@@ -98,6 +108,14 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 		}
 		this.modelEngineId = this.modelEngineId.trim();
 
+		String systemPromptProp = this.smssProp.getProperty(SYSTEM_PROMPT_KEY);
+		this.systemPrompt = (systemPromptProp != null && !systemPromptProp.trim().isEmpty())
+				? systemPromptProp.trim() : DEFAULT_SYSTEM_PROMPT;
+
+		String blockedMessageProp = this.smssProp.getProperty(BLOCKED_MESSAGE_KEY);
+		this.blockedMessage = (blockedMessageProp != null && !blockedMessageProp.trim().isEmpty())
+				? blockedMessageProp.trim() : DEFAULT_BLOCKED_MESSAGE;
+
 		this.functionDescription = "Detects aggressive or self-harm content by asking a configured LLM to classify "
 				+ "the prompt as SAFE or UNSAFE.";
 		this.parameters = new ArrayList<>();
@@ -109,6 +127,9 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
 		String prompt = keyValue.get("prompt");
+		if (prompt == null) {
+			throw new IllegalArgumentException("No prompt has been defined");
+		}
 
 		classLogger.info("AggressiveSelfHarmGuardrail: classifying prompt (length={}) via model={}",
 				prompt.length(), this.modelEngineId);
@@ -121,13 +142,16 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 		Insight classificationInsight = new Insight();
 		InsightStore.getInstance().put(classificationInsight);
 
+		String savedJobId = ThreadStore.getJobId();
+		ThreadStore.setJobId(null);
+
 		String classification;
 		try {
 			Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), classificationInsight, modelEngine, prompt);
 			Map<String, Object> params = new HashMap<>();
 			params.put("use_history", false);
 			InputMessage msg = InputMessage.builder(room)
-					.withSystemPrompt(SYSTEM_PROMPT)
+					.withSystemPrompt(this.systemPrompt)
 					.withText(prompt)
 					.withModelType(modelEngine.getModelType())
 					.withParamMap(params)
@@ -136,6 +160,7 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 			Object responseObj = response.getModelEngineResponse().toMap().get("response");
 			classification = responseObj != null ? responseObj.toString().trim() : "";
 		} finally {
+			ThreadStore.setJobId(savedJobId);
 			InsightStore.getInstance().remove(classificationInsight.getInsightId());
 		}
 
@@ -147,11 +172,7 @@ public class AggressiveSelfHarmGuardrailEngine extends AbstractGuardrailReactorF
 		details.put("classification", classification);
 		details.put("modelEngineId", this.modelEngineId);
 
-		String returnPrompt = pass ? prompt
-				: "Respond only with the following message, word for word: "
-				+ "'I'm sorry, I'm not able to help with that. "
-				+ "If you or someone you know is in crisis, please call or text 988 to reach the Veterans Crisis Line, "
-				+ "or call 911 for immediate emergency assistance.'";
+		String returnPrompt = pass ? prompt : this.blockedMessage;
 
 		return new GuardrailNounMetadata(pass, returnPrompt, details);
 	}

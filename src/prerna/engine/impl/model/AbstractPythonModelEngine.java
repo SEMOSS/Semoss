@@ -45,6 +45,7 @@ import com.google.gson.Gson;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -392,6 +393,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		if (video == null) {
 			video = new ArrayList<>();
+		}
+
+		if (!image.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.IMAGE);
+		}
+		if (!video.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.VIDEO);
 		}
 
 		StringBuilder callMaker = new StringBuilder();
