@@ -41,8 +41,11 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -567,6 +570,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		streams.completeActiveReasoning(runId);
 		streams.completeActiveMessage(runId, response != null ? response.getMessageId() : null,
 				response != null ? response.getContent() : null);
+		publishServerToolItems(runId, response);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -580,6 +584,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			return;
 		}
 		for (Map<String, Object> toolCall : toolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
 			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
 			Object metaObj = toolCall.get("_meta");
 			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
@@ -587,6 +594,42 @@ public class SemossAgentHarness implements IAgentHarness {
 			AgentRunStreamService.get().publishToolStarted(runId,
 					AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, title != null ? title.toString() : null,
 							tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+		}
+	}
+
+	/**
+	 * Publishes provider-executed built-in tool calls (web_search, etc.) as
+	 * already-completed run items so the workbench shows the activity and its
+	 * output. Their results are embedded in the assistant response as
+	 * server-flagged TOOL_RESULT parts - the harness never executes them.
+	 */
+	private static void publishServerToolItems(String runId, ResponseMessage response) {
+		if (runId == null || runId.trim().isEmpty() || response == null || !response.hasToolResponses()) {
+			return;
+		}
+		Map<String, String> serverOutputsByCallId = new HashMap<>();
+		for (MessagePart part : response.getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult != null && Boolean.TRUE.equals(toolResult.getServerTool())
+						&& toolResult.getToolCallId() != null) {
+					serverOutputsByCallId.put(toolResult.getToolCallId(), toolResult.getOutput());
+				}
+			}
+		}
+		for (Map<String, Object> toolCall : response.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
+			Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, null, tc.toolParams,
+					null, AgentStreamItems.TOOL_COMPLETED);
+			String output = AgentStreamItems.truncate(serverOutputsByCallId.get(tc.toolCallId),
+					HarnessToolExecutor.MAX_LIVE_TOOL_RESULT_CHARS);
+			if (output != null && !output.isBlank()) {
+				item.put("output", output);
+			}
+			AgentRunStreamService.get().publishToolCompleted(runId, item);
 		}
 	}
 
@@ -655,8 +698,23 @@ public class SemossAgentHarness implements IAgentHarness {
 		return RUN_ROLE_ASSISTANT;
 	}
 
+	/**
+	 * True when the response contains at least one tool call the harness must
+	 * execute. Provider-executed built-in tools (flagged {@code server_tool}) are
+	 * excluded - the provider already ran them mid-turn and their results are
+	 * embedded in the response, so a response containing only server tool calls
+	 * is a normal assistant text turn.
+	 */
 	private static boolean hasAssistantToolCalls(ResponseMessage message) {
-		return message != null && message.hasToolResponses();
+		if (message == null || !message.hasToolResponses()) {
+			return false;
+		}
+		for (Map<String, Object> toolCall : message.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {

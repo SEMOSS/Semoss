@@ -47,6 +47,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
@@ -66,8 +67,8 @@ import prerna.util.Utility;
  * Optional SMSS keys:
  *   {@code BLOCKED_MESSAGE} canned replacement text; only takes effect
  *       when mounted on an {@code input} pipeline with
- *   {@code maskOnGuardrailFailure=true}. Output pipelines can only block a
- *       failing response today, not rewrite it.
+ *   {@code respondWithGuardrailMessage=true}. Output pipelines can only
+ *       block a failing response today, not rewrite it.
  * Optional per-call parameter {@code policy} overrides {@code POLICY_DESCRIPTION}.
  */
 public class PolicyComplianceGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
@@ -181,6 +182,8 @@ public class PolicyComplianceGuardrailEngine extends AbstractGuardrailReactorFun
 		// Room/model calls require an Insight to be registered, this one is never tied to a real user session.
 		Insight classificationInsight = new Insight();
 		InsightStore.getInstance().put(classificationInsight);
+		String savedJobId = ThreadStore.getJobId();
+		ThreadStore.setJobId(null);
 		try {
 			Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), classificationInsight,
 					judgeEngine, textToJudge);
@@ -196,6 +199,7 @@ public class PolicyComplianceGuardrailEngine extends AbstractGuardrailReactorFun
 			Object responseObj = response.getModelEngineResponse().toMap().get("response");
 			return responseObj != null ? responseObj.toString().trim() : "";
 		} finally {
+			ThreadStore.setJobId(savedJobId);
 			InsightStore.getInstance().remove(classificationInsight.getInsightId());
 		}
 	}

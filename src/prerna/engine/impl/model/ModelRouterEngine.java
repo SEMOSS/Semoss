@@ -563,9 +563,48 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		return "route_" + method;
 	}
 
+	/**
+	 * Internal parameter key handing the caller's real input message from
+	 * askRoom to askCall so each routing candidate can be validated against the
+	 * actual conversation content. Removed before anything reaches a provider.
+	 */
+	private static final String ROUTED_INPUT_MESSAGE = "__routedInputMessage";
+
+	@Override
+	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
+			Map<String, Object> parameters) {
+		if (parameters != null && inputMessage != null) {
+			parameters.put(ROUTED_INPUT_MESSAGE, inputMessage);
+		}
+		try {
+			return super.askRoom(question, room, inputMessage, parameters);
+		} finally {
+			// never let the stash outlive the call - the caller's map may be
+			// reused or serialized
+			if (parameters != null) {
+				parameters.remove(ROUTED_INPUT_MESSAGE);
+			}
+		}
+	}
+
+	/**
+	 * The router delegates - its own metadata row does not restrict content.
+	 * Enforcement runs in askCall against each routed target's configured
+	 * input modalities.
+	 */
+	@Override
+	public void validateInputModalities(List<AbstractMessage> outboundMessages) {
+	}
+
 	@Override
 	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
 			Insight insight, String roomId, Map<String, Object> hyperParameters) {
+
+		AbstractMessage routedInputMessage = null;
+		if (hyperParameters != null
+				&& hyperParameters.remove(ROUTED_INPUT_MESSAGE) instanceof AbstractMessage stashed) {
+			routedInputMessage = stashed;
+		}
 
 		// Reuses the caller's already-loaded room; the stateless lookup avoids
 		// re-acquiring the room mutation lock this request may already hold.
@@ -612,6 +651,14 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			classLogger.info("ModelRouterEngine '{}' routing room {} to engineId={}",
 					this.engineId, roomId, candidateId);
 			try {
+				if (targetEngine instanceof AbstractModelEngine targetModel) {
+					if (routedInputMessage != null) {
+						targetModel.validateInputModalities(room.getMessages(), routedInputMessage);
+					} else {
+						targetModel.validateInputModalities(room.getMessages());
+					}
+				}
+
 				Map<String, Object> params = hyperParameters != null
 						? new HashMap<>(hyperParameters)
 						: new HashMap<>();

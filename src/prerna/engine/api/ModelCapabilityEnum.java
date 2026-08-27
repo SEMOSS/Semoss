@@ -25,34 +25,42 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.interceptor;
+package prerna.engine.api;
+
+import java.util.Locale;
 
 /**
- * A utility class to hold the constant keys for the keyValue map passed to
- * pipeline reactors.
+ * Capabilities supported by model metadata.
  */
-public final class PipelineReactorUtils {
+public enum ModelCapabilityEnum {
+	TEXT_GENERATION, IMAGE_GENERATION, VIDEO_GENERATION, EMBEDDING, TRANSCRIPTION, SPEECH_SYNTHESIS, RERANKING,
+	MODERATION;
 
-	public static final String INPUT_REACTOR_NAME = "inputReactorName";
-	public static final String OUTPUT_REACTOR_NAME = "outputReactorName";
-	public static final String IS_SUCCESS = "isSuccess";
-
-	// public static final String REACTOR_SPAN_ID = "reactorSpanId";
-	public static final String METHOD_NAME = "methodName";
-	public static final String ARGUMENTS = "arguments";
-	public static final String RESULT = "result";
-	public static final String INTERIM_RESULT = "interim_result";
-	public static final String CONFIG = "config";
-	public static final String TARGET_PARAM = "target_param";
-	public static final String INTERCEPTOR = "interceptor";
-	public static final String PASS = "pass";
-	public static final String PASS_DETAILS = "passDetails";
-	public static final String MASKED = "masked";
-	public static final String SHORT_CIRCUIT_RESPONSE = "shortCircuitResponse";
-	public static final String CLOSE_ROOM = "closeRoom";
-	public static final String BLOCK_ERROR_MESSAGE = "blockErrorMessage";
-
-	private PipelineReactorUtils() {
-		// private constructor to prevent instantiation
+	/**
+	 * Parse a capability name case-insensitively, accepting the common aliases
+	 * (CHAT/LLM, EMBEDDINGS, TTS/TEXT_TO_SPEECH, STT/SPEECH_TO_TEXT) so every
+	 * entry point resolves the same input to the same capability.
+	 *
+	 * @param value capability name or alias
+	 * @return the matching capability
+	 * @throws IllegalArgumentException when the value is null, blank, or unknown
+	 */
+	public static ModelCapabilityEnum fromName(String value) {
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("Unsupported model capability " + value);
+		}
+		String normalizedValue = value.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+		normalizedValue = switch (normalizedValue) {
+		case "CHAT", "LLM" -> TEXT_GENERATION.name();
+		case "EMBEDDINGS" -> EMBEDDING.name();
+		case "TTS", "TEXT_TO_SPEECH" -> SPEECH_SYNTHESIS.name();
+		case "STT", "SPEECH_TO_TEXT" -> TRANSCRIPTION.name();
+		default -> normalizedValue;
+		};
+		try {
+			return valueOf(normalizedValue);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Unsupported model capability " + normalizedValue, e);
+		}
 	}
 }
