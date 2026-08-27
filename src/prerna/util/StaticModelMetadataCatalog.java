@@ -427,6 +427,13 @@ public final class StaticModelMetadataCatalog {
 			return modelsByHost;
 		}
 
+		// several catalog hosts can normalize to one provider (google and
+		// google-vertex both serve gemini), so drop repeat model ids per host
+		Map<String, Set<String>> seenByHost = new LinkedHashMap<>();
+		for (String host : normalizedHosts) {
+			seenByHost.put(host, new LinkedHashSet<>());
+		}
+
 		JsonObject allMetadata = loadMetadata(metadataFile);
 		for (Map.Entry<String, JsonElement> catalogEntry : allMetadata.entrySet()) {
 			if (!catalogEntry.getValue().isJsonObject()) {
@@ -453,6 +460,9 @@ public final class StaticModelMetadataCatalog {
 					continue;
 				}
 				for (String servingModelId : ratesByModelId.keySet()) {
+					if (!seenByHost.get(normalized).add(servingModelId)) {
+						continue;
+					}
 					Map<String, Object> entry = new LinkedHashMap<>();
 					entry.put("key", catalogEntry.getKey());
 					entry.put("modelId", servingModelId);

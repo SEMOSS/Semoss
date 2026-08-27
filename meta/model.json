@@ -1154,6 +1154,12 @@
     },
     "provider": "nvidia",
     "pricing": {
+      "amazon-bedrock": {
+        "nvidia.nemotron-nano-9b-v2": {
+          "input": 0.06,
+          "output": 0.23
+        }
+      },
       "merge-gateway": {
         "nvidia/nemotron-nano-9b-v2": {
           "input": 0.06,
@@ -1335,7 +1341,15 @@
         "source": "https://huggingface.co/microsoft/Phi-4-mini-instruct/resolve/main/README.md"
       }
     ],
-    "provider": "microsoft"
+    "provider": "microsoft",
+    "pricing": {
+      "azure": {
+        "phi-4-mini": {
+          "input": 0.075,
+          "output": 0.3
+        }
+      }
+    }
   },
   "mai-code-1-flash": {
     "id": "microsoft/mai-code-1-flash",
@@ -1543,6 +1557,12 @@
     ],
     "provider": "deepseek",
     "pricing": {
+      "azure": {
+        "deepseek-r1": {
+          "input": 1.35,
+          "output": 5.4
+        }
+      },
       "kilo": {
         "deepseek/deepseek-r1": {
           "input": 0.7,
@@ -1695,6 +1715,12 @@
           "cache_write": 0
         }
       },
+      "azure": {
+        "deepseek-v4-flash": {
+          "input": 0.19,
+          "output": 0.51
+        }
+      },
       "crossmodel": {
         "deepseek/deepseek-v4-flash": {
           "input": 0.405,
@@ -1776,9 +1802,9 @@
       },
       "openrouter": {
         "deepseek/deepseek-v4-flash": {
-          "input": 0.07798,
-          "output": 0.15596,
-          "cache_read": 0.015596
+          "input": 0.07952,
+          "output": 0.15904,
+          "cache_read": 0.015904
         }
       },
       "orcarouter": {
@@ -2122,6 +2148,12 @@
           "cache_read": 0.2
         }
       },
+      "azure": {
+        "deepseek-v4-pro": {
+          "input": 1.74,
+          "output": 3.48
+        }
+      },
       "cloudflare-ai-gateway": {
         "deepseek/deepseek-v4-pro": {
           "input": 1.74,
@@ -2372,6 +2404,12 @@
     ],
     "provider": "deepseek",
     "pricing": {
+      "azure": {
+        "deepseek-v3.2": {
+          "input": 0.58,
+          "output": 1.68
+        }
+      },
       "kilo": {
         "deepseek/deepseek-v3.2": {
           "input": 0.269,
@@ -3504,6 +3542,13 @@
           "output": 120
         }
       },
+      "google-vertex": {
+        "gemini-3-pro-image": {
+          "input": 2,
+          "output": 120,
+          "cache_read": 0.2
+        }
+      },
       "kilo": {
         "google/gemini-3-pro-image": {
           "input": 2,
@@ -3693,6 +3738,14 @@
           "cache_read": 0.03
         }
       },
+      "google-vertex": {
+        "gemini-flash-lite-latest": {
+          "input": 0.25,
+          "output": 1.5,
+          "cache_read": 0.025,
+          "input_audio": 0.5
+        }
+      },
       "merge-gateway": {
         "google/gemini-flash-lite-latest": {
           "input": 0.25,
@@ -3809,7 +3862,15 @@
       "context": 32768,
       "output": 16384
     },
-    "provider": "google"
+    "provider": "google",
+    "pricing": {
+      "google-vertex": {
+        "gemini-2.5-flash-tts": {
+          "input": 0.5,
+          "output": 10
+        }
+      }
+    }
   },
   "gemini-3.5-flash-lite": {
     "id": "google/gemini-3.5-flash-lite",
@@ -3928,6 +3989,13 @@
         }
       },
       "google": {
+        "gemini-3.5-flash-lite": {
+          "input": 0.3,
+          "output": 2.5,
+          "cache_read": 0.03
+        }
+      },
+      "google-vertex": {
         "gemini-3.5-flash-lite": {
           "input": 0.3,
           "output": 2.5,
@@ -4334,6 +4402,29 @@
           }
         }
       },
+      "google-vertex": {
+        "gemini-3.1-pro-preview": {
+          "input": 2,
+          "output": 12,
+          "cache_read": 0.2,
+          "tiers": [
+            {
+              "input": 4,
+              "output": 18,
+              "cache_read": 0.4,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 4,
+            "output": 18,
+            "cache_read": 0.4
+          }
+        }
+      },
       "impossibl": {
         "google/gemini-3.1-pro-preview": {
           "input": 2,
@@ -4603,6 +4694,29 @@
           }
         }
       },
+      "google-vertex": {
+        "gemini-3.1-pro-preview-customtools": {
+          "input": 2,
+          "output": 12,
+          "cache_read": 0.2,
+          "tiers": [
+            {
+              "input": 4,
+              "output": 18,
+              "cache_read": 0.4,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 4,
+            "output": 18,
+            "cache_read": 0.4
+          }
+        }
+      },
       "kilo": {
         "google/gemini-3.1-pro-preview-customtools": {
           "input": 2,
@@ -4834,6 +4948,14 @@
     "provider": "google",
     "pricing": {
       "google": {
+        "gemini-2.5-flash-lite": {
+          "input": 0.1,
+          "output": 0.4,
+          "cache_read": 0.01,
+          "input_audio": 0.3
+        }
+      },
+      "google-vertex": {
         "gemini-2.5-flash-lite": {
           "input": 0.1,
           "output": 0.4,
@@ -5326,6 +5448,12 @@
           "output": 0
         }
       },
+      "google-vertex": {
+        "gemini-embedding-001": {
+          "input": 0.15,
+          "output": 0
+        }
+      },
       "merge-gateway": {
         "google/gemini-embedding-001": {
           "input": 0.15,
@@ -5394,6 +5522,14 @@
           "output": 3.75,
           "cache_read": 0.075,
           "input_audio": 0.75
+        }
+      },
+      "google-vertex": {
+        "gemini-flash-latest": {
+          "input": 1.5,
+          "output": 9,
+          "cache_read": 0.15,
+          "input_audio": 1.5
         }
       },
       "merge-gateway": {
@@ -5550,6 +5686,14 @@
         }
       },
       "google": {
+        "gemini-3.5-flash": {
+          "input": 1.5,
+          "output": 9,
+          "cache_read": 0.15,
+          "input_audio": 1.5
+        }
+      },
+      "google-vertex": {
         "gemini-3.5-flash": {
           "input": 1.5,
           "output": 9,
@@ -5833,6 +5977,14 @@
           "input_audio": 0.5
         }
       },
+      "google-vertex": {
+        "gemini-3.1-flash-lite": {
+          "input": 0.25,
+          "output": 1.5,
+          "cache_read": 0.025,
+          "input_audio": 0.5
+        }
+      },
       "impossibl": {
         "google/gemini-3.1-flash-lite": {
           "input": 0.25,
@@ -6013,6 +6165,14 @@
         }
       },
       "google": {
+        "gemini-2.5-flash": {
+          "input": 0.3,
+          "output": 2.5,
+          "cache_read": 0.03,
+          "input_audio": 1
+        }
+      },
+      "google-vertex": {
         "gemini-2.5-flash": {
           "input": 0.3,
           "output": 2.5,
@@ -6275,7 +6435,15 @@
       "context": 32768,
       "output": 16384
     },
-    "provider": "google"
+    "provider": "google",
+    "pricing": {
+      "google-vertex": {
+        "gemini-2.5-pro-tts": {
+          "input": 1,
+          "output": 20
+        }
+      }
+    }
   },
   "gemini-embedding-2": {
     "id": "google/gemini-embedding-2",
@@ -6560,6 +6728,14 @@
           "input_audio": 0.75
         }
       },
+      "google-vertex": {
+        "gemini-3.6-flash": {
+          "input": 0.75,
+          "output": 3.75,
+          "cache_read": 0.075,
+          "input_audio": 0.75
+        }
+      },
       "impossibl": {
         "google/gemini-3.6-flash": {
           "input": 1.5,
@@ -6689,6 +6865,13 @@
         "gemini-3.1-flash-image": {
           "input": 0.5,
           "output": 60
+        }
+      },
+      "google-vertex": {
+        "gemini-3.1-flash-image": {
+          "input": 0.5,
+          "output": 60,
+          "cache_read": 0.05
         }
       },
       "kilo": {
@@ -6988,6 +7171,14 @@
           "input_audio": 0.5
         }
       },
+      "google-vertex": {
+        "gemini-3.1-flash-lite-preview": {
+          "input": 0.25,
+          "output": 1.5,
+          "cache_read": 0.025,
+          "input_audio": 0.5
+        }
+      },
       "kilo": {
         "google/gemini-3.1-flash-lite-preview": {
           "input": 0.25,
@@ -7132,6 +7323,14 @@
         }
       },
       "google": {
+        "gemini-3-flash-preview": {
+          "input": 0.5,
+          "output": 3,
+          "cache_read": 0.05,
+          "input_audio": 1
+        }
+      },
+      "google-vertex": {
         "gemini-3-flash-preview": {
           "input": 0.5,
           "output": 3,
@@ -7297,6 +7496,12 @@
           "cache_read": 0.075
         }
       },
+      "google-vertex": {
+        "gemini-2.5-flash-image": {
+          "input": 0.3,
+          "output": 30
+        }
+      },
       "kilo": {
         "google/gemini-2.5-flash-image": {
           "input": 0.3,
@@ -7412,6 +7617,29 @@
         }
       },
       "google": {
+        "gemini-2.5-pro": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.125,
+          "tiers": [
+            {
+              "input": 2.5,
+              "output": 15,
+              "cache_read": 0.25,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 2.5,
+            "output": 15,
+            "cache_read": 0.25
+          }
+        }
+      },
+      "google-vertex": {
         "gemini-2.5-pro": {
           "input": 1.25,
           "output": 10,
@@ -7854,6 +8082,14 @@
           "input_audio": 0.75
         }
       },
+      "google-vertex": {
+        "gemini-3.7-flash": {
+          "input": 0.75,
+          "output": 3.75,
+          "cache_read": 0.075,
+          "input_audio": 0.75
+        }
+      },
       "kilo": {
         "google/gemini-3.7-flash": {
           "input": 1.5,
@@ -8023,6 +8259,12 @@
     ],
     "provider": "meta",
     "pricing": {
+      "azure": {
+        "llama-3.3-70b-instruct": {
+          "input": 0.71,
+          "output": 0.71
+        }
+      },
       "merge-gateway": {
         "meta/llama-3.3-70b-instruct": {
           "input": 0.22,
@@ -9844,6 +10086,13 @@
           "cache_write": 0
         }
       },
+      "azure": {
+        "kimi-k2.7-code": {
+          "input": 0.95,
+          "output": 4,
+          "cache_read": 0.19
+        }
+      },
       "hpc-ai": {
         "moonshotai/kimi-k2.7-code": {
           "input": 0.95,
@@ -10346,6 +10595,12 @@
     ],
     "provider": "moonshotai",
     "pricing": {
+      "azure": {
+        "kimi-k2.5": {
+          "input": 0.6,
+          "output": 3
+        }
+      },
       "hpc-ai": {
         "moonshotai/kimi-k2.5": {
           "input": 0.6,
@@ -10571,6 +10826,12 @@
     ],
     "provider": "moonshotai",
     "pricing": {
+      "amazon-bedrock": {
+        "moonshot.kimi-k2-thinking": {
+          "input": 0.6,
+          "output": 2.5
+        }
+      },
       "kilo": {
         "moonshotai/kimi-k2-thinking": {
           "input": 0.6,
@@ -10740,6 +11001,12 @@
           "cache_write": 0
         }
       },
+      "azure": {
+        "kimi-k2.6": {
+          "input": 0.95,
+          "output": 4
+        }
+      },
       "fastrouter": {
         "moonshotai/kimi-k2.6": {
           "input": 0.75,
@@ -10896,6 +11163,22 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "google-vertex": {
+        "claude-opus-4@20250514": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4@20250514": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      },
       "merge-gateway": {
         "anthropic/claude-opus-4-20250514": {
           "input": 15,
@@ -11092,7 +11375,23 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-4-7": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
       "anthropic": {
+        "claude-opus-4-7": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "azure": {
         "claude-opus-4-7": {
           "input": 5,
           "output": 25,
@@ -11114,6 +11413,58 @@
           "output": 25,
           "cache_read": 0.5,
           "cache_write": 6.25
+        }
+      },
+      "google-vertex": {
+        "claude-opus-4-7@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4-7@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
         }
       },
       "impossibl": {
@@ -11223,7 +11574,17 @@
       "context": 1000000,
       "output": 128000
     },
-    "provider": "anthropic"
+    "provider": "anthropic",
+    "pricing": {
+      "azure": {
+        "claude-mythos-5": {
+          "input": 10,
+          "output": 50,
+          "cache_read": 1,
+          "cache_write": 12.5
+        }
+      }
+    }
   },
   "claude-opus-4-1-20250805": {
     "id": "anthropic/claude-opus-4-1-20250805",
@@ -11254,6 +11615,30 @@
     },
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-4-1-20250805-v1:0": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      },
+      "google-vertex": {
+        "claude-opus-4-1@20250805": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4-1@20250805": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      },
       "merge-gateway": {
         "anthropic/claude-opus-4-1-20250805": {
           "input": 15,
@@ -11387,12 +11772,46 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-4-8": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
       "anthropic": {
         "claude-opus-4-8": {
           "input": 5,
           "output": 25,
           "cache_read": 0.5,
           "cache_write": 6.25
+        }
+      },
+      "azure": {
+        "claude-opus-4-8": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
         }
       },
       "crossmodel": {
@@ -11409,6 +11828,58 @@
           "output": 25,
           "cache_read": 0.5,
           "cache_write": 6.25
+        }
+      },
+      "google-vertex": {
+        "claude-opus-4-8@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4-8@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
         }
       },
       "impossibl": {
@@ -11542,6 +12013,16 @@
       "output": 32000
     },
     "provider": "anthropic",
+    "pricing": {
+      "azure": {
+        "claude-opus-4-1": {
+          "input": 15,
+          "output": 75,
+          "cache_read": 1.5,
+          "cache_write": 18.75
+        }
+      }
+    },
     "openrouter": {
       "id": "anthropic/claude-opus-4.1",
       "match_method": "normalized_id",
@@ -11649,7 +12130,23 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-sonnet-5": {
+          "input": 2,
+          "output": 10,
+          "cache_read": 0.2,
+          "cache_write": 2.5
+        }
+      },
       "anthropic": {
+        "claude-sonnet-5": {
+          "input": 2,
+          "output": 10,
+          "cache_read": 0.2,
+          "cache_write": 2.5
+        }
+      },
+      "azure": {
         "claude-sonnet-5": {
           "input": 2,
           "output": 10,
@@ -11675,6 +12172,22 @@
       },
       "edenai": {
         "anthropic/claude-sonnet-5": {
+          "input": 2,
+          "output": 10,
+          "cache_read": 0.2,
+          "cache_write": 2.5
+        }
+      },
+      "google-vertex": {
+        "claude-sonnet-5@default": {
+          "input": 2,
+          "output": 10,
+          "cache_read": 0.2,
+          "cache_write": 2.5
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-sonnet-5@default": {
           "input": 2,
           "output": 10,
           "cache_read": 0.2,
@@ -11870,8 +12383,32 @@
     },
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-sonnet-4-5-20250929-v1:0": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
       "anthropic": {
         "claude-sonnet-4-5-20250929": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
+      "google-vertex": {
+        "claude-sonnet-4-5@20250929": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-sonnet-4-5@20250929": {
           "input": 3,
           "output": 15,
           "cache_read": 0.3,
@@ -11926,6 +12463,14 @@
     "provider": "anthropic",
     "pricing": {
       "anthropic": {
+        "claude-opus-4-5": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "azure": {
         "claude-opus-4-5": {
           "input": 5,
           "output": 25,
@@ -12109,7 +12654,23 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-sonnet-4-6": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
       "anthropic": {
+        "claude-sonnet-4-6": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
+      "azure": {
         "claude-sonnet-4-6": {
           "input": 3,
           "output": 15,
@@ -12131,6 +12692,58 @@
           "output": 15,
           "cache_read": 0.3,
           "cache_write": 3.75
+        }
+      },
+      "google-vertex": {
+        "claude-sonnet-4-6@default": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75,
+          "tiers": [
+            {
+              "input": 6,
+              "output": 22.5,
+              "cache_read": 0.6,
+              "cache_write": 7.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 6,
+            "output": 22.5,
+            "cache_read": 0.6,
+            "cache_write": 7.5
+          }
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-sonnet-4-6@default": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75,
+          "tiers": [
+            {
+              "input": 6,
+              "output": 22.5,
+              "cache_read": 0.6,
+              "cache_write": 7.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 6,
+            "output": 22.5,
+            "cache_read": 0.6,
+            "cache_write": 7.5
+          }
         }
       },
       "impossibl": {
@@ -12281,8 +12894,32 @@
     },
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-haiku-4-5-20251001-v1:0": {
+          "input": 1,
+          "output": 5,
+          "cache_read": 0.1,
+          "cache_write": 1.25
+        }
+      },
       "anthropic": {
         "claude-haiku-4-5-20251001": {
+          "input": 1,
+          "output": 5,
+          "cache_read": 0.1,
+          "cache_write": 1.25
+        }
+      },
+      "google-vertex": {
+        "claude-haiku-4-5@20251001": {
+          "input": 1,
+          "output": 5,
+          "cache_read": 0.1,
+          "cache_write": 1.25
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-haiku-4-5@20251001": {
           "input": 1,
           "output": 5,
           "cache_read": 0.1,
@@ -12346,6 +12983,14 @@
     "provider": "anthropic",
     "pricing": {
       "anthropic": {
+        "claude-sonnet-4-5": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
+      "azure": {
         "claude-sonnet-4-5": {
           "input": 3,
           "output": 15,
@@ -12457,6 +13102,14 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-4-5-20251101-v1:0": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
       "anthropic": {
         "claude-opus-4-5-20251101": {
           "input": 5,
@@ -12467,6 +13120,22 @@
       },
       "edenai": {
         "anthropic/claude-opus-4-5-20251101": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "google-vertex": {
+        "claude-opus-4-5@20251101": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4-5@20251101": {
           "input": 5,
           "output": 25,
           "cache_read": 0.5,
@@ -12589,7 +13258,23 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-fable-5": {
+          "input": 10,
+          "output": 50,
+          "cache_read": 1,
+          "cache_write": 12.5
+        }
+      },
       "anthropic": {
+        "claude-fable-5": {
+          "input": 10,
+          "output": 50,
+          "cache_read": 1,
+          "cache_write": 12.5
+        }
+      },
+      "azure": {
         "claude-fable-5": {
           "input": 10,
           "output": 50,
@@ -12615,6 +13300,22 @@
       },
       "edenai": {
         "anthropic/claude-fable-5": {
+          "input": 10,
+          "output": 50,
+          "cache_read": 1,
+          "cache_write": 12.5
+        }
+      },
+      "google-vertex": {
+        "claude-fable-5@default": {
+          "input": 10,
+          "output": 50,
+          "cache_read": 1,
+          "cache_write": 12.5
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-fable-5@default": {
           "input": 10,
           "output": 50,
           "cache_read": 1,
@@ -12771,6 +13472,22 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "google-vertex": {
+        "claude-sonnet-4@20250514": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-sonnet-4@20250514": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75
+        }
+      },
       "merge-gateway": {
         "anthropic/claude-sonnet-4-20250514": {
           "input": 3,
@@ -12865,6 +13582,14 @@
     "provider": "anthropic",
     "pricing": {
       "anthropic": {
+        "claude-haiku-4-5": {
+          "input": 1,
+          "output": 5,
+          "cache_read": 0.1,
+          "cache_write": 1.25
+        }
+      },
+      "azure": {
         "claude-haiku-4-5": {
           "input": 1,
           "output": 5,
@@ -13053,6 +13778,14 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-4-6-v1": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
       "anthropic": {
         "claude-opus-4-6": {
           "input": 5,
@@ -13061,12 +13794,90 @@
           "cache_write": 6.25
         }
       },
+      "azure": {
+        "claude-opus-4-6": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
+        }
+      },
       "edenai": {
         "anthropic/claude-opus-4-6": {
           "input": 5,
           "output": 25,
           "cache_read": 0.5,
           "cache_write": 6.25
+        }
+      },
+      "google-vertex": {
+        "claude-opus-4-6@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-4-6@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 37.5,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 37.5,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
         }
       },
       "impossibl": {
@@ -13363,7 +14174,23 @@
     ],
     "provider": "anthropic",
     "pricing": {
+      "amazon-bedrock": {
+        "anthropic.claude-opus-5": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
       "anthropic": {
+        "claude-opus-5": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "azure": {
         "claude-opus-5": {
           "input": 5,
           "output": 25,
@@ -13389,6 +14216,22 @@
       },
       "edenai": {
         "anthropic/claude-opus-5": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "google-vertex": {
+        "claude-opus-5@default": {
+          "input": 5,
+          "output": 25,
+          "cache_read": 0.5,
+          "cache_write": 6.25
+        }
+      },
+      "google-vertex-anthropic": {
+        "claude-opus-5@default": {
           "input": 5,
           "output": 25,
           "cache_read": 0.5,
@@ -14264,6 +15107,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-4o": {
+          "input": 2.5,
+          "output": 10,
+          "cache_read": 1.25
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-4o": {
           "input": 1.25,
@@ -14402,6 +15252,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-image-1.5": {
+          "input": 5,
+          "output": 32,
+          "cache_read": 1.25
+        }
+      },
       "vercel": {
         "openai/gpt-image-1.5": {
           "input": 5,
@@ -14500,6 +15357,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5-nano": {
+          "input": 0.05,
+          "output": 0.4,
+          "cache_read": 0.01
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5-nano": {
           "input": 0.05,
@@ -14681,6 +15545,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-4o-mini": {
+          "input": 0.15,
+          "output": 0.6,
+          "cache_read": 0.075
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-4o-mini": {
           "input": 0.075,
@@ -15461,6 +16332,12 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-4-turbo": {
+          "input": 10,
+          "output": 30
+        }
+      },
       "edenai": {
         "openai/gpt-4-turbo": {
           "input": 10,
@@ -15826,6 +16703,32 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.6-sol": {
+          "input": 5,
+          "output": 30,
+          "cache_read": 0.5,
+          "cache_write": 6.25,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 45,
+              "cache_read": 1,
+              "cache_write": 12.5,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 45,
+            "cache_read": 1,
+            "cache_write": 12.5
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.6-sol": {
           "input": 2,
@@ -16352,6 +17255,26 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.4-pro": {
+          "input": 30,
+          "output": 180,
+          "tiers": [
+            {
+              "input": 60,
+              "output": 270,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 60,
+            "output": 270
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.4-pro": {
           "input": 30,
@@ -16595,6 +17518,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.13
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5": {
           "input": 1.25,
@@ -16767,6 +17697,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.1-codex-mini": {
+          "input": 0.25,
+          "output": 2,
+          "cache_read": 0.025
+        }
+      },
       "impossibl": {
         "openai/gpt-5.1-codex-mini": {
           "input": 0.25,
@@ -16911,6 +17848,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5-codex": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.13
+        }
+      },
       "impossibl": {
         "openai/gpt-5-codex": {
           "input": 1.25,
@@ -16984,6 +17928,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5-mini": {
+          "input": 0.25,
+          "output": 2,
+          "cache_read": 0.03
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5-mini": {
           "input": 0.25,
@@ -17253,6 +18204,32 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.6-luna": {
+          "input": 0.2,
+          "output": 1.2,
+          "cache_read": 0.02,
+          "cache_write": 0.25,
+          "tiers": [
+            {
+              "input": 0.4,
+              "output": 1.8,
+              "cache_read": 0.04,
+              "cache_write": 0.5,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 0.4,
+            "output": 1.8,
+            "cache_read": 0.04,
+            "cache_write": 0.5
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.6-luna": {
           "input": 0.2,
@@ -17576,6 +18553,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.3-codex": {
+          "input": 1.75,
+          "output": 14,
+          "cache_read": 0.175
+        }
+      },
       "edenai": {
         "openai/gpt-5.3-codex": {
           "input": 1.75,
@@ -17744,6 +18728,12 @@
       },
       "aiand": {
         "openai/gpt-oss-120b": {
+          "input": 0.15,
+          "output": 0.6
+        }
+      },
+      "amazon-bedrock": {
+        "openai.gpt-oss-120b": {
           "input": 0.15,
           "output": 0.6
         }
@@ -18047,6 +19037,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-4.1-nano": {
+          "input": 0.1,
+          "output": 0.4,
+          "cache_read": 0.025
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-4.1-nano": {
           "input": 0.1,
@@ -18195,6 +19192,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "o1": {
+          "input": 15,
+          "output": 60,
+          "cache_read": 7.5
+        }
+      },
       "edenai": {
         "openai/o1": {
           "input": 15,
@@ -18326,6 +19330,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.2": {
+          "input": 1.75,
+          "output": 14,
+          "cache_read": 0.125
+        }
+      },
       "edenai": {
         "openai/gpt-5.2": {
           "input": 1.75,
@@ -18489,6 +19500,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-image-1": {
+          "input": 5,
+          "output": 40,
+          "cache_read": 1.25
+        }
+      },
       "vercel": {
         "openai/gpt-image-1": {
           "input": 5,
@@ -18731,6 +19749,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.4-mini": {
+          "input": 0.75,
+          "output": 4.5,
+          "cache_read": 0.075
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.4-mini": {
           "input": 0.75,
@@ -19027,6 +20052,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "o3": {
+          "input": 2,
+          "output": 8,
+          "cache_read": 0.5
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/o3": {
           "input": 2,
@@ -19208,6 +20240,12 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5-pro": {
+          "input": 15,
+          "output": 120
+        }
+      },
       "edenai": {
         "openai/gpt-5-pro": {
           "input": 15,
@@ -19573,6 +20611,29 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.5": {
+          "input": 5,
+          "output": 30,
+          "cache_read": 0.5,
+          "tiers": [
+            {
+              "input": 10,
+              "output": 45,
+              "cache_read": 1,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 10,
+            "output": 45,
+            "cache_read": 1
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.5": {
           "input": 5,
@@ -20023,6 +21084,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.2-codex": {
+          "input": 1.75,
+          "output": 14,
+          "cache_read": 0.175
+        }
+      },
       "impossibl": {
         "openai/gpt-5.2-codex": {
           "input": 1.75,
@@ -20154,6 +21222,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-4.1": {
+          "input": 2,
+          "output": 8,
+          "cache_read": 0.5
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-4.1": {
           "input": 2,
@@ -20538,6 +21613,32 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.6-terra": {
+          "input": 2,
+          "output": 12,
+          "cache_read": 0.2,
+          "cache_write": 2.5,
+          "tiers": [
+            {
+              "input": 4,
+              "output": 18,
+              "cache_read": 0.4,
+              "cache_write": 5,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 4,
+            "output": 18,
+            "cache_read": 0.4,
+            "cache_write": 5
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.6-terra": {
           "input": 2,
@@ -20845,6 +21946,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "o4-mini": {
+          "input": 1.1,
+          "output": 4.4,
+          "cache_read": 0.275
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/o4-mini": {
           "input": 1.1,
@@ -21179,6 +22287,29 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.4": {
+          "input": 2.5,
+          "output": 15,
+          "cache_read": 0.25,
+          "tiers": [
+            {
+              "input": 5,
+              "output": 22.5,
+              "cache_read": 0.5,
+              "tier": {
+                "type": "context",
+                "size": 272000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 5,
+            "output": 22.5,
+            "cache_read": 0.5
+          }
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.4": {
           "input": 2.5,
@@ -21519,6 +22650,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "o3-mini": {
+          "input": 1.1,
+          "output": 4.4,
+          "cache_read": 0.55
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/o3-mini": {
           "input": 1.1,
@@ -21791,6 +22929,12 @@
     ],
     "provider": "openai",
     "pricing": {
+      "amazon-bedrock": {
+        "openai.gpt-oss-safeguard-120b": {
+          "input": 0.15,
+          "output": 0.6
+        }
+      },
       "merge-gateway": {
         "openai/gpt-oss-safeguard-120b": {
           "input": 0.15,
@@ -22067,6 +23211,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-image-2": {
+          "input": 5,
+          "output": 30,
+          "cache_read": 1.25
+        }
+      },
       "openai": {
         "gpt-image-2": {
           "input": 5,
@@ -22139,6 +23290,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.1-codex-max": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.125
+        }
+      },
       "kilo": {
         "openai/gpt-5.1-codex-max": {
           "input": 1.25,
@@ -22247,6 +23405,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.1-codex": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.125
+        }
+      },
       "impossibl": {
         "openai/gpt-5.1-codex": {
           "input": 1.25,
@@ -22372,6 +23537,13 @@
     "pricing": {
       "aixy": {
         "openai/gpt-4.1-mini": {
+          "input": 0.4,
+          "output": 1.6,
+          "cache_read": 0.1
+        }
+      },
+      "azure": {
+        "gpt-4.1-mini": {
           "input": 0.4,
           "output": 1.6,
           "cache_read": 0.1
@@ -22526,6 +23698,12 @@
     ],
     "provider": "openai",
     "pricing": {
+      "amazon-bedrock": {
+        "openai.gpt-oss-20b": {
+          "input": 0.07,
+          "output": 0.3
+        }
+      },
       "deepinfra": {
         "openai/gpt-oss-20b": {
           "input": 0.03,
@@ -22897,6 +24075,13 @@
     ],
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.4-nano": {
+          "input": 0.2,
+          "output": 1.25,
+          "cache_read": 0.02
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.4-nano": {
           "input": 0.2,
@@ -23083,6 +24268,13 @@
     },
     "provider": "openai",
     "pricing": {
+      "azure": {
+        "gpt-5.1": {
+          "input": 1.25,
+          "output": 10,
+          "cache_read": 0.125
+        }
+      },
       "cloudflare-ai-gateway": {
         "openai/gpt-5.1": {
           "input": 1.25,
@@ -26443,6 +27635,12 @@
           "output": 2.8,
           "reasoning": 8.4
         }
+      },
+      "amazon-bedrock": {
+        "qwen.qwen3-32b-v1:0": {
+          "input": 0.15,
+          "output": 0.6
+        }
       }
     },
     "openrouter": {
@@ -27075,6 +28273,12 @@
     ],
     "provider": "alibaba",
     "pricing": {
+      "amazon-bedrock": {
+        "qwen.qwen3-coder-next": {
+          "input": 0.22,
+          "output": 1.8
+        }
+      },
       "vercel": {
         "alibaba/qwen3-coder-next": {
           "input": 0.5,
@@ -30461,6 +31665,12 @@
     ],
     "provider": "zhipuai",
     "pricing": {
+      "amazon-bedrock": {
+        "zai.glm-5": {
+          "input": 1,
+          "output": 3.2
+        }
+      },
       "zhipuai": {
         "glm-5": {
           "input": 1,
@@ -32683,6 +33893,12 @@
     ],
     "provider": "mistral",
     "pricing": {
+      "azure": {
+        "mistral-medium-2505": {
+          "input": 0.4,
+          "output": 2
+        }
+      },
       "edenai": {
         "mistral/mistral-medium-2505": {
           "input": 0.4,
