@@ -91,8 +91,16 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheTTL(StringEnum):
+    FIVE_MINUTES = "5m"
+    ONE_HOUR = "1h"
+
+
 class AnthropicCacheControl(BaseModel):
     type: str = "ephemeral"
+    # Omitted entirely for the 5m default so the request matches what Anthropic
+    # expects when no explicit lifetime is requested.
+    ttl: Optional[AnthropicCacheTTL] = None
 
 
 class AnthropicTextContentPart(BaseModel):
