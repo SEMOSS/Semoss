@@ -97,7 +97,7 @@ COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 RUN	apt update -y \
-	&& apt-get install -y git curl unzip lsof vim nano \
+	&& apt-get install -y git curl unzip lsof vim nano ca-certificates \
 	&& curl https://rclone.org/install.sh | bash \
 	&& chmod 755 /usr/bin/rclone
 

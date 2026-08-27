@@ -111,16 +111,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         elif self.provider == "bedrock":
             from anthropic.lib.bedrock import AnthropicBedrock
 
-            return AnthropicBedrock(
-                aws_region=kwargs.pop("aws_region", None),
-                aws_access_key=kwargs.pop("aws_access_key", None),
-                aws_secret_key=kwargs.pop("aws_secret_key", None),
-                default_headers=self._get_bedrock_guardrail_headers(
+            bedrock_kwargs = {
+                "aws_region": kwargs.pop("aws_region", None),
+                "aws_access_key": kwargs.pop("aws_access_key", None),
+                "aws_secret_key": kwargs.pop("aws_secret_key", None),
+                "default_headers": self._get_bedrock_guardrail_headers(
                     kwargs.pop("guardrail_identifier", None),
                     kwargs.pop("guardrail_version", None),
                     trace=kwargs.pop("guardrail_trace", True),
                 ),
-            )
+            }
+            try:
+                return AnthropicBedrock(**bedrock_kwargs)
+            except ValueError:
+                if bedrock_kwargs["aws_region"] is not None:
+                    raise
+                bedrock_kwargs["aws_region"] = "us-east-1"
+                return AnthropicBedrock(**bedrock_kwargs)
         elif self.provider == "azure":
             from anthropic import AnthropicFoundry
 
@@ -1161,6 +1168,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         params.pop("stream", None)  # no streaming for batch
         params.pop("betas", None)
+        extra_body = params.pop("extra_body", None)
+        if extra_body:
+            params.update(extra_body)
         return {"custom_id": custom_id, "params": params}
 
     def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
