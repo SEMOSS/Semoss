@@ -32,6 +32,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -100,6 +103,7 @@ public final class MCPUtility {
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+	public static final String SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse";
 
 	/**
 	 * Records which generator produced a tool. A generator replaces tools carrying
@@ -229,6 +233,46 @@ public final class MCPUtility {
 			}
 			return null;
 		}
+	}
+
+	/**
+	 * Resolves a tool-produced relative file reference beneath its execution root.
+	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
+	 *
+	 * @param rootFolderPath execution root supplied to the MCP tool
+	 * @param relativePath   tool-produced path relative to the execution root
+	 * @return canonical path to an existing regular file beneath the root
+	 * @throws IOException              when either path cannot be resolved
+	 * @throws IllegalArgumentException when the input is blank, absolute, outside
+	 *                                  the root, or not a regular file
+	 */
+	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
+		if (rootFolderPath == null || rootFolderPath.isBlank()) {
+			throw new IllegalArgumentException("MCP execution root must not be blank");
+		}
+		if (relativePath == null || relativePath.isBlank()) {
+			throw new IllegalArgumentException("MCP file reference must not be blank");
+		}
+
+		Path reference = Path.of(relativePath);
+		if (reference.isAbsolute()) {
+			throw new IllegalArgumentException("MCP file reference must be relative");
+		}
+
+		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
+		Path candidate = canonicalRoot.resolve(reference).normalize();
+		if (!candidate.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference is outside its execution root");
+		}
+
+		Path canonicalFile = candidate.toRealPath();
+		if (!canonicalFile.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
+		}
+		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
+			throw new IllegalArgumentException("MCP file reference is not a regular file");
+		}
+		return canonicalFile;
 	}
 
 	/**
@@ -1469,7 +1513,6 @@ public final class MCPUtility {
 		}
 	}
 
-	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
 	private static void checkEngineAccess(IEngine engine, User user) {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");

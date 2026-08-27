@@ -33,6 +33,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 
 
@@ -200,11 +201,13 @@ class OpenAIMessageBuilder:
                             )
                             content_parts = []
 
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = parse_multimodal_tool_response(output)
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
                                 call_id=p.tool_result.id,
-                                output=p.tool_result.output,
+                                output=self._build_responses_tool_output(output, blocks),
                             )
                         )
 
@@ -264,11 +267,13 @@ class OpenAIMessageBuilder:
                     continue
 
                 if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                    output = message.content or "Tool executed successfully."
+                    blocks = parse_multimodal_tool_response(output)
                     openai_messages.append(
                         OpenAIResponsesToolCallOutput(
                             type="function_call_output",
                             call_id=message.tool_call_id,
-                            output=message.content,
+                            output=self._build_responses_tool_output(output, blocks),
                         )
                     )
                     if is_last:
@@ -1032,6 +1037,28 @@ class OpenAIMessageBuilder:
                 return OpenAIRoles.ASSISTANT.value
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _build_responses_tool_output(self, output: str, blocks):
+        """Convert SEMOSS multimodal blocks to Responses API tool content.
+        Images become input_image data-URIs; documents become input_file blocks."""
+        if blocks is None:
+            return output or "Tool executed successfully."
+        result = []
+        for b in blocks:
+            if b.type == "text":
+                result.append({"type": "input_text", "text": b.text})
+            elif not b.data:
+                continue  # unresolved file ref - Java should have inlined this
+            elif b.type == "image":
+                mime = b.mime_type or "image/png"
+                result.append({"type": "input_image",
+                               "image_url": f"data:{mime};base64,{b.data}"})
+            else:
+                mime = b.mime_type or "application/pdf"
+                result.append({"type": "input_file",
+                               "filename": "document.pdf",
+                               "file_data": f"data:{mime};base64,{b.data}"})
+        return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(
         self, content: str, type: Optional[str] = "input_text"
