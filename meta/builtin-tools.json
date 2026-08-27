@@ -110,6 +110,7 @@
       ]
     }
   },
+  "azure": "openai",
   "anthropic": {
     "web_search": {
       "alias": "web_search_20260318",

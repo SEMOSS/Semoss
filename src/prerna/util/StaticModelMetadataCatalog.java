@@ -60,6 +60,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.ModelCapabilityEnum;
+import prerna.engine.api.ModelModalityEnum;
 
 /**
  * Read-only view over the curated model catalog stored in meta/model.json.
@@ -80,6 +82,14 @@ public final class StaticModelMetadataCatalog {
 	}.getType();
 	private static final Object CACHE_LOCK = new Object();
 
+	/**
+	 * Serving providers a SEMOSS model engine can actually connect to (OPEN_AI,
+	 * AZURE_OPEN_AI, VERTEX, BEDROCK, ANTHROPIC), in the normalized form produced
+	 * by {@link StaticBuiltinToolsCatalog#normalizeProviderKey(String)}.
+	 */
+	private static final Set<String> CONNECTABLE_SERVING_PROVIDERS = Set.of("openai", "azure", "google", "bedrock",
+			"anthropic");
+
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^[a-z][a-z-]*\\.(?=.)");
 	private static final Pattern VERSION_SUFFIX_PATTERN = Pattern.compile("-v\\d+(?::\\d+)?$");
 	private static final Pattern DATE_SUFFIX_PATTERN = Pattern.compile("-\\d{4}-?\\d{2}-?\\d{2}$");
@@ -96,6 +106,17 @@ public final class StaticModelMetadataCatalog {
 	private static final Comparator<Map<String, Object>> MATCH_ORDER = Comparator
 			.comparingDouble((Map<String, Object> match) -> ((Number) match.get(MATCH_SCORE)).doubleValue()).reversed()
 			.thenComparing(match -> String.valueOf(match.get(MATCH_KEY)), String.CASE_INSENSITIVE_ORDER);
+
+	/**
+	 * Token limits below this are the catalog's 0/1 "unknown" placeholders, not
+	 * real values, and must not become form defaults.
+	 */
+	private static final long MINIMUM_REAL_TOKEN_LIMIT = 2;
+
+	private static final Comparator<Map<String, Object>> IMPORTABLE_MODEL_ORDER = Comparator
+			.comparing((Map<String, Object> entry) -> String.valueOf(entry.getOrDefault("releaseDate", "")),
+					Comparator.reverseOrder())
+			.thenComparing(entry -> String.valueOf(entry.get("modelId")), String.CASE_INSENSITIVE_ORDER);
 
 	private static volatile MetadataCache metadataCache;
 
@@ -241,6 +262,11 @@ public final class StaticModelMetadataCatalog {
 		}
 		putJson(defaults, Constants.REASONING_CONFIG, openRouter, "reasoning");
 
+		JsonArray pricing = buildOrderedPricing(model);
+		if (pricing != null) {
+			defaults.put(Constants.PRICING, GSON.toJson(pricing));
+		}
+
 		return normalizeIndividually(modelId, defaults);
 	}
 
@@ -279,27 +305,33 @@ public final class StaticModelMetadataCatalog {
 		if (outputModalities.isEmpty()) {
 			return null;
 		}
-		if (outputModalities.contains("video")) {
-			return "VIDEO_GENERATION";
+		if (containsModality(outputModalities, ModelModalityEnum.VIDEO)) {
+			return ModelCapabilityEnum.VIDEO_GENERATION.name();
 		}
-		if (outputModalities.contains("image")) {
-			return "IMAGE_GENERATION";
+		if (containsModality(outputModalities, ModelModalityEnum.IMAGE)) {
+			return ModelCapabilityEnum.IMAGE_GENERATION.name();
 		}
-		if (outputModalities.contains("audio")) {
-			return inputModalities.contains("text") ? "SPEECH_SYNTHESIS" : "TRANSCRIPTION";
+		if (containsModality(outputModalities, ModelModalityEnum.AUDIO)) {
+			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? ModelCapabilityEnum.SPEECH_SYNTHESIS.name()
+					: ModelCapabilityEnum.TRANSCRIPTION.name();
 		}
-		if (outputModalities.contains("vector")) {
-			return "EMBEDDING";
+		if (containsModality(outputModalities, ModelModalityEnum.VECTOR)) {
+			return ModelCapabilityEnum.EMBEDDING.name();
 		}
-		if (outputModalities.contains("text")) {
-			if (!inputModalities.contains("text") && inputModalities.contains("audio")) {
-				return "TRANSCRIPTION";
+		if (containsModality(outputModalities, ModelModalityEnum.TEXT)) {
+			if (!containsModality(inputModalities, ModelModalityEnum.TEXT)
+					&& containsModality(inputModalities, ModelModalityEnum.AUDIO)) {
+				return ModelCapabilityEnum.TRANSCRIPTION.name();
 			}
-			if (inputModalities.contains("text") && !placeholderOutputLimit) {
-				return "TEXT_GENERATION";
+			if (containsModality(inputModalities, ModelModalityEnum.TEXT) && !placeholderOutputLimit) {
+				return ModelCapabilityEnum.TEXT_GENERATION.name();
 			}
 		}
 		return null;
+	}
+
+	private static boolean containsModality(List<String> modalities, ModelModalityEnum modality) {
+		return modalities.contains(modality.getCatalogName());
 	}
 
 	/**
@@ -374,6 +406,95 @@ public final class StaticModelMetadataCatalog {
 		List<String> catalogKeys = new ArrayList<>(loadMetadata(metadataFile).keySet());
 		catalogKeys.sort(String.CASE_INSENSITIVE_ORDER);
 		return catalogKeys;
+	}
+
+	/**
+	 * The catalog models importable through each of the requested serving
+	 * providers, keyed by the normalized provider key the caller asked for (see
+	 * {@link StaticBuiltinToolsCatalog#normalizeProviderKey(String)}). A model is
+	 * listed under a provider when the catalog's pricing object names that
+	 * provider as a serving host - the pricing entry's inner key is the exact
+	 * model id that host serves, which is what an import form needs to submit.
+	 * <p>
+	 * Only text-output models are returned; image/video/embedding entries are
+	 * curated by hand where they are supported at all. Token limits are dropped
+	 * when the catalog holds a 0/1 placeholder rather than a real value. Entries
+	 * are sorted newest release first. Hosts with no catalog models map to an
+	 * empty list so the caller can tell "no models" from "unknown host".
+	 */
+	public static Map<String, List<Map<String, Object>>> listImportableModels(Path metadataFile,
+			Set<String> normalizedHosts) {
+		Map<String, List<Map<String, Object>>> modelsByHost = new LinkedHashMap<>();
+		if (normalizedHosts == null || normalizedHosts.isEmpty()) {
+			return modelsByHost;
+		}
+		for (String host : normalizedHosts) {
+			modelsByHost.put(host, new ArrayList<>());
+		}
+		if (!Files.isRegularFile(metadataFile)) {
+			return modelsByHost;
+		}
+
+		// several catalog hosts can normalize to one provider (google and
+		// google-vertex both serve gemini), so drop repeat model ids per host
+		Map<String, Set<String>> seenByHost = new LinkedHashMap<>();
+		for (String host : normalizedHosts) {
+			seenByHost.put(host, new LinkedHashSet<>());
+		}
+
+		JsonObject allMetadata = loadMetadata(metadataFile);
+		for (Map.Entry<String, JsonElement> catalogEntry : allMetadata.entrySet()) {
+			if (!catalogEntry.getValue().isJsonObject()) {
+				continue;
+			}
+			JsonObject model = catalogEntry.getValue().getAsJsonObject();
+			JsonObject modalities = getObject(model, "modalities");
+			List<String> outputModalities = getStringList(modalities, "output");
+			if (!outputModalities.contains("text")) {
+				continue;
+			}
+			JsonObject pricing = getObject(model, "pricing");
+			if (pricing == null) {
+				continue;
+			}
+			for (String servingKey : pricing.keySet()) {
+				String normalized = StaticBuiltinToolsCatalog.normalizeProviderKey(servingKey);
+				List<Map<String, Object>> hostModels = normalized == null ? null : modelsByHost.get(normalized);
+				if (hostModels == null) {
+					continue;
+				}
+				JsonObject ratesByModelId = getObject(pricing, servingKey);
+				if (ratesByModelId == null) {
+					continue;
+				}
+				for (String servingModelId : ratesByModelId.keySet()) {
+					if (!seenByHost.get(normalized).add(servingModelId)) {
+						continue;
+					}
+					Map<String, Object> entry = new LinkedHashMap<>();
+					entry.put("key", catalogEntry.getKey());
+					entry.put("modelId", servingModelId);
+					putString(entry, "name", model, "name");
+					putString(entry, "description", model, "description");
+					putString(entry, "family", model, "family");
+					putString(entry, "provider", model, "provider");
+					putString(entry, "releaseDate", model, "release_date");
+					JsonObject limit = getObject(model, "limit");
+					putLong(entry, "contextLimit", limit, "context", MINIMUM_REAL_TOKEN_LIMIT);
+					putLong(entry, "outputLimit", limit, "output", MINIMUM_REAL_TOKEN_LIMIT);
+					entry.put("inputModalities", getStringList(modalities, "input"));
+					entry.put("outputModalities", outputModalities);
+					putBoolean(entry, "reasoning", model, "reasoning");
+					putBoolean(entry, "toolCall", model, "tool_call");
+					hostModels.add(entry);
+				}
+			}
+		}
+
+		for (List<Map<String, Object>> hostModels : modelsByHost.values()) {
+			hostModels.sort(IMPORTABLE_MODEL_ORDER);
+		}
+		return modelsByHost;
 	}
 
 	/**
@@ -656,6 +777,70 @@ public final class StaticModelMetadataCatalog {
 		if (longValue >= minimum) {
 			target.put(targetKey, longValue);
 		}
+	}
+
+	/**
+	 * Flatten the catalog's pricing object - serving provider to model id to
+	 * rates - into an array ordered for display: the model maker's own pricing
+	 * first, then the serving providers a SEMOSS engine can connect to,
+	 * alphabetically. Aggregator pricing is dropped. Entries keep the original
+	 * catalog provider key (e.g. "amazon-bedrock") so the stored value can be
+	 * traced back to the file; matching runs on the normalized form.
+	 */
+	private static JsonArray buildOrderedPricing(JsonObject model) {
+		JsonObject pricing = getObject(model, "pricing");
+		if (pricing == null) {
+			return null;
+		}
+
+		String modelProvider = null;
+		JsonElement provider = model.get("provider");
+		if (provider != null && provider.isJsonPrimitive()) {
+			modelProvider = StaticBuiltinToolsCatalog.normalizeProviderKey(provider.getAsString());
+		}
+
+		List<String> ownKeys = new ArrayList<>();
+		List<String> hostKeys = new ArrayList<>();
+		for (String servingKey : pricing.keySet()) {
+			if (!pricing.get(servingKey).isJsonObject()) {
+				continue;
+			}
+			String normalized = StaticBuiltinToolsCatalog.normalizeProviderKey(servingKey);
+			if (normalized == null) {
+				continue;
+			}
+			if (normalized.equals(modelProvider)) {
+				ownKeys.add(servingKey);
+			} else if (CONNECTABLE_SERVING_PROVIDERS.contains(normalized)) {
+				hostKeys.add(servingKey);
+			}
+		}
+		ownKeys.sort(Comparator.naturalOrder());
+		hostKeys.sort(Comparator.naturalOrder());
+
+		List<String> orderedKeys = new ArrayList<>(ownKeys);
+		orderedKeys.addAll(hostKeys);
+
+		JsonArray entries = new JsonArray();
+		for (String servingKey : orderedKeys) {
+			JsonObject ratesByModelId = pricing.getAsJsonObject(servingKey);
+			for (Map.Entry<String, JsonElement> rateEntry : ratesByModelId.entrySet()) {
+				if (!rateEntry.getValue().isJsonObject()) {
+					continue;
+				}
+				JsonObject entry = new JsonObject();
+				entry.addProperty("servingProvider", servingKey);
+				entry.addProperty("modelId", rateEntry.getKey());
+				for (Map.Entry<String, JsonElement> rate : rateEntry.getValue().getAsJsonObject().entrySet()) {
+					if ("servingProvider".equals(rate.getKey()) || "modelId".equals(rate.getKey())) {
+						continue;
+					}
+					entry.add(rate.getKey(), rate.getValue().deepCopy());
+				}
+				entries.add(entry);
+			}
+		}
+		return entries.size() == 0 ? null : entries;
 	}
 
 	private static void putJson(Map<String, Object> target, String targetKey, JsonObject source, String sourceKey) {

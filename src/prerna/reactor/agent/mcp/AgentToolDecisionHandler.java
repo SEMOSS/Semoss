@@ -121,7 +121,7 @@ public final class AgentToolDecisionHandler {
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
 					userId, true);
 			publishDecisionToolItem(runId, toolCallId, stringValue(pendingAction.get("toolName")),
-					resolveToolParamsForDecision(pendingAction, callerParams),
+					resolveDisplayTitle(pendingAction), resolveToolParamsForDecision(pendingAction, callerParams),
 					DECISION_REJECT.equals(normalizedDecision) ? AgentStreamItems.TOOL_REJECTED
 							: AgentStreamItems.TOOL_COMPLETED,
 					manualResult, null);
@@ -170,10 +170,39 @@ public final class AgentToolDecisionHandler {
 			actionStore.releaseExecutionClaim(actionId, runId, userId);
 			throw e;
 		}
-		publishDecisionToolItem(runId, toolCallId, toolName, paramMap,
+		publishDecisionToolItem(runId, toolCallId, toolName, resolveDisplayTitle(pendingAction), paramMap,
 				toolResult.isSuccess() ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
 				toolResult.isSuccess() ? resultStr : null, toolResult.isSuccess() ? null : resultStr);
 		return resultStr;
+	}
+
+	/**
+	 * Resolve a human-readable title for a pending action's tool. The row only
+	 * ever stores the raw, engine-id-prefixed {@code toolName}; the display
+	 * name lives in {@code toolMeta.SMSS_ORIGINAL_TOOL_NAME}, persisted by
+	 * SemossAgentHarness#persistPendingActions from the already-resolved
+	 * ResponseMessage tool-call map.
+	 */
+	@SuppressWarnings("unchecked")
+	private static String resolveDisplayTitle(Map<String, Object> pendingAction) {
+		Object toolMetaObj = pendingAction.get("toolMeta");
+		Map<String, Object> toolMeta = null;
+		if (toolMetaObj instanceof Map) {
+			toolMeta = (Map<String, Object>) toolMetaObj;
+		} else if (toolMetaObj instanceof String && !((String) toolMetaObj).isBlank()) {
+			try {
+				toolMeta = GSON.fromJson((String) toolMetaObj, Map.class);
+			} catch (Exception e) {
+				// fall through to raw toolName below
+			}
+		}
+		if (toolMeta != null) {
+			Object original = toolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+			if (original != null && !original.toString().isBlank()) {
+				return original.toString();
+			}
+		}
+		return stringValue(pendingAction.get("toolName"));
 	}
 
 	private static String toolResultContent(ToolExecutionResult result) {
@@ -183,12 +212,12 @@ public final class AgentToolDecisionHandler {
 		return result.getOutput() != null ? result.getOutput().toString() : "";
 	}
 
-	private static void publishDecisionToolItem(String runId, String toolCallId, String toolName,
+	private static void publishDecisionToolItem(String runId, String toolCallId, String toolName, String title,
 			Map<String, Object> args, String status, String output, String error) {
 		if (runId == null || runId.isBlank() || toolCallId == null || toolCallId.isBlank()) {
 			return;
 		}
-		Map<String, Object> item = AgentStreamItems.toolItem(toolCallId, toolName, args, null, status);
+		Map<String, Object> item = AgentStreamItems.toolItem(toolCallId, toolName, title, args, null, status);
 		String boundedOutput = AgentStreamItems.truncate(output, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
 		if (boundedOutput != null && !boundedOutput.isBlank()) {
 			item.put("output", boundedOutput);

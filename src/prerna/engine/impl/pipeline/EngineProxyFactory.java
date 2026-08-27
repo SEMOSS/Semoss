@@ -39,6 +39,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IModelRouterEngine;
 import prerna.engine.api.IRCloneStorage;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -74,8 +75,13 @@ public class EngineProxyFactory {
 		}
 
 		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
-		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-				new Class<?>[] { IEngine.class, IModelEngine.class }, handler);
+		Class<?>[] classes = null;
+		if (engine instanceof IModelRouterEngine) {
+			classes = new Class<?>[] { IEngine.class, IModelEngine.class, IModelRouterEngine.class };
+		} else {
+			classes = new Class<?>[] { IEngine.class, IModelEngine.class };
+		}
+		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(), classes, handler);
 	}
 
 	/**

@@ -1,6 +1,6 @@
 import base64
 from typing import Dict, List, Optional, Union, Any, Literal
-from pydantic import AliasChoices, BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, ValidationError, field_validator
 import urllib.request
 from ...utils import StringEnum, deprecated
 import json
@@ -446,3 +446,52 @@ class ModelSettings(BaseModel):
     effort: Optional[str] = None
     global_param_override: Optional[Dict[str, Any]] = None
     modalities: Optional[List[str]] = None
+
+
+SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse"
+
+
+class SEMOSSMultimodalToolBlock(BaseModel):
+    """One content block inside a SEMOSSMultimodalToolResponse envelope.
+
+    Tool designers emit text blocks and image file-reference blocks (the
+    `image` field holds root-relative paths). Java resolves file references
+    into inline base64 blocks (`data` + `mimeType`) before the payload reaches
+    the builders, so an image/document block should normally carry `data`.
+    Blocks without `data` are unresolved references and are skipped by the
+    provider builders.
+    """
+
+    type: Literal["text", "image", "document"]
+    text: str = ""
+    data: Optional[str] = None
+    mime_type: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("mime_type", "mimeType")
+    )
+    image: Optional[Union[str, List[str]]] = None
+
+
+def parse_multimodal_tool_response(
+    output: Optional[str],
+) -> Optional[List[SEMOSSMultimodalToolBlock]]:
+    """Parse a tool output string as a SEMOSSMultimodalToolResponse envelope.
+
+    Returns the validated blocks, or None when the output is not an envelope
+    or fails validation - callers should treat the output as plain text in
+    that case.
+    """
+    if not output:
+        return None
+    try:
+        parsed = json.loads(output)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    raw_blocks = parsed.get(SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY)
+    if not isinstance(raw_blocks, list) or not raw_blocks:
+        return None
+    try:
+        return [SEMOSSMultimodalToolBlock.model_validate(b) for b in raw_blocks]
+    except ValidationError:
+        return None

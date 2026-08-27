@@ -40,7 +40,9 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.batch.ModelBatchManager;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -139,7 +141,10 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 					.withModelType(engine.getModelType())
 					.withParamMap(new HashMap<>(sharedModelParams));
 			attachMedia(builder, req, room);
-			String messageJson = RoomMessageStore.messageHistoryWithNewMessage(room, builder.build());
+			List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(),
+					builder.build());
+			engine.validateInputModalities(branch);
+			String messageJson = RoomMessageStore.providerMessageHistory(room, branch);
 			req.put("message_json", messageJson);
 			if (tools != null && !tools.isEmpty()) {
 				req.put("tools", tools);
@@ -174,7 +179,10 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 					.withModelType(engine.getModelType())
 					.withParamMap(new HashMap<>(sharedModelParams));
 			attachMedia(builder, req, room);
-			req.put("message_json", RoomMessageStore.messageHistoryWithNewMessage(room, builder.build()));
+			List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(),
+					builder.build());
+			engine.validateInputModalities(branch);
+			req.put("message_json", RoomMessageStore.providerMessageHistory(room, branch));
 		}
 	}
 

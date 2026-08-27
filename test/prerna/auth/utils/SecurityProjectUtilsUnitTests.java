@@ -849,7 +849,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		// Use includeExplicitUser=true to get only projects where user has explicit
 		// permission
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertTrue(ids.isEmpty());
 	}
@@ -860,7 +860,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("project1", "Project One", user);
 		UnitTestSecurityAuthUtils.createProject("project2", "Project Two", user);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertEquals(2, ids.size());
 	}
@@ -1911,7 +1911,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
 
 		// includeExistingAccess must be true when includeDiscoverable is false
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, true, true, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, true, true, true);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}
@@ -1923,7 +1923,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		SecurityProjectUtils.setProjectDiscoverable(user, "testProjectId", true);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, false, true, false);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, false, true, false);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}

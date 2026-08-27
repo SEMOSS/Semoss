@@ -81,7 +81,10 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		validateForPersistence(room, messages);
+		// loading tolerates broken parent links so a legacy or hand-edited
+		// projection still opens; provider payloads and persists re-validate
+		Set<String> messageIds = requireUniqueMessageIds(messages);
+		warnOnBrokenParentLinks(room, messages, messageIds);
 		warmRedisProjection(room, projection);
 		return messages;
 	}
@@ -229,19 +232,7 @@ public final class RoomMessageStore {
 		if (messages == null || messages.isEmpty()) {
 			return;
 		}
-		Set<String> messageIds = new HashSet<>();
-		for (AbstractMessage message : messages) {
-			if (message == null) {
-				throw new IllegalStateException("Room message list contains a null message.");
-			}
-			String messageId = trimToNull(message.getMessageId());
-			if (messageId == null) {
-				throw new IllegalStateException("Room message list contains a message without a messageId.");
-			}
-			if (!messageIds.add(messageId)) {
-				throw new IllegalStateException("Room message list contains duplicate messageId: " + messageId);
-			}
-		}
+		Set<String> messageIds = requireUniqueMessageIds(messages);
 		for (AbstractMessage message : messages) {
 			String parentMessageId = trimToNull(message.getParentMessageId());
 			if (parentMessageId == null) {
@@ -254,6 +245,40 @@ public final class RoomMessageStore {
 				String roomId = room != null ? room.getId() : "<unknown>";
 				throw new IllegalStateException(
 						"Room " + roomId + " message parent does not exist: " + parentMessageId);
+			}
+		}
+	}
+
+	private static Set<String> requireUniqueMessageIds(List<AbstractMessage> messages) {
+		Set<String> messageIds = new HashSet<>();
+		if (messages == null) {
+			return messageIds;
+		}
+		for (AbstractMessage message : messages) {
+			if (message == null) {
+				throw new IllegalStateException("Room message list contains a null message.");
+			}
+			String messageId = trimToNull(message.getMessageId());
+			if (messageId == null) {
+				throw new IllegalStateException("Room message list contains a message without a messageId.");
+			}
+			if (!messageIds.add(messageId)) {
+				throw new IllegalStateException("Room message list contains duplicate messageId: " + messageId);
+			}
+		}
+		return messageIds;
+	}
+
+	private static void warnOnBrokenParentLinks(Room room, List<AbstractMessage> messages, Set<String> messageIds) {
+		for (AbstractMessage message : messages) {
+			String parentMessageId = trimToNull(message.getParentMessageId());
+			if (parentMessageId == null) {
+				continue;
+			}
+			if (parentMessageId.equals(message.getMessageId()) || !messageIds.contains(parentMessageId)) {
+				String roomId = room != null ? room.getId() : "<unknown>";
+				classLogger.warn("Room {} persisted message {} references a parent that does not exist: {}",
+						roomId, message.getMessageId(), parentMessageId);
 			}
 		}
 	}

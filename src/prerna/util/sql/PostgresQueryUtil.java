@@ -37,6 +37,8 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +61,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(PostgresQueryUtil.class);
-	private static final Object ENHANCE_LOCK = new Object();
+	private static final Lock ENHANCE_LOCK = new ReentrantLock();
 	private static volatile boolean functionCreated = false;
 
 	PostgresQueryUtil() {
@@ -78,14 +80,17 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 			return;
 		}
 
-		synchronized (ENHANCE_LOCK) {
+		ENHANCE_LOCK.lock();
+		try {
 			if (functionCreated) {
 				return;
 			}
 			final String functionName = "SMSS_DATEDIFF";
 			final String schema = getCurrentSchema(con);
 
-			if (!checkIfFunctionExists(con, "SMSS_DATEDIFF", schema)) {
+			if (checkIfFunctionExists(con, "SMSS_DATEDIFF", schema)) {
+				functionCreated = true;
+			} else {
 				String datediffSql = """
 						CREATE OR REPLACE FUNCTION <functionName>(unit VARCHAR, start_date TIMESTAMP, end_date TIMESTAMP)
 						RETURNS INTEGER AS $$
@@ -150,11 +155,13 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 					}
 				}
 			}
+		} finally {
+			ENHANCE_LOCK.unlock();
 		}
 	}
 
 	/**
-	 * 
+	 *
 	 * @param con
 	 * @param functionName
 	 * @return
