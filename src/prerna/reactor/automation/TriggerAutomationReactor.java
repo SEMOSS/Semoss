@@ -644,8 +644,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			return AutomationConstants.TRIGGER_MANUAL;
 		}
 		if (!AutomationConstants.TRIGGER_MANUAL.equals(triggerType)
-				&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)) {
-			throw new IllegalArgumentException("triggerType must be MANUAL or PLAYGROUND.");
+				&& !AutomationConstants.TRIGGER_PLAYGROUND.equals(triggerType)
+				&& !AutomationConstants.TRIGGER_SCHEDULED.equals(triggerType)) {
+			throw new IllegalArgumentException("triggerType must be MANUAL, PLAYGROUND, or SCHEDULED.");
 		}
 		return triggerType;
 	}
@@ -694,7 +695,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			return "Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.";
 		}
 		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
-			return "Optional trigger source: MANUAL (default) or PLAYGROUND.";
+			return "Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.";
 		}
 		return super.getDescriptionForKey(key);
 	}

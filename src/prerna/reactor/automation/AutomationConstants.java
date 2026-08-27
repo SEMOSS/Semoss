@@ -102,6 +102,7 @@ public final class AutomationConstants {
 
 	public static final String TRIGGER_MANUAL = "MANUAL";
 	public static final String TRIGGER_PLAYGROUND = "PLAYGROUND";
+	public static final String TRIGGER_SCHEDULED = "SCHEDULED";
 
 	// -- Node types -----------------------------------------------------------------
 
