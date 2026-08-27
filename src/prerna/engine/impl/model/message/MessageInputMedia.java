@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -170,7 +171,8 @@ public class MessageInputMedia {
 		if (fragmentStart >= 0) {
 			url = url.substring(0, fragmentStart);
 		}
-		return MimeTypeUtility.detectMimeTypeFromName(url);
+		String detected = MimeTypeUtility.detectMimeType(new ByteArrayInputStream(new byte[0]), url);
+		return detected == null || MimeTypeUtility.DEFAULT_MIME_TYPE.equals(detected) ? null : detected;
 	}
 
 	public String getSourceUrl() {

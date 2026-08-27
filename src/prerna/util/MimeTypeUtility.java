@@ -154,35 +154,6 @@ public class MimeTypeUtility {
 	}
 
 	/**
-	 * Detect the mime type from a file or URL name alone, without reading any
-	 * contents. Useful for remote media where only the name is available.
-	 *
-	 * @param name a file name, path, or URL
-	 * @return the base mime type, or null when the name has no recognized
-	 *         extension
-	 */
-	public static String detectMimeTypeFromName(String name) {
-		if (name == null || name.isBlank()) {
-			return null;
-		}
-		Metadata metadata = new Metadata();
-		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, name);
-		try {
-			TikaConfig config = TikaConfig.getDefaultConfig();
-			// a null stream restricts detection to the resource name hint
-			MediaType mediaType = config.getDetector().detect(null, metadata);
-			if (mediaType == null) {
-				return null;
-			}
-			String baseType = mediaType.getBaseType().toString();
-			return DEFAULT_MIME_TYPE.equals(baseType) ? null : baseType;
-		} catch (IOException e) {
-			classLogger.error(Constants.ERROR_MESSAGE, e);
-			return null;
-		}
-	}
-
-	/**
 	 * Detect the mime type of a file and fall back to the file format when the
 	 * contents of the file cannot be read
 	 *
