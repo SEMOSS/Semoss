@@ -117,6 +117,7 @@ public class AskRoomReactor extends AbstractReactor {
 			responseMessage = room.commitPrebuiltTurn(inputMessage, modelEngine, parentMessageId, responseParts,
 					hiddenMessage, extraMessages);
 		} else {
+			beforeRoomAsk(room, question, engineId);
 			responseMessage = room.ask(inputMessage, modelEngine, parentMessageId);
 			if (responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				RoomMessageStore.persist(room, user.getPrimaryLoginToken().getId());
@@ -158,6 +159,18 @@ public class AskRoomReactor extends AbstractReactor {
 	 */
 	protected boolean shouldHideSystemMessages() {
 		return false;
+	}
+
+	/**
+	 * Hook invoked immediately before a live model ask. Prebuilt turns, such as
+	 * cancel recovery, do not invoke this hook.
+	 *
+	 * @param room     room receiving the turn
+	 * @param question user input for the turn
+	 * @param engineId model engine used for the turn
+	 */
+	protected void beforeRoomAsk(Room room, String question, String engineId) {
+		// Default room asks have no additional pre-ask behavior.
 	}
 
 	@Override

@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import prerna.engine.impl.model.Room;
 import prerna.playground.PlaygroundUtils;
+import prerna.reactor.agent.run.AgentRoomNamer;
 import prerna.reactor.model.AskRoomReactor;
 import prerna.theme.PlaygroundThemeUtils;
 
@@ -41,6 +43,11 @@ public class AskPlaygroundReactor extends AskRoomReactor {
 	@Override
 	protected boolean shouldHideSystemMessages() {
 		return PlaygroundThemeUtils.hidePlaygroundSystemMessages();
+	}
+
+	@Override
+	protected void beforeRoomAsk(Room room, String question, String engineId) {
+		AgentRoomNamer.nameRoomAsync(room.getId(), question, engineId, room.getUserId(), this.insight);
 	}
 
 	@Override
