@@ -69,6 +69,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
+	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
 
 	public TriggerAutomationReactor() {
@@ -105,6 +106,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 						+ ". Wait for it to complete or cancel it before starting a new run.");
 			}
 		}
+		streamRunStarted(runId, definition);
 
 		Map<String, Object> result;
 		try {
@@ -564,6 +566,30 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
 			Long durationMs, String outputPreview, String errorMessage) {
 		streamNodeProgress(runId, node, status, durationMs, outputPreview, errorMessage, null);
+	}
+
+	private static void streamRunStarted(String runId,
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		String jobId = ThreadStore.getJobId();
+		if (jobId == null || jobId.isBlank()) {
+			return;
+		}
+		PixelJobManager jobManager = PixelJobManager.getManager();
+		if (jobManager.getJob(jobId) == null) {
+			return;
+		}
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("kind", AUTOMATION_RUN_STARTED_KIND);
+		data.put(AutomationConstants.RUN_ID, runId);
+		data.put(AutomationConstants.DEFINITION_VERSION,
+				AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
+		data.put(AutomationConstants.DEFINITION_HASH, definition.hash());
+		data.put(AutomationConstants.DEFINITION_SNAPSHOT, definition.snapshot());
+
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", AUTOMATION_STREAM_TYPE);
+		envelope.put("data", data);
+		jobManager.addStreamOut(jobId, envelope);
 	}
 
 	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
