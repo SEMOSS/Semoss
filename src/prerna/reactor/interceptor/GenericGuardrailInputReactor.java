@@ -38,6 +38,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -76,9 +79,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 
 		// Some mounts (e.g. prompt-injection classifiers tuned on user-typed text) should
 		// only ever see real user turns - askRoom is reused for tool-result continuations,
-		// so skip this mount entirely when the guarded argument is carrying a tool result.
-		if (Boolean.TRUE.equals(helper.getConfigParameter("skipOnToolContinuation", Boolean.class))
-				&& isToolContinuation(helper)) {
+		// so skip this mount when the guarded argument is a tool result from a listed tool.
+		if (isToolContinuation(helper)) {
 			Map<String, Object> processedArguments = helper.getArgumentsMap();
 			processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, createSkippedInterimResult());
 			return new NounMetadata(processedArguments, PixelDataType.MAP);
@@ -259,17 +261,36 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	}
 
 	/**
-	 * True when the argument named by {@code toolContinuationArg} (default
-	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) is a message carrying a tool result rather
-	 * than a real user turn.
+	 * True when {@code skipOnToolContinuationForTools} is configured and the argument named by
+	 * {@code toolContinuationArg} (default {@value #DEFAULT_TOOL_CONTINUATION_ARG}) is a message
+	 * whose tool results are all for tool names in that list. No list configured, no tool result
+	 * on the message, or a mix of listed and unlisted tools all mean this returns false, so the
+	 * guardrail still runs - there is no blanket "skip every tool continuation" mode by design.
 	 */
 	private boolean isToolContinuation(ReactorInputHelper helper) {
+		List<?> allowedTools = helper.getConfigParameter("skipOnToolContinuationForTools", List.class);
+		if (allowedTools == null || allowedTools.isEmpty()) {
+			return false;
+		}
+
 		String argName = helper.getConfigParameter("toolContinuationArg", String.class);
 		if (argName == null || argName.isEmpty()) {
 			argName = DEFAULT_TOOL_CONTINUATION_ARG;
 		}
 		Object argValue = helper.getMethodArgument(argName);
-		return argValue instanceof AbstractMessage && ((AbstractMessage) argValue).hasToolResultPart();
+		if (!(argValue instanceof AbstractMessage) || !((AbstractMessage) argValue).hasToolResultPart()) {
+			return false;
+		}
+
+		for (MessagePart part : ((AbstractMessage) argValue).getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult == null || !allowedTools.contains(toolResult.getToolName())) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	private Map<String, Object> createSkippedInterimResult() {
