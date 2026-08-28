@@ -1102,6 +1102,62 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Aggregates token and latency stats from the MESSAGE table for one room.
+	 * Token columns are split by row type (INPUT rows carry input/cache tokens,
+	 * RESPONSE rows carry output/thinking tokens) and RESPONSE_TIME is duplicated
+	 * on both rows of a call, so latency is read from RESPONSE rows only.
+	 * <p>
+	 * Callers must validate room ownership before calling - this aggregates by
+	 * ROOM_ID alone.
+	 * </p>
+	 *
+	 * @param roomId room identifier
+	 * @return stats map; {@code available=false} when no rows were found
+	 */
+	public static Map<String, Object> getRoomTokenAndLatencyStats(String roomId) {
+		Map<String, Object> stats = new HashMap<>();
+		stats.put("available", false);
+		if (roomId == null || roomId.isBlank()) {
+			return stats;
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT MESSAGE_TYPE, COUNT(MESSAGE_ID), SUM(INPUT_TOKENS), SUM(OUTPUT_TOKENS), "
+				+ "SUM(THINKING_TOKENS), SUM(CACHE_READ_TOKENS), SUM(CACHE_CREATION_TOKENS), "
+				+ "SUM(RESPONSE_TIME), AVG(RESPONSE_TIME), MAX(RESPONSE_TIME) "
+				+ "FROM MESSAGE WHERE ROOM_ID = ? GROUP BY MESSAGE_TYPE";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			ps.setString(1, roomId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				while (rs.next()) {
+					String messageType = rs.getString(1);
+					if ("RESPONSE".equalsIgnoreCase(messageType)) {
+						stats.put("available", true);
+						stats.put("llmCalls", rs.getLong(2));
+						stats.put("outputTokens", rs.getLong(4));
+						stats.put("thinkingTokens", rs.getLong(5));
+						stats.put("totalResponseTimeMs", rs.getDouble(8));
+						stats.put("avgResponseTimeMs", Math.round(rs.getDouble(9) * 100.0) / 100.0);
+						stats.put("maxResponseTimeMs", rs.getDouble(10));
+					} else if ("INPUT".equalsIgnoreCase(messageType)) {
+						stats.put("available", true);
+						stats.put("inputTokens", rs.getLong(3));
+						stats.put("cacheReadTokens", rs.getLong(6));
+						stats.put("cacheCreationTokens", rs.getLong(7));
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to aggregate inference stats for roomId '{}'.", roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return stats;
+	}
+
+	/**
 	 * Checks whether a message exists in a room (used by message-id migration
 	 * validation).
 	 *
