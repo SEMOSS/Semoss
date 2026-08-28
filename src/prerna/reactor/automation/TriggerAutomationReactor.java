@@ -70,6 +70,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(TriggerAutomationReactor.class);
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
+	private static final String RESULT_BRANCH_PORT = "branchPort";
 
 	public TriggerAutomationReactor() {
 		this.keysToGet = new String[] {
@@ -151,6 +152,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
 		}
 		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
+		Map<String, String> branchDecisions = new LinkedHashMap<>();
 		Set<String> visited = new HashSet<>();
 		String currentNodeId = AutomationRuntime.startNodeId(definition);
 		boolean pathCompleted = true;
@@ -196,11 +198,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			if (!AutomationConstants.NODE_START.equals(type) && outputVar != null) {
 				scope.put(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
 			}
-			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
-			if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
-				selectedPort = Boolean.TRUE.equals(nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE))
-						? AutomationConstants.CONTROL_PORT_THEN
-						: AutomationConstants.CONTROL_PORT_ELSE;
+			String selectedPort = (String) nodeResult.get(RESULT_BRANCH_PORT);
+			if (selectedPort == null) {
+				selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+			} else {
+				branchDecisions.put(nodeId, selectedPort);
 			}
 			currentNodeId = controlTargets.getOrDefault(nodeId, Map.of()).get(selectedPort);
 		}
@@ -208,6 +210,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			AutomationDatabaseUtility.skipPendingNodes(runId, "Control branch was not selected");
 		}
 		result.put("scope", scope);
+		result.put("branchDecisions", branchDecisions);
 		return result;
 	}
 
@@ -235,7 +238,12 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, null);
 			AutomationPythonRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
-			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+			Map<String, Object> result = nodeResult(nodeId,
+					AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+			result.put(RESULT_BRANCH_PORT, decision
+					? AutomationConstants.CONTROL_PORT_THEN
+					: AutomationConstants.CONTROL_PORT_ELSE);
+			return result;
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -283,6 +291,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
 			AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
 					"Automation run scope");
+			String branchPort = branchPort(node, scope);
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
@@ -291,6 +300,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
 			result.put(AutomationConstants.RESULT_GLOBALS, globals);
+			if (branchPort != null) {
+				result.put(RESULT_BRANCH_PORT, branchPort);
+			}
 			return result;
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
@@ -401,11 +413,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
 				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
+		String branchPort = null;
 		if (agentFailure == null) {
 			Map<String, Object> prospectiveScope = new LinkedHashMap<>(scope);
 			prospectiveScope.put((String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue);
 			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
 					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
+			branchPort = branchPort(node, prospectiveScope);
 		}
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
@@ -424,7 +438,25 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				modelMessageId, agentRunId);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
-		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
+		Map<String, Object> result = nodeResult(nodeId,
+				AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
+		if (branchPort != null) {
+			result.put(RESULT_BRANCH_PORT, branchPort);
+		}
+		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String branchPort(Map<String, Object> node, Map<String, Object> scope) {
+		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
+				? (Map<String, Object>) map : Map.of();
+		Object expression = config.get(AutomationConstants.CONFIG_BRANCH_CONDITION);
+		if (!(expression instanceof String condition)) {
+			return null;
+		}
+		return AutomationConditionEvaluator.evaluate(condition, scope)
+				? AutomationConstants.CONTROL_PORT_THEN
+				: AutomationConstants.CONTROL_PORT_ELSE;
 	}
 
 	private static GeneratedNodeResult splitGeneratedNodeResult(Map<String, Object> node, Object value) {

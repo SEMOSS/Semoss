@@ -56,12 +56,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	private static final String LABEL_KEY = "label";
 	private static final String OUTPUT_VAR_KEY = "outputVar";
 	private static final String AFTER_NODE_ID_KEY = "afterNodeId";
+	private static final String BRANCH_CONDITION_KEY = "branchCondition";
 
 	public AddAutomationStepReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.PROJECT.getKey(), NODE_TYPE_KEY, CONFIG_KEY, LABEL_KEY,
-				OUTPUT_VAR_KEY, AFTER_NODE_ID_KEY };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 0 };
+				OUTPUT_VAR_KEY, AFTER_NODE_ID_KEY, BRANCH_CONDITION_KEY };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -72,15 +73,21 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String label = required(LABEL_KEY);
 		String outputVar = requiredOutputVariable(required(OUTPUT_VAR_KEY));
 		String afterNodeId = this.keyValue.get(AFTER_NODE_ID_KEY);
+		String branchCondition = this.keyValue.get(BRANCH_CONDITION_KEY);
 		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
+		if (config.containsKey(AutomationConstants.CONFIG_BRANCH_CONDITION)) {
+			throw new IllegalArgumentException("Use the branchCondition argument to branch the parent node; "
+					+ "the new node cannot be saved as a branch without both paths.");
+		}
 		String customSource = customSource(nodeType, config);
 		return AutomationProjectUtils.withLockedDefinition(projectId,
-				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId, config, customSource));
+				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId,
+						branchCondition, config, customSource));
 	}
 
 	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeType, String label, String outputVar, String afterNodeId, Map<String, Object> config,
-			String customSource) {
+			String nodeType, String label, String outputVar, String afterNodeId, String branchCondition,
+			Map<String, Object> config, String customSource) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -96,8 +103,18 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String parentId = afterNodeId == null || afterNodeId.isBlank()
 				? nodes.get(nodes.size() - 1).get(AutomationConstants.NODE_FIELD_ID).toString()
 				: afterNodeId;
-		if (nodes.stream().noneMatch(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))) {
+		Map<String, Object> parent = nodes.stream()
+				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))
+				.findFirst().orElse(null);
+		if (parent == null) {
 			throw new IllegalArgumentException("Automation does not contain parent node: " + parentId);
+		}
+		boolean createBranch = branchCondition != null && !branchCondition.isBlank();
+		if (createBranch) {
+			if (AutomationConstants.NODE_START.equals(parent.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				throw new IllegalArgumentException("trigger.start cannot be converted into a branching node.");
+			}
+			setBranchCondition(parent, branchCondition);
 		}
 
 		String nodeId = uniqueNodeId(nodes, label);
@@ -114,7 +131,9 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);
 		updatedNodes.add(node);
-		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId);
+		List<Map<String, Object>> updatedEdges = createBranch
+				? insertElseBranch(edges, parentId, nodeId)
+				: insertAfter(edges, parentId, nodeId);
 		Map<String, Object> updatedGraph = new LinkedHashMap<>(graph);
 		updatedGraph.put(AutomationConstants.DOC_NODES, updatedNodes);
 		updatedGraph.put(AutomationConstants.DOC_EDGES, updatedEdges);
@@ -222,6 +241,10 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		for (Map<String, Object> edge : edges) {
 			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))
 					&& parentId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))) {
+				if (replaced != null) {
+					throw new IllegalArgumentException("Cannot insert after branching node '" + parentId
+							+ "'. Insert after a node on the intended branch instead.");
+				}
 				replaced = edge;
 				continue;
 			}
@@ -234,18 +257,64 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		return updated;
 	}
 
+	@SuppressWarnings("unchecked")
+	private static void setBranchCondition(Map<String, Object> parent, String branchCondition) {
+		Map<String, Object> config = parent.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
+				? new LinkedHashMap<>((Map<String, Object>) map)
+				: new LinkedHashMap<>();
+		if (config.containsKey(AutomationConstants.CONFIG_BRANCH_CONDITION)) {
+			throw new IllegalArgumentException("Node '" + parent.get(AutomationConstants.NODE_FIELD_ID)
+					+ "' is already a branching node.");
+		}
+		config.put(AutomationConstants.CONFIG_BRANCH_CONDITION, branchCondition);
+		parent.put(AutomationConstants.NODE_FIELD_CONFIG, config);
+	}
+
+	private static List<Map<String, Object>> insertElseBranch(
+			List<Map<String, Object>> edges, String parentId, String elseNodeId) {
+		List<Map<String, Object>> updated = new ArrayList<>();
+		Map<String, Object> successorEdge = null;
+		for (Map<String, Object> edge : edges) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))
+					&& parentId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))) {
+				if (successorEdge != null) {
+					throw new IllegalArgumentException("Node '" + parentId + "' already has multiple control paths.");
+				}
+				successorEdge = edge;
+				continue;
+			}
+			updated.add(edge);
+		}
+		if (successorEdge == null) {
+			throw new IllegalArgumentException("To create a branch after node '" + parentId
+					+ "', first add the intended Then step, then add the Else step with branchCondition.");
+		}
+		if (!AutomationConstants.CONTROL_PORT_OUT.equals(
+				successorEdge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT))) {
+			throw new IllegalArgumentException("Node '" + parentId + "' is not a sequential node.");
+		}
+		updated.add(controlEdge(parentId, AutomationConstants.CONTROL_PORT_THEN,
+				successorEdge.get(AutomationConstants.EDGE_FIELD_TARGET).toString()));
+		updated.add(controlEdge(parentId, AutomationConstants.CONTROL_PORT_ELSE, elseNodeId));
+		return updated;
+	}
+
 	private static Map<String, Object> controlEdge(String source, String target) {
+		return controlEdge(source, AutomationConstants.CONTROL_PORT_OUT, target);
+	}
+
+	private static Map<String, Object> controlEdge(String source, String sourcePort, String target) {
 		return Map.of(
 				"id", "control-" + UUID.randomUUID(),
 				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
 				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, "next",
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
 				AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds one generated typed Python automation node after a specified node.";
+		return "Adds one typed Python automation node sequentially or as an atomic Else branch.";
 	}
 }

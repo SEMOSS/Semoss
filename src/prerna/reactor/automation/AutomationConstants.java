@@ -134,6 +134,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_ENGINE_ID = "engineId";
 	public static final String CONFIG_OPERATION = "operation";
 	public static final String CONFIG_CONDITION = "condition";
+	public static final String CONFIG_BRANCH_CONDITION = "branchCondition";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_VALUES = "values";
 	public static final String CONFIG_COMMAND = "command";
