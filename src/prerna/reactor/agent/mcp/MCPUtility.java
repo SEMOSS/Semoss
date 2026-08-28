@@ -190,7 +190,7 @@ public final class MCPUtility {
 	);
 
 	public enum MCPExecution {
-		AUTO("auto"), ASK("ask"), DISABLED("disabled");
+		AUTO("auto"), ASK("ask"), DISABLED("disabled"), YESNO("yesno");
 
 		private final String value;
 
@@ -210,6 +210,15 @@ public final class MCPUtility {
 			}
 			return null;
 		}
+	}
+
+	/**
+	 * {@code yesno} is handled identically to {@code ask} for agent harness
+	 * purposes (human-in-the-loop pause) - it only differs in how the
+	 * frontend presents the decision to the user.
+	 */
+	public static boolean isAskLikeExecution(String value) {
+		return MCPExecution.ASK.getValue().equalsIgnoreCase(value) || MCPExecution.YESNO.getValue().equalsIgnoreCase(value);
 	}
 
 	public enum MCPDisplayOption {

@@ -133,9 +133,9 @@ final class HarnessToolExecutor {
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
 
-		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
+		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask/yesno tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
-		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
+		// room. Only ask (and yesno) tools become AGENT_RUN_ACTION rows and pause the run.
 		List<Map<String, Object>> askToolCalls = getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
@@ -291,7 +291,7 @@ final class HarnessToolExecutor {
 
 	/**
 	 * Return only the tool calls in the batch with
-	 * {@code SMSS_MCP_EXECUTION=ask}.
+	 * {@code SMSS_MCP_EXECUTION=ask} or {@code SMSS_MCP_EXECUTION=yesno}.
 	 * The enriched {@code _meta} is attached by
 	 * {@code Room.updateToolResponseMeta()} before this method is called.
 	 */
@@ -319,7 +319,7 @@ final class HarnessToolExecutor {
 		}
 		Map<String, Object> meta = (Map<String, Object>) metaObj;
 		Object execValue = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
-		return "ask".equalsIgnoreCase(String.valueOf(execValue));
+		return MCPUtility.isAskLikeExecution(String.valueOf(execValue));
 	}
 
 	private static void publishToolResult(String jobId, String toolCallId, String toolName, String output,
