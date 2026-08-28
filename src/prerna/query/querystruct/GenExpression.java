@@ -35,6 +35,7 @@ import java.util.Vector;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.MicrosoftSqlServerQueryUtil;
 
 public class GenExpression extends SelectQueryStruct implements IQuerySelector, Serializable {
 	
@@ -685,7 +686,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			AbstractSqlQueryUtil queryUtil, int operandIndex)
 	{
 		StringBuffer operandQuery = printQS(operand, null, queryUtil);
-		if(queryUtil != null && (operand.limit > 0 || operand.offset > 0))
+		if(queryUtil instanceof MicrosoftSqlServerQueryUtil && (operand.limit > 0 || operand.offset > 0))
 		{
 			buf.append("SELECT * FROM (").append(operandQuery).append(") AS UNION_OPERAND_")
 					.append(operandIndex);
