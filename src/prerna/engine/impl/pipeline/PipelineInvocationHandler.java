@@ -223,7 +223,6 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 			// Find the correct pipeline for the called method
 			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
-			boolean wildcardPipeline = specificPipeline == null;
 			if (specificPipeline == null) {
 				specificPipeline = this.pipelinesMap.get("*");
 			}
@@ -232,9 +231,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			List<IInputReactor> inputPipelines = null;
 			List<IOutputReactor> outputPipelines = null;
 			if (specificPipeline != null) {
-				// Raw SQL requires an explicitly named input pipeline.
-				inputPipelines = rawDatabaseMethod && wildcardPipeline ? List.of()
-						: specificPipeline.getInputPipeline();
+				inputPipelines = specificPipeline.getInputPipeline();
 				outputPipelines = specificPipeline.getOutputPipeline();
 			}
 			Map<String, Object> processedArguments = new HashMap<>();

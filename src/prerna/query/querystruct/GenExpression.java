@@ -685,7 +685,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			AbstractSqlQueryUtil queryUtil, int operandIndex)
 	{
 		StringBuffer operandQuery = printQS(operand, null, queryUtil);
-		if(operand.limit > 0 || operand.offset > 0)
+		if(queryUtil != null && (operand.limit > 0 || operand.offset > 0))
 		{
 			buf.append("SELECT * FROM (").append(operandQuery).append(") AS UNION_OPERAND_")
 					.append(operandIndex);

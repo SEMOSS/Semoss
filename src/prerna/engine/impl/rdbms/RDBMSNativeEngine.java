@@ -129,16 +129,9 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			this.dbType = RdbmsTypeEnum.getEnumFromUrl(this.connectionURL);
 		}
 		if (this.dbType == null) {
-			if (dbTypeString != null) {
-				classLogger.error("Unable to resolve RDBMS type '{}' for engine '{}'; falling back to H2",
-						Utility.cleanLogString(dbTypeString), Utility.cleanLogString(this.engineId));
-			} else if (this.driver != null && !this.driver.isBlank()) {
-				classLogger.error("Unable to resolve RDBMS driver '{}' for engine '{}'; falling back to H2",
-						Utility.cleanLogString(this.driver), Utility.cleanLogString(this.engineId));
-			} else if (this.connectionURL != null && !this.connectionURL.isBlank()) {
-				classLogger.error("Unable to resolve RDBMS type from connection URL for engine '{}'; falling back to H2",
-						Utility.cleanLogString(this.engineId));
-			}
+			classLogger.error("Unable to resolve RDBMS type for engine '{}' (type='{}', driver='{}'); falling back to H2",
+					Utility.cleanLogString(this.engineId), Utility.cleanLogString(dbTypeString),
+					Utility.cleanLogString(this.driver));
 			this.dbType = RdbmsTypeEnum.H2_DB;
 		}
 		// override the driver based on the db type enum
