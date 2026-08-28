@@ -39,7 +39,6 @@ Several properties files control the behavior of the SEMOSS Java backend.
         *   `DEFAULT_SCRIPTING_LANGUAGE`: (e.g., `R`) Default language for scripting in analytics.
     *   **Feature Flags**:
         *   `USER_TRACKING_ENABLED`, `MODEL_INFERENCE_LOGS_ENABLED`, `PROMPT_DB_ENABLED`: Toggle various features on or off.
-        *   `<engineId>_DISABLE_ENGINE_PROXY=true`: Serve the named database engine directly instead of wrapping it in the pipeline/guardrail proxy (`prerna.engine.impl.pipeline.EngineProxyFactory`). Can also be set as `DISABLE_ENGINE_PROXY true` in the engine's own `.smss` file. Note that a `PIPELINE` configured on that engine will not run while the proxy is disabled.
         *   `ADMIN_ONLY_*`: A series of flags (e.g., `ADMIN_ONLY_DB_ADD`, `ADMIN_ONLY_PROJECT_SET_PUBLIC`) to restrict certain administrative actions to users with admin privileges.
     *   **UI & Playsheet Configuration**:
         *   `PLAYSHEETS_DEFINED`: A semicolon-separated list of available playsheet types (e.g., `Grid;Graph;Line`).
