@@ -317,7 +317,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
 		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
-		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+				trace(traceRoomId, null, null));
 		try {
 			prepareGeneratedAgentRoom(node, traceRoomId);
 			Map<String, Object> nodeScope = scope;
@@ -334,7 +335,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
-			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
+					trace(traceRoomId, null, null));
 			throw e instanceof RuntimeException runtimeException
 					? runtimeException
 					: new RuntimeException(e);
@@ -379,7 +381,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			long duration = System.currentTimeMillis() - startedMs;
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, "Run cancelled by user");
 			streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, null,
-					"Run cancelled by user");
+					"Run cancelled by user", trace(traceRoomId, null, null));
 			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
 		}
 		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
@@ -416,14 +418,16 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
 					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
 					agentRunId, agentFailure);
-			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure,
+					trace(traceRoomId, null, agentRunId));
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
 		}
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
 				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
 				modelMessageId, agentRunId);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
-		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
+				trace(traceRoomId, modelMessageId, agentRunId));
 		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, persistedValue, null);
 	}
 
@@ -559,6 +563,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
 			Long durationMs, String outputPreview, String errorMessage) {
+		streamNodeProgress(runId, node, status, durationMs, outputPreview, errorMessage, null);
+	}
+
+	private static void streamNodeProgress(String runId, Map<String, Object> node, String status,
+			Long durationMs, String outputPreview, String errorMessage, Map<String, Object> trace) {
 		String jobId = ThreadStore.getJobId();
 		if (jobId == null || jobId.isBlank()) {
 			return;
@@ -582,11 +591,28 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		if (errorMessage != null) {
 			data.put(AutomationConstants.ERROR_MESSAGE, errorMessage);
 		}
+		if (trace != null && !trace.isEmpty()) {
+			data.put(AutomationConstants.RESULT_TRACE, trace);
+		}
 
 		Map<String, Object> envelope = new LinkedHashMap<>();
 		envelope.put("stream_type", AUTOMATION_STREAM_TYPE);
 		envelope.put("data", data);
 		jobManager.addStreamOut(jobId, envelope);
+	}
+
+	private static Map<String, Object> trace(String roomId, String modelMessageId, String agentRunId) {
+		Map<String, Object> trace = new LinkedHashMap<>();
+		if (roomId != null) {
+			trace.put(AutomationConstants.TRACE_ROOM_ID, roomId);
+		}
+		if (modelMessageId != null) {
+			trace.put(AutomationConstants.TRACE_MODEL_MESSAGE_ID, modelMessageId);
+		}
+		if (agentRunId != null) {
+			trace.put(AutomationConstants.TRACE_AGENT_RUN_ID, agentRunId);
+		}
+		return trace;
 	}
 
 	private static Map<String, Object> nodeResult(String nodeId, String status, Object output, String error) {
