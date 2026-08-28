@@ -121,9 +121,8 @@ public final class AutomationDefinitionValidator {
 		List<Map<String, Object>> edges = requireMapList(graph.get(AutomationConstants.DOC_EDGES), "graph.edges");
 
 		Map<String, String> nodeTypes = validateNodes(nodes);
-		Set<String> branchingNodeIds = branchingNodeIds(nodes);
-		validateEdges(edges, nodeTypes, branchingNodeIds);
-		validateControlPath(edges, nodeTypes, branchingNodeIds);
+		validateEdges(edges, nodeTypes);
+		validateControlPath(edges, nodeTypes);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -177,7 +176,6 @@ public final class AutomationDefinitionValidator {
 			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map
 					? (Map<String, Object>) map : Map.of();
 			validateNodeConfig(nodeId, nodeType, nodeConfig);
-			validateBranchCondition(nodeId, nodeType, nodeConfig);
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
@@ -201,37 +199,6 @@ public final class AutomationDefinitionValidator {
 			throw new IllegalArgumentException("Python automation definition must contain exactly one start node.");
 		}
 		return nodeTypes;
-	}
-
-	private static void validateBranchCondition(String nodeId, String nodeType, Map<String, Object> config) {
-		if (!config.containsKey(AutomationConstants.CONFIG_BRANCH_CONDITION)) {
-			return;
-		}
-		if (AutomationConstants.NODE_START.equals(nodeType)) {
-			throw new IllegalArgumentException("trigger.start cannot define branchCondition.");
-		}
-		requireConfigString(nodeId, config, AutomationConstants.CONFIG_BRANCH_CONDITION);
-		String expression = (String) config.get(AutomationConstants.CONFIG_BRANCH_CONDITION);
-		AutomationConditionEvaluator.validate(expression);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Set<String> branchingNodeIds(List<Map<String, Object>> nodes) {
-		Set<String> nodeIds = new HashSet<>();
-		for (Map<String, Object> node : nodes) {
-			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			if (AutomationConstants.NODE_CONTROL_IF.equals(
-					node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				nodeIds.add(nodeId);
-				continue;
-			}
-			Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
-					? (Map<String, Object>) map : Map.of();
-			if (config.containsKey(AutomationConstants.CONFIG_BRANCH_CONDITION)) {
-				nodeIds.add(nodeId);
-			}
-		}
-		return nodeIds;
 	}
 
 	private static void validateNodeConfig(String nodeId, String nodeType, Map<String, Object> config) {
@@ -495,8 +462,7 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static void validateEdges(List<Map<String, Object>> edges, Map<String, String> nodeTypes,
-			Set<String> branchingNodeIds) {
+	private static void validateEdges(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
 		Set<String> edgeIds = new HashSet<>();
 		for (int index = 0; index < edges.size(); index++) {
 			Map<String, Object> edge = edges.get(index);
@@ -530,14 +496,13 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Control edge '" + edgeId
 							+ "' targetPort must be 'in'.");
 				}
-				boolean branching = branchingNodeIds.contains(source);
-				if (branching && !AutomationConstants.CONTROL_PORT_THEN.equals(sourcePort)
+				boolean condition = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source));
+				if (condition && !AutomationConstants.CONTROL_PORT_THEN.equals(sourcePort)
 						&& !AutomationConstants.CONTROL_PORT_ELSE.equals(sourcePort)) {
 					throw new IllegalArgumentException("Control edge '" + edgeId
-							+ "' from branching node '" + source
-							+ "' must use sourcePort 'then' or 'else'.");
+							+ "' from if node '" + source + "' must use sourcePort 'then' or 'else'.");
 				}
-				if (!branching && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
+				if (!condition && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
 					throw new IllegalArgumentException("Control edge '" + edgeId + "' from node '" + source
 							+ "' must use sourcePort 'out'.");
 				}
@@ -545,8 +510,7 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes,
-			Set<String> branchingNodeIds) {
+	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
 		String start = null;
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			if (AutomationConstants.NODE_START.equals(node.getValue())) {
@@ -569,9 +533,9 @@ public final class AutomationDefinitionValidator {
 			String sourcePort = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT);
 			Map<String, String> targetsByPort = outgoing.computeIfAbsent(source, ignored -> new HashMap<>());
 			if (targetsByPort.putIfAbsent(sourcePort, target) != null) {
-				String guidance = branchingNodeIds.contains(source)
-						? "Branching nodes allow one 'then' and one 'else' edge."
-						: "Set config.branchCondition and use 'then' and 'else' ports for branching.";
+				String guidance = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
+						? "If nodes allow one 'then' and one 'else' edge."
+						: "Use a control.if node with 'then' and 'else' ports for branching.";
 				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '"
 						+ sourcePort + "' control edge. " + guidance);
 			}
@@ -583,10 +547,10 @@ public final class AutomationDefinitionValidator {
 		}
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			Map<String, String> targets = outgoing.getOrDefault(node.getKey(), Map.of());
-			if (branchingNodeIds.contains(node.getKey())
+			if (AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
 					&& (!targets.containsKey(AutomationConstants.CONTROL_PORT_THEN)
 							|| !targets.containsKey(AutomationConstants.CONTROL_PORT_ELSE))) {
-				throw new IllegalArgumentException("Branching node '" + node.getKey()
+				throw new IllegalArgumentException("If node '" + node.getKey()
 						+ "' requires exactly one 'then' and one 'else' control edge.");
 			}
 		}

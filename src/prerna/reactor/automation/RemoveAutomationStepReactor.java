@@ -97,13 +97,11 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		}
 		if (!outgoing.isEmpty()) {
 			String predecessor = incoming.get(0).get(AutomationConstants.EDGE_FIELD_SOURCE).toString();
-			String predecessorPort = incoming.get(0).get(
-					AutomationConstants.EDGE_FIELD_SOURCE_PORT).toString();
 			String successor = outgoing.get(0).get(AutomationConstants.EDGE_FIELD_TARGET).toString();
 			if (predecessor.equals(successor)) {
 				throw new IllegalArgumentException("Removing node '" + nodeId + "' would create a control self-loop.");
 			}
-			updatedEdges.add(controlEdge(predecessor, predecessorPort, successor));
+			updatedEdges.add(controlEdge(predecessor, successor));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -201,12 +199,12 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		return false;
 	}
 
-	private static Map<String, Object> controlEdge(String source, String sourcePort, String target) {
+	private static Map<String, Object> controlEdge(String source, String target) {
 		return Map.of(
 				"id", "control-" + UUID.randomUUID(),
 				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
 				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, "next",
 				AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}

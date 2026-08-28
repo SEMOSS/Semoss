@@ -282,11 +282,6 @@ public final class AutomationMcpSync {
 		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's business output. "
 				+ "Do not add a custom extraction node for generated model or agent transport metadata."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
-		properties.put("branchCondition", stringProperty("Optional restricted condition expression that atomically "
-				+ "converts afterNodeId into a branching node. The existing successor becomes the Then path and this "
-				+ "new node becomes the Else path. First add the intended Then node if afterNodeId has no successor. "
-				+ "Use ${scope_value} references, scalar JSON literals, comparisons, boolean operators, and parentheses; "
-				+ "this is not Python."));
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
 						+ "Prefer an engine-backed node whenever it "
@@ -297,8 +292,6 @@ public final class AutomationMcpSync {
 						+ "Python agent client or workspace wrapper. Use developer.python only for an unavailable "
 						+ "external integration or an explicitly dynamic Pixel expression. Custom Python must read "
 						+ "upstream values directly from its scope argument; ${...} is not an upstream reference there. "
-						+ "To branch an existing action, first add its Then successor and then add the Else successor with "
-						+ "afterNodeId and branchCondition; do not add a standalone control.if unless the user asks for one. "
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
@@ -334,8 +327,7 @@ public final class AutomationMcpSync {
 				+ "from GetProjectReactorSignature with concrete values; ${...} placeholders are rejected. "
 				+ "Within accepted configuration objects, placeholders resolve recursively in object values and "
 				+ "array items; object keys remain literal. JSON-string configurations must contain a valid JSON "
-				+ "object with placeholders as quoted string values. If the existing node has branchCondition, "
-				+ "preserve it unless the user explicitly changes the branch routing."));
+				+ "object with placeholders as quoted string values."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
 				"Call GetAutomation first. Apply the user's requested change to one generated node's direct "

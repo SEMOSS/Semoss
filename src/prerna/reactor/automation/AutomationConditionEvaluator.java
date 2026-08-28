@@ -38,7 +38,7 @@ import com.google.gson.JsonParser;
 
 /**
  * Parses and evaluates the restricted expression language used by Automation
- * branching nodes.
+ * condition nodes.
  *
  * <p>This deliberately is not a general scripting engine. Expressions may use
  * scope references, scalar JSON literals, comparisons, boolean operators, and

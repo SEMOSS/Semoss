@@ -50,9 +50,7 @@ TriggerAutomation (virtual thread)
 ```
 
 Java accepts one connected, acyclic control graph rooted at `trigger.start`; each run follows one
-deterministic path. Any node becomes a branching node when its config contains a nonblank
-`branchCondition` and it has exactly one `then` and one `else` control edge. The node executes first,
-its business output is placed in scope, and then Java evaluates the condition against that updated scope.
+deterministic path through its `control.if` nodes.
 Supported native-Python runtime types are:
 
 - `database.query`, `database.insert`, `database.update`
@@ -63,10 +61,8 @@ Supported native-Python runtime types are:
 - `function.execute`, `app.pixel`, `control.wait`, `control.if`
 - `agent.run`
 
-Branch conditions are evaluated only by the bounded Java expression evaluator and select one
-`then` or `else` edge. Expressions may use `${scope_value}` references, scalar JSON literals,
-comparisons, boolean operators, and parentheses; they are not Python. The standalone `control.if`
-node remains supported but is not required. Arbitrary fan-out, loops, and parallel execution are rejected before
+`control.if` is evaluated only by the bounded Java expression evaluator and selects one
+`then` or `else` edge. Arbitrary fan-out, loops, and parallel execution are rejected before
 execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` is the canonical optional
