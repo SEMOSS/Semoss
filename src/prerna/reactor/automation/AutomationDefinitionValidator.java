@@ -93,13 +93,31 @@ public final class AutomationDefinitionValidator {
 	 * @return immutable-by-convention validated graph metadata
 	 */
 	public static ValidatedDefinition parseAndValidate(String json) {
+		return parseAndValidate(json, true);
+	}
+
+	/**
+	 * Parses and validates a definition while allowing incomplete control.if paths.
+	 *
+	 * <p>Authoring tools persist drafts incrementally; execution must continue to
+	 * use {@link #parseAndValidate(String)} so an incomplete branch cannot run.
+	 *
+	 * @param json graph document JSON
+	 * @return validated graph metadata
+	 */
+	public static ValidatedDefinition parseAndValidateForAuthoring(String json) {
+		return parseAndValidate(json, false);
+	}
+
+	private static ValidatedDefinition parseAndValidate(String json,
+			boolean requireCompleteIfBranches) {
 		if (json == null || json.isBlank()) {
 			throw new IllegalArgumentException("Python automation definition must be a nonblank JSON object.");
 		}
 		try {
 			Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(json,
 					AutomationRuntimeUtils.MAP_TYPE);
-			return validate(definition);
+			return validate(definition, requireCompleteIfBranches);
 		} catch (JsonParseException e) {
 			throw new IllegalArgumentException("Python automation definition must be valid JSON.", e);
 		}
@@ -112,6 +130,11 @@ public final class AutomationDefinitionValidator {
 	 * @return validated definition and deterministic provenance fields
 	 */
 	public static ValidatedDefinition validate(Map<String, Object> definition) {
+		return validate(definition, true);
+	}
+
+	private static ValidatedDefinition validate(Map<String, Object> definition,
+			boolean requireCompleteIfBranches) {
 		if (definition == null) {
 			throw new IllegalArgumentException("Python automation definition must be a JSON object.");
 		}
@@ -122,7 +145,7 @@ public final class AutomationDefinitionValidator {
 
 		Map<String, String> nodeTypes = validateNodes(nodes);
 		validateEdges(edges, nodeTypes);
-		validateControlPath(edges, nodeTypes);
+		validateControlPath(edges, nodeTypes, requireCompleteIfBranches);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -510,7 +533,8 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes) {
+	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes,
+			boolean requireCompleteIfBranches) {
 		String start = null;
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			if (AutomationConstants.NODE_START.equals(node.getValue())) {
@@ -547,7 +571,7 @@ public final class AutomationDefinitionValidator {
 		}
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			Map<String, String> targets = outgoing.getOrDefault(node.getKey(), Map.of());
-			if (AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
+			if (requireCompleteIfBranches && AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
 					&& (!targets.containsKey(AutomationConstants.CONTROL_PORT_THEN)
 							|| !targets.containsKey(AutomationConstants.CONTROL_PORT_ELSE))) {
 				throw new IllegalArgumentException("If node '" + node.getKey()

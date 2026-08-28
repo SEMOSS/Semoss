@@ -67,7 +67,7 @@ public class GetAutomationReactor extends AbstractReactor {
 		definition.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
 		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
-				AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources()));
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition()), files.nodeSources()));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

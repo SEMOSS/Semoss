@@ -279,9 +279,14 @@ public final class AutomationMcpSync {
 				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
 				+ "or arguments."));
 		properties.put("label", stringProperty("Short user-facing action label."));
-		properties.put("outputVar", stringProperty("Unique Python-style variable name for this node's business output. "
-				+ "Do not add a custom extraction node for generated model or agent transport metadata."));
+		properties.put("outputVar", stringProperty("Required unique Python-style variable name for this node's "
+				+ "business output. Omit it for control.if, which does not produce an output."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
+		properties.put("branchPort", stringProperty("Required only when afterNodeId identifies a control.if node: "
+				+ "use 'then' or 'else' to select the path. Omit it for every other parent node.")
+				.put("enum", new JSONArray()
+						.put(AutomationConstants.CONTROL_PORT_THEN)
+						.put(AutomationConstants.CONTROL_PORT_ELSE)));
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
 						+ "Prefer an engine-backed node whenever it "
@@ -295,7 +300,7 @@ public final class AutomationMcpSync {
 						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
-						.put("label").put("outputVar"));
+						.put("label"));
 	}
 
 	private static JSONObject updateCustomStepTool(String projectId) {
@@ -392,8 +397,10 @@ public final class AutomationMcpSync {
 				.put(AutomationConstants.NODE_APP_PIXEL)
 				.put(AutomationConstants.NODE_AGENT_RUN)
 				.put(AutomationConstants.NODE_CONTROL_WAIT)
+				.put(AutomationConstants.NODE_CONTROL_IF)
 				.put(AutomationConstants.NODE_DEVELOPER_PYTHON);
-		return stringProperty("The typed action to add.").put("enum", values);
+		return stringProperty("The typed action to add. control.if is a standalone branch node; add its "
+				+ "then and else children in later calls using afterNodeId and branchPort.").put("enum", values);
 	}
 
 	private static String description(String definitionJson) {
@@ -409,7 +416,7 @@ public final class AutomationMcpSync {
 		try {
 			AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
 			return AutomationRuntime.triggerGlobalDefinitions(
-					AutomationDefinitionValidator.parseAndValidate(files.definition()), files.nodeSources());
+					AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition()), files.nodeSources());
 		} catch (RuntimeException e) {
 			classLogger.warn("Unable to read trigger globals for automation project {}", projectId, e);
 			return List.of();

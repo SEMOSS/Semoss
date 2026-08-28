@@ -103,7 +103,7 @@ public final class AutomationDefinitionService {
 			}
 			String definition = Files.readString(definitionFile, StandardCharsets.UTF_8);
 			AutomationDefinitionValidator.ValidatedDefinition validated =
-					AutomationDefinitionValidator.parseAndValidate(definition);
+					AutomationDefinitionValidator.parseAndValidateForAuthoring(definition);
 			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
@@ -124,7 +124,7 @@ public final class AutomationDefinitionService {
 			}
 			String normalized = normalizeGeneratedCodeModes(validated, sources, definition);
 			return new DefinitionFiles(normalized, withoutTriggerSources(sources,
-					AutomationDefinitionValidator.parseAndValidate(normalized)));
+					AutomationDefinitionValidator.parseAndValidateForAuthoring(normalized)));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to read Python automation definition: " + e.getMessage(), e);
 		}
@@ -143,7 +143,7 @@ public final class AutomationDefinitionService {
 	 */
 	public static String calculateRevision(String definitionJson, Map<String, String> nodeSources) {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson);
 		StringBuilder canonical = new StringBuilder();
 		appendRevisionValue(canonical, definition.snapshot());
 		for (Map.Entry<String, String> entry : new TreeMap<>(nodeSources).entrySet()) {
@@ -177,14 +177,14 @@ public final class AutomationDefinitionService {
 	 */
 	public static DefinitionFiles save(String projectId, String definitionJson, Map<String, String> nodeSources) {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(definitionJson);
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson);
 		validateUniqueNodeSourceFileNames(definition);
 		Path assetsFolder = getAssetsFolder(projectId);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
 		String persistedDefinition = normalizeGeneratedCodeModes(definition, sourcesToPersist, definitionJson);
 		DefinitionFiles candidate = new DefinitionFiles(persistedDefinition,
 				withoutTriggerSources(sourcesToPersist,
-						AutomationDefinitionValidator.parseAndValidate(persistedDefinition)));
+						AutomationDefinitionValidator.parseAndValidateForAuthoring(persistedDefinition)));
 
 		try {
 			Files.createDirectories(assetsFolder);
@@ -247,7 +247,7 @@ public final class AutomationDefinitionService {
 		Path folder = Files.isRegularFile(definitionPath(assetsFolder)) ? assetsFolder : portalsFolder;
 		DefinitionFiles definition = load(projectId);
 		AutomationDefinitionValidator.ValidatedDefinition validated =
-				AutomationDefinitionValidator.parseAndValidate(definition.definition());
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(definition.definition());
 		List<Path> paths = new java.util.ArrayList<>();
 		paths.add(definitionPath(folder));
 		for (Map<String, Object> node : validated.nodes()) {
@@ -475,7 +475,7 @@ public final class AutomationDefinitionService {
 
 	private static void writeAggregate(Path folder, DefinitionFiles files) throws IOException {
 		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidate(files.definition());
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition());
 		validateUniqueNodeSourceFileNames(definition);
 		Files.createDirectories(nodesFolder(folder));
 		writeReplace(definitionPath(folder), prettyJson(files.definition()));

@@ -56,12 +56,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	private static final String LABEL_KEY = "label";
 	private static final String OUTPUT_VAR_KEY = "outputVar";
 	private static final String AFTER_NODE_ID_KEY = "afterNodeId";
+	private static final String BRANCH_PORT_KEY = "branchPort";
 
 	public AddAutomationStepReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.PROJECT.getKey(), NODE_TYPE_KEY, CONFIG_KEY, LABEL_KEY,
-				OUTPUT_VAR_KEY, AFTER_NODE_ID_KEY };
-		this.keyRequired = new int[] { 1, 1, 1, 1, 1, 0 };
+				OUTPUT_VAR_KEY, AFTER_NODE_ID_KEY, BRANCH_PORT_KEY };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -70,17 +71,19 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String projectId = editableProjectId();
 		String nodeType = required(NODE_TYPE_KEY);
 		String label = required(LABEL_KEY);
-		String outputVar = requiredOutputVariable(required(OUTPUT_VAR_KEY));
+		String outputVar = outputVariable(nodeType, this.keyValue.get(OUTPUT_VAR_KEY));
 		String afterNodeId = this.keyValue.get(AFTER_NODE_ID_KEY);
+		String branchPort = this.keyValue.get(BRANCH_PORT_KEY);
 		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
 		String customSource = customSource(nodeType, config);
 		return AutomationProjectUtils.withLockedDefinition(projectId,
-				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId, config, customSource));
+				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId, branchPort, config,
+						customSource));
 	}
 
 	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeType, String label, String outputVar, String afterNodeId, Map<String, Object> config,
-			String customSource) {
+			String nodeType, String label, String outputVar, String afterNodeId, String branchPort,
+			Map<String, Object> config, String customSource) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -89,7 +92,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		List<Map<String, Object>> nodes = maps(graph.get(AutomationConstants.DOC_NODES), "graph.nodes");
 		List<Map<String, Object>> edges = maps(graph.get(AutomationConstants.DOC_EDGES), "graph.edges");
 
-		if (nodes.stream().anyMatch(node -> outputVar.equals(node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR)))) {
+		if (outputVar != null && nodes.stream()
+				.anyMatch(node -> outputVar.equals(node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR)))) {
 			throw new IllegalArgumentException("Automation already contains output variable: " + outputVar);
 		}
 
@@ -99,13 +103,16 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		if (nodes.stream().noneMatch(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))) {
 			throw new IllegalArgumentException("Automation does not contain parent node: " + parentId);
 		}
+		String sourcePort = sourcePort(nodes, parentId, branchPort);
 
 		String nodeId = uniqueNodeId(nodes, label);
 		Map<String, Object> node = new LinkedHashMap<>();
 		node.put(AutomationConstants.NODE_FIELD_ID, nodeId);
 		node.put(AutomationConstants.NODE_FIELD_TYPE, nodeType);
 		node.put(AutomationConstants.NODE_FIELD_LABEL, label);
-		node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);
+		if (outputVar != null) {
+			node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);
+		}
 		node.put(AutomationConstants.NODE_FIELD_CODE_MODE, customSource == null
 				? AutomationConstants.NODE_CODE_MODE_GENERATED
 				: AutomationConstants.NODE_CODE_MODE_CUSTOM);
@@ -114,7 +121,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);
 		updatedNodes.add(node);
-		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId);
+		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId, nodeType, sourcePort);
 		Map<String, Object> updatedGraph = new LinkedHashMap<>(graph);
 		updatedGraph.put(AutomationConstants.DOC_NODES, updatedNodes);
 		updatedGraph.put(AutomationConstants.DOC_EDGES, updatedEdges);
@@ -149,11 +156,43 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		return value;
 	}
 
+	private static String outputVariable(String nodeType, String value) {
+		if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
+			if (value != null && !value.isBlank()) {
+				throw new IllegalArgumentException("control.if does not produce an outputVar.");
+			}
+			return null;
+		}
+		if (value == null || value.isBlank()) {
+			throw new IllegalArgumentException("Must provide " + OUTPUT_VAR_KEY + ".");
+		}
+		return requiredOutputVariable(value);
+	}
+
 	private static String requiredOutputVariable(String value) {
 		if (!value.matches("[A-Za-z_][A-Za-z0-9_]*")) {
 			throw new IllegalArgumentException("outputVar must be a valid Python identifier.");
 		}
 		return value;
+	}
+
+	private static String sourcePort(List<Map<String, Object>> nodes, String parentId, String branchPort) {
+		String parentType = nodes.stream()
+				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))
+				.map(node -> (String) node.get(AutomationConstants.NODE_FIELD_TYPE))
+				.findFirst()
+				.orElseThrow();
+		if (!AutomationConstants.NODE_CONTROL_IF.equals(parentType)) {
+			if (branchPort != null && !branchPort.isBlank()) {
+				throw new IllegalArgumentException("branchPort can only be used when afterNodeId is a control.if node.");
+			}
+			return AutomationConstants.CONTROL_PORT_OUT;
+		}
+		if (!AutomationConstants.CONTROL_PORT_THEN.equals(branchPort)
+				&& !AutomationConstants.CONTROL_PORT_ELSE.equals(branchPort)) {
+			throw new IllegalArgumentException("Adding after a control.if node requires branchPort 'then' or 'else'.");
+		}
+		return branchPort;
 	}
 
 	private static String customSource(String nodeType, Map<String, Object> config) {
@@ -215,31 +254,35 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		return false;
 	}
 
-	private static List<Map<String, Object>> insertAfter(
-			List<Map<String, Object>> edges, String parentId, String nodeId) {
+	private static List<Map<String, Object>> insertAfter(List<Map<String, Object>> edges, String parentId,
+			String nodeId, String nodeType, String sourcePort) {
 		List<Map<String, Object>> updated = new ArrayList<>();
 		Map<String, Object> replaced = null;
 		for (Map<String, Object> edge : edges) {
 			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))
-					&& parentId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))) {
+					&& parentId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))
+					&& sourcePort.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT))) {
 				replaced = edge;
 				continue;
 			}
 			updated.add(edge);
 		}
-		updated.add(controlEdge(parentId, nodeId));
+		updated.add(controlEdge(parentId, nodeId, sourcePort));
 		if (replaced != null) {
-			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString()));
+			String nodePort = AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+					? AutomationConstants.CONTROL_PORT_THEN
+					: AutomationConstants.CONTROL_PORT_OUT;
+			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));
 		}
 		return updated;
 	}
 
-	private static Map<String, Object> controlEdge(String source, String target) {
+	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
 		return Map.of(
 				"id", "control-" + UUID.randomUUID(),
 				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
 				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, "next",
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
 				AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}

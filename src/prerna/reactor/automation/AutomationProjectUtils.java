@@ -174,7 +174,7 @@ public final class AutomationProjectUtils {
 				}
 			}
 			validateDefinitionReferences(
-					AutomationDefinitionValidator.parseAndValidate(definitionJson), user);
+					AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson), user);
 			AutomationDefinitionService.DefinitionFiles files =
 					AutomationDefinitionService.save(projectId, definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);

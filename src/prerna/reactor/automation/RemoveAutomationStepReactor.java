@@ -65,7 +65,7 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 	private NounMetadata removeStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
 			String nodeId) {
 		AutomationDefinitionValidator.ValidatedDefinition validated =
-				AutomationDefinitionValidator.parseAndValidate(files.definition());
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition());
 		Map<String, Object> removedNode = findNode(validated.nodes(), nodeId);
 		if (AutomationConstants.NODE_START.equals(removedNode.get(AutomationConstants.NODE_FIELD_TYPE))) {
 			throw new IllegalArgumentException("The trigger node cannot be removed.");
@@ -101,7 +101,8 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 			if (predecessor.equals(successor)) {
 				throw new IllegalArgumentException("Removing node '" + nodeId + "' would create a control self-loop.");
 			}
-			updatedEdges.add(controlEdge(predecessor, successor));
+			updatedEdges.add(controlEdge(predecessor, successor,
+					incoming.get(0).get(AutomationConstants.EDGE_FIELD_SOURCE_PORT).toString()));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -199,12 +200,12 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		return false;
 	}
 
-	private static Map<String, Object> controlEdge(String source, String target) {
+	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
 		return Map.of(
 				"id", "control-" + UUID.randomUUID(),
 				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
 				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, "next",
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
 				AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}
