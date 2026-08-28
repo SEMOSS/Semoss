@@ -153,28 +153,79 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
-		if (offset > 0 && limit > 0) {
-			query = query.append(" OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY");
-		} else if (offset > 0) {
-			query = query.append(" OFFSET " + offset + " ROWS ");
-		} else if (limit > 0) {
-			query = query.append(" OFFSET 0 ROWS FETCH NEXT " + limit + " ROWS ONLY");
-		}
-
-		return query;
+		return query.append(getPaginationClause(query, limit, offset));
 	}
 
 	@Override
 	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
-		if (offset > 0 && limit > 0) {
-			query = query.append(" OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY");
-		} else if (offset > 0) {
-			query = query.append(" OFFSET " + offset + " ROWS ");
-		} else if (limit > 0) {
-			query = query.append(" OFFSET 0 ROWS FETCH NEXT " + limit + " ROWS ONLY");
+		return query.append(getPaginationClause(query, limit, offset));
+	}
+
+	private String getPaginationClause(CharSequence query, long limit, long offset) {
+		if (limit <= 0 && offset <= 0) {
+			return "";
 		}
 
-		return query;
+		String topLevelQuery = getTopLevelQuery(query);
+		StringBuilder clause = new StringBuilder("\n");
+		if (!topLevelQuery.matches("(?is).*\\bORDER\\s+BY\\b.*")) {
+			clause.append(topLevelQuery.matches("(?is).*\\bSELECT\\s+DISTINCT\\b.*")
+					? "ORDER BY 1 " : "ORDER BY (SELECT NULL) ");
+		}
+		clause.append("OFFSET ").append(Math.max(offset, 0)).append(" ROWS");
+		if (limit > 0) {
+			clause.append(" FETCH NEXT ").append(limit).append(" ROWS ONLY");
+		}
+		return clause.toString();
+	}
+
+	private String getTopLevelQuery(CharSequence query) {
+		StringBuilder result = new StringBuilder(query.length());
+		int depth = 0;
+		char quoteEnd = 0;
+		boolean lineComment = false;
+		boolean blockComment = false;
+		for (int i = 0; i < query.length(); i++) {
+			char current = query.charAt(i);
+			char next = i + 1 < query.length() ? query.charAt(i + 1) : 0;
+			if (lineComment) {
+				lineComment = current != '\n' && current != '\r';
+				result.append(' ');
+			} else if (blockComment) {
+				if (current == '*' && next == '/') {
+					blockComment = false;
+					result.append("  ");
+					i++;
+				} else {
+					result.append(' ');
+				}
+			} else if (quoteEnd != 0) {
+				if (current == quoteEnd) {
+					quoteEnd = 0;
+				}
+				result.append(' ');
+			} else if (current == '-' && next == '-') {
+				lineComment = true;
+				result.append("  ");
+				i++;
+			} else if (current == '/' && next == '*') {
+				blockComment = true;
+				result.append("  ");
+				i++;
+			} else if (current == '\'' || current == '"' || current == '[') {
+				quoteEnd = current == '[' ? ']' : current;
+				result.append(' ');
+			} else if (current == '(') {
+				depth++;
+				result.append(' ');
+			} else if (current == ')') {
+				depth = Math.max(0, depth - 1);
+				result.append(' ');
+			} else {
+				result.append(depth == 0 ? current : ' ');
+			}
+		}
+		return result.toString();
 	}
 
 	@Override

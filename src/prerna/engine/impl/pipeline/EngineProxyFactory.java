@@ -48,6 +48,8 @@ import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
 /**
@@ -93,6 +95,9 @@ public class EngineProxyFactory {
 		if (engine == null) {
 			return null;
 		}
+		if (isDatabaseProxyDisabled(engine)) {
+			return engine;
+		}
 
 		File jsonFile = null;
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
@@ -115,6 +120,14 @@ public class EngineProxyFactory {
 			classes = new Class<?>[] { IEngine.class, IDatabaseEngine.class };
 		}
 		return (IDatabaseEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(), classes, handler);
+	}
+
+	private static boolean isDatabaseProxyDisabled(IDatabaseEngine engine) {
+		if (Boolean.parseBoolean(engine.getSmssProp().getProperty(Constants.DISABLE_ENGINE_PROXY))) {
+			return true;
+		}
+		String key = engine.getEngineId() + "_" + Constants.DISABLE_ENGINE_PROXY;
+		return Boolean.parseBoolean(DIHelper.getInstance().getCoreProp().getProperty(key));
 	}
 
 	/**

@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
@@ -65,6 +66,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -133,6 +135,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
 	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
+	private static final Set<String> RAW_DATABASE_METHODS = Set.of("execQuery", "insertData", "removeData",
+			"getPreparedStatement");
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -219,14 +223,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 			// Find the correct pipeline for the called method
 			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
+			boolean wildcardPipeline = specificPipeline == null;
 			if (specificPipeline == null) {
 				specificPipeline = this.pipelinesMap.get("*");
 			}
+			boolean rawDatabaseMethod = isRawDatabaseMethod(method);
 
 			List<IInputReactor> inputPipelines = null;
 			List<IOutputReactor> outputPipelines = null;
 			if (specificPipeline != null) {
-				inputPipelines = specificPipeline.getInputPipeline();
+				// Raw SQL requires an explicitly named input pipeline.
+				inputPipelines = rawDatabaseMethod && wildcardPipeline ? List.of()
+						: specificPipeline.getInputPipeline();
 				outputPipelines = specificPipeline.getOutputPipeline();
 			}
 			Map<String, Object> processedArguments = new HashMap<>();
@@ -319,12 +327,18 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
+					boolean blockedSqlMask = rawDatabaseMethod && masked;
+					if (blockedSqlMask) {
+						pass = false;
+						resultMap.put(PipelineReactorUtils.PASS, false);
+						classLogger.warn(
+								"Input guardrail attempted to mask SQL for raw database method '{}'; blocking instead.",
+								methodName);
+					}
 					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
-					// MASK when the guardrail neutralized content, BLOCK when it stopped the
-					// request, RESPOND when it supplied the answer itself, null when it ran clean
-					// - queryable via the GUARDRAIL_ACTION column
-					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
-							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+					String guardrailAction = blockedSqlMask ? GUARDRAIL_ACTION_BLOCK
+							: cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
+									: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
 
 					String request = null;
 					String response = null;
@@ -492,6 +506,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {
 		String configured = (String) resultMap.get(PipelineReactorUtils.BLOCK_ERROR_MESSAGE);
 		return configured != null && !configured.isEmpty() ? configured : fallback;
+	}
+
+	private static boolean isRawDatabaseMethod(Method method) {
+		return IDatabaseEngine.class.isAssignableFrom(method.getDeclaringClass())
+				&& RAW_DATABASE_METHODS.contains(method.getName()) && method.getParameterCount() > 0
+				&& method.getParameterTypes()[0] == String.class;
 	}
 
 	/**

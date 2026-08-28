@@ -34,6 +34,7 @@ import java.util.Vector;
 
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class GenExpression extends SelectQueryStruct implements IQuerySelector, Serializable {
 	
@@ -217,6 +218,11 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 	
 	public static StringBuffer printQS(GenExpression qs, StringBuffer buf)
 	{
+		return printQS(qs, buf, null);
+	}
+
+	public static StringBuffer printQS(GenExpression qs, StringBuffer buf, AbstractSqlQueryUtil queryUtil)
+	{
 		// if the type is join.. you need to do other things
 		//System.err.println("Processing  " + qs.aQuery + " <>" + qs.expression + "<>" + qs.operation);
 		String newLine = "\n";
@@ -234,7 +240,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				}
 		        buf.append(qs.withFrom.get(i));
 		        buf.append(" AS (");
-		        printQS(qs.withList.get(i),buf);
+		        printQS(qs.withList.get(i),buf, queryUtil);
 		        buf.append(") ");
 		    }
 		}
@@ -249,7 +255,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				for(int selIndex = 0;selIndex < qs.nselectors.size();selIndex++) {
 					GenExpression sqs = qs.nselectors.get(selIndex);
 					// need to handle telescope
-					StringBuffer newBuf = printQS(sqs, null);
+					StringBuffer newBuf = printQS(sqs, null, queryUtil);
 					if(newBuf != null && newBuf.length() > 0) {
 						if(selIndex > 0) {
 							buf.append(", ");
@@ -351,9 +357,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			for(int opIndex = 0;opIndex < opNames.size();opIndex++)
 			{
 				if(opIndex == 0)
-					printQS((GenExpression)operands.get(opIndex), buf);
+					printUnionOperand(operands.get(opIndex), buf, queryUtil, opIndex);
 				buf.append("  ").append(opNames.get(opIndex)).append("  ");
-				printQS((GenExpression)operands.get(opIndex+1), buf);
+				printUnionOperand(operands.get(opIndex+1), buf, queryUtil, opIndex + 1);
 			}
 			
 			processed = true;
@@ -363,11 +369,11 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		{
 			processed = true;
 			buf.append("  "); 
-			printQS((GenExpression)qs.body, buf);
+			printQS((GenExpression)qs.body, buf, queryUtil);
 			buf.append("  BETWEEN ");
-			printQS((GenExpression)qs.leftItem, buf);
+			printQS((GenExpression)qs.leftItem, buf, queryUtil);
 			buf.append("  AND  ");
-			printQS((GenExpression)qs.rightItem, buf);
+			printQS((GenExpression)qs.rightItem, buf, queryUtil);
 			processed = true;
 			
 		}
@@ -376,7 +382,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			// name of the function is in the left alias
 			buf.append("CAST ").append("(");
 			if(qs.leftItem != null && qs.leftItem instanceof GenExpression) {
-				printQS((GenExpression)qs.leftItem, buf);
+				printQS((GenExpression)qs.leftItem, buf, queryUtil);
 			} else {
 				buf.append(qs.leftItem);
 			}
@@ -409,7 +415,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				if(paramIndex > 0)
 					buf.append(", ");
-				printQS(parameters.get(paramIndex), buf);
+				printQS(parameters.get(paramIndex), buf, queryUtil);
 			}
 			buf.append(")");
 			if(qs.leftAlias != null)
@@ -419,7 +425,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		if(qs.operation != null && qs.operation.equalsIgnoreCase("isnull") && !qs.neutralize)  
 		{
 			// name of the function is in the left alias
-			printQS((GenExpression)qs.leftItem, buf);
+			printQS((GenExpression)qs.leftItem, buf, queryUtil);
 			buf.append(" IS NULL ");
 			if(qs.leftAlias != null)
 				buf.append(" AS ").append(qs.leftAlias);
@@ -431,19 +437,19 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		{
 			if(qs.recursive)
 			{
-				printQSRecursive(qs, buf);
+				printQSRecursive(qs, buf, queryUtil);
 				if(qs.leftAlias != null)
 					buf.append(qs.leftAlias);
 			}
 			else if(qs instanceof WhenExpression)
 			{
-				buf.append(((WhenExpression)qs).printOutput());
+				buf.append(((WhenExpression)qs).printOutput(queryUtil));
 			}
 			else if(qs instanceof InGenExpression)
 			{
 				InGenExpression ig = (InGenExpression)qs;
 				if(qs.leftItem != null) {
-					printQS((GenExpression)qs.leftItem, buf);
+					printQS((GenExpression)qs.leftItem, buf, queryUtil);
 				}
 				if(ig.isNot()) {
 					buf.append("  NOT IN  ");
@@ -458,7 +464,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					{
 						if(itemIndex != 0)
 							buf.append(", ");
-						StringBuffer newBuf = printQS(ig.inList.get(itemIndex), null);
+						StringBuffer newBuf = printQS(ig.inList.get(itemIndex), null, queryUtil);
 						if(!newBuf.toString().startsWith("("))
 							buf.append("(");
 						buf.append(newBuf);
@@ -474,9 +480,9 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					// when you have where column1 in ( subquery ) 
 					// the subquery is stored it is stored in the body
 					if( ((GenExpression)qs.rightItem).telescope) {
-						printQS( ((GenExpression)qs.rightItem).body, buf);
+						printQS( ((GenExpression)qs.rightItem).body, buf, queryUtil);
 					} else {
-						printQS((GenExpression)qs.rightItem, buf);
+						printQS((GenExpression)qs.rightItem, buf, queryUtil);
 					}
 					buf.append(")");
 				}
@@ -494,14 +500,14 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				if(leftItem instanceof GenExpression && ((GenExpression)leftItem).paranthesis)
 					buf.append("(");
 				// this is where we need to do the paranthesis again I think
-				printQS((GenExpression)qs.leftItem, buf);
+				printQS((GenExpression)qs.leftItem, buf, queryUtil);
 				if(leftItem instanceof GenExpression && ((GenExpression)leftItem).paranthesis)
 					buf.append(")");
 				buf.append(qs.operation);
 
 				if(rightItem instanceof GenExpression && ((GenExpression)rightItem).paranthesis)
 					buf.append("(");
-				printQS((GenExpression)qs.rightItem, buf);
+				printQS((GenExpression)qs.rightItem, buf, queryUtil);
 				if(rightItem instanceof GenExpression && ((GenExpression)rightItem).paranthesis)
 					buf.append(")");
 
@@ -510,7 +516,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				// need to acomodate when it is neutralize
 				buf.append("(");
-				printQS((GenExpression)qs.body, buf);
+				printQS((GenExpression)qs.body, buf, queryUtil);
 				buf.append(")");
 				
 				if(qs.leftAlias != null && qs.leftAlias.length() > 0)
@@ -539,7 +545,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				if(qs.from.composite)
 					buf.append("( ");
 				
-				printQS(qs.from, buf);
+				printQS(qs.from, buf, queryUtil);
 				
 				if(qs.from.composite)
 				{
@@ -579,7 +585,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				buf.append("  ");
 				if(sqs.from != null && sqs.from.composite)
 					buf.append("(");
-				printQS(sqs.from, buf);
+				printQS(sqs.from, buf, queryUtil);
 				if(sqs.from != null && sqs.from.composite)
 					buf.append(")");
 				if(sqs.from.leftAlias != null)
@@ -595,7 +601,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 			{
 				buf.append("  on ");
 				buf.append(open);
-				printQS(sqs.body, buf);
+				printQS(sqs.body, buf, queryUtil);
 				buf.append(close);
 			}
 		}
@@ -603,7 +609,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		// add the where
 		if(qs.filter != null)
 		{
-			StringBuffer newBuf = printQS(qs.filter, null);
+			StringBuffer newBuf = printQS(qs.filter, null, queryUtil);
 			if(newBuf != null && newBuf.length() > 0)
 			{
 				buf.append(newLine);
@@ -627,7 +633,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				{
 					if(gep.composite)
 						buf.append("(");
-					printQS(gep, buf);
+					printQS(gep, buf, queryUtil);
 					if(gep.composite)
 						buf.append(")");
 				}				
@@ -649,7 +655,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 					
 					if(gep.composite)
 						buf.append("(");
-					printQS(gep, buf);
+					printQS(gep, buf, queryUtil);
 					if(gep.composite)
 						buf.append(")");
 					buf.append("  ");
@@ -661,17 +667,41 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 		}
 		
 		// limit and offset
-		if(qs.limit != -1)
-			buf.append(" LIMIT ").append(qs.limit);
+		if(queryUtil != null) {
+			buf = queryUtil.addLimitOffsetToQuery(buf, qs.limit, qs.offset);
+		} else {
+			if(qs.limit != -1)
+				buf.append(" LIMIT ").append(qs.limit);
 
-		if(qs.offset != -1)
-			buf.append(" OFFSET ").append(qs.offset);
+			if(qs.offset != -1)
+				buf.append(" OFFSET ").append(qs.offset);
+		}
 
 		
 		return buf;
 	}
+
+	private static void printUnionOperand(GenExpression operand, StringBuffer buf,
+			AbstractSqlQueryUtil queryUtil, int operandIndex)
+	{
+		StringBuffer operandQuery = printQS(operand, null, queryUtil);
+		if(operand.limit > 0 || operand.offset > 0)
+		{
+			buf.append("SELECT * FROM (").append(operandQuery).append(") AS UNION_OPERAND_")
+					.append(operandIndex);
+		}
+		else
+		{
+			buf.append(operandQuery);
+		}
+	}
 		
 	public static StringBuffer printQSRecursive(GenExpression qs, StringBuffer buf)
+	{
+		return printQSRecursive(qs, buf, null);
+	}
+
+	private static StringBuffer printQSRecursive(GenExpression qs, StringBuffer buf, AbstractSqlQueryUtil queryUtil)
 	{
 		Object leftItem = qs.leftItem;
 		Object rightItem = qs.rightItem;
@@ -690,7 +720,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				Object childLeftItem = ((GenExpression)leftItem).leftItem;
 				Object childRightItem = ((GenExpression)leftItem).rightItem;
 				
-				StringBuffer leftBuf = printQS((GenExpression)leftItem, new StringBuffer()); // need to account for neutralize here
+				StringBuffer leftBuf = printQS((GenExpression)leftItem, new StringBuffer(), queryUtil); // need to account for neutralize here
 
 				if(leftBuf.length() > 0)
 				{
@@ -734,7 +764,7 @@ public class GenExpression extends SelectQueryStruct implements IQuerySelector, 
 				Object childLeftItem = ((GenExpression)rightItem).leftItem;
 				Object childRightItem = ((GenExpression)rightItem).rightItem;
 				
-				StringBuffer rightBuf = printQS((GenExpression)rightItem, new StringBuffer());
+				StringBuffer rightBuf = printQS((GenExpression)rightItem, new StringBuffer(), queryUtil);
 				
 				if(rightBuf.length() > 0)
 				{

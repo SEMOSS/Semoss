@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.util.sql.AbstractSqlQueryUtil;
+
 public class WhenExpression extends GenExpression {
 	
 	// sets the condition
@@ -94,6 +96,11 @@ public class WhenExpression extends GenExpression {
 
 	public StringBuffer printOutput()
 	{
+		return printOutput(null);
+	}
+
+	StringBuffer printOutput(AbstractSqlQueryUtil queryUtil)
+	{
 		StringBuffer output = new StringBuffer();
 		//System.err.println(" Processing >> " + aQuery);
 		
@@ -106,12 +113,10 @@ public class WhenExpression extends GenExpression {
 				//System.err.println("When ...  " + whens.get(whenIndex));
 				//System.err.println("Then ...  " + thens.get(whenIndex));
 				GenExpression thisWhen = whenE.get(whenIndex);
-				StringBuffer whenBuf = new StringBuffer();
-				whenBuf = thisWhen.printQS(thisWhen, whenBuf);
+				StringBuffer whenBuf = thisWhen.printQS(thisWhen, new StringBuffer(), queryUtil);
 
 				GenExpression thisThen = thenE.get(whenIndex);
-				StringBuffer thenBuf = new StringBuffer();
-				thenBuf = thisThen.printQS(thisThen, thenBuf);
+				StringBuffer thenBuf = thisThen.printQS(thisThen, new StringBuffer(), queryUtil);
 
 
 				output.append("when " ).append(whenBuf).append(" then ").append(thenBuf).append(" ");
@@ -119,8 +124,7 @@ public class WhenExpression extends GenExpression {
 			
 			if(elseE != null)
 			{
-				StringBuffer elseBuf = new StringBuffer();
-				elseBuf = elseE.printQS(elseE, elseBuf);
+				StringBuffer elseBuf = elseE.printQS(elseE, new StringBuffer(), queryUtil);
 				output.append(" else ").append(elseBuf);
 			}
 			output.append(" end");

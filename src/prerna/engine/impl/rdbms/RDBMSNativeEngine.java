@@ -121,10 +121,24 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 			dbTypeString = this.smssProp.getProperty(AbstractSqlQueryUtil.DRIVER_NAME);
 		}
 		this.driver = this.smssProp.getProperty(Constants.DRIVER);
+		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
 		// get the dbType from the input or from the driver itself
 		this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString)
 				: RdbmsTypeEnum.getEnumFromDriver(this.driver);
 		if (this.dbType == null) {
+			this.dbType = RdbmsTypeEnum.getEnumFromUrl(this.connectionURL);
+		}
+		if (this.dbType == null) {
+			if (dbTypeString != null) {
+				classLogger.error("Unable to resolve RDBMS type '{}' for engine '{}'; falling back to H2",
+						Utility.cleanLogString(dbTypeString), Utility.cleanLogString(this.engineId));
+			} else if (this.driver != null && !this.driver.isBlank()) {
+				classLogger.error("Unable to resolve RDBMS driver '{}' for engine '{}'; falling back to H2",
+						Utility.cleanLogString(this.driver), Utility.cleanLogString(this.engineId));
+			} else if (this.connectionURL != null && !this.connectionURL.isBlank()) {
+				classLogger.error("Unable to resolve RDBMS type from connection URL for engine '{}'; falling back to H2",
+						Utility.cleanLogString(this.engineId));
+			}
 			this.dbType = RdbmsTypeEnum.H2_DB;
 		}
 		// override the driver based on the db type enum
@@ -147,8 +161,6 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		this.userName = this.smssProp.getProperty(queryUtil.getConnectionUserKey());
 		this.password = this.smssProp.getProperty(queryUtil.getConnectionPasswordKey());
 
-		// grab the connection url
-		this.connectionURL = this.smssProp.getProperty(Constants.CONNECTION_URL);
 		try {
 			// update the query util values
 			// also

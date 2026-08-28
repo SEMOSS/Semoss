@@ -168,6 +168,7 @@ public class Constants {
 	public static final String ENGINES = "ENGINES";
 	public static final String ENGINE_PROPERTIES_FILE = "ENGINE_PROP";
 	public static final String ENGINE_TYPE = "ENGINE_TYPE";
+	public static final String DISABLE_ENGINE_PROXY = "DISABLE_ENGINE_PROXY";
 	public static final String LISTENERS = "LISTENERS";
 	public static final String MODEL = "MODEL";
 	public static final String CONTROL = "CONTROLLER";

@@ -49,6 +49,7 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
@@ -149,6 +150,15 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 	public SqlInterpreter(ITableDataFrame frame) {
 		this.frame = frame;
+		if (frame instanceof NativeFrame) {
+			SelectQueryStruct frameQueryStruct = ((NativeFrame) frame).getQueryStruct();
+			if (frameQueryStruct != null) {
+				IDatabaseEngine frameEngine = frameQueryStruct.retrieveQueryStructEngine();
+				if (frameEngine instanceof IRDBMSEngine) {
+					this.queryUtil = ((IRDBMSEngine) frameEngine).getQueryUtil();
+				}
+			}
+		}
 	}
 
 	/**

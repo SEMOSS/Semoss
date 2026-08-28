@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.util.Locale;
+
 public enum RdbmsTypeEnum {
 
 	// @formatter:off
@@ -121,7 +123,11 @@ public enum RdbmsTypeEnum {
 	 * @return
 	 */
 	public static RdbmsTypeEnum getEnumFromString(String type) {
-		type = type.toUpperCase();
+		if (type == null) {
+			return null;
+		}
+
+		type = type.trim().toUpperCase(Locale.ROOT).replaceAll("[\\s-]+", "_");
 		RdbmsTypeEnum foundType = null;
 		try {
 			foundType = RdbmsTypeEnum.valueOf(type);
@@ -141,7 +147,39 @@ public enum RdbmsTypeEnum {
 			}
 		}
 
+		String compactType = type.replace("_", "");
+		if (compactType.equals("MSSQL") || compactType.equals("SQLSERVER")
+				|| compactType.equals("MICROSOFTSQLSERVER")) {
+			return RdbmsTypeEnum.SQL_SERVER;
+		}
+
 		return null;
+	}
+
+	/**
+	 * Get the enum from a JDBC connection URL. Longest prefix wins.
+	 *
+	 * @param url
+	 * @return
+	 */
+	public static RdbmsTypeEnum getEnumFromUrl(String url) {
+		if (url == null) {
+			return null;
+		}
+
+		String normalizedUrl = url.trim().toLowerCase(Locale.ROOT);
+		RdbmsTypeEnum foundType = null;
+		int longestPrefix = -1;
+		for (RdbmsTypeEnum rdbmsType : RdbmsTypeEnum.values()) {
+			String prefix = rdbmsType.urlPrefix.toLowerCase(Locale.ROOT);
+			if (normalizedUrl.startsWith(prefix) && (prefix.length() > longestPrefix
+					|| (prefix.length() == longestPrefix && rdbmsType == RdbmsTypeEnum.SQL_SERVER))) {
+				foundType = rdbmsType;
+				longestPrefix = prefix.length();
+			}
+		}
+
+		return foundType;
 	}
 
 	/**
@@ -151,6 +189,13 @@ public enum RdbmsTypeEnum {
 	 * @return
 	 */
 	public static RdbmsTypeEnum getEnumFromDriver(String driver) {
+		if (driver == null) {
+			return null;
+		}
+		if (driver.equalsIgnoreCase(RdbmsTypeEnum.SQL_SERVER.driver)) {
+			return RdbmsTypeEnum.SQL_SERVER;
+		}
+
 		for (RdbmsTypeEnum rdbmsType : RdbmsTypeEnum.values()) {
 			if (driver.equalsIgnoreCase(rdbmsType.driver)) {
 				return rdbmsType;
