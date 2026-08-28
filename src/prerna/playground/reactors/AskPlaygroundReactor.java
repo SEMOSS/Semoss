@@ -51,6 +51,13 @@ public class AskPlaygroundReactor extends AskRoomReactor {
 
 	@Override
 	protected CompletableFuture<String> beforeRoomAsk(Room room, String question, String engineId) {
+		// naming only matters for the room's first turn - skip the thread and DB
+		// round trip on every later message instead of relying on AgentRoomNamer's
+		// own no-op check to catch it after the fact
+		if (!room.getMessages().isEmpty()) {
+			return CompletableFuture.completedFuture(null);
+		}
+
 		String jobId = ThreadStore.getJobId();
 		String defaultName = question == null ? null : question.substring(0, Math.min(question.length(), 100));
 		CompletableFuture<String> roomNameFuture = AgentRoomNamer.nameRoomAsync(room.getId(), question, engineId,
