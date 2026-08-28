@@ -578,9 +578,7 @@ class AnthropicMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {message_type}")
 
-    def _parse_tool_result_content(
-        self, output: Optional[str]
-    ) -> Union[
+    def _parse_tool_result_content(self, output: Optional[str]) -> Union[
         str,
         List[
             Union[
@@ -892,6 +890,14 @@ class AnthropicMessageBuilder:
             if temperature is not None:
                 temperature = 1
 
+        extra_body: Dict[str, Any] = {}
+        if temperature is not None:
+            extra_body["temperature"] = temperature
+        if top_p is not None:
+            extra_body["top_p"] = top_p
+        if top_k is not None:
+            extra_body["top_k"] = top_k
+
         if "use_history" in kwargs:
             use_history = kwargs.pop("use_history")
             if string_to_bool(use_history) is False:
@@ -908,9 +914,7 @@ class AnthropicMessageBuilder:
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
+            extra_body=extra_body or None,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,
