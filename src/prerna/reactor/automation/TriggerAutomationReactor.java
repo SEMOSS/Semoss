@@ -32,9 +32,11 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -118,7 +120,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
-			result = executeInControlOrder(projectId, runId, runNodes,
+			result = executeInControlOrder(projectId, runId, definition, runNodes,
 					files.nodeSources(), scope, traceRoomIds);
 			finishRun(runId, projectId);
 		} catch (Exception e) {
@@ -141,25 +143,49 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
-			List<Map<String, Object>> runNodes, Map<String, String> nodeSources, Map<String, Object> scope,
-			Map<String, String> traceRoomIds) {
+			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
+			Map<String, String> nodeSources, Map<String, Object> scope, Map<String, String> traceRoomIds) {
 		Map<String, Object> result = new LinkedHashMap<>();
+		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
+			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
+		}
+		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
+		Set<String> visited = new HashSet<>();
+		String currentNodeId = AutomationRuntime.startNodeId(definition);
+		boolean pathCompleted = true;
+		while (currentNodeId != null) {
 			if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
+				pathCompleted = false;
 				break;
+			}
+			if (!visited.add(currentNodeId)) {
+				throw new IllegalStateException("Automation control traversal revisited node '"
+						+ currentNodeId + "'.");
+			}
+			Map<String, Object> node = nodesById.get(currentNodeId);
+			if (node == null) {
+				throw new IllegalStateException("Automation control edge selected unknown node '"
+						+ currentNodeId + "'.");
 			}
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			Map<String, Object> nodeResult = AutomationConstants.NODE_START.equals(type)
-					? executeStartNode(projectId, runId, node,
-							AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)), scope)
-					: executeNodeSource(projectId, runId, node,
+			Map<String, Object> nodeResult;
+			if (AutomationConstants.NODE_START.equals(type)) {
+				nodeResult = executeStartNode(projectId, runId, node,
+						AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)), scope);
+			} else if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
+				nodeResult = executeConditionNode(runId, node, scope);
+			} else {
+				nodeResult = executeNodeSource(projectId, runId, node,
 							AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
 									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
 										? AutomationSourceRenderer.renderNode(node)
 										: nodeSources.get(nodeId),
 						scope, traceRoomIds.get(nodeId));
+			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+				pathCompleted = false;
 				break;
 			}
 			if (AutomationConstants.NODE_START.equals(type)) {
@@ -170,9 +196,55 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			if (!AutomationConstants.NODE_START.equals(type) && outputVar != null) {
 				scope.put(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
 			}
+			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+			if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
+				selectedPort = Boolean.TRUE.equals(nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE))
+						? AutomationConstants.CONTROL_PORT_THEN
+						: AutomationConstants.CONTROL_PORT_ELSE;
+			}
+			currentNodeId = controlTargets.getOrDefault(nodeId, Map.of()).get(selectedPort);
+		}
+		if (pathCompleted) {
+			AutomationDatabaseUtility.skipPendingNodes(runId, "Control branch was not selected");
 		}
 		result.put("scope", scope);
 		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeConditionNode(String runId, Map<String, Object> node,
+			Map<String, Object> scope) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String expression = (String) config.get(AutomationConstants.CONFIG_CONDITION);
+			boolean decision = AutomationConditionEvaluator.evaluate(expression, scope);
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation condition '" + nodeId + "' output");
+			Map<String, Object> prospectiveScope = new LinkedHashMap<>(scope);
+			prospectiveScope.put((String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), decision);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, null);
+			AutomationPythonRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException
+					? runtimeException
+					: new RuntimeException(e);
+		}
 	}
 
 	private Map<String, Object> executeStartNode(String projectId, String runId, Map<String, Object> node,
@@ -563,7 +635,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 
 		int completed = (int) outputs.stream()
-				.filter(output -> AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS)))
+				.filter(output -> AutomationConstants.NODE_STATUS_SUCCESS.equals(output.get(AutomationConstants.STATUS))
+						|| AutomationConstants.NODE_STATUS_SKIPPED.equals(output.get(AutomationConstants.STATUS)))
 				.count();
 		AutomationDatabaseUtility.updateHeartbeat(runId, completed);
 		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_SUCCESS, null, null);

@@ -30,14 +30,13 @@ package prerna.reactor.automation;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,44 +77,73 @@ final class AutomationRuntime {
 	}
 
 	/**
-	 * Resolves the one supported sequential control path. This is intentionally Java-owned: Python
-	 * sources cannot select nodes or alter graph order.
+	 * Returns every node in deterministic topological order for run-history initialization. Runtime
+	 * traversal still selects only one condition path and remains Java-owned.
 	 */
 	static List<Map<String, Object>> controlOrderedNodes(AutomationDefinitionValidator.ValidatedDefinition definition) {
 		Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
-		String start = null;
+		Map<String, Integer> incoming = new LinkedHashMap<>();
 		for (Map<String, Object> node : definition.nodes()) {
 			String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			nodes.put(id, node);
-			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				start = id;
-			}
+			incoming.put(id, 0);
 		}
-		Map<String, String> outgoing = new HashMap<>();
+		Map<String, List<String>> outgoing = new HashMap<>();
 		for (Map<String, Object> edge : definition.edges()) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
 			String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
 			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
-			if (outgoing.putIfAbsent(source, target) != null) {
-				throw new IllegalArgumentException("Automation supports only one outgoing control edge per node.");
-			}
+			outgoing.computeIfAbsent(source, ignored -> new ArrayList<>()).add(target);
+			incoming.compute(target, (ignored, count) -> count + 1);
 		}
-		List<Map<String, Object>> ordered = new ArrayList<>();
-		Set<String> visited = new HashSet<>();
-		String current = start;
-		while (current != null) {
-			if (!visited.add(current)) {
-				throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
+
+		ArrayDeque<String> ready = new ArrayDeque<>();
+		incoming.forEach((nodeId, count) -> {
+			if (count == 0) {
+				ready.add(nodeId);
 			}
+		});
+		List<Map<String, Object>> ordered = new ArrayList<>();
+		while (!ready.isEmpty()) {
+			String current = ready.removeFirst();
 			ordered.add(nodes.get(current));
-			current = outgoing.get(current);
+			for (String target : outgoing.getOrDefault(current, List.of())) {
+				int remaining = incoming.compute(target, (ignored, count) -> count - 1);
+				if (remaining == 0) {
+					ready.add(target);
+				}
+			}
 		}
 		if (ordered.size() != nodes.size()) {
-			throw new IllegalArgumentException("Every automation node must be connected to trigger.start by control edges.");
+			throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
 		}
 		return ordered;
+	}
+
+	static String startNodeId(AutomationDefinitionValidator.ValidatedDefinition definition) {
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				return (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			}
+		}
+		throw new IllegalArgumentException("Automation definition has no trigger.start node.");
+	}
+
+	static Map<String, Map<String, String>> controlTargets(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		Map<String, Map<String, String>> targets = new LinkedHashMap<>();
+		for (Map<String, Object> edge : definition.edges()) {
+			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				continue;
+			}
+			String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
+			String sourcePort = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT);
+			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
+			targets.computeIfAbsent(source, ignored -> new LinkedHashMap<>()).put(sourcePort, target);
+		}
+		return targets;
 	}
 
 	/** Runs one node module with the workflow scope supplied by the Java scheduler. */

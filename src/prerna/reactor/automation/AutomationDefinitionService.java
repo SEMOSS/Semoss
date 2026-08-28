@@ -107,6 +107,10 @@ public final class AutomationDefinitionService {
 			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
+				if (AutomationConstants.NODE_CONTROL_IF.equals(
+						node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+					continue;
+				}
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 				Path sourceFile = findNodeSourceFile(primaryFolder, fallbackFolder, node);
 				String source = Files.isRegularFile(sourceFile)
@@ -247,7 +251,7 @@ public final class AutomationDefinitionService {
 		List<Path> paths = new java.util.ArrayList<>();
 		paths.add(definitionPath(folder));
 		for (Map<String, Object> node : validated.nodes()) {
-			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (requiresPythonSource(node)) {
 				paths.add(findNodeSourceFile(assetsFolder, portalsFolder, node));
 			}
 		}
@@ -295,7 +299,7 @@ public final class AutomationDefinitionService {
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		Map<String, String> result = new LinkedHashMap<>(sources);
 		for (Map<String, Object> node : definition.nodes()) {
-			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (!requiresPythonSource(node)) {
 				result.remove((String) node.get(AutomationConstants.NODE_FIELD_ID));
 			}
 		}
@@ -314,10 +318,19 @@ public final class AutomationDefinitionService {
 			if (!nodesById.containsKey(entry.getKey())) {
 				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
+			if (AutomationConstants.NODE_CONTROL_IF.equals(
+					nodesById.get(entry.getKey()).get(AutomationConstants.NODE_FIELD_TYPE))) {
+				throw new IllegalArgumentException("If node '" + entry.getKey()
+						+ "' is evaluated by Java and cannot have Python source.");
+			}
 			validateNodeSource(entry.getKey(), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
+			if (AutomationConstants.NODE_CONTROL_IF.equals(
+					entry.getValue().get(AutomationConstants.NODE_FIELD_TYPE))) {
+				continue;
+			}
 			String source = supplied.get(entry.getKey());
 			String completedSource = source == null
 					|| AutomationSourceRenderer.isLegacyDefaultSource(source)
@@ -355,6 +368,15 @@ public final class AutomationDefinitionService {
 		changed |= definition.definition().remove(AutomationConstants.DOC_GLOBALS) != null;
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
+				if (!AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
+						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+					node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
+							AutomationConstants.NODE_CODE_MODE_GENERATED);
+					changed = true;
+				}
+				continue;
+			}
 			if (AutomationConstants.NODE_START.equals(nodeType)) {
 				changed |= normalizeTriggerConfig(node, nodeSources);
 			}
@@ -458,7 +480,7 @@ public final class AutomationDefinitionService {
 		Files.createDirectories(nodesFolder(folder));
 		writeReplace(definitionPath(folder), prettyJson(files.definition()));
 		for (Map<String, Object> node : definition.nodes()) {
-			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (!requiresPythonSource(node)) {
 				continue;
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -631,7 +653,7 @@ public final class AutomationDefinitionService {
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		Map<String, String> nodeIdsByFileName = new LinkedHashMap<>();
 		for (Map<String, Object> node : definition.nodes()) {
-			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (!requiresPythonSource(node)) {
 				continue;
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -642,6 +664,12 @@ public final class AutomationDefinitionService {
 						+ "' resolve to the same source file: " + fileName + ".");
 			}
 		}
+	}
+
+	private static boolean requiresPythonSource(Map<String, Object> node) {
+		Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
+		return !AutomationConstants.NODE_START.equals(nodeType)
+				&& !AutomationConstants.NODE_CONTROL_IF.equals(nodeType);
 	}
 
 	private static String emptyDefinition() {

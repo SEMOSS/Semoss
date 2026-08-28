@@ -29,6 +29,7 @@ package prerna.reactor.automation;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -79,6 +80,7 @@ public final class AutomationDefinitionValidator {
 			AutomationConstants.NODE_APP_PIXEL,
 			AutomationConstants.NODE_AGENT_RUN,
 			AutomationConstants.NODE_CONTROL_WAIT,
+			AutomationConstants.NODE_CONTROL_IF,
 			AutomationConstants.NODE_DEVELOPER_PYTHON);
 
 	private AutomationDefinitionValidator() {
@@ -179,6 +181,11 @@ public final class AutomationDefinitionValidator {
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
+			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
+				throw new IllegalArgumentException("If node '" + nodeId
+						+ "' must use generated mode; conditions are evaluated by Java.");
+			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)
 					&& !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -249,6 +256,11 @@ public final class AutomationDefinitionValidator {
 				}
 			}
 			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);
+			case AutomationConstants.NODE_CONTROL_IF -> {
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_CONDITION);
+				AutomationConditionEvaluator.validate(
+						(String) config.get(AutomationConstants.CONFIG_CONDITION));
+			}
 			default -> {
 				// All supported node types are covered above or require only an engine ID.
 			}
@@ -475,10 +487,26 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException(
 						"Automation edge '" + edgeId + "' cannot reference the same source and target node.");
 			}
-			requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT),
+			String sourcePort = requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT),
 					"graph.edges[" + index + "].sourcePort");
-			requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_TARGET_PORT),
+			String targetPort = requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_TARGET_PORT),
 					"graph.edges[" + index + "].targetPort");
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(kind)) {
+				if (!AutomationConstants.CONTROL_PORT_IN.equals(targetPort)) {
+					throw new IllegalArgumentException("Control edge '" + edgeId
+							+ "' targetPort must be 'in'.");
+				}
+				boolean condition = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source));
+				if (condition && !AutomationConstants.CONTROL_PORT_THEN.equals(sourcePort)
+						&& !AutomationConstants.CONTROL_PORT_ELSE.equals(sourcePort)) {
+					throw new IllegalArgumentException("Control edge '" + edgeId
+							+ "' from if node '" + source + "' must use sourcePort 'then' or 'else'.");
+				}
+				if (!condition && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
+					throw new IllegalArgumentException("Control edge '" + edgeId + "' from node '" + source
+							+ "' must use sourcePort 'out'.");
+				}
+			}
 		}
 	}
 
@@ -491,29 +519,76 @@ public final class AutomationDefinitionValidator {
 			}
 		}
 
-		Map<String, String> outgoing = new HashMap<>();
+		Map<String, Map<String, String>> outgoing = new HashMap<>();
+		Map<String, Integer> incomingCounts = new HashMap<>();
+		for (String nodeId : nodeTypes.keySet()) {
+			incomingCounts.put(nodeId, 0);
+		}
 		for (Map<String, Object> edge : edges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
 			String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
 			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
-			if (outgoing.putIfAbsent(source, target) != null) {
-				throw new IllegalArgumentException("Automation supports only one outgoing control edge per node.");
+			String sourcePort = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT);
+			Map<String, String> targetsByPort = outgoing.computeIfAbsent(source, ignored -> new HashMap<>());
+			if (targetsByPort.putIfAbsent(sourcePort, target) != null) {
+				String guidance = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
+						? "If nodes allow one 'then' and one 'else' edge."
+						: "Use a control.if node with 'then' and 'else' ports for branching.";
+				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '"
+						+ sourcePort + "' control edge. " + guidance);
+			}
+			incomingCounts.compute(target, (ignored, count) -> count == null ? 1 : count + 1);
+		}
+
+		if (incomingCounts.getOrDefault(start, 0) != 0) {
+			throw new IllegalArgumentException("trigger.start cannot have an incoming control edge.");
+		}
+		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
+			Map<String, String> targets = outgoing.getOrDefault(node.getKey(), Map.of());
+			if (AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
+					&& (!targets.containsKey(AutomationConstants.CONTROL_PORT_THEN)
+							|| !targets.containsKey(AutomationConstants.CONTROL_PORT_ELSE))) {
+				throw new IllegalArgumentException("If node '" + node.getKey()
+						+ "' requires exactly one 'then' and one 'else' control edge.");
 			}
 		}
 
-		Set<String> visited = new HashSet<>();
-		String current = start;
-		while (current != null) {
-			if (!visited.add(current)) {
-				throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
+		Set<String> reachable = new HashSet<>();
+		ArrayDeque<String> pending = new ArrayDeque<>();
+		pending.add(start);
+		while (!pending.isEmpty()) {
+			String current = pending.removeFirst();
+			if (reachable.add(current)) {
+				pending.addAll(outgoing.getOrDefault(current, Map.of()).values());
 			}
-			current = outgoing.get(current);
 		}
-		if (visited.size() != nodeTypes.size()) {
+		if (reachable.size() != nodeTypes.size()) {
 			throw new IllegalArgumentException(
 					"Every automation node must be connected to trigger.start by control edges.");
+		}
+
+		Map<String, Integer> remainingIncoming = new HashMap<>(incomingCounts);
+		ArrayDeque<String> roots = new ArrayDeque<>();
+		remainingIncoming.forEach((nodeId, count) -> {
+			if (count == 0) {
+				roots.add(nodeId);
+			}
+		});
+		int visitedCount = 0;
+		while (!roots.isEmpty()) {
+			String current = roots.removeFirst();
+			visitedCount++;
+			for (String target : outgoing.getOrDefault(current, Map.of()).values()) {
+				int remaining = remainingIncoming.compute(target, (ignored, count) -> count - 1);
+				if (remaining == 0) {
+					roots.add(target);
+				}
+			}
+		}
+		if (visitedCount != nodeTypes.size()) {
+			throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
 		}
 	}
 

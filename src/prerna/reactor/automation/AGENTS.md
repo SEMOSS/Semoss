@@ -1,7 +1,7 @@
 # Automation Python — Agent Guide
 
-Automation projects persist a typed graph and one Python source file per non-start node. The graph
-is canonical: Java traverses its sequential control edges, and Python executes each node module
+Automation projects persist a typed graph and one Python source file per Python-backed node. The graph
+is canonical: Java traverses its control edges, and Python executes each selected node module
 in the authenticated user's Python insight.
 
 ## Frontend Pixel contract
@@ -32,7 +32,7 @@ Workflow artifacts live at the project asset root:
 | File | Purpose |
 | --- | --- |
 | `automation-workflow.json` | Canonical typed graph (`formatVersion: 2`). |
-| `automation-nodes/<label_slug>_<uuid-prefix>.py` | One persisted `run(scope)` source file per non-start node. |
+| `automation-nodes/<label_slug>_<uuid-prefix>.py` | One persisted `run(scope)` source file per Python-backed node. |
 
 `automation-workflow.py` is not used. `SaveAutomation` versions and synchronizes the graph and all current node-source files with the project. Legacy portal-based and Base64-named node files are read as a compatibility fallback and migrated on the next save.
 
@@ -43,13 +43,14 @@ TriggerAutomation (virtual thread)
   -> validates and snapshots the graph
   -> claims AUTOMATION_ACTIVE_RUN
   -> inserts AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS
-  -> Java seeds trigger globals and executes trigger Python, then visits each control-edge node in order
+  -> Java seeds trigger globals and executes trigger Python, then visits the selected control path
   -> PyTranslator.runScriptWithExplicitAssetPaths(...) executes that node's source only
   -> Python module invokes its documented ai_server engine SDK or direct Pixel call
   -> releases the lock in finally
 ```
 
-Java accepts one connected, acyclic, sequential control path rooted at `trigger.start`.
+Java accepts one connected, acyclic control graph rooted at `trigger.start`; each run follows one
+deterministic path through its `control.if` nodes.
 Supported native-Python runtime types are:
 
 - `database.query`, `database.insert`, `database.update`
@@ -57,10 +58,12 @@ Supported native-Python runtime types are:
 - `storage.list`, `storage.read`, `storage.upload`,
   `storage.download`, `storage.delete`
 - `vector.search`, `vector.add`, `vector.delete`
-- `function.execute`, `app.pixel`, `control.wait`
+- `function.execute`, `app.pixel`, `control.wait`, `control.if`
 - `agent.run`
 
-Control branches/loops are rejected before execution. Trigger globals use the canonical
+`control.if` is evaluated only by the bounded Java expression evaluator and selects one
+`then` or `else` edge. Arbitrary fan-out, loops, and parallel execution are rejected before
+execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` is the canonical optional
 setup source (`python` is a compatibility alias). Java puts defaults in the runtime scope unless

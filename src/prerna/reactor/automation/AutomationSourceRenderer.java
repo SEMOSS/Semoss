@@ -60,6 +60,8 @@ public final class AutomationSourceRenderer {
 		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
 				? (Map<String, Object>) map : Map.of();
 		String source = switch (type) {
+			case AutomationConstants.NODE_CONTROL_IF -> throw new IllegalArgumentException(
+					"If nodes are evaluated by Java and do not have Python source.");
 			case AutomationConstants.NODE_DATABASE_QUERY -> databaseQuerySource(config);
 			case AutomationConstants.NODE_DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 			case AutomationConstants.NODE_DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
