@@ -1159,14 +1159,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Determine whether a user may clone a project. The user must be able to view
-	 * the project and the owner must have explicitly enabled it as a template.
+	 * Determine whether a user may clone a project. Admins, owners, and editors
+	 * may always clone. Viewers may only clone when the owner has explicitly
+	 * enabled the project as a template.
 	 *
 	 * @param user      current user
 	 * @param projectId project identifier
 	 * @return whether the user may clone the project
 	 */
 	public static boolean userCanCloneProject(User user, String projectId) {
+		if (SecurityAdminUtils.userIsAdmin(user)) {
+			return true;
+		}
+		if (userCanEditProject(user, projectId)) {
+			return true;
+		}
 		return userCanViewProject(user, projectId) && projectIsTemplate(projectId);
 	}
 
