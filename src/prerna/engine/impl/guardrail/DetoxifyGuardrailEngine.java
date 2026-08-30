@@ -30,6 +30,7 @@ package prerna.engine.impl.guardrail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -123,5 +124,26 @@ public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunct
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_DETOXIFY;
+	}
+
+	@Override
+	public Map<String, String> getKeysAndValuesToGet() {
+		Map<String, String> keyValues = new LinkedHashMap<>();
+		for (String key : this.keysToGet) {
+			String realKey = resolveRealKey(key);
+			String value = this.smssProp.getProperty(realKey);
+			keyValues.put(key, value);
+		}
+		return keyValues;
+	}
+
+	private String resolveRealKey(String key) {
+		switch (key) {
+			case "threshold":
+				return DEFAULT_THRESHOLD_KEY;
+			// Add more mappings as needed
+			default:
+				return key; 
+		}
 	}
 }
