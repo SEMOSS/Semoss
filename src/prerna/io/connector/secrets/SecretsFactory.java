@@ -30,6 +30,7 @@ package prerna.io.connector.secrets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.io.connector.secrets.aws.secretsmanager.AWSSecretsManagerUtil;
 import prerna.io.connector.secrets.azure.keyvault.AzureKeyVaultUtil;
 import prerna.io.connector.secrets.hashicorp.vault.HashiCorpVaultUtil;
 import prerna.util.Constants;
@@ -53,6 +54,8 @@ public final class SecretsFactory {
 			return HashiCorpVaultUtil.getInstance();
 		} else if (storeType.equalsIgnoreCase(ISecrets.AZURE_KEYVAULT)) {
 			return AzureKeyVaultUtil.getInstance();
+		} else if (storeType.equalsIgnoreCase(ISecrets.AWS_SECRETS_MANAGER)) {
+			return AWSSecretsManagerUtil.getInstance();
 		} else {
 			classLogger.warn("Secret store is enabled but could not find type for input = '{}'", storeType);
 			return null;
