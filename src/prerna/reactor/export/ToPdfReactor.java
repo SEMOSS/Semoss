@@ -176,6 +176,31 @@ public class ToPdfReactor extends AbstractReactor {
 	// ==================== UTILITY METHODS ====================
 
 	/**
+	 * Calculate an appropriate font size for table cells based on the
+	 * maximum number of columns in any table row within the provided HTML.
+	 * More columns → smaller font so the table fits within the page width.
+	 */
+	private int calculateTableFontSizePx(String htmlContent) {
+		org.jsoup.nodes.Document doc = Jsoup.parse(htmlContent);
+		int maxCols = 0;
+		for (org.jsoup.nodes.Element row : doc.select("tr")) {
+			int cols = row.select("th, td").size();
+			if (cols > maxCols) {
+				maxCols = cols;
+			}
+		}
+		if (maxCols <= 5)
+			return 12;
+		if (maxCols <= 8)
+			return 10;
+		if (maxCols <= 12)
+			return 9;
+		if (maxCols <= 16)
+			return 8;
+		return 7;
+	}
+
+	/**
 	 * Get boolean value from keyValue map with default fallback
 	 */
 	private boolean getBooleanValue(String key, boolean defaultValue) {
@@ -242,7 +267,7 @@ public class ToPdfReactor extends AbstractReactor {
 		String body = renderer.render(document);
 		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
 				+ "<style>table { border-collapse: collapse; width: 100%; } "
-				+ "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } "
+				+ "th, td { border: 1px solid #ddd; padding: 4px; text-align: left; } "
 				+ "th { background-color: #f2f2f2; font-weight: bold; }</style>" + "</head><body>" + body
 				+ "</body></html>";
 	}
@@ -585,6 +610,18 @@ public class ToPdfReactor extends AbstractReactor {
 	 * Generate PDF using Playwright's native PDF generation
 	 */
 	private String generatePdfWithPlaywright(String htmlContent, String insightFolder) throws IOException {
+		// Scale table font-size based on column count so wide tables are not clipped at
+		// the page boundary
+		int fontSize = calculateTableFontSizePx(htmlContent);
+		classLogger.info("PDF table font size calculated: {}px", fontSize);
+		String tableStyleOverride = "<style>th, td { font-size: " + fontSize
+				+ "px !important; padding: 4px !important; }</style>";
+		if (htmlContent.contains("</head>")) {
+			htmlContent = htmlContent.replace("</head>", tableStyleOverride + "</head>");
+		} else {
+			htmlContent = tableStyleOverride + htmlContent;
+		}
+
 		String tempHtmlPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".html";
 		Files.writeString(Paths.get(tempHtmlPath), htmlContent, StandardCharsets.UTF_8);
 
@@ -682,6 +719,16 @@ public class ToPdfReactor extends AbstractReactor {
 
 		// Process semoss tags using legacy Chrome driver
 		org.jsoup.nodes.Document doc = processSemossTagsLegacy(htmlToParse, insightFolder, tempPaths, waitTime);
+
+		// Scale table font-size based on column count so wide tables are not clipped at
+		// the page boundary
+		int fontSize = calculateTableFontSizePx(htmlToParse);
+		org.jsoup.nodes.Element docHead = doc.head();
+		if (docHead != null) {
+			docHead.appendElement("style")
+					.text("th, td { font-size: " + fontSize + "px !important; padding: 4px !important; }");
+		}
+
 		Elements allElements = doc.getAllElements();
 
 		// Create array list of dimensions for each signature element
