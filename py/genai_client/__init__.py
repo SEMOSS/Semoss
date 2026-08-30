@@ -98,6 +98,12 @@ def __getattr__(name: str) -> Any:
         from .agents.github_copilot.github_copilot_client import GitHubCopilotClient
 
         return GitHubCopilotClient
+    elif name == "RouterClient":
+        from .text_generation.router_client.router_text_client import (
+            RouterTextClient as RouterClient,
+        )
+
+        return RouterClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -126,6 +132,10 @@ def get_text_gen_client(client_type, **kwargs):
         )
 
         return VertexClient(**kwargs)
+    elif client_type == "ROUTER":
+        from .text_generation.router_client.router_text_client import RouterTextClient
+
+        return RouterTextClient(**kwargs)
     else:
         raise ValueError("Client type has not been defined.")
 
@@ -207,4 +217,5 @@ __all__ = [
     "BedrockEmbedder",
     "ClaudeCodeClient",
     "GitHubCopilotClient",
+    "RouterClient",
 ]
