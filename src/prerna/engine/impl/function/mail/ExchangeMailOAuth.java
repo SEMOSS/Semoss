@@ -246,20 +246,26 @@ public final class ExchangeMailOAuth {
 	 * What the token this engine holds actually says, for when Exchange refuses it.
 	 *
 	 * <p>
-	 * A refused token has three distinguishable causes and the claims tell them
+	 * A refused token has four distinguishable causes and the claims tell them
 	 * apart: an audience that is not Exchange means the wrong scope was asked for,
 	 * no roles at all means admin consent was never granted, and the right role
-	 * with the right audience means Azure is set up and the grant on the mailbox
-	 * itself is what is missing. Without this the three look identical from here.
+	 * with the right audience means Azure is set up and what is missing is on the
+	 * Exchange side. The object id separates the last case in two, since Exchange
+	 * matches a mailbox grant against that rather than against the client id: an
+	 * object id it holds no service principal for is refused exactly like a mailbox
+	 * that was never granted. Without this the four look identical from here.
 	 *
 	 * @param tokenProvider the provider holding the token
 	 * @return a description of the token, or why it could not be read
 	 */
 	public static String tokenDiagnostic(MicrosoftGraphAppTokenProvider tokenProvider) {
 		try {
-			String audience = readClaim(tokenProvider.getAccessToken(), "aud");
+			String token = tokenProvider.getAccessToken();
+			String audience = readClaim(token, "aud");
+			String objectId = readClaim(token, "oid");
 			Set<String> roles = tokenProvider.getGrantedRoles();
 			return "the token is for audience " + (audience == null ? "unknown" : audience)
+					+ ", is held by service principal object id " + (objectId == null ? "unknown" : objectId)
 					+ " and carries application permissions "
 					+ (roles.isEmpty() ? "[none, so admin consent is missing]" : roles.toString());
 		} catch (RuntimeException e) {
