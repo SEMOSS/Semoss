@@ -434,6 +434,14 @@ final class HarnessToolExecutor {
 			}
 		}
 
+		ToolExecutionResult policyDenial = PlatformAgentTools.policyDenialResult(tc.rawToolName, ctx);
+		if (policyDenial != null) {
+			logger.warn("HarnessToolExecutor: denied default tool workspaceId={} roomId={} callId={} toolName={}",
+					ctx.getAgentConfig().getWorkspaceId(), ctx.getRoom().getId(), tc.toolCallId, tc.rawToolName);
+			String error = policyDenial.getError();
+			return new ToolExecOutcome(error != null ? error : String.valueOf(policyDenial.getOutput()), false);
+		}
+
 		// 2. Platform default agent tools. These are not backed by room/workspace MCP
 		// metadata, so resolve them by the default tool registry before the MCP path.
 		if (PlatformAgentTools.isDefaultTool(tc.rawToolName)) {

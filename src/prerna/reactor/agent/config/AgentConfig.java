@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
@@ -68,6 +69,7 @@ public final class AgentConfig {
 
     // Tool policy
     private final boolean useDefaultAgentTools;
+    private final Set<String> disabledDefaultTools;
 
     // Filesystem
     private final String workingDir;
@@ -110,6 +112,8 @@ public final class AgentConfig {
         		? Collections.unmodifiableMap(new HashMap<>(b.agentParams))
         		: Collections.emptyMap();
         this.useDefaultAgentTools = b.useDefaultAgentTools;
+        this.disabledDefaultTools = b.disabledDefaultTools != null
+                ? Set.copyOf(b.disabledDefaultTools) : Collections.emptySet();
         this.workingDir      = b.workingDir;
         this.mcps            = b.mcps != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.mcps))
@@ -236,6 +240,11 @@ public final class AgentConfig {
         return useDefaultAgentTools;
     }
 
+    /** Names disabled by the workspace default-tool policy. */
+    public Set<String> getDisabledDefaultTools() {
+        return disabledDefaultTools;
+    }
+
     // Filesystem
     /**
      * Working directory the agent operates in (the project being worked on).
@@ -321,6 +330,7 @@ public final class AgentConfig {
         private Map<String, Object> modelParams;
         private Map<String, Object> agentParams;
         private boolean useDefaultAgentTools = true;
+        private Set<String> disabledDefaultTools;
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
@@ -341,6 +351,7 @@ public final class AgentConfig {
         public Builder modelParams(Map<String, Object> v) { this.modelParams = v;    return this; }
         public Builder agentParams(Map<String, Object> v) { this.agentParams = v;    return this; }
         public Builder useDefaultAgentTools(boolean v)    { this.useDefaultAgentTools = v; return this; }
+        public Builder disabledDefaultTools(Set<String> v) { this.disabledDefaultTools = v; return this; }
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }

@@ -1510,42 +1510,62 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible.
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row per
+	 * room in SQL before limit/offset are applied, so pagination operates on rooms
+	 * rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
-	 * @param projectId the project to search within
+	 * @param projectId the project to search within, or null/blank to search all
+	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching messages (room_id, message_text, message_id)
+	 * @return a list of matching rooms, one row per room (room_id, room_name, and
+src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *         the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
+	}
+
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
+			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Always select room_id and message_id
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 
-		// Build a selector for message_text out of message_data, adapted to DB type
+		// Use the search-specific conversion so malformed searchable content cannot
+		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
 				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
-		qs.addSelector(messageTextSelector);
 
-		// JOIN, filters, and ordering
-		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
+		// JOIN, filters, deduplication, and ordering
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		if (!includeUnnamedRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
+				"?like", keyword, PixelDataType.CONST_STRING));
 
-		// Add filter on decoded message text
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, // use the computed selector (the
-																						// decoded/casted field)
-				"?like", keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
-				PixelDataType.CONST_STRING));
-
-		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
-		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
-
+		qs.setDistinct(true);
+		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
@@ -1803,11 +1823,18 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null, false, false);
 	}
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch,
+				false, false);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1824,12 +1851,18 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-		// Exclude subagent rooms -- these are real Room rows (their roomId is the
-		// subagent's runId) created purely as a spawned subagent's private
-		// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		if (!includeUnnamedRooms) {
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			// Exclude subagent rooms -- these are real Room rows (their roomId is the
+			// subagent's runId) created purely as a spawned subagent's private
+			// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
