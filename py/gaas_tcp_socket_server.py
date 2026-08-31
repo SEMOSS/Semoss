@@ -7,6 +7,12 @@ import threading
 import asyncio
 import os
 
+# Must be imported before anything that can open a TLS connection. Importing it
+# leaves a single truststore owning ssl.SSLContext, without which the openai and
+# anthropic clients drive ssl.SSLContext.verify_mode into unbounded recursion on
+# every handshake. See smss_system_certs for the full explanation.
+import smss_system_certs
+
 # Must be imported before anything that can pull in matplotlib. Importing it
 # pins the headless Agg backend, without which matplotlib autoselects a GUI
 # backend and aborts the process the moment user code plots from a worker

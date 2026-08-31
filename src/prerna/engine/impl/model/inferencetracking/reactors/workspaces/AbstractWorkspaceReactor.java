@@ -77,6 +77,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String MODEL_ID = "modelId";
 	/** Request key controlling whether general built-in agent tools are exposed. */
 	static final String USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
+	/** Request key for default-tool names disabled for this workspace. */
+	static final String DISABLED_DEFAULT_TOOLS = "disabledDefaultTools";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
@@ -328,13 +330,24 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null, false, null, false, null);
+				false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null, false, null, false, null);
+				null, null, false, null, false, null, false, null, false, null);
+	}
+
+	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
+			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
+			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
+			boolean useDefaultToolsProvided, Boolean useDefaultTools)
+			throws Exception {
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
+				budgetUpdates, spawnPolicyUpdates, subagentsProvided, subagents, hooksProvided, hooks,
+				useDefaultToolsProvided, useDefaultTools, false, null);
 	}
 
 	/**
@@ -361,12 +374,20 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *                           replace {@code CONFIG_JSON.hooks[]} with, persisted as-is;
 	 *                           an empty list clears it. Ignored when {@code hooksProvided}
 	 *                           is {@code false}.
+	 * @param useDefaultToolsProvided whether the caller passed the master default-tool
+	 *                           switch; when {@code false}, it is left untouched.
+	 * @param useDefaultTools         value for {@code CONFIG_JSON.use_default_agent_tools}.
+	 * @param disabledDefaultToolsProvided whether the caller passed the selective
+	 *                           default-tool list; when {@code false}, it is left untouched.
+	 * @param disabledDefaultTools exact, validated names to replace the stored list with;
+	 *                           an empty list clears it.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
 			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
-			boolean useDefaultToolsProvided, Boolean useDefaultTools)
+			boolean useDefaultToolsProvided, Boolean useDefaultTools, boolean disabledDefaultToolsProvided,
+			List<String> disabledDefaultTools)
 			throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
@@ -388,6 +409,19 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		}
 		if (useDefaultToolsProvided) {
 			cfg.put("use_default_agent_tools", Boolean.TRUE.equals(useDefaultTools));
+		}
+		if (disabledDefaultToolsProvided) {
+			JSONObject toolPolicy = cfg.optJSONObject("tool_policy");
+			if (toolPolicy == null) {
+				toolPolicy = new JSONObject();
+			}
+			JSONObject defaultTools = toolPolicy.optJSONObject("default_tools");
+			if (defaultTools == null) {
+				defaultTools = new JSONObject();
+			}
+			defaultTools.put("disabled", new JSONArray(disabledDefaultTools != null ? disabledDefaultTools : List.of()));
+			toolPolicy.put("default_tools", defaultTools);
+			cfg.put("tool_policy", toolPolicy);
 		}
 
 		JSONArray mcpsJson = new JSONArray();
