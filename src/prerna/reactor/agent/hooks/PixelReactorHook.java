@@ -39,7 +39,9 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
@@ -47,6 +49,7 @@ import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
+import prerna.reactor.agent.config.AgentConfig;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -88,7 +91,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
             "event", "payload",
             "context", "context.runId", "context.roomId", "context.userId",
             "context.input", "context.spawnDepth",
-            "result", "result.finalText", "result.iterations", "result.reflectionsUsed",
+            "result", "result.finalText", "result.structuredOutput", "result.iterations", "result.reflectionsUsed",
             "result.inputMessageId", "result.finalOutputMessageId", "result.toolCallRecords",
             "tool", "tool.name", "tool.callId", "tool.params", "tool.resultContent",
             "tool.durationMs", "tool.success", "tool.iteration");
@@ -233,7 +236,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
                 varStore.put(variableName, NounMetadata.predictNounMetadata(value));
             }
             logger.debug("[pixel-hook] event={} room={} firing pixel: {}", event, roomId, pixel);
-            insight.runPixel(pixel);
+            runPixelInAgentContext(insight, ctx, pixel);
         } catch (Exception e) {
             logger.warn("[pixel-hook] event={} room={} pixel threw — logging and continuing. cause: {}",
                     event, roomId, e.getMessage(), e);
@@ -244,6 +247,16 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
             for (Map.Entry<String, NounMetadata> previous : previousValues.entrySet()) {
                 varStore.put(previous.getKey(), previous.getValue());
             }
+        }
+    }
+
+    private static void runPixelInAgentContext(Insight insight, AgentRunContext ctx, String pixel) {
+        AgentConfig config = ctx.getAgentConfig();
+        String workspaceId = config == null ? null : config.getWorkspaceId();
+        if (workspaceId != null && !workspaceId.trim().isEmpty()) {
+            insight.runPixelWithContext(workspaceId, config.getName(), pixel);
+        } else {
+            insight.runPixel(pixel);
         }
     }
 
@@ -268,6 +281,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
         if (result == null) return null;
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("finalText", result.getFinalText());
+        value.put("structuredOutput", parseStructuredOutput(result.getFinalText()));
         value.put("iterations", result.getIterations());
         value.put("reflectionsUsed", result.getReflectionsUsed());
         value.put("inputMessageId", result.getInputMessageId());
@@ -287,6 +301,27 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
         }
         value.put("toolCallRecords", toolCalls);
         return value;
+    }
+
+    /**
+     * Best-effort machine-readable view of the final response. Only a complete JSON
+     * object or array is accepted; prose and fenced JSON remain available exclusively
+     * through {@code finalText} rather than being guessed or extracted.
+     */
+    private static Object parseStructuredOutput(String finalText) {
+        if (finalText == null) return null;
+        String trimmed = finalText.trim();
+        if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) return null;
+        try {
+            JSONTokener tokener = new JSONTokener(trimmed);
+            Object parsed = tokener.nextValue();
+            if (tokener.nextClean() != 0) return null;
+            if (parsed instanceof JSONObject) return ((JSONObject) parsed).toMap();
+            if (parsed instanceof JSONArray) return ((JSONArray) parsed).toList();
+        } catch (JSONException e) {
+            logger.debug("[pixel-hook] finalText is not complete JSON; structuredOutput is unavailable");
+        }
+        return null;
     }
 
     private static Map<String, Object> toolPayload(String toolName, String toolCallId,
