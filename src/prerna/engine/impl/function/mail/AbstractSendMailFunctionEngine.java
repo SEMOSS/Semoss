@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,49 +41,36 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.PasswordAuthentication;
-import jakarta.mail.Session;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
-import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.impl.function.AbstractFunctionEngine;
+import prerna.engine.impl.function.FunctionParameter;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.EmailUtility;
 
 /**
- * Function engine that sends email through an SMTP server.
+ * Shared behavior for the function engines that send email.
  *
  * <p>
- * The mail server belongs to the engine, so one can be created per team, shared
- * through the normal engine permissions, and pointed at whichever relay that
- * team is allowed to send through.
- *
- * <p>
- * Sending is a side effect that cannot be undone, so the SMSS carries
- * additional guardrails rather than the caller: the sender address is fixed
- * unless an admin opts into overrides, recipients can be limited to a set of
- * domains, the total recipient count is capped, and attachments are off until
- * turned on.
+ * Sending is a side effect that cannot be undone, so what an engine is allowed
+ * to send is fixed in the SMSS rather than decided by whoever calls it: the
+ * sender address is pinned unless an admin opts into overrides, recipients can
+ * be limited to a set of domains, the total recipient count is capped, and
+ * attachments are off until turned on. That is the same regardless of how the
+ * message actually leaves, so it lives here and a subclass only has to know how
+ * to hand a finished message to a mail service.
  */
-public class SMTPFunctionEngine extends AbstractFunctionEngine {
+public abstract class AbstractSendMailFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(SMTPFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractSendMailFunctionEngine.class);
 
-	// public so a caller building this engine in memory rather than from a
-	// catalogued SMSS can populate the properties by name
-	public static final String SMTP_HOST_KEY = "SMTP_HOST";
-	public static final String SMTP_PORT_KEY = "SMTP_PORT";
-	public static final String SMTP_USERNAME_KEY = "SMTP_USERNAME";
-	public static final String SMTP_PASSWORD_KEY = "SMTP_PASSWORD";
 	public static final String SMTP_SENDER_KEY = "SMTP_SENDER";
 	public static final String SMTP_SENDER_NAME_KEY = "SMTP_SENDER_NAME";
-	public static final String SMTP_SECURITY_KEY = "SMTP_SECURITY";
-	public static final String ONLY_CUSTOM_PROPS_KEY = "ONLY_CUSTOM_PROPS";
 	public static final String ALLOW_SENDER_OVERRIDE_KEY = "ALLOW_SENDER_OVERRIDE";
 	public static final String ALLOWED_RECIPIENT_DOMAINS_KEY = "ALLOWED_RECIPIENT_DOMAINS";
 	public static final String DEFAULT_TO_KEY = "DEFAULT_TO";
@@ -92,29 +79,7 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	public static final String SUBJECT_PREFIX_KEY = "SUBJECT_PREFIX";
 	public static final String HTML_KEY = "HTML";
 	public static final String MAX_RECIPIENTS_KEY = "MAX_RECIPIENTS";
-	public static final String CONNECTION_TIMEOUT_KEY = "CONNECTION_TIMEOUT";
-	public static final String READ_TIMEOUT_KEY = "READ_TIMEOUT";
 	public static final String ALLOW_ATTACHMENTS_KEY = "ALLOW_ATTACHMENTS";
-
-	// a key starting with this is copied onto the mail session verbatim, so a
-	// relay needing a jakarta.mail property this engine does not model can still
-	// be configured without a code change
-	public static final String RAW_MAIL_PROPERTY_PREFIX = "mail.";
-
-	// how the connection is secured. starttls upgrades a plaintext connection on
-	// the submission port, ssl opens an encrypted socket directly, and none is
-	// only reasonable for an internal relay that does no TLS at all
-	public static final String STARTTLS_SECURITY = "starttls";
-	public static final String SSL_SECURITY = "ssl";
-	public static final String NONE_SECURITY = "none";
-
-	// the submission port. 465 is the usual pairing with ssl
-	private static String DEFAULT_PORT = "587";
-
-	// jakarta.mail key that turns a plain smtp connection into an encrypted one.
-	// read off the raw properties so a configuration that only ever spoke in
-	// jakarta.mail keys still gets the matching socket factory settings
-	private static String SSL_ENABLE_PROPERTY = "mail.smtp.ssl.enable";
 
 	// parameters execute understands
 	private static String TO_PARAM = "to";
@@ -126,275 +91,23 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	private static String FROM_PARAM = "from";
 	private static String ATTACHMENTS_PARAM = "attachments";
 
-	private String host = null;
-	private String port = DEFAULT_PORT;
-	private String username = null;
-	private String password = null;
-	private String security = STARTTLS_SECURITY;
-
 	// the address every message is sent as, unless overrides are turned on
-	private String sender = null;
-	private String senderName = null;
+	protected String sender = null;
+	protected String senderName = null;
 	private boolean allowSenderOverride = false;
 
 	// blank means any recipient is allowed
 	private Set<String> allowedRecipientDomains = new LinkedHashSet<>();
-
 	private List<String> defaultTo = new ArrayList<>();
 	private List<String> defaultCc = new ArrayList<>();
 	private List<String> defaultBcc = new ArrayList<>();
-
 	private String subjectPrefix = null;
+
 	private boolean html = false;
+
 	private int maxRecipients = 25;
+
 	private boolean allowAttachments = false;
-
-	private Session emailSession = null;
-
-	@Override
-	public void open(Properties smssProp) throws Exception {
-		super.open(smssProp);
-
-		// read from here on rather than from the argument, so a raw jakarta.mail key
-		// is found whichever case it arrived in
-		smssProp = normalizeRawMailKeys(smssProp);
-
-		this.host = trimToNull(smssProp.getProperty(SMTP_HOST_KEY));
-		if (this.host == null) {
-			this.host = getDefaultHost();
-		}
-		if (this.host == null && trimToNull(smssProp.getProperty("mail.smtp.host")) == null) {
-			throw new IllegalArgumentException(
-					"Must have key " + SMTP_HOST_KEY + " or mail.smtp.host in SMSS to know which mail server to use");
-		}
-
-		// the sender is not required here. a cataloged engine pins it so every
-		// message goes out as the same address, but an engine built in memory to
-		// serve as a shared mail connection takes the sender per send, so this is
-		// checked when a message is actually built instead
-		this.sender = trimToNull(smssProp.getProperty(SMTP_SENDER_KEY));
-		if (this.sender != null) {
-			validateEmailAddress(this.sender, SMTP_SENDER_KEY);
-		}
-
-		// the UI writes a blank line for every optional field left empty, so an
-		// unset key arrives as "" rather than absent - defaultIfEmpty covers both
-		this.port = StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(SMTP_PORT_KEY)), this.port);
-		this.username = trimToNull(smssProp.getProperty(SMTP_USERNAME_KEY));
-		this.password = trimToNull(smssProp.getProperty(SMTP_PASSWORD_KEY));
-		if (!requiresPassword()) {
-			if (this.username == null) {
-				throw new IllegalArgumentException(
-						"Must define " + SMTP_USERNAME_KEY + " in SMSS to know which mailbox to send as");
-			}
-		} else if ((this.username == null) != (this.password == null)) {
-			// half a credential cannot authenticate, so drop it and connect
-			// unauthenticated rather than fail to open. which one happened is in the
-			// session log line below
-			classLogger.warn("Only one of {} and {} is set, so the connection to {} will not authenticate",
-					SMTP_USERNAME_KEY, SMTP_PASSWORD_KEY, this.host);
-			this.username = null;
-			this.password = null;
-		}
-		this.senderName = trimToNull(smssProp.getProperty(SMTP_SENDER_NAME_KEY));
-
-		this.security = StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(SMTP_SECURITY_KEY)), this.security)
-				.toLowerCase();
-		if (!this.security.equals(STARTTLS_SECURITY) && !this.security.equals(SSL_SECURITY)
-				&& !this.security.equals(NONE_SECURITY)) {
-			throw new IllegalArgumentException("SMTPFunctionEngine only supports " + STARTTLS_SECURITY + ", "
-					+ SSL_SECURITY + ", or " + NONE_SECURITY + " for the " + SMTP_SECURITY_KEY + " key");
-		}
-
-		this.allowSenderOverride = parseBoolean(smssProp.getProperty(ALLOW_SENDER_OVERRIDE_KEY),
-				this.allowSenderOverride);
-		this.allowAttachments = parseBoolean(smssProp.getProperty(ALLOW_ATTACHMENTS_KEY), this.allowAttachments);
-		this.html = parseBoolean(smssProp.getProperty(HTML_KEY), this.html);
-
-		for (String domain : splitList(smssProp.getProperty(ALLOWED_RECIPIENT_DOMAINS_KEY))) {
-			// stored bare so both "@blah.org" and "blah.org" are the same
-			this.allowedRecipientDomains.add(domain.toLowerCase().replaceFirst("^@", ""));
-		}
-
-		this.defaultTo = splitList(smssProp.getProperty(DEFAULT_TO_KEY));
-		this.defaultCc = splitList(smssProp.getProperty(DEFAULT_CC_KEY));
-		this.defaultBcc = splitList(smssProp.getProperty(DEFAULT_BCC_KEY));
-		validateRecipients(this.defaultTo, DEFAULT_TO_KEY);
-		validateRecipients(this.defaultCc, DEFAULT_CC_KEY);
-		validateRecipients(this.defaultBcc, DEFAULT_BCC_KEY);
-
-		this.subjectPrefix = trimToNull(smssProp.getProperty(SUBJECT_PREFIX_KEY));
-		this.maxRecipients = Math.max(1,
-				NumberUtils.toInt(smssProp.getProperty(MAX_RECIPIENTS_KEY), this.maxRecipients));
-
-		this.emailSession = buildEmailSession(smssProp);
-
-		// the SMSS does not have to spell out the function metadata since we know
-		// what execute supports. anything defined in the SMSS wins
-		setDefaultFunctionMetadata();
-	}
-
-	/**
-	 * Build the mail session this engine sends through.
-	 *
-	 * <p>
-	 * The defaults are deliberately strict: TLS is required rather than merely
-	 * offered, the server certificate has to match the host, and the protocol floor
-	 * is TLS 1.2.
-	 *
-	 * <p>
-	 * Anything the caller spelled out as a raw {@code mail.} property is layered on
-	 * last and wins, and {@link #ONLY_CUSTOM_PROPS_KEY} skips the defaults entirely
-	 * for a server that needs to be described purely in jakarta.mail terms.
-	 *
-	 * @param smssProp the engine properties
-	 * @return the session to send every message through
-	 */
-	private Session buildEmailSession(Properties smssProp) {
-		boolean onlyCustomProps = parseBoolean(smssProp.getProperty(ONLY_CUSTOM_PROPS_KEY), false);
-
-		// the server can be described either by this engine's own keys or purely in
-		// jakarta.mail keys, so resolve both before anything reads the port
-		String effectiveHost = this.host;
-		String effectivePort = this.host == null ? null : this.port;
-		if (effectiveHost == null) {
-			effectiveHost = trimToNull(smssProp.getProperty("mail.smtp.host"));
-			effectivePort = trimToNull(smssProp.getProperty("mail.smtp.port"));
-		}
-
-		Properties mailProps = new Properties();
-		if (this.host != null) {
-			mailProps.setProperty("mail.smtp.host", this.host);
-			mailProps.setProperty("mail.smtp.port", this.port);
-		}
-
-		final String authUsername = this.username;
-
-		if (!onlyCustomProps) {
-			mailProps.setProperty("mail.transport.protocol", "smtp");
-
-			// a raw ssl.enable counts the same as picking ssl, so a configuration
-			// written entirely in jakarta.mail keys is read the same way
-			boolean sslEnabled = this.security.equals(SSL_SECURITY)
-					|| Boolean.parseBoolean(smssProp.getProperty(SSL_ENABLE_PROPERTY));
-			if (!this.security.equals(NONE_SECURITY)) {
-				if (sslEnabled) {
-					// ssl.enable on its own, with no socketFactory.class. naming a
-					// socket factory is the legacy way to do this and it takes the
-					// connection off the path where jakarta mail applies
-					// checkserveridentity, so it would quietly cost the hostname
-					// verification set below
-					mailProps.setProperty(SSL_ENABLE_PROPERTY, "true");
-				}
-				mailProps.setProperty("mail.smtp.starttls.enable", "true");
-				if (!sslEnabled) {
-					// required, not just enabled, so a relay that quietly drops
-					// STARTTLS cannot downgrade the message to plaintext. it is only
-					// meaningful on a connection that did not start out encrypted
-					mailProps.setProperty("mail.smtp.starttls.required", "true");
-				}
-				// for no man-in-the-middle attacks
-				mailProps.setProperty("mail.smtp.ssl.checkserveridentity", "true");
-				mailProps.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-
-			mailProps.setProperty("mail.smtp.connectiontimeout",
-					Integer.toString(NumberUtils.toInt(smssProp.getProperty(CONNECTION_TIMEOUT_KEY), 10_000)));
-			int readTimeout = NumberUtils.toInt(smssProp.getProperty(READ_TIMEOUT_KEY), 30_000);
-			mailProps.setProperty("mail.smtp.timeout", Integer.toString(readTimeout));
-			mailProps.setProperty("mail.smtp.writetimeout", Integer.toString(readTimeout));
-
-			if (authUsername != null) {
-				// without this jakarta mail never asks the authenticator for the
-				// credentials, so a username alone would go unused
-				mailProps.setProperty("mail.smtp.auth", "true");
-			}
-		}
-
-		// how this engine signs in, for a mail server that does not take a password
-		addAuthenticationProperties(mailProps);
-
-		// applied last so a raw mail. key wins over anything above
-		for (String key : smssProp.stringPropertyNames()) {
-			if (key.startsWith(RAW_MAIL_PROPERTY_PREFIX)) {
-				mailProps.setProperty(key, smssProp.getProperty(key));
-			}
-		}
-
-		if (authUsername == null) {
-			classLogger.info("Creating an unauthenticated smtp session against {}:{}", effectiveHost, effectivePort);
-			return Session.getInstance(mailProps);
-		}
-		classLogger.info("Creating an smtp session against {}:{}, signing in as {} with {}", effectiveHost,
-				effectivePort, authUsername, getCredentialDescription());
-		return Session.getInstance(mailProps, new jakarta.mail.Authenticator() {
-			@Override
-			protected PasswordAuthentication getPasswordAuthentication() {
-				// asked for on every connect, which is what lets an engine whose
-				// credential expires hand over a current one per send
-				return new PasswordAuthentication(getConnectUsername(), getConnectPassword());
-			}
-		});
-	}
-
-	/**
-	 * The mail server to use when the SMSS does not name one, for a hosted service
-	 * that always lives at the same address.
-	 *
-	 * @return the host, or null when it has to be configured
-	 */
-	protected String getDefaultHost() {
-		return null;
-	}
-
-	/**
-	 * Whether signing in needs a password in the SMSS. False for an engine that
-	 * obtains its own credential, such as an access token.
-	 *
-	 * @return true when a username without a password means no authentication
-	 */
-	protected boolean requiresPassword() {
-		return true;
-	}
-
-	/**
-	 * Add the jakarta.mail properties that describe how this engine signs in.
-	 * Called while the session is being built, before the raw {@code mail.} keys
-	 * from the SMSS, so a caller can still override any of them.
-	 *
-	 * @param mailProps the session properties being built
-	 */
-	protected void addAuthenticationProperties(Properties mailProps) {
-		// password authentication needs nothing beyond the credentials themselves
-	}
-
-	/**
-	 * The user to sign in as.
-	 *
-	 * @return the username
-	 */
-	protected String getConnectUsername() {
-		return this.username;
-	}
-
-	/**
-	 * The secret to sign in with. Asked for on every connect rather than held, so
-	 * an engine whose credential expires can hand over a current one.
-	 *
-	 * @return the password or token
-	 */
-	protected String getConnectPassword() {
-		return this.password;
-	}
-
-	/**
-	 * What this engine signs in with, for the log line that records the session.
-	 *
-	 * @return a short description of the credential
-	 */
-	protected String getCredentialDescription() {
-		return "a password";
-	}
 
 	/**
 	 * What to tell a caller when the mail server would not take the message. The
@@ -408,27 +121,8 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	}
 
 	/**
-	 * Build an SMTP engine that is not in the catalog, for a caller that already
-	 * holds a mail server configuration and wants this engine's connection handling
-	 * rather than its own.
-	 *
-	 * @param engineId the id to open under, used only for logging
-	 * @param props    the mail server properties, either this engine's own keys or
-	 *                 raw {@code mail.} keys
-	 * @return the opened engine
-	 * @throws Exception when the properties do not describe a usable mail server
-	 */
-	public static SMTPFunctionEngine openTransientEngine(String engineId, Properties props) throws Exception {
-		SMTPFunctionEngine engine = new SMTPFunctionEngine();
-		// no folder structure, no secret store lookup, no catalog entry
-		engine.setBasic(true);
-		engine.open(transientProperties(engineId, props, "Send an email through the " + engineId + " mail server"));
-		return engine;
-	}
-
-	/**
 	 * Fill in what {@link AbstractFunctionEngine} needs for an engine that is built
-	 * in memory rather than read out of a catalogued SMSS.
+	 * in memory rather than read out of a cataloged SMSS.
 	 *
 	 * @param engineId           the id to open under, used only for logging
 	 * @param props              the mail server properties
@@ -453,45 +147,14 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	}
 
 	/**
-	 * Send one email through this engine's mail server, with the message already
-	 * assembled by the caller.
-	 *
-	 * <p>
-	 * This is the raw send, for server side code that resolved and authorized the
-	 * message itself - a pixel call that already knows which files it may attach
-	 * and who it may write to. The guardrails in {@link #execute(Map)} are the
-	 * contract this engine offers a model that picked it out of a tool list, so
-	 * they are applied there rather than here. Both go out through this method, so
-	 * the session stays inside the engine either way.
-	 *
-	 * @param to          the to recipients, or null when there are none
-	 * @param cc          the cc recipients, or null when there are none
-	 * @param bcc         the bcc recipients, or null when there are none
-	 * @param from        the sender address
-	 * @param subject     the subject line
-	 * @param message     the body of the email
-	 * @param html        whether the body is html rather than plain text
-	 * @param attachments the file paths to attach, or null when there are none
-	 * @return true when the message was handed off to the mail server
-	 */
-	public boolean sendEmail(String[] to, String[] cc, String[] bcc, String from, String subject, String message,
-			boolean html, String[] attachments) {
-		return EmailUtility.sendEmail(this.emailSession, to, cc, bcc, from, subject, message, html, attachments);
-	}
-
-	/**
 	 * Fill in the function metadata that the SMSS did not define. The parameters
 	 * describe what {@link #execute(Map)} understands, and their descriptions carry
 	 * the defaults this engine was opened with so a caller knows what it gets when
 	 * it leaves one out. A value set in the SMSS is never overwritten.
 	 */
-	private void setDefaultFunctionMetadata() {
+	protected void setDefaultFunctionMetadata() {
 		if (this.functionDescription == null || this.functionDescription.isEmpty()) {
-			this.functionDescription = """
-					Send an email through a configured SMTP server. Use this to notify someone of a result, \
-					deliver a summary, or route a request onward. The message is sent immediately and cannot \
-					be recalled, so confirm the recipients and the wording before calling this.\
-					""";
+			this.functionDescription = getDefaultFunctionDescription();
 		}
 
 		if (this.parameters == null || this.parameters.isEmpty()) {
@@ -582,8 +245,8 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 		boolean runTimeHtml = getBooleanParameterValue(parameterValues, HTML_PARAM, this.html);
 		String[] attachments = resolveAttachments(parameterValues, executingInsight);
 
-		classLogger.info("Sending an email from {} to {} recipient(s) via {}:{}", from, recipientCount, this.host,
-				this.port);
+		classLogger.info("Sending an email from {} to {} recipient(s) through {}", from, recipientCount,
+				getSendDescription());
 
 		boolean success = sendEmail(toArray(to), toArray(cc), toArray(bcc), from, subject, message, runTimeHtml,
 				attachments);
@@ -785,7 +448,7 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	 * @param address the address to check
 	 * @param source  the SMSS key or parameter it came from, for the error
 	 */
-	private static void validateEmailAddress(String address, String source) {
+	protected static void validateEmailAddress(String address, String source) {
 		try {
 			InternetAddress parsed = new InternetAddress(address, true);
 			parsed.validate();
@@ -814,7 +477,7 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	 * @param value the raw value, possibly null
 	 * @return the entries, empty when there are none
 	 */
-	private static List<String> splitList(String value) {
+	protected static List<String> splitList(String value) {
 		List<String> entries = new ArrayList<>();
 		if (value == null) {
 			return entries;
@@ -835,7 +498,7 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	 * @param values the values to join
 	 * @return the joined value, or null when the list is empty
 	 */
-	private static String joinList(List<String> values) {
+	protected static String joinList(List<String> values) {
 		if (values == null || values.isEmpty()) {
 			return null;
 		}
@@ -850,7 +513,7 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	 * @param defaultValue value to use when the key is not set
 	 * @return the flag
 	 */
-	private static boolean parseBoolean(String value, boolean defaultValue) {
+	protected static boolean parseBoolean(String value, boolean defaultValue) {
 		if (value == null || (value = value.trim()).isEmpty()) {
 			return defaultValue;
 		}
@@ -864,36 +527,11 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 	 * @param recipients the addresses for one header
 	 * @return the addresses as an array, or null when there are none
 	 */
-	private static String[] toArray(List<String> recipients) {
+	protected static String[] toArray(List<String> recipients) {
 		if (recipients == null || recipients.isEmpty()) {
 			return null;
 		}
 		return recipients.toArray(new String[0]);
-	}
-
-	/**
-	 * Put every raw jakarta.mail key back in the form the mail library answers to.
-	 *
-	 * <p>
-	 * jakarta.mail property names are lower case and it ignores anything else,
-	 * while the reactor that writes an SMSS upper cases every key it is given.
-	 * Without this, a relay configured through the UI with a property this engine
-	 * does not model - the whole point of the {@code mail.} passthrough - would
-	 * arrive as {@code MAIL.SMTP.SSL.TRUST} and be silently ignored.
-	 *
-	 * @param smssProp the engine properties as they were written
-	 * @return the same properties with the raw mail keys lower cased
-	 */
-	private static Properties normalizeRawMailKeys(Properties smssProp) {
-		Properties normalized = new Properties();
-		for (String key : smssProp.stringPropertyNames()) {
-			if (key.toLowerCase().startsWith(RAW_MAIL_PROPERTY_PREFIX)) {
-				normalized.setProperty(key.toLowerCase(), smssProp.getProperty(key));
-			} else {
-				normalized.setProperty(key, smssProp.getProperty(key));
-			}
-		}
-		return normalized;
 	}
 
 	/**
@@ -909,14 +547,82 @@ public class SMTPFunctionEngine extends AbstractFunctionEngine {
 		return value;
 	}
 
+	/**
+	 * Read the send settings every mail service shares. A subclass reads whatever
+	 * it needs to reach its own service on top of this.
+	 */
 	@Override
-	public String getCatalogSubType(Properties smssProp) {
-		return FunctionTypeEnum.SMTP.name();
+	public void open(Properties smssProp) throws Exception {
+		super.open(smssProp);
+
+		// the sender is not required here. a cataloged engine pins it so every
+		// message goes out as the same address, but an engine built in memory to
+		// serve as a shared mail connection takes the sender per send, so this is
+		// checked when a message is actually built instead
+		this.sender = trimToNull(smssProp.getProperty(SMTP_SENDER_KEY));
+		if (this.sender != null) {
+			validateEmailAddress(this.sender, SMTP_SENDER_KEY);
+		}
+		this.senderName = trimToNull(smssProp.getProperty(SMTP_SENDER_NAME_KEY));
+
+		this.allowSenderOverride = parseBoolean(smssProp.getProperty(ALLOW_SENDER_OVERRIDE_KEY),
+				this.allowSenderOverride);
+		this.allowAttachments = parseBoolean(smssProp.getProperty(ALLOW_ATTACHMENTS_KEY), this.allowAttachments);
+		this.html = parseBoolean(smssProp.getProperty(HTML_KEY), this.html);
+
+		for (String domain : splitList(smssProp.getProperty(ALLOWED_RECIPIENT_DOMAINS_KEY))) {
+			// stored bare so both "@blah.org" and "blah.org" are the same
+			this.allowedRecipientDomains.add(domain.toLowerCase().replaceFirst("^@", ""));
+		}
+
+		this.defaultTo = splitList(smssProp.getProperty(DEFAULT_TO_KEY));
+		this.defaultCc = splitList(smssProp.getProperty(DEFAULT_CC_KEY));
+		this.defaultBcc = splitList(smssProp.getProperty(DEFAULT_BCC_KEY));
+		validateRecipients(this.defaultTo, DEFAULT_TO_KEY);
+		validateRecipients(this.defaultCc, DEFAULT_CC_KEY);
+		validateRecipients(this.defaultBcc, DEFAULT_BCC_KEY);
+
+		this.subjectPrefix = trimToNull(smssProp.getProperty(SUBJECT_PREFIX_KEY));
+		this.maxRecipients = Math.max(1,
+				NumberUtils.toInt(smssProp.getProperty(MAX_RECIPIENTS_KEY), this.maxRecipients));
+
+		// the SMSS does not have to spell out the function metadata since we know
+		// what execute supports. anything defined in the SMSS wins
+		setDefaultFunctionMetadata();
 	}
 
-	@Override
-	public void close() throws IOException {
-		// a mail session holds no connection between sends
-	}
+	/**
+	 * Hand a finished message to whatever this engine sends through.
+	 *
+	 * <p>
+	 * Everything the SMSS limits has already been applied by the time this is
+	 * called, so a subclass implements only the delivery itself.
+	 *
+	 * @param to          the to recipients, or null when there are none
+	 * @param cc          the cc recipients, or null when there are none
+	 * @param bcc         the bcc recipients, or null when there are none
+	 * @param from        the sender address
+	 * @param subject     the subject line
+	 * @param message     the body of the email
+	 * @param html        whether the body is html rather than plain text
+	 * @param attachments the file paths to attach, or null when there are none
+	 * @return true when the message was handed off
+	 */
+	public abstract boolean sendEmail(String[] to, String[] cc, String[] bcc, String from, String subject,
+			String message, boolean html, String[] attachments);
+
+	/**
+	 * What this engine describes itself as when the SMSS does not say.
+	 *
+	 * @return the function description
+	 */
+	protected abstract String getDefaultFunctionDescription();
+
+	/**
+	 * Where this engine sends, for the log line that records a send.
+	 *
+	 * @return the mail service, such as a host and port
+	 */
+	protected abstract String getSendDescription();
 
 }

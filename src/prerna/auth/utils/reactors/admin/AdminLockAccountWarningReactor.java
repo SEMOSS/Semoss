@@ -41,7 +41,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.engine.impl.function.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.SMTPFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;

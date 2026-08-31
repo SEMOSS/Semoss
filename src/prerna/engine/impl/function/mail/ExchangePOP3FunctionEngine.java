@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.util.Properties;
 
@@ -87,6 +87,8 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 		// fails on open rather than on the first read
 		this.tokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp);
 
+		ExchangeMailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))), key(USERNAME_SUFFIX));
+
 		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
 			// a password here is a sign the engine was set up as though it were a
 			// plain mailbox, and Exchange would refuse it anyway
@@ -120,6 +122,23 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 		return true;
 	}
 
+	/**
+	 * How this engine reads when the SMSS does not say. Graph, for the same reason
+	 * the other Microsoft engines default to it.
+	 *
+	 * <p>
+	 * Over Graph the difference between this engine and the IMAP one all but
+	 * disappears, since the same API answers both. What remains is this engine's
+	 * own promise of a single inbox, which {@link #resolveFolderName(String)} still
+	 * keeps.
+	 *
+	 * @return the transport name
+	 */
+	@Override
+	protected String getDefaultTransport() {
+		return ExchangeMailOAuth.GRAPH_TRANSPORT;
+	}
+
 	@Override
 	protected boolean requiresPassword() {
 		return false;
@@ -132,6 +151,14 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 
 	@Override
 	protected String getAuthenticationHint() {
+		if (isGraphTransport()) {
+			// this engine never changes a mailbox, so reading is all it ever needs
+			return ExchangeMailOAuth.graphAuthenticationHint(ExchangeMailOAuth.GRAPH_READ_PERMISSION);
+		}
+		// what the token carries tells the three causes apart, so it goes in the log
+		// rather than leaving the reader to guess which half of the setup is missing
+		classLogger.error("Exchange refused the sign in for {} and {}", this.username,
+				ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider));
 		return ExchangeMailOAuth.authenticationHint(POP3_PERMISSION, null);
 	}
 

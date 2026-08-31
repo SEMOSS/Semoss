@@ -55,7 +55,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
-import prerna.engine.impl.function.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.SMTPFunctionEngine;
 import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {

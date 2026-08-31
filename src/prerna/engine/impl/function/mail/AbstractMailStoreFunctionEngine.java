@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,6 +68,10 @@ import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.internet.MimeUtility;
+import prerna.engine.impl.function.AbstractFunctionEngine;
+import prerna.engine.impl.function.FunctionParameter;
+import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.om.Insight;
 import prerna.util.Constants;
 
@@ -170,6 +174,12 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	private Session mailSession = null;
 	private Store mailStore = null;
 
+	// how this engine reaches the mailbox. a protocol engine only has the one way,
+	// and a microsoft one can go through graph instead
+	protected String transportName = null;
+	private MicrosoftGraphAppTokenProvider graphTokenProvider = null;
+	private GraphMailboxReader graphReader = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -235,7 +245,18 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 
 		openProtocolProperties(smssProp);
 
-		this.mailSession = buildMailSession(smssProp);
+		this.transportName = ExchangeMailOAuth.resolveTransport(smssProp, getDefaultTransport());
+		if (isGraphTransport()) {
+			// the same app registration as the protocols use, for a different
+			// resource, so one set of credentials serves either way in
+			this.graphTokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp, ExchangeMailOAuth.GRAPH_SCOPE);
+			this.graphReader = new GraphMailboxReader(
+					new MicrosoftOutlookMailHelper(smssProp.getProperty(ExchangeMailOAuth.GRAPH_BASE_URL_KEY)), this);
+			classLogger.info("Reading {} through Microsoft Graph, signing in with {}", this.username,
+					ExchangeMailOAuth.credentialDescription(this.graphTokenProvider.getClientId()));
+		} else {
+			this.mailSession = buildMailSession(smssProp);
+		}
 
 		// the SMSS does not have to spell out the function metadata since we know
 		// what execute supports. anything defined in the SMSS wins
@@ -491,6 +512,32 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 			downloadAttachments = false;
 		}
 
+		return readMessages(folderName, criteria, limit, includeBody, downloadAttachments, executingInsight);
+	}
+
+	/**
+	 * Find the messages and turn them into maps, over whichever way this engine
+	 * reaches the mailbox. The protocols do it by opening a folder; an engine that
+	 * reads through an API answers the same question its own way.
+	 *
+	 * @param folderName          the folder to read
+	 * @param criteria            what the caller asked to match on
+	 * @param limit               the most messages to return
+	 * @param includeBody         whether the body is read as well as the headers
+	 * @param downloadAttachments whether attachments are written into the insight
+	 * @param executingInsight    the insight this call is running under, or null
+	 * @return the search output
+	 */
+	protected Map<String, Object> readMessages(String folderName, MailSearchCriteria criteria, int limit,
+			boolean includeBody, boolean downloadAttachments, Insight executingInsight) {
+		if (isGraphTransport()) {
+			try {
+				return this.graphReader.search(getGraphToken(), this.username, folderName, criteria, limit, includeBody,
+						downloadAttachments, executingInsight);
+			} catch (RuntimeException e) {
+				throw graphError(e);
+			}
+		}
 		Folder folder = null;
 		try {
 			folder = openFolder(folderName, getFolderOpenMode());
@@ -775,19 +822,60 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	 */
 	private static String attachmentFileName(Part part) throws MessagingException {
 		String rawName = part.getFileName();
+		if (rawName != null) {
+			try {
+				rawName = MimeUtility.decodeText(rawName);
+			} catch (UnsupportedEncodingException e) {
+				classLogger.warn("Could not decode the attachment name " + rawName, e);
+			}
+		}
+		return sanitizeAttachmentName(rawName);
+	}
+
+	/**
+	 * Reduce a name that came off a message to a bare file name of harmless
+	 * characters, since it came from whoever sent the mail.
+	 *
+	 * @param rawName the name as the message carried it, possibly null
+	 * @return a file name that cannot walk out of the folder it is written to
+	 */
+	protected static String sanitizeAttachmentName(String rawName) {
 		if (rawName == null) {
 			return "attachment";
-		}
-		try {
-			rawName = MimeUtility.decodeText(rawName);
-		} catch (UnsupportedEncodingException e) {
-			classLogger.warn("Could not decode the attachment name " + rawName, e);
 		}
 		String fileName = new File(rawName).getName().replaceAll("[^a-zA-Z0-9._-]", "_");
 		if (fileName.isEmpty() || fileName.equals(".") || fileName.equals("..")) {
 			return "attachment";
 		}
 		return fileName;
+	}
+
+	/**
+	 * Write bytes that came off a message into the calling insight's own folder.
+	 *
+	 * @param rawName          the name the message gave the file
+	 * @param bytes            the content
+	 * @param executingInsight the insight this call is running under
+	 * @return the file written, or null when it was refused
+	 * @throws IOException when the file cannot be written
+	 */
+	protected File saveAttachmentBytes(String rawName, byte[] bytes, Insight executingInsight) throws IOException {
+		if (bytes.length > this.maxAttachmentSize) {
+			classLogger.warn("The attachment {} is larger than the {} of {} bytes and was not saved", rawName,
+					MAX_ATTACHMENT_SIZE_KEY, this.maxAttachmentSize);
+			return null;
+		}
+		File insightFolder = new File(executingInsight.getInsightFolder());
+		if (!insightFolder.exists()) {
+			insightFolder.mkdirs();
+		}
+		File target = uniqueFile(insightFolder, sanitizeAttachmentName(rawName));
+		if (!target.getCanonicalPath().startsWith(insightFolder.getCanonicalPath() + File.separator)) {
+			classLogger.warn("Refusing to write the attachment {} outside of the insight folder", rawName);
+			return null;
+		}
+		Files.write(target.toPath(), bytes);
+		return target;
 	}
 
 	/**
@@ -847,7 +935,7 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	 * @param fileName the name to start from
 	 * @return the file to write
 	 */
-	private static File uniqueFile(File folder, String fileName) {
+	protected static File uniqueFile(File folder, String fileName) {
 		File target = new File(folder, fileName);
 		if (!target.exists()) {
 			return target;
@@ -889,11 +977,29 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 			if (address == null) {
 				continue;
 			}
-			String value = address.toString().toLowerCase();
-			int at = value.lastIndexOf('@');
-			if (at < 0) {
-				continue;
+			if (isSenderAllowed(address.toString())) {
+				return true;
 			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether a sender is one this engine surfaces, by address.
+	 *
+	 * @param sender the address a message came from
+	 * @return true when the sender is allowed
+	 */
+	protected boolean isSenderAllowed(String sender) {
+		if (this.allowedSenderDomains.isEmpty()) {
+			return true;
+		}
+		if (sender == null) {
+			return false;
+		}
+		String value = sender.toLowerCase();
+		int at = value.lastIndexOf('@');
+		if (at > -1) {
 			// the address may still be wrapped in a display name, as in
 			// "Someone <someone@blah.org>"
 			String domain = value.substring(at + 1).replaceAll("[>\"\\s]", "");
@@ -964,6 +1070,67 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	 */
 	protected boolean supportsFlags() {
 		return false;
+	}
+
+	/**
+	 * Turn a refusal from Graph into the error a caller sees, with what the token
+	 * actually carried, since that is what tells a missing permission from a
+	 * mailbox the application was never granted.
+	 *
+	 * @param e what Graph said
+	 * @return the exception to throw
+	 */
+	protected RuntimeException graphError(RuntimeException e) {
+		classLogger.error("Graph refused a call for {} and {}", this.username,
+				ExchangeMailOAuth.tokenDiagnostic(this.graphTokenProvider));
+		// the usual reason a read starts failing is a permission that is about to be
+		// changed, and a cached token would go on being refused for the rest of its
+		// hour after the fix
+		this.graphTokenProvider.invalidate();
+		String hint = getAuthenticationHint();
+		if (hint == null || hint.isEmpty()) {
+			return e;
+		}
+		return new IllegalArgumentException(e.getMessage() + " " + hint, e);
+	}
+
+	/**
+	 * How this engine reaches the mailbox when the SMSS does not say. A protocol
+	 * engine has only the one way in; a Microsoft one defaults to Graph.
+	 *
+	 * @return the transport name
+	 */
+	protected String getDefaultTransport() {
+		return ExchangeMailOAuth.JAKARTA_TRANSPORT;
+	}
+
+	/**
+	 * @return true when this engine reads through Graph rather than the protocol
+	 */
+	protected boolean isGraphTransport() {
+		return ExchangeMailOAuth.GRAPH_TRANSPORT.equals(this.transportName);
+	}
+
+	/**
+	 * @return the Graph reader, for an engine reading that way
+	 */
+	protected GraphMailboxReader getGraphReader() {
+		return this.graphReader;
+	}
+
+	/**
+	 * @return a current Graph token, asked for per call so an expired one is
+	 *         replaced
+	 */
+	protected String getGraphToken() {
+		return this.graphTokenProvider.getAccessToken();
+	}
+
+	/**
+	 * @return the token provider behind the Graph reads, for diagnostics
+	 */
+	protected MicrosoftGraphAppTokenProvider getGraphTokenProvider() {
+		return this.graphTokenProvider;
 	}
 
 	/**
@@ -1204,7 +1371,7 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 
 	/**
 	 * Fill in what {@link AbstractFunctionEngine} needs for an engine that is built
-	 * in memory rather than read out of a catalogued SMSS.
+	 * in memory rather than read out of a cataloged SMSS.
 	 *
 	 * @param engineId           the id to open under, used only for logging
 	 * @param props              the mail server properties

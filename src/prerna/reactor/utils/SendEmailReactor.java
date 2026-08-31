@@ -37,7 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.function.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.SMTPFunctionEngine;
 import prerna.om.FileReference;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.export.mustache.MustacheUtility;

@@ -48,9 +48,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
-import prerna.engine.impl.function.IMAPFunctionEngine;
-import prerna.engine.impl.function.POP3FunctionEngine;
-import prerna.engine.impl.function.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.IMAPFunctionEngine;
+import prerna.engine.impl.function.mail.POP3FunctionEngine;
+import prerna.engine.impl.function.mail.SMTPFunctionEngine;
 
 public final class SocialPropertiesProcessor {
 
