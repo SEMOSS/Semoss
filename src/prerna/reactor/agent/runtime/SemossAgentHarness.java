@@ -41,8 +41,11 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -312,9 +315,13 @@ public class SemossAgentHarness implements IAgentHarness {
 				// execution signal, not the legacy response-type field.
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
-					restoreAskMetadataForParameterTools(response, defaultAndExplicitTools);
+					// subAgentTools is resolved separately from defaultAndExplicitTools;
+					// merge so restoreAskMetadataForParameterTools also sees them.
+					List<Map<String, Object>> toolsForMetaRestore = new ArrayList<>(defaultAndExplicitTools);
+					toolsForMetaRestore.addAll(subAgentTools);
+					restoreAskMetadataForParameterTools(response, toolsForMetaRestore, subAgentSpecs);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
-					publishToolItemsQueued(ctx, response, subAgentSpecs);
+					publishToolItemsQueued(ctx, response);
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
@@ -563,11 +570,11 @@ public class SemossAgentHarness implements IAgentHarness {
 		streams.completeActiveReasoning(runId);
 		streams.completeActiveMessage(runId, response != null ? response.getMessageId() : null,
 				response != null ? response.getContent() : null);
+		publishServerToolItems(runId, response);
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response,
-			List<SubAgentSpec> specs) {
+	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response) {
 		String runId = ctx.getRunId();
 		if (runId == null || runId.trim().isEmpty()) {
 			return;
@@ -577,14 +584,52 @@ public class SemossAgentHarness implements IAgentHarness {
 			return;
 		}
 		for (Map<String, Object> toolCall : toolCalls) {
-			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
-			if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
 				continue;
 			}
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
 			Object metaObj = toolCall.get("_meta");
 			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
-			AgentRunStreamService.get().publishToolStarted(runId, AgentStreamItems.toolItem(tc.toolCallId,
-					tc.rawToolName, tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+			Object title = toolCall.get("title");
+			AgentRunStreamService.get().publishToolStarted(runId,
+					AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, title != null ? title.toString() : null,
+							tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+		}
+	}
+
+	/**
+	 * Publishes provider-executed built-in tool calls (web_search, etc.) as
+	 * already-completed run items so the workbench shows the activity and its
+	 * output. Their results are embedded in the assistant response as
+	 * server-flagged TOOL_RESULT parts - the harness never executes them.
+	 */
+	private static void publishServerToolItems(String runId, ResponseMessage response) {
+		if (runId == null || runId.trim().isEmpty() || response == null || !response.hasToolResponses()) {
+			return;
+		}
+		Map<String, String> serverOutputsByCallId = new HashMap<>();
+		for (MessagePart part : response.getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult != null && Boolean.TRUE.equals(toolResult.getServerTool())
+						&& toolResult.getToolCallId() != null) {
+					serverOutputsByCallId.put(toolResult.getToolCallId(), toolResult.getOutput());
+				}
+			}
+		}
+		for (Map<String, Object> toolCall : response.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
+			Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, null, tc.toolParams,
+					null, AgentStreamItems.TOOL_COMPLETED);
+			String output = AgentStreamItems.truncate(serverOutputsByCallId.get(tc.toolCallId),
+					HarnessToolExecutor.MAX_LIVE_TOOL_RESULT_CHARS);
+			if (output != null && !output.isBlank()) {
+				item.put("output", output);
+			}
+			AgentRunStreamService.get().publishToolCompleted(runId, item);
 		}
 	}
 
@@ -653,8 +698,23 @@ public class SemossAgentHarness implements IAgentHarness {
 		return RUN_ROLE_ASSISTANT;
 	}
 
+	/**
+	 * True when the response contains at least one tool call the harness must
+	 * execute. Provider-executed built-in tools (flagged {@code server_tool}) are
+	 * excluded - the provider already ran them mid-turn and their results are
+	 * embedded in the response, so a response containing only server tool calls
+	 * is a normal assistant text turn.
+	 */
 	private static boolean hasAssistantToolCalls(ResponseMessage message) {
-		return message != null && message.hasToolResponses();
+		if (message == null || !message.hasToolResponses()) {
+			return false;
+		}
+		for (Map<String, Object> toolCall : message.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {
@@ -704,13 +764,26 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 			action.put("toolArgs", argsObj);
 			// The enriched _meta (set by Room.updateToolResponseMeta)
-			action.put("toolMeta", toolCall.get("_meta"));
-			// Derive UI info from SMSS_MCP_UI
 			Map<String, Object> meta = null;
 			Object metaObj = toolCall.get("_meta");
 			if (metaObj instanceof Map) {
-				meta = (Map<String, Object>) metaObj;
+				meta = new HashMap<>((Map<String, Object>) metaObj);
 			}
+			// updateToolResponseMeta already resolved a display-friendly title
+			// onto toolCall; carry it in _meta so the FE (which only ever sees
+			// toolName/toolMeta for a pending action, never toolCall itself) can
+			// display it instead of the raw, engine-id-prefixed tool name.
+			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
+						: toolCall.get("original_name");
+				if (resolvedTitle != null) {
+					if (meta == null) {
+						meta = new HashMap<>();
+					}
+					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+				}
+			}
+			action.put("toolMeta", meta);
 			Map<String, Object> uiMeta = null;
 			if (meta != null) {
 				Object uiObj = meta.get(MCPUtility.SMSS_MCP_UI);
@@ -874,33 +947,35 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * The model returns only a tool name and arguments, not the definition's
-	 * metadata. Room metadata enrichment covers room/workspace MCP tools, while
-	 * harness-explicit tools arrive through {@code paramValues.tools}. Reattach
-	 * only explicit ask-mode definitions so they enter the durable input-required
-	 * path without granting caller-defined auto tools an execution identity.
+	 * Room metadata enrichment only covers room/workspace MCP tools. Reattach
+	 * {@code _meta} for explicit ask-mode tools and subagent tools too, since
+	 * neither comes from that enrichment.
 	 */
 	@SuppressWarnings("unchecked")
-	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools) {
+	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools,
+			List<SubAgentSpec> subAgentSpecs) {
 		if (response == null || tools == null || tools.isEmpty()) {
 			return;
 		}
-		Map<String, Map<String, Object>> askToolsByName = new HashMap<>();
+		Map<String, Map<String, Object>> metaByName = new HashMap<>();
 		for (Map<String, Object> tool : tools) {
 			if (tool == null || tool.get("name") == null) {
 				continue;
 			}
+			String name = String.valueOf(tool.get("name"));
 			Object metaObj = tool.get("_meta");
 			if (!(metaObj instanceof Map)) {
 				continue;
 			}
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
-			if ("ask".equalsIgnoreCase(String.valueOf(execution))) {
-				askToolsByName.put(String.valueOf(tool.get("name")), tool);
+			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
+			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
+			if (isAsk || isSubAgentTool) {
+				metaByName.put(name, tool);
 			}
 		}
-		if (!askToolsByName.isEmpty()) {
-			MCPUtility.updateToolResponseWithProjectMeta(response, null, askToolsByName);
+		if (!metaByName.isEmpty()) {
+			MCPUtility.updateToolResponseWithProjectMeta(response, null, metaByName);
 		}
 	}
 

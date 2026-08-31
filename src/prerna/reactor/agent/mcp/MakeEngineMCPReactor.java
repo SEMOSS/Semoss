@@ -50,6 +50,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
@@ -268,6 +269,15 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
+
+			// a function engine already describes its own name, purpose, and
+			// parameters, so present the executor as that function rather than as a
+			// tool taking an opaque map. this runs after the meta is stamped so
+			// SMSS_FUNCTION_NAME keeps pointing at the reactor being run
+			if (thisReactor instanceof ExecuteFunctionEngineReactor && engine instanceof IFunctionEngine) {
+				MCPFunctionEngineUtility.applyFunctionEngineDefinition(reactorTool, (IFunctionEngine) engine);
+			}
+
 			toolsArray.put(reactorTool);
 		}
 
@@ -278,7 +288,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		// Both the default set and the explicit-reactor path feed this array.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
 
-		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
+		String outputFileLoc = engineAssetsFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 
 		// The default tool set is a full rebuild; an explicit reactor list is a subset.
 		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
@@ -330,7 +340,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

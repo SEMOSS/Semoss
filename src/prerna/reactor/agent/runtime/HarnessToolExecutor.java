@@ -52,6 +52,7 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
@@ -89,7 +90,7 @@ final class HarnessToolExecutor {
 	private static final String TOOL_STATUS_ERROR = "error";
 
 	private static final Gson GSON = new Gson();
-	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
+	static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
 
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
@@ -109,7 +110,21 @@ final class HarnessToolExecutor {
 
 		Room room = ctx.getRoom();
 		String parentMsgId = toolResponse.getMessageId();
-		List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> allToolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> toolCalls = new ArrayList<>();
+		for (Map<String, Object> toolCall : allToolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			toolCalls.add(toolCall);
+		}
+		if (toolCalls.size() < allToolCalls.size()) {
+			logger.info("HarnessToolExecutor: skipping {} provider-executed server tool call(s) iter={} room={}",
+					allToolCalls.size() - toolCalls.size(), state.getIterations(), room.getId());
+		}
+		if (toolCalls.isEmpty()) {
+			return toolResponse;
+		}
 		String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 
@@ -235,14 +250,9 @@ final class HarnessToolExecutor {
 		List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
 		fireBeforeTool(toolHooks, ctx, tc, currentIter);
 
-		// Spawn/wait/check calls surface as subagent items, never tool items.
-		boolean subagentTool = SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName,
-				ctx.getAgentConfig().getSubagents());
-		if (!subagentTool) {
-			Map<String, Object> runningPatch = new LinkedHashMap<>();
-			runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
-			AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
-		}
+		Map<String, Object> runningPatch = new LinkedHashMap<>();
+		runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
+		AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
 
 		long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
@@ -252,10 +262,8 @@ final class HarnessToolExecutor {
 		try {
 			outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
 		} catch (AgentCancelledException cancelEx) {
-			if (!subagentTool) {
-				publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
-						System.currentTimeMillis() - startMs);
-			}
+			publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
+					System.currentTimeMillis() - startMs);
 			throw cancelEx;
 		}
 		long durMs = System.currentTimeMillis() - startMs;
@@ -263,11 +271,9 @@ final class HarnessToolExecutor {
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 		publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
-		if (!subagentTool) {
-			publishToolItemTerminal(jobId, tc,
-					outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
-					outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
-		}
+		publishToolItemTerminal(jobId, tc,
+				outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+				outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
 
 		logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}", tc.rawToolName, durMs,
 				outcome.success);
@@ -351,8 +357,9 @@ final class HarnessToolExecutor {
 		}
 		Object metaObj = tc.toolCall.get("_meta");
 		Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
-		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, tc.toolParams, meta,
-				status);
+		Object title = tc.toolCall.get("title");
+		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName,
+				title != null ? title.toString() : null, tc.toolParams, meta, status);
 		String boundedOutput = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
 		if (boundedOutput != null && !boundedOutput.isBlank()) {
 			item.put("output", boundedOutput);

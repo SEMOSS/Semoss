@@ -52,6 +52,8 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
+import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AppBuilderHarnessConfiguration;
 import prerna.reactor.agent.IAgentHook;
 import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
@@ -152,6 +154,10 @@ public final class AgentConfigLoader {
         // tolerates null workingDir.
         b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
 
+        // Selected-engines block: read fresh from the project dependency store
+        // every run so workbench selections are always current and prompt-visible.
+        b.selectedEnginesPrompt(resolveSelectedEnginesPrompt(paramMap));
+
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
         b.modelParams(paramMap);
@@ -181,11 +187,12 @@ public final class AgentConfigLoader {
 
         AgentConfig cfg = b.build();
         logger.info(
-                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} runHooks={} toolHooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
+                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} runHooks={} toolHooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} selectedEnginesChars={} cfgJson={}",
                 room.getId(), cfg.getWorkspaceId(), cfg.getName(), cfg.getModelId(), cfg.getWorkingDir(),
                 cfg.getMcps().size(), cfg.getSkills().size(), cfg.getRunHooks().size(), cfg.getToolHooks().size(), cfg.getSubagents().size(),
                 cfg.getBudgets().getMaxTurns(), cfg.getBudgets().getMaxReflections(), cfg.getBudgets().getMaxSeconds(),
                 lengthOrZero(cfg.getAuthoredPrompt()), lengthOrZero(cfg.getWorkdirAgentsMd()),
+                lengthOrZero(cfg.getSelectedEnginesPrompt()),
                 cfgJson == null ? "absent" : "present");
         return cfg;
     }
@@ -448,6 +455,33 @@ public final class AgentConfigLoader {
         }
         // (c) legacy column fallback
         return StringUtils.trimToNull((String) workspaceRow.get("system_prompt"));
+    }
+
+    /**
+     * Resolves the "Selected Engines" prompt block for the run's target project
+     * ({@code paramMap["project"]}, kept in the paramMap by
+     * {@link prerna.reactor.agent.AgentRunner}). {@code null} when the run has no
+     * project param or resolution fails - the block must never break run setup.
+     */
+    private static String resolveSelectedEnginesPrompt(Map<String, Object> paramMap) {
+        if (paramMap == null) {
+            return null;
+        }
+        Object projectObj = paramMap.get(AgentRunner.PARAM_PROJECT);
+        if (projectObj == null) {
+            return null;
+        }
+        String projectId = StringUtils.trimToNull(String.valueOf(projectObj));
+        if (projectId == null) {
+            return null;
+        }
+        try {
+            return AppBuilderHarnessConfiguration.buildSelectedEnginesPrompt(projectId);
+        } catch (Exception e) {
+            logger.warn("AgentConfigLoader: selected-engines prompt resolution failed for project={}: {}",
+                    projectId, e.getMessage());
+            return null;
+        }
     }
 
     /** Parse {@code room.options.instructions} as a non-blank string, or {@code null}. */

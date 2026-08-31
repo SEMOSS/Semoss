@@ -33,7 +33,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
@@ -41,101 +40,77 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class UpdateStorageFileMetadataReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(UpdateStorageFileMetadataReactor.class);
-	
+
 	public UpdateStorageFileMetadataReactor() {
-		this.keysToGet = new String[] {
-	            ReactorKeysEnum.STORAGE.getKey(),
-	            ReactorKeysEnum.STORAGE_PATH.getKey(),
-	            ReactorKeysEnum.METADATA.getKey(),
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_PATH.getKey(),
+				ReactorKeysEnum.METADATA.getKey(), };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-        organizeKeys();
-        IStorageEngine storage = getStorage();
+		organizeKeys();
+		IStorageEngine storage = getStorage();
 
-        if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
-            throw new IllegalArgumentException("User does not have permission to access this storage engine");
-        }
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), storage.getEngineId())) {
+			throw new IllegalArgumentException("User does not have permission to access this storage engine");
+		}
 
-        String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-        if (storagePath == null || storagePath.isEmpty()) {
-            throw new IllegalArgumentException("Storage path is required");
-        }
-        
-        Map<String, Object> metadata = getMetadata();
-        
-        try {
-        	storage.updateBlobMetadata(storagePath, metadata);
-        	return new NounMetadata(true, PixelDataType.BOOLEAN);
-        } catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred applying metadata");
-        }
-        
+		String storagePath = this.keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
+		if (storagePath == null || storagePath.isEmpty()) {
+			throw new IllegalArgumentException("Storage path is required");
+		}
+
+		Map<String, Object> metadata = getMapFromKeyOrCurRow(ReactorKeysEnum.METADATA.getKey());
+
+		try {
+			storage.updateBlobMetadata(storagePath, metadata);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		} catch (Exception e) {
+			classLogger.error("Failed to apply metadata to storagePath={} on storage engine={}", storagePath,
+					storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error occurred applying metadata", e);
+		}
 	}
-	
-    // ==================== STORAGE RESOLUTION ====================
 
-    private IStorageEngine getStorage() {
-        GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
-        if (grs != null && !grs.isEmpty()) {
-            if (grs.get(0) instanceof String) {
-                return Utility.getStorage((String) grs.get(0));
-            }
-            return (IStorageEngine) grs.get(0);
-        }
-
-        List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
-        if (storageInputs != null && !storageInputs.isEmpty()) {
-            return (IStorageEngine) storageInputs.get(0).getValue();
-        }
-
-        throw new NullPointerException("No storage engine defined");
-    }
-    
-    // ==================== METADATA RESOLUTION ====================
-	private Map<String, Object> getMetadata() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
+	private IStorageEngine getStorage() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			if (grs.get(0) instanceof String) {
+				return Utility.getStorage((String) grs.get(0));
 			}
+			return (IStorageEngine) grs.get(0);
 		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
+
+		List<NounMetadata> storageInputs = this.curRow.getNounsOfType(PixelDataType.STORAGE);
+		if (storageInputs != null && !storageInputs.isEmpty()) {
+			return (IStorageEngine) storageInputs.get(0).getValue();
 		}
-		return null;
+
+		throw new NullPointerException("No storage engine defined");
 	}
 
-    // ==================== DESCRIPTIONS ====================
+	@Override
+	public String getReactorDescription() {
+		return "Sets the metadata on a file already in storage. This replaces the metadata on the file "
+				+ "rather than merging into it, so pass every key the file should end up with.";
+	}
 
-    @Override
-    public String getReactorDescription() {
-        return "Reads a file from storage into memory as a byte array and returns as base64. " +
-               "Optionally converts DOCX, DOC, or XLSX to PDF using Playwright before returning.";
-    }
-
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-            return "The storage engine instance or id";
-        } else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-            return "The path to the file in storage to read into memory";
-        } else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
-            return "The metadata that  " +
-                   "PDF and TXT pass through unchanged. PPTX is returned as-is (unsupported).";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance or id";
+		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The path of the file in storage to set the metadata on";
+		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return "The metadata to set on the file, as a map. Values are stored as strings, and engines "
+					+ "with nowhere to keep user metadata ignore it";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

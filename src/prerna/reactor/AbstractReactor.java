@@ -684,12 +684,12 @@ public abstract class AbstractReactor implements IReactor {
 	 * <p>
 	 * This is the standard precedence for reactors whose {@code project}/
 	 * {@code engine} key is optional. The context project is what a pixel run under
-	 * an app context (and so every project-scoped MCP tool call) already carries, so
-	 * those callers do not have to repeat the id they are already scoped to.
+	 * an app context (and so every project-scoped MCP tool call) already carries,
+	 * so those callers do not have to repeat the id they are already scoped to.
 	 *
 	 * <p>
-	 * Named for engine rather than project because the caller-supplied id may be any
-	 * catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
+	 * Named for engine rather than project because the caller-supplied id may be
+	 * any catalog id - the same reason {@code MCPUtility.SMSS_ENGINE_ID} superseded
 	 * {@code SMSS_PROJECT_ID} - while the two context fallbacks are always project
 	 * ids, which are themselves engine ids ({@code IProject extends IEngine}).
 	 *
@@ -722,9 +722,9 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * {@link #resolveContextEngineId(String)} for reactors that can carry on without
-	 * a project rather than fail: same precedence, but returns null instead of
-	 * throwing when nothing resolves.
+	 * {@link #resolveContextEngineId(String)} for reactors that can carry on
+	 * without a project rather than fail: same precedence, but returns null instead
+	 * of throwing when nothing resolves.
 	 *
 	 * @param engineId the caller-supplied id, may be null/blank
 	 * @return the resolved, trimmed id, or null when there is none
@@ -1300,6 +1300,37 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get the first value of a given type from a keyed GenRowStruct entry, falling
+	 * back to the first value of that type in curRow.
+	 *
+	 * Unlike the index based overloads, this picks by type rather than by position,
+	 * so it is for nouns that were passed without a key and cannot be identified by
+	 * where they sit in curRow. The keyed entry wins when it holds a value of the
+	 * type; curRow is only consulted when it does not.
+	 *
+	 * @param key  The key to retrieve from noun store.
+	 * @param type The noun type to look for in both the keyed entry and curRow.
+	 * @return The first matching value, or null when neither source has one of this
+	 *         type.
+	 */
+	protected Object getValueOfTypeFromKeyOrCurRow(String key, PixelDataType type) {
+		GenRowStruct grs = getGenRowStruct(key);
+		if (grs != null && !grs.isEmpty()) {
+			List<Object> valuesOfType = grs.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		if (this.curRow != null) {
+			List<Object> valuesOfType = this.curRow.getValuesOfType(type);
+			if (valuesOfType != null && !valuesOfType.isEmpty()) {
+				return valuesOfType.get(0);
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Get the first value from a keyed GenRowStruct entry by key index, falling
 	 * back to a value in curRow at the provided index.
 	 * 
@@ -1822,6 +1853,33 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get every string value supplied for an aliased key definition, e.g.
+	 * "media,image". {@link #organizeKeys()} resolves aliases only into
+	 * {@link #keyValue}, and only for the first value of a key, so a multi-valued
+	 * key has to be read off the noun store directly - which means the alias
+	 * resolution has to be repeated here. Values from every alias are combined, so
+	 * supplying more than one accepted name is additive rather than one silently
+	 * winning.
+	 *
+	 * @param keyDefinition A key definition, optionally comma-separated aliases.
+	 * @return Every value supplied under any of the aliases; empty when none were
+	 *         supplied.
+	 */
+	protected List<String> getListStringForAliasedKey(String keyDefinition) {
+		List<String> values = new ArrayList<>();
+		if (keyDefinition == null) {
+			return values;
+		}
+		for (String alias : keyDefinition.split(",")) {
+			GenRowStruct grs = getGenRowStruct(alias.trim());
+			if (grs != null && !grs.isEmpty()) {
+				values.addAll(grs.getAllStrValues());
+			}
+		}
+		return values;
+	}
+
+	/**
 	 * Get a list of strings from the noun store by index.
 	 * 
 	 * @param index The index of the key to retrieve from the noun store.
@@ -2104,6 +2162,21 @@ public abstract class AbstractReactor implements IReactor {
 	protected Map getMap(int index, Map defaultValue) {
 		Map value = getMap(index);
 		return value != null ? value : defaultValue;
+	}
+
+	/**
+	 * Get a map by key, falling back to the first map in curRow.
+	 *
+	 * The fallback is by type rather than by curRow index, since a map noun passed
+	 * without a key has no fixed position.
+	 *
+	 * @param key The key to retrieve from noun store.
+	 * @return The map value, or null if neither the key nor curRow holds one.
+	 */
+	@SuppressWarnings("unchecked")
+	protected Map<String, Object> getMapFromKeyOrCurRow(String key) {
+		Object value = getValueOfTypeFromKeyOrCurRow(key, PixelDataType.MAP);
+		return value instanceof Map ? (Map<String, Object>) value : null;
 	}
 
 	/**

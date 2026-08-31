@@ -45,6 +45,7 @@ import com.google.gson.Gson;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -303,65 +304,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		parameters = applyReasoningParameters(parameters);
 		parameters = applyTemperatureParameter(parameters);
 
-		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
-
-//		// TODO fullPrompt should be removed
-//		if (fullPrompt != null) {
-//			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
-//			if (context != null) {
-//				if (context.startsWith("\"")) {
-//					context = " " + context;
-//				}
-//				if (context.endsWith("\"")) {
-//					context = context + " ";
-//				}
-//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-//			}
-//		}
-//		else {
-//			if (question.startsWith("\"")) {
-//				question = " " + question;
-//			}
-//			if (question.endsWith("\"")) {
-//				question = question + " ";
-//			}
-//			question = question.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//			callMaker.append("question=").append(TRIPLE_QUOTE).append(question).append(TRIPLE_QUOTE);
-//
-//			if (context != null) {
-//				if (context.startsWith("\"")) {
-//					context = " " + context;
-//				}
-//				if (context.endsWith("\"")) {
-//					context = context + " ";
-//				}
-//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-//			}
-//
-//			// if we are doing message_json (new world playground chat)
-//			// we should ignore trying to add additional history
-//			// TODO: remove the entire chatHistory object from the python model entirely
-//			// otherwise we end up with 2 history= params being sent to the json
-//			if (!parameters.containsKey("message_json")) {
-//				if (parameters.containsKey("toolExecution")) {
-//					Map<String, Object> toolExecutionMap = (Map<String, Object>) parameters.get("toolExecution");
-//					if (chatHistory.containsKey(insight.getInsightId())) {
-//						chatHistory.get(insight.getInsightId()).add(toolExecutionMap);
-//					}
-//					parameters.remove("toolExecution");
-//				}
-//
-//				String history = getConversationHistory(insight.getUserId(), insight.getInsightId(), keepConvoHisotry);
-//				if (history != null) {
-//					// could still be null if its the first question in the convo
-//					callMaker.append(",").append("history=").append(history);
-//				}
-//			}
-//		}
-
 		if (parameters != null && !parameters.isEmpty()) {
 			Iterator<Map.Entry<String, Object>> paramEntries = parameters.entrySet().iterator();
 			boolean isFirst = true;
@@ -452,11 +395,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			video = new ArrayList<>();
 		}
 
+		if (!image.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.IMAGE);
+		}
+		if (!video.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.VIDEO);
+		}
+
 		StringBuilder callMaker = new StringBuilder();
-		callMaker.append(varName).append(".multi_modal_embeddings(")
-				.append("text = ").append(PyUtils.determineStringType(text))
-				.append(", image = ").append(PyUtils.determineStringType(image))
-				.append(", video = ").append(PyUtils.determineStringType(video));
+		callMaker.append(varName).append(".multi_modal_embeddings(").append("text = ")
+				.append(PyUtils.determineStringType(text)).append(", image = ")
+				.append(PyUtils.determineStringType(image)).append(", video = ")
+				.append(PyUtils.determineStringType(video));
 
 		if (parameters != null && !parameters.isEmpty()) {
 			Iterator<String> paramKeys = parameters.keySet().iterator();

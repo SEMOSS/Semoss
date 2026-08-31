@@ -29,81 +29,39 @@ package prerna.engine.impl.vector;
 
 import java.util.Map;
 
-public class FileEmbeddingStatus {
-	private String fileName;
-    private String status;
-    private long insertedRecords;
-    private long failedRecords;
-    private long totalRecords;
-	private Map<String, Object> error;
+/**
+ * The outcome of embedding one file.
+ *
+ * The component names match the field names of the class this replaced, so the
+ * JSON handed back to callers is unchanged.
+ *
+ * @param fileName        the file this status describes
+ * @param status          "SUCCESS", "PARTIAL" or "FAILED"
+ * @param insertedRecords rows successfully embedded
+ * @param failedRecords   rows that could not be embedded
+ * @param totalRecords    rows attempted
+ * @param error           error detail from buildEmbeddingError, null when there
+ *                        is nothing to report
+ */
+public record FileEmbeddingStatus(String fileName, String status, long insertedRecords, long failedRecords,
+		long totalRecords, Map<String, Object> error) {
 
-    public FileEmbeddingStatus() {}
-
-    public FileEmbeddingStatus(String fileName, String status, long insertedRecords, long failedRecords, long totalRecords) {
-    	this.fileName = fileName;
-        this.status = status;
-        this.insertedRecords = insertedRecords;
-        this.failedRecords = failedRecords;
-        this.totalRecords = totalRecords;
-    }
-
+	/**
+	 * For the common case of a status with no error attached.
+	 */
 	public FileEmbeddingStatus(String fileName, String status, long insertedRecords, long failedRecords,
-				long totalRecords, Map<String, Object> error) {
-		this.fileName = fileName;
-		this.status = status;
-		this.insertedRecords = insertedRecords;
-		this.failedRecords = failedRecords;
-		this.totalRecords = totalRecords;
-		this.error = error;
-	}
-    
-    public String getFileName() {
-		return fileName;
+			long totalRecords) {
+		this(fileName, status, insertedRecords, failedRecords, totalRecords, null);
 	}
 
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
+	/**
+	 * Copy of this status with the error attached. Replaces the old setError, since
+	 * a record cannot be mutated after construction.
+	 *
+	 * @param error error detail to attach
+	 * @return a new status, this one is left alone
+	 */
+	public FileEmbeddingStatus withError(Map<String, Object> error) {
+		return new FileEmbeddingStatus(fileName, status, insertedRecords, failedRecords, totalRecords, error);
 	}
-
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
-	}
-
-	public long getInsertedRecords() {
-		return insertedRecords;
-	}
-
-	public void setInsertedRecords(long insertedRecords) {
-		this.insertedRecords = insertedRecords;
-	}
-
-	public long getFailedRecords() {
-		return failedRecords;
-	}
-
-	public void setFailedRecords(long failedRecords) {
-		this.failedRecords = failedRecords;
-	}
-
-	public long getTotalRecords() {
-		return totalRecords;
-	}
-
-	public void setTotalRecords(long totalRecords) {
-		this.totalRecords = totalRecords;
-	}
-
-	public Map<String, Object> getError() {
-		return error;
-	}
-
-	public void setError(Map<String, Object> error) {
-		this.error = error;
-	}
-
-   
 }

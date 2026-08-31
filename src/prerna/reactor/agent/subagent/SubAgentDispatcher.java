@@ -94,11 +94,17 @@ public final class SubAgentDispatcher {
     public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args,
             Room parentRoom, Insight callerInsight, String parentJobId, String parentAuthoredSystemPrompt) {
         String prompt  = stringArg(args, "prompt");
-        String context = stringArg(args, "context");
         boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
         if (prompt == null) {
             return GSON.toJson(error("Missing required argument 'prompt' for named subagent '"
                     + spec.getAlias() + "'"));
+        }
+        // Named subagents own their system prompt through workspace configuration. Fold
+        // legacy callers' context value into the ordinary task input instead of allowing
+        // it to replace the named agent's authored system prompt.
+        String legacyContext = stringArg(args, "context");
+        if (legacyContext != null) {
+            prompt = prompt + "\n\nAdditional task context:\n" + legacyContext;
         }
 
         SpawnRequest req = new SpawnRequest();
@@ -109,7 +115,6 @@ public final class SubAgentDispatcher {
         req.alias                = spec.getAlias();
         req.workspaceId          = spec.getWorkspaceId();
         req.prompt               = prompt;
-        req.additionalContext    = context;
         req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
         req.callerInsight        = callerInsight;
         if (inheritParentWorkdir) {

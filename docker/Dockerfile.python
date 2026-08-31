@@ -82,7 +82,7 @@ ENV PATH=$VIRTUAL_ENV/bin:$PATH
 # Install additional dependencies with retry for transient Ubuntu mirror issues
 RUN rm -rf /var/lib/apt/lists/* \
     && for i in 1 2 3; do apt-get update && break || (sleep 10 && rm -rf /var/lib/apt/lists/*); done \
-    && apt-get install -y --no-install-recommends --fix-missing tesseract-ocr \
+    && apt-get install -y --no-install-recommends --fix-missing tesseract-ocr ca-certificates \
     && apt-get -y autoremove \
     && rm -rf /var/lib/apt/lists/*
 

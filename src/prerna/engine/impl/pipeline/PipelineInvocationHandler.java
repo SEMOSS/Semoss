@@ -67,7 +67,10 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.logging.LoggingEngineSerializer;
 import prerna.logging.LoggingIReactorSerializer;
@@ -129,6 +132,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	// took
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
+	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -315,9 +319,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
+					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
 					// MASK when the guardrail neutralized content, BLOCK when it stopped the
-					// request, null when it ran clean - queryable via the GUARDRAIL_ACTION column
-					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+					// request, RESPOND when it supplied the answer itself, null when it ran clean
+					// - queryable via the GUARDRAIL_ACTION column
+					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
+							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
 
 					String request = null;
 					String response = null;
@@ -334,9 +341,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
 							reactor.getClass().getSimpleName(), null, null, null, guardrailAction);
 
+					if (cannedResponse != null) {
+						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
+							throw new SemossPixelException(blockMessageOrDefault(resultMap,
+									"Unable to process this request due to content policy (guardrail input exception)"));
+						}
+						classLogger.warn("Guardrail {} short-circuited the model call with a canned response",
+								reactor.getClass().getSimpleName());
+						return new AskStringModelEngineResponse(cannedResponse, 0, 0);
+					}
+
 					if (!pass) {
-						throw new SemossPixelException(
-								"Unable to process this request due to content policy (guardrail input exception)");
+						closeRoomIfRequested(resultMap, args);
+						throw new SemossPixelException(blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail input exception)"));
 					}
 				}
 			}
@@ -440,14 +458,40 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
 
 					if (!pass) {
-						throw new SemossPixelException(
-								"Unable to process this request due to content policy (guardrail output exception)");
+						closeRoomIfRequested(resultMap, args);
+						throw new SemossPixelException(blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail output exception)"));
 					}
 				}
 			}
 
 			return processedArguments.get(PipelineReactorUtils.RESULT);
 		}
+	}
+
+	private void closeRoomIfRequested(Map<String, Object> resultMap, Object[] args) {
+		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.CLOSE_ROOM))) {
+			return;
+		}
+		for (Object arg : args) {
+			if (arg instanceof Room) {
+				Room room = (Room) arg;
+				try {
+					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
+					ModelInferenceLogsUtils.doSetRoomToInactive(userId, room.getId());
+					classLogger.warn("Guardrail closed room {} after a block", room.getId());
+				} catch (Exception e) {
+					// never let bookkeeping suppress the block itself
+					classLogger.error("Failed to close room after guardrail block", e);
+				}
+				return;
+			}
+		}
+	}
+
+	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {
+		String configured = (String) resultMap.get(PipelineReactorUtils.BLOCK_ERROR_MESSAGE);
+		return configured != null && !configured.isEmpty() ? configured : fallback;
 	}
 
 	/**
