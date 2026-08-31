@@ -13,9 +13,10 @@ down when done.
 | [semoss-clickhouse.yml](semoss-clickhouse.yml) | ClickHouse 25.8 | 8123 (HTTP), 9010 (-> 9000 native) | clickhouse / clickhouse | database (`CLICKHOUSE`) |
 | [semoss-minio.yml](semoss-minio.yml) | MinIO 2025-09-07 | 9100 (-> 9000 S3 API), 9101 (-> 9001 UI) | minioadmin / minioadmin | storage (`MINIO`) |
 | [semoss-sftp.yml](semoss-sftp.yml) | atmoz/sftp (alpine) | 2222 (-> 22) | foo / pass | storage (`SFTP`) |
+| [semoss-mail.yml](semoss-mail.yml) | GreenMail 2.1.13 | 3025 SMTP, 3110 POP3, 3143 IMAP, 3465/3995/3993 TLS, 8085 (-> 8080) API | semoss@semoss.local / semoss, reports@semoss.local / reports | function (`SMTP`, `POP3`, `IMAP`) |
 
 ```bash
-docker compose -f semoss-weaviate.yml up -d      # or -chroma / -opensearch / -pgvector / -clickhouse / -minio / -sftp
+docker compose -f semoss-weaviate.yml up -d      # or -chroma / -opensearch / -pgvector / -clickhouse / -minio / -sftp / -mail
 docker compose -f semoss-weaviate.yml down       # add -v to also wipe the data volume
 ```
 
@@ -29,6 +30,7 @@ docker exec semoss-pgvector pg_isready -U pgvector        # pgvector
 curl http://localhost:8123/ping                          # clickhouse (returns "Ok.")
 curl -i http://localhost:9100/minio/health/live          # minio (204 when ready)
 docker exec semoss-sftp nc -z localhost 22 && echo ok    # sftp
+curl http://localhost:8085/api/service/readiness          # mail (greenmail)
 ```
 
 ## Networking: connecting from SEMOSS
@@ -56,6 +58,7 @@ jdbc:postgresql://semoss-pgvector:5432/vectordb   (pgvector, internal port 5432)
 jdbc:clickhouse://semoss-clickhouse:8123/semoss   (clickhouse, HTTP port 8123)
 http://semoss-minio:9000                          (minio, internal S3 API port 9000)
 semoss-sftp:22                                    (sftp, internal port 22)
+semoss-mail:3025 / :3110 / :3143                   (mail, smtp / pop3 / imap)
 ```
 
 **SEMOSS on your host** (not in Docker) - use `localhost` and the published port:
@@ -68,6 +71,7 @@ jdbc:postgresql://localhost:5433/vectordb           (pgvector, host port 5433)
 jdbc:clickhouse://localhost:8123/semoss             (clickhouse, host port 8123)
 http://localhost:9100                               (minio, host port 9100)
 localhost:2222                                      (sftp, host port 2222)
+localhost:3025 / :3110 / :3143                       (mail, same ports on the host)
 ```
 
 > **pgvector port note:** pgvector is just Postgres, the same as the SEMOSS `db`
@@ -88,6 +92,12 @@ localhost:2222                                      (sftp, host port 2222)
 > `9000` / `9001`, so SEMOSS-in-Docker connects on `9000` by container name; only
 > host access uses `9100`. If those host ports are taken, change the left side of
 > `"9100:9000"` / `"9101:9001"` in [semoss-minio.yml](semoss-minio.yml).
+
+> **Mail port note:** GreenMail serves on `3025` / `3110` / `3143` instead of the
+> real `25` / `110` / `143` so it needs no privileges, and it publishes them
+> unmapped, so the port is the same from Docker and from the host. The mail engines
+> default to the real ports, so `SMTP_PORT` / `POP3_PORT` / `IMAP_PORT` always have
+> to be set for this server.
 
 ## SEMOSS vector engine settings
 
@@ -257,12 +267,197 @@ the folder itself.
 > setup is needed for local testing. That also means it will not notice a changed
 > host key, which matters beyond your machine.
 
+## SEMOSS function engine settings
+
+[semoss-mail.yml](semoss-mail.yml) runs GreenMail, which speaks SMTP, POP3 and
+IMAP at once, so one container backs all three mail function engines. Mail lives
+in memory: restarting the container is the fastest way to get an empty mailbox
+again.
+
+A function engine takes three keys on top of its own settings, and all three have
+to be present - `AbstractFunctionEngine` refuses to open an SMSS that is missing
+`FUNCTION_NAME` or `FUNCTION_DESCRIPTION`. The description may be left blank
+though, and each engine then publishes its own:
+
+```
+FUNCTION_TYPE           SMTP | POP3 | IMAP
+FUNCTION_NAME           <what a model calls this, e.g. send_email>
+FUNCTION_DESCRIPTION    <what it does; blank falls back to the engine's own wording>
+```
+
+Leave `FUNCTION_PARAMETERS` and `FUNCTION_REQUIRED_PARAMETERS` unset unless you
+want to override what the engine publishes. Each engine fills them in from its own
+settings, so the parameter descriptions already carry the limits it was given.
+
+### SMTP (sending)
+
+```
+FUNCTION_TYPE              SMTP
+SMTP_HOST                  semoss-mail    (SEMOSS in Docker; use localhost if SEMOSS runs on host)
+SMTP_PORT                  3025
+SMTP_SECURITY              none           (starttls / ssl / none - see the TLS note below)
+SMTP_USERNAME              semoss@semoss.local
+SMTP_PASSWORD              semoss
+SMTP_SENDER                semoss@semoss.local
+SMTP_SENDER_NAME           <optional; display name on the from header>
+ALLOW_SENDER_OVERRIDE      <optional; true to let a call send as another address, defaults to false>
+ALLOWED_RECIPIENT_DOMAINS  <optional; e.g. semoss.local - blank allows any recipient>
+DEFAULT_TO                 <optional; recipients used when a call passes none>
+DEFAULT_CC                 <optional>
+DEFAULT_BCC                <optional>
+SUBJECT_PREFIX             <optional; prepended to every subject>
+HTML                       <optional; default for the html parameter, defaults to false>
+MAX_RECIPIENTS             <optional; cap per email, defaults to 25>
+ALLOW_ATTACHMENTS          <optional; true to allow attachments, defaults to false>
+CONNECTION_TIMEOUT         <optional; ms, defaults to 10000>
+READ_TIMEOUT               <optional; ms, defaults to 30000>
+```
+
+Sending cannot be undone, so the guardrails sit in the SMSS rather than with the
+caller: the sender is pinned to `SMTP_SENDER` unless `ALLOW_SENDER_OVERRIDE` is
+on, recipients outside `ALLOWED_RECIPIENT_DOMAINS` are rejected, the recipient
+count is capped, and attachments are refused until `ALLOW_ATTACHMENTS` is set.
+Attachments also have to already be files of the insight making the call.
+
+Read what arrived at http://localhost:8085 (the GreenMail UI), or with
+`curl "http://localhost:8085/api/user/reports@semoss.local/messages/"`.
+
+### POP3 (reading, single inbox)
+
+```
+FUNCTION_TYPE              POP3
+POP3_HOST                  semoss-mail    (host: localhost)
+POP3_PORT                  3110
+POP3_SECURITY              none
+POP3_USERNAME              reports@semoss.local
+POP3_PASSWORD              reports
+MAX_MESSAGES               <optional; cap per call, defaults to 25>
+DEFAULT_MESSAGES           <optional; returned when a call passes no limit, defaults to 10>
+MAX_BODY_CHARS             <optional; longer bodies come back truncated, defaults to 10000>
+ALLOWED_SENDER_DOMAINS     <optional; only mail from these domains is surfaced at all>
+ALLOW_ATTACHMENT_DOWNLOAD  <optional; true to save attachments into the calling insight, defaults to false>
+MAX_ATTACHMENT_SIZE        <optional; bytes, defaults to 5242880>
+CONNECTION_TIMEOUT         <optional; ms, defaults to 10000>
+READ_TIMEOUT               <optional; ms, defaults to 30000>
+```
+
+POP3 has one inbox, no folders, no record of what has been read, and no search, so
+the engine filters the mailbox itself: it walks back from the newest message and
+stops once it has enough matches. A search that matches nothing therefore reads
+the whole mailbox, so prefer a `sinceDays` on a big one. The engine never deletes
+anything - a POP3 delete happens the moment the connection closes and cannot be
+walked back.
+
+### IMAP (reading, folders, and changes)
+
+```
+FUNCTION_TYPE              IMAP
+IMAP_HOST                  semoss-mail    (host: localhost)
+IMAP_PORT                  3143
+IMAP_SECURITY              none
+IMAP_USERNAME              reports@semoss.local
+IMAP_PASSWORD              reports
+DEFAULT_FOLDER             <optional; folder a call reads when it names none, defaults to INBOX>
+ALLOWED_FOLDERS            <optional; e.g. INBOX,Archive - blank allows any folder>
+MARK_AS_READ               <optional; true to mark what the engine returns as read, defaults to false>
+ALLOW_FLAG_CHANGES         <optional; true to allow markRead / markUnread, defaults to false>
+ALLOW_MOVE                 <optional; true to allow move, defaults to false>
+ALLOW_DELETE               <optional; true to allow delete, defaults to false>
+MAX_MESSAGES               <optional; cap per call, also caps how many uids one change can touch, defaults to 25>
+DEFAULT_MESSAGES           <optional; defaults to 10>
+MAX_BODY_CHARS             <optional; defaults to 10000>
+ALLOWED_SENDER_DOMAINS     <optional>
+ALLOW_ATTACHMENT_DOWNLOAD  <optional; defaults to false>
+MAX_ATTACHMENT_SIZE        <optional; bytes, defaults to 5242880>
+CONNECTION_TIMEOUT         <optional; ms, defaults to 10000>
+READ_TIMEOUT               <optional; ms, defaults to 30000>
+```
+
+A search opens the folder read only, so looking at a mailbox does not mark
+anything seen unless `MARK_AS_READ` is on. Changing the mailbox goes through the
+`action` parameter - `markRead`, `markUnread`, `move`, `delete` - and each is
+missing from what the engine publishes until the matching `ALLOW_` key is set, so
+a model never sees an action it cannot use. Every change takes the `uid` a search
+returned. `move` is a copy into the target folder followed by deleting the
+original, since IMAP has no move, and the engine reads folders but never creates
+them: make `Archive` from a mail client (or `docker exec` an IMAP `CREATE`) before
+moving into it.
+
+To try the whole set against GreenMail, create the IMAP engine with
+`ALLOW_FLAG_CHANGES`, `ALLOW_MOVE` and `ALLOW_DELETE` set to true, send yourself a
+few messages through the SMTP engine, then search with `unreadOnly true` and pass
+a returned `uid` back with `action markRead`.
+
+### GreenMail specifics worth knowing
+
+- **The login is the whole address.** `-Dgreenmail.users=semoss@semoss.local:semoss`
+  creates a mailbox whose username is `semoss@semoss.local`, not `semoss`. Add
+  `-Dgreenmail.auth.disabled` to `GREENMAIL_OPTS` to accept any login instead,
+  which also creates the mailbox on the fly.
+- **POP3 and IMAP share one store.** Reading a message over POP3 marks it seen for
+  IMAP, so an `unreadOnly` IMAP search right after a POP3 read comes back empty.
+- **Mail is only in memory.** `docker compose -f semoss-mail.yml restart` is the
+  reset button.
+- **Any recipient is accepted.** GreenMail delivers to addresses that were never
+  configured, so you can send to `whoever@semoss.local` and read it back from the
+  API even though no such mailbox was declared.
+
+### Using the TLS ports
+
+GreenMail also serves SMTPS / POP3S / IMAPS on `3465` / `3995` / `3993`, but with a
+self-signed certificate that does not match the host. The engines require TLS that
+is both trusted and hostname-matched, so they refuse it, correctly:
+
+```
+Error occurred connecting to the mail server defined. Detailed error: PKIX path
+building failed ... unable to find valid certification path to requested target
+```
+
+Any key starting with `mail.` is passed straight through to jakarta.mail, applied
+after the engine's own defaults so it wins, and matched whichever case it is
+written in - the reactor that creates an engine upper cases every key, and
+jakarta.mail only answers to its own lower case names. Two of those keys relax
+exactly this:
+
+```
+IMAP_PORT                            3993
+IMAP_SECURITY                        ssl
+MAIL.IMAPS.SSL.TRUST                 localhost   (or semoss-mail from Docker)
+MAIL.IMAPS.SSL.CHECKSERVERIDENTITY   false
+```
+
+Use `MAIL.POP3S.*` or `MAIL.SMTP.*` for the other two protocols. Both keys are
+needed: trusting the certificate still leaves the hostname check to fail.
+
+> Those two keys are the point of the passthrough, and they are also the two you
+> must never carry to a real mail server - together they accept any certificate
+> from anyone. For local testing the plaintext ports are the simpler choice.
+
+### Testing the SendEmail pixel
+
+`SendEmail` can be pointed at a mail server per call, without creating an engine at
+all, which is the quickest way to check a template:
+
+```
+SendEmail(smtpHost=["localhost"], smtpPort=["3025"], smtpSecurity=["none"],
+          from=["semoss@semoss.local"], to=["reports@semoss.local"],
+          subject=["Test"], message=["Hello"]);
+```
+
+`smtpSecurity` matters here: with no credentials the call defaults to `none`, but
+with `username` / `password` it defaults to `starttls`, which GreenMail's plaintext
+port does not offer. Left to itself, `SendEmail` uses the instance wide mail server
+from `social.properties` instead - the `smtp_*` keys, which the
+[docker configuration guide](../../docs/deployment/docker_configuration.md)
+covers.
+
 ## Notes
 
 - All credentials here (`test-key`, `admin` / `Str0ngVectorP@ss1`,
   `pgvector` / `pgvector`, `clickhouse` / `clickhouse`,
-  `minioadmin` / `minioadmin`, `foo` / `pass`) are local-dev defaults - change
-  them before using any of this beyond your machine.
+  `minioadmin` / `minioadmin`, `foo` / `pass`,
+  `semoss@semoss.local` / `semoss`, `reports@semoss.local` / `reports`) are
+  local-dev defaults - change them before using any of this beyond your machine.
 - Each service uses fixed container names, so run one instance of each at a time.
 - `EMBEDDER_ENGINE_ID` must reference an embedder model engine that already exists
   in your SEMOSS instance.

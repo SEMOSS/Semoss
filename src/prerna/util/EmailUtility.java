@@ -37,6 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Multipart;
@@ -54,6 +55,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.engine.impl.function.SMTPFunctionEngine;
 import prerna.usertracking.UserTrackingUtils;
 
 public class EmailUtility {
@@ -135,7 +137,7 @@ public class EmailUtility {
 			String[] attachments) {
 		if ((toRecipients == null || toRecipients.length == 0) && (ccRecipients == null || ccRecipients.length == 0)
 				&& (bccRecipients == null || bccRecipients.length == 0)) {
-			classLogger.info("No receipients to send an email to");
+			classLogger.info("No recipients to send the email with subject '{}' to", subject);
 			return false;
 		}
 
@@ -186,8 +188,10 @@ public class EmailUtility {
 					try {
 						attachmentBodyPart.attachFile(new File(filePath));
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("Error adding attachment");
+						classLogger.error("Error attaching the file {} to the email with subject '{}'", filePath,
+								subject, e);
+						throw new IllegalArgumentException(
+								"Error adding the attachment " + new File(filePath).getName(), e);
 					}
 					attachmentBodyPart.setFileName(new File(filePath).getName());
 					multipart.addBodyPart(attachmentBodyPart);
@@ -198,24 +202,20 @@ public class EmailUtility {
 			// Send email
 			Transport.send(email);
 			// Log email
-			StringBuilder logMessage = new StringBuilder("Email subject = '" + subject).append("' has been sent: ");
-			if (toRecipients != null) {
-				logMessage.append("to ").append(Arrays.toString(toRecipients)).append(". ");
-			}
-			if (ccRecipients != null) {
-				logMessage.append("cc ").append(Arrays.toString(ccRecipients)).append(". ");
-			}
-			if (bccRecipients != null) {
-				logMessage.append("bcc ").append(Arrays.toString(bccRecipients)).append(". ");
-			}
-			classLogger.info(logMessage.toString());
+			classLogger.info("Email with subject '{}' has been sent. to = {}, cc = {}, bcc = {}", subject,
+					Arrays.toString(toRecipients), Arrays.toString(ccRecipients), Arrays.toString(bccRecipients));
 
 			return true;
+		} catch (AuthenticationFailedException e) {
+			classLogger.error("The mail server {} refused the credentials for {}",
+					emailSession.getProperty("mail.smtp.host"), from, e);
 		} catch (SendFailedException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new RuntimeException("Bad SMTP Connection");
-		} catch (MessagingException me) {
-			classLogger.error(Constants.STACKTRACE, me);
+			classLogger.error("The mail server would not accept the email with subject '{}' for {}", subject,
+					Arrays.toString(toRecipients), e);
+			throw new RuntimeException("The mail server would not accept the email. Detailed error: " + e.getMessage(),
+					e);
+		} catch (MessagingException e) {
+			classLogger.error("Error sending the email with subject '{}' from {}", subject, from, e);
 		}
 
 		return false;
@@ -252,7 +252,8 @@ public class EmailUtility {
 	 */
 	public static void sendAccessRequestEmailNotification(User requestingUser, String resourceId,
 			String requestedPermission, String requestComment, RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -315,9 +316,8 @@ public class EmailUtility {
 			emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -332,7 +332,8 @@ public class EmailUtility {
 	 */
 	public static void sendInsightAccessRequestEmailNotification(User requestingUser, String projectId,
 			String insightId, String requestedPermission, String requestComment) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -370,9 +371,8 @@ public class EmailUtility {
 		emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
 		emailReplacements.put(REQUEST_REASON_REPLACEMENT, requestComment);
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), INSIGHT_ACCESS_REQUEST_SUBJECT, message, true,
 				null);
 	}
@@ -389,7 +389,8 @@ public class EmailUtility {
 	 */
 	public static void sendAccessRequestApprovalEmailNotification(User currentUser, String affectedUserId,
 			String engineId, String affectedUserPermission, RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -447,9 +448,8 @@ public class EmailUtility {
 			recipients.add(userEmail);
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -463,7 +463,8 @@ public class EmailUtility {
 	 */
 	public static void sendSmssUpdateEmailNotification(User currentUser, String engineId,
 			RESOURCE_TYPE accessRequestType) {
-		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+		SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+		if (mailEngine == null) {
 			return;
 		}
 
@@ -515,9 +516,8 @@ public class EmailUtility {
 			emailReplacements.put(PROJECT_BLOCK_REPLACEMENT, "");
 		}
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+		mailEngine.sendEmail(recipients.toArray(new String[0]), null, null,
 				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
@@ -540,7 +540,7 @@ public class EmailUtility {
 			try {
 				template = FileUtils.readFileToString(templateFile, "UTF-8");
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error reading the email template {}", templatePath, e);
 			}
 		}
 		return template;
