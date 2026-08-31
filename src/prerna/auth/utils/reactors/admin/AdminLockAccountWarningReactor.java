@@ -29,6 +29,7 @@ package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +38,10 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.impl.function.SMTPFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -75,9 +76,15 @@ public class AdminLockAccountWarningReactor extends AbstractReactor {
 
 		List<String> emailsSentTo = new ArrayList<>();
 
-		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
 		List<Object[]> listToEmail = adminUtils.getUserEmailsGettingLocked();
 		if (!listToEmail.isEmpty()) {
+			// looked up only once there is somebody to warn, so a mail server is not
+			// required to find out that nobody is about to be locked out
+			SMTPFunctionEngine mailEngine = SocialPropertiesUtil.getInstance().getSmtpEngine();
+			if (mailEngine == null) {
+				throw new IllegalArgumentException("Need to define an smtp server to send the account lock warnings");
+			}
+
 			final String DAYS_SINCE_LAST_LOGIN_REPLACEMENT = "$daysSinceLastLogin$";
 			final String DAYS_TO_LOCK_REPLACEMENT = "$daysToLock$";
 
@@ -91,7 +98,7 @@ public class AdminLockAccountWarningReactor extends AbstractReactor {
 			File templateFile = new File(templatePath);
 			if (templateFile.exists() && templateFile.isFile()) {
 				try {
-					template = FileUtils.readFileToString(templateFile);
+					template = FileUtils.readFileToString(templateFile, StandardCharsets.UTF_8);
 				} catch (IOException e) {
 					classLogger.error("Unable to send account-lock warning notifications.", e);
 					classLogger.info("Using default account lock warning text");
@@ -117,7 +124,7 @@ public class AdminLockAccountWarningReactor extends AbstractReactor {
 				emailReplacements.put(DAYS_SINCE_LAST_LOGIN_REPLACEMENT, daysSinceLastLogin + "");
 				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
 
-				EmailUtility.sendEmail(emailSession, new String[] { email }, null, null,
+				mailEngine.sendEmail(new String[] { email }, null, null,
 						SocialPropertiesUtil.getInstance().getSmtpSender(), "WARNING! Account Locking Soon", message,
 						true, null);
 
