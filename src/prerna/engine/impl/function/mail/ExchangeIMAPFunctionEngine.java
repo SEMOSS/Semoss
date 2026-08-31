@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.util.Properties;
 
@@ -46,7 +46,7 @@ import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
  * carries application permissions, so nobody has to be signed in for a read to
  * work: the engine reads the one mailbox it was pointed at, on behalf of the
  * application.
- *
+ * 
  * <p>
  * The Azure side has to be set up to match: the app registration needs the
  * {@code IMAP.AccessAsApp} application permission with admin consent, and
@@ -94,6 +94,8 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 		// fails on open rather than on the first read
 		this.tokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp);
 
+		ExchangeMailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))), key(USERNAME_SUFFIX));
+
 		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
 			// a password here is a sign the engine was set up as though it were a
 			// plain mailbox, and Exchange would refuse it anyway
@@ -127,6 +129,19 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 		return true;
 	}
 
+	/**
+	 * How this engine reads when the SMSS does not say. Graph, because it needs one
+	 * application permission where the protocol needs that plus a service principal
+	 * and a mailbox grant, and because Microsoft keeps narrowing what the protocol
+	 * endpoints will do.
+	 *
+	 * @return the transport name
+	 */
+	@Override
+	protected String getDefaultTransport() {
+		return ExchangeMailOAuth.GRAPH_TRANSPORT;
+	}
+
 	@Override
 	protected boolean requiresPassword() {
 		return false;
@@ -139,6 +154,17 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 
 	@Override
 	protected String getAuthenticationHint() {
+		if (isGraphTransport()) {
+			// graph asks for one permission and nothing else, and only needs the
+			// write one when this engine was told it may change the mailbox
+			return ExchangeMailOAuth
+					.graphAuthenticationHint(changesTheMailbox() ? ExchangeMailOAuth.GRAPH_READ_WRITE_PERMISSION
+							: ExchangeMailOAuth.GRAPH_READ_PERMISSION);
+		}
+		// what the token carries tells the three causes apart, so it goes in the log
+		// rather than leaving the reader to guess which half of the setup is missing
+		classLogger.error("Exchange refused the sign in for {} and {}", this.username,
+				ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider));
 		return ExchangeMailOAuth.authenticationHint(IMAP_PERMISSION, null);
 	}
 

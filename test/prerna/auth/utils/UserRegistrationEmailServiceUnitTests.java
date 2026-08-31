@@ -52,7 +52,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
-import prerna.engine.impl.function.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.SMTPFunctionEngine;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 

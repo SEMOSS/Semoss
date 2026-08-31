@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +56,7 @@ import prerna.engine.api.FunctionTypeEnum;
  * walking back from the newest message and stopping once it has enough matches.
  * A search that matches nothing therefore costs a read of the whole mailbox, so
  * an engine pointed at a large one wants a narrow {@code sinceDays}.
- *
+ * 
  * <p>
  * Nothing here removes a message. POP3 deletion happens on the server the
  * moment the connection closes and cannot be undone, and a mailbox that a
@@ -67,7 +67,7 @@ public class POP3FunctionEngine extends AbstractMailStoreFunctionEngine {
 	private static final Logger classLogger = LogManager.getLogger(POP3FunctionEngine.class);
 
 	// public so a caller building this engine in memory rather than from a
-	// catalogued SMSS can populate the properties by name
+	// cataloged SMSS can populate the properties by name
 	public static final String POP3_HOST_KEY = "POP3_" + HOST_SUFFIX;
 	public static final String POP3_PORT_KEY = "POP3_" + PORT_SUFFIX;
 	public static final String POP3_USERNAME_KEY = "POP3_" + USERNAME_SUFFIX;

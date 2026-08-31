@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function;
+package prerna.engine.impl.function.mail;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -52,6 +52,7 @@ import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import jakarta.mail.search.SubjectTerm;
 import prerna.engine.api.FunctionTypeEnum;
+import prerna.engine.impl.function.FunctionParameter;
 
 /**
  * Function engine that reads a mailbox over IMAP.
@@ -62,7 +63,7 @@ import prerna.engine.api.FunctionTypeEnum;
  * message has a uid that is still valid on the next connection. That uid is
  * what makes it possible to do more than read - a caller can hand one back to
  * mark a message, file it, or throw it away.
- *
+ * 
  * <p>
  * Those changes are the reason this engine is more locked down than it looks. A
  * search opens the folder read only, so nothing is marked seen just because
@@ -77,7 +78,7 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	private static final Logger classLogger = LogManager.getLogger(IMAPFunctionEngine.class);
 
 	// public so a caller building this engine in memory rather than from a
-	// catalogued SMSS can populate the properties by name
+	// cataloged SMSS can populate the properties by name
 	public static final String IMAP_HOST_KEY = "IMAP_" + HOST_SUFFIX;
 	public static final String IMAP_PORT_KEY = "IMAP_" + PORT_SUFFIX;
 	public static final String IMAP_USERNAME_KEY = "IMAP_" + USERNAME_SUFFIX;
@@ -110,12 +111,12 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	private String defaultFolder = INBOX_FOLDER;
 
 	// blank means any folder of the mailbox can be named
-	private Set<String> allowedFolders = new LinkedHashSet<>();
+	protected Set<String> allowedFolders = new LinkedHashSet<>();
 
-	private boolean markAsRead = false;
-	private boolean allowFlagChanges = false;
-	private boolean allowMove = false;
-	private boolean allowDelete = false;
+	protected boolean markAsRead = false;
+	protected boolean allowFlagChanges = false;
+	protected boolean allowMove = false;
+	protected boolean allowDelete = false;
 
 	/**
 	 * Build an IMAP engine that is not in the catalog, for a caller that already
@@ -185,6 +186,10 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	@Override
 	protected Object executeMailAction(String action, Map<String, Object> parameterValues) {
 		String folderName = resolveFolderName(getParameterValue(parameterValues, FOLDER_PARAM, null));
+		if (isGraphTransport()) {
+			return executeGraphAction(action, folderName, parameterAsList(parameterValues, UID_PARAM),
+					getParameterValue(parameterValues, TARGET_FOLDER_PARAM, null));
+		}
 		List<Long> uids = parseUids(parameterAsList(parameterValues, UID_PARAM));
 
 		if (MARK_READ_ACTION.equalsIgnoreCase(action)) {
@@ -213,6 +218,107 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	}
 
 	/**
+	 * Do one of the changes through Graph rather than the protocol.
+	 *
+	 * <p>
+	 * The same settings gate it, so an engine that may not delete over IMAP may not
+	 * delete over Graph either. What differs is only how a message is named: Graph
+	 * uses the opaque id it handed back on the search where the protocol uses a
+	 * number.
+	 *
+	 * @param action       the action the caller asked for
+	 * @param folderName   the folder the messages are in
+	 * @param ids          the messages to act on
+	 * @param targetFolder the folder to move to, for a move
+	 * @return a map describing what changed
+	 */
+	private Object executeGraphAction(String action, String folderName, List<String> ids, String targetFolder) {
+		if (ids == null || ids.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must define the " + UID_PARAM + " parameter to know which message to act on");
+		}
+		if (ids.size() > this.maxMessages) {
+			throw new IllegalArgumentException("This function engine acts on at most " + this.maxMessages
+					+ " messages per call but " + ids.size() + " were provided");
+		}
+
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put("action", action);
+		output.put("folder", folderName);
+		output.put("requested", ids.size());
+		output.put("uids", ids);
+
+		if (MARK_READ_ACTION.equalsIgnoreCase(action) || MARK_UNREAD_ACTION.equalsIgnoreCase(action)) {
+			requireFlagChanges();
+			output.put("affected", getGraphReader().mark(getGraphToken(), this.username, ids,
+					MARK_READ_ACTION.equalsIgnoreCase(action)));
+			return output;
+		}
+		if (MOVE_ACTION.equalsIgnoreCase(action)) {
+			requireMove(targetFolder, folderName);
+			List<String> moved = getGraphReader().move(getGraphToken(), this.username, ids, targetFolder);
+			output.put("affected", moved.size());
+			output.put(TARGET_FOLDER_PARAM, targetFolder);
+			// graph reissues the id on a move, so the old ones no longer name anything
+			output.put("uids", moved);
+			return output;
+		}
+		if (DELETE_ACTION.equalsIgnoreCase(action)) {
+			requireDelete();
+			output.put("affected", getGraphReader().delete(getGraphToken(), this.username, ids));
+			return output;
+		}
+		throw new IllegalArgumentException(
+				"The '" + action + "' action is not something this function engine can do. The actions available are "
+						+ availableActions());
+	}
+
+	/**
+	 * Refuse a mark when the engine was not told it could make one.
+	 */
+	private void requireFlagChanges() {
+		if (!this.allowFlagChanges) {
+			throw new IllegalArgumentException("This function engine cannot change whether a message is read. Set "
+					+ ALLOW_FLAG_CHANGES_KEY + " in the SMSS to allow it");
+		}
+	}
+
+	/**
+	 * Refuse a move when the engine was not told it could make one, or when the
+	 * target is not a folder it may use.
+	 *
+	 * @param targetFolder the folder to move to
+	 * @param folderName   the folder the messages are in
+	 */
+	private void requireMove(String targetFolder, String folderName) {
+		if (!this.allowMove) {
+			throw new IllegalArgumentException(
+					"This function engine cannot move a message. Set " + ALLOW_MOVE_KEY + " in the SMSS to allow it");
+		}
+		if (targetFolder == null) {
+			throw new IllegalArgumentException(
+					"Must define the " + TARGET_FOLDER_PARAM + " parameter to know where to move the message to");
+		}
+		if (!isAllowedFolder(targetFolder)) {
+			throw new IllegalArgumentException("This function engine can only use the folders " + this.allowedFolders
+					+ " but " + targetFolder + " was requested");
+		}
+		if (targetFolder.equalsIgnoreCase(folderName)) {
+			throw new IllegalArgumentException("The messages are already in " + folderName);
+		}
+	}
+
+	/**
+	 * Refuse a delete when the engine was not told it could make one.
+	 */
+	private void requireDelete() {
+		if (!this.allowDelete) {
+			throw new IllegalArgumentException("This function engine cannot delete a message. Set " + ALLOW_DELETE_KEY
+					+ " in the SMSS to allow it");
+		}
+	}
+
+	/**
 	 * Mark messages as read or unread.
 	 *
 	 * @param folderName the folder the messages are in
@@ -221,10 +327,7 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	 * @return how many messages were changed
 	 */
 	public int markMessages(String folderName, List<Long> uids, boolean seen) {
-		if (!this.allowFlagChanges) {
-			throw new IllegalArgumentException("This function engine cannot change whether a message is read. Set "
-					+ ALLOW_FLAG_CHANGES_KEY + " in the SMSS to allow it");
-		}
+		requireFlagChanges();
 		return applyToMessages(folderName, uids, false,
 				(folder, messages) -> folder.setFlags(messages, new Flags(Flags.Flag.SEEN), seen));
 	}
@@ -274,10 +377,7 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	 * @return how many messages were deleted
 	 */
 	public int deleteMessages(String folderName, List<Long> uids) {
-		if (!this.allowDelete) {
-			throw new IllegalArgumentException("This function engine cannot delete a message. Set " + ALLOW_DELETE_KEY
-					+ " in the SMSS to allow it");
-		}
+		requireDelete();
 		return applyToMessages(folderName, uids, true,
 				(folder, messages) -> folder.setFlags(messages, new Flags(Flags.Flag.DELETED), true));
 	}
@@ -393,6 +493,16 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 			}
 		}
 		return uids;
+	}
+
+	/**
+	 * Whether this engine was told it may change the mailbox at all, which is what
+	 * decides between a read and a read write permission.
+	 *
+	 * @return true when any change is turned on
+	 */
+	protected boolean changesTheMailbox() {
+		return this.allowFlagChanges || this.allowMove || this.allowDelete || this.markAsRead;
 	}
 
 	/**
