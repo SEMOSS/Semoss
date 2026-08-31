@@ -112,6 +112,31 @@ class PlanNextPlaywrightActionReactorTest {
 	}
 
 	@Test
+	void parserMapsWebMcpIndexToRegisteredToolAndArguments() throws Exception {
+		Map<String, Object> tool = new LinkedHashMap<>();
+		tool.put("index", 0);
+		tool.put("kind", "webmcp");
+		tool.put("name", "searchProducts");
+		tool.put("title", "Search products");
+		tool.put("label", "Search products");
+		tool.put("origin", "https://example.com");
+		tool.put("inputSchema", Map.of("type", "object"));
+
+		Map<String, Object> decision = PlanNextPlaywrightActionReactor.parseDecision(
+				"{\"type\":\"webmcp\",\"index\":0,\"arguments\":{\"query\":\"laptop\"},\"reason\":\"use the site tool\"}",
+				List.of(tool));
+		Map<?, ?> action = (Map<?, ?>) decision.get("action");
+		assertEquals("webmcp", action.get("type"));
+		assertEquals("searchProducts", action.get("toolName"));
+		assertEquals("https://example.com", action.get("toolOrigin"));
+		assertEquals(Map.of("query", "laptop"), action.get("arguments"));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> PlanNextPlaywrightActionReactor.parseDecision(
+						"{\"type\":\"webmcp\",\"index\":0,\"arguments\":[]}", List.of(tool)));
+	}
+
+	@Test
 	void doneRequiresExplicitGoalReachedFlag() throws Exception {
 		Map<String, Object> complete = PlanNextPlaywrightActionReactor.parseDecision(
 				"{\"type\":\"done\",\"goalReached\":true,\"reason\":\"results are visible\"}", List.of());
