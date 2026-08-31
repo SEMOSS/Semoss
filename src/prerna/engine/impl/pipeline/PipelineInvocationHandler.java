@@ -65,6 +65,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -353,6 +355,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
+						logoutIfRequested(resultMap, args);
 						throw new SemossPixelException(blockMessageOrDefault(resultMap,
 								"Unable to process this request due to content policy (guardrail input exception)"));
 					}
@@ -496,6 +499,29 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				} catch (Exception e) {
 					// never let bookkeeping suppress the block itself
 					classLogger.error("Failed to close room after guardrail block", e);
+				}
+				return;
+			}
+		}
+	}
+
+	private void logoutIfRequested(Map<String, Object> resultMap, Object[] args) {
+		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))) {
+			return;
+		}
+		for (Object arg : args) {
+			if (arg instanceof Room) {
+				Room room = (Room) arg;
+				try {
+					User user = room.getInsight().getUser();
+					String userId = user.getPrimaryLoginToken().getId();
+					for (AuthProvider provider : new ArrayList<>(user.getLogins())) {
+						user.dropAccessToken(provider);
+					}
+					classLogger.warn("Guardrail logged out user {} after a block", userId);
+				} catch (Exception e) {
+					// never let bookkeeping suppress the block itself
+					classLogger.error("Failed to log out user after guardrail block", e);
 				}
 				return;
 			}
