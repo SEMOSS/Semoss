@@ -103,11 +103,8 @@ public final class ModelUsageRestrictionUtility {
 
 		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
 
-		// === ENGINE-SCOPE BUCKET MAP ===
-		// Merge individual engine restriction + all group restrictions by (type, frequency).
-		// Within the same bucket, keep the MAX (most permissive) limit — memberships are additive.
-		// Different (type, frequency) pairs are independent constraints that must all pass.
-		Map<String, Map<String, Object>> engineScopeBuckets = new HashMap<>();
+		// === ENGINE-SCOPE RESTRICTION ===
+		List<Map<String, Object>> allRestrictions = new ArrayList<>();
 
 		if (engineLvlRestriction != null && !engineLvlRestriction.isEmpty()) {
 			Number limit = null;
@@ -115,54 +112,22 @@ public final class ModelUsageRestrictionUtility {
 			else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction))        limit = engineLvlMaxTokens;
 			else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) limit = engineLvlMaxResponseTime;
 			if (limit != null) {
-				mergeIntoBucket(engineScopeBuckets, engineLvlRestriction, engineLvlFrequency, limit.doubleValue(), "engine", null);
+				Number currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+						engineLvlRestriction, user, engineId, currentDateTime, engineLvlFrequency);
+				if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.doubleValue() > limit.doubleValue())
+						throw new IllegalArgumentException(String.format(ENGINE_CREDIT_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
+				} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.intValue() > limit.intValue())
+						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), limit.intValue()));
+				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.doubleValue() > limit.doubleValue())
+						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
+				}
+				allRestrictions.add(buildRestrictionEntry(engineLvlRestriction, engineLvlFrequency, limit.doubleValue(), currentUsage, "engine", null));
 			} else {
 				classLogger.warn("Unknown engine level restriction type = '" + engineLvlRestriction + "' for user = " + User.getSingleLogginName(user));
 			}
-		}
-
-		List<Map<String, Object>> groupPermissions = SecurityEngineUtils.getGroupEngineUsagePermissionMap(user, engineId);
-		if (groupPermissions != null) {
-			for (Map<String, Object> groupPerm : groupPermissions) {
-				String groupRestriction = (String) groupPerm.get(Constants.GROUP_USAGE_RESTRICTION_KEY);
-				String groupFrequency   = (String) groupPerm.get(Constants.GROUP_USAGE_FREQUENCY_KEY);
-				String groupId          = (String) groupPerm.get("group_id");
-				if (groupRestriction == null || groupRestriction.isEmpty()) continue;
-				Number limit = null;
-				if      (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction))       limit = (Number) groupPerm.get(Constants.GROUP_MAX_CREDIT_KEY);
-				else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction))        limit = (Number) groupPerm.get(Constants.GROUP_MAX_TOKEN_KEY);
-				else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(groupRestriction)) limit = (Number) groupPerm.get(Constants.GROUP_MAX_RESPONSE_TIME_KEY);
-				if (limit != null) {
-					mergeIntoBucket(engineScopeBuckets, groupRestriction, groupFrequency, limit.doubleValue(), "group", groupId);
-				}
-			}
-		}
-
-		// Enforce each engine-scope bucket independently; collect results for the list
-		List<Map<String, Object>> allRestrictions = new ArrayList<>();
-
-		for (Map<String, Object> bucket : engineScopeBuckets.values()) {
-			String bType      = (String) bucket.get("type");
-			String bFrequency = (String) bucket.get("frequency");
-			double bLimit     = (Double)  bucket.get("limit");
-			String bSource    = (String) bucket.get("limitSource");
-			String bGroupId   = (String) bucket.get("limitSourceName");
-
-			Number currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
-					bType, user, engineId, currentDateTime, bFrequency);
-
-			if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
-				if (currentUsage.doubleValue() > bLimit)
-					throw new IllegalArgumentException(String.format(ENGINE_CREDIT_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), bLimit));
-			} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
-				if (currentUsage.intValue() > (int) bLimit)
-					throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), (int) bLimit));
-			} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(bType)) {
-				if (currentUsage.doubleValue() > bLimit)
-					throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), bLimit));
-			}
-
-			allRestrictions.add(buildRestrictionEntry(bType, bFrequency, bLimit, currentUsage, bSource, bGroupId));
 		}
 
 		// === USER-SCOPE RESTRICTION (cross-engine, always additive) ===
@@ -283,21 +248,6 @@ public final class ModelUsageRestrictionUtility {
 			case "YEAR":     return 3;
 			case "ALL_TIME": return 4;
 			default:         return 0;
-		}
-	}
-
-	private static void mergeIntoBucket(Map<String, Map<String, Object>> buckets,
-			String type, String frequency, double limit, String limitSource, String limitSourceName) {
-		String key = type.toLowerCase() + "|" + (frequency == null ? "" : frequency.toUpperCase());
-		Map<String, Object> existing = buckets.get(key);
-		if (existing == null || limit > (Double) existing.get("limit")) {
-			Map<String, Object> bucket = new HashMap<>();
-			bucket.put("type",            type);
-			bucket.put("frequency",       frequency);
-			bucket.put("limit",           limit);
-			bucket.put("limitSource",     limitSource);
-			bucket.put("limitSourceName", limitSourceName);
-			buckets.put(key, bucket);
 		}
 	}
 

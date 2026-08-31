@@ -3577,67 +3577,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Returns rows from GROUPENGINEPERMISSION for all groups the user belongs to
-	 * (SAML/AD + CUSTOM) that have a USAGERESTRICTION set on the given engine.
-	 * Used for PER_USER group-level budget enforcement.
-	 */
-	public static List<Map<String, Object>> getGroupEngineUsagePermissionMap(User user, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (user == null || engineId == null || engineId.trim().isEmpty()) {
-			return null;
-		}
-
-		// Build OR filter covering SAML/AD groups and CUSTOM groups for all logins
-		OrQueryFilter groupOrFilters = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider login : logins) {
-			AccessToken token = user.getAccessToken(login);
-
-			// SAML/AD groups from the access token (in-memory, set at login)
-			Collection<String> userGroups = token.getUserGroups();
-			if (!userGroups.isEmpty()) {
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-						"GROUPENGINEPERMISSION__TYPE", "==", token.getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-						"GROUPENGINEPERMISSION__ID", "==", new ArrayList<>(userGroups)));
-				groupOrFilters.addFilter(andFilter);
-			}
-
-			// CUSTOM groups from CUSTOMGROUPASSIGNMENT table
-			Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(token);
-			if (!customGroups.isEmpty()) {
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-						"GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-						"GROUPENGINEPERMISSION__ID", "==", new ArrayList<>(customGroups)));
-				groupOrFilters.addFilter(andFilter);
-			}
-		}
-
-		if (groupOrFilters.isEmpty()) {
-			return null;
-		}
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID", "group_id"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE", "group_type"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGERESTRICTION", Constants.GROUP_USAGE_RESTRICTION_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__USAGEFREQUENCY", Constants.GROUP_USAGE_FREQUENCY_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXTOKENS", Constants.GROUP_MAX_TOKEN_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXRESPONSETIME", Constants.GROUP_MAX_RESPONSE_TIME_KEY));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__MAXCREDITS", Constants.GROUP_MAX_CREDIT_KEY));
-
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(groupOrFilters);
-		// Only rows where a restriction is actually configured
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__USAGERESTRICTION", "!=", null));
-
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	}
-
-	/**
 	 * Get a list of engine IDs where USAGERESTRICTION is set (not empty or null)
 	 * 
 	 * @param user
