@@ -100,7 +100,16 @@ def reconcile_truststore() -> bool:
     ]:
         del sys.modules[name]
 
-    import truststore
+    try:
+        import truststore
+    except ImportError:
+        # Older/local SEMOSS environments can have pip-system-certs without
+        # the standalone truststore distribution. Keep the vendored injector
+        # active instead of preventing every isolated Python engine from
+        # starting. Environments with httpx2 install standalone truststore and
+        # continue through the reconciliation path below.
+        vendored.inject_into_ssl()
+        return False
 
     truststore.inject_into_ssl()
     return True
