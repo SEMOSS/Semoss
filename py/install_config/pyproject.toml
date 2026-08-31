@@ -79,7 +79,6 @@ dependencies = [
     "tqdm>=4.66.0",
     "trafilatura>=2.1.0",
     "transformers>=4.53.0",
-    "truststore>=0.10.4",
     "websocket-client>=1.9.0",
     "xlrd>=2.0.2",
 ]
