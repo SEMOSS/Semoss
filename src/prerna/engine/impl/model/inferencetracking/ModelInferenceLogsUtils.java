@@ -1495,7 +1495,7 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible. Results are grouped to one row per
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row per
 	 * room in SQL before limit/offset are applied, so pagination operates on rooms
 	 * rather than raw message rows.
 	 *
@@ -1504,7 +1504,7 @@ public class ModelInferenceLogsUtils {
 	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
 	 * @return a list of matching rooms, one row per room (room_id, room_name, and
-	 *         date_created from that room's most recent matching message)
+src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *         the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
@@ -1524,7 +1524,7 @@ public class ModelInferenceLogsUtils {
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
 				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
 
-		// JOIN, filters, grouping, and ordering
+		// JOIN, filters, deduplication, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
@@ -1542,6 +1542,7 @@ public class ModelInferenceLogsUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
 				"?like", keyword, PixelDataType.CONST_STRING));
 
+		qs.setDistinct(true);
 		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
 		if (limit > 0) {
@@ -1835,10 +1836,6 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-		// Exclude subagent rooms -- these are real Room rows (their roomId is the
-		// subagent's runId) created purely as a spawned subagent's private
-		// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
@@ -1847,6 +1844,9 @@ public class ModelInferenceLogsUtils {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
 		}
 		if (!includeChildRooms) {
+			// Exclude subagent rooms -- these are real Room rows (their roomId is the
+			// subagent's runId) created purely as a spawned subagent's private
+			// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
