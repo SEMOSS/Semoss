@@ -65,8 +65,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
-import prerna.auth.AuthProvider;
+import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -134,6 +135,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	// took
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
+	private static final String GUARDRAIL_ACTION_BLOCK_LOGOUT = "BLOCK_LOGOUT";
 	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
@@ -326,7 +328,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					// request, RESPOND when it supplied the answer itself, null when it ran clean
 					// - queryable via the GUARDRAIL_ACTION column
 					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
-							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+							: masked ? GUARDRAIL_ACTION_MASK
+							: (!pass ? (Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))
+									? GUARDRAIL_ACTION_BLOCK_LOGOUT : GUARDRAIL_ACTION_BLOCK) : null);
 
 					String request = null;
 					String response = null;
@@ -447,7 +451,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
 					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
 					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
-							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+							: masked ? GUARDRAIL_ACTION_MASK
+							: (!pass ? (Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))
+									? GUARDRAIL_ACTION_BLOCK_LOGOUT : GUARDRAIL_ACTION_BLOCK) : null);
 
 					String request = null;
 					String response = null;
@@ -465,6 +471,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					if (cannedResponse != null) {
 						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
 							closeRoomIfRequested(resultMap, args);
+							logoutIfRequested(resultMap, args);
 							throw new SemossPixelException(blockMessageOrDefault(resultMap,
 									"Unable to process this request due to content policy (guardrail output exception)"));
 						}
@@ -475,6 +482,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
+						logoutIfRequested(resultMap, args);
 						throw new SemossPixelException(blockMessageOrDefault(resultMap,
 								"Unable to process this request due to content policy (guardrail output exception)"));
 					}
@@ -509,23 +517,51 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))) {
 			return;
 		}
-		for (Object arg : args) {
-			if (arg instanceof Room) {
-				Room room = (Room) arg;
-				try {
-					User user = room.getInsight().getUser();
-					String userId = user.getPrimaryLoginToken().getId();
-					for (AuthProvider provider : new ArrayList<>(user.getLogins())) {
-						user.dropAccessToken(provider);
-					}
-					classLogger.warn("Guardrail logged out user {} after a block", userId);
-				} catch (Exception e) {
-					// never let bookkeeping suppress the block itself
-					classLogger.error("Failed to log out user after guardrail block", e);
-				}
+		try {
+			User user = resolveUser(args);
+			if (user == null) {
+				classLogger.warn("logoutOnBlock is configured but no user could be resolved from the guardrail call");
 				return;
 			}
+			if (user.isAnonymous()) {
+				classLogger.info("Guardrail block on anonymous user; nothing to log out");
+				return;
+			}
+			if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+				classLogger.warn("logoutOnBlock is configured but anonymous users are enabled; the session cannot "
+						+ "be forced to log out. Blocking only.");
+				return;
+			}
+
+			AccessToken token = user.getPrimaryLoginToken();
+			String userId = token != null ? token.getId() : null;
+
+			user.markLoggedOut("GUARDRAIL");
+			classLogger.warn("Guardrail cleared logins for user {} after a block; session will be terminated on the "
+					+ "next request", userId);
+		} catch (Exception e) {
+			// never let this suppress the block itself
+			classLogger.error("Failed to log out user after guardrail block", e);
 		}
+	}
+
+	/**
+	 * Resolves the {@link User} tied to this call, trying a {@link Room} argument first
+	 * (the {@code askRoom} path), then an {@link Insight} argument (the plain, deprecated
+	 * {@code ask} path), then falling back to {@link ThreadStore}.
+	 */
+	private User resolveUser(Object[] args) {
+		for (Object arg : args) {
+			if (arg instanceof Room) {
+				return ((Room) arg).getInsight().getUser();
+			}
+		}
+		for (Object arg : args) {
+			if (arg instanceof Insight) {
+				return ((Insight) arg).getUser();
+			}
+		}
+		return ThreadStore.getUser();
 	}
 
 	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {

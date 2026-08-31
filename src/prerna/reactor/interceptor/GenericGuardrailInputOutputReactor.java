@@ -167,6 +167,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
 
 		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
+		Boolean logoutOnBlock = helper.getConfigParameter("logoutOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
 
 		// When configured to respond (rather than block), hand the guardrail's own
@@ -178,7 +179,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		}
 
 		Map<String, Object> resultMap = createInterimResult(guardrailEngineParams, output, this.getClass().getName(),
-				closeRoomOnBlock, blockErrorMessage, cannedResponse);
+				closeRoomOnBlock, logoutOnBlock, blockErrorMessage, cannedResponse);
 
 		// Update the processedArguments with the interim result
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
@@ -202,8 +203,8 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams,
-			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, String blockErrorMessage,
-			String cannedResponse) {
+			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, Boolean logoutOnBlock,
+			String blockErrorMessage, String cannedResponse) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		resultMap.put(RETURN_PROMPT_KEY, output.getReturnPrompt());
@@ -212,6 +213,9 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		resultMap.put(PipelineReactorUtils.PASS, output.isPass());
 		if (Boolean.TRUE.equals(closeRoomOnBlock) && !output.isPass()) {
 			resultMap.put(PipelineReactorUtils.CLOSE_ROOM, true);
+		}
+		if (Boolean.TRUE.equals(logoutOnBlock) && !output.isPass() && cannedResponse == null) {
+			resultMap.put(PipelineReactorUtils.LOGOUT_USER, true);
 		}
 		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);

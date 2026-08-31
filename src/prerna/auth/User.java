@@ -225,6 +225,24 @@ public class User implements Serializable {
 		return loggedInProfiles;
 	}
 
+	/**
+	 * Clears this user's logged-in providers without touching {@code accessTokens}, so
+	 * {@link #getPrimaryLoginToken()} still returns a valid token for the rest of the
+	 * current request while {@link #isLoggedIn()} and {@link #getLogins()} report no
+	 * active session going forward. {@code NoUserInSessionFilter} on the web layer checks
+	 * exactly that on the user's next request, invalidating the session and running real
+	 * logout cleanup. Clearing {@code accessTokens} too would make
+	 * {@link #getPrimaryLoginToken()} return null immediately, which many call sites do
+	 * not null-check.
+	 *
+	 * @param reason short cause for the forced logout, for logging only
+	 */
+	public void markLoggedOut(String reason) {
+		AccessToken token = getPrimaryLoginToken();
+		classLogger.warn("Marking user {} logged out: {}", token != null ? token.getId() : "UNKNOWN", reason);
+		this.loggedInProfiles.clear();
+	}
+
 	public boolean isLoggedIn() {
 		return !this.loggedInProfiles.isEmpty();
 	}
