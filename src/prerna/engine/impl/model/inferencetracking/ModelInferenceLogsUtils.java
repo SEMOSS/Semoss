@@ -1303,6 +1303,16 @@ public class ModelInferenceLogsUtils {
 			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
 			String agentId, String insightId, String sessionId, String roomId, String userId, String userName,
 			String userEmail) {
+		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize, inputTokens,
+				outputTokens, cacheReadTokens, cacheCreationTokens, thinkingTokens, reponseTime, dateCreated, agentId,
+				insightId, sessionId, roomId, userId, userName, userEmail, null);
+	}
+
+	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
+			String messageMethod, Integer tokenSize, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
+			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
+			String agentId, String insightId, String sessionId, String roomId, String userId, String userName,
+			String userEmail, Double budgetUsed) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
@@ -1311,8 +1321,8 @@ public class ModelInferenceLogsUtils {
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
 				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
-				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID, BUDGET_USED) "
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1380,6 +1390,11 @@ public class ModelInferenceLogsUtils {
 				ps.setString(index++, userEmail);
 			} else {
 				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			if (budgetUsed != null) {
+				ps.setDouble(index++, budgetUsed);
+			} else {
+				ps.setNull(index++, java.sql.Types.DOUBLE);
 			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -2110,6 +2125,8 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_CREDIT_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(BUDGET_USED) ";
 		}
 
 		// SQL query to fetch the total tokens or response time
@@ -2199,6 +2216,8 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_CREDIT_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(BUDGET_USED) ";
 		}
 
 		// Step 4: Get total usage for the user excluding the engines in the
@@ -3615,6 +3634,12 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 				"REQUEST_IF");
 		qs.addSelector(
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, requestIf, "TOTAL_REQUESTS"));
+
+		// Total credits spent (null-safe: engines without credit rates → 0)
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
+						MESSAGE_TABLE_NAME + "BUDGET_USED", null),
+				new QueryConstantSelector(0), "TOTAL_CREDITS"));
 
 		// Filter by user ID
 		String userId = user.getPrimaryLoginToken().getId();

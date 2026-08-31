@@ -1102,7 +1102,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAXCREDITS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1147,6 +1147,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				if (thisPermissionMap.get("maxCredits") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxCredits")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}
@@ -1350,7 +1355,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION = ?, USAGEFREQUENCY = ?, MAXTOKENS = ?, MAXRESPONSETIME = ? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION = ?, USAGEFREQUENCY = ?, MAXTOKENS = ?, MAXRESPONSETIME = ?, MAXCREDITS = ? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -1398,6 +1403,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				if (thisPermissionMap.get("maxCredits") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxCredits")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}
@@ -3523,6 +3533,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", Constants.USER_MODEL_MAX_TOKEN_KEY));
 		qs.addSelector(
 				new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXCREDITS", Constants.USER_MODEL_MAX_CREDIT_KEY));
 
 		qs.addSelector(
 				new QueryColumnSelector("ENGINEPERMISSION__USAGERESTRICTION", Constants.ENGINE_USAGE_RESTRICTION_KEY));
@@ -3531,6 +3542,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXTOKENS", Constants.ENGINE_MAX_TOKEN_KEY));
 		qs.addSelector(
 				new QueryColumnSelector("ENGINEPERMISSION__MAXRESPONSETIME", Constants.ENGINE_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXCREDITS", Constants.ENGINE_MAX_CREDIT_KEY));
 
 		// filter to the engine
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
@@ -3541,6 +3553,27 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Returns the user-level model restriction fields from SMSS_USER only (no engine join).
+	 * Used when checking usage limits without a specific engine context.
+	 */
+	public static Map<String, Object> getUserLevelRestrictionMap(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (user == null) {
+			return null;
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION", Constants.USER_USAGE_RESTRICTION_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY", Constants.USER_MODEL_USAGE_FREQUENCY_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", Constants.USER_MODEL_MAX_TOKEN_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXCREDITS", Constants.USER_MODEL_MAX_CREDIT_KEY));
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userDetails.getValue0()));
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return (results != null && !results.isEmpty()) ? results.get(0) : null;
 	}
 
 	/**

@@ -201,6 +201,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXCREDITS", "model_max_credits"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "LOCKED", "locked"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
@@ -251,6 +252,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGERESTRICTION", "model_usage_restriction"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXTOKENS", "model_max_tokens"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXRESPONSETIME", "model_max_response_time"));
+		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELMAXCREDITS", "model_max_credits"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "MODELUSAGEFREQUENCY", "model_usage_frequency"));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_PREFIX + "DATECREATED", "date_created"));
 		qs.addOrderBy(new QueryColumnOrderBySelector(SMSS_USER_PREFIX + "NAME"));
@@ -915,6 +917,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				throw new IllegalArgumentException("model_max_response_time must be a valid double value");
 			}
 		}
+		Double modelMaxCredits = null;
+		if (userInfo.get("model_max_credits") != null) {
+			try {
+				modelMaxCredits = ((Number) userInfo.get("model_max_credits")).doubleValue();
+			} catch (ClassCastException e) {
+				classLogger.error("Failed to update user account information in the security database", e);
+				throw new IllegalArgumentException("model_max_credits must be a valid double value");
+			}
+		}
 		// the boolean values
 		Boolean adminValue = Boolean.FALSE;
 		if (userInfo.containsKey("admin")) {
@@ -1010,11 +1021,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (updatePassword) {
 			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
 					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
-					"MODELUSAGEFREQUENCY", "PASSWORD", "SALT" };
+					"MODELMAXCREDITS", "MODELUSAGEFREQUENCY", "PASSWORD", "SALT" };
 		} else {
 			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
 					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
-					"MODELUSAGEFREQUENCY" };
+					"MODELMAXCREDITS", "MODELUSAGEFREQUENCY" };
 		}
 
 		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
@@ -1047,6 +1058,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				editUserPs.setNull(i++, java.sql.Types.DOUBLE);
 			} else {
 				editUserPs.setDouble(i++, modelMaxResponseTime);
+			}
+			if (modelMaxCredits == null) {
+				editUserPs.setNull(i++, java.sql.Types.DOUBLE);
+			} else {
+				editUserPs.setDouble(i++, modelMaxCredits);
 			}
 			if (modelUsageFrequency == null || (modelUsageFrequency = modelUsageFrequency.trim()).isEmpty()) {
 				editUserPs.setNull(i++, java.sql.Types.VARCHAR);
@@ -1944,7 +1960,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAXCREDITS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(insertQ);
@@ -1989,6 +2005,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				if (thisPermissionMap.get("maxCredits") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxCredits")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}
@@ -2777,7 +2798,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
+		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAXCREDITS=? WHERE USERID = ? AND ENGINEID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(updateQ);
@@ -2820,6 +2841,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				if (thisPermissionMap.get("maxCredits") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxCredits")).doubleValue());
 				} else {
 					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}

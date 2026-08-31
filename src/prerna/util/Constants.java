@@ -1,30 +1,3 @@
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *
- * If your use of this software does not include any GPLv2 components:
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
- *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
- *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
 package prerna.util;
 
 /**
@@ -1026,13 +999,16 @@ public class Constants {
 	public static final String ENGINE_USAGE_FREQUENCY_KEY = "engine_usage_frequency";
 	public static final String ENGINE_MAX_TOKEN_KEY = "engine_max_token";
 	public static final String ENGINE_MAX_RESPONSE_TIME_KEY = "engine_max_response_time";
+	public static final String ENGINE_MAX_CREDIT_KEY = "engine_max_credit";
 	public static final String USER_USAGE_RESTRICTION_KEY = "user_model_usage_restriction";
 	public static final String USER_MODEL_USAGE_FREQUENCY_KEY = "user_model_usage_frequency";
 	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
 	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
+	public static final String USER_MODEL_MAX_CREDIT_KEY = "user_model_max_credit";
 	// model restriction types
 	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
 	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
+	public static final String MODEL_CREDIT_RESTRICTION_VALUE = "credit";
 
 	// External Permission Management
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
